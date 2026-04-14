@@ -19,6 +19,24 @@ export const hivelocityPricingSettings = pgTable(
     fixedMargin: text("fixed_margin"),
     roundOff: text("round_off"),
 
+    /**
+     * OS (Operating System) markup: applied to OS license monthly price (USD) before conversion.
+     * Stored separately so OS licensing can have different margin than base plan.
+     */
+    osMarginType: text("os_margin_type"), // PERCENTAGE | FIXED
+    osPercentageMargin: text("os_percentage_margin"),
+    osFixedMargin: text("os_fixed_margin"),
+    osRoundOff: text("os_round_off"),
+
+    /**
+     * Add-ons markup: applied to each add-on monthly price (USD) before conversion.
+     * Stored separately so add-ons can have different margin than base plan.
+     */
+    addonsMarginType: text("addons_margin_type"), // PERCENTAGE | FIXED
+    addonsPercentageMargin: text("addons_percentage_margin"),
+    addonsFixedMargin: text("addons_fixed_margin"),
+    addonsRoundOff: text("addons_round_off"),
+
     isDefault: boolean("is_default").default(false).notNull(),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),

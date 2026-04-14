@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Link } from "react-router";
-import { HelpCircle, Check, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
+import { HelpCircle, Check, CheckCircle2, XCircle, ExternalLink, Server, ShieldCheck, Trash2 } from "lucide-react";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import { Label } from "@/components/ui/label";
 import {
@@ -35,9 +35,11 @@ import {
 	AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { trpc, type RouterInputs } from "@/utils/trpc";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { toast } from "@/components/ui/sonner";
+import { useCartStore } from "@/stores/cart-store";
 
 export interface ServicePlanDetails {
   planId: string;
@@ -49,6 +51,13 @@ export interface ServicePlanDetails {
   billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
   /** Required for creating Nisc order from payment (product table flow). */
   productId?: string;
+  hivelocity?: {
+    productType: "DEDICATED_SERVERS" | "VPS" | "VDS";
+    hivelocityProductId: number;
+    locationName: string;
+    baseMonthlyUsd: number;
+    baseHourlyUsd: number;
+  };
 }
 
 interface BuyNowDialogProps {
@@ -61,9 +70,11 @@ interface BuyNowDialogProps {
   teamId?: string;
   /** When set, show a "Need a domain? Buy one" CTA in the domain step (e.g. `/${teamSlug}/domains`) */
   buyDomainHref?: string;
+  /** If "add_to_cart", dialog stops at review and saves configured item to cart. */
+  intent?: "buy_now" | "add_to_cart";
 }
 
-type Step = "domain" | "review" | "payment" | "success" | "error";
+type Step = "domain" | "hivelocity_config" | "review" | "payment" | "success" | "error";
 
 /** Validate domain format: hostname with at least one dot, valid chars, TLD 2+ chars */
 function isValidDomain(value: string): boolean {
@@ -109,6 +120,32 @@ const formatPrice = (price?: number, currency?: string) => {
   }
 };
 
+function encodeNumber(n: unknown): number {
+  const v = typeof n === "number" ? n : Number(n);
+  return Number.isFinite(v) ? v : 0;
+}
+
+function StepPill({ active, done, label }: { active: boolean; done: boolean; label: string }) {
+  return (
+    <div
+      className={[
+        "flex items-center gap-2 rounded-full border px-3 py-1 text-xs",
+        active ? "border-primary bg-primary/5 text-foreground" : done ? "border-emerald-500/40 bg-emerald-500/10 text-foreground" : "text-muted-foreground",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold",
+          active ? "bg-primary text-primary-foreground" : done ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground",
+        ].join(" ")}
+      >
+        {done ? "✓" : "•"}
+      </span>
+      <span className="whitespace-nowrap">{label}</span>
+    </div>
+  );
+}
+
 export function BuyNowDialog({
   open,
   onOpenChange,
@@ -116,9 +153,13 @@ export function BuyNowDialog({
   requireDomainStep = false,
   teamId,
   buyDomainHref,
+  intent = "buy_now",
 }: BuyNowDialogProps) {
+  const isHivelocityPlan = Boolean(plan?.hivelocity);
   const showDomainStep = !!requireDomainStep && !!teamId;
-  const initialStep: Step = showDomainStep ? "domain" : "review";
+  const initialStep: Step = showDomainStep ? "domain" : isHivelocityPlan ? "hivelocity_config" : "review";
+
+  const { addHivelocity } = useCartStore();
 
   const [currentStep, setCurrentStep] = React.useState<Step>(initialStep);
   const [couponCode, setCouponCode] = React.useState("");
@@ -140,6 +181,297 @@ export function BuyNowDialog({
   const effectiveDomain =
     selectedDomain?.domainName ?? (manualDomainValid ? manualDomain.trim().toLowerCase() : null);
   const canProceedFromDomain = !!effectiveDomain;
+
+  // Hivelocity configuration step state
+  const [hostname, setHostname] = React.useState("");
+  const [selectedOsId, setSelectedOsId] = React.useState<string>("");
+  const [selectedOptionIds, setSelectedOptionIds] = React.useState<string[]>([]);
+
+  const hivelocityOsQuery = trpc.hivelocity.getProductOperatingSystems.useQuery(
+    { productId: plan?.hivelocity?.hivelocityProductId ?? 0 },
+    { enabled: open && isHivelocityPlan && !!plan?.hivelocity?.hivelocityProductId }
+  );
+  const hivelocityOptionsQuery = trpc.hivelocity.getProductOptions.useQuery(
+    { productId: plan?.hivelocity?.hivelocityProductId ?? 0, groupBy: "upgrade" },
+    { enabled: open && isHivelocityPlan && !!plan?.hivelocity?.hivelocityProductId }
+  );
+
+  const hivelocityPricing = trpc.hivelocityPricingSettings.get.useQuery(
+    { productType: plan?.hivelocity?.productType ?? "DEDICATED_SERVERS" },
+    { enabled: open && isHivelocityPlan }
+  );
+  const ratesQuery = trpc.currency.getExchangeRates.useQuery(
+    { baseCurrency: "USD" },
+    { enabled: open && isHivelocityPlan }
+  );
+
+  const hivelocityMarkupFlags = React.useMemo(() => {
+    const s = hivelocityPricing.data?.success ? (hivelocityPricing.data.data as any) : null;
+    return {
+      base: Boolean(s?.marginType),
+      os: Boolean(s?.osMarginType),
+      addons: Boolean(s?.addonsMarginType),
+    };
+  }, [hivelocityPricing.data]);
+
+  const usdToKesRate = React.useMemo(() => {
+    const r = ratesQuery.data;
+    if (!r?.success) return null;
+    const rate = (r.data?.rates as Record<string, number> | undefined)?.KES;
+    return typeof rate === "number" && Number.isFinite(rate) ? rate : null;
+  }, [ratesQuery.data]);
+
+  const formatUsdOrKes = React.useCallback(
+    (usdAmount: number) => {
+      if (plan?.currency === "KES" && usdToKesRate) return formatPrice(usdAmount * usdToKesRate, "KES");
+      return formatPrice(usdAmount, "USD");
+    },
+    [plan?.currency, usdToKesRate],
+  );
+
+  const formatOriginalUsdAndKes = React.useCallback(
+    (usdAmount: number) => {
+      const usd = formatPrice(usdAmount, "USD");
+      const kes = usdToKesRate ? formatPrice(usdAmount * usdToKesRate, "KES") : null;
+      return { usd, kes };
+    },
+    [usdToKesRate],
+  );
+
+  const describeProvisioningFeature = React.useCallback((key: "sshKey" | "cloudInit" | "postInstall") => {
+    switch (key) {
+      case "sshKey":
+        return "Allows SSH public keys to be injected during provisioning (recommended).";
+      case "cloudInit":
+        return "Supports Cloud-init configuration at first boot (automation-friendly).";
+      case "postInstall":
+        return "Supports running a post-install script after provisioning.";
+    }
+  }, []);
+
+  const renderProvisioningFeatureBadges = React.useCallback(
+    (features: any) => {
+      const f = features ?? {};
+      const items: Array<{ key: "sshKey" | "cloudInit" | "postInstall"; label: string }> = [
+        { key: "sshKey", label: "SSH keys" },
+        { key: "cloudInit", label: "Cloud-init" },
+        { key: "postInstall", label: "Script" },
+      ];
+      const enabled = items.filter((it) => Boolean(f?.[it.key]));
+      if (enabled.length === 0) return <Badge variant="outline" className="rounded-full">Basic</Badge>;
+      return (
+        <>
+          {enabled.map((it) => (
+            <Badge key={it.key} variant="secondary" className="rounded-full" title={describeProvisioningFeature(it.key)}>
+              {it.label}
+            </Badge>
+          ))}
+        </>
+      );
+    },
+    [describeProvisioningFeature],
+  );
+
+  const applyMarginFor = React.useCallback(
+    (bucket: "base" | "os" | "addons", priceUsd: number) => {
+      const s = hivelocityPricing.data?.success ? (hivelocityPricing.data.data as any) : null;
+      if (!s || !Number.isFinite(priceUsd)) return priceUsd;
+
+      const prefix = bucket === "base" ? "" : bucket === "os" ? "os" : "addons";
+      // For base: MarginType/PercentageMargin/FixedMargin/RoundOff map to marginType/percentageMargin/fixedMargin/roundOff
+      const marginType = prefix ? (s[`${prefix}MarginType`] ?? null) : (s.marginType ?? null);
+      const percentageMargin = prefix ? (s[`${prefix}PercentageMargin`] ?? null) : (s.percentageMargin ?? null);
+      const fixedMargin = prefix ? (s[`${prefix}FixedMargin`] ?? null) : (s.fixedMargin ?? null);
+      const roundOff = prefix ? (s[`${prefix}RoundOff`] ?? null) : (s.roundOff ?? null);
+
+      let final = priceUsd;
+      if (marginType === "PERCENTAGE" && percentageMargin) {
+        const p = Number.parseFloat(percentageMargin);
+        if (Number.isFinite(p)) final = priceUsd + (priceUsd * p) / 100;
+      } else if (marginType === "FIXED" && fixedMargin) {
+        const f = Number.parseFloat(fixedMargin);
+        if (Number.isFinite(f)) final = priceUsd + f;
+      }
+      if (roundOff) {
+        const ro = Number.parseFloat(roundOff);
+        if (Number.isFinite(ro) && ro > 0) final = Math.ceil(final / ro) * ro;
+      }
+      return final;
+    },
+    [hivelocityPricing.data],
+  );
+
+  const selectedOs = React.useMemo(() => {
+    const rows = hivelocityOsQuery.data?.success ? (hivelocityOsQuery.data.data as any[]) : [];
+    return rows.find((os) => String(os.id) === selectedOsId) ?? null;
+  }, [hivelocityOsQuery.data, selectedOsId]);
+
+  const selectedOsFeatures = React.useMemo(() => {
+    return (selectedOs?.operatingSystemFeatures ?? {}) as {
+      sshKey?: boolean;
+      postInstall?: boolean;
+      cloudInit?: boolean;
+    };
+  }, [selectedOs]);
+
+  const allProductOptions = React.useMemo(() => {
+    const data = hivelocityOptionsQuery.data?.success ? (hivelocityOptionsQuery.data.data as Record<string, any[]>) : {};
+    return Object.values(data || {}).flat();
+  }, [hivelocityOptionsQuery.data]);
+
+  const optionGroupById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    const data = hivelocityOptionsQuery.data?.success ? (hivelocityOptionsQuery.data.data as Record<string, any[]>) : {};
+    for (const [group, rows] of Object.entries(data || {})) {
+      for (const r of rows ?? []) {
+        const id = String((r as any)?.id ?? "");
+        if (!id) continue;
+        if (!map.has(id)) map.set(id, group);
+      }
+    }
+    return map;
+  }, [hivelocityOptionsQuery.data]);
+
+  const selectedOptions = React.useMemo(() => {
+    const data = hivelocityOptionsQuery.data?.success ? (hivelocityOptionsQuery.data.data as Record<string, any[]>) : {};
+    const all = Object.values(data || {}).flat();
+    return all.filter((opt: any) => selectedOptionIds.includes(String(opt.id)));
+  }, [hivelocityOptionsQuery.data, selectedOptionIds]);
+
+  const getAddonOsCompatibilityReason = React.useCallback(
+    (addon: any, groupName?: string) => {
+      if (!selectedOs) return null; // until OS is selected, don't guess compatibility here
+
+      // Managed services: Windows detection based on OS name (no distro list).
+      const g = String(groupName ?? "").trim().toLowerCase();
+      if (g.includes("managed service")) {
+        const osName = String(selectedOs?.name ?? "").toLowerCase();
+        const isWindowsOs = osName.includes("windows");
+        const addonName = String(addon?.name ?? "").toLowerCase();
+        const isWindowsAddon = addonName.includes("windows");
+
+        if (isWindowsOs && !isWindowsAddon) {
+          return `Unavailable for ${selectedOs?.name ?? "Windows OS"}: only managed services with “Windows” in the name are supported.`;
+        }
+        if (!isWindowsOs && isWindowsAddon) {
+          return `Unavailable for ${selectedOs?.name ?? "selected OS"}: Windows managed services require a Windows OS.`;
+        }
+      }
+
+      const req = (addon?.operatingSystemFeatures ?? null) as
+        | { sshKey?: boolean; postInstall?: boolean; cloudInit?: boolean }
+        | null;
+      if (!req) return null;
+
+      const osF = selectedOsFeatures ?? {};
+      const missing: string[] = [];
+
+      if (req.sshKey === true && osF.sshKey !== true) missing.push("SSH keys");
+      if (req.cloudInit === true && osF.cloudInit !== true) missing.push("Cloud-init");
+      if (req.postInstall === true && osF.postInstall !== true) missing.push("Post-install scripts");
+
+      if (!missing.length) return null;
+
+      const osName = String(selectedOs?.name ?? "selected OS");
+      return `Unavailable for ${osName}: requires ${missing.join(", ")} support.`;
+    },
+    [selectedOs, selectedOsFeatures],
+  );
+
+  const getGroupSelectionMode = React.useCallback((groupName: string, rows: any[]) => {
+    const g = String(groupName ?? "").trim().toLowerCase();
+    // Known mutually-exclusive categories (selecting one should unselect others).
+    const singleGroups = [
+      "data center",
+      "datacenter",
+      "location",
+      "facility",
+      "region",
+      "control panel",
+      "daily backup",
+      "backup",
+      "data migration",
+      "migration",
+      "chassis upgrade",
+      "bandwidth",
+      "ip address",
+      "ip addresses",
+    ];
+    if (singleGroups.some((k) => g.includes(k))) {
+      return "single" as const;
+    }
+    // Heuristic: if all options look like locations (common tags), force single-select.
+    const locationTagHints = ["facility", "datacenter", "data_center", "location", "region"];
+    const looksLikeLocation = rows.some((r) => {
+      const tags: string[] = Array.isArray(r?.tags) ? r.tags : [];
+      const t = tags.join(" ").toLowerCase();
+      return locationTagHints.some((h) => t.includes(h));
+    });
+    if (looksLikeLocation) return "single" as const;
+    return "multi" as const;
+  }, []);
+
+  // If OS changes, auto-remove any previously selected add-ons that became incompatible.
+  React.useEffect(() => {
+    if (!open || !isHivelocityPlan) return;
+    if (!selectedOs) return;
+    if (!selectedOptionIds.length) return;
+
+    const incompatible = new Set<string>();
+    for (const opt of allProductOptions) {
+      const id = String(opt?.id ?? "");
+      if (!id) continue;
+      if (!selectedOptionIds.includes(id)) continue;
+      const groupName = optionGroupById.get(id);
+      const reason = getAddonOsCompatibilityReason(opt, groupName);
+      if (reason) incompatible.add(id);
+    }
+
+    if (!incompatible.size) return;
+
+    setSelectedOptionIds((prev) => prev.filter((id) => !incompatible.has(id)));
+    toast.message("Some add-ons were removed", {
+      description: "They’re not compatible with the selected operating system.",
+    });
+  }, [
+    allProductOptions,
+    getAddonOsCompatibilityReason,
+    isHivelocityPlan,
+    open,
+    optionGroupById,
+    selectedOs,
+    selectedOptionIds.length,
+    selectedOsId,
+  ]);
+
+  const hostnameValid = React.useMemo(() => {
+    if (!hostname.trim()) return false;
+    return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(hostname.trim());
+  }, [hostname]);
+
+  const canProceedFromHivelocityConfig = Boolean(selectedOs) && hostnameValid;
+
+  const [osSearch, setOsSearch] = React.useState("");
+  const filteredOs = React.useMemo(() => {
+    const rows = hivelocityOsQuery.data?.success ? (hivelocityOsQuery.data.data as any[]) : [];
+    const q = osSearch.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((os) => String(os?.name ?? "").toLowerCase().includes(q));
+  }, [hivelocityOsQuery.data, osSearch]);
+
+  const osPriceUsd = encodeNumber(selectedOs?.monthlyPrice);
+  const addonsPriceUsd = React.useMemo(() => selectedOptions.reduce((s, o) => s + encodeNumber(o?.monthlyPrice), 0), [selectedOptions]);
+  const addonsCount = selectedOptions.length;
+  const extrasUsd = osPriceUsd + addonsPriceUsd;
+  const extrasMarginedUsd = React.useMemo(
+    () => applyMarginFor("os", osPriceUsd) + applyMarginFor("addons", addonsPriceUsd),
+    [applyMarginFor, osPriceUsd, addonsPriceUsd],
+  );
+  const extrasDisplay = React.useMemo(() => {
+    if (!plan?.hivelocity) return 0;
+    if (plan.currency === "KES" && usdToKesRate) return extrasMarginedUsd * usdToKesRate;
+    return extrasMarginedUsd;
+  }, [extrasMarginedUsd, plan?.hivelocity, plan?.currency, usdToKesRate]);
 
   // Payment state
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string | null>(null);
@@ -166,22 +498,35 @@ export function BuyNowDialog({
   // Calculate pricing using useMemo to ensure proper reactivity
   const pricing = React.useMemo(() => {
     const basePrice = plan?.price || 0;
-    const taxes = basePrice * 0.16; // 16% VAT
+    const osMonthlyUsd = selectedOs?.monthlyPrice ? encodeNumber(selectedOs.monthlyPrice) : 0;
+    const optionsMonthlyUsd = selectedOptions.reduce((sum, opt) => sum + encodeNumber(opt?.monthlyPrice), 0);
+    const hivelocityExtrasDisplay = plan?.hivelocity
+      ? (() => {
+          const extrasMargined = applyMarginFor("os", osMonthlyUsd) + applyMarginFor("addons", optionsMonthlyUsd);
+          if (plan.currency === "KES" && usdToKesRate) return extrasMargined * usdToKesRate;
+          return extrasMargined;
+        })()
+      : 0;
+    const effectiveBasePrice = basePrice + hivelocityExtrasDisplay;
+    const taxes = effectiveBasePrice * 0.16; // 16% VAT
     const couponDiscount = 0; // TODO: Implement coupon validation
-    const subtotal = basePrice - couponDiscount;
+    const subtotal = effectiveBasePrice - couponDiscount;
     const total = subtotal + taxes;
     const displayCurrency = plan?.currency || "KES";
     
-    return { basePrice, taxes, couponDiscount, subtotal, total, displayCurrency };
-  }, [plan]);
+    return { basePrice: effectiveBasePrice, taxes, couponDiscount, subtotal, total, displayCurrency };
+  }, [plan, selectedOs, selectedOptions, usdToKesRate, applyMarginFor]);
 
   // Reset state when dialog opens/closes
   React.useEffect(() => {
     if (open && plan) {
-      const first = showDomainStep ? "domain" : "review";
+      const first: Step = showDomainStep ? "domain" : plan.hivelocity ? "hivelocity_config" : "review";
       setCurrentStep(first);
       setManualDomain("");
       setSelectedDomainId(null);
+      setHostname("");
+      setSelectedOsId("");
+      setSelectedOptionIds([]);
       setCouponCode("");
       setShowCouponInput(false);
       setSelectedPaymentMethod(null);
@@ -341,6 +686,7 @@ export function BuyNowDialog({
   // When payment step reaches success and we have plan+team+domain, create order and send to processing (once per checkout)
   React.useEffect(() => {
     if (currentStep !== "success" || !checkoutRequestId || !plan?.productId || !teamId) return;
+    if (plan.hivelocity) return;
     if (showDomainStep && !effectiveDomain) return;
     if (orderCreatedForCheckoutRef.current === checkoutRequestId) return;
 
@@ -362,6 +708,13 @@ export function BuyNowDialog({
       ],
     });
   }, [currentStep, checkoutRequestId, plan, teamId, showDomainStep, effectiveDomain, createOrderFromPayment]);
+
+  React.useEffect(() => {
+    if (currentStep !== "success" || !checkoutRequestId || !plan?.hivelocity) return;
+    if (orderCreatedForCheckoutRef.current === checkoutRequestId) return;
+    orderCreatedForCheckoutRef.current = checkoutRequestId;
+    toast.success("Payment received. Order will be processed shortly.");
+  }, [currentStep, checkoutRequestId, plan]);
 
   // Poll payment status ?? real-time only, no cache
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
@@ -486,7 +839,48 @@ export function BuyNowDialog({
   const handleNext = () => {
     if (currentStep === "domain") {
       setCurrentStep("review");
+    } else if (currentStep === "hivelocity_config") {
+      setCurrentStep("review");
     } else if (currentStep === "review") {
+      if (intent === "add_to_cart" && plan?.hivelocity) {
+        const currency = pricing.displayCurrency;
+        const osDisplay = osPriceUsd > 0
+          ? plan.currency === "KES" && usdToKesRate
+            ? applyMarginFor("os", osPriceUsd) * usdToKesRate
+            : applyMarginFor("os", osPriceUsd)
+          : 0;
+
+        addHivelocity({
+          productType: plan.hivelocity.productType,
+          planName: plan.planName,
+          planType: plan.planType,
+          billingCycle: plan.billingCycle,
+          currency,
+          basePrice: plan.price,
+          hostname: hostname.trim(),
+          locationName: plan.hivelocity.locationName,
+          hivelocityProductId: plan.hivelocity.hivelocityProductId,
+          os: selectedOs
+            ? { id: String(selectedOs.id), name: String(selectedOs.name), price: osDisplay }
+            : null,
+          addons: selectedOptions.map((opt: any) => {
+            const id = String(opt?.id ?? "");
+            const priceUsd = encodeNumber(opt?.monthlyPrice);
+            const display = priceUsd > 0
+              ? plan.currency === "KES" && usdToKesRate
+                ? applyMarginFor("addons", priceUsd) * usdToKesRate
+                : applyMarginFor("addons", priceUsd)
+              : 0;
+            const group = optionGroupById.get(id);
+            return { id, name: String(opt?.name ?? "Add-on"), price: display, group: group ?? undefined };
+          }),
+          totalPrice: pricing.basePrice,
+        });
+        toast.success("Added to cart");
+        onOpenChange(false);
+        return;
+      }
+
       setCurrentStep("payment");
       setPaymentAmount(pricing.total.toString());
     }
@@ -497,6 +891,8 @@ export function BuyNowDialog({
       setCurrentStep("review");
     } else if (currentStep === "review" && showDomainStep) {
       setCurrentStep("domain");
+    } else if (currentStep === "review" && isHivelocityPlan) {
+      setCurrentStep("hivelocity_config");
     }
   };
 
@@ -616,6 +1012,384 @@ export function BuyNowDialog({
           </div>
         );
 
+      case "hivelocity_config":
+        const groupedOptions = hivelocityOptionsQuery.data?.success
+          ? (hivelocityOptionsQuery.data.data as Record<string, any[]>)
+          : {};
+        const groupedOptionsWithoutOs = Object.fromEntries(
+          Object.entries(groupedOptions).filter(([group]) => group.trim().toLowerCase() !== "operating system"),
+        );
+        return (
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-muted/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Server className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold line-clamp-1">{plan.planName}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{plan.planType}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant="outline" className="rounded-full">
+                      Location: {plan.hivelocity?.locationName}
+                    </Badge>
+                    <Badge variant="destructive" className="rounded-full">
+                      OS required
+                    </Badge>
+                    <Badge variant="outline" className="rounded-full">
+                      Hostname required
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <p className="text-xs text-muted-foreground">Monthly price</p>
+                  <p className="text-base font-semibold">{formatPrice(plan.price, plan.currency)}</p>
+                  {extrasDisplay > 0 ? (
+                    <p className="text-xs text-emerald-600 mt-1">+ {formatPrice(extrasDisplay, plan.currency)} extras</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1">No extras selected</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Operating system</p>
+                    <p className="text-xs text-muted-foreground">Choose one to continue</p>
+                  </div>
+                  <div className="w-48">
+                    <Input
+                      placeholder="Search OS..."
+                      value={osSearch}
+                      onChange={(e) => setOsSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {hivelocityOsQuery.isLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Spinner variant="ellipsis" size={36} className="text-primary" />
+                  </div>
+                ) : hivelocityOsQuery.isError ? (
+                  <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                    Failed to load operating systems.
+                  </div>
+                ) : (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {filteredOs.map((os) => {
+                      const id = String(os.id);
+                      const active = id === selectedOsId;
+                      const priceUsd = encodeNumber(os.monthlyPrice);
+                      const displayUsd = applyMarginFor("os", priceUsd);
+                      const features = os.operatingSystemFeatures ?? {};
+                      const tags: string[] = Array.isArray((os as any)?.tags) ? ((os as any).tags as string[]) : [];
+                      const showOriginal = hivelocityMarkupFlags.os && Math.abs(displayUsd - priceUsd) > 1e-9;
+                      const original = formatOriginalUsdAndKes(priceUsd);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setSelectedOsId(id)}
+                          className={[
+                            "text-left rounded-xl border p-3 transition",
+                            active ? "border-primary bg-primary/5" : "hover:border-primary/40",
+                          ].join(" ")}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold line-clamp-1">{os.name}</p>
+                              <p className="text-sm font-semibold text-primary mt-1">
+                                {priceUsd > 0 ? `${formatUsdOrKes(displayUsd)} /mo` : "Free"}
+                              </p>
+                              {priceUsd > 0 && showOriginal ? (
+                                <div className="mt-1 text-[11px] text-emerald-600">
+                                  <div>Original: {original.usd}</div>
+                                  {original.kes ? <div>Original (KES): {original.kes}</div> : null}
+                                </div>
+                              ) : null}
+                            </div>
+                            {active ? (
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                                ✓
+                              </div>
+                            ) : (
+                              <div className="h-6 w-6 rounded-full border bg-muted/40" />
+                            )}
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {renderProvisioningFeatureBadges(features)}
+                          </div>
+
+                          {tags.length ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {tags.slice(0, 6).map((t) => (
+                                <Badge key={t} variant="outline" className="rounded-full">
+                                  {t}
+                                </Badge>
+                              ))}
+                              {tags.length > 6 ? (
+                                <Badge variant="outline" className="rounded-full">
+                                  +{tags.length - 6} more
+                                </Badge>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border p-4">
+                <p className="text-sm font-semibold">Hostname</p>
+                <p className="text-xs text-muted-foreground">A fully qualified domain name (FQDN)</p>
+                <div className="mt-3 relative">
+                  <Input
+                    id="hivelocity-hostname"
+                    type="text"
+                    placeholder="e.g. server.example.com"
+                    value={hostname}
+                    onChange={(e) => setHostname(e.target.value)}
+                    className={`pr-10 ${hostname.trim() ? (hostnameValid ? "border-green-500 focus-visible:ring-green-500" : "border-destructive focus-visible:ring-destructive") : ""}`}
+                  />
+                  {hostname.trim() ? (
+                    hostnameValid ? (
+                      <CheckCircle2 className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" aria-hidden />
+                    ) : (
+                      <XCircle className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-destructive" aria-hidden />
+                    )
+                  ) : null}
+                </div>
+                {!hostname.trim() ? (
+                  <p className="text-xs text-muted-foreground mt-2">Required for provisioning.</p>
+                ) : hostnameValid ? (
+                  <p className="text-xs text-green-600 mt-2">Looks good.</p>
+                ) : (
+                  <p className="text-xs text-destructive mt-2">Enter a valid FQDN (e.g. server.example.com)</p>
+                )}
+
+                <p className="text-xs text-muted-foreground mt-3">
+                  Need a domain for your hostname?{" "}
+                  <Link
+                    to={buyDomainHref ?? "/agency/domains"}
+                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    Buy a domain
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </p>
+              </div>
+
+              <div className="rounded-xl border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Add-ons (optional)</p>
+                    <p className="text-xs text-muted-foreground">Select extras to reflect the true total</p>
+                  </div>
+                  <Badge variant="outline" className="rounded-full">{addonsCount} selected</Badge>
+                </div>
+
+                <div className="mt-3">
+                  {Object.entries(groupedOptionsWithoutOs).length === 0 ? (
+                    <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
+                      {hivelocityOptionsQuery.isLoading ? "Loading options..." : "No add-ons available for this product."}
+                    </div>
+                  ) : (
+                    <Accordion type="multiple" className="w-full">
+                      {Object.entries(groupedOptionsWithoutOs).map(([group, rows]) => (
+                        (() => {
+                          const selectionMode = getGroupSelectionMode(group, rows as any[]);
+                          const groupOptionIds = new Set((rows as any[]).map((r) => String(r?.id ?? "")).filter(Boolean));
+                          const selectedInGroupCount = (rows as any[]).filter((r) => selectedOptionIds.includes(String(r.id))).length;
+                          return (
+                        <AccordionItem key={group} value={group} className="border rounded-lg mb-2">
+                          <AccordionTrigger className="px-3 py-3 hover:no-underline">
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{group}</span>
+                                {selectionMode === "single" ? (
+                                  <Badge variant="secondary" className="rounded-full">Choose one</Badge>
+                                ) : null}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {selectionMode === "single"
+                                  ? `${selectedInGroupCount}/1 selected`
+                                  : `${selectedInGroupCount} selected`}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-3 pb-3">
+                            <div className="space-y-2">
+                              {rows.map((opt: any) => {
+                                const optionId = String(opt.id);
+                                const checked = selectedOptionIds.includes(optionId);
+                                const priceUsd = encodeNumber(opt.monthlyPrice);
+                                const displayUsd = applyMarginFor("addons", priceUsd);
+                                const tags: string[] = Array.isArray(opt?.tags) ? (opt.tags as string[]) : [];
+                                const expressions: string[] = Array.isArray(opt?.expressions) ? (opt.expressions as string[]) : [];
+                                const features = opt?.operatingSystemFeatures ?? null;
+                                const showOriginal = hivelocityMarkupFlags.addons && Math.abs(displayUsd - priceUsd) > 1e-9;
+                                const original = formatOriginalUsdAndKes(priceUsd);
+                                const disabledReason = getAddonOsCompatibilityReason(opt, group);
+                                const disabled = Boolean(disabledReason);
+                                const optNameLower = String(opt?.name ?? "").toLowerCase();
+                                const isManagedServices = String(group ?? "").toLowerCase().includes("managed service");
+                                const isCpanelOrWhm = optNameLower.includes("cpanel") || optNameLower.includes("c-panel") || optNameLower.includes("whm");
+                                return (
+                                  <button
+                                    key={optionId}
+                                    type="button"
+                                    onClick={() =>
+                                      {
+                                        if (disabled) {
+                                          toast.error("Add-on unavailable", { description: disabledReason ?? "Not compatible with selected OS." });
+                                          return;
+                                        }
+                                        setSelectedOptionIds((prev) => {
+                                          if (selectionMode === "single") {
+                                            // Unselect other options in this group, then toggle this one.
+                                            const withoutGroup = prev.filter((id) => !groupOptionIds.has(id));
+                                            return checked ? withoutGroup : [...withoutGroup, optionId];
+                                          }
+                                          if (isManagedServices && isCpanelOrWhm) {
+                                            // Within Managed Services, cPanel/WHM options are mutually exclusive.
+                                            const cpanelWhmIds = new Set(
+                                              (rows as any[])
+                                                .filter((r) => {
+                                                  const n = String((r as any)?.name ?? "").toLowerCase();
+                                                  return n.includes("cpanel") || n.includes("c-panel") || n.includes("whm");
+                                                })
+                                                .map((r) => String((r as any)?.id ?? ""))
+                                                .filter(Boolean),
+                                            );
+                                            const withoutCpanelWhm = prev.filter((id) => !cpanelWhmIds.has(id));
+                                            return checked ? withoutCpanelWhm : [...withoutCpanelWhm, optionId];
+                                          }
+                                          return prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId];
+                                        });
+                                      }
+                                    }
+                                    className={[
+                                      "w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition",
+                                      disabled
+                                        ? "opacity-50 cursor-not-allowed"
+                                        : checked
+                                          ? "border-primary bg-primary/5"
+                                          : "hover:border-primary/40",
+                                    ].join(" ")}
+                                    disabled={disabled}
+                                    title={disabledReason ?? undefined}
+                                  >
+                                    <span className="min-w-0">
+                                      <span className="block font-medium line-clamp-1">{opt.name}</span>
+                                      <span className="block text-sm font-semibold text-primary mt-1">
+                                        {priceUsd > 0 ? `${formatUsdOrKes(displayUsd)} /mo` : "Free"}
+                                      </span>
+                                      {priceUsd > 0 && showOriginal ? (
+                                        <span className="block mt-1 text-[11px] text-emerald-600">
+                                          <span className="block">Original: {original.usd}</span>
+                                          {original.kes ? <span className="block">Original (KES): {original.kes}</span> : null}
+                                        </span>
+                                      ) : null}
+
+                                      {features ? (
+                                        <span className="block mt-2">
+                                          <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
+                                            Provisioning features
+                                          </span>
+                                          <span className="mt-1 flex flex-wrap gap-2">
+                                            {renderProvisioningFeatureBadges(features)}
+                                          </span>
+                                        </span>
+                                      ) : null}
+
+                                      {disabledReason ? (
+                                        <span className="block mt-2 text-xs text-muted-foreground">
+                                          {disabledReason}
+                                        </span>
+                                      ) : null}
+
+                                      {tags.length || expressions.length ? (
+                                        <span className="block mt-2">
+                                          <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
+                                            Tags & rules
+                                          </span>
+                                          <span className="mt-1 flex flex-wrap gap-2">
+                                            {tags.slice(0, 6).map((t) => (
+                                              <Badge key={`t:${t}`} variant="outline" className="rounded-full">
+                                                {t}
+                                              </Badge>
+                                            ))}
+                                            {expressions.slice(0, 3).map((e) => (
+                                              <Badge key={`e:${e}`} variant="secondary" className="rounded-full" title={e}>
+                                                Expr
+                                              </Badge>
+                                            ))}
+                                            {tags.length > 6 ? (
+                                              <Badge variant="outline" className="rounded-full">
+                                                +{tags.length - 6} tags
+                                              </Badge>
+                                            ) : null}
+                                            {expressions.length > 3 ? (
+                                              <Badge variant="secondary" className="rounded-full">
+                                                +{expressions.length - 3} expr
+                                              </Badge>
+                                            ) : null}
+                                          </span>
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                    <span className="flex items-center gap-2 shrink-0">
+                                      {checked ? (
+                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                                          <ShieldCheck className="h-4 w-4" /> Added
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">Add</span>
+                                      )}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                          );
+                        })()
+                      ))}
+                    </Accordion>
+                  )}
+                </div>
+              </div>
+
+              {!canProceedFromHivelocityConfig ? (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                  <p className="font-medium">Complete required fields</p>
+                  <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <li>- Select an operating system</li>
+                    <li>- Enter a valid hostname</li>
+                  </ul>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm">
+                  <p className="font-medium">Ready to review</p>
+                  <p className="text-xs text-muted-foreground mt-1">Next you’ll confirm totals and pay securely via M-Pesa.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
       case "review":
         return (
           <div className="space-y-4">
@@ -631,64 +1405,146 @@ export function BuyNowDialog({
             <ScrollArea className="h-[300px] w-full">
               <div className="space-y-4 pr-4">
                 {/* Product */}
-                <div className="bg-muted/50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-foreground line-clamp-3 break-words">
+                <div className="rounded-xl border bg-muted/30 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-foreground line-clamp-2 break-words">
                         {plan.planName}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground mt-1">
                         {plan.planType}
                         {plan.subType && ` - ${plan.subType.replace(/_/g, ' ')}`}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Billing Cycle: {plan.billingCycle}
-                      </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
+                      <p className="text-xs text-muted-foreground">Configured monthly</p>
                       <div className="font-semibold text-foreground">
                         {formatPrice(pricing.basePrice, pricing.displayCurrency)}
                       </div>
                     </div>
                   </div>
+
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-md border bg-background/70 px-3 py-2">
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Billing cycle</p>
+                      <p className="font-medium text-foreground mt-0.5">{plan.billingCycle}</p>
+                    </div>
+                    {plan.hivelocity ? (
+                      <>
+                        <div className="rounded-md border bg-background/70 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Location</p>
+                          <p className="font-medium text-foreground mt-0.5">{plan.hivelocity.locationName}</p>
+                        </div>
+                        <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Operating system</p>
+                          <p className="font-medium text-foreground mt-0.5">{selectedOs?.name ?? "Not selected"}</p>
+                        </div>
+                        <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hostname</p>
+                          <p className="font-medium text-foreground mt-0.5 break-all">{hostname || "Not provided"}</p>
+                        </div>
+                        <div className="rounded-md border bg-background/70 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Add-ons selected</p>
+                          <p className="font-medium text-foreground mt-0.5">{addonsCount}</p>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
+
+                {plan.hivelocity ? (
+                  <div className="rounded-xl border p-4">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Selected items</p>
+
+                    <div className="mt-3 rounded-lg border bg-background/60">
+                      <div className="flex items-center justify-between px-3 py-2 text-sm">
+                        <span className="font-medium text-foreground">Base plan</span>
+                        <span className="font-semibold text-foreground">{formatPrice(plan.price, plan.currency)}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">Add-ons</p>
+                        <p className="text-xs text-muted-foreground">{selectedOptions.length + (selectedOs ? 1 : 0)} items</p>
+                      </div>
+
+                      <div className="mt-2 space-y-2">
+                        {selectedOs ? (
+                          <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground line-clamp-1">OS: {selectedOs.name}</p>
+                              <p className="text-xs text-muted-foreground">Operating system license</p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-sm font-semibold text-primary">
+                                {osPriceUsd > 0 ? `${formatUsdOrKes(applyMarginFor("os", osPriceUsd))} /mo` : "Free"}
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {selectedOptions.length ? (
+                          selectedOptions.map((opt: any) => {
+                            const id = String(opt?.id ?? "");
+                            const priceUsd = encodeNumber(opt?.monthlyPrice);
+                            const displayUsd = applyMarginFor("addons", priceUsd);
+                            return (
+                              <div key={id} className="flex items-start justify-between gap-3 rounded-lg border bg-muted/10 px-3 py-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground line-clamp-1">{opt?.name ?? "Add-on"}</p>
+                                  <p className="text-xs text-muted-foreground">Add-on</p>
+                                </div>
+                                <div className="shrink-0 flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-primary">
+                                    {priceUsd > 0 ? `${formatUsdOrKes(displayUsd)} /mo` : "Free"}
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    onClick={() => setSelectedOptionIds((prev) => prev.filter((x) => x !== id))}
+                                    aria-label={`Remove ${opt?.name ?? "add-on"}`}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                            No add-ons selected.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
               <ScrollBar orientation="vertical" />
             </ScrollArea>
 
             {/* Coupon Code */}
             <div className="space-y-2">
-              {!showCouponInput ? (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Coupon code</span>
-                  <Button
-                    variant="link"
-                    className="h-auto p-0 text-primary"
-                    onClick={() => setShowCouponInput(true)}
-                  >
-                    Add
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Enter coupon code"
-                    value={couponCode}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCouponCode(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowCouponInput(false);
-                      setCouponCode("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              )}
+              <div className="text-sm text-muted-foreground">Coupon code</div>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCouponCode(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCouponCode("")}
+                  disabled={!couponCode.trim()}
+                >
+                  Clear
+                </Button>
+              </div>
             </div>
 
             {/* Taxes & Fees */}
@@ -914,8 +1770,21 @@ export function BuyNowDialog({
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <div className="space-y-2">
                 <p className="text-sm text-foreground">
-                  Your service plan <span className="font-semibold">{plan.planName}</span> will be activated on your dashboard in a few minutes.
+                  {plan.hivelocity ? (
+                    <>
+                      Payment for <span className="font-semibold">{plan.planName}</span> has been received. We’ll start provisioning once this checkout is linked to the provisioning pipeline.
+                    </>
+                  ) : (
+                    <>
+                      Your service plan <span className="font-semibold">{plan.planName}</span> will be activated on your dashboard in a few minutes.
+                    </>
+                  )}
                 </p>
+                {plan.hivelocity ? (
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground">
+                    Provisioning is not enabled yet for Dedicated/VPS/VDS. This is payment acknowledgement only.
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -971,15 +1840,27 @@ export function BuyNowDialog({
       <DialogContent className="!grid sm:max-w-[600px] h-[90vh] max-h-[90vh] !flex !flex-col overflow-hidden w-full p-0 gap-0">
         <DialogHeader className="min-w-0 w-full px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle className="line-clamp-1 break-words truncate min-w-0 w-full max-w-full">
-            Buy {plan.planName}
+            {intent === "add_to_cart" ? "Add to cart" : "Buy"} {plan.planName}
           </DialogTitle>
           <DialogDescription className="min-w-0 w-full max-w-full">
             {currentStep === "domain" && "Choose or enter the domain to use with this plan"}
-            {currentStep === "review" && "Review your order and proceed to checkout"}
+            {currentStep === "hivelocity_config" && "Select OS and required server details"}
+            {currentStep === "review" &&
+              (intent === "add_to_cart" ? "Review your configuration and add it to cart" : "Review your order and proceed to checkout")}
             {currentStep === "payment" && "Complete your payment"}
             {currentStep === "success" && "Order Confirmed"}
             {currentStep === "error" && "Payment Failed"}
           </DialogDescription>
+
+          {plan.hivelocity ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <StepPill active={currentStep === "hivelocity_config"} done={currentStep !== "hivelocity_config" && currentStep !== "error"} label="Configure" />
+              <StepPill active={currentStep === "review"} done={currentStep === "payment" || currentStep === "success"} label="Review" />
+              {intent !== "add_to_cart" ? (
+                <StepPill active={currentStep === "payment"} done={currentStep === "success"} label="Pay" />
+              ) : null}
+            </div>
+          ) : null}
         </DialogHeader>
 
         <div className="flex-1 min-h-0 px-6 overflow-hidden">
@@ -1010,6 +1891,24 @@ export function BuyNowDialog({
               </Button>
             </>
           )}
+          {currentStep === "hivelocity_config" && (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                className="text-primary"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={!canProceedFromHivelocityConfig}
+                className="bg-primary text-primary-foreground"
+              >
+                Next: Review
+              </Button>
+            </>
+          )}
           {currentStep === "review" && (
             <>
               <Button
@@ -1024,11 +1923,16 @@ export function BuyNowDialog({
                   Back
                 </Button>
               )}
+              {!showDomainStep && isHivelocityPlan && (
+                <Button variant="outline" onClick={() => setCurrentStep("hivelocity_config")}>
+                  Back
+                </Button>
+              )}
               <Button
                 onClick={handleNext}
                 className="bg-primary text-primary-foreground"
               >
-                Choose payment method
+                {intent === "add_to_cart" ? "Add to cart" : "Choose payment method"}
               </Button>
             </>
           )}

@@ -53,8 +53,44 @@ interface ServiceCartItem extends BaseCartItem {
   currency?: string;
 }
 
+interface HivelocityCartItem extends BaseCartItem {
+  type: "hivelocity";
+  /** DEDICATED_SERVERS | VPS | VDS */
+  productType: string;
+  planName: string;
+  planType?: string;
+  billingCycle?: string;
+  /** Currency used for display/checkout in the UI (KES or USD typically) */
+  currency: string;
+
+  /** Base plan (already in display currency) */
+  basePrice: number;
+
+  hostname: string;
+  locationName?: string;
+  hivelocityProductId: number;
+
+  os: {
+    id: string;
+    name: string;
+    /** Price in display currency per month */
+    price: number;
+  } | null;
+
+  addons: Array<{
+    id: string;
+    name: string;
+    /** Price in display currency per month */
+    price: number;
+    group?: string;
+  }>;
+
+  /** Monthly total (base + os + addons) in display currency */
+  totalPrice: number;
+}
+
 // Union type for all possible cart items
-type CartItem = DomainCartItem | HostingCartItem | ServiceCartItem;
+type CartItem = DomainCartItem | HostingCartItem | ServiceCartItem | HivelocityCartItem;
 
 interface CartStore {
   items: CartItem[];
@@ -75,6 +111,10 @@ interface CartStore {
   // Future item type methods can be added here
   // addHosting: (hostingData: Omit<HostingCartItem, 'id' | 'type' | 'addedAt'>) => void;
   // addService: (serviceData: Omit<ServiceCartItem, 'id' | 'type' | 'addedAt'>) => void;
+
+  // Hivelocity-specific methods
+  addHivelocity: (data: Omit<HivelocityCartItem, "id" | "type" | "addedAt">) => void;
+  removeHivelocityAddon: (itemId: string, addonId: string) => void;
   
   // Computed values
   getTotal: () => number;
@@ -120,6 +160,28 @@ export const useCartStore = create<CartStore>()(
           items: [...state.items, domainItem] 
         }));
       },
+
+      addHivelocity: (data) => {
+        const item: HivelocityCartItem = {
+          ...data,
+          type: "hivelocity",
+          id: `hivelocity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          addedAt: Date.now(),
+        };
+        set((state) => ({ items: [...state.items, item] }));
+      },
+
+      removeHivelocityAddon: (itemId, addonId) => {
+        set((state) => ({
+          items: state.items.map((it) => {
+            if (it.id !== itemId) return it;
+            if (it.type !== "hivelocity") return it;
+            const nextAddons = it.addons.filter((a) => a.id !== addonId);
+            const nextTotal = (it.basePrice ?? 0) + (it.os?.price ?? 0) + nextAddons.reduce((s, a) => s + (a.price ?? 0), 0);
+            return { ...it, addons: nextAddons, totalPrice: nextTotal };
+          }),
+        }));
+      },
       
       // Domain-specific remove method
       removeDomain: (domainId) => {
@@ -156,6 +218,9 @@ export const useCartStore = create<CartStore>()(
           if (item.type === 'domain' && item.price) {
             const price = item.price.reseller?.price || item.price.product?.price || 0;
             return sum + price;
+          }
+          if (item.type === "hivelocity") {
+            return sum + ((item as any).totalPrice ?? 0);
           }
           // Add other item type calculations here as needed
           return sum;
@@ -196,6 +261,12 @@ export const useCartStore = create<CartStore>()(
             
             totals[currency] = (totals[currency] || 0) + price;
           }
+          if (item.type === "hivelocity") {
+            const hv = item as any;
+            const currency = hv.currency || "USD";
+            const price = Number(hv.totalPrice ?? 0) || 0;
+            totals[currency] = (totals[currency] || 0) + price;
+          }
         });
         
         return totals;
@@ -215,6 +286,10 @@ export const useCartStore = create<CartStore>()(
             } else if (item.price.product?.currency) {
               currencies.add(item.price.product.currency);
             }
+          }
+          if (item.type === "hivelocity") {
+            const hv = item as any;
+            currencies.add(hv.currency || "USD");
           }
         });
         
@@ -253,4 +328,4 @@ export const useCartStore = create<CartStore>()(
 );
 
 // Export types for use in components
-export type { CartItem, DomainCartItem, HostingCartItem, ServiceCartItem };
+export type { CartItem, DomainCartItem, HostingCartItem, ServiceCartItem, HivelocityCartItem };
