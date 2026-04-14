@@ -178,6 +178,15 @@ function flattenLinesKes(
   return out;
 }
 
+function formatMoney2(value: number): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0.00";
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
 function pickAccountCurrency(input: any): string {
   const c =
     input?.currency ??
@@ -1802,7 +1811,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                       const commissionAmountKes = (l.spendKes * commissionRatePercent) / 100;
                       return {
                         position: idx,
-                        name: `Media Buying - ${selectedPlan?.name ?? "Commission Plan"} (${l.context} - ${l.name}, ${rangeLabel}, Total Ad spend - ${l.spendKes.toFixed(2)} KES - ${platformLabel})`,
+                        name: `Media Buying - ${selectedPlan?.name ?? "Commission Plan"} (${l.context} - ${l.name}, ${rangeLabel}, Total Ad spend - ${formatMoney2(l.spendKes)} KES - ${platformLabel})`,
                         description: null,
                         quantity: 1,
                         unit: null,
