@@ -179,7 +179,7 @@ export const PaymentDetailsPreview: React.FC<
 
   return (
     <div
-      className="grid grid-cols-2 group cursor-pointer relative"
+      className={`grid ${qrCodeValue ? "grid-cols-2" : "grid-cols-1"} group cursor-pointer relative`}
       onClick={() => onClick && onClick("4")}
     >
       {!!onClick && (
@@ -196,25 +196,16 @@ export const PaymentDetailsPreview: React.FC<
         </p>
         {renderPaymentDetails()}
       </div>
-      <div className="py-4 px-10 flex flex-col items-end justify-center">
-        <div className="w-full flex justify-end mb-3">
-          <p className="text-[11px] text-neutral-400 font-medium uppercase">
-            eTIMS verification
-          </p>
-        </div>
-        {qrCodeValue ? (
-          <QRCodeSVG
-            value={qrCodeValue}
-            size={96}
-            level="M"
-            includeMargin={false}
-          />
-        ) : (
-          <div className="w-[96px] h-[96px] rounded-md bg-neutral-100 animate-pulse flex items-center justify-center">
-            <p className="text-xs text-neutral-400">QR Code</p>
+      {qrCodeValue ? (
+        <div className="py-4 px-10 flex flex-col items-end justify-center">
+          <div className="w-full flex justify-end mb-3">
+            <p className="text-[11px] text-neutral-400 font-medium uppercase">
+              eTIMS verification
+            </p>
           </div>
-        )}
-      </div>
+          <QRCodeSVG value={qrCodeValue} size={96} level="M" includeMargin={false} />
+        </div>
+      ) : null}
     </div>
   );
 };

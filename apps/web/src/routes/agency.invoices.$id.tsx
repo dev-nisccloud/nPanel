@@ -13,6 +13,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -42,6 +43,13 @@ import type {
 	PaymentDetails,
 	InvoiceTerms,
 } from "@/routes/agency.invoices/create/types";
+import type {
+	YourDetails as PdfYourDetails,
+	CompanyDetails as PdfCompanyDetails,
+	InvoiceItemDetails as PdfInvoiceItemDetails,
+	PaymentDetails as PdfPaymentDetails,
+	InvoiceTerms as PdfInvoiceTerms,
+} from "@/routes/agency.invoicing/types";
 
 // Font registration state
 let fontsRegistered = false;
@@ -341,6 +349,99 @@ function buildInvoiceEditorDefaults(invoice: InvoiceDetail): InvoiceEditorFormVa
 	};
 }
 
+function buildInvoicePdfDetails(invoice: InvoiceDetail): {
+	yourDetails: PdfYourDetails;
+	companyDetails: PdfCompanyDetails;
+	invoiceDetails: PdfInvoiceItemDetails;
+	paymentDetails: PdfPaymentDetails;
+	invoiceTerms: PdfInvoiceTerms;
+} {
+	const fromDetails = (invoice.fromDetails as any) ?? {};
+	const customerDetails = (invoice.customerDetails as any) ?? {};
+	const paymentDetails = (invoice.paymentDetails as any) ?? {};
+
+	const yourDetails: PdfYourDetails = {
+		yourName: fromDetails?.name,
+		yourEmail: fromDetails?.email,
+		yourAddress: fromDetails?.address,
+		yourCity: fromDetails?.city,
+		yourState: fromDetails?.state,
+		yourCountry: fromDetails?.country,
+		yourZip: fromDetails?.zip,
+		yourTaxId: fromDetails?.taxId,
+		yourLogo: COMPANY_LOGO_URL,
+	};
+
+	const companyDetails: PdfCompanyDetails = {
+		companyName: customerDetails?.name ?? invoice.customerName ?? undefined,
+		email: customerDetails?.email ?? invoice.customerEmail ?? undefined,
+		companyAddress: customerDetails?.address,
+		companyCity: customerDetails?.city,
+		companyState: customerDetails?.state,
+		companyCountry: customerDetails?.country,
+		companyZip: customerDetails?.zip,
+		companyTaxId: customerDetails?.taxId,
+	};
+
+	const invoiceDetails: PdfInvoiceItemDetails = {
+		note: invoice.note ?? undefined,
+		discount: invoice.discount ?? undefined,
+		taxRate: invoice.taxPercentage != null ? String(invoice.taxPercentage) : undefined,
+		items: (invoice.lineItems ?? []).map((li) => ({
+			id: li.id,
+			itemDescription: li.name || li.description || "Service",
+			amount: li.price != null ? Number(li.price) : undefined,
+			qty: li.quantity ?? undefined,
+		})),
+		currency: invoice.currency ?? "KES",
+		// Match cron jobs PDF: denser, compact line items
+		compactLineItems: true,
+	};
+
+	const invoiceTerms: PdfInvoiceTerms = {
+		invoiceNumber: invoice.invoiceNumber ?? undefined,
+		issueDate: invoice.issueDate ?? undefined,
+		dueDate: invoice.dueDate ?? undefined,
+	};
+
+	// Translate paymentDetails JSON into the shape used by agency.invoicing PdfDetails.
+	const paymentMethodApi = paymentDetails?.paymentMethod;
+	let paymentMethod: "bank" | "mpesa" | "cheque" | undefined;
+	if (paymentMethodApi === "BANK_TRANSFER" || paymentMethodApi === "bank_transfer" || paymentMethodApi === "bank") {
+		paymentMethod = "bank";
+	} else if (paymentMethodApi === "MPESA" || paymentMethodApi === "mpesa") {
+		paymentMethod = "mpesa";
+	} else if (paymentMethodApi === "CHEQUE" || paymentMethodApi === "cheque") {
+		paymentMethod = "cheque";
+	}
+	if (!paymentMethod) paymentMethod = "mpesa";
+
+	const paymentDetailsFormatted: PdfPaymentDetails = {
+		paymentMethod,
+		currency: invoice.currency || "KES",
+		qrCodeValue: paymentDetails?.qrCodeValue || "www.nisccloud.com",
+		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
+		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
+		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,
+		branchName: paymentMethod === "bank" ? paymentDetails?.branchName : undefined,
+		branchCode: paymentMethod === "bank" ? paymentDetails?.branchCode : undefined,
+		swiftCode: paymentMethod === "bank" ? paymentDetails?.swiftCode : undefined,
+		mpesaPaybillNumber: paymentMethod === "mpesa" ? (paymentDetails?.mpesaPaybillNumber || "303030") : undefined,
+		mpesaAccountNumber: paymentMethod === "mpesa" ? (paymentDetails?.mpesaAccountNumber || "2052676528") : undefined,
+		mpesaInstructions: paymentMethod === "mpesa" ? (paymentDetails?.mpesaInstructions || "Absa Bank Kenya") : undefined,
+		chequeDeliveryAddress: paymentMethod === "cheque" ? paymentDetails?.chequeDeliveryAddress : undefined,
+		chequeInstructions: paymentMethod === "cheque" ? paymentDetails?.chequeInstructions : undefined,
+	};
+
+	return {
+		yourDetails,
+		companyDetails,
+		invoiceDetails,
+		paymentDetails: paymentDetailsFormatted,
+		invoiceTerms,
+	};
+}
+
 export default function InvoiceViewPage() {
 	const params = useParams();
 	const navigate = useNavigate();
@@ -359,6 +460,10 @@ export default function InvoiceViewPage() {
 	const [markUnpaidConfirmOpen, setMarkUnpaidConfirmOpen] = React.useState(false);
 	const [editDialogOpen, setEditDialogOpen] = React.useState(false);
 	const [editStep, setEditStep] = React.useState<InvoiceEditStep>("1");
+	const [sendDialogOpen, setSendDialogOpen] = React.useState(false);
+	const [sendToEmail, setSendToEmail] = React.useState("");
+	const [sendCc, setSendCc] = React.useState("");
+	const [sendBcc, setSendBcc] = React.useState("");
 
 	const utils = trpc.useUtils();
 
@@ -440,6 +545,11 @@ export default function InvoiceViewPage() {
 		},
 	});
 
+	React.useEffect(() => {
+		if (!invoice?.customerEmail) return;
+		setSendToEmail(invoice.customerEmail);
+	}, [invoice?.customerEmail]);
+
 	const markUnpaidMutation = trpc.invoicing.updateStatus.useMutation({
 		onSuccess: () => {
 			setMarkUnpaidConfirmOpen(false);
@@ -467,15 +577,15 @@ export default function InvoiceViewPage() {
 			] = await Promise.all([
 				import("@react-pdf/renderer"),
 				import("@react-pdf/renderer"),
-				import("@/routes/agency.invoices/create/_components/form/pdfDetails"),
+				import("@/routes/agency.invoicing/_components/form/pdfDetails"),
 				import("@/lib/pdfStyles"),
 			]);
 
 			// Ensure fonts are registered
 			await registerFonts();
 
-			// Convert invoice data to PDF format
-			const pdfData = convertInvoiceToPdfData(invoice);
+			// Convert invoice data to the SAME PDF config used by cron jobs
+			const pdfData = buildInvoicePdfDetails(invoice);
 
 			// Generate QR code if needed
 			let qrCodeDataUrl: string | undefined;
@@ -533,13 +643,19 @@ export default function InvoiceViewPage() {
 		}
 	};
 
+	const parseEmails = (raw: string): string[] =>
+		raw
+			.split(",")
+			.map((s) => s.trim())
+			.filter(Boolean);
+
 	const handleSendEmail = async () => {
 		if (!invoice) return;
 
 		try {
 			setIsSending(true);
 
-			if (!invoice.customerEmail) {
+			if (!sendToEmail) {
 				toast.error("No customer email", {
 					description: "This invoice does not have a customer email address.",
 				});
@@ -555,15 +671,15 @@ export default function InvoiceViewPage() {
 			] = await Promise.all([
 				import("@react-pdf/renderer"),
 				import("@react-pdf/renderer"),
-				import("@/routes/agency.invoices/create/_components/form/pdfDetails"),
+				import("@/routes/agency.invoicing/_components/form/pdfDetails"),
 				import("@/lib/pdfStyles"),
 			]);
 
 			// Ensure fonts are registered
 			await registerFonts();
 
-			// Convert invoice data to PDF format
-			const pdfData = convertInvoiceToPdfData(invoice);
+			// Convert invoice data to the SAME PDF config used by cron jobs
+			const pdfData = buildInvoicePdfDetails(invoice);
 
 			// Generate QR code if needed
 			let qrCodeDataUrl: string | undefined;
@@ -613,12 +729,15 @@ export default function InvoiceViewPage() {
 			await resendEmailMutation.mutateAsync({
 				invoiceId: invoice.id,
 				pdfBase64,
+				cc: parseEmails(sendCc),
+				bcc: parseEmails(sendBcc),
 			});
 		} catch (error) {
 			console.error("Failed to resend email:", error);
 			// Error toast is handled by mutation
 		} finally {
 			setIsSending(false);
+			setSendDialogOpen(false);
 		}
 	};
 
@@ -828,7 +947,7 @@ export default function InvoiceViewPage() {
 						)}
 					</Button>
 					<Button
-						onClick={handleSendEmail}
+						onClick={() => setSendDialogOpen(true)}
 						disabled={isDownloading || isSending || !invoice.customerEmail}
 					>
 						{isSending ? (
@@ -937,6 +1056,60 @@ export default function InvoiceViewPage() {
 								</>
 							) : (
 								"Save changes"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+				<DialogContent className="sm:max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Send invoice email</DialogTitle>
+						<DialogDescription>
+							We&apos;ll attach the invoice PDF. You can optionally add CC/BCC recipients (comma-separated).
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<label className="text-sm font-medium">To</label>
+							<Input
+								value={sendToEmail}
+								onChange={(e) => setSendToEmail(e.target.value)}
+								placeholder="customer@example.com"
+							/>
+						</div>
+						<div className="space-y-2">
+							<label className="text-sm font-medium">CC (optional)</label>
+							<Input
+								value={sendCc}
+								onChange={(e) => setSendCc(e.target.value)}
+								placeholder="cc1@example.com, cc2@example.com"
+							/>
+						</div>
+						<div className="space-y-2">
+							<label className="text-sm font-medium">BCC (optional)</label>
+							<Input
+								value={sendBcc}
+								onChange={(e) => setSendBcc(e.target.value)}
+								placeholder="bcc1@example.com, bcc2@example.com"
+							/>
+						</div>
+					</div>
+
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setSendDialogOpen(false)} disabled={isSending}>
+							Cancel
+						</Button>
+						<Button onClick={handleSendEmail} disabled={isSending || !sendToEmail}>
+							{isSending ? (
+								<>
+									<Spinner className="mr-2 h-4 w-4" />
+									Sending…
+								</>
+							) : (
+								"Send"
 							)}
 						</Button>
 					</DialogFooter>

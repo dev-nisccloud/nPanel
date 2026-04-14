@@ -1816,8 +1816,8 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                     });
                     const feeLine = {
                       position: items.length,
-                      name: "Ad serving fee",
-                      description: platformLabel,
+                      name: `Ad Serving Fee - ${platformLabel}`,
+                      description: null,
                       quantity: 1,
                       unit: null,
                       price: String(feeKes),
@@ -1920,6 +1920,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                       subtotal: String(subtotal),
                       discount: invoiceDefaults.discount || undefined,
                       tax: String(taxAmount),
+                      taxPercentage: taxRatePercent,
                       currency: "KES",
                       note: invoiceDefaults.note || undefined,
                       lineItems: lineItems as any,
