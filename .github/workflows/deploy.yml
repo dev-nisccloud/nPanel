@@ -4,14 +4,11 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 env:
   BUN_VERSION: 'latest'
-  # GCP Config
+  # GCP Config (staging defaults)
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: ${{ secrets.GCP_REGION }}
   ARTIFACT_REGION: ${{ secrets.GCP_ARTIFACT_REGION }}
@@ -240,12 +237,12 @@ jobs:
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
-  # Same logic would follow for production...
+  # Production (manual approval via GitHub Environment protection)
   migrate-production:
     name: Migrate Database (Production)
     runs-on: ubuntu-latest
-    needs: [quality-checks]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    needs: [deploy-web-staging]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
     steps:
@@ -271,14 +268,18 @@ jobs:
     name: Deploy Server to Production
     runs-on: ubuntu-latest
     needs: [build-check, migrate-production]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
     permissions:
       contents: 'read'
       id-token: 'write'
     env:
-      SERVICE_NAME: npanel-server
+      SERVICE_NAME: npanel-server-production
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_PRODUCTION }}
+      REGION: ${{ secrets.GCP_REGION_PRODUCTION }}
+      ARTIFACT_REGION: ${{ secrets.GCP_ARTIFACT_REGION_PRODUCTION }}
+      REPO_NAME: ${{ secrets.GCP_ARTIFACT_REPO_PRODUCTION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -287,7 +288,7 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          credentials_json: '${{ secrets.GCP_SA_KEY_PRODUCTION }}'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -314,22 +315,26 @@ jobs:
             NODE_ENV=production
             DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
             HOSTNAME=0.0.0.0
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
-            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
 
   deploy-web-production:
     name: Deploy Web to Production
     runs-on: ubuntu-latest
     needs: [deploy-server-production]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
     permissions:
       contents: 'read'
       id-token: 'write'
     env:
-      SERVICE_NAME: npanel-web
+      SERVICE_NAME: npanel-web-production
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID_PRODUCTION }}
+      REGION: ${{ secrets.GCP_REGION_PRODUCTION }}
+      ARTIFACT_REGION: ${{ secrets.GCP_ARTIFACT_REGION_PRODUCTION }}
+      REPO_NAME: ${{ secrets.GCP_ARTIFACT_REPO_PRODUCTION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -338,7 +343,7 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          credentials_json: '${{ secrets.GCP_SA_KEY_PRODUCTION }}'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -349,9 +354,9 @@ jobs:
       - name: Resolve server URL (production)
         id: resolve-server-url
         run: |
-          SERVER_URL="$(gcloud run services describe npanel-server --region "${{ env.REGION }}" --format='value(status.url)')"
+          SERVER_URL="$(gcloud run services describe npanel-server-production --region "${{ env.REGION }}" --format='value(status.url)')"
           if [ -z "$SERVER_URL" ]; then
-            echo "❌ Could not resolve server URL for npanel-server"
+            echo "❌ Could not resolve server URL for npanel-server-production"
             exit 1
           fi
           echo "server_url=$SERVER_URL" >> "$GITHUB_OUTPUT"
@@ -381,7 +386,7 @@ jobs:
         run: |
           docker build -f apps/web/Dockerfile \
             --build-arg VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }} \
-            --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }} \
+            --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION || 'build-time-placeholder-do-not-use-in-production' }} \
             -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
           docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
@@ -399,5 +404,26 @@ jobs:
             HOSTNAME=0.0.0.0
             VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
             BETTER_AUTH_URL=${{ steps.resolve-server-url.outputs.server_url }}
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
+
+  # Bookkeeping: update production branch to deployed SHA after approval+deploy
+  sync-production-branch:
+    name: Sync production branch to deployed SHA
+    runs-on: ubuntu-latest
+    needs: [deploy-web-production]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fast-forward production branch
+        run: |
+          git fetch origin production || true
+          git push origin "${GITHUB_SHA}:production"
