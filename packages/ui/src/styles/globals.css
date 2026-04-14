@@ -128,3 +128,36 @@
     @apply font-sans;
   }
 }
+
+/* Themed scrollbars (Chrome/Edge/Safari + Firefox) */
+@layer base {
+  :root {
+    --scrollbar-thumb: var(--primary);
+    --scrollbar-track: transparent;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+  }
+}
