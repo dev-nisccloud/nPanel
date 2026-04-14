@@ -12,7 +12,7 @@ import {
   renderPasswordResetSuccessEmail,
   renderResetPasswordEmail,
 } from "react-email-starter/src/email-templates";
-import { sendEmail } from "react-email-starter/src/email";
+import { sendTransactionalEmail } from "./transactional-email";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -555,7 +555,8 @@ export const auth = betterAuth<BetterAuthOptions>({
         resetPasswordLink: resetUrl,
       });
 
-      await sendEmail({
+      await sendTransactionalEmail({
+        userId: u.id,
         to: u.email,
         subject: "Reset your password - npanel",
         html,
@@ -645,7 +646,8 @@ export const auth = betterAuth<BetterAuthOptions>({
           loginLink,
         });
 
-        await sendEmail({
+        await sendTransactionalEmail({
+          userId: u.id,
           to: u.email,
           subject: "Password reset successful - npanel",
           html,
@@ -732,7 +734,8 @@ export const auth = betterAuth<BetterAuthOptions>({
         verificationLink: verificationUrl,
       });
 
-      await sendEmail({
+      await sendTransactionalEmail({
+        userId: u.id,
         to: u.email,
         subject: "Welcome to npanel - Verify your email",
         html,

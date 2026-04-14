@@ -192,7 +192,7 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
     >
       <View
         style={{
-          flex: 1,
+          flex: qrCodeDataUrl ? 1 : 2,
           paddingLeft: 40,
           paddingRight: 12,
           paddingVertical: 16,
@@ -204,18 +204,21 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
         </Text>
         {renderPaymentDetails()}
       </View>
-      <View
-        style={{
-          flex: 1,
-          paddingLeft: 40,
-          paddingRight: 12,
-          paddingVertical: 16,
-          flexDirection: "column",
-          alignItems: "flex-end",
-          justifyContent: "center",
-        }}
-      >
-        {qrCodeDataUrl ? (
+      {qrCodeDataUrl ? (
+        <View
+          style={{
+            flex: 1,
+            paddingLeft: 12,
+            paddingRight: 40,
+            paddingVertical: 16,
+            flexDirection: "column",
+            alignItems: "flex-end",
+            justifyContent: "flex-start",
+          }}
+        >
+          <Text style={{ ...sectionTitleText, paddingBottom: 12 }}>
+            eTIMS verification
+          </Text>
           <Image
             src={qrCodeDataUrl}
             style={{
@@ -223,21 +226,8 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
               height: 96,
             }}
           />
-        ) : (
-          <View
-            style={{
-              width: 96,
-              height: 96,
-              backgroundColor: "#f3f4f6",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ ...lineText, color: "#9ca3af" }}>QR Code</Text>
-          </View>
-        )}
-      </View>
+        </View>
+      ) : null}
     </View>
   );
 };
