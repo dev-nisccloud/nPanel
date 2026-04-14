@@ -9,6 +9,9 @@ RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
+# Symlink bun as npm so react-email CLI (which internally calls `npm install`) works
+RUN ln -sf /usr/local/bin/bun /usr/local/bin/npm
+
 WORKDIR /app
 
 # Copy the entire monorepo
