@@ -133,6 +133,8 @@ jobs:
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
             BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
 
       - name: Health check
         continue-on-error: true
@@ -318,6 +320,8 @@ jobs:
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
             BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_PRODUCTION }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PRODUCTION }}
 
   deploy-web-production:
     name: Deploy Web to Production

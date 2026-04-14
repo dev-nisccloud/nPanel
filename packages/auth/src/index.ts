@@ -99,6 +99,12 @@ export const auth = betterAuth<BetterAuthOptions>({
   trustedOrigins: resolvedTrustedOrigins,
   baseURL: undefined,
   secret: env.BETTER_AUTH_SECRET,
+  socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    },
+  },
   session: {
     expiresIn: 60 * 60 * 2,
     updateAge: 0,
