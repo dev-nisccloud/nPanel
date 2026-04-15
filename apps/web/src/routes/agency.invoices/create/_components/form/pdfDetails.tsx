@@ -59,7 +59,7 @@ export const PdfDetails = ({
           flex: 1,
           minWidth: 0,
           paddingLeft: 20,
-          paddingRight: 20,
+          paddingRight: 40,
         }}
       >
         <InvoiceTermsPdf {...invoiceTerms} />
