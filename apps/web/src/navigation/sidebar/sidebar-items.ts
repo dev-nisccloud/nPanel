@@ -421,6 +421,21 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
+        title: "Nisc Reporting",
+        url: "/agency/nisc-reports/revenue",
+        icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Revenue", url: "/agency/nisc-reports/revenue", },
+          { title: "Invoices", url: "/agency/nisc-reports/invoices", },
+          { title: "Quotations", url: "/agency/nisc-reports/quotations", },
+          { title: "Subscriptions", url: "/agency/nisc-reports/subscriptions", },
+          { title: "Clients", url: "/agency/nisc-reports/clients", },
+          { title: "Profitability", url: "/agency/nisc-reports/profitability", },
+          { title: "Payments", url: "/agency/nisc-reports/payments", },
+          { title: "Tax", url: "/agency/nisc-reports/tax", },
+        ],
+      },
+      {
         title: "Workflow Jobs",
         url: "/agency/cronjobs",
         icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),

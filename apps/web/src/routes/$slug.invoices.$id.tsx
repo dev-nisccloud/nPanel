@@ -164,7 +164,9 @@ function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 	const paymentDetailsFormatted: PaymentDetails = {
 		paymentMethod,
 		currency: invoice.currency || "KES",
-		qrCodeValue: paymentDetails?.qrCodeValue || "www.nisccloud.com",
+		...(typeof paymentDetails?.qrCodeValue === "string" && paymentDetails.qrCodeValue.trim()
+			? { qrCodeValue: paymentDetails.qrCodeValue.trim() }
+			: {}),
 		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
 		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
 		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,

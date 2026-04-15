@@ -197,7 +197,9 @@ function convertInvoiceToPdfData(invoice: InvoiceDetail) {
 	const paymentDetailsFormatted: PaymentDetails = {
 		paymentMethod,
 		currency: invoice.currency || "KES",
-		qrCodeValue: paymentDetails?.qrCodeValue || "www.nisccloud.com",
+		...(typeof paymentDetails?.qrCodeValue === "string" && paymentDetails.qrCodeValue.trim()
+			? { qrCodeValue: paymentDetails.qrCodeValue.trim() }
+			: {}),
 		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
 		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
 		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,
@@ -419,7 +421,9 @@ function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 	const paymentDetailsFormatted: PdfPaymentDetails = {
 		paymentMethod,
 		currency: invoice.currency || "KES",
-		qrCodeValue: paymentDetails?.qrCodeValue || "www.nisccloud.com",
+		...(typeof paymentDetails?.qrCodeValue === "string" && paymentDetails.qrCodeValue.trim()
+			? { qrCodeValue: paymentDetails.qrCodeValue.trim() }
+			: {}),
 		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
 		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
 		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,
@@ -534,7 +538,7 @@ export default function InvoiceViewPage() {
 	const resendEmailMutation = trpc.invoicing.resendEmailReminder.useMutation({
 		onSuccess: () => {
 			toast.success("Email reminder sent successfully!", {
-				description: `Reminder for invoice ${invoice?.invoiceNumber} has been sent to ${invoice?.customerEmail}`,
+				description: `Reminder for invoice ${invoice?.invoiceNumber} has been sent to ${sendToEmail || invoice?.customerEmail}`,
 			});
 			utils.invoicing.list.invalidate();
 		},
@@ -728,6 +732,7 @@ export default function InvoiceViewPage() {
 			// Send email reminder
 			await resendEmailMutation.mutateAsync({
 				invoiceId: invoice.id,
+				to: sendToEmail?.trim() || undefined,
 				pdfBase64,
 				cc: parseEmails(sendCc),
 				bcc: parseEmails(sendBcc),
