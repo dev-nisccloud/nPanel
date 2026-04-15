@@ -41,7 +41,8 @@ export function GoogleButton({ className, ...props }: React.ComponentProps<typeo
     setIsLoading(true);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/",
+      callbackURL: `${window.location.origin}/`,
+      errorCallbackURL: `${window.location.origin}/auth/login?error=oauth_failed`,
     });
     // signIn.social navigates the browser away on success; we only reach here on error.
     if (error) {
