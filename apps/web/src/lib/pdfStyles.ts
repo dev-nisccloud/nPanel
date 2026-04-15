@@ -112,7 +112,8 @@ export const pdfContainers = StyleSheet.create({
     },
     /** Full width of column; avoid `flex: 1` here — in a column parent it can grow vertically. */
     CompanyDetails: {
-        paddingHorizontal: 20,
+        paddingLeft: 40,
+        paddingRight: 20,
         paddingVertical: 0,
         width: "100%",
         minWidth: 0,
