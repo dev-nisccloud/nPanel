@@ -8,7 +8,8 @@
     "./src/*": "./src/*.ts"
   },
   "scripts": {
-    "build": "email build && node scripts/fix-spam-check.cjs && node -e \"import fs from 'node:fs'; fs.mkdirSync('dist',{recursive:true}); fs.writeFileSync('dist/.turbo-build','')\"",
+    "build": "node scripts/fix-spam-check.cjs && node -e \"import fs from 'node:fs'; fs.mkdirSync('dist',{recursive:true}); fs.writeFileSync('dist/.turbo-build','')\"",
+    "build:preview": "email build",
     "dev": "email dev",
     "export": "email export",
     "postinstall": "node scripts/fix-spam-check.cjs || true"
