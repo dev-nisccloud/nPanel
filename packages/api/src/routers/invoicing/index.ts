@@ -1716,6 +1716,7 @@ export const invoicingRouter = router({
 		.input(
 			z.object({
 				invoiceId: z.string().uuid(),
+				to: z.string().email().optional(),
 				pdfBase64: z.string(), // Base64 encoded PDF blob
 				cc: z.array(z.string().email()).optional(),
 				bcc: z.array(z.string().email()).optional(),
@@ -1731,19 +1732,33 @@ export const invoicingRouter = router({
 
 			const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
 
-			if (!invoiceDetail.customerEmail) {
+			const toEmail = input.to?.trim() || invoiceDetail.customerEmail?.trim();
+			if (!toEmail) {
 				throw new TRPCError({
 					code: "BAD_REQUEST",
-					message: "Invoice does not have a customer email address.",
+					message: "No recipient email address provided.",
 				});
 			}
+
+			const formatMoney = (currency: string, value: unknown): string => {
+				const n = typeof value === "number" ? value : Number(value);
+				const safe = Number.isFinite(n) ? n : 0;
+				const formatted = new Intl.NumberFormat("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				}).format(safe);
+				return `${currency} ${formatted}`;
+			};
 
 			// Prepare services list for email
 			const services = invoiceDetail.lineItems.map((item: any) => ({
 				name: item.name || "Service",
 				description: item.description || undefined,
 				quantity: item.quantity || undefined,
-				price: item.price ? `${invoiceDetail.currency} ${item.price}` : undefined,
+				price:
+					item.price != null
+						? formatMoney(invoiceDetail.currency || "KES", item.price)
+						: undefined,
 			}));
 
 			// Format dates for email
@@ -1762,7 +1777,7 @@ export const invoicingRouter = router({
 				invoiceNumber: invoiceDetail.invoiceNumber || "N/A",
 				issueDate: formatDate(invoiceDetail.issueDate),
 				dueDate: formatDate(invoiceDetail.dueDate),
-				totalAmount: invoiceDetail.amount || "0.00",
+				totalAmount: formatMoney(invoiceDetail.currency || "KES", invoiceDetail.amount),
 				currency: invoiceDetail.currency || "KES",
 				services,
 				supportEmail: "billing@nisccloud.com",
@@ -1857,7 +1872,7 @@ export const invoicingRouter = router({
 				const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
 				const replyTo = process.env.NISC_TX_REPLY_TO?.trim() || undefined;
 
-				const to = invoiceDetail.customerEmail;
+				const to = toEmail;
 				const cc = input.cc?.filter(Boolean);
 				const bcc = input.bcc?.filter(Boolean);
 				const destinations = [to, ...(cc ?? []), ...(bcc ?? [])];
@@ -1895,7 +1910,7 @@ export const invoicingRouter = router({
 						action: "REMINDER_SENT",
 						description: "Email reminder sent",
 						metadata: {
-							sentTo: invoiceDetail.customerEmail,
+							sentTo: to,
 							cc: cc ?? [],
 							bccCount: bcc?.length ?? 0,
 						},

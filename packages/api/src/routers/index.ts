@@ -86,6 +86,7 @@ import { emailBuilderLibraryRouter } from "./email-builder-library";
 import { aiRouter } from "./ai";
 import { etimsRouter } from "./etims";
 import { reportsRouter } from "./reports";
+import { niscReportsRouter } from "./nisc-reports";
 import { productsRouter } from "./products";
 import { clientSubscriptionsRouter } from "./client-subscriptions";
 import { subscriptionUsageRouter } from "./subscription-usage";
@@ -251,6 +252,8 @@ export const appRouter = router({
 	etims: etimsRouter,
 	// Reports & Analytics
 	reports: reportsRouter,
+	// NISC Sales Reporting (new — comprehensive live-query system)
+	niscReports: niscReportsRouter,
 	// Product Catalogue Management
 	products: productsRouter,
 	// Client Subscriptions Management (universal)

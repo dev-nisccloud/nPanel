@@ -97,10 +97,13 @@ export function convertInvoiceToPdfData(invoice: InvoiceForPdfData): InvoicePdfD
 		paymentMethod = "cheque";
 	}
 
+	const qrFromDb =
+		typeof paymentDetails?.qrCodeValue === "string" ? paymentDetails.qrCodeValue.trim() : "";
+
 	const paymentDetailsFormatted: PaymentDetails = {
 		paymentMethod,
 		currency: invoice.currency || "KES",
-		qrCodeValue: (paymentDetails?.qrCodeValue as string) || "www.nisccloud.com",
+		...(qrFromDb ? { qrCodeValue: qrFromDb } : {}),
 		bankName: paymentMethod === "bank" ? (paymentDetails?.bankName as string) : undefined,
 		accountNumber: paymentMethod === "bank" ? (paymentDetails?.accountNumber as string) : undefined,
 		accountName: paymentMethod === "bank" ? (paymentDetails?.accountName as string) : undefined,

@@ -112,21 +112,21 @@ export function PlanCard({
 							const info = getProcessorSummary(plan.processor_info);
 							if (!info) return <p className="text-sm font-semibold mt-1">—</p>;
 							return (
-								<div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-									<div className="flex items-center justify-between gap-2">
-										<span className="text-muted-foreground">Cores</span>
+								<div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+									<div className="flex items-center gap-1 min-w-0">
+										<span className="text-muted-foreground shrink-0">Cores:</span>
 										<span className="font-semibold">{info.cores ?? "—"}</span>
 									</div>
-									<div className="flex items-center justify-between gap-2">
-										<span className="text-muted-foreground">Threads</span>
+									<div className="flex items-center gap-1 min-w-0">
+										<span className="text-muted-foreground shrink-0">Threads:</span>
 										<span className="font-semibold">{info.threads ?? "—"}</span>
 									</div>
-									<div className="flex items-center justify-between gap-2">
-										<span className="text-muted-foreground">Sockets</span>
+									<div className="flex items-center gap-1 min-w-0">
+										<span className="text-muted-foreground shrink-0">Sockets:</span>
 										<span className="font-semibold">{info.sockets ?? "—"}</span>
 									</div>
-									<div className="flex items-center justify-between gap-2">
-										<span className="text-muted-foreground">vCPUs</span>
+									<div className="flex items-center gap-1 min-w-0">
+										<span className="text-muted-foreground shrink-0">vCPUs:</span>
 										<span className="font-semibold">{info.vcpus ?? "—"}</span>
 									</div>
 								</div>
