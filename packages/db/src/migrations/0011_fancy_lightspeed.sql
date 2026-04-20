@@ -1,0 +1,1 @@
+ALTER TABLE "meta_ads_account" ADD COLUMN "instagram_user_id" text;
