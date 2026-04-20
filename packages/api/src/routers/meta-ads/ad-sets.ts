@@ -31,6 +31,7 @@ export const metaAdsAdSetsRouter = router({
 					since: z.string().optional(),
 					until: z.string().optional(),
 				}).optional(),
+				publisherPlatform: z.enum(['facebook', 'instagram', 'audience_network', 'messenger']).optional(),
 			})
 		)
 		.query(async ({ input, ctx }) => {
@@ -66,6 +67,8 @@ export const metaAdsAdSetsRouter = router({
 						'budget_remaining',
 						'bid_amount',
 						'targeting',
+						'publisher_platforms',  // e.g. ["facebook", "instagram"]
+						'instagram_positions',  // e.g. ["stream", "story", "reels"]
 						'start_time',
 						'stop_time',
 						'created_time',
@@ -105,6 +108,7 @@ export const metaAdsAdSetsRouter = router({
 							'cost_per_action_type',
 							'actions',
 						],
+						breakdowns: input.publisherPlatform ? ['publisher_platform'] : undefined,
 					};
 
 					if (input.timeRange?.since && input.timeRange?.until) {
@@ -122,7 +126,13 @@ export const metaAdsAdSetsRouter = router({
 					const insightsResponse = await client.getInsights(input.campaignId, insightsOptions);
 
 					if (insightsResponse.data && insightsResponse.data.length > 0) {
-						insightsResponse.data.forEach((insight: any) => {
+						const filteredRows = input.publisherPlatform
+							? insightsResponse.data.filter(
+									(row: any) => row.publisher_platform === input.publisherPlatform
+								)
+							: insightsResponse.data;
+
+						filteredRows.forEach((insight: any) => {
 							if (insight.adset_id) {
 								adSetInsightsMap[insight.adset_id] = insight;
 							}
@@ -154,6 +164,8 @@ export const metaAdsAdSetsRouter = router({
 						budget_remaining: formatBudget(adSet.budget_remaining),
 						bid_amount: adSet.bid_amount || null,
 						targeting: adSet.targeting || null,
+						publisher_platforms: adSet.publisher_platforms || null,  // ['facebook','instagram',...]
+						instagram_positions: adSet.instagram_positions || null,  // ['stream','story','reels',...]
 						start_time: adSet.start_time || null,
 						stop_time: adSet.stop_time || null,
 						created_time: adSet.created_time || null,
@@ -269,6 +281,7 @@ export const metaAdsAdSetsRouter = router({
 		.input(
 			z.object({
 				adSetId: z.string().min(1, 'Ad Set ID is required'),
+				publisherPlatform: z.enum(['facebook', 'instagram', 'audience_network', 'messenger']).optional(),
 			})
 		)
 		.query(async ({ input, ctx }) => {
@@ -299,6 +312,8 @@ export const metaAdsAdSetsRouter = router({
 					'budget_remaining',
 					'bid_amount',
 					'targeting',
+					'publisher_platforms',
+					'instagram_positions',
 					'start_time',
 					'stop_time',
 					'created_time',
@@ -315,6 +330,8 @@ export const metaAdsAdSetsRouter = router({
 						budget_remaining: adSet.budget_remaining || null,
 						bid_amount: adSet.bid_amount || null,
 						targeting: adSet.targeting || null,
+						publisher_platforms: adSet.publisher_platforms || null,
+						instagram_positions: adSet.instagram_positions || null,
 						start_time: adSet.start_time || null,
 						stop_time: adSet.stop_time || null,
 						created_time: adSet.created_time || null,

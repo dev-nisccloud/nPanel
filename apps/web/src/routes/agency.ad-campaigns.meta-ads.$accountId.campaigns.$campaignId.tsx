@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1507,11 +1508,14 @@ function AdSetItem({
 // ---------------------------------------------------------------------------
 
 export default function CampaignDetailsPage() {
-    const params = useParams();
-    const navigate = useNavigate();
-    const utils = trpc.useUtils();
-    const accountId = params?.accountId as string;
-    const campaignId = params?.campaignId as string;
+	const params = useParams();
+	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
+	const utils = trpc.useUtils();
+	const accountId = params?.accountId as string;
+	const campaignId = params?.campaignId as string;
+	const publisherPlatform = (searchParams.get("platform") || "facebook") as any;
+
 
     // Fetch campaign details
     const {
@@ -1521,7 +1525,7 @@ export default function CampaignDetailsPage() {
         error: campaignError,
         refetch: refetchCampaign,
     } = trpc.metaAds.campaigns.getCampaignDetails.useQuery(
-        { accountId, campaignId },
+        { accountId, campaignId, publisherPlatform },
         {
             enabled: !!accountId && !!campaignId,
             refetchOnWindowFocus: false,
@@ -1573,7 +1577,7 @@ export default function CampaignDetailsPage() {
         isFetching: isFetchingAdSets,
         refetch: refetchAdSets,
     } = trpc.metaAds.adSets.listAdSets.useQuery(
-        { campaignId, timeRange },
+        { campaignId, timeRange, publisherPlatform },
         {
             enabled: !!campaignId && !!campaign,
             refetchOnWindowFocus: false,
@@ -1584,42 +1588,43 @@ export default function CampaignDetailsPage() {
 
     // Fetch insights
     const { data: dailyPerformance, isLoading: isLoadingDaily, isFetching: isFetchingDaily, refetch: refetchDaily } = trpc.metaAds.insights.getDailyPerformance.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange },
+        { entityId: campaignId, level: 'campaign', timeRange, publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
+
     const { data: genderBreakdown, isLoading: isLoadingGender, isFetching: isFetchingGender, refetch: refetchGender } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'gender' },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'gender', publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: platformBreakdown, isLoading: isLoadingPlatform, isFetching: isFetchingPlatform, refetch: refetchPlatform } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'publisher_platform' },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'publisher_platform', publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: deviceBreakdown, isLoading: isLoadingDevice, isFetching: isFetchingDevice, refetch: refetchDevice } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'device_platform' },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'device_platform', publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: regionBreakdown, isLoading: isLoadingRegion, isFetching: isFetchingRegion, refetch: refetchRegion } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'region' },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'region', publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: placementBreakdown, isLoading: isLoadingPlacement, isFetching: isFetchingPlacement, refetch: refetchPlacement } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'platform_position' },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'platform_position', publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: ageBreakdown, isLoading: isLoadingAge, isFetching: isFetchingAge, refetch: refetchAge } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'age' },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'age', publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: hourlyPerformance, isLoading: isLoadingHourly, isFetching: isFetchingHourly, refetch: refetchHourly } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'hourly_stats_aggregated_by_audience_time_zone' },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'hourly_stats_aggregated_by_audience_time_zone', publisherPlatform },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
@@ -1638,7 +1643,7 @@ export default function CampaignDetailsPage() {
         isLoading: isLoadingAds,
         isFetching: isFetchingAds,
     } = trpc.metaAds.ads.listCampaignAds.useQuery(
-        { accountId, campaignId, timeRange },
+        { accountId, campaignId, timeRange, publisherPlatform },
         {
             enabled: !!campaignId && !!campaign,
             refetchOnWindowFocus: false,
@@ -1873,6 +1878,38 @@ export default function CampaignDetailsPage() {
                         )}
                     </div>
                 </div>
+
+				{/* Platform Tabs */}
+				<div className="flex items-center justify-between pb-2">
+					<Tabs
+						value={searchParams.get("platform") || "facebook"}
+						onValueChange={(value) => {
+							const newParams = new URLSearchParams(searchParams);
+							if (value === "facebook") {
+								newParams.delete("platform");
+							} else {
+								newParams.set("platform", value);
+							}
+							setSearchParams(newParams);
+						}}
+						className="w-full sm:w-auto"
+					>
+						<TabsList className="bg-muted/50 border border-muted/60 p-1 h-9">
+							<TabsTrigger
+								value="facebook"
+								className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+							>
+								Facebook
+							</TabsTrigger>
+							<TabsTrigger
+								value="instagram"
+								className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+							>
+								Instagram
+							</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
 
                 {/* SECTION 1: OVERVIEW (Info, Metrics, Ad Sets) */}
                 <div className="space-y-6">

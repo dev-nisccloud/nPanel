@@ -123,6 +123,7 @@ export const metaAdsAccountsRouter = router({
 							spendLimit: acc.spendLimit,
 							amountSpent: acc.amountSpent,
 							balance: acc.balance,
+							instagramUserId: null, // Not stored in DB cache; refetch to get live value
 							updatedAt: acc.updatedAt,
 						})),
 						meta: {
@@ -199,6 +200,7 @@ export const metaAdsAccountsRouter = router({
 							spendLimit: account.spend_cap || existingAccount.spendLimit,
 							amountSpent: account.amount_spent || existingAccount.amountSpent,
 							balance: account.balance || existingAccount.balance,
+							instagramUserId: (account as any).instagram_user_id || null,
 							updatedAt: now.toISOString(),
 						});
 					} else {
@@ -229,6 +231,7 @@ export const metaAdsAccountsRouter = router({
 							spendLimit: account.spend_cap || null,
 							amountSpent: account.amount_spent || null,
 							balance: account.balance || null,
+							instagramUserId: (account as any).instagram_user_id || null,
 							updatedAt: now.toISOString(),
 						});
 					}
@@ -328,6 +331,45 @@ export const metaAdsAccountsRouter = router({
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
 					message: error instanceof Error ? error.message : 'Failed to get account details',
+				});
+			}
+		}),
+	/**
+	 * Get Instagram accounts connected/authorized for use with a specific ad account
+	 * Calls GET /{act_id}/connected_instagram_accounts
+	 * Requires ads_read scope on the stored token.
+	 */
+	getConnectedInstagramAccounts: protectedProcedure
+		.input(
+			z.object({
+				accountId: z.string().min(1, 'Account ID is required'),
+			})
+		)
+		.query(async ({ input }) => {
+			try {
+				const { accessToken } = await getUserIntegration();
+				const client = new MetaAdsClient({ accessToken });
+
+				const normalizedId = input.accountId.startsWith('act_')
+					? input.accountId
+					: `act_${input.accountId}`;
+
+				const result = await client.getConnectedInstagramAccounts(normalizedId);
+				return {
+					success: true,
+					data: result.data ?? [],
+				};
+			} catch (error) {
+				console.error('Meta Ads API get connected Instagram accounts error:', error);
+
+				const oauthError = await handleMetaAdsOAuthError(error);
+				if (oauthError) throw oauthError;
+
+				if (error instanceof TRPCError) throw error;
+
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: error instanceof Error ? error.message : 'Failed to fetch connected Instagram accounts',
 				});
 			}
 		}),

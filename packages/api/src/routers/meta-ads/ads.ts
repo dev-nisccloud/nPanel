@@ -334,6 +334,11 @@ export const metaAdsAdsRouter = router({
 					since: z.string().optional(),
 					until: z.string().optional(),
 				}).optional(),
+				/**
+				 * When set, fetches insights with a publisher_platform breakdown and filters
+				 * to rows matching this platform. Omit for aggregated totals (default behaviour).
+				 */
+				publisherPlatform: z.enum(['facebook', 'instagram', 'audience_network', 'messenger']).optional(),
 			})
 		)
 		.query(async ({ input, ctx }) => {
@@ -381,6 +386,7 @@ export const metaAdsAdsRouter = router({
 						metrics: string[];
 						datePreset?: string;
 						timeRange?: { since: string; until: string };
+						breakdowns?: string[];
 					} = {
 						level: 'ad',
 						metrics: [
@@ -419,10 +425,22 @@ export const metaAdsAdsRouter = router({
 						insightsOptions.datePreset = 'maximum';
 					}
 
+					// When filtering by platform, add publisher_platform breakdown so the API
+					// returns per-platform rows; we then filter to the requested platform below.
+					if (input.publisherPlatform) {
+						insightsOptions.breakdowns = ['publisher_platform'];
+					}
+
 					const insightsResponse = await client.getInsights(input.campaignId, insightsOptions);
 
 					if (insightsResponse.data && insightsResponse.data.length > 0) {
-						insightsResponse.data.forEach((insight: any) => {
+						const filteredRows = input.publisherPlatform
+							? insightsResponse.data.filter(
+									(row: any) => row.publisher_platform === input.publisherPlatform
+								)
+							: insightsResponse.data;
+
+						filteredRows.forEach((insight: any) => {
 							if (insight.ad_id) {
 								adInsightsMap[insight.ad_id] = insight;
 							}

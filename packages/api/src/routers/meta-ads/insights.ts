@@ -34,6 +34,7 @@ export const metaAdsInsightsRouter = router({
                     since: z.string(), // YYYY-MM-DD
                     until: z.string(), // YYYY-MM-DD
                 }),
+                publisherPlatform: z.enum(['facebook', 'instagram', 'audience_network', 'messenger']).optional(),
             })
         )
         .query(async ({ input }) => {
@@ -68,11 +69,17 @@ export const metaAdsInsightsRouter = router({
                         'date_stop',
                         'actions',
                     ],
+                    breakdowns: input.publisherPlatform ? ['publisher_platform'] : undefined,
                 });
+
+                // Filter rows if platform specified
+                const filteredData = input.publisherPlatform
+                    ? response.data.filter((row: any) => row.publisher_platform === input.publisherPlatform)
+                    : response.data;
 
                 return {
                     success: true,
-                    data: response.data,
+                    data: filteredData,
                 };
             } catch (error) {
                 const oauthError = await handleMetaAdsOAuthError(error);
@@ -98,6 +105,7 @@ export const metaAdsInsightsRouter = router({
                     until: z.string(),
                 }),
                 breakdown: z.enum(['age', 'gender', 'publisher_platform', 'device_platform', 'region', 'platform_position', 'hourly_stats_aggregated_by_audience_time_zone']),
+                publisherPlatform: z.enum(['facebook', 'instagram', 'audience_network', 'messenger']).optional(),
             })
         )
         .query(async ({ input }) => {
@@ -111,10 +119,15 @@ export const metaAdsInsightsRouter = router({
                         ? ['publisher_platform', 'device_platform']
                         : [input.breakdown];
 
+                // If we have a filter but it's not the primary breakdown, we need to add publisher_platform to the breakdown list
+                const allBreakdowns = input.publisherPlatform && !breakdowns.includes('publisher_platform')
+                    ? [...breakdowns, 'publisher_platform']
+                    : breakdowns;
+
                 const response = await client.getInsights(input.entityId, {
                     level: input.level,
                     timeRange: input.timeRange,
-                    breakdowns,
+                    breakdowns: allBreakdowns,
                     metrics: [
                         'impressions',
                         'clicks',
@@ -125,9 +138,14 @@ export const metaAdsInsightsRouter = router({
                     ],
                 });
 
+                // Filter rows if platform specified
+                const filteredData = input.publisherPlatform
+                    ? response.data.filter((row: any) => row.publisher_platform === input.publisherPlatform)
+                    : response.data;
+
                 return {
                     success: true,
-                    data: response.data,
+                    data: filteredData,
                 };
             } catch (error) {
                 const oauthError = await handleMetaAdsOAuthError(error);
