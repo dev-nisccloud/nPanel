@@ -28,6 +28,7 @@ export const metaAdsAccount = pgTable(
     spendLimit: text("spend_limit"),
     amountSpent: text("amount_spent"),
     balance: text("balance"),
+    instagramUserId: text("instagram_user_id"),
     teamId: text("team_id").references(() => team.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
