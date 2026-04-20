@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - production
+    types: [closed]
   workflow_dispatch:
 
 env:
@@ -243,8 +247,8 @@ jobs:
   migrate-production:
     name: Migrate Database (Production)
     runs-on: ubuntu-latest
-    needs: [deploy-web-staging]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-check]
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'production'
     environment:
       name: production
     steps:
@@ -270,7 +274,7 @@ jobs:
     name: Deploy Server to Production
     runs-on: ubuntu-latest
     needs: [build-check, migrate-production]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'production'
     environment:
       name: production
     permissions:
@@ -327,7 +331,7 @@ jobs:
     name: Deploy Web to Production
     runs-on: ubuntu-latest
     needs: [deploy-server-production]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'production'
     environment:
       name: production
     permissions:
@@ -411,23 +415,4 @@ jobs:
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
 
-  # Bookkeeping: update production branch to deployed SHA after approval+deploy
-  sync-production-branch:
-    name: Sync production branch to deployed SHA
-    runs-on: ubuntu-latest
-    needs: [deploy-web-production]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment:
-      name: production
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Fast-forward production branch
-        run: |
-          git fetch origin production || true
-          git push origin "${GITHUB_SHA}:production"
