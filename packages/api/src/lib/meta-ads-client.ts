@@ -163,6 +163,7 @@ export class MetaAdsClient {
 			'spend_cap',
 			'amount_spent',
 			'balance',
+			'instagram_user_id', // ID of the Instagram account linked to this ad account (if any)
 		];
 
 		const fieldsToFetch = fields || defaultFields;
@@ -654,6 +655,27 @@ export class MetaAdsClient {
 	 */
 	async deleteAd(adId: string): Promise<{ success: boolean }> {
 		return this.makeRequest('DELETE', `/${adId}`);
+	}
+
+	/**
+	 * Get Instagram accounts connected/authorized for use with an ad account
+	 * GET /{ad-account-id}/connected_instagram_accounts
+	 * Requires: ads_read scope
+	 * Returns the list of Instagram User IDs that are authorized to run ads
+	 * via this ad account (linked through a Facebook Page or Business Manager).
+	 */
+	async getConnectedInstagramAccounts(accountId: string): Promise<{
+		data: Array<{
+			id: string;        // Instagram User ID
+			username?: string;
+			name?: string;
+			profile_pic?: string;
+		}>;
+	}> {
+		const normalizedAccountId = this.normalizeAccountId(accountId);
+		return this.makeRequest('GET', `/${normalizedAccountId}/connected_instagram_accounts`, {
+			fields: 'id,username,name,profile_pic',
+		});
 	}
 }
 

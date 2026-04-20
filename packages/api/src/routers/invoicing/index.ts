@@ -1750,16 +1750,7 @@ export const invoicingRouter = router({
 				return `${currency} ${formatted}`;
 			};
 
-			// Prepare services list for email
-			const services = invoiceDetail.lineItems.map((item: any) => ({
-				name: item.name || "Service",
-				description: item.description || undefined,
-				quantity: item.quantity || undefined,
-				price:
-					item.price != null
-						? formatMoney(invoiceDetail.currency || "KES", item.price)
-						: undefined,
-			}));
+
 
 			// Format dates for email
 			const formatDate = (date: Date | null | undefined): string => {
@@ -1779,7 +1770,6 @@ export const invoicingRouter = router({
 				dueDate: formatDate(invoiceDetail.dueDate),
 				totalAmount: formatMoney(invoiceDetail.currency || "KES", invoiceDetail.amount),
 				currency: invoiceDetail.currency || "KES",
-				services,
 				supportEmail: "billing@nisccloud.com",
 				supportPhone: "+254 748 777 666",
 			});

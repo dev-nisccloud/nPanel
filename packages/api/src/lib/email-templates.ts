@@ -132,7 +132,6 @@ export async function renderInvoiceDeliveryEmail({
   dueDate,
   totalAmount,
   currency,
-  services,
   supportEmail,
   supportPhone,
 }: {
@@ -142,12 +141,6 @@ export async function renderInvoiceDeliveryEmail({
   dueDate?: string;
   totalAmount?: string;
   currency?: string;
-  services?: Array<{
-    name: string;
-    description?: string;
-    quantity?: number;
-    price?: string;
-  }>;
   supportEmail?: string;
   supportPhone?: string;
 }) {
@@ -158,7 +151,6 @@ export async function renderInvoiceDeliveryEmail({
     dueDate,
     totalAmount,
     currency,
-    services,
     supportEmail,
     supportPhone,
   }));

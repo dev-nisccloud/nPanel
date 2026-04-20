@@ -600,7 +600,7 @@ export const metaAuthRouter = router({
 				const appId = getMetaAppId();
 				const apiVersion = getMetaApiVersion();
 
-				// Default scopes for Facebook Pages management
+				// Default scopes for Facebook Pages management + Ads
 				const scopes = [
 					'pages_show_list',
 					'business_management',
@@ -608,6 +608,8 @@ export const metaAuthRouter = router({
 					'pages_manage_engagement',
 					'pages_read_engagement',
 					'read_insights',
+					'ads_read',          // Required: read ad accounts, campaigns, insights, connected Instagram accounts
+					'instagram_basic',   // Required: list Instagram accounts connected to ad accounts
 				];
 
 				// Generate state for OAuth security
