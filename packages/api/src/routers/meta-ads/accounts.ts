@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, type InferSelectModel } from "@npanel/db";
+import { and, desc, eq, sql, type InferSelectModel } from "@npanel/db";
 import { db } from "@npanel/db";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
@@ -137,120 +137,63 @@ export const metaAdsAccountsRouter = router({
 				// 2. Fetch from Meta API if needed
 				const client = new MetaAdsClient({ accessToken });
 				const response = await client.getAdAccounts();
-
 				const now = new Date();
-				const accountResults = [];
 
-				// Normalize Map keys to ensure prefix consistency for lookup
-				const dbAccountMap = new Map<string, MetaAdsAccountRow>();
-				existingDbAccounts.forEach((acc: MetaAdsAccountRow) => {
-					let normalizedId = acc.accountId;
-					if (!normalizedId.startsWith('act_')) {
-						normalizedId = `act_${normalizedId}`;
-					}
-					dbAccountMap.set(normalizedId, acc);
-				});
-
-				const newAccounts = [];
-				const accountsToUpdate = [];
-
-				for (const account of response.data) {
+				const accountsToSync = response.data.map((account: any) => {
 					let accountId = account.account_id;
 					if (!accountId.startsWith('act_')) {
 						accountId = `act_${accountId}`;
 					}
 					const accountStatus = mapAccountStatus(account.account_status);
+					const id = `meta_ads_account_${integrationId}_${accountId}`;
 
-					const existingAccount = dbAccountMap.get(accountId);
+					return {
+						id,
+						integrationId,
+						accountId,
+						accountName: account.name || null,
+						currency: account.currency || null,
+						timezone: account.timezone_name || null,
+						status: accountStatus,
+						spendLimit: account.spend_cap || null,
+						amountSpent: account.amount_spent || null,
+						balance: account.balance || null,
+						instagramUserId: account.instagram_user_id || null,
+						createdAt: now,
+						updatedAt: now,
+					};
+				});
 
-					if (existingAccount) {
-						// Only update if something changed (simple check)
-						const hasChanged =
-							existingAccount.accountName !== account.name ||
-							existingAccount.status !== accountStatus ||
-							existingAccount.amountSpent !== account.amount_spent ||
-							existingAccount.balance !== account.balance;
-
-						if (hasChanged || !existingAccount.accountId.startsWith('act_')) {
-							accountsToUpdate.push(
-								db
-									.update(metaAdsAccount)
-									.set({
-										accountId: accountId,
-										accountName: account.name || existingAccount.accountName,
-										currency: account.currency || existingAccount.currency,
-										timezone: account.timezone_name || existingAccount.timezone,
-										status: accountStatus,
-										spendLimit: account.spend_cap || existingAccount.spendLimit,
-										amountSpent: account.amount_spent || existingAccount.amountSpent,
-										balance: account.balance || existingAccount.balance,
-										updatedAt: now,
-									})
-									.where(eq(metaAdsAccount.id, existingAccount.id)),
-							);
-						}
-
-						accountResults.push({
-							id: existingAccount.id,
-							accountId: accountId,
-							accountName: account.name || existingAccount.accountName,
-							currency: account.currency || existingAccount.currency,
-							timezone: account.timezone_name || existingAccount.timezone,
-							status: accountStatus,
-							spendLimit: account.spend_cap || existingAccount.spendLimit,
-							amountSpent: account.amount_spent || existingAccount.amountSpent,
-							balance: account.balance || existingAccount.balance,
-							instagramUserId: (account as any).instagram_user_id || null,
-							updatedAt: now.toISOString(),
+				if (accountsToSync.length > 0) {
+					// Use UPSERT logic to handle existing accounts and tie them to the latest integration
+					await db.insert(metaAdsAccount)
+						.values(accountsToSync)
+						.onConflictDoUpdate({
+							target: metaAdsAccount.accountId,
+							set: {
+								integrationId: sql`EXCLUDED.integration_id`,
+								accountName: sql`EXCLUDED.account_name`,
+								currency: sql`EXCLUDED.currency`,
+								timezone: sql`EXCLUDED.timezone`,
+								status: sql`EXCLUDED.status`,
+								spendLimit: sql`EXCLUDED.spend_limit`,
+								amountSpent: sql`EXCLUDED.amount_spent`,
+								balance: sql`EXCLUDED.balance`,
+								instagramUserId: sql`EXCLUDED.instagram_user_id`,
+								updatedAt: now,
+							},
 						});
-					} else {
-						// New account discovered - stable ID based on integration and account
-						const id = `meta_ads_account_${integrationId}_${accountId}`;
-						newAccounts.push({
-							id,
-							integrationId,
-							accountId,
-							accountName: account.name || null,
-							currency: account.currency || null,
-							timezone: account.timezone_name || null,
-							status: accountStatus,
-							spendLimit: account.spend_cap || null,
-							amountSpent: account.amount_spent || null,
-							balance: account.balance || null,
-							createdAt: now,
-							updatedAt: now,
-						});
-
-						accountResults.push({
-							id,
-							accountId,
-							accountName: account.name || null,
-							currency: account.currency || null,
-							timezone: account.timezone_name || null,
-							status: accountStatus,
-							spendLimit: account.spend_cap || null,
-							amountSpent: account.amount_spent || null,
-							balance: account.balance || null,
-							instagramUserId: (account as any).instagram_user_id || null,
-							updatedAt: now.toISOString(),
-						});
-					}
 				}
-
-				// Perform DB operations in parallel
-				await Promise.all([
-					accountsToUpdate.length > 0 ? Promise.all(accountsToUpdate) : Promise.resolve(),
-					newAccounts.length > 0
-						? db.insert(metaAdsAccount).values(newAccounts)
-						: Promise.resolve(),
-				]);
 
 				return {
 					success: true,
-					data: accountResults,
+					data: accountsToSync.map(acc => ({
+						...acc,
+						updatedAt: acc.updatedAt.toISOString(),
+					})),
 					meta: {
 						retrieved_at: now.toISOString(),
-						total_accounts: accountResults.length,
+						total_accounts: accountsToSync.length,
 						source: 'api',
 					},
 				};
