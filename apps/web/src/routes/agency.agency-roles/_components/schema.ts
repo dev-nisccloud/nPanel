@@ -59,6 +59,8 @@ export const agencyMenuKeysUi = [
 
 	"/agency/reports/sales",
 	"/agency/reports/creative",
+	"/agency/agency-roles",
+	"/agency/api-keys",
 ] as const;
 
 export const agencyMenuKeyUiSchema = z.enum(agencyMenuKeysUi);
@@ -68,6 +70,7 @@ export const agencyRoleUiSchema = z.object({
 	id: z.string(),
 	name: z.string(),
 	description: z.string().nullable(),
+	menus: z.array(z.string()),
 	isSystem: z.boolean(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
@@ -87,6 +90,7 @@ export type AgencyPermissionUi = z.infer<typeof agencyPermissionUiSchema>;
 
 export const agencyRoleWithPermissionsUiSchema = agencyRoleUiSchema.extend({
 	permissionKeys: z.array(agencyMenuKeyUiSchema),
+	menus: z.array(z.string()),
 });
 
 export type AgencyRoleWithPermissionsUi = z.infer<typeof agencyRoleWithPermissionsUiSchema>;
@@ -95,6 +99,7 @@ export const createRoleFormSchema = z.object({
 	name: z.string().min(2, "Role name is required").max(80),
 	description: z.string().max(400).optional(),
 	permissionKeys: z.array(agencyMenuKeyUiSchema).default([]),
+	menus: z.array(z.string()).default([]),
 });
 
 export type CreateRoleFormData = z.infer<typeof createRoleFormSchema>;

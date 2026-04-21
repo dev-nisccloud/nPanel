@@ -399,18 +399,18 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Quotations", url: "/agency/quotations", },
         ],
       },
-      {
-        title: "KRA eTIMS",
-        url: "/agency/kra-etims/sales",
-        icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Sales", url: "/agency/kra-etims/sales", },
-          { title: "Purchases", url: "/agency/kra-etims/purchases", },
-          { title: "Products", url: "/agency/kra-etims/products", },
-          { title: "Branches", url: "/agency/kra-etims/branches", },
-          { title: "Settings", url: "/agency/kra-etims/settings", },
-        ],
-      },
+      // {
+      //   title: "KRA eTIMS",
+      //   url: "/agency/kra-etims/sales",
+      //   icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Sales", url: "/agency/kra-etims/sales", },
+      //     { title: "Purchases", url: "/agency/kra-etims/purchases", },
+      //     { title: "Products", url: "/agency/kra-etims/products", },
+      //     { title: "Branches", url: "/agency/kra-etims/branches", },
+      //     { title: "Settings", url: "/agency/kra-etims/settings", },
+      //   ],
+      // },
       {
         title: "Reports",
         url: "/agency/reports/sales",
@@ -434,6 +434,11 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Payments", url: "/agency/nisc-reports/payments", },
           { title: "Tax", url: "/agency/nisc-reports/tax", },
         ],
+      },
+      {
+        title: "Workflow Jobs",
+        url: "/agency/cronjobs",
+        icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Workflow Jobs",

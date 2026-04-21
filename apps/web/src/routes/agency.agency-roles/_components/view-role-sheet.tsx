@@ -141,26 +141,25 @@ export function ViewRoleSheet({ open, onOpenChange, roleId, onEdit }: ViewRoleSh
 											<p className="text-xs text-muted-foreground">
 												Menu entries this role can see in the agency experience.
 											</p>
-											{safeRole.permissionKeys.length === 0 ? (
+											{safeRole.menus.length === 0 ? (
 												<div className="mt-3 rounded-md border border-dashed bg-muted/40 p-4 text-center text-xs text-muted-foreground">
 													This role doesn&apos;t have any sidebar permissions yet.
 												</div>
 											) : (
 												<div className="mt-3 grid gap-2 sm:grid-cols-2">
-													{safeRole.permissionKeys.map((key) => {
-														const parsed = agencyMenuKeyUiSchema.parse(key);
+													{safeRole.menus.map((key) => {
 														return (
 															<div
-																key={parsed}
+																key={key}
 																className="flex items-start gap-2 rounded-md border bg-background px-2 py-1.5 text-xs"
 															>
 																<CheckCircle2 className="mt-0.5 h-3.5 w-3.5 text-emerald-500" />
 																<div className="flex flex-col gap-0.5">
 																	<span className="font-medium">
-																		{parsed.replace("/agency/", "").replace(/-/g, " ")}
+																		{key.replace("/agency/", "").replace(/-/g, " ")}
 																	</span>
 																	<span className="text-[10px] text-muted-foreground">
-																		{parsed}
+																		{key}
 																	</span>
 																</div>
 															</div>

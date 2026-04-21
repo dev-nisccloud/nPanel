@@ -133,15 +133,17 @@ export function NavUser() {
                 <CircleUser />
                 My Account
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void navigate("/agency/api-keys")}>
-                <Key />
-                API Keys
-              </DropdownMenuItem>
               {isSuperAdmin && (
-                <DropdownMenuItem onClick={() => void navigate("/agency/agency-roles")}>
-                  <Settings2 />
-                  Agency Roles
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => void navigate("/agency/api-keys")}>
+                    <Key />
+                    API Keys
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void navigate("/agency/agency-roles")}>
+                    <Settings2 />
+                    Agency Roles
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

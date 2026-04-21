@@ -222,6 +222,7 @@ export default function AgencyRolesPage() {
 										<TableHead className="pl-6">Role</TableHead>
 										<TableHead>Description</TableHead>
 										<TableHead>Type</TableHead>
+										<TableHead>Menus</TableHead>
 										<TableHead className="text-right">
 											Updated
 										</TableHead>
@@ -246,6 +247,11 @@ export default function AgencyRolesPage() {
 											<TableCell>
 												<Badge variant="outline" className="text-xs">
 													{role.isSystem ? "System" : "Custom"}
+												</Badge>
+											</TableCell>
+											<TableCell>
+												<Badge variant="secondary" className="text-[10px]">
+													{role.menus.length} menus
 												</Badge>
 											</TableCell>
 											<TableCell className="text-right text-xs text-muted-foreground">

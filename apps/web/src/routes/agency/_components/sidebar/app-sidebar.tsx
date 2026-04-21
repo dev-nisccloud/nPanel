@@ -14,51 +14,64 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { APP_CONFIG } from "@/config/app-config";
-import { agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
+import { trpc } from "@/utils/trpc";
+import { type NavGroup, type NavMainItem, agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
 
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
-const data = {
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: CircleHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: Search,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: Database,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: ClipboardList,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: File,
-    },
-  ],
-};
+/**
+ * Recursively filters sidebar items based on allowed keys.
+ */
+function filterSidebarItems(
+  groups: readonly NavGroup[],
+  allowedKeys: Set<string>
+): NavGroup[] {
+  return groups
+    .map((group) => {
+      const filteredItems = group.items
+        .map((item) => {
+          // If item has subItems, filter them too
+          const filteredSubItems = item.subItems?.filter((sub) =>
+            allowedKeys.has(sub.url)
+          );
+
+          // An item is visible if:
+          // 1. Its URL is directly in allowedKeys
+          // 2. It has at least one visible subItem
+          const isItemVisible = allowedKeys.has(item.url) || (filteredSubItems && filteredSubItems.length > 0);
+
+          if (!isItemVisible) return null;
+
+          return {
+            ...item,
+            subItems: filteredSubItems,
+          } as NavMainItem;
+        })
+        .filter((item): item is NavMainItem => item !== null);
+
+      if (filteredItems.length === 0) return null;
+
+      return {
+        ...group,
+        items: filteredItems,
+      } as NavGroup;
+    })
+    .filter((group): group is NavGroup => group !== null);
+}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar();
   const isExpanded = state === "expanded";
+
+  const { data: menuAccess, isLoading } = trpc.agencyRbac.myMenuAccess.useQuery();
+
+  const filteredItems = React.useMemo(() => {
+    if (isLoading || !menuAccess) return [];
+    const allowedKeys = new Set(menuAccess.allowedKeys);
+    return filterSidebarItems(agencysidebarItems, allowedKeys);
+  }, [menuAccess, isLoading]);
 
   return (
     <Sidebar {...props}>
@@ -86,9 +99,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={agencysidebarItems} />
-        {/* <NavDocuments items={data.documents} /> */}
-        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        {isLoading ? (
+          <div className="flex grow flex-col items-center justify-center gap-2 p-4">
+            <Spinner variant="ellipsis" className="text-primary" />
+            <span className="text-muted-foreground animate-pulse text-[10px] font-medium uppercase tracking-wider">
+              Loading roles...
+            </span>
+          </div>
+        ) : (
+          <NavMain items={filteredItems} />
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

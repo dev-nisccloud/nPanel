@@ -92,6 +92,7 @@ export function EditRoleSheet({ open, onOpenChange, roleId, onSuccess }: EditRol
       name: "",
       description: "",
       permissionKeys: [],
+      menus: [],
     },
   });
 
@@ -101,6 +102,7 @@ export function EditRoleSheet({ open, onOpenChange, roleId, onSuccess }: EditRol
       name: data.name,
       description: data.description ?? "",
       permissionKeys: data.permissionKeys ?? [],
+      menus: data.menus ?? [],
     });
   }, [data, form]);
 
@@ -133,11 +135,12 @@ export function EditRoleSheet({ open, onOpenChange, roleId, onSuccess }: EditRol
         roleId,
         name: dataForm.name,
         description: dataForm.description,
+        menus: dataForm.menus,
       });
 
       await rolePermissionsSetMutation.mutateAsync({
         roleId,
-        permissionKeys: dataForm.permissionKeys,
+        permissionKeys: Array.from(new Set([...dataForm.menus, ...dataForm.permissionKeys])),
       });
 
       await Promise.all([
@@ -271,7 +274,7 @@ export function EditRoleSheet({ open, onOpenChange, roleId, onSuccess }: EditRol
                                   <FormField
                                     key={key}
                                     control={form.control}
-                                    name="permissionKeys"
+                                    name="menus"
                                     render={({ field }) => {
                                       const checked = field.value?.includes(key as never);
                                       return (
@@ -280,12 +283,11 @@ export function EditRoleSheet({ open, onOpenChange, roleId, onSuccess }: EditRol
                                             <Checkbox
                                               checked={checked}
                                               onCheckedChange={(isChecked) => {
-                                                const value = agencyMenuKeyUiSchema.parse(key);
                                                 if (isChecked) {
-                                                  field.onChange([...(field.value ?? []), value]);
+                                                  field.onChange([...(field.value ?? []), key]);
                                                 } else {
                                                   field.onChange(
-                                                    (field.value ?? []).filter((v) => v !== value),
+                                                    (field.value ?? []).filter((v) => v !== key),
                                                   );
                                                 }
                                               }}
