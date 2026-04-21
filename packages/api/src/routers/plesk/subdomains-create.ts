@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 type CreateInput = {
 	parent: string;
@@ -95,7 +95,7 @@ ${hostingXml}
 }
 
 export const subdomainsCreateRouter = router({
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       parent: z.string(),
       name: z.string(),

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 async function getWpUpdatesInfo(installationId: number) {
   const installationEndpoint = `/v1/installations/${installationId}`;
@@ -37,7 +37,7 @@ async function getWpUpdatesInfo(installationId: number) {
 }
 
 export const wpUpdatesInfoRouter = router({
-  get: publicProcedure
+  get: protectedProcedure
     .input(z.object({ installationId: z.number() }))
     .query(async ({ input }) => {
       const data = await getWpUpdatesInfo(input.installationId);

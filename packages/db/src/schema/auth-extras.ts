@@ -11,6 +11,27 @@ import {
 
 import { user } from "./auth";
 
+export const apiKey = pgTable(
+  "api_key",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    permissions: jsonb("permissions").$type<string[]>().notNull(),
+    expiresAt: timestamp("expires_at"),
+    isActive: boolean("is_active").default(true).notNull(),
+    lastUsedAt: timestamp("last_used_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("api_key_userId_idx").on(table.userId),
+    index("api_key_keyHash_idx").on(table.keyHash),
+  ]
+);
+
 export const customerIntegration = pgTable(
   "customer_integration",
   {
@@ -149,3 +170,9 @@ export const userActivityLogRelations = relations(userActivityLog, ({ one }) => 
   }),
 }));
 
+export const apiKeyRelations = relations(apiKey, ({ one }) => ({
+  user: one(user, {
+    fields: [apiKey.userId],
+    references: [user.id],
+  }),
+}));

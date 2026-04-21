@@ -1,4 +1,4 @@
-import { router, publicProcedure } from '../../trpc';
+import { router, protectedProcedure, publicProcedure } from '../../trpc';
 import { openProviderAuthRouter } from './auth';
 import { openProviderTldRouter } from './tlds';
 import { openProviderDomainsRouter } from './domains';

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure } from '../../trpc';
+import { router, publicProcedure, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
 import { getRedisClient } from '../../lib/redis';
 import type { 
@@ -399,7 +399,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Register a new domain
    */
-  register: publicProcedure
+  register: protectedProcedure
     .input(DomainRegistrationRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -492,7 +492,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Transfer a domain from another registrar
    */
-  transfer: publicProcedure
+  transfer: protectedProcedure
     .input(DomainTransferRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -579,7 +579,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Search domains in your account
    */
-  search: publicProcedure
+  search: protectedProcedure
     .input(DomainSearchRequestSchema)
     .query(async ({ input }) => {
       try {
@@ -664,7 +664,7 @@ export const openProviderDomainsRouter = router({
    * List all domains (Domains Portfolio)
    * This is a user-friendly endpoint for the domains portfolio page
    */
-  list: publicProcedure
+  list: protectedProcedure
     .input(DomainListRequestSchema)
     .query(async ({ input }) => {
       try {
@@ -850,7 +850,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Update domain attributes
    */
-  update: publicProcedure
+  update: protectedProcedure
     .input(DomainUpdateRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -950,7 +950,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Renew a domain
    */
-  renew: publicProcedure
+  renew: protectedProcedure
     .input(DomainRenewalRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -1030,7 +1030,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Get domain auth code
    */
-  getAuthCode: publicProcedure
+  getAuthCode: protectedProcedure
     .input(z.object({
       domainId: z.number().min(1, 'Domain ID is required'),
     }))
@@ -1096,7 +1096,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Reset domain auth code
    */
-  resetAuthCode: publicProcedure
+  resetAuthCode: protectedProcedure
     .input(z.object({
       domainId: z.number().min(1, 'Domain ID is required'),
       auth_code_type: z.enum(['external', 'internal']).optional(),
@@ -1165,7 +1165,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Delete a domain
    */
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({
       domainId: z.number().min(1, 'Domain ID is required'),
       domainName: z.string().min(1, 'Domain name is required'),
@@ -1239,7 +1239,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Restore a domain
    */
-  restore: publicProcedure
+  restore: protectedProcedure
     .input(z.object({
       domainId: z.number().min(1, 'Domain ID is required'),
     }))
@@ -1305,7 +1305,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Get domain pricing
    */
-  getPricing: publicProcedure
+  getPricing: protectedProcedure
     .input(DomainPricingRequestSchema)
     .query(async ({ input }) => {
       try {
@@ -1389,7 +1389,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Get additional data requirements for a TLD
    */
-  getAdditionalData: publicProcedure
+  getAdditionalData: protectedProcedure
     .input(AdditionalDataRequestSchema)
     .query(async ({ input }) => {
       try {
@@ -1470,7 +1470,7 @@ export const openProviderDomainsRouter = router({
   /**
    * Get additional customer data requirements for a TLD
    */
-  getCustomerAdditionalData: publicProcedure
+  getCustomerAdditionalData: protectedProcedure
     .input(CustomerAdditionalDataRequestSchema)
     .query(async ({ input }) => {
       try {

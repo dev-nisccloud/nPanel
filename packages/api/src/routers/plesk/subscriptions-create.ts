@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 type CreateInput = {
 	name: string;
@@ -97,7 +97,7 @@ function buildSubscriptionCreateXml(data: CreateInput): string {
 }
 
 export const subscriptionsCreateRouter = router({
-	create: publicProcedure
+	create: protectedProcedure
 		.input(z.object({
 			name: z.string(),
 			ownerId: z.number(),

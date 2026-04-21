@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 /**
  * Build XML to create a database
@@ -74,7 +74,7 @@ function parseXmlError(xml: string): { error: string; code?: string } {
 
 export const databasesCreateRouter = router({
   // Create a database
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       siteId: z.number(),
       name: z.string().min(1, { message: "Database name is required" }).max(64, { message: "Database name must be at most 64 characters" }),

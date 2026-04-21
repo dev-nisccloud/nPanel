@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 /**
  * Enhanced error parsing for better debugging
@@ -97,7 +97,7 @@ function buildDnsAddRecXml(input: {
 }
 
 export const dnsUpdateRouter = router({
-    update: publicProcedure
+    update: protectedProcedure
         .input(
             z.object({
                 siteId: z.number(),

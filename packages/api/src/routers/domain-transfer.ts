@@ -39,9 +39,9 @@ const checkTransferInputSchema = z.object({
 
 /** User-facing transfer check status for the UI. */
 export type TransferStatus =
-	| "available"   // Domain is free — suggest registration (CTA to register page)
-	| "locked"      // Domain is registered but transfer-locked — show unlock instructions
-	| "ready"       // Can transfer now — show price and purchase
+	| "available"   // Domain is free Ã¢â‚¬â€ suggest registration (CTA to register page)
+	| "locked"      // Domain is registered but transfer-locked Ã¢â‚¬â€ show unlock instructions
+	| "ready"       // Can transfer now Ã¢â‚¬â€ show price and purchase
 	| "pending_check" // KENIC: TLD pricing only, no availability; show Continue, no "Ready" badge
 	| "reserved"    // Domain is reserved
 	| "unavailable"; // Invalid, error, or other (show error / why transfer failed)
@@ -97,7 +97,7 @@ export const domainTransferRouter = router({
 	/**
 	 * Check if a domain can be transferred and get the price.
 	 * Identifies TLD first (same as domain search): KENIC for .ke/.co.ke/etc., OpenProvider for others.
-	 * KENIC: EPP domain check only → available or ready + price.
+	 * KENIC: EPP domain check only Ã¢â€ â€™ available or ready + price.
 	 * OpenProvider: RDAP for status (available / locked / ready), then transfer pricing when ready.
 	 */
 	checkTransfer: publicProcedure
@@ -145,9 +145,9 @@ export const domainTransferRouter = router({
 								"This domain is locked at the current registrar. Unlock it in your registrar's control panel, then try the transfer again.",
 						});
 					}
-					// exists && !locked → ready; get price below
+					// exists && !locked Ã¢â€ â€™ ready; get price below
 				} else {
-					// RDAP failed for this TLD — fall back to OpenProvider domain check
+					// RDAP failed for this TLD Ã¢â‚¬â€ fall back to OpenProvider domain check
 					try {
 						const client = createOpenProviderClient();
 						await client.authenticate({
@@ -192,7 +192,7 @@ export const domainTransferRouter = router({
 								error: result.reason ?? `Domain status is "${result.status}". It cannot be transferred.`,
 							});
 						}
-						// active/in use → ready; get price below
+						// active/in use Ã¢â€ â€™ ready; get price below
 					} catch (error) {
 						const message =
 							error instanceof OpenProviderApiError
@@ -205,7 +205,7 @@ export const domainTransferRouter = router({
 				}
 			}
 
-			// Ready to transfer — get price from OpenProvider (KENIC returns earlier with pending_check)
+			// Ready to transfer Ã¢â‚¬â€ get price from OpenProvider (KENIC returns earlier with pending_check)
 			try {
 				const client = createOpenProviderClient();
 				await client.authenticate({

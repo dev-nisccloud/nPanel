@@ -96,6 +96,7 @@ import { agencyRbacRouter } from "./agency-rbac";
 import { hivelocityRouter } from "./hivelocity";
 import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
+import { apiKeysRouter } from "./api-keys";
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -272,5 +273,7 @@ export const appRouter = router({
 	hivelocityPricingSettings: hivelocityPricingSettingsRouter,
 	// Cron / workflow runs (node editor persistence)
 	cronWorkflowRun: cronWorkflowRunRouter,
+	// API Keys Management
+	apiKeys: apiKeysRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../../trpc";
+import { publicProcedure, protectedProcedure, router } from "../../trpc";
 import { createConnection, readFrame, sendFrame } from "../../lib/epp/epp-client";
 import {
 	buildLoginXml,

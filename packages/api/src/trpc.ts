@@ -1,5 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-
+import { logBuffer } from "./lib/log-buffer";
 import type { Context } from "./context";
 
 export type { Context } from "./context";
@@ -8,9 +8,78 @@ export const t = initTRPC.context<Context>().create();
 
 export const router = t.router;
 
-export const publicProcedure = t.procedure;
+/**
+ * Global logging middleware that captures request details and pushes them to a background buffer.
+ */
+const loggingMiddleware = t.middleware(async ({ ctx, next, path, type, rawInput }) => {
+  const start = performance.now();
+  
+  try {
+    const result = await next();
+    const durationMs = Math.ceil(performance.now() - start);
 
-export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+    logBuffer.push({
+      path,
+      type,
+      userId: ctx.session?.user?.id,
+      teamId: ctx.session?.user?.lastAccessedTeamId,
+      apiKeyId: ctx.apiKey?.id,
+      input: rawInput,
+      status: result.ok ? "SUCCESS" : "ERROR",
+      errorCode: result.ok ? null : result.error.code,
+      durationMs,
+      ipAddress: ctx.ipAddress,
+    });
+
+    return result;
+  } catch (error: any) {
+    const durationMs = Math.ceil(performance.now() - start);
+    const errorCode = error instanceof TRPCError ? error.code : "INTERNAL_SERVER_ERROR";
+    
+    logBuffer.push({
+      path,
+      type,
+      userId: ctx.session?.user?.id,
+      apiKeyId: ctx.apiKey?.id,
+      input: rawInput,
+      status: "ERROR",
+      errorCode,
+      durationMs,
+      ipAddress: ctx.ipAddress,
+    });
+    
+    throw error;
+  }
+});
+
+/**
+ * Universal middleware that enforces API key scopes if an API key is used.
+ * Applied to both public and protected procedures.
+ */
+const apiKeyGuard = t.middleware(async ({ ctx, next, path }) => {
+  if (ctx.apiKeyError) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: ctx.apiKeyError,
+    });
+  }
+
+  if (ctx.apiKey) {
+    const { permissions } = ctx.apiKey;
+    const hasAccess = permissions.includes("*") || permissions.includes(path);
+    if (!hasAccess) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `API Key does not have permission to access endpoint: ${path}`,
+      });
+    }
+  }
+  return next();
+});
+
+export const publicProcedure = t.procedure.use(loggingMiddleware).use(apiKeyGuard);
+
+export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
   if (!ctx.session?.user) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
@@ -28,9 +97,6 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       cause: "Invalid session: missing user id",
     });
   }
-
-  // Optional fields (name, email, role) are not enforced here — add a dedicated procedure
-  // (e.g. `requiresRole`) or check inside routers that need them.
 
   return next({
     ctx: {

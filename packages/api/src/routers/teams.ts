@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
 import { and, count, desc, eq, inArray } from "@npanel/db";
-import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
@@ -87,7 +87,7 @@ export const teamsRouter = router({
    * Create a new team
    * Also creates the first team member with OWNER role
    */
-  create: publicProcedure
+  create: protectedProcedure
     .input(createTeamInputSchema)
     .output(createTeamOutputSchema)
     .mutation(async ({ input, ctx }) => {
@@ -304,7 +304,7 @@ export const teamsRouter = router({
       };
     }),
 
-  getInviteByCode: publicProcedure
+  getInviteByCode: protectedProcedure
     .input(getInviteInputSchema)
     .output(getInviteOutputSchema)
     .query(async ({ input }) => {
@@ -381,7 +381,7 @@ export const teamsRouter = router({
       };
     }),
 
-  acceptInvite: publicProcedure
+  acceptInvite: protectedProcedure
     .input(acceptInviteInputSchema)
     .output(acceptInviteOutputSchema)
     .mutation(async ({ input, ctx }) => {
@@ -519,7 +519,7 @@ export const teamsRouter = router({
       }
     }),
 
-  getUserTeams: publicProcedure
+  getUserTeams: protectedProcedure
     .output(z.array(teamMembershipSchema))
     .query(async ({ ctx }) => {
       const session = ctx.session;
@@ -556,7 +556,7 @@ export const teamsRouter = router({
       }));
     }),
 
-  checkSlugAvailable: publicProcedure
+  checkSlugAvailable: protectedProcedure
     .input(slugCheckInputSchema)
     .output(slugCheckOutputSchema)
     .query(async ({ input }) => {
@@ -567,7 +567,7 @@ export const teamsRouter = router({
       };
     }),
 
-  updateLastAccessedTeam: publicProcedure
+  updateLastAccessedTeam: protectedProcedure
     .input(
       z.object({
         teamId: z.string(),

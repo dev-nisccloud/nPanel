@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 async function deleteWpThemes(installationId: number, themeSlugs: string[]) {
   const endpoint = `/v1/installations/${installationId}/themes`;
@@ -14,7 +14,7 @@ async function deleteWpThemes(installationId: number, themeSlugs: string[]) {
 }
 
 export const wpThemesDeleteRouter = router({
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ installationId: z.number(), themes: z.array(z.string()).min(1) }))
     .mutation(async ({ input }) => {
       const data = await deleteWpThemes(input.installationId, input.themes);

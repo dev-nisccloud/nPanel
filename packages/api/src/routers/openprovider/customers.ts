@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure } from '../../trpc';
+import { router, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
 import type { 
   OpenProviderCustomerRequest,
@@ -89,7 +89,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Create a new customer handle
    */
-  create: publicProcedure
+  create: protectedProcedure
     .input(CustomerRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -171,7 +171,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Search existing customer handles
    */
-  search: publicProcedure
+  search: protectedProcedure
     .input(CustomerSearchRequestSchema)
     .query(async ({ input }) => {
       try {
@@ -257,7 +257,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Update an existing customer handle
    */
-  update: publicProcedure
+  update: protectedProcedure
     .input(CustomerUpdateRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -339,7 +339,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Get customer by handle
    */
-  getByHandle: publicProcedure
+  getByHandle: protectedProcedure
     .input(z.object({
       handle: z.string().min(1, 'Handle is required'),
     }))
@@ -416,7 +416,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Search customers by email
    */
-  searchByEmail: publicProcedure
+  searchByEmail: protectedProcedure
     .input(z.object({
       email: z.string().email('Valid email is required'),
       limit: z.number().min(1).max(1000).optional().default(100),
@@ -500,7 +500,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Search customers by company name
    */
-  searchByCompany: publicProcedure
+  searchByCompany: protectedProcedure
     .input(z.object({
       company_name: z.string().min(1, 'Company name is required'),
       limit: z.number().min(1).max(1000).optional().default(100),
@@ -584,7 +584,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Get all customers with pagination
    */
-  getAll: publicProcedure
+  getAll: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(1000).optional().default(100),
       offset: z.number().min(0).optional().default(0),
@@ -666,7 +666,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Start email verification for gTLD
    */
-  startEmailVerification: publicProcedure
+  startEmailVerification: protectedProcedure
     .input(EmailVerificationStartSchema)
     .mutation(async ({ input }) => {
       try {
@@ -744,7 +744,7 @@ export const openProviderCustomersRouter = router({
   /**
    * Check email verification status
    */
-  checkEmailVerificationStatus: publicProcedure
+  checkEmailVerificationStatus: protectedProcedure
     .input(EmailVerificationStatusSchema)
     .query(async ({ input }) => {
       try {

@@ -1,5 +1,9 @@
 import { auth } from "@npanel/auth";
 import type { Context as HonoContext } from "hono";
+import { createHash } from "node:crypto";
+import { db, eq } from "@npanel/db";
+import { apiKey } from "@npanel/db/schema/auth-extras";
+import { user } from "@npanel/db/schema/auth";
 
 type AuthSessionNonNull = NonNullable<
   Awaited<ReturnType<typeof auth.api.getSession>>
@@ -32,8 +36,11 @@ export type Session =
  */
 export type Context = {
   session: Session;
+  apiKey?: { id: string; permissions: string[] };
   /** Used by AI chat to get a tRPC caller. Injected by the app. */
   createCaller?: (ctx: Context) => unknown;
+  ipAddress?: string | null;
+  apiKeyError?: string | null;
 };
 
 export type CreateContextOptions = {
@@ -45,11 +52,100 @@ export async function createContext({
   context,
   createCaller,
 }: CreateContextOptions): Promise<Context> {
+  const authHeader = context.req.raw.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.substring(7).trim();
+    if (token.startsWith("npanel_sk_")) {
+      const keyHash = createHash("sha256").update(token).digest("hex");
+      
+      const [keyRecord] = await db
+        .select()
+        .from(apiKey)
+        .where(eq(apiKey.keyHash, keyHash))
+        .limit(1);
+
+      if (!keyRecord) {
+        return {
+          session: null,
+          apiKeyError: "Invalid API Key",
+          ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+        };
+      }
+
+      if (!keyRecord.isActive) {
+        return {
+          session: null,
+          apiKeyError: "API Key is revoked",
+          ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+        };
+      }
+
+      if (keyRecord.expiresAt && keyRecord.expiresAt < new Date()) {
+        return {
+          session: null,
+          apiKeyError: "API Key has expired",
+          ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+        };
+      }
+
+      const [userRecord] = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, keyRecord.userId))
+        .limit(1);
+
+      if (!userRecord || userRecord.status !== "ACTIVE") {
+        return {
+          session: null,
+          apiKeyError: "Account associated with this API key is inactive",
+          ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+        };
+      }
+
+      // Found a valid API key and active user.
+      
+      // Optional: asynchronously update lastUsedAt
+      void db.update(apiKey)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(apiKey.id, keyRecord.id))
+        .catch(err => console.error("Failed to update api key lastUsedAt:", err));
+
+      const sessionUser: SessionUser = {
+        id: userRecord.id,
+        name: userRecord.name,
+        email: userRecord.email,
+        role: userRecord.role,
+      };
+
+      const mockSessionObj = {
+        id: `apikey_${keyRecord.id}`,
+        expiresAt: keyRecord.expiresAt ?? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
+        userId: userRecord.id,
+        createdAt: keyRecord.createdAt,
+        updatedAt: keyRecord.lastUsedAt ?? keyRecord.createdAt,
+        ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+        userAgent: context.req.raw.headers.get("user-agent") ?? null,
+        token: token,
+      };
+
+      const ipAddress = context.req.raw.headers.get("x-forwarded-for") ?? null;
+
+      return {
+        session: { session: mockSessionObj, user: sessionUser } as unknown as Session,
+        createCaller,
+        apiKey: { id: keyRecord.id, permissions: keyRecord.permissions },
+        ipAddress,
+      };
+    }
+  }
+
   const session = await auth.api.getSession({
     headers: context.req.raw.headers,
   });
+  const ipAddress = context.req.raw.headers.get("x-forwarded-for") ?? null;
   return {
     session: session as Session,
     createCaller,
+    ipAddress,
   };
 }

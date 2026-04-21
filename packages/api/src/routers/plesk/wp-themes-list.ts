@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 async function getInstalledThemes(installationId: number) {
   const endpoint = `/v1/installations/${installationId}/themes`;
@@ -41,13 +41,13 @@ async function getThemeCatalog(installationId: number, options: {
 }
 
 export const wpThemesListRouter = router({
-  installed: publicProcedure
+  installed: protectedProcedure
     .input(z.object({ installationId: z.number() }))
     .query(async ({ input }) => {
       const data = await getInstalledThemes(input.installationId);
       return { data };
     }),
-  catalog: publicProcedure
+  catalog: protectedProcedure
     .input(z.object({
       installationId: z.number(),
       compatible: z.boolean().optional(),

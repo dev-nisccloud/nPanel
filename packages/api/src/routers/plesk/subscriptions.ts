@@ -7,7 +7,7 @@ import { db } from "@npanel/db";
 import { hostingSubscription, niscServicePlan } from "@npanel/db/schema/hosting";
 import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, protectedProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 /**
  * Build XML request to fetch all subscriptions
@@ -57,7 +57,7 @@ function buildSubscriptionGetByIdXml(subscriptionId: number): string {
 
 export const subscriptionsRouter = router({
   // Get all subscriptions
-  getAll: publicProcedure
+  getAll: protectedProcedure
     .input(z.object({}).optional().default({}))
     .query(async () => {
       
@@ -145,7 +145,7 @@ export const subscriptionsRouter = router({
     }),
 
   // Get subscription by ID
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const { id } = input;
