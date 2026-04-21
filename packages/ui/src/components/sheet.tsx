@@ -29,16 +29,16 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300",
+  "fixed z-50 gap-4 transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=open]:duration-300 bg-card border shadow-2xl overflow-hidden",
   {
     variants: {
       side: {
-        top: "inset-x-0 top-0 data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+        top: "inset-x-2 top-2 rounded-[2rem] data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
-          "inset-x-0 bottom-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "inset-y-0 left-0 h-full w-3/4 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+          "inset-x-2 bottom-2 rounded-[2rem] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        left: "inset-y-2 left-2 w-3/4 rounded-[2rem] md:rounded-[3rem] data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
-          "inset-y-0 right-0 h-full w-3/4 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-[520px]",
+          "inset-y-2 right-2 h-[calc(100%-1rem)] md:h-[calc(100%-2rem)] md:top-4 md:right-4 w-3/4 rounded-[2rem] md:rounded-[3rem] data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-[520px]",
       },
     },
     defaultVariants: {
@@ -66,13 +66,13 @@ const SheetContent = React.forwardRef<
       <SheetPrimitive.Content
         onOpenAutoFocus={(e) => e.preventDefault()}
         ref={ref}
-        className={cn("md:p-4", sheetVariants({ side }))}
+        className={cn(sheetVariants({ side }), className)}
         aria-describedby={props["aria-describedby"] || undefined}
         {...props}
       >
         <div
           className={cn(
-            "border w-full h-full bg-[#FAFAF9] dark:bg-[#121212] p-6 relative overflow-hidden",
+            "w-full h-full p-6 relative overflow-y-auto scrollbar-thin bg-transparent",
             className,
           )}
         >
