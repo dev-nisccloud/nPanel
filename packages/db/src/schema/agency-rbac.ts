@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 export const agencyRole = pgTable(
@@ -8,6 +8,7 @@ export const agencyRole = pgTable(
     id: text("id").primaryKey(),
     name: text("name").notNull().unique(),
     description: text("description"),
+    menus: jsonb("menus").$type<string[]>().default([]).notNull(),
     isSystem: boolean("is_system").default(false).notNull(),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),

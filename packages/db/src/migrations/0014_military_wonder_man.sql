@@ -1,0 +1,1 @@
+ALTER TABLE "agency_role" ADD COLUMN "menus" jsonb DEFAULT '[]'::jsonb NOT NULL;

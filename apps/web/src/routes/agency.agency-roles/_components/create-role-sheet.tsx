@@ -82,6 +82,7 @@ export function CreateRoleSheet({ open, onOpenChange, onSuccess }: CreateRoleShe
 			name: "",
 			description: "",
 			permissionKeys: [],
+			menus: [],
 		},
 	});
 
@@ -95,11 +96,12 @@ export function CreateRoleSheet({ open, onOpenChange, onSuccess }: CreateRoleShe
 
 	const createRoleMutation = trpc.agencyRbac.roleCreate.useMutation({
 		onSuccess: async (role) => {
+			const menus = form.getValues("menus");
 			const permissionKeys = form.getValues("permissionKeys");
-			if (permissionKeys.length) {
+			if (menus.length > 0 || permissionKeys.length > 0) {
 				await rolePermissionsSetMutation.mutateAsync({
 					roleId: role.id,
-					permissionKeys,
+					permissionKeys: Array.from(new Set([...menus, ...permissionKeys])),
 				});
 				await Promise.all([
 					utils.agencyRbac.rolesList.invalidate(),
@@ -113,6 +115,7 @@ export function CreateRoleSheet({ open, onOpenChange, onSuccess }: CreateRoleShe
 				name: "",
 				description: "",
 				permissionKeys: [],
+				menus: [],
 			});
 			setCurrentStep(0);
 			onOpenChange(false);
@@ -134,6 +137,7 @@ export function CreateRoleSheet({ open, onOpenChange, onSuccess }: CreateRoleShe
 		createRoleMutation.mutate({
 			name: data.name,
 			description: data.description,
+			menus: data.menus,
 		});
 	};
 
@@ -145,6 +149,7 @@ export function CreateRoleSheet({ open, onOpenChange, onSuccess }: CreateRoleShe
 				name: "",
 				description: "",
 				permissionKeys: [],
+				menus: [],
 			});
 			setCurrentStep(0);
 		}
@@ -250,7 +255,7 @@ export function CreateRoleSheet({ open, onOpenChange, onSuccess }: CreateRoleShe
 														<FormField
 															key={key}
 															control={form.control}
-															name="permissionKeys"
+															name="menus"
 															render={({ field }) => {
 																const checked = field.value?.includes(key as never);
 																return (
@@ -259,12 +264,11 @@ export function CreateRoleSheet({ open, onOpenChange, onSuccess }: CreateRoleShe
 																			<Checkbox
 																				checked={checked}
 																				onCheckedChange={(isChecked) => {
-																					const value = agencyMenuKeyUiSchema.parse(key);
 																					if (isChecked) {
-																						field.onChange([...(field.value ?? []), value]);
+																						field.onChange([...(field.value ?? []), key]);
 																					} else {
 																						field.onChange(
-																							(field.value ?? []).filter((v) => v !== value),
+																							(field.value ?? []).filter((v) => v !== key),
 																						);
 																					}
 																				}}
