@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 // Removed external type import - using Zod schema instead
 
 // Define regex patterns at the top level for performance
@@ -117,7 +117,7 @@ function buildCustomerCreateXml(data: CreateInput): string {
 
 export const customersCreateRouter = router({
   // Create a new customer
-  create: publicProcedure
+  create: protectedProcedure
     .input(createSchema)
     .mutation(async ({ input }) => {
       try {

@@ -99,7 +99,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get product operating systems.
 	 * Docs: GET /product/{productId}/operating-systems
 	 *
-	 * NOTE: This is intentionally `publicProcedure` so you can test and inspect the live response shape
+	 * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
 	 * while we finalize types. Switch to `protectedProcedure` before shipping.
 	 */
 	getProductOperatingSystems: protectedProcedure
@@ -115,7 +115,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get product options/add-ons.
 	 * Docs: GET /product/{productId}/options?groupBy=upgrade
 	 *
-	 * NOTE: This is intentionally `publicProcedure` so you can test and inspect the live response shape
+	 * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
 	 * while we finalize types. Switch to `protectedProcedure` before shipping.
 	 */
 	getProductOptions: protectedProcedure

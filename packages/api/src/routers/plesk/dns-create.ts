@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 import type { DnsRecordCreateRequest } from '../../types/plesk/domains-dns';
 
 /**
@@ -76,7 +76,7 @@ function getAddRecResult(parsed: any): any {
 
 export const dnsCreateRouter = router({
   // Create a DNS record
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       siteId: z.number(),
       type: z.string(),

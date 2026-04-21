@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure } from '../../trpc';
+import { router, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
 import type { 
   OpenProviderDnsZoneRequest,
@@ -77,7 +77,7 @@ export const openProviderDnsRouter = router({
   /**
    * Create a DNS zone
    */
-  createZone: publicProcedure
+  createZone: protectedProcedure
     .input(DnsZoneRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -160,7 +160,7 @@ export const openProviderDnsRouter = router({
   /**
    * Search DNS zones
    */
-  searchZones: publicProcedure
+  searchZones: protectedProcedure
     .input(DnsZoneSearchRequestSchema)
     .query(async ({ input }) => {
       try {
@@ -243,7 +243,7 @@ export const openProviderDnsRouter = router({
   /**
    * Get a specific DNS zone
    */
-  getZone: publicProcedure
+  getZone: protectedProcedure
     .input(z.object({
       zoneName: z.string().min(1, 'Zone name is required'),
       withRecords: z.boolean().optional().default(false),
@@ -352,7 +352,7 @@ export const openProviderDnsRouter = router({
   /**
    * Update a DNS zone
    */
-  updateZone: publicProcedure
+  updateZone: protectedProcedure
     .input(DnsZoneUpdateRequestSchema)
     .mutation(async ({ input }) => {
       try {
@@ -429,7 +429,7 @@ export const openProviderDnsRouter = router({
   /**
    * Delete a DNS zone
    */
-  deleteZone: publicProcedure
+  deleteZone: protectedProcedure
     .input(z.object({
       zoneName: z.string().min(1, 'Zone name is required'),
     }))
@@ -492,7 +492,7 @@ export const openProviderDnsRouter = router({
   /**
    * Add DNS records to a zone
    */
-  addRecords: publicProcedure
+  addRecords: protectedProcedure
     .input(z.object({
       zoneName: z.string().min(1, 'Zone name is required'),
       records: z.array(DnsRecordSchema),
@@ -574,7 +574,7 @@ export const openProviderDnsRouter = router({
   /**
    * Update DNS records in a zone
    */
-  updateRecords: publicProcedure
+  updateRecords: protectedProcedure
     .input(z.object({
       zoneName: z.string().min(1, 'Zone name is required'),
       records: z.array(DnsRecordSchema),
@@ -656,7 +656,7 @@ export const openProviderDnsRouter = router({
   /**
    * Remove DNS records from a zone
    */
-  removeRecords: publicProcedure
+  removeRecords: protectedProcedure
     .input(z.object({
       zoneName: z.string().min(1, 'Zone name is required'),
       records: z.array(DnsRecordSchema),
@@ -738,7 +738,7 @@ export const openProviderDnsRouter = router({
   /**
    * Get all DNS zones
    */
-  getAllZones: publicProcedure
+  getAllZones: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(1000).optional().default(100),
       offset: z.number().min(0).optional().default(0),

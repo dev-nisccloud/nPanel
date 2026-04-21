@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 /**
  * Build XML to delete a database by ID
@@ -55,7 +55,7 @@ function parseXmlError(xml: string): { error: string; code?: string } {
 
 export const databasesDeleteRouter = router({
   // Delete a database
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({
       siteId: z.number(),
       databaseId: z.number(),

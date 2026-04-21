@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
 import { and, desc, eq, gt, inArray } from "@npanel/db";
-import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { session, user } from "@npanel/db/schema/auth";
@@ -136,7 +136,7 @@ export const userProfileRouter = router({
   /**
    * Get current user's full profile information
    */
-  getUserInfo: publicProcedure
+  getUserInfo: protectedProcedure
     .output(userInfoOutputSchema)
     .query(async ({ ctx }) => {
       const sessionCtx = ctx.session;
@@ -173,7 +173,7 @@ export const userProfileRouter = router({
   /**
    * Update user profile information
    */
-  updateProfile: publicProcedure
+  updateProfile: protectedProcedure
     .input(updateProfileInputSchema)
     .output(updateProfileOutputSchema)
     .mutation(async ({ input, ctx }) => {
@@ -257,7 +257,7 @@ export const userProfileRouter = router({
   /**
    * Get all active sessions for current user
    */
-  getSessions: publicProcedure
+  getSessions: protectedProcedure
     .output(sessionsOutputSchema)
     .query(async ({ ctx }) => {
       const sessionCtx = ctx.session;
@@ -291,7 +291,7 @@ export const userProfileRouter = router({
   /**
    * Revoke a specific session
    */
-  revokeSession: publicProcedure
+  revokeSession: protectedProcedure
     .input(revokeSessionInputSchema)
     .output(revokeSessionOutputSchema)
     .mutation(async ({ input, ctx }) => {

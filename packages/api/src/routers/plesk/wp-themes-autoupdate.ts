@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 async function updateWpThemeAutoUpdates(installationId: number, themes: Array<{ slug: string; autoUpdates?: boolean; status?: boolean }>) {
   const endpoint = `/v1/installations/${installationId}/themes`;
@@ -20,7 +20,7 @@ async function updateWpThemeAutoUpdates(installationId: number, themes: Array<{ 
 }
 
 export const wpThemesAutoupdateRouter = router({
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({
       installationId: z.number(),
       themes: z.array(z.object({ slug: z.string(), autoUpdates: z.boolean().optional(), status: z.boolean().optional() })).min(1),

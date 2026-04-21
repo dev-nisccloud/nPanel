@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 type DeleteInput = {
   id: number;
@@ -22,7 +22,7 @@ function buildSubscriptionDeleteXml(data: DeleteInput): string {
 }
 
 export const subscriptionsDeleteRouter = router({
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       try {

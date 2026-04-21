@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 async function deleteWpPlugins(installationId: number, pluginSlugs: string[]) {
   const endpoint = `/v1/installations/${installationId}/plugins`;
@@ -19,7 +19,7 @@ async function deleteWpPlugins(installationId: number, pluginSlugs: string[]) {
 }
 
 export const wpPluginsDeleteRouter = router({
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ installationId: z.number(), plugins: z.array(z.string()).min(1) }))
     .mutation(async ({ input }) => {
       const data = await deleteWpPlugins(input.installationId, input.plugins);

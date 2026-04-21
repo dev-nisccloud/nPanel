@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, publicProcedure } from '../../trpc';
+import { router, protectedProcedure } from '../../trpc';
 import { request } from 'undici';
 
 const LI_BASE = 'https://api.linkedin.com';
@@ -39,7 +39,7 @@ async function callLinkedInV2(
 }
 
 /**
- * Shared input schema – every procedure accepts a bearer token + pagination.
+ * Shared input schema â€“ every procedure accepts a bearer token + pagination.
  */
 const paginationInput = z.object({
 	/** LinkedIn OAuth 2 access token with r_ads (or r_basicprofile) scope. */
@@ -54,7 +54,7 @@ const paginationInput = z.object({
 });
 
 /**
- * LinkedIn Standardized Data – public tRPC procedures.
+ * LinkedIn Standardized Data â€“ public tRPC procedures.
  *
  * These are intentionally PUBLIC (no session required) so they can be called
  * directly from Postman / curl to harvest the complete reference lists that
@@ -73,7 +73,7 @@ export const linkedInAdsStandardizedDataRouter = router({
 	 * Small finite list (~10 entries). Run once and build a static map.
 	 * Response shape: { elements: [{ id, $URN, name: { localized: { en_US: string } } }], paging }
 	 */
-	getSeniorities: publicProcedure
+	getSeniorities: protectedProcedure
 		.input(paginationInput)
 		.query(async ({ input }) => {
 			return callLinkedInV2(input.accessToken, '/v2/seniorities', {
@@ -87,10 +87,10 @@ export const linkedInAdsStandardizedDataRouter = router({
 	/**
 	 * GET_ALL /v2/industries
 	 *
-	 * ~150 stable entries ("static V1" per LinkedIn docs). Run once → static map.
+	 * ~150 stable entries ("static V1" per LinkedIn docs). Run once â†’ static map.
 	 * Response shape: { elements: [{ id, $URN, name: { localized: { en_US: string } } }], paging }
 	 */
-	getIndustries: publicProcedure
+	getIndustries: protectedProcedure
 		.input(paginationInput)
 		.query(async ({ input }) => {
 			return callLinkedInV2(input.accessToken, '/v2/industries', {
@@ -104,10 +104,10 @@ export const linkedInAdsStandardizedDataRouter = router({
 	/**
 	 * GET_ALL /v2/functions
 	 *
-	 * Small list (~26 job functions, e.g. "Finance", "Engineering"). Run once → static map.
+	 * Small list (~26 job functions, e.g. "Finance", "Engineering"). Run once â†’ static map.
 	 * Response shape: { elements: [{ id, $URN, name: { localized: { en_US: string } } }], paging }
 	 */
-	getFunctions: publicProcedure
+	getFunctions: protectedProcedure
 		.input(paginationInput)
 		.query(async ({ input }) => {
 			return callLinkedInV2(input.accessToken, '/v2/functions', {
@@ -118,13 +118,13 @@ export const linkedInAdsStandardizedDataRouter = router({
 		}),
 
 	/**
-	 * GET_ALL /v2/titles  (max 50 per page – paginate with start=0,50,100,…)
+	 * GET_ALL /v2/titles  (max 50 per page â€“ paginate with start=0,50,100,â€¦)
 	 *
 	 * Thousands of entries. Too many to maintain manually; use BATCH_GET at display time instead.
 	 * This GET_ALL is provided for discovery / building a complete offline snapshot.
 	 * Response shape: { elements: [{ id, $URN, name: { localized: { en_US: string } }, function, superTitle }], paging }
 	 */
-	getTitles: publicProcedure
+	getTitles: protectedProcedure
 		.input(paginationInput)
 		.query(async ({ input }) => {
 			return callLinkedInV2(input.accessToken, '/v2/titles', {
@@ -136,13 +136,13 @@ export const linkedInAdsStandardizedDataRouter = router({
 		}),
 
 	/**
-	 * BATCH_GET /v2/titles?ids=id1&ids=id2&…
+	 * BATCH_GET /v2/titles?ids=id1&ids=id2&â€¦
 	 *
 	 * Resolve specific title IDs to names at display time.
 	 * Pass the numeric IDs extracted from the campaign's targetingCriteria URNs.
-	 * Response shape: { results: { "9": { id, name: { localized: { en_US } }, … } }, statuses, errors }
+	 * Response shape: { results: { "9": { id, name: { localized: { en_US } }, â€¦ } }, statuses, errors }
 	 */
-	getTitlesByIds: publicProcedure
+	getTitlesByIds: protectedProcedure
 		.input(
 			z.object({
 				accessToken: z.string().min(10),
@@ -169,12 +169,12 @@ export const linkedInAdsStandardizedDataRouter = router({
 		}),
 
 	/**
-	 * GET_ALL /v2/skills  (max 50 per page – paginate with start=0,50,100,…)
+	 * GET_ALL /v2/skills  (max 50 per page â€“ paginate with start=0,50,100,â€¦)
 	 *
 	 * Thousands of entries. Use BATCH_GET (getSkillsByIds) at display time.
 	 * Response shape: { elements: [{ id, $URN, standardizedName, locale }], paging }
 	 */
-	getSkills: publicProcedure
+	getSkills: protectedProcedure
 		.input(paginationInput)
 		.query(async ({ input }) => {
 			return callLinkedInV2(input.accessToken, '/v2/skills', {
@@ -186,12 +186,12 @@ export const linkedInAdsStandardizedDataRouter = router({
 		}),
 
 	/**
-	 * BATCH_GET /v2/skills?ids=id1&ids=id2&…
+	 * BATCH_GET /v2/skills?ids=id1&ids=id2&â€¦
 	 *
 	 * Resolve specific skill IDs at display time.
 	 * Response shape: { results: { "5": { id, standardizedName, locale } }, statuses, errors }
 	 */
-	getSkillsByIds: publicProcedure
+	getSkillsByIds: protectedProcedure
 		.input(
 			z.object({
 				accessToken: z.string().min(10),
@@ -220,10 +220,10 @@ export const linkedInAdsStandardizedDataRouter = router({
 	/**
 	 * GET_ALL /v2/degrees  (paginated)
 	 *
-	 * Manageable set. Run once → static map, or use BATCH_GET (getDegreesByIds) at display time.
+	 * Manageable set. Run once â†’ static map, or use BATCH_GET (getDegreesByIds) at display time.
 	 * Response shape: { elements: [{ id, $URN, name: { localized: { en_US } }, alias, rollup }], paging }
 	 */
-	getDegrees: publicProcedure
+	getDegrees: protectedProcedure
 		.input(paginationInput)
 		.query(async ({ input }) => {
 			return callLinkedInV2(input.accessToken, '/v2/degrees', {
@@ -235,9 +235,9 @@ export const linkedInAdsStandardizedDataRouter = router({
 		}),
 
 	/**
-	 * BATCH_GET /v2/degrees?ids=id1&ids=id2&…
+	 * BATCH_GET /v2/degrees?ids=id1&ids=id2&â€¦
 	 */
-	getDegreesByIds: publicProcedure
+	getDegreesByIds: protectedProcedure
 		.input(
 			z.object({
 				accessToken: z.string().min(10),
@@ -269,7 +269,7 @@ export const linkedInAdsStandardizedDataRouter = router({
 	 * Large list. Use BATCH_GET (getFieldsOfStudyByIds) at display time.
 	 * Response shape: { elements: [{ id, $URN, name: { localized: { en_US } }, rollupIds }], paging }
 	 */
-	getFieldsOfStudy: publicProcedure
+	getFieldsOfStudy: protectedProcedure
 		.input(paginationInput)
 		.query(async ({ input }) => {
 			return callLinkedInV2(input.accessToken, '/v2/fieldsOfStudy', {
@@ -281,9 +281,9 @@ export const linkedInAdsStandardizedDataRouter = router({
 		}),
 
 	/**
-	 * BATCH_GET /v2/fieldsOfStudy?ids=id1&ids=id2&…
+	 * BATCH_GET /v2/fieldsOfStudy?ids=id1&ids=id2&â€¦
 	 */
-	getFieldsOfStudyByIds: publicProcedure
+	getFieldsOfStudyByIds: protectedProcedure
 		.input(
 			z.object({
 				accessToken: z.string().min(10),

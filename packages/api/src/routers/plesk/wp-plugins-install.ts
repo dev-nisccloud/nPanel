@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 async function installWpPlugin(installationId: number, pluginData: { slug: string; status: boolean; }) {
   const endpoint = `/v1/installations/${installationId}/plugins`;
@@ -14,7 +14,7 @@ async function installWpPlugin(installationId: number, pluginData: { slug: strin
 }
 
 export const wpPluginsInstallRouter = router({
-  install: publicProcedure
+  install: protectedProcedure
     .input(z.object({ installationId: z.number(), slug: z.string(), status: z.boolean().default(true) }))
     .mutation(async ({ input }) => {
       const data = await installWpPlugin(input.installationId, { slug: input.slug, status: input.status });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 async function getWpCredentials(installationId: number) {
   const endpoint = `/v1/installations/${installationId}/credentials`;
@@ -24,13 +24,13 @@ async function getWpAccountSettings(installationId: number) {
 }
 
 export const wpCredentialsRouter = router({
-  get: publicProcedure
+  get: protectedProcedure
     .input(z.object({ installationId: z.number() }))
     .query(async ({ input }) => {
       const data = await getWpCredentials(input.installationId);
       return { data };
     }),
-  getAccount: publicProcedure
+  getAccount: protectedProcedure
     .input(z.object({ installationId: z.number() }))
     .query(async ({ input }) => {
       const data = await getWpAccountSettings(input.installationId);

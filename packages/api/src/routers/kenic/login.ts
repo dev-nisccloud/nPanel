@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { createConnection, readFrame, sendFrame } from "../../lib/epp/epp-client";
 import { buildLoginXml, buildLogoutXml } from "../../lib/epp/epp-xml";
 import { getKenicEppConfig } from "../../lib/epp/kenic-config";
@@ -41,7 +41,7 @@ export const kenicLoginRouter = router({
 	 * Connect to KENIC EPP, send login with credentials from env, return raw and parsed response.
 	 * Use the response shape to derive types. No UI; API only.
 	 */
-	login: publicProcedure
+	login: protectedProcedure
 		.input(z.object({}).optional().default({}))
 		.mutation(async () => {
 			let socket;

@@ -78,6 +78,27 @@
       "when": 1776154903672,
       "tag": "0010_jazzy_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1776692136459,
+      "tag": "0011_fancy_lightspeed",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776751438547,
+      "tag": "0012_omniscient_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1776755239677,
+      "tag": "0013_majestic_fabian_cortez",
+      "breakpoints": true
     }
   ]
 }

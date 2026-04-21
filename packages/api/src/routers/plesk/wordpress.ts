@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc'; 
+import { protectedProcedure, router } from '../../trpc'; 
 
 /**
  * Get WordPress installations using WP Toolkit REST API with advanced filtering
@@ -97,7 +97,7 @@ async function getWpInstallationById(installationId: number) {
 
 export const wordpressRouter = router({
   // Get all WordPress installations with filtering
-  getAll: publicProcedure
+  getAll: protectedProcedure
     .input(z.object({
       domain: z.string().optional(),
       installationIds: z.array(z.number()).optional(),
@@ -168,7 +168,7 @@ export const wordpressRouter = router({
     }),
 
   // Get WordPress installation by ID (REQUIRED INPUT - BUSINESS CRITICAL)
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const { id: installationId } = input;

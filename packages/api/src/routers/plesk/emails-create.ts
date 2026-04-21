@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 import type { EmailCreateRequest } from '../../types/plesk/domain-emails';
 
 /**
@@ -109,7 +109,7 @@ function parseXmlError(xml: string): { error: string; code?: string } {
 
 export const emailsCreateRouter = router({
   // Create an email account
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({
       siteId: z.number(),
       name: z.string(),

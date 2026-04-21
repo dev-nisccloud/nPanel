@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 
 interface AutoUpdateSettings {
   core: 'major' | 'minor' | 'none';
@@ -40,13 +40,13 @@ async function updateWpUpdateSettings(installationId: number, settings: AutoUpda
 }
 
 export const wpUpdatesSettingsRouter = router({
-  get: publicProcedure
+  get: protectedProcedure
     .input(z.object({ installationId: z.number() }))
     .query(async ({ input }) => {
       const data = await getWpUpdateSettings(input.installationId);
       return { data };
     }),
-  update: publicProcedure
+  update: protectedProcedure
     .input(z.object({
       installationId: z.number(),
       settings: z.object({

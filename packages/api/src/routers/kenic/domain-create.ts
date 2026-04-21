@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { createConnection, readFrame, sendFrame } from "../../lib/epp/epp-client";
 import {
 	buildLoginXml,
@@ -86,7 +86,7 @@ const domainCreateInputSchema = z.object({
  * Contacts (registrant, admin, tech) must exist; create them via kenic.contactCreate.create first.
  */
 export const kenicDomainCreateRouter = router({
-	create: publicProcedure
+	create: protectedProcedure
 		.input(domainCreateInputSchema)
 		.mutation(async ({ input }) => {
 			const validation = validateKenicDomains([input.name]);

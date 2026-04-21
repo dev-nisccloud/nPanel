@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { EllipsisVertical, CircleUser, Settings2, LogOut } from "lucide-react";
+import { EllipsisVertical, CircleUser, Settings2, LogOut, Key } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import { toast } from "@/components/ui/sonner";
@@ -132,6 +132,10 @@ export function NavUser() {
               <DropdownMenuItem onClick={() => void navigate("/agency/my-account")}>
                 <CircleUser />
                 My Account
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void navigate("/agency/api-keys")}>
+                <Key />
+                API Keys
               </DropdownMenuItem>
               {isSuperAdmin && (
                 <DropdownMenuItem onClick={() => void navigate("/agency/agency-roles")}>

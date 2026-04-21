@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure } from '../../trpc';
+import { router, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
 import type { OpenProviderAuthRequest } from '../../types/openprovider';
 
@@ -22,7 +22,7 @@ export const openProviderAuthRouter = router({
   /**
    * Authenticate with OpenProvider API
    */
-  login: publicProcedure
+  login: protectedProcedure
     .input(LoginRequestSchema)
     .mutation(async ({ input }: { input: z.infer<typeof LoginRequestSchema> }) => {
       try {
@@ -119,7 +119,7 @@ export const openProviderAuthRouter = router({
   /**
    * Validate authentication token
    */
-  validateToken: publicProcedure
+  validateToken: protectedProcedure
     .input(z.object({
       token: z.string().min(1, 'Token is required'),
     }))
@@ -157,7 +157,7 @@ export const openProviderAuthRouter = router({
   /**
    * Get authentication status
    */
-  getStatus: publicProcedure
+  getStatus: protectedProcedure
     .input(z.object({
       token: z.string().optional(),
     }))
