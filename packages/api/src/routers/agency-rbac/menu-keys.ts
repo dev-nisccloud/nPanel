@@ -16,6 +16,9 @@ export const agencyMenuKeys = [
 	"/agency/domains-portfolio",
 
 	"/agency/hosting",
+	"/agency/dedicated-servers",
+	"/agency/vps",
+	"/agency/vds",
 	"/agency/wordpress",
 
 	"/agency/social-media-marketing",
@@ -32,6 +35,12 @@ export const agencyMenuKeys = [
 	"/agency/email-marketing/domain-configuration",
 	"/agency/email-marketing/audiences",
 	"/agency/email-marketing/email-builder",
+
+	"/agency/nisc-email-marketing",
+	"/agency/nisc-email-marketing/campaigns",
+	"/agency/nisc-email-marketing/audiences",
+	"/agency/nisc-email-marketing/email-builder",
+	"/agency/nisc-email-marketing/domain-configuration",
 
 	"/agency/seo",
 	"/agency/seo-reports",
@@ -61,8 +70,27 @@ export const agencyMenuKeys = [
 	"/agency/kra-etims/branches",
 	"/agency/kra-etims/settings",
 
+	"/agency/digitax/sales",
+	"/agency/digitax/purchases",
+	"/agency/digitax/products",
+	"/agency/digitax/customers",
+	"/agency/digitax/branches",
+	"/agency/digitax/notices",
+	"/agency/digitax/verifications",
+
 	"/agency/reports/sales",
 	"/agency/reports/creative",
+
+	"/agency/nisc-reports/revenue",
+	"/agency/nisc-reports/invoices",
+	"/agency/nisc-reports/quotations",
+	"/agency/nisc-reports/subscriptions",
+	"/agency/nisc-reports/clients",
+	"/agency/nisc-reports/profitability",
+	"/agency/nisc-reports/payments",
+	"/agency/nisc-reports/tax",
+
+	"/agency/cronjobs",
 ] as const;
 
 export const agencyMenuKeySchema = z.enum(agencyMenuKeys);

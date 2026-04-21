@@ -97,6 +97,8 @@ import { hivelocityRouter } from "./hivelocity";
 import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
 import { apiKeysRouter } from "./api-keys";
+import { digitaxRouter } from "./digitax";
+
 
 export const appRouter = router({
 	healthCheck: publicProcedure.query(() => {
@@ -275,5 +277,7 @@ export const appRouter = router({
 	cronWorkflowRun: cronWorkflowRunRouter,
 	// API Keys Management
 	apiKeys: apiKeysRouter,
+	// DigiTax Integration
+	digitax: digitaxRouter,
 });
 export type AppRouter = typeof appRouter;

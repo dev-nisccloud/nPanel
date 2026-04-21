@@ -399,6 +399,20 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Quotations", url: "/agency/quotations", },
         ],
       },
+      {
+        title: "DigiTax",
+        url: "/agency/digitax/sales",
+        icon: (props: any) => React.createElement(Icons.DIGITAX, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Sales", url: "/agency/digitax/sales", },
+          { title: "Purchases", url: "/agency/digitax/purchases", },
+          { title: "Products", url: "/agency/digitax/products", },
+          { title: "Customers", url: "/agency/digitax/customers", },
+          { title: "Branches", url: "/agency/digitax/branches", },
+          { title: "Notices", url: "/agency/digitax/notices", },
+          { title: "Verifications", url: "/agency/digitax/verifications", },
+        ],
+      },
       // {
       //   title: "KRA eTIMS",
       //   url: "/agency/kra-etims/sales",
@@ -411,15 +425,15 @@ export const agencysidebarItems: NavGroup[] = [
       //     { title: "Settings", url: "/agency/kra-etims/settings", },
       //   ],
       // },
-      {
-        title: "Reports",
-        url: "/agency/reports/sales",
-        icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Sales Reports", url: "/agency/reports/sales", },
-          { title: "Creative Reports", url: "/agency/reports/creative", },
-        ],
-      },
+      // {
+      //   title: "Reports",
+      //   url: "/agency/reports/sales",
+      //   icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Sales Reports", url: "/agency/reports/sales", },
+      //     { title: "Creative Reports", url: "/agency/reports/creative", },
+      //   ],
+      // },
       {
         title: "Nisc Reporting",
         url: "/agency/nisc-reports/revenue",
@@ -434,11 +448,6 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Payments", url: "/agency/nisc-reports/payments", },
           { title: "Tax", url: "/agency/nisc-reports/tax", },
         ],
-      },
-      {
-        title: "Workflow Jobs",
-        url: "/agency/cronjobs",
-        icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
         title: "Workflow Jobs",
