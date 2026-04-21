@@ -139,6 +139,8 @@ jobs:
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY }}
+            DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
 
       - name: Health check
         continue-on-error: true
@@ -326,6 +328,8 @@ jobs:
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_PRODUCTION }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PRODUCTION }}
+            DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY_PRODUCTION || secrets.DIGITAX_API_KEY }}
+            DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL_PRODUCTION || secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
 
   deploy-web-production:
     name: Deploy Web to Production
