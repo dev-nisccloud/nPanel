@@ -60,6 +60,8 @@ export interface DigiTaxPurchaseItem {
   discount_rate: number;
   discount_amount: number;
   item_id: string;
+  item_name?: string;
+  item_class_code?: string;
 }
 
 export interface DigiTaxPurchase {
@@ -74,6 +76,7 @@ export interface DigiTaxPurchase {
   trader_invoice_number: string;
   supplier_branch_id: string;
   supplier_name: string;
+  supplier_tin: string;
   supplier_invoice_number: number;
   item_list: DigiTaxPurchaseItem[];
 }
@@ -251,8 +254,12 @@ export class DigiTaxClient {
     });
   }
 
-  async updateItem(itemId: string, item: Partial<Pick<DigiTaxItem, "item_name" | "tax_type_code" | "default_unit_price">>) {
+  async updateItem(itemId: string, item: Partial<Omit<DigiTaxItem, "id" | "etims_item_code" | "active" | "status">>) {
     return this.request<DigiTaxItem>("PUT", `/items/${itemId}`, undefined, item);
+  }
+
+  async deleteItem(itemId: string) {
+    return this.request<{ message: string }>("DELETE", `/items/${itemId}`);
   }
 
   async getItem(itemId: string) {
@@ -272,6 +279,10 @@ export class DigiTaxClient {
     return this.request<DigiTaxCustomer>("GET", `/customers/${customerId}`);
   }
 
+  async deleteCustomer(customerId: string) {
+    return this.request<{ message: string }>("DELETE", `/customers/${customerId}`);
+  }
+
   async updateCustomer(customerId: string, customer: Omit<DigiTaxCustomer, "id" | "customer_tin" | "taxpayer_type">) {
     return this.request<DigiTaxCustomer>("PUT", `/customers/${customerId}`, undefined, customer);
   }
@@ -283,6 +294,10 @@ export class DigiTaxClient {
       "/purchases",
       options
     );
+  }
+
+  async getPurchaseById(purchaseId: string) {
+    return this.request<DigiTaxPurchase>("GET", `/purchases/${purchaseId}`);
   }
 
   async linkItems(purchaseId: string, items: { purchase_item_id: string; item_id: string }[]) {

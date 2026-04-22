@@ -14,6 +14,13 @@ export const digitaxPurchasesRouter = router({
       return client.getPurchases(input);
     }),
 
+  getById: protectedProcedure
+    .input(z.object({ purchaseId: z.string() }))
+    .query(async ({ input }) => {
+      const client = new DigiTaxClient();
+      return client.getPurchaseById(input.purchaseId);
+    }),
+
   linkItems: protectedProcedure
     .input(z.object({
       purchaseId: z.string(),

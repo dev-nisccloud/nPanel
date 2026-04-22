@@ -76,7 +76,7 @@ export function VerifyDigitaxInvoiceSheet({
         <SheetHeader>
           <SheetTitle>Verify External Invoice</SheetTitle>
           <SheetDescription>
-            Audit an external invoice by checking its authenticity against KRA eTIMS records via DigiTax.
+            Audit an external invoice by checking its authenticity against KRA eTIMS records.
           </SheetDescription>
         </SheetHeader>
 

@@ -39,15 +39,18 @@ export const digitaxItemsRouter = router({
   update: protectedProcedure
     .input(z.object({
       itemId: z.string(),
-      data: z.object({
-        item_name: z.string().optional(),
-        tax_type_code: z.string().optional(),
-        default_unit_price: z.number().optional(),
-      }),
+      data: itemInputSchema.partial(),
     }))
     .mutation(async ({ input }) => {
       const client = new DigiTaxClient();
       return client.updateItem(input.itemId, input.data);
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ itemId: z.string() }))
+    .mutation(async ({ input }) => {
+      const client = new DigiTaxClient();
+      return client.deleteItem(input.itemId);
     }),
 
   getById: protectedProcedure

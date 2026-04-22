@@ -245,13 +245,14 @@ export class ETimsClient {
     }
 
     async selectItemClass(headers: ETimsHeaders, lastReqDt: string) {
-        // KRA sandbox is strict here; body should be minimal.
-        // Headers already carry tin/bhfId/cmcKey.
-        return this.request<any>('POST', '/selectItemClass', headers, { lastReqDt });
+        return this.request<any>('POST', '/selectItemClass', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            lastReqDt,
+        });
     }
 
     async selectBhfList(headers: ETimsHeaders, lastReqDt: string) {
-        // KRA docs (Branch Information Management): /selectBhfList
         return this.request<any>('POST', '/selectBhfList', headers, {
             tin: headers.tin,
             bhfId: headers.bhfId,
@@ -260,7 +261,14 @@ export class ETimsClient {
     }
 
     async saveItem(headers: ETimsHeaders, item: any) {
-        return this.request<any>('POST', '/saveItem', headers, item);
+        // KRA OSCU docs: tin + bhfId must be present in the request body AND headers.
+        // KRA's sandbox uses the body fields to look up the TestSession for API logging;
+        // if they are absent getTestSessionApiLog() returns null → 400 NPE.
+        return this.request<any>('POST', '/saveItem', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            ...item,
+        });
     }
 
     async selectItemInfo(headers: ETimsHeaders, lastReqDt: string) {
@@ -272,7 +280,12 @@ export class ETimsClient {
     }
 
     async saveItemComposition(headers: ETimsHeaders, composition: any) {
-        return this.request<any>('POST', '/saveItemComposition', headers, composition);
+        // Same rule: tin + bhfId required in body for KRA session tracking.
+        return this.request<any>('POST', '/saveItemComposition', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            ...composition,
+        });
     }
 
     async selectImportedItemInfo(headers: ETimsHeaders, lastReqDt: string) {
@@ -284,11 +297,20 @@ export class ETimsClient {
     }
 
     async saveImportedItemConvertedInfo(headers: ETimsHeaders, conversion: any) {
-        return this.request<any>('POST', '/importedItemConvertedInfo', headers, conversion);
+        return this.request<any>('POST', '/importedItemConvertedInfo', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            ...conversion,
+        });
     }
 
     async sendSalesTransaction(headers: ETimsHeaders, transaction: SalesTransaction) {
-        return this.request<any>('POST', '/sendSalesTransaction', headers, transaction);
+        // KRA requires tin + bhfId in the body for session tracking (same as all write endpoints).
+        return this.request<any>('POST', '/sendSalesTransaction', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            ...transaction,
+        });
     }
 
     async selectSalesTransactions(headers: ETimsHeaders, lastReqDt: string) {
@@ -316,7 +338,11 @@ export class ETimsClient {
     }
 
     async sendPurchaseTransactionInfo(headers: ETimsHeaders, purchaseInfo: any) {
-        return this.request<any>('POST', '/sendPurchaseTransactionInfo', headers, purchaseInfo);
+        return this.request<any>('POST', '/sendPurchaseTransactionInfo', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            ...purchaseInfo,
+        });
     }
 
     async selectStockMoveList(headers: ETimsHeaders, lastReqDt: string) {
@@ -328,11 +354,19 @@ export class ETimsClient {
     }
 
     async insertStockIO(headers: ETimsHeaders, stockData: any) {
-        return this.request<any>('POST', '/insert/stockIO', headers, stockData);
+        return this.request<any>('POST', '/insert/stockIO', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            ...stockData,
+        });
     }
 
     async saveStockMaster(headers: ETimsHeaders, stockMaster: any) {
-        return this.request<any>('POST', '/save/stockMaster', headers, stockMaster);
+        return this.request<any>('POST', '/save/stockMaster', headers, {
+            tin: headers.tin,
+            bhfId: headers.bhfId,
+            ...stockMaster,
+        });
     }
 
     async selectCustomerPinInfo(headers: ETimsHeaders, lastReqDt: string) {

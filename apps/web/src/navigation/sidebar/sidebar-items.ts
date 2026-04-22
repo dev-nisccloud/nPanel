@@ -400,7 +400,7 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "DigiTax",
+        title: "eTIMS Compliance",
         url: "/agency/digitax/sales",
         icon: (props: any) => React.createElement(Icons.DIGITAX, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
@@ -413,18 +413,18 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Verifications", url: "/agency/digitax/verifications", },
         ],
       },
-      // {
-      //   title: "KRA eTIMS",
-      //   url: "/agency/kra-etims/sales",
-      //   icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      //   subItems: [
-      //     { title: "Sales", url: "/agency/kra-etims/sales", },
-      //     { title: "Purchases", url: "/agency/kra-etims/purchases", },
-      //     { title: "Products", url: "/agency/kra-etims/products", },
-      //     { title: "Branches", url: "/agency/kra-etims/branches", },
-      //     { title: "Settings", url: "/agency/kra-etims/settings", },
-      //   ],
-      // },
+      {
+        title: "KRA eTIMS",
+        url: "/agency/kra-etims/sales",
+        icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Sales", url: "/agency/kra-etims/sales", },
+          { title: "Purchases", url: "/agency/kra-etims/purchases", },
+          { title: "Products", url: "/agency/kra-etims/products", },
+          { title: "Branches", url: "/agency/kra-etims/branches", },
+          { title: "Settings", url: "/agency/kra-etims/settings", },
+        ],
+      },
       // {
       //   title: "Reports",
       //   url: "/agency/reports/sales",

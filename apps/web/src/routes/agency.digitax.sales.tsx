@@ -41,15 +41,28 @@ export default function DigitaxSalesPage() {
         page_size: 20,
     });
 
-    const sales = salesData?.data ?? [];
+    // Robust data extraction
+    const sales = React.useMemo(() => {
+        if (!salesData) return [];
+        // Handle potential nested data structure from API
+        if (Array.isArray(salesData)) return salesData;
+        if (salesData.data && Array.isArray(salesData.data)) return salesData.data;
+        if ((salesData as any).result?.data?.data && Array.isArray((salesData as any).result.data.data)) {
+            return (salesData as any).result.data.data;
+        }
+        if ((salesData as any).result?.data && Array.isArray((salesData as any).result.data)) {
+            return (salesData as any).result.data;
+        }
+        return [];
+    }, [salesData]);
 
     const filteredSales = React.useMemo(() => {
         if (!searchQuery.trim()) return sales;
         const query = searchQuery.toLowerCase().trim();
         return sales.filter((s: any) =>
-            s.trader_invoice_number.toLowerCase().includes(query) ||
-            s.customer_name?.toLowerCase().includes(query) ||
-            s.id.toLowerCase().includes(query)
+            (s.trader_invoice_number?.toLowerCase().includes(query) ?? false) ||
+            (s.customer_name?.toLowerCase().includes(query) ?? false) ||
+            (s.id?.toLowerCase().includes(query) ?? false)
         );
     }, [sales, searchQuery]);
 
@@ -61,14 +74,14 @@ export default function DigitaxSalesPage() {
                 onSuccess={() => refetch()}
             />
 
-            <div className="w-full max-w-7xl mx-auto space-y-6">
+            <div className="w-full max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground/90 flex items-center gap-2">
-                            DigiTax Sales
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-base font-semibold tracking-tight">
+                            Sales records
                         </h1>
-                        <p className="text-muted-foreground text-sm">
-                            Manage and track KRA-compliant sales transactions.
+                        <p className="text-xs text-muted-foreground">
+                            Manage and track eTIMS compliant sales transactions.
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -83,13 +96,15 @@ export default function DigitaxSalesPage() {
                         </Button>
                         <Button
                             onClick={() => setIsAddOpen(true)}
-                            className="bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-none transition-all gap-2"
+                            className="bg-primary text-primary-foreground shadow-sm hover:shadow-md transition-all gap-2 h-9 text-xs font-medium"
                         >
                             <Plus className="h-4 w-4" />
                             Record Sale
                         </Button>
                     </div>
                 </div>
+
+                <div className="mt-6 flex flex-col gap-6">
 
                 <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-2xl border border-border/40 max-w-md">
                     <div className="relative flex-1">
@@ -220,15 +235,16 @@ export default function DigitaxSalesPage() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
+                                    )))
+                                }
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
         </div>
-    );
+    </div>
+);
 }
 
 function AlertCircle(props: any) {

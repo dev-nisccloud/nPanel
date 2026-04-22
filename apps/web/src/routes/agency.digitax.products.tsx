@@ -34,14 +34,38 @@ import { RegisterDigitaxItemSheet } from "./agency.digitax/products/_components/
 export default function DigitaxProductsPage() {
     const [searchQuery, setSearchQuery] = React.useState("");
     const [isAddOpen, setIsAddOpen] = React.useState(false);
+    const [selectedItem, setSelectedItem] = React.useState<any>(null);
 
     const utils = trpc.useUtils();
 
     const { data: itemsData, isLoading, refetch } = trpc.digitax.items.getAll.useQuery({
-        page_size: 20,
+        page_size: 50,
     });
 
-    const items = itemsData?.data ?? [];
+    const deleteItem = trpc.digitax.items.delete.useMutation({
+        onSuccess: () => {
+            toast.success("Product removed from eTIMS catalog");
+            refetch();
+        },
+        onError: (err) => {
+            toast.error(err.message || "Failed to remove product");
+        },
+    });
+
+    // Robust data extraction
+    const items = React.useMemo(() => {
+        if (!itemsData) return [];
+        // Handle potential nested data structure from API
+        if (Array.isArray(itemsData)) return itemsData;
+        if (itemsData.data && Array.isArray(itemsData.data)) return itemsData.data;
+        if ((itemsData as any).result?.data?.data && Array.isArray((itemsData as any).result.data.data)) {
+            return (itemsData as any).result.data.data;
+        }
+        if ((itemsData as any).result?.data && Array.isArray((itemsData as any).result.data)) {
+            return (itemsData as any).result.data;
+        }
+        return [];
+    }, [itemsData]);
 
     const filteredItems = React.useMemo(() => {
         if (!searchQuery.trim()) return items;
@@ -53,19 +77,36 @@ export default function DigitaxProductsPage() {
         );
     }, [items, searchQuery]);
 
+    const handleEdit = (item: any) => {
+        setSelectedItem(item);
+        setIsAddOpen(true);
+    };
+
+    const handleDelete = (itemId: string) => {
+        if (confirm("Are you sure you want to remove this item? This action cannot be undone.")) {
+            deleteItem.mutate({ itemId });
+        }
+    };
+
+    const handleSheetClose = (open: boolean) => {
+        setIsAddOpen(open);
+        if (!open) setSelectedItem(null);
+    };
+
     return (
         <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
             <RegisterDigitaxItemSheet 
                 open={isAddOpen}
-                onOpenChange={setIsAddOpen}
+                onOpenChange={handleSheetClose}
                 onSuccess={() => refetch()}
+                item={selectedItem}
             />
 
-            <div className="w-full max-w-7xl mx-auto space-y-6">
+            <div className="w-full max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground/90">Products & Inventory</h1>
-                        <p className="text-muted-foreground text-sm">
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-base font-semibold tracking-tight">Catalog & inventory</h1>
+                        <p className="text-xs text-muted-foreground">
                             Manage items and services registered for eTIMS compliance.
                         </p>
                     </div>
@@ -74,20 +115,25 @@ export default function DigitaxProductsPage() {
                             variant="outline"
                             size="icon"
                             onClick={() => refetch()}
-                            className="rounded-full"
+                            className="rounded-full h-9 w-9 border-border/50"
                             disabled={isLoading}
                         >
                             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                         <Button
-                            onClick={() => setIsAddOpen(true)}
-                            className="bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-none transition-all gap-2"
+                            onClick={() => {
+                                setSelectedItem(null);
+                                setIsAddOpen(true);
+                            }}
+                            className="bg-primary text-primary-foreground shadow-sm hover:shadow-md transition-all gap-2 h-9 text-xs font-medium px-4"
                         >
                             <Plus className="h-4 w-4" />
                             Add Product
                         </Button>
                     </div>
                 </div>
+
+                <div className="mt-6 flex flex-col gap-6">
 
                 <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-2xl border border-border/40 max-w-md shadow-inner">
                     <div className="relative flex-1">
@@ -143,10 +189,10 @@ export default function DigitaxProductsPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" className="rounded-xl">
-                                            <DropdownMenuItem className="gap-2">
+                                            <DropdownMenuItem className="gap-2" onClick={() => handleEdit(item)}>
                                                 <Edit2 className="h-3.5 w-3.5" /> Edit
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem className="gap-2 text-rose-500">
+                                            <DropdownMenuItem className="gap-2 text-rose-500" onClick={() => handleDelete(item.id)}>
                                                 <Trash2 className="h-3.5 w-3.5" /> Delete
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
@@ -181,8 +227,9 @@ export default function DigitaxProductsPage() {
                                     </div>
                                 </div>
                             </div>
-                        ))
-                    )}
+                            )))
+                        }
+                    </div>
                 </div>
             </div>
         </div>
