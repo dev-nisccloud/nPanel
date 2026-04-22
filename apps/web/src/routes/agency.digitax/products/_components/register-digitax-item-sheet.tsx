@@ -60,11 +60,15 @@ export function RegisterDigitaxItemSheet({
   open,
   onOpenChange,
   onSuccess,
+  item,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  item?: any;
 }) {
+  const isEditing = !!item;
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -81,10 +85,29 @@ export function RegisterDigitaxItemSheet({
     },
   });
 
+  // Pre-fill form when editing
+  React.useEffect(() => {
+    if (item && open) {
+      form.reset({
+        item_name: item.item_name || "",
+        item_class_code: item.item_class_code || "81111600",
+        item_type_code: item.item_type_code || "3",
+        tax_type_code: item.tax_type_code || "B",
+        default_unit_price: item.default_unit_price || 0,
+        origin_nation_code: item.origin_nation_code || "KE",
+        package_unit_code: item.package_unit_code || "OU",
+        quantity_unit_code: item.quantity_unit_code || "U",
+        item_bar_code: item.item_bar_code || "",
+        stock_quantity: item.stock_quantity || 0,
+      });
+    } else if (!open) {
+      form.reset();
+    }
+  }, [item, open, form]);
+
   const createItem = trpc.digitax.items.create.useMutation({
     onSuccess: () => {
-      toast.success("Product registered in DigiTax system");
-      form.reset();
+      toast.success("Product registered in eTIMS system");
       onOpenChange(false);
       onSuccess?.();
     },
@@ -93,21 +116,45 @@ export function RegisterDigitaxItemSheet({
     },
   });
 
+  const updateItem = trpc.digitax.items.update.useMutation({
+    onSuccess: () => {
+      toast.success("Product updated successfully");
+      onOpenChange(false);
+      onSuccess?.();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update product");
+    },
+  });
+
   const onSubmit = (data: FormData) => {
-    createItem.mutate({
+    const payload = {
       ...data,
       stock_quantity: data.stock_quantity ?? 0,
       item_bar_code: data.item_bar_code || undefined,
-    });
+    };
+
+    if (isEditing && item?.id) {
+      updateItem.mutate({
+        itemId: item.id,
+        data: payload,
+      });
+    } else {
+      createItem.mutate(payload);
+    }
   };
+
+  const isPending = createItem.isPending || updateItem.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Register Product / Service</SheetTitle>
+          <SheetTitle>{isEditing ? "Update Product / Service" : "Register Product / Service"}</SheetTitle>
           <SheetDescription>
-            Add a new item to your DigiTax catalog for eTIMS compliance.
+            {isEditing 
+              ? "Modify product details for tax compliance and catalog updates."
+              : "Add a new item to your eTIMS catalog for tax compliance."}
           </SheetDescription>
         </SheetHeader>
 

@@ -90,18 +90,28 @@ export const etimsInitializationRouter = router({
                 // Handle non-success: resultCd "000" = success per KRA docs
                 if (resultCode && resultCode !== "000") {
                     if (resultCode === "902") {
+                        // 902 = "device already installed".
+                        // In PRODUCTION this is a hard error (someone else owns the device).
+                        // In SANDBOX, KRA still returns a cmcKey in the 902 body, and
+                        // re-initializing is the standard way to refresh an expired test session.
+                        // So in sandbox we treat 902 as a soft warning and continue.
+                        if (!input.isSandbox) {
+                            throw new TRPCError({
+                                code: "PRECONDITION_FAILED",
+                                message:
+                                    "This eTIMS device is already installed on another machine. " +
+                                    "Contact KRA support to reset the device registration if you need to move it.",
+                                cause: result,
+                            });
+                        }
+                        // Sandbox: fall through — extract cmcKey below and refresh the session.
+                    } else {
                         throw new TRPCError({
-                            code: "PRECONDITION_FAILED",
-                            message:
-                                "This eTIMS device is already installed. If you need to use it here, contact KRA/support to reset the device.",
-                            cause: result
+                            code: "INTERNAL_SERVER_ERROR",
+                            message: `eTIMS initialization failed: ${resultMessage}`,
+                            cause: result,
                         });
                     }
-                    throw new TRPCError({
-                        code: "INTERNAL_SERVER_ERROR",
-                        message: `eTIMS initialization failed: ${resultMessage}`,
-                        cause: result
-                    });
                 }
 
                 // 4. Extract cmcKey per KRA docs: data.info.cmcKey

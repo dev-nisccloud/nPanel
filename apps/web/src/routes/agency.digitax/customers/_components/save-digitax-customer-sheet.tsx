@@ -67,25 +67,46 @@ export function SaveDigitaxCustomerSheet({
     }
   }, [customer, form]);
 
-  const saveCustomer = trpc.digitax.customers.create.useMutation({
+  const createCustomer = trpc.digitax.customers.create.useMutation({
     onSuccess: () => {
-      toast.success(customer ? "Customer profile updated" : "Customer registered successfully");
-      form.reset();
+      toast.success("Customer registered successfully");
       onOpenChange(false);
       onSuccess?.();
     },
     onError: (err) => {
-      toast.error(err.message || "Failed to save customer");
+      toast.error(err.message || "Failed to register customer");
+    },
+  });
+
+  const updateCustomer = trpc.digitax.customers.update.useMutation({
+    onSuccess: () => {
+      toast.success("Customer profile updated");
+      onOpenChange(false);
+      onSuccess?.();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update customer");
     },
   });
 
   const onSubmit = (data: FormData) => {
-    saveCustomer.mutate({
+    const payload = {
       ...data,
       email: data.email || undefined,
       phone: data.phone || undefined,
-    });
+    };
+
+    if (customer?.id) {
+      updateCustomer.mutate({
+        customerId: customer.id,
+        data: payload,
+      });
+    } else {
+      createCustomer.mutate(payload);
+    }
   };
+
+  const isPending = createCustomer.isPending || updateCustomer.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -93,7 +114,7 @@ export function SaveDigitaxCustomerSheet({
         <SheetHeader>
           <SheetTitle>{customer ? "Edit Customer" : "New Customer"}</SheetTitle>
           <SheetDescription>
-            {customer ? "Modify existing customer tax details." : "Register a new customer tax identity in DigiTax."}
+            {customer ? "Modify existing customer tax details." : "Register a new customer tax identity for eTIMS compliance."}
           </SheetDescription>
         </SheetHeader>
 

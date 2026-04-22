@@ -51,8 +51,14 @@ const formSchema = z.object({
   taxTyCd: z.enum(["A", "B", "C", "D", "E"]).default("B"),
   dftPrc: z.coerce.number().min(0, "Price must be >= 0").default(0),
 
-  // Optional fields per KRA /saveItem
-  itemCd: z.string().min(1, "Item code is required (auto-generated)"),
+  // KRA itemCd format: {orgnNatCd(2)}{itemTyCd(1)}{pkgUnitCd(2)}X{qtyUnitCd(1-2)}[X]{seq(7)}
+  // Examples from existing KRA items: KE3OUXGRO0000001, KE3OUXNOX0000001, KE3OUXU0000001
+  itemCd: z.string()
+    .min(1, "Item code is required")
+    .regex(
+      /^[A-Z]{2}\d[A-Z]{2}X[A-Z0-9]+\d{7}$/,
+      "Invalid itemCd format. Use the Generate button to create a valid code."
+    ),
   itemStdNm: z.string().nullable().optional(),
   orgnNatCd: z.string().length(2).default("KE"),
   pkgUnitCd: z.string().min(1).default("OU"),
@@ -97,8 +103,24 @@ export function RegisterETimsItemSheet({
 
   const saveItem = trpc.etims.items.saveItem.useMutation({
     onSuccess: (res: any) => {
+      // The router never throws — it always returns { success, data, errorMessage, requiresReinitialization }
       if (res?.success === false) {
-        toast.error(res?.errorMessage ?? "Failed to register item");
+        if (res?.requiresReinitialization) {
+          toast.error(
+            "KRA session expired — please re-initialize your device in Settings, then try again.",
+            {
+              duration: 8000,
+              action: {
+                label: "Go to Settings",
+                onClick: () => {
+                  window.location.href = "/agency/kra-etims/settings";
+                },
+              },
+            }
+          );
+        } else {
+          toast.error(res?.errorMessage ?? "Failed to register item");
+        }
         return;
       }
       const body = res?.data?.responseBody ?? res?.data ?? res;
@@ -235,19 +257,25 @@ export function RegisterETimsItemSheet({
                   <FormLabel>Item code (itemCd)</FormLabel>
                   <FormControl>
                     <div className="flex gap-2">
-                      <Input placeholder="Auto-generated item code" {...field} />
+                      {/* Read-only styled input — only the Generate button or useEffect changes this */}
+                      <Input
+                        className="font-mono bg-muted/40 cursor-not-allowed"
+                        readOnly
+                        tabIndex={-1}
+                        placeholder="Click Generate →"
+                        {...field}
+                      />
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true })}
+                        onClick={() =>
+                          form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true })
+                        }
                       >
                         Generate
                       </Button>
                     </div>
                   </FormControl>
-                  {/* <p className="text-xs text-muted-foreground">
-                    Format: {`{orgnNatCd}{itemTyCd}{pkgUnitCd}X{qtyUnitCd}{optional X}{sequence(7)}`}. For services, itemTyCd is 3.
-                  </p> */}
                   <FormMessage />
                 </FormItem>
               )}

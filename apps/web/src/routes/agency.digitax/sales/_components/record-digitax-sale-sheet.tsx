@@ -382,7 +382,7 @@ export function RecordDigitaxSaleSheet({
             <div className="pt-6 border-t border-border/40 flex flex-col items-end gap-3">
                <div className="flex items-center gap-2 text-muted-foreground">
                   <Info className="h-3.5 w-3.5" />
-                  <span className="text-xs">VAT and standard levies are applied automatically by DigiTax.</span>
+                  <span className="text-xs">VAT and standard levies are applied automatically by the eTIMS compliance engine.</span>
                </div>
                <div className="bg-primary/5 p-6 rounded-2xl border border-primary/10 w-full md:w-80 space-y-3">
                   <div className="flex justify-between text-sm text-muted-foreground">

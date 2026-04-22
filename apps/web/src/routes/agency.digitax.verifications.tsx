@@ -38,7 +38,20 @@ export default function DigitaxVerificationsPage() {
         page_size: 20,
     });
 
-    const verifications = verificationsData?.data ?? [];
+    // Robust data extraction
+    const verifications = React.useMemo(() => {
+        if (!verificationsData) return [];
+        // Handle potential nested data structure from API
+        if (Array.isArray(verificationsData)) return verificationsData;
+        if (verificationsData.data && Array.isArray(verificationsData.data)) return verificationsData.data;
+        if ((verificationsData as any).result?.data?.data && Array.isArray((verificationsData as any).result.data.data)) {
+            return (verificationsData as any).result.data.data;
+        }
+        if ((verificationsData as any).result?.data && Array.isArray((verificationsData as any).result.data)) {
+            return (verificationsData as any).result.data;
+        }
+        return [];
+    }, [verificationsData]);
 
     const filteredVerifications = React.useMemo(() => {
         if (!searchQuery.trim()) return verifications;
@@ -58,13 +71,11 @@ export default function DigitaxVerificationsPage() {
                 onSuccess={() => refetch()}
             />
 
-            <div className="w-full max-w-7xl mx-auto space-y-8">
+            <div className="w-full max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-extrabold tracking-tight text-foreground/90 flex items-center gap-3">
-                            Verification Hub
-                        </h1>
-                        <p className="text-muted-foreground text-sm font-medium">
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-base font-semibold tracking-tight">Verification hub</h1>
+                        <p className="text-xs text-muted-foreground">
                             Cross-check external invoices and maintain audit logs of eTIMS verifications.
                         </p>
                     </div>
@@ -73,20 +84,22 @@ export default function DigitaxVerificationsPage() {
                             variant="outline"
                             size="icon"
                             onClick={() => refetch()}
-                            className="rounded-full bg-white h-10 w-10 shrink-0"
+                            className="rounded-full h-9 w-9 border-border/50"
                             disabled={isLoading}
                         >
                             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                         <Button
                             onClick={() => setIsVerifyOpen(true)}
-                            className="bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-none transition-all gap-2 h-10 px-6 rounded-xl font-bold"
+                            className="bg-primary text-primary-foreground shadow-sm hover:shadow-md transition-all gap-2 h-9 text-xs font-medium px-4"
                         >
                             <ShieldCheck className="h-4 w-4" />
                             Verify New Invoice
                         </Button>
                     </div>
                 </div>
+
+                <div className="mt-6 flex flex-col gap-8">
 
                 <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-xl border border-border/40 max-w-md">
                     <div className="relative flex-1">
@@ -201,8 +214,8 @@ export default function DigitaxVerificationsPage() {
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
+                                    )))
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -231,6 +244,7 @@ export default function DigitaxVerificationsPage() {
                             </p>
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

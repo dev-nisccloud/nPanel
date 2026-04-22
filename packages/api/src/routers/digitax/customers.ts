@@ -48,4 +48,11 @@ export const digitaxCustomersRouter = router({
       const client = new DigiTaxClient();
       return client.updateCustomer(input.customerId, input.data);
     }),
+
+  delete: protectedProcedure
+    .input(z.object({ customerId: z.string() }))
+    .mutation(async ({ input }) => {
+      const client = new DigiTaxClient();
+      return client.deleteCustomer(input.customerId);
+    }),
 });

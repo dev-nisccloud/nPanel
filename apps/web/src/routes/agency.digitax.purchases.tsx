@@ -45,7 +45,28 @@ export default function DigitaxPurchasesPage() {
         page_size: 20,
     });
 
-    const purchases = purchasesData?.data ?? [];
+    const { data: fullPurchase, isLoading: isFetchingDetails } = trpc.digitax.purchases.getById.useQuery(
+        { purchaseId: selectedPurchase?.id ?? "" },
+        { enabled: !!selectedPurchase?.id }
+    );
+
+    // Use full purchase data if available, otherwise fallback to list item
+    const displayPurchase = fullPurchase || selectedPurchase;
+
+    // Robust data extraction
+    const purchases = React.useMemo(() => {
+        if (!purchasesData) return [];
+        // Handle potential nested data structure from API
+        if (Array.isArray(purchasesData)) return purchasesData;
+        if (purchasesData.data && Array.isArray(purchasesData.data)) return purchasesData.data;
+        if ((purchasesData as any).result?.data?.data && Array.isArray((purchasesData as any).result.data.data)) {
+            return (purchasesData as any).result.data.data;
+        }
+        if ((purchasesData as any).result?.data && Array.isArray((purchasesData as any).result.data)) {
+            return (purchasesData as any).result.data;
+        }
+        return [];
+    }, [purchasesData]);
 
     const formatDigitaxDate = (dateStr: string) => {
         if (!dateStr || dateStr.length !== 8) return dateStr;
@@ -85,26 +106,31 @@ export default function DigitaxPurchasesPage() {
                         </SheetDescription>
                     </SheetHeader>
 
-                    {selectedPurchase && (
-                        <div className="mt-8 space-y-6">
+                    {displayPurchase && (
+                        <div className="mt-8 space-y-6 relative">
+                            {isFetchingDetails && (
+                                <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-[2rem]">
+                                    <Spinner size={32} />
+                                </div>
+                            )}
                             <div className="p-5 rounded-[2rem] bg-muted/40 border border-border/50">
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">Invoice Overview</h4>
                                 <div className="grid grid-cols-2 gap-y-5 gap-x-4 text-sm">
                                     <div>
                                         <p className="text-muted-foreground text-[11px] mb-0.5">Supplier Name</p>
-                                        <p className="font-semibold text-foreground/90">{selectedPurchase.supplier_name || "N/A"}</p>
+                                        <p className="font-semibold text-foreground/90">{displayPurchase.supplier_name || "Merchant " + (displayPurchase.supplier_tin || "#" + displayPurchase.id.slice(-6))}</p>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground text-[11px] mb-0.5">Supplier TIN</p>
-                                        <p className="font-semibold text-foreground/90 font-mono tracking-tight">{selectedPurchase.supplier_tin || "N/A"}</p>
+                                        <p className="font-semibold text-foreground/90 font-mono tracking-tight">{displayPurchase.supplier_tin || "N/A"}</p>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground text-[11px] mb-0.5">Invoice Number</p>
-                                        <p className="font-semibold text-foreground/90">#{selectedPurchase.supplier_invoice_number || selectedPurchase.invoice_number}</p>
+                                        <p className="font-semibold text-foreground/90">#{displayPurchase.supplier_invoice_number || displayPurchase.invoice_number}</p>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground text-[11px] mb-0.5">Purchase Date</p>
-                                        <p className="font-semibold text-foreground/90">{formatDigitaxDate(selectedPurchase.purchase_date)}</p>
+                                        <p className="font-semibold text-foreground/90">{formatDigitaxDate(displayPurchase.purchase_date)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -113,11 +139,11 @@ export default function DigitaxPurchasesPage() {
                                 <div className="flex items-center justify-between px-1">
                                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Line Items</h4>
                                     <Badge variant="secondary" className="rounded-full px-2 text-[10px] font-medium opacity-70">
-                                        {selectedPurchase.item_list?.length || 0} items
+                                        {displayPurchase.item_list?.length || 0} items
                                     </Badge>
                                 </div>
                                 <div className="space-y-2.5">
-                                    {selectedPurchase.item_list?.map((item: any) => (
+                                    {displayPurchase.item_list?.map((item: any) => (
                                         <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl border border-border/30 hover:border-primary/20 transition-all bg-card/40">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-sm font-bold text-foreground/80">
@@ -140,16 +166,16 @@ export default function DigitaxPurchasesPage() {
                                 </div>
                             </div>
 
-                            <div className="p-5 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 flex justify-between items-center">
+                            <div className="p-5 rounded-[2rem] bg-primary/5 border border-primary/10 flex justify-between items-center">
                                 <div className="space-y-0.5">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600/70">Total Payable</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Total Payable</p>
                                     <p className="text-xs text-muted-foreground">Inclusive of applicable taxes</p>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-2xl font-black text-indigo-600 tracking-tight">
-                                        {calculateTotal(selectedPurchase.item_list).toLocaleString()}
+                                    <span className="text-2xl font-black text-primary tracking-tight">
+                                        {calculateTotal(displayPurchase.item_list).toLocaleString()}
                                     </span>
-                                    <span className="text-[10px] font-bold text-indigo-600/50 ml-1">KES</span>
+                                    <span className="text-[10px] font-bold text-primary/50 ml-1">KES</span>
                                 </div>
                             </div>
 
@@ -163,14 +189,14 @@ export default function DigitaxPurchasesPage() {
                 </SheetContent>
             </Sheet>
 
-            <div className="w-full max-w-7xl mx-auto space-y-6">
+            <div className="w-full max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-foreground/90 flex items-center gap-3">
-                            Purchase Records
-                            <Badge variant="outline" className="text-[10px] h-5 px-2 bg-muted/50 rounded-full border-none font-bold tracking-widest text-muted-foreground">ETIMS</Badge>
+                    <div className="flex flex-col gap-2">
+                        <h1 className="text-base font-semibold tracking-tight">
+                            Purchase records
+                            <Badge variant="outline" className="ml-2 text-[10px] h-4 px-2 bg-muted/50 rounded-full border-none font-bold tracking-widest text-muted-foreground">ETIMS</Badge>
                         </h1>
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-xs text-muted-foreground">
                             View and reconcile input invoices issued to your business by suppliers.
                         </p>
                     </div>
@@ -179,20 +205,22 @@ export default function DigitaxPurchasesPage() {
                             variant="outline"
                             size="icon"
                             onClick={() => refetch()}
-                            className="rounded-full hover:rotate-180 transition-transform duration-500 size-10 border-border/50"
+                            className="rounded-full hover:rotate-180 transition-transform duration-500 h-9 w-9 border-border/50"
                             disabled={isLoading}
                         >
                             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                         <Button
                             onClick={() => refetch()}
-                            className="bg-primary text-primary-foreground hover:shadow-lg transition-all gap-2 rounded-full px-5 h-10 font-bold text-xs uppercase tracking-wider"
+                            className="bg-primary text-primary-foreground hover:shadow-md transition-all gap-2 h-9 text-xs font-medium px-4"
                         >
                             <RefreshCw className="h-4 w-4" />
                             Sync Recent
                         </Button>
                     </div>
                 </div>
+
+                <div className="mt-6 flex flex-col gap-6">
 
                 <div className="flex items-center gap-3 bg-muted/30 p-1.5 rounded-2xl border border-border/40 max-w-md shadow-inner">
                     <div className="relative flex-1">
@@ -257,7 +285,9 @@ export default function DigitaxPurchasesPage() {
                                                         <User className="h-5 w-5" />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5">
-                                                        <span className="font-bold text-foreground/90 tracking-tight">{purchase.supplier_name || "Standard Vendor"}</span>
+                                                        <span className="font-bold text-foreground/90 tracking-tight">
+                                                            {purchase.supplier_name || "Vendor " + (purchase.supplier_tin || "#" + purchase.id.slice(-6))}
+                                                        </span>
                                                         <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
                                                             PIN: {purchase.supplier_tin || "N/A"}
                                                         </span>
@@ -300,8 +330,8 @@ export default function DigitaxPurchasesPage() {
                                                 </Button>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
+                                    )))
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -317,6 +347,7 @@ export default function DigitaxPurchasesPage() {
                             All purchases issued to your PIN by registered KRA vendors are mirrored here automatically. This data originates directly from eTIMS systems for accurate Input VAT reconciliation and business reporting.
                         </p>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
