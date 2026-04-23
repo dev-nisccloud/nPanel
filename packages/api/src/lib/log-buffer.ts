@@ -35,8 +35,11 @@ function redact(obj: any): any {
 class LogBuffer {
   private buffer: any[] = [];
   private readonly maxBufferSize = 50;
+  private readonly maxRetainedLogs = 1000;
   private readonly flushInterval = 5000; // 5 seconds
   private intervalId: any = null;
+  private isFlushing = false;
+  private hasLoggedFlushFailure = false;
 
   constructor() {
     // Start background flush timer if in a long-running process
@@ -79,17 +82,28 @@ class LogBuffer {
    * Periodically flushes buffered logs to the database.
    */
   private async flush() {
-    if (this.buffer.length === 0) return;
+    if (this.isFlushing || this.buffer.length === 0) return;
 
+    this.isFlushing = true;
     const batch = [...this.buffer];
     this.buffer = [];
 
     try {
       await db.insert(apiRequestLog).values(batch);
+      this.hasLoggedFlushFailure = false;
     } catch (error) {
-       // In case of error, we log to console. 
-       // For extreme reliability, we could prepend these back to the buffer.
-      console.error("[LogBuffer] Failed to flush API logs:", error);
+      // Requeue and cap retained logs so DB outages don't lose all logs or leak memory.
+      this.buffer = [...batch, ...this.buffer].slice(-this.maxRetainedLogs);
+
+      // Emit full stack only once per outage period to avoid log storms.
+      if (!this.hasLoggedFlushFailure) {
+        console.error("[LogBuffer] Failed to flush API logs:", error);
+        this.hasLoggedFlushFailure = true;
+      } else {
+        console.error("[LogBuffer] Failed to flush API logs (suppressed repeated stack traces)");
+      }
+    } finally {
+      this.isFlushing = false;
     }
   }
 }

@@ -29,11 +29,7 @@ import { trpc } from "@/utils/trpc";
 import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 
-const DEFAULT_ITEM_CLASS_CODE = "81112100";
-
-// Curated list for a cloud + digital marketing company.
-// Extend this list as you onboard new service lines.
-const ITEM_CLASS_OPTIONS: ComboboxItem[] = [
+const FALLBACK_ITEM_CLASS_OPTIONS: ComboboxItem[] = [
   { id: "81112100", label: "81112100 — Computer programmers" },
   { id: "81111600", label: "81111600 — Computer programmers (alt listing)" },
   { id: "81161600", label: "81161600 — Electronic mail and messaging services" },
@@ -42,7 +38,6 @@ const ITEM_CLASS_OPTIONS: ComboboxItem[] = [
   { id: "80171600", label: "80171600 — Publicity and marketing support services" },
   { id: "82111600", label: "82111600 — Non technical writing" },
   { id: "82141600", label: "82141600 — Graphic display services" },
-  { id: "81101600", label: "81101600 — Mechanical engineering (not typical; only use if required)" },
 ].sort((a, b) => a.id.localeCompare(b.id));
 
 const formSchema = z.object({
@@ -85,7 +80,7 @@ export function RegisterETimsItemSheet({
     resolver: zodResolver(formSchema),
     defaultValues: {
       itemNm: "",
-      itemClsCd: DEFAULT_ITEM_CLASS_CODE,
+      itemClsCd: "",
       taxTyCd: "B",
       dftPrc: 0,
       itemCd: "",
@@ -100,6 +95,45 @@ export function RegisterETimsItemSheet({
       useYn: "Y",
     },
   });
+
+  const { data: itemClassData } = trpc.etims.data.getItemClassList.useQuery(
+    { lastReqDt: "20230101000000" },
+    { enabled: open, staleTime: 5 * 60_000 },
+  );
+
+  const itemClassOptions = React.useMemo(() => {
+    const root: any = itemClassData;
+    const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
+    const data: any = payload?.data ?? payload;
+    const list: any[] = data?.itemClsList ?? [];
+
+    const mapped = list
+      .filter((row) => row?.itemClsCd && row?.itemClsNm)
+      .map((row) => ({
+        id: String(row.itemClsCd),
+        label: `${row.itemClsCd} — ${row.itemClsNm}`,
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+    return mapped;
+  }, [itemClassData]);
+
+  const effectiveItemClassOptions = React.useMemo(() => {
+    if (itemClassOptions.length > 0) return itemClassOptions;
+    return FALLBACK_ITEM_CLASS_OPTIONS;
+  }, [itemClassOptions]);
+
+  const itemClassFetchFailed = React.useMemo(() => {
+    const root: any = itemClassData;
+    return root?.success === false;
+  }, [itemClassData]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const current = form.getValues("itemClsCd");
+    if (current || effectiveItemClassOptions.length === 0) return;
+    form.setValue("itemClsCd", effectiveItemClassOptions[0]!.id, { shouldValidate: true });
+  }, [open, effectiveItemClassOptions, form]);
 
   const saveItem = trpc.etims.items.saveItem.useMutation({
     onSuccess: (res: any) => {
@@ -137,8 +171,6 @@ export function RegisterETimsItemSheet({
       toast.error(err.message || "Failed to register service");
     },
   });
-
-  const itemClassOptions = React.useMemo(() => ITEM_CLASS_OPTIONS, []);
 
   const { data: itemsData } = trpc.etims.items.getItemInfo.useQuery(
     { lastReqDt: "20230101000000" },
@@ -291,16 +323,18 @@ export function RegisterETimsItemSheet({
                     <ComboboxDropdown
                       placeholder="Select classification code"
                       searchPlaceholder="Search by code or name..."
-                      items={itemClassOptions}
-                      selectedItem={itemClassOptions.find((x) => x.id === field.value)}
+                      items={effectiveItemClassOptions}
+                      selectedItem={effectiveItemClassOptions.find((x) => x.id === field.value)}
                       onSelect={(item) => field.onChange(item.id)}
                       emptyResults="No classifications found"
-                      disabled={itemClassOptions.length === 0}
+                      disabled={effectiveItemClassOptions.length === 0}
                       className="w-full"
                     />
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
-                    Default is {DEFAULT_ITEM_CLASS_CODE}. You can search and select a different classification if needed.
+                    {itemClassFetchFailed
+                      ? "KRA item classification sync is temporarily unavailable; using fallback codes."
+                      : "Choose a valid KRA item classification code (fetched from eTIMS)."}
                   </p>
                   <FormMessage />
                 </FormItem>
