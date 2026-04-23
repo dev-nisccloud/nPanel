@@ -1,7 +1,15 @@
 import { Context } from "hono";
 import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
-import { verifySignature } from "../../lib/qstash-verify";
 import { dispatchNiscEmEmailQueueWithDebug } from "@npanel/api/lib/nisc-em-dispatcher";
+import { enqueueNiscEmDispatch } from "@npanel/api/lib/qstash/nisc-em-dispatch";
+
+import { verifySignature } from "../../lib/qstash-verify";
+
+/**
+ * Backoff applied when a dispatcher run claimed rows but made no forward progress
+ * (sent === 0). Prevents a tight QStash self-chain loop if SES / the DB is stuck.
+ */
+const CHAIN_BACKOFF_MS_ON_NO_PROGRESS = 30_000;
 
 function pickQStashHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {};
@@ -38,26 +46,94 @@ export async function handleNiscEmDispatch(c: Context) {
   try {
     await request.clone().json();
   } catch {
-    // ignore
     payloadOk = false;
   }
 
   const { result, debug } = await dispatchNiscEmEmailQueueWithDebug();
+
+  // ---------------------------------------------------------------------------
+  // Self-chain with a progress-based circuit breaker.
+  //
+  // Baseline behaviour: a single run is capped by maxRuntimeMs (~20s) and serial
+  // SES latency, so one run only drains ~60-80 emails. When work remains we
+  // immediately enqueue another dispatch so a campaign fully drains without
+  // needing an external cron.
+  //
+  // Circuit breaker rules:
+  //   A) If the run was locked out (ran: false) do NOT chain — someone else is
+  //      already draining and will do the chaining themselves.
+  //   B) If no work is left (remainingEligible === 0) we're done.
+  //   C) If the run claimed rows but sent zero of them (sent === 0), we're
+  //      almost certainly hitting a systemic issue (DB write failures, SES
+  //      account-level block, misconfiguration). Chaining immediately would
+  //      spin QStash + SES without doing useful work, so we chain with a
+  //      backoff delay.
+  //   D) Otherwise (we made forward progress) chain immediately.
+  // ---------------------------------------------------------------------------
+  let chainedMessageId: string | null = null;
+  let chainError: string | null = null;
+  let chainStrategy: "none" | "immediate" | "backoff" = "none";
+
+  if (result.ran && result.workRemaining && result.remainingEligible > 0) {
+    const madeProgress = result.sent > 0;
+    const attemptedButStuck = result.claimed > 0 && result.sent === 0;
+    chainStrategy = attemptedButStuck ? "backoff" : "immediate";
+
+    const scheduledFor =
+      chainStrategy === "backoff"
+        ? new Date(Date.now() + CHAIN_BACKOFF_MS_ON_NO_PROGRESS)
+        : null;
+
+    try {
+      const next = await enqueueNiscEmDispatch(scheduledFor);
+      chainedMessageId = next.messageId ?? null;
+    } catch (err) {
+      chainError = err instanceof Error ? err.message : "Unknown enqueue error";
+      console.error(
+        JSON.stringify({
+          msg: "nisc_em_dispatch_chain_enqueue_failed",
+          error: chainError,
+          strategy: chainStrategy,
+          remainingEligible: result.remainingEligible,
+          sent: result.sent,
+          claimed: result.claimed,
+          madeProgress,
+        }),
+      );
+    }
+  }
+
   console.log(
     JSON.stringify({
       msg: "nisc_em_dispatch_completed",
       payloadOk,
       qstashHeaders,
       result,
+      chained: {
+        strategy: chainStrategy,
+        messageId: chainedMessageId,
+        error: chainError,
+      },
       debug: {
         startedAt: debug.startedAt,
         elapsedMs: result.ran ? result.elapsedMs : undefined,
         ratePerSecond: debug.ratePerSecond,
+        lockHolder: debug.lockHolder,
         queue: debug.queue,
         errors: debug.errors,
+        warnings: debug.warnings,
       },
     }),
   );
-  return c.json({ payloadOk, qstashHeaders, result, debug }, 200);
-}
 
+  // If the chain failed, surface a 500 so QStash retries (which will re-run this
+  // handler and try to chain again). Never fail the response on successful drain.
+  if (chainStrategy !== "none" && chainError) {
+    return c.json({ payloadOk, qstashHeaders, result, debug, chainError }, 500);
+  }
+
+  return c.json(
+    { payloadOk, qstashHeaders, result, debug, chainedMessageId, chainStrategy },
+    200,
+  );
+}
