@@ -1,9 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
+import { and, count, desc, eq, ilike, inArray, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { teamMember } from "@npanel/db/schema/teams";
-import { niscEmCampaign, niscEmDomain, niscEmEmail, niscEmSendJob } from "@npanel/db/schema";
+import { niscEmCampaign, niscEmDomain, niscEmEmail } from "@npanel/db/schema";
 import { protectedProcedure, router } from "../../trpc";
 import { z } from "zod";
 import {
@@ -314,36 +314,55 @@ export const niscEmailMarketingCampaignsRouter = router({
     }
 
     const scheduledAt = campaign.scheduledAt;
-    const shouldSchedule = !input.immediate && scheduledAt && scheduledAt > now;
+    const shouldSchedule = Boolean(
+      !input.immediate && scheduledAt && scheduledAt > now,
+    );
+    const previousStatus = campaign.status;
+    const nextStatus = shouldSchedule ? "SCHEDULED" : "SENDING";
 
-    const jobId = randomUUID();
-    const dispatchResult = await enqueueNiscEmDispatch(shouldSchedule ? scheduledAt : null);
-
-    await db.transaction(async (tx) => {
-      await tx.insert(niscEmSendJob).values({
-        id: jobId,
-        campaignId: campaign.id,
-        status: "QUEUED",
-        qstashMessageId: dispatchResult.messageId,
-        batchSize: Number(campaign.totalRecipients ?? 0),
-        processedCount: 0,
-        errorMessage: null,
-        scheduledFor: shouldSchedule ? scheduledAt : null,
-        startedAt: null,
-        completedAt: null,
-        createdAt: now,
+    // -------------------------------------------------------------------------
+    // Two-phase send:
+    //   1. Flip the campaign to SENDING/SCHEDULED so the dispatcher is allowed
+    //      to claim its queued rows. We must do this BEFORE publishing to QStash
+    //      — otherwise QStash can fire the worker before the row-level status is
+    //      committed and the dispatcher's claim query will select nothing.
+    //   2. Publish the QStash job. If this fails, roll the campaign back to its
+    //      previous status so the user can retry without getting stuck in
+    //      SENDING/SCHEDULED with no dispatcher ever touching it.
+    // -------------------------------------------------------------------------
+    await db
+      .update(niscEmCampaign)
+      .set({
+        status: nextStatus,
         updatedAt: now,
-      });
+        sentAt: shouldSchedule ? null : campaign.sentAt ?? null,
+      })
+      .where(eq(niscEmCampaign.id, campaign.id));
 
-      await tx
+    let dispatchResult: Awaited<ReturnType<typeof enqueueNiscEmDispatch>>;
+    try {
+      dispatchResult = await enqueueNiscEmDispatch(shouldSchedule ? scheduledAt : null);
+    } catch (err) {
+      // Rollback: only if nobody else has moved the campaign since — we don't
+      // want to clobber a concurrent cancel or a dispatcher that already
+      // transitioned us to SENT.
+      await db
         .update(niscEmCampaign)
-        .set({
-          status: shouldSchedule ? "SCHEDULED" : "SENDING",
-          updatedAt: now,
-          sentAt: shouldSchedule ? null : campaign.sentAt ?? null,
-        })
-        .where(eq(niscEmCampaign.id, campaign.id));
-    });
+        .set({ status: previousStatus, updatedAt: new Date() })
+        .where(
+          and(
+            eq(niscEmCampaign.id, campaign.id),
+            eq(niscEmCampaign.status, nextStatus),
+          ),
+        );
+
+      const message = err instanceof Error ? err.message : "Failed to enqueue dispatch";
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message,
+        cause: err instanceof Error ? err : undefined,
+      });
+    }
 
     return { ok: true, qstashMessageId: dispatchResult.messageId };
   }),

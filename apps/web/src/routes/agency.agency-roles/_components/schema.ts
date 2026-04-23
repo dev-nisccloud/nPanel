@@ -1,70 +1,30 @@
 import { z } from "zod";
+import { agencysidebarItems } from "@/navigation/sidebar/sidebar-items";
 
 // UI-layer enums and schemas – independent from API and DB.
-// Keep string values in sync with API but do not import from it.
+// Sidebar keys are derived from agency sidebar config so role access
+// options stay in sync with navigation changes.
 
-export const agencyMenuKeysUi = [
-	"/agency/dashboard",
+function getAgencyMenuKeysFromSidebar(): string[] {
+	const keySet = new Set<string>();
 
-	"/agency/domains",
-	"/agency/tlds",
-	"/agency/domain-transfer",
-	"/agency/domains-portfolio",
+	for (const group of agencysidebarItems) {
+		for (const item of group.items) {
+			if (item.url.startsWith("/agency/")) {
+				keySet.add(item.url);
+			}
+			for (const subItem of item.subItems ?? []) {
+				if (subItem.url.startsWith("/agency/")) {
+					keySet.add(subItem.url);
+				}
+			}
+		}
+	}
 
-	"/agency/hosting",
-	"/agency/wordpress",
+	return Array.from(keySet);
+}
 
-	"/agency/social-media-marketing",
-	"/agency/social-media-marketing/facebook",
-	"/agency/social-media-marketing/linkedin",
-
-	"/agency/ad-campaigns",
-	"/agency/ad-campaigns/meta-ads",
-	"/agency/ad-campaigns/google-ads",
-	"/agency/ad-campaigns/linkedin-ads",
-
-	"/agency/email-marketing",
-	"/agency/email-marketing/campaigns",
-	"/agency/email-marketing/domain-configuration",
-	"/agency/email-marketing/audiences",
-	"/agency/email-marketing/email-builder",
-
-	"/agency/seo",
-	"/agency/seo-reports",
-
-	"/agency/creative-assets",
-
-	"/agency/gen-ai/image-gen-studio",
-	"/agency/gen-ai/image-generator",
-	"/agency/gen-ai/background-remover",
-
-	"/agency/nisc-services",
-	"/agency/nisc-service-orders",
-
-	"/agency/clients",
-	"/agency/manage-teams",
-	"/agency/manage-users",
-
-	"/agency/billing",
-	"/agency/transactions",
-	"/agency/invoices",
-	"/agency/subscriptions",
-	"/agency/quotations",
-
-	"/agency/kra-etims/sales",
-	"/agency/kra-etims/purchases",
-	"/agency/kra-etims/products",
-	"/agency/kra-etims/branches",
-	"/agency/kra-etims/settings",
-
-	"/agency/reports/sales",
-	"/agency/reports/creative",
-	"/agency/agency-roles",
-	"/agency/api-keys",
-] as const;
-
-export const agencyMenuKeyUiSchema = z.enum(agencyMenuKeysUi);
-export type AgencyMenuKeyUi = z.infer<typeof agencyMenuKeyUiSchema>;
+export const agencyMenuKeysUi = getAgencyMenuKeysFromSidebar();
 
 export const agencyRoleUiSchema = z.object({
 	id: z.string(),
@@ -80,7 +40,7 @@ export type AgencyRoleUi = z.infer<typeof agencyRoleUiSchema>;
 
 export const agencyPermissionUiSchema = z.object({
 	id: z.string(),
-	key: agencyMenuKeyUiSchema,
+	key: z.string(),
 	description: z.string().nullable(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
@@ -89,7 +49,7 @@ export const agencyPermissionUiSchema = z.object({
 export type AgencyPermissionUi = z.infer<typeof agencyPermissionUiSchema>;
 
 export const agencyRoleWithPermissionsUiSchema = agencyRoleUiSchema.extend({
-	permissionKeys: z.array(agencyMenuKeyUiSchema),
+	permissionKeys: z.array(z.string()),
 	menus: z.array(z.string()),
 });
 
@@ -98,7 +58,7 @@ export type AgencyRoleWithPermissionsUi = z.infer<typeof agencyRoleWithPermissio
 export const createRoleFormSchema = z.object({
 	name: z.string().min(2, "Role name is required").max(80),
 	description: z.string().max(400).optional(),
-	permissionKeys: z.array(agencyMenuKeyUiSchema).default([]),
+	permissionKeys: z.array(z.string()).default([]),
 	menus: z.array(z.string()).default([]),
 });
 

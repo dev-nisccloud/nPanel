@@ -269,6 +269,37 @@ export const niscEmSendJob = pgTable(
 );
 
 // =============================================================================
+// nisc_em_dispatcher_lease — Global dispatcher TTL lock
+// =============================================================================
+// Replaces the old session-scoped pg_try_advisory_lock approach, which was
+// unreliable on a pooled connection (lock_key lives on the pg backend, not the
+// pool client — so release could land on a different backend and leak the lock)
+// and could leave the lock held indefinitely if the worker process crashed
+// before releasing it.
+//
+// How it works:
+//   - A dispatcher run inserts a row keyed by `lock_key` with its own `holder`
+//     UUID and an `expires_at` 60s in the future.
+//   - On conflict, we UPDATE the row only if the existing `expires_at` is in
+//     the past — i.e. the previous holder is gone. This atomically steals the
+//     lease from a crashed process.
+//   - While running, the dispatcher heartbeats every 15s to push `expires_at`
+//     forward, so long drains never see the lease expire.
+//   - On clean shutdown, the holder DELETEs its own row (scoped by holder UUID
+//     so we can't accidentally release someone else's lease).
+//
+// Keep this table small — it only ever contains one row per lock_key.
+// =============================================================================
+
+export const niscEmDispatcherLease = pgTable("nisc_em_dispatcher_lease", {
+  lockKey: text("lock_key").primaryKey(),
+  holder: text("holder").notNull(),
+  acquiredAt: timestamp("acquired_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }).notNull(),
+});
+
+// =============================================================================
 // nisc_em_email — One row per individual email send
 // =============================================================================
 // This is the core tracking table. Every call to SES SendRawEmail creates one

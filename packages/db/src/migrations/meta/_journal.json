@@ -106,6 +106,20 @@
       "when": 1776763541453,
       "tag": "0014_military_wonder_man",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1776934228900,
+      "tag": "0015_wakeful_prodigy",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1776942102746,
+      "tag": "0016_melodic_stardust",
+      "breakpoints": true
     }
   ]
 }
