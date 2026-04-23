@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../trpc";
 import { LinkedInAdsClient } from "../../lib/linkedin-ads-client";
-import { getStoredLinkedInAccessTokenForUser } from "../../lib/linkedin-credentials";
+import { getStoredLinkedInAccessTokenForSession } from "../../lib/linkedin-credentials";
 import { request } from "undici";
 
 const LI_BASE = "https://api.linkedin.com";
@@ -135,8 +135,8 @@ async function resolveAdTargetingEntitiesByUrns(args: {
   return out;
 }
 
-async function getUserIntegration(userId: string) {
-  const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
+async function getUserIntegration(userId: string, role?: string | null) {
+  const tokenData = await getStoredLinkedInAccessTokenForSession({ userId, role });
   if (!tokenData) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -185,7 +185,7 @@ export const linkedInAdsInsightsRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-        const { accessToken } = await getUserIntegration(userId);
+        const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
         const client = new LinkedInAdsClient({ accessToken });
 
         const startDate = new Date(input.timeRange.since);
@@ -310,7 +310,7 @@ export const linkedInAdsInsightsRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-        const { accessToken } = await getUserIntegration(userId);
+        const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
         const client = new LinkedInAdsClient({ accessToken });
 
         const startDate = new Date(input.timeRange.since);

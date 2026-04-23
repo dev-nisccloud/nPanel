@@ -108,6 +108,20 @@ export async function getStoredLinkedInAccessTokenForUser(
 	}
 }
 
+export async function getStoredLinkedInAccessTokenForSession(params: {
+	userId: string;
+	role?: string | null;
+}): Promise<{
+	accessToken: string;
+	integrationId: string;
+} | null> {
+	const isAgencyUser = (params.role ?? '').includes('AGENCY');
+	if (isAgencyUser) {
+		return getStoredLinkedInAccessToken();
+	}
+	return getStoredLinkedInAccessTokenForUser(params.userId);
+}
+
 /**
  * Get stored page access token for a specific LinkedIn Organization
  * Returns the access token if available, not expired, and integration is active

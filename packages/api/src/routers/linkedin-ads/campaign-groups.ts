@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 
 /**
  * Get user's LinkedIn integration with valid tokens
  */
-async function getUserIntegration(userId: string) {
-	const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
+async function getUserIntegration(userId: string, role?: string | null) {
+	const tokenData = await getStoredLinkedInAccessTokenForSession({ userId, role });
 
 	if (!tokenData) {
 		throw new TRPCError({
@@ -80,7 +80,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration(userId);
+				const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });
@@ -242,7 +242,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration(userId);
+				const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });
