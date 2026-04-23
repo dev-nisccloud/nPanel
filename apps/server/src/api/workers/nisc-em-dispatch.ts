@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
 import { dispatchNiscEmEmailQueueWithDebug } from "@npanel/api/lib/nisc-em-dispatcher";
 import { enqueueNiscEmDispatch } from "@npanel/api/lib/qstash/nisc-em-dispatch";
+import type { NiscEmDispatchJobPayload } from "@npanel/api/lib/qstash/types";
 
 import { verifySignature } from "../../lib/qstash-verify";
 
@@ -40,16 +41,32 @@ export async function handleNiscEmDispatch(c: Context) {
     return c.json({ error: "Invalid QStash signature", qstashHeaders }, 401);
   }
 
-  // Payload is currently unused; worker is safe to invoke repeatedly.
-  // If JSON parse fails, we still run a dispatch (so the endpoint is easy to call manually for ops).
+  // Campaign-scoped payload is required so one run cannot interfere with others.
   let payloadOk = true;
+  let payload: NiscEmDispatchJobPayload | null = null;
   try {
-    await request.clone().json();
+    const parsed = await request.clone().json();
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      (parsed as { kind?: string }).kind === "NISC_EM_DISPATCH" &&
+      typeof (parsed as { campaignId?: string }).campaignId === "string" &&
+      (parsed as { campaignId: string }).campaignId.length > 0
+    ) {
+      payload = parsed as NiscEmDispatchJobPayload;
+    } else {
+      payloadOk = false;
+    }
   } catch {
     payloadOk = false;
   }
+  if (!payload) {
+    return c.json({ error: "Invalid payload: campaignId is required", qstashHeaders }, 400);
+  }
 
-  const { result, debug } = await dispatchNiscEmEmailQueueWithDebug();
+  const { result, debug } = await dispatchNiscEmEmailQueueWithDebug({
+    campaignId: payload.campaignId,
+  });
 
   // ---------------------------------------------------------------------------
   // Self-chain with a progress-based circuit breaker.
@@ -85,7 +102,7 @@ export async function handleNiscEmDispatch(c: Context) {
         : null;
 
     try {
-      const next = await enqueueNiscEmDispatch(scheduledFor);
+      const next = await enqueueNiscEmDispatch(payload.campaignId, scheduledFor);
       chainedMessageId = next.messageId ?? null;
     } catch (err) {
       chainError = err instanceof Error ? err.message : "Unknown enqueue error";
@@ -94,6 +111,7 @@ export async function handleNiscEmDispatch(c: Context) {
           msg: "nisc_em_dispatch_chain_enqueue_failed",
           error: chainError,
           strategy: chainStrategy,
+          campaignId: payload.campaignId,
           remainingEligible: result.remainingEligible,
           sent: result.sent,
           claimed: result.claimed,
@@ -108,6 +126,7 @@ export async function handleNiscEmDispatch(c: Context) {
       msg: "nisc_em_dispatch_completed",
       payloadOk,
       qstashHeaders,
+      campaignId: payload.campaignId,
       result,
       chained: {
         strategy: chainStrategy,
@@ -118,6 +137,7 @@ export async function handleNiscEmDispatch(c: Context) {
         startedAt: debug.startedAt,
         elapsedMs: result.ran ? result.elapsedMs : undefined,
         ratePerSecond: debug.ratePerSecond,
+        rateLimiterMode: debug.rateLimiterMode,
         lockHolder: debug.lockHolder,
         queue: debug.queue,
         errors: debug.errors,

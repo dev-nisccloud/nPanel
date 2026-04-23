@@ -24,6 +24,8 @@ import {
 	RefreshCw,
 	Send,
 	Ban,
+	ChevronLeft,
+	ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -221,11 +223,29 @@ export default function CampaignDetailPage() {
 	const [eventType, setEventType] = React.useState<
 		"all" | "email_sent" | "email_delivered" | "email_opened" | "email_clicked" | "email_bounced" | "email_failed"
 	>("all");
+	const [eventsPage, setEventsPage] = React.useState(0);
+	const [eventsPageSize, setEventsPageSize] = React.useState<10 | 30 | 50 | 100>(50);
 	const [debouncedSearch, setDebouncedSearch] = React.useState("");
 	React.useEffect(() => {
 		const t = setTimeout(() => setDebouncedSearch(eventSearch.trim()), 250);
 		return () => clearTimeout(t);
 	}, [eventSearch]);
+
+	const eventsFilterKey = React.useMemo(
+		() => `${eventType}::${debouncedSearch || ""}::${eventsPageSize}`,
+		[eventType, debouncedSearch, eventsPageSize],
+	);
+	type EventsCacheEntry = {
+		events: NonNullable<ReturnType<typeof trpc.niscEmailMarketing.emailEvents.list.useQuery>["data"]>["events"];
+		total: number;
+	};
+	const [eventsPageCache, setEventsPageCache] = React.useState<Record<string, Record<number, EventsCacheEntry>>>({});
+	const cachedCurrentPage = eventsPageCache[eventsFilterKey]?.[eventsPage];
+
+	React.useEffect(() => {
+		// Every filter/search combination starts from page 1.
+		setEventsPage(0);
+	}, [eventsFilterKey]);
 
 	const {
 		data: recentEventsData,
@@ -235,12 +255,39 @@ export default function CampaignDetailPage() {
 	} = trpc.niscEmailMarketing.emailEvents.list.useQuery(
 		{
 			campaignId: campaignId ?? "",
-			limit: debouncedSearch ? 50 : 20,
+			limit: eventsPageSize,
+			offset: eventsPage * eventsPageSize,
 			type: eventType === "all" ? undefined : eventType,
 			recipientEmail: debouncedSearch || undefined,
 		},
-		{ enabled: Boolean(campaignId) }
+		{
+			enabled: Boolean(campaignId) && !cachedCurrentPage,
+		}
 	);
+
+	React.useEffect(() => {
+		if (!recentEventsData) return;
+		setEventsPageCache((prev) => {
+			const byFilter = prev[eventsFilterKey] ?? {};
+			return {
+				...prev,
+				[eventsFilterKey]: {
+					...byFilter,
+					[eventsPage]: {
+						events: recentEventsData.events,
+						total: recentEventsData.total,
+					},
+				},
+			};
+		});
+	}, [recentEventsData, eventsFilterKey, eventsPage]);
+
+	const activeEventsData = cachedCurrentPage ?? recentEventsData;
+	const eventsTotal = activeEventsData?.total ?? 0;
+	const hasPrevPage = eventsPage > 0;
+	const hasNextPage = (eventsPage + 1) * eventsPageSize < eventsTotal;
+	const currentPageLabel = eventsTotal > 0 ? eventsPage + 1 : 0;
+	const totalPages = eventsTotal > 0 ? Math.ceil(eventsTotal / eventsPageSize) : 0;
 
 	const { data: topClickedLinks, isLoading: topClickedLinksLoading, refetch: refetchTopClickedLinks } = trpc.niscEmailMarketing.emailEvents.getTopClickedLinks.useQuery(
 		{ campaignId: campaignId ?? "", limit: 10 },
@@ -267,9 +314,11 @@ export default function CampaignDetailPage() {
 			await Promise.all([
 				utils.niscEmailMarketing.campaigns.getById.invalidate({ id: campaignId }),
 				utils.niscEmailMarketing.emailEvents.getCampaignSummary.invalidate({ campaignId }),
-				utils.niscEmailMarketing.emailEvents.list.invalidate({ campaignId, limit: 20 }),
+				utils.niscEmailMarketing.emailEvents.list.invalidate(),
 				utils.niscEmailMarketing.emailEvents.getTopClickedLinks.invalidate({ campaignId, limit: 10 }),
 			]);
+			setEventsPageCache({});
+			setEventsPage(0);
 			await Promise.all([
 				refetchCampaign(),
 				refetchSummary(),
@@ -848,7 +897,9 @@ export default function CampaignDetailPage() {
 						</CardHeader>
 						<CardContent>
 							{(() => {
-								const listIsLoading = recentEventsLoading || recentEventsFetching;
+								const listIsLoading =
+									(!cachedCurrentPage && recentEventsLoading) ||
+									(!cachedCurrentPage && recentEventsFetching);
 								return (
 									<>
 										<div className="flex flex-col gap-3 mb-3">
@@ -857,7 +908,7 @@ export default function CampaignDetailPage() {
 													Total: {opened} opens, {clicked} clicks
 												</p>
 												<p className="text-xs text-muted-foreground">
-													{(recentEventsData?.events.length ?? 0).toLocaleString()} events
+													{eventsTotal.toLocaleString()} events
 												</p>
 											</div>
 											<div className="flex flex-col sm:flex-row gap-2">
@@ -933,10 +984,10 @@ export default function CampaignDetailPage() {
 													<Skeleton key={i} className="h-10 w-full" />
 												))}
 											</div>
-										) : recentEventsData?.events.length ? (
+										) : activeEventsData?.events.length ? (
 											<ScrollArea className="h-[280px] rounded-md border border-border">
 												<ul className="divide-y divide-border text-sm p-1">
-													{recentEventsData.events.map((ev) => (
+													{activeEventsData.events.map((ev) => (
 														<li key={ev.id} className="py-2.5 first:pt-0 px-2">
 															<div className="flex items-center justify-between gap-2">
 																{(() => {
@@ -991,6 +1042,47 @@ export default function CampaignDetailPage() {
 												className="min-h-[200px]"
 											/>
 										)}
+
+										<div className="mt-3 flex items-center justify-between gap-3">
+											<p className="text-xs text-muted-foreground">
+												Page {currentPageLabel} of {totalPages}
+											</p>
+											<div className="flex items-center gap-2">
+												<Select
+													value={String(eventsPageSize)}
+													onValueChange={(v) => setEventsPageSize(Number(v) as 10 | 30 | 50 | 100)}
+													disabled={listIsLoading}
+												>
+													<SelectTrigger className="w-[100px]" aria-label="Events per page">
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="10">10</SelectItem>
+														<SelectItem value="30">30</SelectItem>
+														<SelectItem value="50">50</SelectItem>
+														<SelectItem value="100">100</SelectItem>
+													</SelectContent>
+												</Select>
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() => setEventsPage((p) => Math.max(0, p - 1))}
+													disabled={!hasPrevPage || listIsLoading}
+												>
+													<ChevronLeft className="h-4 w-4 mr-1" />
+													Previous
+												</Button>
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() => setEventsPage((p) => p + 1)}
+													disabled={!hasNextPage || listIsLoading}
+												>
+													Next
+													<ChevronRightIcon className="h-4 w-4 ml-1" />
+												</Button>
+											</div>
+										</div>
 									</>
 								);
 							})()}

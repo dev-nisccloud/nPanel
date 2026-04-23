@@ -73,10 +73,11 @@ export interface BackgroundRemoverJobResult {
 }
 
 /**
- * QStash job payload for Nisc email marketing global dispatcher
+ * QStash job payload for Nisc email marketing campaign-scoped dispatcher.
  */
 export interface NiscEmDispatchJobPayload {
 	kind: "NISC_EM_DISPATCH";
+	campaignId: string;
 }
 
 /**
