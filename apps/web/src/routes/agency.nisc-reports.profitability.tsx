@@ -104,10 +104,10 @@ export default function NiscProfitabilityReportPage() {
                     <tbody className="divide-y divide-border/40">
                       {margin.data.rows.map(r => (
                         <tr key={r.id} className="hover:bg-muted/20">
-                          <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{r.teamName ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-xs max-w-[140px] truncate">{r.productName ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.category ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.billingCycle ?? "—"}</td>
+                          <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{r.teamName ?? " "}</td>
+                          <td className="px-4 py-2.5 text-xs max-w-[140px] truncate">{r.productName ?? " "}</td>
+                          <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.category ?? " "}</td>
+                          <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.billingCycle ?? " "}</td>
                           <td className="px-4 py-2.5 font-mono font-semibold">{fmt(r.revenue)}</td>
                           <td className="px-4 py-2.5 font-mono text-red-600 dark:text-red-400">{fmt(r.cost)}</td>
                           <td className="px-4 py-2.5 font-mono font-semibold text-emerald-600 dark:text-emerald-400">{fmt(r.grossMargin)}</td>
@@ -162,8 +162,8 @@ export default function NiscProfitabilityReportPage() {
                     <tbody className="divide-y divide-border/40">
                       {commission.data.rows.map(r => (
                         <tr key={r.id} className="hover:bg-muted/20">
-                          <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{r.teamName ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.period ?? "—"}</td>
+                          <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{r.teamName ?? " "}</td>
+                          <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.period ?? " "}</td>
                           <td className="px-4 py-2.5 font-mono">{fmt(r.baseAmount)}</td>
                           <td className="px-4 py-2.5 font-mono">{r.commissionRate.toFixed(2)}%</td>
                           <td className="px-4 py-2.5 font-mono font-semibold text-emerald-600 dark:text-emerald-400">{fmt(r.commissionAmount)}</td>

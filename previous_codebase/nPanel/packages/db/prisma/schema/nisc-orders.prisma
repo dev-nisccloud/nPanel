@@ -101,7 +101,7 @@ model NiscOrderItem {
   niscClientSubscriptionId String?
   primaryDomain            String?
   domainSubscriptionId     String?
-  description              String? // e.g. "registration", "transfer", "renewal" — identifies type per product/item
+  description              String? // e.g. "registration", "transfer", "renewal"   identifies type per product/item
   metadata                 Json? // e.g. { transferAuthCode?: string } for domain_transfer
 
   createdAt DateTime @default(now())

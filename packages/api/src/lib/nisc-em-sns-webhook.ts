@@ -293,7 +293,7 @@ async function ensureHardBounceSuppressionsForSesEvent(
   });
 }
 
-/** Spam complaints — recipient opted out via ISP/report; distinct from HARD_BOUNCE in `reason`. */
+/** Spam complaints   recipient opted out via ISP/report; distinct from HARD_BOUNCE in `reason`. */
 async function ensureComplaintSuppressionsForSesEvent(
   ses: Record<string, unknown>,
   emailId: string | null,

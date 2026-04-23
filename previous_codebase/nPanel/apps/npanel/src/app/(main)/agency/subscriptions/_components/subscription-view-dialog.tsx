@@ -23,7 +23,7 @@ function getPlanTypeDisplayName(t: string): string {
 }
 
 function getHostingSubTypeDisplayName(t: string | null | undefined): string {
-	if (!t) return "—";
+	if (!t) return " ";
 	const m: Record<string, string> = {
 		WEB_HOSTING: "Web Hosting",
 		EMAIL_HOSTING: "Email Hosting",
@@ -35,9 +35,9 @@ function getHostingSubTypeDisplayName(t: string | null | undefined): string {
 }
 
 function formatDate(v: string | Date | null | undefined): string {
-	if (!v) return "—";
+	if (!v) return " ";
 	const d = v instanceof Date ? v : new Date(v);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? " " : d.toLocaleDateString();
 }
 
 export interface SubscriptionDetail {
@@ -107,7 +107,7 @@ export function SubscriptionViewDialog({ open, onOpenChange, subscription }: Sub
 							<Building2 className="h-4 w-4" />
 							Team
 						</div>
-						<p>{subscription.teamName || subscription.teamId || "—"}</p>
+						<p>{subscription.teamName || subscription.teamId || " "}</p>
 					</div>
 					<div className="grid gap-2">
 						<div className="flex items-center gap-2 text-muted-foreground">

@@ -316,14 +316,14 @@ export const niscRevenueRouter = router({
     })))
     .query(async ({ input }) => {
       const { from, to } = input;
-      // Invoice data grouped by category from line items / subscriptions is complex —
+      // Invoice data grouped by category from line items / subscriptions is complex  
       // for now we return a flat breakdown by invoice status as a proxy
       const invoices = await db
         .select({ status: invoice.status, amount: invoice.amount })
         .from(invoice)
         .where(and(gte(invoice.createdAt, from), lte(invoice.createdAt, to)));
 
-      // Simplified: one "Invoices" category — will be expanded when order → subscription link is added
+      // Simplified: one "Invoices" category   will be expanded when order → subscription link is added
       let totalInvoiced = 0, totalCollected = 0, inDraft = 0, invoiceCount = 0;
       for (const inv of invoices) {
         const amt = toNum(inv.amount);

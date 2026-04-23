@@ -244,7 +244,7 @@ async function ensureHardBounceSuppressionsForSesEvent(ses, emailId) {
         emailId,
     });
 }
-/** Spam complaints — recipient opted out via ISP/report; distinct from HARD_BOUNCE in `reason`. */
+/** Spam complaints   recipient opted out via ISP/report; distinct from HARD_BOUNCE in `reason`. */
 async function ensureComplaintSuppressionsForSesEvent(ses, emailId) {
     const complaint = asRecord(ses.complaint);
     const mail = asRecord(ses.mail);

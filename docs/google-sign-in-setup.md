@@ -1,4 +1,4 @@
-# Google Sign-In Setup — GCP to Code
+# Google Sign-In Setup   GCP to Code
 
 This guide covers everything needed to add "Continue with Google" to nPanel.  
 The app uses **Better Auth** for authentication and deploys both services  
@@ -11,52 +11,52 @@ The app uses **Better Auth** for authentication and deploys both services
 - Users can click **Continue with Google** on the login and register pages.
 - A Google account signs in or creates a new nPanel account automatically.
 - Works in local development and production (Cloud Run).
-- One OAuth client serves every customer — no per-customer configuration.
+- One OAuth client serves every customer   no per-customer configuration.
 
 ---
 
-## Part 1 — Google Cloud Console (GCP)
+## Part 1   Google Cloud Console (GCP)
 
 Complete these steps in the GCP console **before touching any code**.
 
-### Step 1.1 — Choose which GCP project to use
+### Step 1.1   Choose which GCP project to use
 
 Your deploy pipeline uses **two separate GCP projects** for Cloud Run:
 - Staging → `GCP_PROJECT_ID` (GitHub secret)
 - Production → `GCP_PROJECT_ID_PRODUCTION` (GitHub secret)
 
-OAuth credentials (Client ID + Secret) are **not tied to a Cloud Run project** — they are just values you store in environment variables. So you have two sensible options:
+OAuth credentials (Client ID + Secret) are **not tied to a Cloud Run project**   they are just values you store in environment variables. So you have two sensible options:
 
-**Option A — One OAuth client for everything (recommended for most teams)**  
+**Option A   One OAuth client for everything (recommended for most teams)**  
 Create the OAuth consent screen and client in your **production** GCP project. Add all redirect URIs (local, staging, and production) to that single client. Both staging and production Cloud Run services use the same `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Simpler to manage.
 
-**Option B — One OAuth client per project (isolated environments)**  
+**Option B   One OAuth client per project (isolated environments)**  
 Create a separate OAuth client in each project (one in the staging project, one in the production project). Staging and production get different credentials. More work to set up but staging tokens are completely isolated from production.
 
 For most teams Option A is fine. The steps below assume Option A.
 
 1. Open [console.cloud.google.com](https://console.cloud.google.com).
 2. Click the project picker at the top left and select your **production** GCP project (the one matching `GCP_PROJECT_ID_PRODUCTION`).
-3. Note the **Project ID** — you will see it in the project picker once selected.
+3. Note the **Project ID**   you will see it in the project picker once selected.
 
 ---
 
-### Step 1.2 — Enable the Google Identity API (one-time)
+### Step 1.2   Enable the Google Identity API (one-time)
 
 1. Go to **APIs & Services → Library**.
 2. Search for **"Google Identity"** and select **Google Identity Toolkit API** (also listed as **Identity Platform**).
 3. Click **Enable**.
 
-> If you skip this, the OAuth screen may still work for basic OAuth sign-in — but enabling it is best practice.
+> If you skip this, the OAuth screen may still work for basic OAuth sign-in   but enabling it is best practice.
 
 ---
 
-### Step 1.3 — Configure the OAuth consent screen (one-time)
+### Step 1.3   Configure the OAuth consent screen (one-time)
 
 This is the page users see when they click "Continue with Google".
 
 1. Go to **APIs & Services → OAuth consent screen**.
-2. Select **External** (allows any Google account — your customers).  
+2. Select **External** (allows any Google account   your customers).  
    *(Internal restricts sign-in to your own Google Workspace org.)*
 3. Click **Create** and fill in:
 
@@ -65,14 +65,14 @@ This is the page users see when they click "Continue with Google".
    | App name | `nPanel` (or your brand name) |
    | User support email | your email address |
    | App logo | upload your logo (optional but recommended) |
-   | App domain — Homepage | your production URL, e.g. `https://npanel.example.com` |
-   | App domain — Privacy policy | link to your privacy policy (required for production) |
-   | App domain — Terms of service | link to your terms of service |
+   | App domain   Homepage | your production URL, e.g. `https://npanel.example.com` |
+   | App domain   Privacy policy | link to your privacy policy (required for production) |
+   | App domain   Terms of service | link to your terms of service |
    | Developer contact email | your email address |
 
 4. Click **Save and Continue**.
 
-5. **Scopes** — click **Add or Remove Scopes** and add:
+5. **Scopes**   click **Add or Remove Scopes** and add:
    - `openid`
    - `email`
    - `profile`
@@ -81,14 +81,14 @@ This is the page users see when they click "Continue with Google".
 
 6. Click **Save and Continue**.
 
-7. **Test users** — while the app is in *Testing* status, only listed email addresses can sign in. Add your own email and any teammates who need to test.  
+7. **Test users**   while the app is in *Testing* status, only listed email addresses can sign in. Add your own email and any teammates who need to test.  
    *(You will change this to "In production" in Step 1.6 when ready for real users.)*
 
 8. Click **Save and Continue** → **Back to Dashboard**.
 
 ---
 
-### Step 1.4 — Create the OAuth 2.0 Client ID
+### Step 1.4   Create the OAuth 2.0 Client ID
 
 1. Go to **APIs & Services → Credentials**.
 2. Click **+ Create Credentials → OAuth client ID**.
@@ -114,26 +114,26 @@ This is the page users see when they click "Continue with Google".
 7. Click **Create**.
 
 8. A dialog shows your credentials. Copy and save both:
-   - **Client ID** — looks like `XXXXXXXX.apps.googleusercontent.com`
-   - **Client Secret** — a short alphanumeric string
+   - **Client ID**   looks like `XXXXXXXX.apps.googleusercontent.com`
+   - **Client Secret**   a short alphanumeric string
 
    > Keep the Client Secret private. Never commit it to git.  
    > You can return to Credentials to view the Client ID at any time, but the secret is only shown once (or you can download the JSON).
 
 ---
 
-### Step 1.5 — Verify consent screen branding (before going live)
+### Step 1.5   Verify consent screen branding (before going live)
 
-Before switching to production, Google may require you to submit the app for verification if you request sensitive scopes. For `openid`, `email`, and `profile` (basic sign-in), Google generally does **not** require verification — you can publish without it.
+Before switching to production, Google may require you to submit the app for verification if you request sensitive scopes. For `openid`, `email`, and `profile` (basic sign-in), Google generally does **not** require verification   you can publish without it.
 
 To check:
 1. **APIs & Services → OAuth consent screen**.
 2. If there is a **Publish App** button, you can click it to switch to production without going through verification (for basic scopes).
-3. If Google shows a "verification required" notice, follow the verification steps — this typically takes 1-3 days and requires a privacy policy URL.
+3. If Google shows a "verification required" notice, follow the verification steps   this typically takes 1-3 days and requires a privacy policy URL.
 
 ---
 
-### Step 1.6 — Go live for all customers
+### Step 1.6   Go live for all customers
 
 When you are ready for real users (not just test accounts):
 
@@ -144,11 +144,11 @@ When you are ready for real users (not just test accounts):
 
 ---
 
-## Part 2 — Repository and CI/CD Configuration
+## Part 2   Repository and CI/CD Configuration
 
 Once you have the Client ID and Client Secret from Part 1, configure this repo.
 
-### Step 2.1 — Add secrets to GitHub Actions
+### Step 2.1   Add secrets to GitHub Actions
 
 The deployment pipeline (`deploy.yml`) passes env vars directly to Cloud Run.  
 Add two new **repository secrets** in GitHub:
@@ -164,11 +164,11 @@ Add two new **repository secrets** in GitHub:
 > If you have separate staging and production GitHub environments (currently the  
 > repo uses `staging` and `production` environments in `deploy.yml`), add the  
 > secrets to both environments. You can use the **same** OAuth client for both  
-> — Google allows multiple redirect URIs on one client.
+>   Google allows multiple redirect URIs on one client.
 
 ---
 
-### Step 2.2 — Add secrets to `.github/workflows/deploy.yml`
+### Step 2.2   Add secrets to `.github/workflows/deploy.yml`
 
 In `deploy.yml`, find the `env_vars` block inside the **deploy-server** steps (staging and production) and add the two new variables alongside the existing ones:
 
@@ -188,7 +188,7 @@ Do this for **both** the staging deploy step and the production deploy step (the
 
 ---
 
-### Step 2.3 — Add variables to the env schema (`packages/env/src/server.ts`)
+### Step 2.3   Add variables to the env schema (`packages/env/src/server.ts`)
 
 The env validation schema in `packages/env/src/server.ts` currently validates only the existing server vars. Add the two new ones:
 
@@ -207,7 +207,7 @@ server: {
 
 ---
 
-### Step 2.4 — Enable the Google provider in Better Auth (`packages/auth/src/index.ts`)
+### Step 2.4   Enable the Google provider in Better Auth (`packages/auth/src/index.ts`)
 
 Better Auth has first-class Google support via `socialProviders`. Add it to the `betterAuth` config:
 
@@ -228,11 +228,11 @@ export const auth = betterAuth<BetterAuthOptions>({
 });
 ```
 
-No additional packages are required — `better-auth` has Google OAuth built in.
+No additional packages are required   `better-auth` has Google OAuth built in.
 
 ---
 
-### Step 2.5 — Wire the Google button in the login and register forms
+### Step 2.5   Wire the Google button in the login and register forms
 
 The `GoogleButton` component already exists at  
 `apps/web/src/routes/auth/_components/social-auth/google-button.tsx`.  
@@ -255,7 +255,7 @@ Pass this as the `onClick` prop to `<GoogleButton>`.
 
 ---
 
-### Step 2.6 — Local development environment
+### Step 2.6   Local development environment
 
 For local testing, create or update the `.env` file in `apps/server/` (wherever your server reads its environment from) and add:
 
@@ -276,7 +276,7 @@ This must match the redirect URI you added in Step 1.4 (`http://localhost:3002/a
 
 ---
 
-## Part 3 — Account Merging Behaviour (important to decide upfront)
+## Part 3   Account Merging Behaviour (important to decide upfront)
 
 When a user signs in with Google using an email that already exists in the database from a previous email/password signup, Better Auth will either:
 
@@ -287,19 +287,19 @@ Check the Better Auth docs for `allowDifferentPrimitiveTypes` or `accountLinking
 
 ---
 
-## Part 4 — Hooks for Google sign-in (optional)
+## Part 4   Hooks for Google sign-in (optional)
 
 The current `packages/auth/src/index.ts` has `after` hooks that run on email/password sign-in to:
 - Log activity to `userActivityLog`
 - Create a login notification
 
-These hooks match on `ctx.path === "/sign-in/email"`. Google sign-in uses a different path (`/sign-in/social/google` or `/callback/google`). If you want the same activity logging for Google sign-ins, you will need to add a matching condition to the `after` hook — or add a new hook block — that handles social sign-in paths.
+These hooks match on `ctx.path === "/sign-in/email"`. Google sign-in uses a different path (`/sign-in/social/google` or `/callback/google`). If you want the same activity logging for Google sign-ins, you will need to add a matching condition to the `after` hook   or add a new hook block   that handles social sign-in paths.
 
 This is optional for the initial release but good to add before going to production.
 
 ---
 
-## Part 5 — Full checklist
+## Part 5   Full checklist
 
 | # | Step | Where | Status |
 |---|------|--------|--------|
@@ -338,7 +338,7 @@ This is optional for the initial release but good to add before going to product
 
 ## References
 
-- [Better Auth — Social Sign-In / Google](https://www.better-auth.com/docs/authentication/google)
+- [Better Auth   Social Sign-In / Google](https://www.better-auth.com/docs/authentication/google)
 - [Google OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server)
-- [Google Cloud — OAuth Consent Screen](https://console.cloud.google.com/apis/credentials/consent)
-- [Google Cloud — Credentials](https://console.cloud.google.com/apis/credentials)
+- [Google Cloud   OAuth Consent Screen](https://console.cloud.google.com/apis/credentials/consent)
+- [Google Cloud   Credentials](https://console.cloud.google.com/apis/credentials)

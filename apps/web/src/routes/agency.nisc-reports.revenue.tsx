@@ -179,7 +179,7 @@ export default function NiscRevenueReportPage() {
                     <CardTitle className="text-sm font-bold uppercase tracking-tight opacity-70">
                       Invoice Breakdown by Status
                     </CardTitle>
-                    <CardDescription className="text-xs">All statuses included — DRAFT documents are real business activity.</CardDescription>
+                    <CardDescription className="text-xs">All statuses included   DRAFT documents are real business activity.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="divide-y divide-border/50">
@@ -268,7 +268,7 @@ export default function NiscRevenueReportPage() {
                             <td className="py-2.5 pr-4 font-mono text-amber-600 dark:text-amber-400">{fmt(c.outstanding)}</td>
                             <td className="py-2.5 pr-4 font-mono text-red-600 dark:text-red-400">{fmt(c.overdueAmount)}</td>
                             <td className="py-2.5 pr-4 font-mono">{c.invoiceCount}</td>
-                            <td className="py-2.5 font-mono">{c.avgDaysToPay > 0 ? `${c.avgDaysToPay.toFixed(0)}d` : "—"}</td>
+                            <td className="py-2.5 font-mono">{c.avgDaysToPay > 0 ? `${c.avgDaysToPay.toFixed(0)}d` : " "}</td>
                           </tr>
                         ))}
                         {(byClient.data ?? []).length === 0 && (
@@ -306,7 +306,7 @@ export default function NiscRevenueReportPage() {
             )}
             <Card className="border-border/50 shadow-none">
               <CardContent className="p-5">
-                <p className="text-sm font-bold">Total Outstanding: {aging.data ? fmt(aging.data.total.amount) : "—"}</p>
+                <p className="text-sm font-bold">Total Outstanding: {aging.data ? fmt(aging.data.total.amount) : " "}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {aging.data?.total.count} invoices with SENT, OVERDUE, or PARTIALLY_PAID status
                 </p>
@@ -335,13 +335,13 @@ export default function NiscRevenueReportPage() {
                       <tbody className="divide-y divide-border/40">
                         {(outstanding.data?.rows ?? []).map(inv => (
                           <tr key={inv.id} className="hover:bg-muted/30 transition-colors">
-                            <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{inv.invoiceNumber ?? "—"}</td>
-                            <td className="py-2.5 pr-4 font-medium max-w-[160px] truncate">{inv.teamName ?? "—"}</td>
+                            <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{inv.invoiceNumber ?? " "}</td>
+                            <td className="py-2.5 pr-4 font-medium max-w-[160px] truncate">{inv.teamName ?? " "}</td>
                             <td className="py-2.5 pr-4 font-mono font-semibold">{fmt(inv.amount)}</td>
-                            <td className="py-2.5 pr-4 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd, yyyy") : "—"}</td>
+                            <td className="py-2.5 pr-4 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd, yyyy") : " "}</td>
                             <td className="py-2.5 pr-4"><StatusBadge status={inv.status} /></td>
                             <td className="py-2.5 font-mono font-bold text-red-600 dark:text-red-400">
-                              {inv.daysOverdue > 0 ? `${inv.daysOverdue}d` : "—"}
+                              {inv.daysOverdue > 0 ? `${inv.daysOverdue}d` : " "}
                             </td>
                           </tr>
                         ))}

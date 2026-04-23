@@ -449,7 +449,7 @@ export default function MetaAdsAccountDetailPage() {
 												<CalendarIcon className="h-3 w-3" />
 												<span>
 													{campaign.start_time ? format(new Date(campaign.start_time), "MMM dd, yyyy") : "No start date"}
-													{" — "}
+													{"   "}
 													{campaign.stop_time ? format(new Date(campaign.stop_time), "MMM dd, yyyy") : "Ongoing"}
 												</span>
 											</div>

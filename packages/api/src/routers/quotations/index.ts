@@ -27,7 +27,7 @@ import {
 } from "./schemas";
 import type { QuotationDetail } from "./schemas";
 
-/** DB or transaction — both support query/insert/update used here */
+/** DB or transaction   both support query/insert/update used here */
 type DbLike = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const isAgencyUser = (role: string) =>

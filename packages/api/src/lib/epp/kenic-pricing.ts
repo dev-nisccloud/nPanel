@@ -1,5 +1,5 @@
 /**
- * KENIC EPP domain check with fee — returns create and transfer pricing only.
+ * KENIC EPP domain check with fee   returns create and transfer pricing only.
  * Used for transfer flow (and registration) where we show price and "we'll check availability".
  */
 

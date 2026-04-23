@@ -36,9 +36,9 @@ const checkTransferInputSchema = z.object({
 
 /** User-facing transfer check status for the UI. */
 export type TransferStatus =
-	| "available"   // Domain is free — suggest registration (CTA to register page)
-	| "locked"      // Domain is registered but transfer-locked — show unlock instructions
-	| "ready"       // Can transfer now — show price and purchase
+	| "available"   // Domain is free   suggest registration (CTA to register page)
+	| "locked"      // Domain is registered but transfer-locked   show unlock instructions
+	| "ready"       // Can transfer now   show price and purchase
 	| "pending_check" // KENIC: TLD pricing only, no availability; show Continue, no "Ready" badge
 	| "reserved"    // Domain is reserved
 	| "unavailable"; // Invalid, error, or other (show error / why transfer failed)
@@ -125,7 +125,7 @@ export const domainTransferRouter = router({
 					}
 					// exists && !locked → ready; get price below
 				} else {
-					// RDAP failed for this TLD — fall back to OpenProvider domain check
+					// RDAP failed for this TLD   fall back to OpenProvider domain check
 					try {
 						const client = createOpenProviderClient();
 						await client.authenticate({
@@ -183,7 +183,7 @@ export const domainTransferRouter = router({
 				}
 			}
 
-			// Ready to transfer — get price from OpenProvider (KENIC returns earlier with pending_check)
+			// Ready to transfer   get price from OpenProvider (KENIC returns earlier with pending_check)
 			try {
 				const client = createOpenProviderClient();
 				await client.authenticate({

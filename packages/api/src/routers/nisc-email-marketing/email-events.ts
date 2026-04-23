@@ -27,6 +27,11 @@ async function assertTeamMember(teamId: string, userId: string) {
   return member ?? null;
 }
 
+function isAgencyUserRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+}
+
 async function assertCampaignAccess(campaignId: string, userId: string) {
   const [campaign] = await db
     .select({ id: niscEmCampaign.id, userId: niscEmCampaign.userId, teamId: niscEmCampaign.teamId })
@@ -41,6 +46,23 @@ async function assertCampaignAccess(campaignId: string, userId: string) {
     return campaign;
   }
   throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+
+async function assertCampaignReadAccess(
+  campaignId: string,
+  userId: string,
+  role: string | null | undefined,
+) {
+  if (isAgencyUserRole(role)) {
+    const [campaign] = await db
+      .select({ id: niscEmCampaign.id, userId: niscEmCampaign.userId, teamId: niscEmCampaign.teamId })
+      .from(niscEmCampaign)
+      .where(eq(niscEmCampaign.id, campaignId))
+      .limit(1);
+    if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+    return campaign;
+  }
+  return assertCampaignAccess(campaignId, userId);
 }
 
 function toLegacyEventType(eventType: string): string {
@@ -80,7 +102,7 @@ export const niscEmailMarketingEmailEventsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyUserRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission to view global email events",
@@ -113,9 +135,10 @@ export const niscEmailMarketingEmailEventsRouter = router({
     .input(campaignEventSummaryInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-      await assertCampaignAccess(input.campaignId, userId);
+      await assertCampaignReadAccess(input.campaignId, userId, userRole);
 
       const [agg] = await db
         .select({
@@ -150,9 +173,10 @@ export const niscEmailMarketingEmailEventsRouter = router({
     .input(z.object({ campaignId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-      await assertCampaignAccess(input.campaignId, userId);
+      await assertCampaignReadAccess(input.campaignId, userId, userRole);
 
       const [campaign] = await db
         .select({
@@ -227,9 +251,10 @@ export const niscEmailMarketingEmailEventsRouter = router({
     .input(z.object({ campaignId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-      await assertCampaignAccess(input.campaignId, userId);
+      await assertCampaignReadAccess(input.campaignId, userId, userRole);
 
       // Bounce reason lives on the denormalized email row (fast aggregation).
       const byTypeRes = await db.execute<{ bounce_type: string | null; count: number }>(sql`
@@ -279,13 +304,14 @@ export const niscEmailMarketingEmailEventsRouter = router({
 
   list: protectedProcedure.input(emailEventListFiltersSchema).query(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
     if (!input.campaignId) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Provide campaignId" });
     }
 
-    await assertCampaignAccess(input.campaignId, userId);
+    await assertCampaignReadAccess(input.campaignId, userId, userRole);
 
     const conditions = [eq(niscEmEmail.campaignId, input.campaignId)];
     if (input.type) {
@@ -356,9 +382,10 @@ export const niscEmailMarketingEmailEventsRouter = router({
     .input(topClickedLinksInputSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-      await assertCampaignAccess(input.campaignId, userId);
+      await assertCampaignReadAccess(input.campaignId, userId, userRole);
 
       const res = await db.execute<{ url: string; clicks: number }>(sql`
         select

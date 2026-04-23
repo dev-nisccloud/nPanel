@@ -876,9 +876,9 @@ function MetricsDisplay({
     compact?: boolean;
 }) {
     const formatCurrency = (amount: string | number | null | undefined) => {
-        if (amount === null || amount === undefined || amount === '' || amount === 'null') return '—';
+        if (amount === null || amount === undefined || amount === '' || amount === 'null') return ' ';
         const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-        if (isNaN(num)) return '—';
+        if (isNaN(num)) return ' ';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: currency,
@@ -888,16 +888,16 @@ function MetricsDisplay({
     };
 
     const formatNumber = (num: string | number | null | undefined) => {
-        if (num === null || num === undefined || num === '' || num === 'null') return '—';
+        if (num === null || num === undefined || num === '' || num === 'null') return ' ';
         const n = typeof num === 'string' ? parseFloat(num) : num;
-        if (isNaN(n)) return '—';
+        if (isNaN(n)) return ' ';
         return new Intl.NumberFormat('en-US', { notation: "compact", compactDisplay: "short" }).format(n);
     };
 
     const formatPercentage = (num: string | number | null | undefined) => {
-        if (num === null || num === undefined || num === '' || num === 'null') return '—';
+        if (num === null || num === undefined || num === '' || num === 'null') return ' ';
         const n = typeof num === 'string' ? parseFloat(num) : num;
-        if (isNaN(n)) return '—';
+        if (isNaN(n)) return ' ';
         return n < 1 ? `${(n * 100).toFixed(2)}%` : `${n.toFixed(2)}%`;
     };
 
@@ -1350,7 +1350,7 @@ function AdSetItem({
                                             key={idx}
                                             label={line.content ?? ""}
                                             content={Array.isArray(line.children) ? line.children.join(", ") : ""}
-                                            emptyMessage="—"
+                                            emptyMessage=" "
                                         />
                                     ))}
                                 </div>
@@ -2068,7 +2068,7 @@ export default function CampaignDetailsPage() {
                                                 const linkClicks = parseInt(item.inline_link_clicks || '0') ||
                                                     (item.actions?.find((a: any) => a.action_type === 'link_click')?.value || 0);
                                                 return {
-                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : '—',
+                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : ' ',
                                                     spend: parseFloat(item.spend || '0'),
                                                     impressions: parseInt(item.impressions || '0'),
                                                     link_clicks: parseInt(linkClicks.toString()),
@@ -2154,7 +2154,7 @@ export default function CampaignDetailsPage() {
                                             data={dailyPerformance.data
                                                 .sort((a: any, b: any) => (a.date_start || '').localeCompare(b.date_start || ''))
                                                 .map((item: any) => ({
-                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : '—',
+                                                    date: item.date_start ? format(parseISO(item.date_start), 'MMM dd') : ' ',
                                                     spend: parseFloat(item.spend || '0'),
                                                 }))}
                                             margin={{ top: 10, right: 10, left: 10, bottom: 0 }}

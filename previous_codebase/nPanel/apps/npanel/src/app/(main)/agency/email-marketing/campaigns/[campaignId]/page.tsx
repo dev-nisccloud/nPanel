@@ -479,7 +479,7 @@ export default function CampaignDetailPage() {
 					</AlertDialogContent>
 				</AlertDialog>
 
-				{/* Analytics — skeleton when loading; empty state when no data (e.g. scheduled/draft); cards when data */}
+				{/* Analytics   skeleton when loading; empty state when no data (e.g. scheduled/draft); cards when data */}
 				<div className="mt-6">
 					{summaryLoading ? (
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -598,7 +598,7 @@ export default function CampaignDetailPage() {
 												<TooltipContent side="top" className="max-w-xs text-sm">
 													<p className="font-medium mb-1">How engagement is calculated</p>
 													<p>
-														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event counts—e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
+														Opened and Clicked show <strong>unique recipients</strong> (one count per person), so rates never exceed 100%. &quot;Total opens&quot; and &quot;Total clicks&quot; are total event counts e.g. one person can open multiple times or click multiple links, so those numbers can be higher than unique.
 													</p>
 												</TooltipContent>
 											</Tooltip>
@@ -831,7 +831,7 @@ export default function CampaignDetailPage() {
 									<span className="text-xs text-muted-foreground">Source code</span>
 								</div>
 							</TabsTrigger>
-							{/* Insights tab — commented out for now
+							{/* Insights tab   commented out for now
 							<TabsTrigger
 								value="insights"
 								className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-1 @sm/main:flex-none"
@@ -850,7 +850,7 @@ export default function CampaignDetailPage() {
 						<TabsContent value="preview" className="mt-4">
 							<Card>
 								<CardContent className="p-0">
-									{/* From, To (recipient count), Subject — above preview */}
+									{/* From, To (recipient count), Subject   above preview */}
 									<div className="divide-y divide-border px-4 py-3 text-sm">
 										<div className="flex items-center justify-between gap-4 py-2.5 first:pt-0">
 											<span className="font-medium text-muted-foreground shrink-0">From</span>
@@ -867,7 +867,7 @@ export default function CampaignDetailPage() {
 										<div className="flex items-center justify-between gap-4 py-2.5">
 											<span className="font-medium text-muted-foreground shrink-0">Subject</span>
 											<span className="text-foreground text-right break-words">
-												{campaign.subject || "—"}
+												{campaign.subject || " "}
 											</span>
 										</div>
 									</div>
@@ -929,7 +929,7 @@ export default function CampaignDetailPage() {
 								</CardContent>
 							</Card>
 						</TabsContent>
-						{/* Insights tab content — commented out for now
+						{/* Insights tab content   commented out for now
 						<TabsContent value="insights" className="mt-4">
 							<Card>
 								<CardContent className="p-4">

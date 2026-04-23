@@ -7,7 +7,7 @@ import { niscClientSubscription, niscProduct, niscProductAddOn, niscProductPlan,
 import { protectedProcedure, router } from "../trpc";
 import { getCached, setCached, invalidateProductsCache, listKey, idKey, addonsKey, hostingUpsellKey, } from "../lib/products-cache";
 // ============================================================================
-// ZOD SCHEMAS — independent from the database schema layer
+// ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
 // --- Enum schemas ------------------------------------------------------------
 const productCategorySchema = z.enum([

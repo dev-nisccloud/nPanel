@@ -89,8 +89,8 @@ So the **actual cause** of 199 is **not** specified by OpenProvider; it is “un
 | 927 | Increase balance payment failed | |
 | 1091 | Payment required for the successful order | |
 
-- **310** is in the **3–7xx (domains)** band—typically when a domain operation (e.g. register/renew) fails due to balance.
-- **920** is in the **9xx (payments and invoicing)** band—general “balance is insufficient” for payment-related flows.
+- **310** is in the **3–7xx (domains)** band typically when a domain operation (e.g. register/renew) fails due to balance.
+- **920** is in the **9xx (payments and invoicing)** band general “balance is insufficient” for payment-related flows.
 
 So if the failure were **purely** “not enough funds,” OpenProvider would be expected to return **310** or **920**, not 199. If you received **199** instead, then either:
 

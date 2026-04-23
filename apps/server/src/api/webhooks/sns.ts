@@ -50,7 +50,7 @@ export async function handleSnsWebhook(c: Context) {
 
       const SNS_HOST_RE = /^sns\.[a-z0-9-]+\.amazonaws\.com$/;
       if (parsedUrl.protocol !== "https:" || !SNS_HOST_RE.test(parsedUrl.hostname)) {
-        console.warn(`[Webhook][SNS] SubscriptionConfirmation rejected — disallowed host: ${parsedUrl.hostname}`);
+        console.warn(`[Webhook][SNS] SubscriptionConfirmation rejected   disallowed host: ${parsedUrl.hostname}`);
         return c.json({ success: false, message: "Invalid SubscribeURL" }, 400);
       }
 

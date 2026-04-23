@@ -546,7 +546,7 @@ export default function GoogleAdsPage() {
 																<CalendarIcon className="h-3 w-3" />
 																<span>
 																	{formatGoogleDate(campaign.start_date)}
-																	{" — "}
+																	{"   "}
 																	{campaign.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
 																</span>
 															</div>

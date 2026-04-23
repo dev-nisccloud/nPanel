@@ -206,7 +206,7 @@ export default function DomainConfigurationPage() {
 									</CardHeader>
 									<CardContent className="pt-0">
 										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? "—" : `${Math.floor(usageQuota?.maxSendRate ?? 0)} / sec`}
+											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.maxSendRate ?? 0)} / sec`}
 										</div>
 									</CardContent>
 								</Card>
@@ -218,7 +218,7 @@ export default function DomainConfigurationPage() {
 									</CardHeader>
 									<CardContent className="pt-0">
 										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? "—" : `${Math.floor(usageQuota?.max24HourSend ?? 0).toLocaleString()}`}
+											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.max24HourSend ?? 0).toLocaleString()}`}
 										</div>
 									</CardContent>
 								</Card>
@@ -230,7 +230,7 @@ export default function DomainConfigurationPage() {
 									</CardHeader>
 									<CardContent className="pt-0">
 										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? "—" : `${Math.floor(usageQuota?.sentLast24Hours ?? 0).toLocaleString()}`}
+											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.sentLast24Hours ?? 0).toLocaleString()}`}
 										</div>
 									</CardContent>
 								</Card>
@@ -242,7 +242,7 @@ export default function DomainConfigurationPage() {
 									</CardHeader>
 									<CardContent className="pt-0">
 										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? "—" : `${Math.floor(usageQuota?.remaining24HourSend ?? 0).toLocaleString()}`}
+											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.remaining24HourSend ?? 0).toLocaleString()}`}
 										</div>
 									</CardContent>
 								</Card>

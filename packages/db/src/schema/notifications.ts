@@ -52,7 +52,7 @@ export const notification = pgTable(
 );
 
 // --- NotificationActivityLog -------------------------------------------------
-// Parity: NotificationActivityLog — userId has no User relation in Prisma (no FK).
+// Parity: NotificationActivityLog   userId has no User relation in Prisma (no FK).
 
 export const notificationActivityLog = pgTable(
   "notification_activity_log",

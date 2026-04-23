@@ -1,4 +1,4 @@
-/* Scoped React Flow theme — uses app CSS variables (light + .dark) */
+/* Scoped React Flow theme   uses app CSS variables (light + .dark) */
 
 .media-buying-eom-rf.react-flow {
   background-color: color-mix(in oklch, var(--muted) 55%, var(--background));

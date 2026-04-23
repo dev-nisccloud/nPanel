@@ -157,8 +157,8 @@ export default function NiscPaymentsReportPage() {
                       <tr key={r.id} className="hover:bg-muted/20">
                         <td className="px-4 py-2.5 text-xs">{format(r.initiatedAt, "MMM dd HH:mm")}</td>
                         <td className="px-4 py-2.5 font-bold uppercase tracking-widest text-[10px]">{r.gateway}</td>
-                        <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{r.teamName ?? "—"}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs">{r.phoneNumber ?? "—"}</td>
+                        <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{r.teamName ?? " "}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs">{r.phoneNumber ?? " "}</td>
                         <td className="px-4 py-2.5 font-mono font-semibold">{fmt(r.amount)}</td>
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2">
@@ -205,10 +205,10 @@ export default function NiscPaymentsReportPage() {
                     <tbody className="divide-y divide-border/40">
                       {refunds.data.rows.map(r => (
                         <tr key={r.id} className="hover:bg-muted/20">
-                          <td className="px-4 py-2.5 text-xs">{r.refundedAt ? format(r.refundedAt, "MMM dd HH:mm") : "—"}</td>
+                          <td className="px-4 py-2.5 text-xs">{r.refundedAt ? format(r.refundedAt, "MMM dd HH:mm") : " "}</td>
                           <td className="px-4 py-2.5 font-bold uppercase tracking-widest text-[10px]">{r.gateway}</td>
-                          <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{r.teamName ?? "—"}</td>
-                          <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.receiptNumber ?? "—"}</td>
+                          <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{r.teamName ?? " "}</td>
+                          <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.receiptNumber ?? " "}</td>
                           <td className="px-4 py-2.5 font-mono font-semibold text-purple-600 dark:text-purple-400">{fmt(r.amount)}</td>
                         </tr>
                       ))}

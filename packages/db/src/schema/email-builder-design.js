@@ -11,7 +11,7 @@ export const emailBuilderDesign = pgTable("email_builder_design", {
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
     teamId: text("team_id").references(() => team.id, { onDelete: "set null" }),
-    // Prisma: `String @db.Text` — large JSON/document payload
+    // Prisma: `String @db.Text`   large JSON/document payload
     json: text("json").notNull(),
     thumbnailUrl: text("thumbnail_url"),
     isPublic: boolean("is_public").default(false).notNull(),

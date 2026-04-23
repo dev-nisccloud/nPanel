@@ -38,14 +38,14 @@ import {
 } from "recharts";
 
 function formatNumber(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return " ";
   const num = typeof value === "string" ? parseFloat(value) : Number(value);
   if (Number.isNaN(num)) return "0";
   return num.toLocaleString("en-US", { maximumFractionDigits: num % 1 === 0 ? 0 : 2 });
 }
 
 function formatCompactNumber(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return " ";
   const num = typeof value === "string" ? parseFloat(value) : Number(value);
   if (Number.isNaN(num)) return "0";
   try {
@@ -92,7 +92,7 @@ function wrapXAxisLabel(input: string, opts?: { maxCharsPerLine?: number; maxLin
   const maxLines = Math.max(1, Math.floor(opts?.maxLines ?? 3));
 
   const s = String(input ?? "").trim();
-  if (!s) return ["—"];
+  if (!s) return [" "];
 
   // Prefer word-wrapping; fall back to hard-splitting long tokens.
   const words = s.split(/\s+/).filter(Boolean);
@@ -136,7 +136,7 @@ function wrapXAxisLabel(input: string, opts?: { maxCharsPerLine?: number; maxLin
     const base = clamped[i].replace(/…$/g, "").trim();
     clamped[i] = base.length >= maxCharsPerLine ? `${base.slice(0, Math.max(0, maxCharsPerLine - 1))}…` : `${base}…`;
   }
-  return clamped.length > 0 ? clamped : ["—"];
+  return clamped.length > 0 ? clamped : [" "];
 }
 
 function MultiLineXAxisTick(props: any) {
@@ -189,7 +189,7 @@ function truncateLabel(label: string, max = 16): string {
 }
 
 function formatCurrency(value: number | string | null | undefined, currency: string): string {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return " ";
   const num = typeof value === "string" ? parseFloat(value) : Number(value);
   if (Number.isNaN(num)) return "0";
   try {
@@ -297,7 +297,7 @@ function buildCategoryChartConfig(
 }
 
 /**
- * Facets whose values can be decoded directly from the URN string — no lookup needed.
+ * Facets whose values can be decoded directly from the URN string   no lookup needed.
  *
  * Everything else (industries, seniorities, titles, skills, degrees, fields of study,
  * functions, geos) will show as a raw ID until the static maps are filled in from the
@@ -383,7 +383,7 @@ function resolveYearsOfExperience(id: string): string {
 }
 
 function resolveLinkedInUrn(facetKey: string, urn: string): string {
-  // Extract the last segment after the final ":"  — for range URNs like
+  // Extract the last segment after the final ":"    for range URNs like
   // urn:li:ageRange:(18,24) this gives "(18,24)"; for simple ones like
   // urn:li:gender:FEMALE it gives "FEMALE".
   const colonIdx = urn.indexOf(":(");
@@ -551,7 +551,7 @@ function TargetingField({ label, content }: { label: string; content: string }) 
         ref={ref}
         className={`text-sm tracking-wide ${!expanded ? "line-clamp-3" : ""} ${!hasContent ? "text-muted-foreground italic" : ""}`}
       >
-        {hasContent ? content : "—"}
+        {hasContent ? content : " "}
       </p>
       {showToggle && hasContent && (
         <Button
@@ -573,9 +573,9 @@ function TargetingField({ label, content }: { label: string; content: string }) 
 }
 
 function formatPercent(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === "") return "—";
+  if (value === null || value === undefined || value === "") return " ";
   const num = typeof value === "string" ? parseFloat(value) : Number(value);
-  if (Number.isNaN(num)) return "—";
+  if (Number.isNaN(num)) return " ";
   return `${(num * 100).toFixed(2)}%`;
 }
 

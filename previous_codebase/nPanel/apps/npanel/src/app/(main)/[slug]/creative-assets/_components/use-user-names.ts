@@ -19,7 +19,7 @@ export function useUserName(userId: string | null | undefined) {
   );
 
   return {
-    name: data?.name || userId || "—",
+    name: data?.name || userId || " ",
     isLoading,
   };
 }
@@ -88,7 +88,7 @@ export function useUserNames(userIds: string[]) {
 
   // Get a user name by ID, fallback to ID if not found or loading
   const getUserName = (userId: string | null | undefined): string => {
-    if (!userId) return "—";
+    if (!userId) return " ";
     if (isLoading && !userNamesMap[userId]) return userId; // Return ID while loading
     return userNamesMap[userId] || userId; // Return name or fallback to ID
   };

@@ -60,7 +60,7 @@ const TLD_WHY_CHOOSE: Record<string, [string, string]> = {
 	],
 	bundle: [
 		"Lock in .co.ke, .ke, .com & .net together and save.",
-		"One purchase, multiple identities—best value for your brand.",
+		"One purchase, multiple identities best value for your brand.",
 	],
 };
 

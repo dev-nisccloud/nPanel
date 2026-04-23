@@ -173,7 +173,7 @@ export class OpenProviderClient {
           ]
             .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
             .map((s) => s.trim());
-          if (regStrings.length) extras.push(`Registry: ${regStrings.join(' — ')}`);
+          if (regStrings.length) extras.push(`Registry: ${regStrings.join('   ')}`);
         }
         // data can be "Additional error description" (string) or an object with message/description/etc.
         if (typeof errorData.data === 'string' && errorData.data.trim()) {
@@ -189,7 +189,7 @@ export class OpenProviderClient {
           ]
             .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
             .map((s) => s.trim());
-          if (dataStrings.length) extras.push(dataStrings.join(' — '));
+          if (dataStrings.length) extras.push(dataStrings.join('   '));
         }
         // Top-level message (e.g. some endpoints put the registry message here)
         if (typeof errorData.message === 'string' && errorData.message.trim()) {

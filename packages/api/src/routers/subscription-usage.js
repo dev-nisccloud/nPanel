@@ -6,7 +6,7 @@ import { protectedProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
 import { niscClientSubscription, niscClientSubscriptionUsage, niscClientSubscriptionUsageActivityLog, } from "@npanel/db/schema/products";
 // ============================================================================
-// ZOD SCHEMAS — independent from the database schema layer
+// ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
 const subscriptionUsageOutputSchema = z.object({
     id: z.string(),

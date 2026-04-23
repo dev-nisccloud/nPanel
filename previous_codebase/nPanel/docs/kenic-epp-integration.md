@@ -143,7 +143,7 @@ The following was captured from a live connection to `registry.kenic.or.ke:700` 
 | **svID** | `registry.kenic.or.ke` |
 | **svDate** | e.g. `2026-02-18T10:16:18.697Z` (server time at greeting) |
 
-**Object types (objURI)** — Declare these in `<login><svcs>` so the server knows we support them:
+**Object types (objURI)**   Declare these in `<login><svcs>` so the server knows we support them:
 
 | objURI | Purpose |
 |--------|---------|
@@ -151,7 +151,7 @@ The following was captured from a live connection to `registry.kenic.or.ke:700` 
 | `urn:ietf:params:xml:ns:domain-1.0` | Domain objects (.ke registration, renew, transfer, etc.). |
 | `urn:ietf:params:xml:ns:host-1.0` | Host objects (nameservers). |
 
-**Service extensions (extURI)** — Declare in `<login><svcs><svcExtension>` if we use them:
+**Service extensions (extURI)**   Declare in `<login><svcs><svcExtension>` if we use them:
 
 | extURI | Purpose |
 |--------|---------|
@@ -160,7 +160,7 @@ The following was captured from a live connection to `registry.kenic.or.ke:700` 
 | `urn:ietf:params:xml:ns:epp:fee-1.0` | Fee/pricing extension. |
 | `https://finance.coccaregistry.org` | Registry-specific finance/pricing. |
 
-**Greeting XML (raw, condensed)** — Root is `<epp>` with `<greeting>`; no `<response>` (greeting is not a command response):
+**Greeting XML (raw, condensed)**   Root is `<epp>` with `<greeting>`; no `<response>` (greeting is not a command response):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -186,14 +186,14 @@ The following was captured from a live connection to `registry.kenic.or.ke:700` 
 </epp>
 ```
 
-**Parsed structure (fast-xml-parser with `ignoreAttributes: false`)** — Useful for code that walks the greeting:
+**Parsed structure (fast-xml-parser with `ignoreAttributes: false`)**   Useful for code that walks the greeting:
 
-- `parsed.epp.greeting.svID` — string
-- `parsed.epp.greeting.svDate` — string (ISO date)
-- `parsed.epp.greeting.svcMenu.version` — number (1)
-- `parsed.epp.greeting.svcMenu.lang` — string (`"en"`)
-- `parsed.epp.greeting.svcMenu.objURI` — array of three strings (contact, domain, host URIs)
-- `parsed.epp.greeting.svcMenu.svcExtension.extURI` — array of four strings (extension URIs)
+- `parsed.epp.greeting.svID`   string
+- `parsed.epp.greeting.svDate`   string (ISO date)
+- `parsed.epp.greeting.svcMenu.version`   number (1)
+- `parsed.epp.greeting.svcMenu.lang`   string (`"en"`)
+- `parsed.epp.greeting.svcMenu.objURI`   array of three strings (contact, domain, host URIs)
+- `parsed.epp.greeting.svcMenu.svcExtension.extURI`   array of four strings (extension URIs)
 
 **Implications for implementation**
 
@@ -262,22 +262,22 @@ Each request is an EPP XML **command**; each response is an EPP XML **response**
 
 ### 4.3 Key EPP Commands (Domain)
 
-- **domain:check** — Check availability of one or more domain names.
-- **domain:create** — Register a domain (with contacts, nameservers, period).
-- **domain:info** — Retrieve domain details (required for updates/renew).
-- **domain:update** — Update status (lock/unlock), contacts, nameservers, etc.
-- **domain:renew** — Extend registration period.
-- **domain:transfer** — Transfer in (with auth code), approve, cancel, etc.
+- **domain:check**   Check availability of one or more domain names.
+- **domain:create**   Register a domain (with contacts, nameservers, period).
+- **domain:info**   Retrieve domain details (required for updates/renew).
+- **domain:update**   Update status (lock/unlock), contacts, nameservers, etc.
+- **domain:renew**   Extend registration period.
+- **domain:transfer**   Transfer in (with auth code), approve, cancel, etc.
 
 Contacts and hosts (nameservers) are often created/updated with **contact:create**, **contact:update**, **host:create**, **host:info**, etc., then referenced in **domain:create** / **domain:update** by id.
 
 ### 4.4 Result Codes (RFC 5730)
 
-- `1000` — Command completed successfully.
-- `1001` — Command completed successfully; action pending.
-- `2xxx` — Command succeeded (e.g. 2303 = object exists).
-- `4xxx` — Client-side error (e.g. 4000 = syntax error, 4200 = auth error).
-- `5xxx` — Server-side error.
+- `1000`   Command completed successfully.
+- `1001`   Command completed successfully; action pending.
+- `2xxx`   Command succeeded (e.g. 2303 = object exists).
+- `4xxx`   Client-side error (e.g. 4000 = syntax error, 4200 = auth error).
+- `5xxx`   Server-side error.
 
 Implementation must parse result codes and map them to success/failure and user-facing or internal error messages.
 
@@ -302,7 +302,7 @@ The existing **Plesk** integration in nPanel uses an **XML-over-HTTP** API (ofte
 
 - **Build XML:** Helper functions that return XML strings, e.g. `buildSubscriptionsGetXml()`, `buildDnsCreateXml(siteId, record)`. Use template literals; escape user input for XML (e.g. `replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')`).
 - **Send:** `sendPleskXmlRequest(xmlPayload)`.
-- **Parse response:** `fast-xml-parser` — `new XMLParser({ ignoreAttributes: false })` then `parser.parse(xml)`.
+- **Parse response:** `fast-xml-parser`   `new XMLParser({ ignoreAttributes: false })` then `parser.parse(xml)`.
 - **Error handling:** Inspect parsed structure for errors (e.g. `parsed?.packet?.system?.status === 'error'`, `errcode` / `errtext`). Map to `TRPCError` (e.g. `TOO_MANY_REQUESTS` for rate limit, `UNAUTHORIZED` for auth).
 - **Return:** Normalized data or `{ raw, parsed }` for flexibility.
 
@@ -352,11 +352,11 @@ This section records what was actually implemented and what was learned during d
 - **EPP client transport** (`packages/api/src/lib/epp/epp-client.ts`)
   - TLS connection to configurable host/port with optional `tlsServername` for certificate verification.
   - EPP framing: read exactly 4 bytes (big-endian length), then read `length - 4` bytes of XML. No encoding set on the socket so `socket.read()` returns Buffers (see gotchas below).
-  - `connectAndReceiveGreeting(config)` — connects, reads one frame (the server greeting), returns `{ xml }`, then closes the socket.
+  - `connectAndReceiveGreeting(config)`   connects, reads one frame (the server greeting), returns `{ xml }`, then closes the socket.
   - Dependencies: Node.js `node:tls` only.
 - **KENIC greeting router** (`packages/api/src/routers/kenic/greeting.ts`)
   - Procedure `getGreeting`: reads env (host, port, timeout, tlsServername), calls `connectAndReceiveGreeting`, parses XML with `fast-xml-parser` (`ignoreAttributes: false`), returns `{ raw, parsed, configUsed }` or a parse error payload.
-- **Router mount** — `kenic.greeting.getGreeting` is mounted at `api.kenic.greeting.getGreeting` (see app router in `packages/api/src/routers/index.ts`).
+- **Router mount**   `kenic.greeting.getGreeting` is mounted at `api.kenic.greeting.getGreeting` (see app router in `packages/api/src/routers/index.ts`).
 
 ### 6.2 Environment variables used (implemented)
 
@@ -402,7 +402,7 @@ Replace `3001` with the port your nPanel app uses. The response includes `result
    - **Cause:** `Number()` accepts only one argument; the radix is for `parseInt()`, not `Number()`.
    - **Fix:** Use `Number(process.env.KENIC_EPP_PORT ?? "700")` (and similarly for timeout). `Number()` parses in base 10 by default.
 
-4. **EPP result 2400 ("Command failed") on domain check — root cause**
+4. **EPP result 2400 ("Command failed") on domain check   root cause**
    - **Symptom:** Domain check returns result code `2400` with message "Command failed".
    - **Cause (verified):** Including the **government TLD .go.ke** in the domain check request causes the server to return 2400. The same request without any .go.ke domain (e.g. 9 domains: .ke, .co.ke, .or.ke, .ne.ke, .me.ke, .mobi.ke, .info.ke, .sc.ke, .ac.ke) with `withFee: true` succeeds.
    - **Fix:** .go.ke is **excluded from our supported TLD list** (§1.3). We do not offer or validate .go.ke; domain check only accepts the other nine TLDs. Batching limits were relaxed (one limit of 10 domains per check for both with and without fee).
@@ -505,7 +505,7 @@ Before going live, ensure:
 ## 10. References
 
 - **EPP RFCs:** RFC 5730 (base), 5731 (domain), 5732 (host), 5733 (contact), 5910 (DNSSEC).
-- **KENIC:** https://registry.kenic.or.ke — support@kenic.or.ke for technical questions.
+- **KENIC:** https://registry.kenic.or.ke   support@kenic.or.ke for technical questions.
 - **nPanel OpenProvider integration:** `packages/api/src/lib/openprovider-client.ts`, `packages/api/src/routers/openprovider/`, and `apps/npanel/openprovider.md` for REST API comparison and patterns.
 - **nPanel Plesk XML client (pattern to follow):** `packages/api/src/lib/plesk/xml-client.ts` (transport), `packages/api/src/routers/plesk/*.ts` (XML building, `fast-xml-parser`, error handling).
 

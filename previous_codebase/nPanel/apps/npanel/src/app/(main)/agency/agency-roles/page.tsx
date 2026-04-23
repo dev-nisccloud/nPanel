@@ -241,7 +241,7 @@ export default function AgencyRolesPage() {
 												{role.name}
 											</TableCell>
 											<TableCell className="text-xs text-muted-foreground">
-												{role.description || "—"}
+												{role.description || " "}
 											</TableCell>
 											<TableCell>
 												<Badge variant="outline" className="text-xs">

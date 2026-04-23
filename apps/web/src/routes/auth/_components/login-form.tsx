@@ -98,7 +98,7 @@ export function LoginForm() {
         setIsSuccess(true);
         const didRedirect = await redirectToTarget(200);
         if (!didRedirect) {
-          // redirect-target endpoint failed — fall back to root which has its own redirect logic
+          // redirect-target endpoint failed   fall back to root which has its own redirect logic
           window.location.replace("/");
         }
         return;

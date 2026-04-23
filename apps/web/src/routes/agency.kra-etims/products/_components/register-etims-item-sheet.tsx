@@ -30,14 +30,14 @@ import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 
 const FALLBACK_ITEM_CLASS_OPTIONS: ComboboxItem[] = [
-  { id: "81112100", label: "81112100 — Computer programmers" },
-  { id: "81111600", label: "81111600 — Computer programmers (alt listing)" },
-  { id: "81161600", label: "81161600 — Electronic mail and messaging services" },
-  { id: "83111600", label: "83111600 — Mobile communications services" },
-  { id: "82101600", label: "82101600 — Broadcast advertising" },
-  { id: "80171600", label: "80171600 — Publicity and marketing support services" },
-  { id: "82111600", label: "82111600 — Non technical writing" },
-  { id: "82141600", label: "82141600 — Graphic display services" },
+  { id: "81112100", label: "81112100   Computer programmers" },
+  { id: "81111600", label: "81111600   Computer programmers (alt listing)" },
+  { id: "81161600", label: "81161600   Electronic mail and messaging services" },
+  { id: "83111600", label: "83111600   Mobile communications services" },
+  { id: "82101600", label: "82101600   Broadcast advertising" },
+  { id: "80171600", label: "80171600   Publicity and marketing support services" },
+  { id: "82111600", label: "82111600   Non technical writing" },
+  { id: "82141600", label: "82141600   Graphic display services" },
 ].sort((a, b) => a.id.localeCompare(b.id));
 
 const formSchema = z.object({
@@ -111,7 +111,7 @@ export function RegisterETimsItemSheet({
       .filter((row) => row?.itemClsCd && row?.itemClsNm)
       .map((row) => ({
         id: String(row.itemClsCd),
-        label: `${row.itemClsCd} — ${row.itemClsNm}`,
+        label: `${row.itemClsCd}   ${row.itemClsNm}`,
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
 
@@ -137,11 +137,11 @@ export function RegisterETimsItemSheet({
 
   const saveItem = trpc.etims.items.saveItem.useMutation({
     onSuccess: (res: any) => {
-      // The router never throws — it always returns { success, data, errorMessage, requiresReinitialization }
+      // The router never throws   it always returns { success, data, errorMessage, requiresReinitialization }
       if (res?.success === false) {
         if (res?.requiresReinitialization) {
           toast.error(
-            "KRA session expired — please re-initialize your device in Settings, then try again.",
+            "KRA session expired   please re-initialize your device in Settings, then try again.",
             {
               duration: 8000,
               action: {
@@ -289,7 +289,7 @@ export function RegisterETimsItemSheet({
                   <FormLabel>Item code (itemCd)</FormLabel>
                   <FormControl>
                     <div className="flex gap-2">
-                      {/* Read-only styled input — only the Generate button or useEffect changes this */}
+                      {/* Read-only styled input   only the Generate button or useEffect changes this */}
                       <Input
                         className="font-mono bg-muted/40 cursor-not-allowed"
                         readOnly

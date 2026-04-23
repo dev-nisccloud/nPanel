@@ -363,7 +363,7 @@ export function BuyNowDialog({
     });
   }, [currentStep, checkoutRequestId, plan, teamId, showDomainStep, effectiveDomain, createOrderFromPayment]);
 
-  // Poll payment status — real-time only, no cache
+  // Poll payment status   real-time only, no cache
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId || "" },
     {

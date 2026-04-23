@@ -54,7 +54,7 @@ export function getKenicEppConfig(requireAuth) {
             `Ignoring it and using '${tlsServername}' instead.`);
     }
     if (!rejectUnauthorized) {
-        console.warn("[KENIC EPP] KENIC_EPP_REJECT_UNAUTHORIZED=false — TLS cert verification is DISABLED. " +
+        console.warn("[KENIC EPP] KENIC_EPP_REJECT_UNAUTHORIZED=false   TLS cert verification is DISABLED. " +
             "Connection is still encrypted but peer certificate is NOT validated. " +
             "Set to true once the registry cert issue is resolved.");
     }

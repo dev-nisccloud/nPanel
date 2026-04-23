@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * UI-layer schemas and transformation for the web design quote form.
- * Independent from API and DB—no shared types. Maps form values to the
+ * Independent from API and DB no shared types. Maps form values to the
  * payload shape expected by the API (contract defined here, not imported).
  */
 

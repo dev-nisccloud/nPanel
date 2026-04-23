@@ -1,5 +1,5 @@
 /**
- * Legacy script — prefer `scripts/migrate-route-next-imports.mjs` with an optional folder arg
+ * Legacy script   prefer `scripts/migrate-route-next-imports.mjs` with an optional folder arg
  * (default `agency`). Same replacements; see that file for the full pattern list.
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from "fs";

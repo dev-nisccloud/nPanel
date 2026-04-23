@@ -1,4 +1,4 @@
-# AWS Email Marketing Setup — Complete Guide for nPanel Email Marketing feature
+# AWS Email Marketing Setup   Complete Guide for nPanel Email Marketing feature
 
 This is a complete step-by-step guide to setting up everything you need in AWS to power
 email marketing with domain verification, email sending, and full event tracking
@@ -78,7 +78,7 @@ Your app needs AWS credentials to call SES. Create a dedicated IAM user.
 4. Click the orange **Create user** button.
 5. In the **User name** field, type something like `myapp-ses-user`.
 6. Leave **Provide user access to the AWS Management Console** unchecked
-   (your app does not need console access — only API access).
+   (your app does not need console access   only API access).
 7. Click **Next**.
 8. On the **Set permissions** page, select **Attach policies directly**.
 9. In the search box, type **AmazonSESFullAccess**.
@@ -110,8 +110,8 @@ Without this, your app cannot authenticate to AWS.
 8. (Optional) Add a description tag like `myapp production`.
 9. Click **Create access key**.
 10. **IMPORTANT:** On the next screen you will see:
-    - **Access key ID** — copy this now.
-    - **Secret access key** — copy this now. You will NEVER see it again.
+    - **Access key ID**   copy this now.
+    - **Secret access key**   copy this now. You will NEVER see it again.
 11. Save both values somewhere secure (password manager, .env file).
 12. Click **Done**.
 
@@ -142,7 +142,7 @@ Verification works by you adding DNS records that prove you own the domain.
    All steps from here must stay in the same region.
 3. In the left sidebar under **Configuration**, click **Verified identities**.
 4. Click the orange **Create identity** button.
-5. Under **Identity type**, select **Domain** (not Email address — Domain covers
+5. Under **Identity type**, select **Domain** (not Email address   Domain covers
    all addresses on that domain).
 6. In the **Domain** field, type your domain without `www`. Example: `yourdomain.com`.
 7. Under **DKIM signing key length**, leave it as **2048 bit** (this is the default
@@ -154,8 +154,8 @@ Verification works by you adding DNS records that prove you own the domain.
 
 After creating you will land on the identity's detail page. You will see:
 
-- **DKIM status: Pending** — this is correct. It becomes `Verified` after you add DNS records.
-- A section called **View DNS records** — expand it. You will see 3 CNAME records.
+- **DKIM status: Pending**   this is correct. It becomes `Verified` after you add DNS records.
+- A section called **View DNS records**   expand it. You will see 3 CNAME records.
   These are your DKIM records. Keep this page open for the next step.
 
 ---
@@ -279,7 +279,7 @@ publish any events.**
    - **Tags**: skip for now.
 4. Click **Create set**.
 
-You now have a configuration set. Keep this name — it goes into your env variable:
+You now have a configuration set. Keep this name   it goes into your env variable:
 
 ```
 SES_CONFIGURATION_SET=myapp-config-set
@@ -309,7 +309,7 @@ then SES publishes to it, and your server subscribes to receive those messages.
 9. After creation, you will land on the topic's detail page.
 10. Copy the **ARN** shown at the top. It will look like:
     `arn:aws:sns:us-east-1:111122223333:myapp-ses-events`
-    Save this — you'll need it in step 11.
+    Save this   you'll need it in step 11.
 
 ---
 
@@ -323,21 +323,21 @@ Now you connect your configuration set to your SNS topic. This is what tells SES
 3. Click the **Event destinations** tab.
 4. Click **Add destination**.
 
-#### Step A — Select event types
+#### Step A   Select event types
 
 5. Under **Sending and delivery**, check all the boxes you want to track:
-   - ✅ **Sends** — when SES accepts the email for delivery
-   - ✅ **Deliveries** — when recipient mail server successfully accepted the email
-   - ✅ **Hard bounces** — permanent delivery failures (invalid address, etc)
-   - ✅ **Complaints** — recipient marked as spam
-   - ✅ **Rendering failures** — template rendering errors (optional)
-   - ✅ **Delivery delays** — temporary failures (optional)
+   - ✅ **Sends**   when SES accepts the email for delivery
+   - ✅ **Deliveries**   when recipient mail server successfully accepted the email
+   - ✅ **Hard bounces**   permanent delivery failures (invalid address, etc)
+   - ✅ **Complaints**   recipient marked as spam
+   - ✅ **Rendering failures**   template rendering errors (optional)
+   - ✅ **Delivery delays**   temporary failures (optional)
 6. Under **Open and click tracking**, check both:
    - ✅ **Opens**
    - ✅ **Clicks**
 7. Click **Next**.
 
-#### Step B — Specify destination
+#### Step B   Specify destination
 
 8. Under **Destination type**, select **Amazon SNS**.
 9. Under **Name**, type `sns-events-destination`.
@@ -346,7 +346,7 @@ Now you connect your configuration set to your SNS topic. This is what tells SES
     (`myapp-ses-events`). If you don't see it, make sure you are in the same region.
 12. Click **Next**.
 
-#### Step C — Review
+#### Step C   Review
 
 13. Review your selections. Confirm:
     - Event types include Opens, Clicks, Deliveries, Bounces, Complaints.
@@ -439,7 +439,7 @@ to expose your local server temporarily.
    Example: `https://api.yourapp.com/webhooks/sns`
    > This must exactly match the route your app listens on for SNS messages.
 6. Leave **Enable raw message delivery** unchecked.
-   (If checked, your endpoint won't receive the SNS metadata — you need it.)
+   (If checked, your endpoint won't receive the SNS metadata   you need it.)
 7. Click **Create subscription**.
 
 The subscription will show as **Pending confirmation**. SNS has just sent a POST
@@ -485,12 +485,12 @@ The subscription status will change from **Pending confirmation** to **Confirmed
 Once confirmed, every time SES fires an event (open, click, bounce, etc.), SNS
 will POST it to your webhook automatically.
 
-**Security check for SubscribeURL** — validate host before requesting it:
+**Security check for SubscribeURL**   validate host before requesting it:
 ```ts
 const parsedUrl = new URL(body.SubscribeURL);
 const isTrustedSNSHost = /^sns\.[a-z0-9-]+\.amazonaws\.com$/.test(parsedUrl.hostname);
 if (parsedUrl.protocol !== 'https:' || !isTrustedSNSHost) {
-  // reject — this is not from AWS
+  // reject   this is not from AWS
 }
 ```
 
@@ -527,14 +527,14 @@ SES_CONFIGURATION_SET=myapp-config-set
 
 ## 15) How to test everything end-to-end
 
-### Test 1 — Verify domain is working
+### Test 1   Verify domain is working
 
 In SES console, go to **Verified identities** and confirm:
 - Domain status is **Verified**
 - DKIM status is **Verified**
 - MAIL FROM status is **Verified** (if you did step 6)
 
-### Test 2 — Send a test email via SES console
+### Test 2   Send a test email via SES console
 
 1. In SES, go to **Verified identities**.
 2. Click your domain.
@@ -549,7 +549,7 @@ In SES console, go to **Verified identities** and confirm:
 5. Click **Send test email**.
 6. Check the inbox. If you receive it, SES sending works.
 
-### Test 3 — Verify SNS subscription is confirmed
+### Test 3   Verify SNS subscription is confirmed
 
 1. In SNS, click Topics, click your topic.
 2. Scroll to Subscriptions.
@@ -557,7 +557,7 @@ In SES console, go to **Verified identities** and confirm:
 4. If still pending: check your server logs to see if the SubscriptionConfirmation
    POST arrived and whether your handler made the request to `SubscribeURL`.
 
-### Test 4 — Trigger a test bounce event
+### Test 4   Trigger a test bounce event
 
 SES has a built-in simulator. Send to the simulator address to trigger events:
 
@@ -576,7 +576,7 @@ Check your server logs.
 
 ## 16) What events you will receive and what to do with them
 
-Your webhook receives a POST with `Content-Type: text/plain` (SNS quirk —
+Your webhook receives a POST with `Content-Type: text/plain` (SNS quirk  
 parse it as JSON regardless).
 
 The outer SNS wrapper looks like:

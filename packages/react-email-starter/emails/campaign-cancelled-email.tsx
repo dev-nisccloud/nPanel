@@ -34,13 +34,13 @@ export const CampaignCancelledEmail = ({
           You cancelled your scheduled campaign. It will not be sent.
         </EmailText>
         <EmailText>
-          <strong>Campaign:</strong> {campaignName ?? '—'}
+          <strong>Campaign:</strong> {campaignName ?? ' '}
         </EmailText>
         <EmailText>
-          <strong>Subject:</strong> {subject ?? '—'}
+          <strong>Subject:</strong> {subject ?? ' '}
         </EmailText>
         <EmailText>
-          <strong>Cancelled at:</strong> {cancelledAt ?? '—'}
+          <strong>Cancelled at:</strong> {cancelledAt ?? ' '}
         </EmailText>
         <EmailText>
           No emails will be sent for this scheduled send. You can create or schedule a new campaign anytime from your dashboard.

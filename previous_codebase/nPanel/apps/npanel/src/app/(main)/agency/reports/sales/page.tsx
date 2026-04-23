@@ -920,7 +920,7 @@ export default function SalesReportsPage() {
 									<p className={cn("text-2xl font-bold", (timeComparison.paidRevenueYearOverYearPercent ?? 0) >= 0 ? "text-emerald-600" : "text-red-600")}>
 										{timeComparison.paidRevenueYearOverYearPercent != null
 											? `${timeComparison.paidRevenueYearOverYearPercent >= 0 ? "+" : ""}${timeComparison.paidRevenueYearOverYearPercent.toFixed(1)}%`
-											: "—"}
+											: " "}
 									</p>
 									<p className="text-xs text-muted-foreground">vs same month last year</p>
 								</CardContent>

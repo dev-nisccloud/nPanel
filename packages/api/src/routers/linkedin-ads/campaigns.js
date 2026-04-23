@@ -17,7 +17,7 @@ function liHeaders(accessToken) {
     };
 }
 /** BATCH_GET  /v2/{endpoint}?ids=List(id1,id2,…)  → { names, debug } (REST.li 2.0.0 format)
- *  IMPORTANT: List() syntax must NOT be URL-encoded — append as raw string, not via URLSearchParams */
+ *  IMPORTANT: List() syntax must NOT be URL-encoded   append as raw string, not via URLSearchParams */
 async function batchGetNames(accessToken, endpoint, ids, nameExtractor, extraParams = {}) {
     const emptyDebug = (url, statusCode, rawResponse) => ({ url, statusCode, rawResponse, resolvedCount: 0 });
     if (ids.length === 0)
@@ -139,7 +139,7 @@ async function batchGetGeoNames(accessToken, geoIds) {
         return { names: {}, debug: emptyDebug(urlStr, 0, String(e?.message || e)) };
     }
 }
-/** Facets whose values can be decoded purely from the URN — no API needed */
+/** Facets whose values can be decoded purely from the URN   no API needed */
 function parseInlineFacet(facetKey, urns) {
     return urns.map(urn => {
         const colonIdx = urn.indexOf(':(');
@@ -216,7 +216,7 @@ const PARSEABLE_FACETS = new Set([
     'interfaceLocales', 'genders', 'ageRanges', 'staffCountRanges', 'growthRate', 'yearsOfExperienceRanges',
 ]);
 const BATCH_GET_CONFIG = {
-    // No locale params — the /v2 standardized endpoints reject them (403 ACCESS_DENIED for locale.*)
+    // No locale params   the /v2 standardized endpoints reject them (403 ACCESS_DENIED for locale.*)
     industries: { endpoint: '/v2/industries', nameExtractor: multiLocaleName, extraParams: {} },
     companyIndustry: { endpoint: '/v2/industries', nameExtractor: multiLocaleName, extraParams: {} },
     titles: { endpoint: '/v2/titles', nameExtractor: multiLocaleName, extraParams: {} },
@@ -225,7 +225,7 @@ const BATCH_GET_CONFIG = {
     fieldsOfStudy: { endpoint: '/v2/fieldsOfStudy', nameExtractor: multiLocaleName, extraParams: {} },
 };
 const GET_ALL_CONFIG = {
-    // No locale params — seniorities explicitly rejects locale.language / locale.country
+    // No locale params   seniorities explicitly rejects locale.language / locale.country
     seniorities: { endpoint: '/v2/seniorities', extraParams: {} },
     functions: { endpoint: '/v2/functions', extraParams: {} },
     jobFunctions: { endpoint: '/v2/functions', extraParams: {} },

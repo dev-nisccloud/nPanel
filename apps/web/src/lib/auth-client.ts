@@ -7,7 +7,7 @@ function normalizeOrigin(value: string | undefined): string | undefined {
   return trimmed.replace(/\/+$/, "");
 }
 
-// In dev, baseURL is undefined — Vite's proxy handles /api.
+// In dev, baseURL is undefined   Vite's proxy handles /api.
 // In production, use the build-time API origin injected via VITE_SERVER_URL.
 const baseURL = import.meta.env.DEV
   ? undefined
@@ -19,7 +19,7 @@ if (import.meta.env.PROD && !baseURL) {
   );
 }
 
-/** The resolved server origin (HTTPS only) — `undefined` in dev. */
+/** The resolved server origin (HTTPS only)   `undefined` in dev. */
 export const serverBaseURL: string | undefined = baseURL;
 
 export function apiUrl(path: string): string {

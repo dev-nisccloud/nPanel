@@ -104,7 +104,7 @@ export const etimsInitializationRouter = router({
                                 cause: result,
                             });
                         }
-                        // Sandbox: fall through — extract cmcKey below and refresh the session.
+                        // Sandbox: fall through   extract cmcKey below and refresh the session.
                     } else {
                         throw new TRPCError({
                             code: "INTERNAL_SERVER_ERROR",

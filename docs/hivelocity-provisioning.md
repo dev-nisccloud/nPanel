@@ -9,15 +9,15 @@
 ## Table of Contents
 
 1. [Architecture Overview](#1-architecture-overview)
-2. [Data Flow — End to End](#2-data-flow--end-to-end)
+2. [Data Flow   End to End](#2-data-flow--end-to-end)
 3. [What Is Already in Place](#3-what-is-already-in-place)
-4. [Step 1 — New TRPC Procedures in the Hivelocity Router](#4-step-1--new-trpc-procedures-in-the-hivelocity-router)
-5. [Step 2 — The Hivelocity Purchase Dialog (UI)](#5-step-2--the-hivelocity-purchase-dialog-ui)
-6. [Step 3 — Cart Store: New Item Type](#6-step-3--cart-store-new-item-type)
-7. [Step 4 — Wiring the PlanCard Buttons](#7-step-4--wiring-the-plancard-buttons)
-8. [Step 5 — createFromPayment Schema: Hivelocity Metadata](#8-step-5--createfrompayment-schema-hivelocity-metadata)
-9. [Step 6 — Order Processor: Hivelocity Branch](#9-step-6--order-processor-hivelocity-branch)
-10. [Step 7 — niscClientSubscription Record](#10-step-7--niscclientsubscription-record)
+4. [Step 1   New TRPC Procedures in the Hivelocity Router](#4-step-1--new-trpc-procedures-in-the-hivelocity-router)
+5. [Step 2   The Hivelocity Purchase Dialog (UI)](#5-step-2--the-hivelocity-purchase-dialog-ui)
+6. [Step 3   Cart Store: New Item Type](#6-step-3--cart-store-new-item-type)
+7. [Step 4   Wiring the PlanCard Buttons](#7-step-4--wiring-the-plancard-buttons)
+8. [Step 5   createFromPayment Schema: Hivelocity Metadata](#8-step-5--createfrompayment-schema-hivelocity-metadata)
+9. [Step 6   Order Processor: Hivelocity Branch](#9-step-6--order-processor-hivelocity-branch)
+10. [Step 7   niscClientSubscription Record](#10-step-7--niscclientsubscription-record)
 11. [Pricing Logic: Margin + Currency + VAT](#11-pricing-logic-margin--currency--vat)
 12. [Billing Period Reference](#12-billing-period-reference)
 13. [Option Compatibility](#13-option-compatibility)
@@ -80,7 +80,7 @@ HivelocityPurchaseDialog (new component)
 
 ---
 
-## 2. Data Flow — End to End
+## 2. Data Flow   End to End
 
 ### Phase 1: Customer Configuration (UI)
 
@@ -97,8 +97,8 @@ HivelocityPurchaseDialog (new component)
 
 All prices from Hivelocity come in **USD**. The dialog applies:
 
-1. **Agency margin** via `useHivelocityPricing(productType).applyMargin(priceUsd)` — applies the configured percentage or fixed margin + round-off.
-2. **KES conversion** via `pricing.toKes(marginedUsd)` — multiplies by the USD→KES exchange rate.
+1. **Agency margin** via `useHivelocityPricing(productType).applyMargin(priceUsd)`   applies the configured percentage or fixed margin + round-off.
+2. **KES conversion** via `pricing.toKes(marginedUsd)`   multiplies by the USD→KES exchange rate.
 3. **16% VAT** added on top of the KES total.
 4. Margin is applied independently to: base plan price, OS license fee, and each selected add-on.
 
@@ -152,7 +152,7 @@ The server is not yet live when step 5 completes. Hivelocity provisions the phys
 
 ---
 
-## 4. Step 1 — New TRPC Procedures in the Hivelocity Router
+## 4. Step 1   New TRPC Procedures in the Hivelocity Router
 
 Add two new procedures to `packages/api/src/routers/hivelocity/index.ts`.
 
@@ -238,7 +238,7 @@ getProductOperatingSystems: protectedProcedure
 **Key facts:**
 - All prices are in USD.
 - Option IDs are **globally static** across all products. An option with ID `9001` always means the same thing regardless of product.
-- Options are passed as `optionIds: [9001, 9042]` in the `POST /bare-metal-devices/` body. (Note: verify the exact field name via the Hivelocity API playground or by testing — the OpenAPI schema does not explicitly list `optionIds` in `BareMetalDeviceCreate` but the store functionality confirms they exist.)
+- Options are passed as `optionIds: [9001, 9042]` in the `POST /bare-metal-devices/` body. (Note: verify the exact field name via the Hivelocity API playground or by testing   the OpenAPI schema does not explicitly list `optionIds` in `BareMetalDeviceCreate` but the store functionality confirms they exist.)
 - `tags` and `expressions` control which options are mutually compatible (see §13).
 
 **TRPC procedure to add:**
@@ -262,7 +262,7 @@ getProductOptions: protectedProcedure
 
 ---
 
-## 5. Step 2 — The Hivelocity Purchase Dialog (UI)
+## 5. Step 2   The Hivelocity Purchase Dialog (UI)
 
 Create a **new** dedicated component: `apps/web/src/routes/_components/hivelocity-purchase-dialog.tsx`.
 
@@ -313,7 +313,7 @@ os → configure → addons → review → payment → success | error
 
 ---
 
-#### Step 1: OS Selection (`"os"`) — **MANDATORY GATE**
+#### Step 1: OS Selection (`"os"`)   **MANDATORY GATE**
 
 This is the very first step. The customer **cannot proceed** until an OS is selected.
 
@@ -359,8 +359,8 @@ selectedOs: {
    | `quarterly` | Quarterly | 38% off first quarter |
    | `semi-annually` | Semi-Annually | 43% off first two quarters |
    | `annually` | Annually | 48% off first year |
-   | `biennial` | Biennial (2 years) | — |
-   | `triennial` | Triennial (3 years) | — |
+   | `biennial` | Biennial (2 years) |   |
+   | `triennial` | Triennial (3 years) |   |
 
    - Render as a `Select` or `RadioGroup` component.
    - The price shown in the review step always reflects the **monthly** display price (this is the base the customer is charged per billing cycle, not per hour). The `period` value passed to Hivelocity determines billing, not the price we show.
@@ -428,9 +428,9 @@ Subtotal               KSh XX,XXX
 Total                  KSh XX,XXX
 ─────────────────────────────────────────
 
-[coupon code field — same as existing dialog]
+[coupon code field   same as existing dialog]
 
-[legal text — same as existing dialog]
+[legal text   same as existing dialog]
 ```
 
 **Price calculation for the review step (all in display currency):**
@@ -454,7 +454,7 @@ vatAmount = subtotalKes * 0.16
 totalKes  = subtotalKes + vatAmount
 ```
 
-> **Important:** If `usdToKesRate` is null (exchange rate unavailable), display everything in USD and note: "Exchange rates unavailable — prices shown in USD."
+> **Important:** If `usdToKesRate` is null (exchange rate unavailable), display everything in USD and note: "Exchange rates unavailable   prices shown in USD."
 
 ---
 
@@ -466,7 +466,7 @@ Identical to the existing `BuyNowDialog` payment step:
 - Loading state with `Spinner` while waiting for push
 - Polling `trpc.paymentGateway.mpesa.queryStkPush` for completion
 
-The `paymentAmount` must be `totalKes` (the full VAT-inclusive total, rounded to a whole number — M-Pesa requires integer amounts).
+The `paymentAmount` must be `totalKes` (the full VAT-inclusive total, rounded to a whole number   M-Pesa requires integer amounts).
 
 ---
 
@@ -480,7 +480,7 @@ On `resultCode === 0`:
    - "Your server is being provisioned. This typically takes 7–15 minutes for Linux-based systems and up to 30 minutes for Windows. You will receive an email when it's ready."
    - Display the order total and selected configuration summary.
 
-> **Do NOT say** "will be activated on your dashboard in a few minutes" — provisioning is asynchronous on Hivelocity's infrastructure, not an instant DB operation.
+> **Do NOT say** "will be activated on your dashboard in a few minutes"   provisioning is asynchronous on Hivelocity's infrastructure, not an instant DB operation.
 
 ---
 
@@ -507,7 +507,7 @@ When the dialog is closed and reopened (for a different plan), **all state reset
 
 ---
 
-## 6. Step 3 — Cart Store: New Item Type
+## 6. Step 3   Cart Store: New Item Type
 
 Add a `HivelocityServerCartItem` to `apps/web/src/stores/cart-store.ts`.
 
@@ -565,11 +565,11 @@ if (item.type === 'hivelocity_server') {
 - **"Buy Now"**: Opens `HivelocityPurchaseDialog` directly. Does not interact with the cart. Payment is immediate.
 - **"Add to Cart"**: Opens `HivelocityPurchaseDialog` for configuration (OS, hostname, period, addons). On completion (before the payment step), adds a `HivelocityServerCartItem` to the cart and closes the dialog. The cart checkout dialog (`CheckoutDialog`) then handles payment for all cart items together.
 
-> The `CheckoutDialog` (sidebar cart) will need to handle `hivelocity_server` items on checkout. It currently only processes domain items. This is a separate enhancement — initially, the "Add to Cart" button can open the same `HivelocityPurchaseDialog` in a "cart" mode where the final step adds to cart instead of paying.
+> The `CheckoutDialog` (sidebar cart) will need to handle `hivelocity_server` items on checkout. It currently only processes domain items. This is a separate enhancement   initially, the "Add to Cart" button can open the same `HivelocityPurchaseDialog` in a "cart" mode where the final step adds to cart instead of paying.
 
 ---
 
-## 7. Step 4 — Wiring the PlanCard Buttons
+## 7. Step 4   Wiring the PlanCard Buttons
 
 In each of the three `plan-card.tsx` files:
 
@@ -637,11 +637,11 @@ function buildHivelocityPlanConfig(
 
 ---
 
-## 8. Step 5 — createFromPayment Schema: Hivelocity Metadata
+## 8. Step 5   createFromPayment Schema: Hivelocity Metadata
 
 ### 8.1 The Problem
 
-`createFromPaymentItemSchema` in `packages/api/src/routers/nisc-service-orders-schemas.ts` currently types `metadata` as `transferItemMetadataSchema` — which only accepts domain transfer fields (`transferAuthCode`, `nameServers`).
+`createFromPaymentItemSchema` in `packages/api/src/routers/nisc-service-orders-schemas.ts` currently types `metadata` as `transferItemMetadataSchema`   which only accepts domain transfer fields (`transferAuthCode`, `nameServers`).
 
 Hivelocity items need to store a completely different payload in `metadata`.
 
@@ -727,7 +727,7 @@ When calling `createFromPayment` after successful M-Pesa payment, the items arra
 
 ---
 
-## 9. Step 6 — Order Processor: Hivelocity Branch
+## 9. Step 6   Order Processor: Hivelocity Branch
 
 ### 9.1 Add Service Types Constant
 
@@ -810,7 +810,7 @@ async function processHivelocityOrderItem(
       method: "POST",
       requireApiKey: true,
       headers: { "Content-Type": "application/json" },
-      // body is passed as the second arg — update hivelocityRequest to accept body for POST
+      // body is passed as the second arg   update hivelocityRequest to accept body for POST
       // (see §9.4 for the client update required)
     });
     // Actual call with body (see §9.4):
@@ -834,7 +834,7 @@ async function processHivelocityOrderItem(
   // 3. Create niscClientSubscription
   const subId = randomUUID();
   const now = new Date();
-  const subscriptionName = `${item.product.name} — ${hivelocityOsName} @ ${hivelocityLocationName}`;
+  const subscriptionName = `${item.product.name}   ${hivelocityOsName} @ ${hivelocityLocationName}`;
 
   const inserted = await db
     .insert(niscClientSubscription)
@@ -920,7 +920,7 @@ const resp = await fetch(buildUrl(path, options.query), {
 
 ---
 
-## 10. Step 7 — niscClientSubscription Record
+## 10. Step 7   niscClientSubscription Record
 
 The subscription created by `processHivelocityOrderItem` contains all the information needed to:
 
@@ -948,7 +948,7 @@ The subscription created by `processHivelocityOrderItem` contains all the inform
 
 | Field | Value |
 |---|---|
-| `name` | `"Dedicated Servers Hosting — Ubuntu 22.x @ TPA1"` |
+| `name` | `"Dedicated Servers Hosting   Ubuntu 22.x @ TPA1"` |
 | `status` | `"ACTIVE"` |
 | `agreedPrice` | KES total paid (VAT inclusive) |
 | `agreedCurrency` | `"KES"` |
@@ -1025,8 +1025,8 @@ Sum all components → subtotalKes
 
 Hivelocity uses a tag-expression system to prevent incompatible option combinations. Each option has:
 
-- `tags: string[]` — labels describing what this option is/requires.
-- `expressions: string[]` — boolean expressions evaluated against selected option tags to determine compatibility.
+- `tags: string[]`   labels describing what this option is/requires.
+- `expressions: string[]`   boolean expressions evaluated against selected option tags to determine compatibility.
 
 **Example:** A "Managed Windows" option might have `expressions: ["os:windows"]` meaning it can only be selected if an OS tagged `"os:windows"` is also selected.
 
@@ -1077,7 +1077,7 @@ This rule is intentionally strict (it may disable some combinations that Hiveloc
 ### 14.2 M-Pesa Failure (Dialog)
 
 - Show `error` step with the specific M-Pesa error code message.
-- Offer "Try Again" — returns to payment step, resets polling state.
+- Offer "Try Again"   returns to payment step, resets polling state.
 
 ### 14.3 `createFromPayment` Failure (Client)
 
@@ -1119,7 +1119,7 @@ This requires:
 
 2. Display per device:
    - Hostname, OS, location
-   - Power status (from `GET /device/{deviceId}` — returns `powerStatus: "ON" | "OFF"`)
+   - Power status (from `GET /device/{deviceId}`   returns `powerStatus: "ON" | "OFF"`)
    - Primary IP (available once provisioned)
    - Monthly cost
 
@@ -1183,7 +1183,7 @@ These are operational requirements outside the codebase. All must be satisfied b
 }
 ```
 
-`primaryIp` is `null` at time of creation — it is assigned during provisioning.
+`primaryIp` is `null` at time of creation   it is assigned during provisioning.
 
 ### 17.3 `niscOrderItem.metadata` Shape (Hivelocity)
 
@@ -1247,12 +1247,12 @@ These are operational requirements outside the codebase. All must be satisfied b
 
 Build in this sequence to avoid dependency issues:
 
-1. **`hivelocityRequest` body support** — affects all downstream POST calls
-2. **`getProductOperatingSystems` + `getProductOptions` TRPC procedures** — dialog depends on these
-3. **`hivelocityItemMetadataSchema` + `createFromPaymentItemSchema` update** — processor depends on this
-4. **`processHivelocityOrderItem` in the order processor** — needs schema from step 3
-5. **`HivelocityServerCartItem` in cart store** — dialog depends on this
-6. **`HivelocityPurchaseDialog` component** — needs all of the above
-7. **Wire PlanCard buttons in all 3 pages** — final UI connection
+1. **`hivelocityRequest` body support**   affects all downstream POST calls
+2. **`getProductOperatingSystems` + `getProductOptions` TRPC procedures**   dialog depends on these
+3. **`hivelocityItemMetadataSchema` + `createFromPaymentItemSchema` update**   processor depends on this
+4. **`processHivelocityOrderItem` in the order processor**   needs schema from step 3
+5. **`HivelocityServerCartItem` in cart store**   dialog depends on this
+6. **`HivelocityPurchaseDialog` component**   needs all of the above
+7. **Wire PlanCard buttons in all 3 pages**   final UI connection
 
 Each step is independently testable before the next one begins.

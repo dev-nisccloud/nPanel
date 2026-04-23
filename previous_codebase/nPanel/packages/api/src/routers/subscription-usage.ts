@@ -4,7 +4,7 @@ import { protectedProcedure, router } from "../trpc";
 import prisma, { Prisma } from "@npanel/db";
 
 // ============================================================================
-// ZOD SCHEMAS — independent from the database schema layer
+// ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
 
 const subscriptionUsageOutputSchema = z.object({

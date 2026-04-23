@@ -81,9 +81,9 @@ const getStatusBadge = (status: string) => {
 };
 
 const formatDate = (value: Date | string | null | undefined) => {
-	if (!value) return "—";
+	if (!value) return " ";
 	const d = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+	return Number.isNaN(d.getTime()) ? " " : d.toLocaleDateString();
 };
 
 interface DomainRowActionsProps {
@@ -242,7 +242,7 @@ export function EmailDomainsTable({ domains, onRefetch }: EmailDomainsTableProps
 									{getStatusBadge(domain.status)}
 								</TableCell>
 								<TableCell>
-									{domain.verifiedAt ? formatDate(domain.verifiedAt) : "—"}
+									{domain.verifiedAt ? formatDate(domain.verifiedAt) : " "}
 								</TableCell>
 								<TableCell>
 									{formatDate(domain.createdAt)}

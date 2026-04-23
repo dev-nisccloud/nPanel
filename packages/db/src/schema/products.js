@@ -167,7 +167,7 @@ export const niscClientSubscription = pgTable("nisc_client_subscription", {
     nameserverGroupId: text("nameserver_group_id"),
     wpInstallationId: integer("wp_installation_id"),
     serviceRefs: jsonb("service_refs"),
-    // Intentionally no FK — Prisma keeps this as a plain @unique string.
+    // Intentionally no FK   Prisma keeps this as a plain @unique string.
     hostingSubscriptionId: text("hosting_subscription_id").unique(),
     notes: text("notes"),
     metadata: jsonb("metadata"),

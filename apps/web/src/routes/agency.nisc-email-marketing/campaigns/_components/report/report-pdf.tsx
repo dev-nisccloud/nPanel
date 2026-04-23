@@ -143,16 +143,16 @@ const styles = StyleSheet.create({
 });
 
 function fmtDateTime(v?: string | Date | null): string {
-	if (!v) return "—";
+	if (!v) return " ";
 	try {
 		return format(new Date(v), "MMM dd, yyyy • h:mm a");
 	} catch {
-		return "—";
+		return " ";
 	}
 }
 
 function fmtMs(ms: number | null | undefined): string {
-	if (ms == null || !Number.isFinite(ms)) return "—";
+	if (ms == null || !Number.isFinite(ms)) return " ";
 	const s = Math.max(0, Math.round(ms / 1000));
 	if (s < 60) return `${s}s`;
 	const m = Math.floor(s / 60);
@@ -271,10 +271,10 @@ const ReportContentPage = (props: any) => {
 					<Text style={styles.tableCellValue}>Value</Text>
 				</View>
 				{[
-					{ k: "Campaign name", v: campaign?.name ?? "—" },
-					{ k: "Created by", v: campaign?.creator?.name ?? campaign?.creator?.email ?? "—" },
-					{ k: "Company name", v: campaign?.companyName ?? "—" },
-					{ k: "Status", v: campaign?.status ?? "—" },
+					{ k: "Campaign name", v: campaign?.name ?? " " },
+					{ k: "Created by", v: campaign?.creator?.name ?? campaign?.creator?.email ?? " " },
+					{ k: "Company name", v: campaign?.companyName ?? " " },
+					{ k: "Status", v: campaign?.status ?? " " },
 					{ k: "Scheduled at", v: fmtDateTime(campaign?.scheduledAt ?? null) },
 					{ k: "Sent at", v: fmtDateTime(campaign?.sentAt ?? null) },
 					{ k: "Completed at", v: fmtDateTime(campaign?.completedAt ?? null) },
@@ -293,11 +293,11 @@ const ReportContentPage = (props: any) => {
 					<Text style={styles.tableCellValue}>Value</Text>
 				</View>
 				{[
-					{ k: "From name", v: campaign?.fromName ?? "—" },
-					{ k: "From email", v: campaign?.fromEmail ?? "—" },
-					{ k: "Subject", v: campaign?.subject ?? "—" },
-					{ k: "Reply-to", v: campaign?.replyTo ?? "—" },
-					{ k: "Total recipients", v: campaign?.totalRecipients != null ? String(campaign.totalRecipients) : "—" },
+					{ k: "From name", v: campaign?.fromName ?? " " },
+					{ k: "From email", v: campaign?.fromEmail ?? " " },
+					{ k: "Subject", v: campaign?.subject ?? " " },
+					{ k: "Reply-to", v: campaign?.replyTo ?? " " },
+					{ k: "Total recipients", v: campaign?.totalRecipients != null ? String(campaign.totalRecipients) : " " },
 				].map((row, i) => (
 					<View key={i} style={styles.tableRow}>
 						<Text style={styles.tableCellName}>{row.k}</Text>
@@ -328,14 +328,14 @@ const ReportContentPage = (props: any) => {
 				</View>
 				{(topClickedLinks ?? []).slice(0, 8).map((row: any, i: number) => (
 					<View key={i} style={styles.tableRow}>
-						<Text style={styles.tableCellName}>{row?.url || "—"}</Text>
+						<Text style={styles.tableCellName}>{row?.url || " "}</Text>
 						<Text style={styles.tableCellValue}>{String(row?.clicks ?? 0)}</Text>
 					</View>
 				))}
 				{(!topClickedLinks || topClickedLinks.length === 0) && (
 					<View style={styles.tableRow}>
 						<Text style={styles.tableCellName}>No clicks recorded</Text>
-						<Text style={styles.tableCellValue}>—</Text>
+						<Text style={styles.tableCellValue}> </Text>
 					</View>
 				)}
 			</View>

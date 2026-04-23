@@ -395,7 +395,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
           </p>
         )}
 
-        {/* Available for registration — CTA to register page */}
+        {/* Available for registration   CTA to register page */}
         {status === "error" && transferStatus === "available" && (
           <div className="mt-4 flex flex-col gap-4 rounded-lg border border-primary/30 bg-primary/5 p-4 text-left">
             <div className="flex gap-3">
@@ -415,7 +415,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
           </div>
         )}
 
-        {/* Locked — explain and ask user to unlock */}
+        {/* Locked   explain and ask user to unlock */}
         {status === "error" && transferStatus === "locked" && (
           <div className="mt-4 flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
             <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
@@ -429,7 +429,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
           </div>
         )}
 
-        {/* Other errors (reserved, unavailable, invalid) — why transfer failed */}
+        {/* Other errors (reserved, unavailable, invalid)   why transfer failed */}
         {status === "error" && message && transferStatus !== "available" && transferStatus !== "locked" && (
           <div
             className="mt-4 flex gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-left"

@@ -203,7 +203,7 @@ export default function DigitaxCustomersPage() {
                                                     <div className="flex flex-col gap-1.5">
                                                         <div className="flex items-center gap-2 group/item">
                                                             <Mail className="h-3.5 w-3.5 text-muted-foreground/60" />
-                                                            <span className="text-xs font-medium text-foreground/70 truncate max-w-[180px]">{customer.email || '—'}</span>
+                                                            <span className="text-xs font-medium text-foreground/70 truncate max-w-[180px]">{customer.email || ' '}</span>
                                                             {customer.email && (
                                                                 <button onClick={() => handleCopy(customer.email, customer.id + 'email')} className="opacity-0 group-hover/item:opacity-100 transition-opacity">
                                                                     {copiedId === customer.id + 'email' ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3 text-muted-foreground/40 hover:text-primary" />}
@@ -212,7 +212,7 @@ export default function DigitaxCustomersPage() {
                                                         </div>
                                                         <div className="flex items-center gap-2 group/item">
                                                             <Phone className="h-3.5 w-3.5 text-muted-foreground/60" />
-                                                            <span className="text-xs font-medium text-foreground/70">{customer.phone || '—'}</span>
+                                                            <span className="text-xs font-medium text-foreground/70">{customer.phone || ' '}</span>
                                                             {customer.phone && (
                                                                 <button onClick={() => handleCopy(customer.phone, customer.id + 'phone')} className="opacity-0 group-hover/item:opacity-100 transition-opacity">
                                                                     {copiedId === customer.id + 'phone' ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3 text-muted-foreground/40 hover:text-primary" />}

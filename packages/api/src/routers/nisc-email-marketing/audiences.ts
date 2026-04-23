@@ -26,6 +26,15 @@ async function assertTeamMember(teamId: string, userId: string) {
   return member ?? null;
 }
 
+function isAgencyUserRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+}
+
+function isAgencySuperAdminRole(role: string | null | undefined): boolean {
+  return role === "AGENCY_SUPER_ADMIN";
+}
+
 async function assertAudienceAccess(audienceId: string, userId: string) {
   const [aud] = await db
     .select({
@@ -45,6 +54,49 @@ async function assertAudienceAccess(audienceId: string, userId: string) {
     return aud;
   }
   throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+
+async function assertAudienceReadAccess(
+  audienceId: string,
+  userId: string,
+  role: string | null | undefined,
+) {
+  if (isAgencyUserRole(role)) {
+    const [aud] = await db
+      .select({
+        id: niscEmAudience.id,
+        userId: niscEmAudience.userId,
+        teamId: niscEmAudience.teamId,
+      })
+      .from(niscEmAudience)
+      .where(eq(niscEmAudience.id, audienceId))
+      .limit(1);
+    if (!aud) throw new TRPCError({ code: "NOT_FOUND", message: "Audience not found" });
+    return aud;
+  }
+  return assertAudienceAccess(audienceId, userId);
+}
+
+async function assertAudienceOwnerAccess(
+  audienceId: string,
+  userId: string,
+  role: string | null | undefined,
+) {
+  const [aud] = await db
+    .select({
+      id: niscEmAudience.id,
+      userId: niscEmAudience.userId,
+      teamId: niscEmAudience.teamId,
+    })
+    .from(niscEmAudience)
+    .where(eq(niscEmAudience.id, audienceId))
+    .limit(1);
+
+  if (!aud) throw new TRPCError({ code: "NOT_FOUND", message: "Audience not found" });
+  if (!isAgencySuperAdminRole(role) && aud.userId !== userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only the audience creator can modify it" });
+  }
+  return aud;
 }
 
 function splitName(full: string | null | undefined): { firstName: string | null; lastName: string | null } {
@@ -70,7 +122,7 @@ export const niscEmailMarketingAudiencesRouter = router({
     await db.insert(niscEmAudience).values({
       id,
       teamId: input.teamId ?? null,
-      userId: input.teamId ? null : userId,
+      userId,
       name: input.name,
       description: input.description ?? null,
       createdAt: now,
@@ -82,9 +134,10 @@ export const niscEmailMarketingAudiencesRouter = router({
 
   getById: protectedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    await assertAudienceAccess(input.id, userId);
+    await assertAudienceReadAccess(input.id, userId, userRole);
 
     const [aud] = await db
       .select({
@@ -124,9 +177,10 @@ export const niscEmailMarketingAudiencesRouter = router({
 
   delete: protectedProcedure.input(z.object({ id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    const aud = await assertAudienceAccess(input.id, userId);
+    await assertAudienceOwnerAccess(input.id, userId, userRole);
 
     // Prevent deletion if referenced by campaigns (safety)
     const [campaignCountRes] = await db
@@ -138,22 +192,19 @@ export const niscEmailMarketingAudiencesRouter = router({
       throw new TRPCError({ code: "CONFLICT", message: "Cannot delete audience referenced by campaigns" });
     }
 
-    // Team-owned deletion: require membership
-    if (aud.teamId) {
-      const member = await assertTeamMember(aud.teamId, userId);
-      if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-    }
-
     await db.delete(niscEmAudience).where(eq(niscEmAudience.id, input.id));
     return { ok: true };
   }),
 
   list: protectedProcedure.input(audienceListFiltersSchema).query(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
     const conditions = [];
-    if (input.teamId) {
+    if (isAgencyUserRole(userRole)) {
+      // Agency-side view: list all audiences globally.
+    } else if (input.teamId) {
       // Team-scoped: allow members
       const member = await assertTeamMember(input.teamId, userId);
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
@@ -225,9 +276,10 @@ export const niscEmailMarketingAudiencesRouter = router({
     .input(audienceContactBulkCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-      await assertAudienceAccess(input.audienceId, userId);
+      await assertAudienceOwnerAccess(input.audienceId, userId, userRole);
 
       const now = new Date();
       const rows = input.contacts.map((c) => {
@@ -275,8 +327,9 @@ export const niscEmailMarketingAudiencesRouter = router({
     .input(z.object({ id: z.string().min(1), audienceId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-      await assertAudienceAccess(input.audienceId, userId);
+      await assertAudienceOwnerAccess(input.audienceId, userId, userRole);
       await db.delete(niscEmContact).where(and(eq(niscEmContact.id, input.id), eq(niscEmContact.audienceId, input.audienceId)));
       return { ok: true };
     }),
@@ -285,8 +338,9 @@ export const niscEmailMarketingAudiencesRouter = router({
     .input(z.object({ audienceId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-      await assertAudienceAccess(input.audienceId, userId);
+      await assertAudienceOwnerAccess(input.audienceId, userId, userRole);
 
       const deletedRows = await db
         .delete(niscEmContact)
@@ -299,9 +353,10 @@ export const niscEmailMarketingAudiencesRouter = router({
     .input(audienceContactListFiltersSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-      await assertAudienceAccess(input.audienceId, userId);
+      await assertAudienceReadAccess(input.audienceId, userId, userRole);
 
       const conditions = [eq(niscEmContact.audienceId, input.audienceId)];
       if (input.status) conditions.push(eq(niscEmContact.status, input.status));

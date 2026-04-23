@@ -466,7 +466,7 @@ export async function renderNiscOrderConfirmationEmail({
 </div>`;
 }
 
-/** "Order received" email — React template; sent when order is created from payment; user will get another email when processed. */
+/** "Order received" email   React template; sent when order is created from payment; user will get another email when processed. */
 export async function renderNiscOrderReceivedEmail({
   customerName,
   orderNumber,
@@ -498,7 +498,7 @@ export async function renderNiscOrderReceivedEmail({
   );
 }
 
-/** Admin "order failed" email — React template; sent to super admins when a Nisc order fails or is partial. */
+/** Admin "order failed" email   React template; sent to super admins when a Nisc order fails or is partial. */
 export async function renderNiscOrderFailedEmail({
   customerName,
   orderNumber,

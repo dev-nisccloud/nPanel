@@ -36,10 +36,10 @@ export const CampaignCompletedEmail = ({
           Your email campaign has finished sending. Here is a brief summary:
         </EmailText>
         <EmailText>
-          <strong>Campaign:</strong> {campaignName ?? '—'}
+          <strong>Campaign:</strong> {campaignName ?? ' '}
         </EmailText>
         <EmailText>
-          <strong>Subject:</strong> {subject ?? '—'}
+          <strong>Subject:</strong> {subject ?? ' '}
         </EmailText>
         {sentAt && (
           <EmailText>
@@ -50,7 +50,7 @@ export const CampaignCompletedEmail = ({
           <strong>Total recipients:</strong> {totalRecipients.toLocaleString()}
         </EmailText>
         <EmailText>
-          Log in to your dashboard to see the full report—including opens, clicks, and delivery details.
+          Log in to your dashboard to see the full report including opens, clicks, and delivery details.
         </EmailText>
         {viewCampaignLink && (
           <EmailButton href={viewCampaignLink}>

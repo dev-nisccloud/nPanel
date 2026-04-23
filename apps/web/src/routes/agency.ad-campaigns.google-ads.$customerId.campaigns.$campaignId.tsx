@@ -243,7 +243,7 @@ export default function GoogleAdsCampaignPage() {
                                 <div className="flex items-center gap-1.5 font-medium text-[13px]">
                                     <CalendarIcon className="h-3.5 w-3.5 opacity-60" />
                                     <span>
-                                        {formatGoogleDate(campaign?.start_date)} — {campaign?.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
+                                        {formatGoogleDate(campaign?.start_date)}   {campaign?.end_date ? formatGoogleDate(campaign.end_date) : "Ongoing"}
                                     </span>
                                 </div>
                             </div>

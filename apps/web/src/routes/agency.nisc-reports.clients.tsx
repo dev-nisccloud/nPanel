@@ -134,7 +134,7 @@ export default function NiscClientsReportPage() {
                           {[c.at1Month, c.at3Months, c.at6Months, c.at12Months].map((v, i) => (
                             <td key={i} className="px-4 py-2.5">
                               {v === -1
-                                ? <span className="text-xs text-muted-foreground">—</span>
+                                ? <span className="text-xs text-muted-foreground"> </span>
                                 : <span className={cn("font-mono font-semibold", pct(v) >= 80 ? "text-emerald-600 dark:text-emerald-400" : pct(v) >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400")}>
                                   {v} <span className="font-normal text-xs text-muted-foreground">({pct(v)}%)</span>
                                 </span>}
@@ -144,7 +144,7 @@ export default function NiscClientsReportPage() {
                       );
                     })}
                     {(cohort.data ?? []).length === 0 && (
-                      <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm italic">No cohort data — subscriptions will appear here as they age</td></tr>
+                      <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm italic">No cohort data   subscriptions will appear here as they age</td></tr>
                     )}
                   </tbody>
                 </table>

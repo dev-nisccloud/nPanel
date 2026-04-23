@@ -6,7 +6,7 @@ dotenv.config({
 });
 
 export default defineConfig({
-  // Single TS entry — avoid loading compiled `*.js` siblings in `src/schema`, which
+  // Single TS entry   avoid loading compiled `*.js` siblings in `src/schema`, which
   // duplicates tables/indexes and breaks `drizzle-kit generate` (e.g. agency_role_permission).
   schema: "./src/schema/index.ts",
   out: "./src/migrations",

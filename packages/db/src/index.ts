@@ -10,7 +10,7 @@ import * as schema from "./schema";
  * The NISC email marketing dispatcher can issue 2 writes per email at ~14 emails/s,
  * plus claim queries, campaign fetches and bookkeeping updates, all concurrently
  * with regular tRPC traffic and other workers. With the `pg` default `max: 10`
- * the pool saturates and individual writes start timing out — which, combined
+ * the pool saturates and individual writes start timing out   which, combined
  * with the dispatcher's SES-send-then-write ordering, can produce duplicate sends.
  *
  * Override with DB_POOL_MAX if your Postgres instance has a different

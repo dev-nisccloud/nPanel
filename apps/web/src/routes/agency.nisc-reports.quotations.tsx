@@ -50,7 +50,7 @@ export default function NiscQuotationsReportPage() {
           <p className="text-xs font-semibold text-primary uppercase tracking-widest">Nisc Sales Reporting</p>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Quotation Pipeline</h1>
-        <p className="text-sm text-muted-foreground">Pipeline overview, conversion funnel, and full quotation list — all statuses included.</p>
+        <p className="text-sm text-muted-foreground">Pipeline overview, conversion funnel, and full quotation list   all statuses included.</p>
       </div>
 
       <div className="flex items-center gap-3 border-b border-border pb-4">
@@ -191,8 +191,8 @@ export default function NiscQuotationsReportPage() {
                   <tbody className="divide-y divide-border/40">
                     {(list.data?.rows ?? []).map(q => (
                       <tr key={q.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{q.quotationNumber ?? "—"}</td>
-                        <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{q.customerName ?? "—"}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{q.quotationNumber ?? " "}</td>
+                        <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{q.customerName ?? " "}</td>
                         <td className="px-4 py-2.5 font-mono font-semibold">{fmt(q.amount)}</td>
                         <td className="px-4 py-2.5">
                           <span className={cn("inline-flex px-2 py-0.5 rounded text-[11px] font-semibold",
@@ -200,7 +200,7 @@ export default function NiscQuotationsReportPage() {
                             {q.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs">{q.issueDate ? format(q.issueDate, "MMM dd, yyyy") : "—"}</td>
+                        <td className="px-4 py-2.5 text-xs">{q.issueDate ? format(q.issueDate, "MMM dd, yyyy") : " "}</td>
                         <td className="px-4 py-2.5 text-xs text-muted-foreground font-mono">{q.createdBy.slice(0, 8)}…</td>
                       </tr>
                     ))}

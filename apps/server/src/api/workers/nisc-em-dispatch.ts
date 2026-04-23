@@ -77,7 +77,7 @@ export async function handleNiscEmDispatch(c: Context) {
   // needing an external cron.
   //
   // Circuit breaker rules:
-  //   A) If the run was locked out (ran: false) do NOT chain — someone else is
+  //   A) If the run was locked out (ran: false) do NOT chain   someone else is
   //      already draining and will do the chaining themselves.
   //   B) If no work is left (remainingEligible === 0) we're done.
   //   C) If the run claimed rows but sent zero of them (sent === 0), we're

@@ -119,7 +119,7 @@ const MB_Y = {
   left: 56,
   /** Platforms hub card */
   hub: 16,
-  /** First platform lane (Meta) — below hub with clearance */
+  /** First platform lane (Meta)   below hub with clearance */
   metaLane: 140,
   laneStep: 430,
   stackGap: 450,
@@ -380,7 +380,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
   >({});
 
   const [persistVersion, setPersistVersion] = React.useState(initialVersion);
-  /** Source of truth for optimistic concurrency — updated before/after each save (not debounce closures). */
+  /** Source of truth for optimistic concurrency   updated before/after each save (not debounce closures). */
   const persistVersionRef = React.useRef(initialVersion);
   React.useEffect(() => {
     persistVersionRef.current = initialVersion;
@@ -700,7 +700,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
         ? `Failed: ${productsQuery.error?.message ?? "Unknown error"}`
         : mediaBuyingProduct
           ? `Found: ${mediaBuyingProduct.name} (${mediaBuyingProduct.serviceType})`
-          : "Not found — flow ends here";
+          : "Not found   flow ends here";
 
     list.push({
       id: "get-service",
@@ -768,7 +768,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
               <div className="text-sm font-medium">
                 Get Plans{" "}
                 <span className="text-muted-foreground font-normal text-xs">
-                  ({mediaBuyingProduct?.name ?? "—"})
+                  ({mediaBuyingProduct?.name ?? " "})
                 </span>
               </div>
               <div className="text-[11px] text-muted-foreground max-w-[320px]">
@@ -1806,7 +1806,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                     if (lines.length === 0) return;
                     const tr = toTimeRange(dateRange);
                     const rangeLabel =
-                      tr?.since && tr?.until ? `${tr.since} – ${tr.until}` : "—";
+                      tr?.since && tr?.until ? `${tr.since} – ${tr.until}` : " ";
                     const items = lines.map((l, idx) => {
                       const commissionAmountKes = (l.spendKes * commissionRatePercent) / 100;
                       return {

@@ -28,7 +28,7 @@ If this is missing, you can see errors at runtime like “Query engine library f
 
 ## Security: never commit secrets
 
-**`apphosting.yaml` is committed to git.** Do **not** put real secrets (e.g. `DATABASE_URL`, API keys, passwords) as plain `value:` in this file — that would be a serious security risk.
+**`apphosting.yaml` is committed to git.** Do **not** put real secrets (e.g. `DATABASE_URL`, API keys, passwords) as plain `value:` in this file   that would be a serious security risk.
 
 - **Non-sensitive values** (e.g. `PRISMA_BINARY_TARGETS`, feature flags, public URLs): use `value: "..."` in `apphosting.yaml`. Safe to commit.
 - **Secrets** (database URLs, API keys, tokens): use `secret: SECRET_NAME` in `apphosting.yaml` and store the actual value in Firebase / Cloud Secret Manager (see below). Only the secret **name** is in the file, not the value.
@@ -117,7 +117,7 @@ gcloud secrets versions list SECRET_NAME
 - Or with gcloud: `gcloud secrets delete SECRET_NAME`  
 - Only delete if the secret is no longer referenced in `apphosting.yaml` or you will break the next deploy.
 
-**Grant backend access to secrets (required for build and runtime):** After setting secrets (Option A or B), run **once**—and again whenever you add new secret references to `apphosting.yaml`:
+**Grant backend access to secrets (required for build and runtime):** After setting secrets (Option A or B), run **once** and again whenever you add new secret references to `apphosting.yaml`:
 
 ```bash
 pnpm run apphosting:secrets:grant
@@ -127,7 +127,7 @@ This grants the App Hosting backend access to every secret in `apphosting.yaml` 
 
 ### Copying from an existing .env file
 
-You can keep using `apps/npanel/.env` locally (and add it to `.gitignore` if it isn’t already). For App Hosting, **each** of those secret values must be set separately via Option A or B above — there is no “paste whole .env file” in the Firebase UI; you create one secret per variable.
+You can keep using `apps/npanel/.env` locally (and add it to `.gitignore` if it isn’t already). For App Hosting, **each** of those secret values must be set separately via Option A or B above   there is no “paste whole .env file” in the Firebase UI; you create one secret per variable.
 
 ---
 

@@ -661,7 +661,7 @@ export const auth = betterAuth({
             // In production, the web SPA (npanel-web) and the API server (npanel-server) are on
             // separate Cloud Run subdomains under "run.app", which is in the Public Suffix List.
             // That means the browser treats them as cross-site, and sameSite:"lax" blocks cookies
-            // in cross-origin fetch() calls — breaking getSession() entirely from the SPA.
+            // in cross-origin fetch() calls   breaking getSession() entirely from the SPA.
             // sameSite:"none" allows cross-site fetch with credentials (requires secure:true,
             // which is already enforced in production below).
             // Cookies must be Secure when sameSite is "none". When running on plain HTTP

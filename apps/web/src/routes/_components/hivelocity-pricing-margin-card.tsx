@@ -51,9 +51,9 @@ type MarginFormBlock = z.infer<typeof marginBlockSchema>;
 type FormState = z.infer<typeof formSchema>;
 
 function getDisplayValue(block: { marginType: string | null; percentageMargin: string | null; fixedMargin: string | null }) {
-  if (block.marginType === "PERCENTAGE") return `${block.percentageMargin ?? "—"}%`;
-  if (block.marginType === "FIXED") return `$${block.fixedMargin ?? "—"}`;
-  return "—";
+  if (block.marginType === "PERCENTAGE") return `${block.percentageMargin ?? " "}%`;
+  if (block.marginType === "FIXED") return `$${block.fixedMargin ?? " "}`;
+  return " ";
 }
 
 function defaultBlockFromCurrent(current: any, prefix: "" | "os" | "addons"): MarginFormBlock {
@@ -320,7 +320,7 @@ export function HivelocityPricingMarginCard({
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Base plan</span>
                     <span className="text-muted-foreground">
-                      {(current as any).marginType ?? "—"} · {getDisplayValue(current as any)} · RO {(current as any).roundOff ?? "—"}
+                      {(current as any).marginType ?? " "} · {getDisplayValue(current as any)} · RO {(current as any).roundOff ?? " "}
                     </span>
                   </div>
                 </div>
@@ -329,13 +329,13 @@ export function HivelocityPricingMarginCard({
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Operating System</span>
                     <span className="text-muted-foreground">
-                      {(current as any).osMarginType ?? "—"} ·{" "}
+                      {(current as any).osMarginType ?? " "} ·{" "}
                       {getDisplayValue({
                         marginType: (current as any).osMarginType ?? null,
                         percentageMargin: (current as any).osPercentageMargin ?? null,
                         fixedMargin: (current as any).osFixedMargin ?? null,
                       })}{" "}
-                      · RO {(current as any).osRoundOff ?? "—"}
+                      · RO {(current as any).osRoundOff ?? " "}
                     </span>
                   </div>
                 </div>
@@ -344,13 +344,13 @@ export function HivelocityPricingMarginCard({
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Add-ons</span>
                     <span className="text-muted-foreground">
-                      {(current as any).addonsMarginType ?? "—"} ·{" "}
+                      {(current as any).addonsMarginType ?? " "} ·{" "}
                       {getDisplayValue({
                         marginType: (current as any).addonsMarginType ?? null,
                         percentageMargin: (current as any).addonsPercentageMargin ?? null,
                         fixedMargin: (current as any).addonsFixedMargin ?? null,
                       })}{" "}
-                      · RO {(current as any).addonsRoundOff ?? "—"}
+                      · RO {(current as any).addonsRoundOff ?? " "}
                     </span>
                   </div>
                 </div>

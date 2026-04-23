@@ -381,7 +381,7 @@ export const mpesaRouter = router({
 					if (terminal) return terminal;
 				}
 
-				// 2) Not terminal in DB — call Daraja for current status
+				// 2) Not terminal in DB   call Daraja for current status
 				try {
 					const mpesaClient = createMpesaClientFromEnv();
 					const response = await mpesaClient.queryStkPush(input.checkoutRequestId);
