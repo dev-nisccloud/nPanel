@@ -69,7 +69,7 @@ export async function redirectToTarget(retryAfterMs = 0): Promise<boolean> {
   }
 
   // Loop guard: if we're already on an auth page and the resolved target is also
-  // an auth page (e.g. fallback to /auth/login), don't redirect — it would loop.
+  // an auth page (e.g. fallback to /auth/login), don't redirect   it would loop.
   if (
     typeof window !== "undefined" &&
     window.location.pathname.startsWith("/auth") &&

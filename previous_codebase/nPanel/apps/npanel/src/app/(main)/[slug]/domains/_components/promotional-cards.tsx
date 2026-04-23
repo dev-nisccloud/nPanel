@@ -240,7 +240,7 @@ function SearchTldCard({
             <>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-                <span>Claim the exact domain you searched for — secure your brand and start building your online presence today.</span>
+                <span>Claim the exact domain you searched for   secure your brand and start building your online presence today.</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
@@ -251,11 +251,11 @@ function SearchTldCard({
             <>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-                <span>Your search included .{queryTldParsed.extension} — this domain is not available.</span>
+                <span>Your search included .{queryTldParsed.extension}   this domain is not available.</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-                <span>Try a different extension or variation — we have hundreds of TLDs to help you find the perfect match.</span>
+                <span>Try a different extension or variation   we have hundreds of TLDs to help you find the perfect match.</span>
               </div>
             </>
           )}

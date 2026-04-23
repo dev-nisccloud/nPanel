@@ -1,4 +1,4 @@
-# Sales & Revenue Report — Documentation
+# Sales & Revenue Report   Documentation
 
 This document describes the **Sales & Revenue Report** in nPanel: what each metric means, how it is derived, and how it helps the business make decisions.
 
@@ -29,13 +29,13 @@ The Sales Report gives a single place to see **revenue health**, **subscription 
 
 The UI is organised into **7 tabs**:
 
-1. **Overview** — Executive KPIs, MRR by category, revenue trend, subscriptions, invoicing health, commission, revenue by company.
-2. **Revenue** — Revenue by product/plan, billing mix, average deal size, revenue concentration.
-3. **Retention** — Churn, tenure, upgrades/downgrades, auto-renew, renewals due, expiring soon.
-4. **Invoicing** — Payment velocity, overdue aging, invoice status mix, tax & credits, revenue by payment method.
-5. **Pipeline** — New customers, order pipeline & conversion, promo effectiveness, new subscriptions by product.
-6. **Customers** — Margin by category, multi-product customers, top customers trend, at-risk customers.
-7. **Comparisons** — Month-over-month, year-over-year, annual run rate.
+1. **Overview**   Executive KPIs, MRR by category, revenue trend, subscriptions, invoicing health, commission, revenue by company.
+2. **Revenue**   Revenue by product/plan, billing mix, average deal size, revenue concentration.
+3. **Retention**   Churn, tenure, upgrades/downgrades, auto-renew, renewals due, expiring soon.
+4. **Invoicing**   Payment velocity, overdue aging, invoice status mix, tax & credits, revenue by payment method.
+5. **Pipeline**   New customers, order pipeline & conversion, promo effectiveness, new subscriptions by product.
+6. **Customers**   Margin by category, multi-product customers, top customers trend, at-risk customers.
+7. **Comparisons**   Month-over-month, year-over-year, annual run rate.
 
 ---
 
@@ -594,11 +594,11 @@ Single **run rate** number for planning, targets, and investor/stakeholder repor
 
 | Term | Meaning |
 |------|--------|
-| **MRR** | Monthly Recurring Revenue — subscription revenue normalised to a monthly amount. |
+| **MRR** | Monthly Recurring Revenue   subscription revenue normalised to a monthly amount. |
 | **ARPC** | Average Revenue Per Customer (here: per team with revenue). |
 | **Churn** | Subscriptions that left (cancelled or expired) in a period. |
 | **Tenure** | How long a subscription has been active (from subscription/start date). |
-| **A/R** | Accounts receivable — money owed (outstanding invoices). |
+| **A/R** | Accounts receivable   money owed (outstanding invoices). |
 | **Payment velocity** | How quickly invoices are paid (days from issue to payment). |
 | **Aging** | Grouping overdue amounts by how many days they are past due. |
 | **Conversion (orders)** | Share of orders that reach “Completed” status. |

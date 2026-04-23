@@ -227,4 +227,4 @@ Then match by timestamp to your 500 (e.g. 06:10:55).
 3. **Local Docker:** Run the same image locally with the same env and hit `http://localhost:3000/` and `http://localhost:3000/api/health`. If it works locally but not on Cloud Run, focus on Cloud Run (env, port, probes, timeouts).
 4. **Build:** Rebuild the image after any change to `next.config.ts`, Dockerfile, or `.dockerignore` and redeploy.
 
-5. **Root layout:** The root layout is now fully wrapped in try/catch; any throw (including for GET /) is logged and then we return 200 with redirect HTML instead of 500. If you still see 500 on GET /, the failure may be in middleware or in the Next.js runtime before the layout runs—check logs for the exact error.
+5. **Root layout:** The root layout is now fully wrapped in try/catch; any throw (including for GET /) is logged and then we return 200 with redirect HTML instead of 500. If you still see 500 on GET /, the failure may be in middleware or in the Next.js runtime before the layout runs check logs for the exact error.

@@ -1,7 +1,7 @@
 /**
  * Geo/locale hints from request headers (e.g. `x-vercel-ip-*` on Vercel).
  * Pass `request.headers` from your server (Hono, RR resource route, etc.).
- * In the browser, there are no geo headers — defaults apply.
+ * In the browser, there are no geo headers   defaults apply.
  */
 export declare function getCountryCodeSync(headers?: Headers): string;
 export declare function getTimezoneSync(headers?: Headers): string;

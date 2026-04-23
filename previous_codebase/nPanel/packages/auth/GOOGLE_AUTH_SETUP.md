@@ -1,4 +1,4 @@
-# Google Sign-In (OAuth): Full Guide — Development to Production
+# Google Sign-In (OAuth): Full Guide   Development to Production
 
 This guide walks you through enabling **“Continue with Google”** for your app from local development through to production so **all your customers** can sign in with Google.
 
@@ -36,7 +36,7 @@ This guide walks you through enabling **“Continue with Google”** for your ap
 1. **APIs & Services → Credentials → Create Credentials → OAuth client ID**.
 2. **Application type:** Web application.
 3. **Name:** e.g. “nPanel Web (Sign in with Google)”.
-4. **Authorized redirect URIs** — add **both** now so the same client works in dev and prod:
+4. **Authorized redirect URIs**   add **both** now so the same client works in dev and prod:
    - **Local:**  
      `http://localhost:3000/api/auth/callback/google`  
      (If your dev server uses another port, e.g. 3002, use `http://localhost:3002/api/auth/callback/google`.)
@@ -89,7 +89,7 @@ In the same OAuth client you created in Part 1:
 1. **APIs & Services → Credentials → your OAuth 2.0 Client ID**.
 2. Under **Authorized redirect URIs**, ensure you have:
    - `https://<your-production-domain>/api/auth/callback/google`
-3. Save. No code change needed—same client serves all customers.
+3. Save. No code change needed same client serves all customers.
 
 ### 2.3 Firebase App Hosting secrets (runtime)
 

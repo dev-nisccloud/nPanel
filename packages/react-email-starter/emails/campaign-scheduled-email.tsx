@@ -39,13 +39,13 @@ export const CampaignScheduledEmail = ({
           <strong>Campaign details:</strong>
         </EmailText>
         <EmailText>
-          <strong>Campaign name:</strong> {campaignName ?? '—'}
+          <strong>Campaign name:</strong> {campaignName ?? ' '}
         </EmailText>
         <EmailText>
-          <strong>Subject:</strong> {subject ?? '—'}
+          <strong>Subject:</strong> {subject ?? ' '}
         </EmailText>
         <EmailText>
-          <strong>Scheduled for:</strong> {scheduledAt ?? '—'}
+          <strong>Scheduled for:</strong> {scheduledAt ?? ' '}
         </EmailText>
         <EmailText>
           <strong>Recipients:</strong> {recipientCount.toLocaleString()}

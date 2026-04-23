@@ -143,7 +143,7 @@ export function KenyanTldCards({
 		};
 	}, []);
 
-	// NOTE: useEffect (NOT useLayoutEffect) — only clears state, no DOM measurement needed.
+	// NOTE: useEffect (NOT useLayoutEffect)   only clears state, no DOM measurement needed.
 	// useLayoutEffect here caused synchronous cascade: clear → re-render → useEffect fires mutation → re-render.
 	React.useEffect(() => {
 		if (!sanitized) return;

@@ -1,6 +1,6 @@
 # Page & Menu Load Time Performance Recommendations
 
-This document contains a full list of recommendations for improving page and menu load times in the nPanel app after login. Use it as a reference when implementing changes. Nothing here is implemented yet—these are recommendations only.
+This document contains a full list of recommendations for improving page and menu load times in the nPanel app after login. Use it as a reference when implementing changes. Nothing here is implemented yet these are recommendations only.
 
 ---
 
@@ -32,14 +32,14 @@ This document contains a full list of recommendations for improving page and men
 
 ### Recommendation
 
-- In **middleware**, only do a lightweight check—e.g. presence of the session cookie (or a minimal check that doesn’t hit the auth API). Avoid calling `/api/auth/get-session` in middleware if the layout will call it anyway.
+- In **middleware**, only do a lightweight check e.g. presence of the session cookie (or a minimal check that doesn’t hit the auth API). Avoid calling `/api/auth/get-session` in middleware if the layout will call it anyway.
 - Alternatively, have the layout **reuse** the result of the middleware check (e.g. by having middleware set a header or use a request-scoped cache that the layout can read) so the auth API is only called **once** per request.
 - Goal: **one session resolution per request**, not two.
 
 ### Files to consider
 
-- `apps/npanel/src/middleware.ts` — `isSessionValid()` and its fetch to `/api/auth/get-session`.
-- `apps/npanel/src/lib/auth-server.ts` — `getSession()` and its fetch to the same URL.
+- `apps/npanel/src/middleware.ts`   `isSessionValid()` and its fetch to `/api/auth/get-session`.
+- `apps/npanel/src/lib/auth-server.ts`   `getSession()` and its fetch to the same URL.
 
 ---
 
@@ -57,7 +57,7 @@ This document contains a full list of recommendations for improving page and men
 
 - Run **independent** work in parallel. For example:
   - Auth (getCurrentUser / requireRole / verifyTeamAccess) must stay in a sensible order.
-  - Reading **cookies** and **getPreference** (which only reads cookies) does not depend on auth result for the same request—they can be started in parallel with auth where possible, or at least not delayed unnecessarily.
+  - Reading **cookies** and **getPreference** (which only reads cookies) does not depend on auth result for the same request they can be started in parallel with auth where possible, or at least not delayed unnecessarily.
 - Use `Promise.all` (or similar) for any group of independent async calls (e.g. auth + preferences) so the layout doesn’t wait longer than necessary.
 - Keep `getPreference` as-is (cookie-only); the main gain is **avoiding unnecessary sequencing** between auth and preferences.
 
@@ -120,7 +120,7 @@ So every [slug] page load can trigger **2–3 database round-trips** (team, memb
 
 ### Files to consider
 
-- `apps/npanel/src/lib/auth-server.ts` — `verifyTeamAccess()`.
+- `apps/npanel/src/lib/auth-server.ts`   `verifyTeamAccess()`.
 
 ---
 
@@ -159,11 +159,11 @@ So every [slug] page load can trigger **2–3 database round-trips** (team, memb
 ### Current behavior
 
 - **SectionCards** (`apps/npanel/src/app/(main)/[slug]/dashboard/_components/section-cards.tsx`):
-  1. `trpc.teams.getTeamIdBySlug.useQuery({ slug: teamSlug })` — waits for `teamId`.
-  2. `trpc.domains.getByTeam.useQuery({ teamId })` — enabled when `teamId` exists.
-  3. `trpc.invoicing.list.useQuery({ teamId, ... })` — same.
-  4. `trpc.orders.getSummaryByTeam.useQuery({ teamId })` — same.
-  5. `trpc.serviceSubscriptions.getAll.useQuery({ teamId })` — same.
+  1. `trpc.teams.getTeamIdBySlug.useQuery({ slug: teamSlug })`   waits for `teamId`.
+  2. `trpc.domains.getByTeam.useQuery({ teamId })`   enabled when `teamId` exists.
+  3. `trpc.invoicing.list.useQuery({ teamId, ... })`   same.
+  4. `trpc.orders.getSummaryByTeam.useQuery({ teamId })`   same.
+  5. `trpc.serviceSubscriptions.getAll.useQuery({ teamId })`   same.
 
 So you have a **chain of five queries**; the last four only start after `teamId` is available. The UI waits for the slowest link in this chain.
 
@@ -187,7 +187,7 @@ So you have a **chain of five queries**; the last four only start after `teamId`
 ### Current behavior
 
 - Layouts are **fully blocking**: auth, DB (`verifyTeamAccess`, etc.), and preferences all complete before any shell (sidebar, header) is sent.
-- So even though many routes have `loading.tsx`, the user often sees **nothing** until the layout has finished—because the layout itself is not streamed.
+- So even though many routes have `loading.tsx`, the user often sees **nothing** until the layout has finished because the layout itself is not streamed.
 
 ### Recommendation
 
@@ -221,7 +221,7 @@ So you have a **chain of five queries**; the last four only start after `teamId`
 
 ### Files to consider
 
-- `apps/npanel/src/lib/auth-server.ts` — all `console.log` / `console.error` usages.
+- `apps/npanel/src/lib/auth-server.ts`   all `console.log` / `console.error` usages.
 
 ---
 
@@ -259,7 +259,7 @@ So you have a **chain of five queries**; the last four only start after `teamId`
 
 ### Files to consider
 
-- `apps/npanel/package.json` — dev script for Next.js.
+- `apps/npanel/package.json`   dev script for Next.js.
 - Login redirect / post-login hook (e.g. where you send the user after auth) for pre-warming.
 
 ---
@@ -269,8 +269,8 @@ So you have a **chain of five queries**; the last four only start after `teamId`
 ### Current behavior
 
 - There is **no** shared `(main)/layout.tsx`. The `(main)` group contains:
-  - `[slug]/layout.tsx` — customer team routes.
-  - `agency/layout.tsx` — agency routes.
+  - `[slug]/layout.tsx`   customer team routes.
+  - `agency/layout.tsx`   agency routes.
   - Other segments (auth, create-team, etc.).
 - So **each** of these layouts does its own auth and (where applicable) preferences. That duplicates session and preference work and spreads auth logic.
 
@@ -304,8 +304,8 @@ So you have a **chain of five queries**; the last four only start after `teamId`
 
 ### Files to consider
 
-- `apps/npanel/src/app/(main)/[slug]/layout.tsx` — pass user or displayName to children or context.
-- `apps/npanel/src/app/(main)/[slug]/dashboard/page.tsx` — remove `getCurrentUser()`, use passed/context value.
+- `apps/npanel/src/app/(main)/[slug]/layout.tsx`   pass user or displayName to children or context.
+- `apps/npanel/src/app/(main)/[slug]/dashboard/page.tsx`   remove `getCurrentUser()`, use passed/context value.
 
 ---
 

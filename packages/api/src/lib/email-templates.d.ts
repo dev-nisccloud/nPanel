@@ -152,7 +152,7 @@ export declare function renderNiscOrderConfirmationEmail({ customerName, orderNu
     }>;
     orderLink?: string;
 }): Promise<string>;
-/** "Order received" email — React template; sent when order is created from payment; user will get another email when processed. */
+/** "Order received" email   React template; sent when order is created from payment; user will get another email when processed. */
 export declare function renderNiscOrderReceivedEmail({ customerName, orderNumber, orderDate, totalAmount, currency, orderItems, }: {
     customerName?: string;
     orderNumber?: string;
@@ -165,7 +165,7 @@ export declare function renderNiscOrderReceivedEmail({ customerName, orderNumber
         price?: string;
     }>;
 }): Promise<string>;
-/** Admin "order failed" email — React template; sent to super admins when a Nisc order fails or is partial. */
+/** Admin "order failed" email   React template; sent to super admins when a Nisc order fails or is partial. */
 export declare function renderNiscOrderFailedEmail({ customerName, orderNumber, failedItems, failureReason, retryLink, }: {
     customerName?: string;
     orderNumber?: string;

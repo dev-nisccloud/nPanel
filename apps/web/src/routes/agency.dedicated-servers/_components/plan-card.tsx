@@ -37,7 +37,7 @@ function getDriveDescription(plan: DedicatedPlan) {
 		const desc = typeof r.description === "string" ? r.description : "";
 		if (desc.trim().length > 0) return desc.trim();
 	}
-	return plan.product_drive || "—";
+	return plan.product_drive || " ";
 }
 
 export function PlanCard({
@@ -110,24 +110,24 @@ export function PlanCard({
 						<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Processor info</p>
 						{(() => {
 							const info = getProcessorSummary(plan.processor_info);
-							if (!info) return <p className="text-sm font-semibold mt-1">—</p>;
+							if (!info) return <p className="text-sm font-semibold mt-1"> </p>;
 							return (
 								<div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
 									<div className="flex items-center gap-1 min-w-0">
 										<span className="text-muted-foreground shrink-0">Cores:</span>
-										<span className="font-semibold">{info.cores ?? "—"}</span>
+										<span className="font-semibold">{info.cores ?? " "}</span>
 									</div>
 									<div className="flex items-center gap-1 min-w-0">
 										<span className="text-muted-foreground shrink-0">Threads:</span>
-										<span className="font-semibold">{info.threads ?? "—"}</span>
+										<span className="font-semibold">{info.threads ?? " "}</span>
 									</div>
 									<div className="flex items-center gap-1 min-w-0">
 										<span className="text-muted-foreground shrink-0">Sockets:</span>
-										<span className="font-semibold">{info.sockets ?? "—"}</span>
+										<span className="font-semibold">{info.sockets ?? " "}</span>
 									</div>
 									<div className="flex items-center gap-1 min-w-0">
 										<span className="text-muted-foreground shrink-0">vCPUs:</span>
-										<span className="font-semibold">{info.vcpus ?? "—"}</span>
+										<span className="font-semibold">{info.vcpus ?? " "}</span>
 									</div>
 								</div>
 							);
@@ -139,7 +139,7 @@ export function PlanCard({
 						<Network className="h-4 w-4 mt-0.5 text-muted-foreground" />
 						<div className="min-w-0">
 							<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Bandwidth</p>
-							<p className="text-sm font-semibold line-clamp-2">{plan.product_bandwidth || "—"}</p>
+							<p className="text-sm font-semibold line-clamp-2">{plan.product_bandwidth || " "}</p>
 						</div>
 					</div>
 
@@ -148,7 +148,7 @@ export function PlanCard({
 						<Cpu className="h-4 w-4 mt-0.5 text-muted-foreground" />
 						<div className="min-w-0">
 							<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPU</p>
-							<p className="text-sm font-semibold line-clamp-2">{plan.product_cpu || "—"}</p>
+							<p className="text-sm font-semibold line-clamp-2">{plan.product_cpu || " "}</p>
 							{stripHtmlToText(plan.product_cpu_cores) ? (
 								<p className="text-xs text-muted-foreground mt-0.5">{stripHtmlToText(plan.product_cpu_cores)}</p>
 							) : null}
@@ -160,7 +160,7 @@ export function PlanCard({
 						<MemoryStick className="h-4 w-4 mt-0.5 text-muted-foreground" />
 						<div className="min-w-0">
 							<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Memory</p>
-							<p className="text-sm font-semibold line-clamp-2">{plan.product_memory || "—"}</p>
+							<p className="text-sm font-semibold line-clamp-2">{plan.product_memory || " "}</p>
 						</div>
 					</div>
 

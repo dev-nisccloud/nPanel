@@ -106,7 +106,7 @@ export const domainTransferRouter = router({
                 // exists && !locked → ready; get price below
             }
             else {
-                // RDAP failed for this TLD — fall back to OpenProvider domain check
+                // RDAP failed for this TLD   fall back to OpenProvider domain check
                 try {
                     const client = createOpenProviderClient();
                     await client.authenticate({
@@ -163,7 +163,7 @@ export const domainTransferRouter = router({
                 }
             }
         }
-        // Ready to transfer — get price from OpenProvider (KENIC returns earlier with pending_check)
+        // Ready to transfer   get price from OpenProvider (KENIC returns earlier with pending_check)
         try {
             const client = createOpenProviderClient();
             await client.authenticate({

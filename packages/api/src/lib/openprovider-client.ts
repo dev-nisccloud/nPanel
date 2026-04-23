@@ -173,7 +173,7 @@ export class OpenProviderClient {
           ]
             .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
             .map((s) => s.trim());
-          if (regStrings.length) extras.push(`Registry: ${regStrings.join(' — ')}`);
+          if (regStrings.length) extras.push(`Registry: ${regStrings.join('   ')}`);
         }
         // data can be "Additional error description" (string) or an object with message/description/etc.
         if (typeof errorData.data === 'string' && errorData.data.trim()) {
@@ -189,7 +189,7 @@ export class OpenProviderClient {
           ]
             .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
             .map((s) => s.trim());
-          if (dataStrings.length) extras.push(dataStrings.join(' — '));
+          if (dataStrings.length) extras.push(dataStrings.join('   '));
         }
         // Top-level message (e.g. some endpoints put the registry message here)
         if (typeof errorData.message === 'string' && errorData.message.trim()) {
@@ -740,13 +740,13 @@ let tokenExpiry: number | null = null;
 
 export function createOpenProviderClient(): OpenProviderClient {
   // Return existing instance only if it is actually authenticated AND the token hasn't expired.
-  // Previously, tokenExpiry was set at instance creation — before auth — so a failed auth would
+  // Previously, tokenExpiry was set at instance creation   before auth   so a failed auth would
   // return an unauthenticated singleton for 47 hours on every subsequent request.
   if (clientInstance && clientInstance.isAuthenticated() && tokenExpiry && Date.now() < tokenExpiry) {
     return clientInstance;
   }
 
-  // Use env vars — fall back to sensible defaults so misconfigured envs still work
+  // Use env vars   fall back to sensible defaults so misconfigured envs still work
   const baseUrl = process.env.OPENPROVIDER_BASE_URL || 'https://api.openprovider.eu';
   const apiVersion = process.env.OPENPROVIDER_API_VERSION || 'v1beta';
   const timeout = parseInt(process.env.OPENPROVIDER_TIMEOUT || '60000', 10);

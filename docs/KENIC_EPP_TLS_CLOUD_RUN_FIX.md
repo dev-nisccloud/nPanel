@@ -1,4 +1,4 @@
-# KENIC EPP TLS Failure on Cloud Run — Root Cause & Fix
+# KENIC EPP TLS Failure on Cloud Run   Root Cause & Fix
 
 **Date resolved:** April 2, 2026  
 **Affected environment:** Production & Staging (Google Cloud Run, us-east1)  
@@ -15,7 +15,7 @@ Every Kenyan domain availability check (`.co.ke`, `.or.ke`, etc.) failed in prod
 EPP domain check failed: Hostname/IP does not match certificate's altnames: Cert does not contain a DNS name
 ```
 
-OpenProvider domain checks (`.com`, `.net`, etc.) worked perfectly in the same environment. The issue was 100% isolated to the KENIC EPP connection. Locally — including over Ngrok — everything worked fine.
+OpenProvider domain checks (`.com`, `.net`, etc.) worked perfectly in the same environment. The issue was 100% isolated to the KENIC EPP connection. Locally   including over Ngrok   everything worked fine.
 
 ---
 
@@ -30,13 +30,13 @@ Our server:
 4. Sends a `domain:check` command for the requested domain names
 5. Parses the XML response and returns availability + pricing data
 
-This is fundamentally different from an HTTP API call — it is a persistent, framed TCP socket connection over TLS.
+This is fundamentally different from an HTTP API call   it is a persistent, framed TCP socket connection over TLS.
 
 ---
 
 ## 3. Initial Investigation
 
-### Step 1 — Config looked correct
+### Step 1   Config looked correct
 
 The first suspicion was a misconfigured TLS servername. KENIC's registry (`registry.kenic.or.ke`) presents a certificate issued for `epp.coccaregistry.org` (a shared CoCCA registry platform used across many African ccTLD registries). TLS SNI must therefore send `epp.coccaregistry.org` as the servername, not the connect host.
 
@@ -56,7 +56,7 @@ We added detailed production logging to confirm what config the app was actually
 
 Config was correct. Still failing.
 
-### Step 2 — Cert identity check
+### Step 2   Cert identity check
 
 We ran OpenSSL locally to inspect the live certificate at `registry.kenic.or.ke:700`:
 
@@ -78,13 +78,13 @@ X509v3 Subject Alternative Name:
     DNS:epp.coccaregistry.org
 ```
 
-The cert is valid with a proper SAN. TLS should pass locally — and it does.
+The cert is valid with a proper SAN. TLS should pass locally   and it does.
 
-### Step 3 — TLS identity check fix (not the real cause)
+### Step 3   TLS identity check fix (not the real cause)
 
 We patched `checkServerIdentity` in `epp-client.ts` to explicitly verify against the configured `tlsServername` rather than the socket's host, ensuring cert validation targets the right hostname regardless of which string Node passes to the callback. Still failed in production.
 
-### Step 4 — The diagnostic endpoint
+### Step 4   The diagnostic endpoint
 
 We built a dedicated HTTP diagnostic endpoint at `GET /api/kenic/test-connection` (modelled after the existing `/api/plesk/test-connection`) that:
 
@@ -105,7 +105,7 @@ We built a dedicated HTTP diagnostic endpoint at `GET /api/kenic/test-connection
     "fingerprintSha256": "F5:4F:F6:1D:AA:3E:50:15:...",
     "issuerCommonName": "GeoTrust TLS RSA CA G1"
   },
-  "verdict": { "tlsWillValidate": true, "note": "Cert SAN matches tlsServername — TLS validation should pass" }
+  "verdict": { "tlsWillValidate": true, "note": "Cert SAN matches tlsServername   TLS validation should pass" }
 }
 ```
 
@@ -137,13 +137,13 @@ We built a dedicated HTTP diagnostic endpoint at `GET /api/kenic/test-connection
 
 The key evidence:
 
-- `tcp.reachable: true` — port 700 is reachable from Cloud Run; this is not a firewall issue
-- `tlsCert: null` with `tlsError: "No peer certificate received"` — the TLS handshake socket connects and `secureConnect` fires, but `getPeerCertificate()` returns an empty object
-- This is not a certificate mismatch — there is simply **no certificate at all** from Cloud Run's network path to that endpoint
+- `tcp.reachable: true`   port 700 is reachable from Cloud Run; this is not a firewall issue
+- `tlsCert: null` with `tlsError: "No peer certificate received"`   the TLS handshake socket connects and `secureConnect` fires, but `getPeerCertificate()` returns an empty object
+- This is not a certificate mismatch   there is simply **no certificate at all** from Cloud Run's network path to that endpoint
 
 This behaviour is consistent with KENIC/CoCCA's registry infrastructure using different backend nodes or a load balancer that does not serve a certificate for TLS connections originating outside their expected network geography. It may also be an anonymous TLS cipher suite being negotiated for non-Kenyan IPs.
 
-The error message Node.js produces in this scenario (`"Cert does not contain a DNS name"`) is misleading — it is actually Node's fallback message when the peer certificate object is empty, not when a real cert lacks a SAN.
+The error message Node.js produces in this scenario (`"Cert does not contain a DNS name"`) is misleading   it is actually Node's fallback message when the peer certificate object is empty, not when a real cert lacks a SAN.
 
 ### Why local / Ngrok worked
 
@@ -158,7 +158,7 @@ Ngrok tunnels the connection outbound from your local machine, which sits on a K
 | Setting `KENIC_EPP_TLS_SERVERNAME=epp.coccaregistry.org` | Config was already correct; cert was the problem, not SNI |
 | Patching `checkServerIdentity` to verify against servername explicitly | No cert arrives from Cloud Run so there's nothing to check |
 | Setting `KENIC_EPP_ALLOW_LEGACY_CN_FALLBACK=true` | CN fallback only helps when a cert exists but lacks SAN |
-| Various TLS servername permutations | Same result — the server presents no cert regardless of SNI |
+| Various TLS servername permutations | Same result   the server presents no cert regardless of SNI |
 
 ---
 
@@ -175,7 +175,7 @@ Set this in both **staging** and **production** Cloud Run service environment va
 ### What this does
 
 - Disables TLS peer certificate verification for the KENIC EPP socket connection
-- The connection is **still fully TLS-encrypted** — all data is protected in transit
+- The connection is **still fully TLS-encrypted**   all data is protected in transit
 - Only the **identity verification** step (confirming who you're talking to) is skipped
 - This is standard practice for EPP clients connecting to registries with inconsistent or geographically-restricted certificate presentation
 
@@ -183,7 +183,7 @@ Set this in both **staging** and **production** Cloud Run service environment va
 
 - Does not disable encryption
 - Does not affect any other integration (OpenProvider, Google APIs, etc.)
-- Does not expose credentials or domain data — TLS encryption still applies
+- Does not expose credentials or domain data   TLS encryption still applies
 
 ### Code path
 
@@ -192,7 +192,7 @@ Set this in both **staging** and **production** Cloud Run service environment va
 A warning is logged on every startup when this flag is active:
 
 ```
-[KENIC EPP] KENIC_EPP_REJECT_UNAUTHORIZED=false — TLS cert verification is DISABLED.
+[KENIC EPP] KENIC_EPP_REJECT_UNAUTHORIZED=false   TLS cert verification is DISABLED.
 Connection is still encrypted but peer certificate is NOT validated.
 Set to true once the registry cert issue is resolved.
 ```
@@ -206,7 +206,7 @@ Set to true once the registry cert issue is resolved.
 | `packages/api/src/lib/epp/kenic-config.ts` | Added `KENIC_EPP_REJECT_UNAUTHORIZED` env var; always uses `epp.coccaregistry.org` as TLS servername; added production startup logging of resolved config; added warning when `rejectUnauthorized=false` |
 | `packages/api/src/lib/epp/epp-client.ts` | Added `rejectUnauthorized` to `EppClientConfig`; cert diagnostics logged on every TLS verification failure; `checkServerIdentity` verifies against explicit `tlsServername` not socket host; added `inspectPeerCertificate()` for diagnostics |
 | `packages/api/src/routers/kenic/config-status.ts` | New protected tRPC query `kenic.configStatus.get` returning sanitized config state; `kenic.configStatus.inspectTls` query that runs live cert inspection |
-| `apps/server/src/api/test-kenic-connection.ts` | New HTTP handler for `GET /api/kenic/test-connection` — tests TCP reachability, TLS cert inspection, and produces a plain-English verdict |
+| `apps/server/src/api/test-kenic-connection.ts` | New HTTP handler for `GET /api/kenic/test-connection`   tests TCP reachability, TLS cert inspection, and produces a plain-English verdict |
 | `apps/server/src/index.ts` | Registered `GET /api/kenic/test-connection` route |
 
 ---
@@ -239,4 +239,4 @@ If KENIC updates their infrastructure to present a consistent certificate to all
 2. If `tlsCert` is no longer null and `suggestedTlsServername` is populated:
    - Set `KENIC_EPP_TLS_SERVERNAME` to the value of `suggestedTlsServername`
    - Remove `KENIC_EPP_REJECT_UNAUTHORIZED=false` (or set it to `true`)
-3. Redeploy and test — `verdict.tlsWillValidate` should return `true`
+3. Redeploy and test   `verdict.tlsWillValidate` should return `true`

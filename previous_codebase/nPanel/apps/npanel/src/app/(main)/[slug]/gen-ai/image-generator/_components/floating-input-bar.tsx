@@ -308,7 +308,7 @@ export function FloatingInputBar({
                 />
               </div>
 
-              {/* Refine options (7 pillars) — only in Visual & creative design mode */}
+              {/* Refine options (7 pillars)   only in Visual & creative design mode */}
               {generationMode === "visual-creative" && (
                 <div className="px-3 pt-4 pb-2">
                   <RefineOptions

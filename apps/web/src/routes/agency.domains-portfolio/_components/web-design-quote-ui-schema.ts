@@ -24,7 +24,7 @@ export type UiProjectType = (typeof UI_PROJECT_TYPE)[keyof typeof UI_PROJECT_TYP
 export const UI_PROJECT_TYPE_OPTIONS: { value: UiProjectType; label: string }[] = [
   { value: UI_PROJECT_TYPE.NEW_WEBSITE, label: "New website" },
   { value: UI_PROJECT_TYPE.REDESIGN, label: "Website redesign" },
-  { value: UI_PROJECT_TYPE.ECOMMERCE, label: "E—˜commerce / online store" },
+  { value: UI_PROJECT_TYPE.ECOMMERCE, label: "E ˜commerce / online store" },
   { value: UI_PROJECT_TYPE.LANDING_PAGE, label: "Landing page" },
   { value: UI_PROJECT_TYPE.WEB_APP, label: "Web application" },
   { value: UI_PROJECT_TYPE.OTHER, label: "Other" },

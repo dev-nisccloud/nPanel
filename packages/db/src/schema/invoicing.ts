@@ -59,7 +59,7 @@ export const invoice = pgTable(
     createdBy: text("created_by").notNull(),
     updatedBy: text("updated_by"),
 
-    // Prisma: `DateTime` without @default / @updatedAt — app-managed.
+    // Prisma: `DateTime` without @default / @updatedAt   app-managed.
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
 
@@ -254,7 +254,7 @@ export const invoiceCounter = pgTable(
   {
     id: text("id").primaryKey().default("invoice-counter"),
     lastNumber: integer("last_number").default(0).notNull(),
-    // Prisma: `@updatedAt` only — auto-maintained on writes.
+    // Prisma: `@updatedAt` only   auto-maintained on writes.
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .notNull()
@@ -270,7 +270,7 @@ export const invoiceRelations = relations(invoice, ({ one, many }) => ({
   }),
   lineItems: many(invoiceLineItem),
   transactions: many(invoiceTransaction),
-  // Prisma: `creditNote CreditNote?` — FK + unique on `credit_note.invoice_id`
+  // Prisma: `creditNote CreditNote?`   FK + unique on `credit_note.invoice_id`
   creditNote: one(creditNote, {
     fields: [invoice.id],
     references: [creditNote.invoiceId],

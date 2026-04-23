@@ -54,7 +54,7 @@ model Order {
   teamId      String? // Team that placed the order
   createdBy   String? // User who created the order (admin or customer)
 
-  // Order Details (type kept for backward compat; new flow ignores it — type is at subscription level)
+  // Order Details (type kept for backward compat; new flow ignores it   type is at subscription level)
   type        OrderType   @default(CUSTOM_SERVICE)
   status      OrderStatus @default(PENDING)
   description String? // Order description

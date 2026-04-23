@@ -45,7 +45,7 @@ export function AssetOverview({ asset }: AssetOverviewProps) {
             Public Version
           </p>
           <p className="text-sm font-medium">
-            {asset.currentPublicVersion ? `v${asset.currentPublicVersion}` : "—"}
+            {asset.currentPublicVersion ? `v${asset.currentPublicVersion}` : " "}
           </p>
         </div>
 

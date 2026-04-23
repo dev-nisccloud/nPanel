@@ -1,7 +1,7 @@
 /**
  * Rewrites common Next.js navigation imports under a routes subtree (default: agency).
  * Usage from apps/web: `node scripts/migrate-route-next-imports.mjs` or `node scripts/migrate-route-next-imports.mjs '$slug'`
- * Does not handle next/image, redirect, router.replace/back — fix those separately.
+ * Does not handle next/image, redirect, router.replace/back   fix those separately.
  */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";

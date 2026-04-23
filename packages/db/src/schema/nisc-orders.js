@@ -26,7 +26,7 @@ export const niscOrder = pgTable("nisc_order", {
     completedAt: timestamp("completed_at"),
     failureReason: text("failure_reason"),
     qstashMessageId: text("qstash_message_id"),
-    // `PaymentTransaction` not ported — plain id
+    // `PaymentTransaction` not ported   plain id
     paymentTransactionId: text("payment_transaction_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

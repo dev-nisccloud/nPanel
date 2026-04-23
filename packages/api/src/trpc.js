@@ -19,7 +19,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
             cause: "Invalid session: missing user id",
         });
     }
-    // Optional fields (name, email, role) are not enforced here — add a dedicated procedure
+    // Optional fields (name, email, role) are not enforced here   add a dedicated procedure
     // (e.g. `requiresRole`) or check inside routers that need them.
     return next({
         ctx: {

@@ -1,7 +1,7 @@
-# KRA eTIMS Online Sales Control Unit (OSCU) — Complete Developer Guide
+# KRA eTIMS Online Sales Control Unit (OSCU)   Complete Developer Guide
 
 > **Document Source:** KRA OSCU Requirements & Communication Protocols v2.0 (April 2023)  
-> **Issuing Authority:** Kenya Revenue Authority (KRA) — Domestic Taxes Department  
+> **Issuing Authority:** Kenya Revenue Authority (KRA)   Domestic Taxes Department  
 > **Classification:** PUBLIC
 
 ---
@@ -13,7 +13,7 @@
 3. [Onboarding & Application Process](#3-onboarding--application-process)
 4. [Technical Architecture](#4-technical-architecture)
 5. [OSCU Function Categories](#5-oscu-function-categories)
-6. [API Reference — All Endpoints](#6-api-reference--all-endpoints)
+6. [API Reference   All Endpoints](#6-api-reference--all-endpoints)
    - 6.1 [Device Initialization](#61-device-initialization)
    - 6.2 [Code Information](#62-code-information)
    - 6.3 [Customer (Taxpayer) Search](#63-customer-taxpayer-search)
@@ -85,15 +85,15 @@ Think of OSCU as a secure gateway adapter: your TIS speaks to OSCU, and OSCU spe
 
 | Term | Meaning |
 |------|---------|
-| **TIS** | Trader Invoicing System — your business software (ERP, POS, accounting system, etc.) |
-| **OSCU** | Online Sales Control Unit — the KRA middleware/library |
-| **eTIMS** | Electronic Tax Invoice Management System — KRA's central server |
-| **SKMM** | Signature & Key Management Module — handles crypto inside OSCU |
+| **TIS** | Trader Invoicing System   your business software (ERP, POS, accounting system, etc.) |
+| **OSCU** | Online Sales Control Unit   the KRA middleware/library |
+| **eTIMS** | Electronic Tax Invoice Management System   KRA's central server |
+| **SKMM** | Signature & Key Management Module   handles crypto inside OSCU |
 | **PIN** | KRA Tax Identification Number (also called `tin` in the API) |
-| **bhfId** | Branch Office ID — `"00"` = head office, `"01"` through `"99"` = branches |
-| **cmcKey** | Communication Key — issued by KRA on device initialization, required in every API call |
-| **intrlData** | Internal Data — a 26-character value returned after sales registration, printed on receipts |
-| **rcptSign** | Receipt Signature — 16-character value returned after sales registration, printed on receipts |
+| **bhfId** | Branch Office ID   `"00"` = head office, `"01"` through `"99"` = branches |
+| **cmcKey** | Communication Key   issued by KRA on device initialization, required in every API call |
+| **intrlData** | Internal Data   a 26-character value returned after sales registration, printed on receipts |
+| **rcptSign** | Receipt Signature   16-character value returned after sales registration, printed on receipts |
 
 ---
 
@@ -129,21 +129,21 @@ Sandbox:     https://etims-api-sbx.kra.go.ke/etims-api/selectInitOsdcInfo
 
 Before any API call can be made, the taxpayer must complete the following steps:
 
-### Step 1 — Register on eTIMS Taxpayer Portal
+### Step 1   Register on eTIMS Taxpayer Portal
 - Navigate to the eTIMS Taxpayer Portal
 - **Sign up** for an account
 
-### Step 2 — Apply for OSCU Service
+### Step 2   Apply for OSCU Service
 - Go to: **Service Request > eTIMS**
 - Select **OSCU** as the service type
 - Submit the equipment use application
 
-### Step 3 — KRA Officer Approval
+### Step 3   KRA Officer Approval
 - A KRA officer reviews and **approves** the application
 - KRA registers the device in their system
 
-### Step 4 — Install and Initialize
-- Install the OSCU library (Java) on your server — **or** use direct HTTP calls
+### Step 4   Install and Initialize
+- Install the OSCU library (Java) on your server   **or** use direct HTTP calls
 - Call the **Device Initialization** endpoint (`/selectInitOsdcInfo`) with your:
   - **KRA PIN** (`tin`)
   - **Branch ID** (`bhfId`)
@@ -152,9 +152,9 @@ Before any API call can be made, the taxpayer must complete the following steps:
   - Taxpayer details
   - Branch details
   - Device ID, Sales Control Unit ID, MRC No
-  - **Communication Key** (`cmcKey`) — **store this securely; you need it in every subsequent request**
+  - **Communication Key** (`cmcKey`)   **store this securely; you need it in every subsequent request**
 
-### Step 5 — Begin Operations
+### Step 5   Begin Operations
 - Use the `cmcKey` in all subsequent API calls
 - Maintain a `lastReqDt` (last request date-time) for each data type to support incremental sync
 
@@ -239,7 +239,7 @@ All OSCU functions are organized into **8 categories**:
 
 ---
 
-## 6. API Reference — All Endpoints
+## 6. API Reference   All Endpoints
 
 ### General Response Structure
 
@@ -348,7 +348,7 @@ This is the **first call you must make**. It authenticates your device and retur
 | `dvcId` | Device ID | 20 |
 | `sdcId` | Sales Control Unit ID | 18 |
 | `mrcNo` | MRC No | 11 |
-| `cmcKey` | **Communication Key — store this!** | 255 |
+| `cmcKey` | **Communication Key   store this!** | 255 |
 
 > ⚠️ **Critical:** Save `cmcKey` securely. It must be included in every subsequent API request.
 
@@ -413,7 +413,7 @@ Retrieves all standard code classifications and their detail codes managed by KR
 | `cdClsDesc` | Code Class Description | 500 |
 | `userDfnNm1/2/3` | Custom label names | 60 |
 | `useYn` | Active flag (`Y`/`N`) | 1 |
-| `dtlList` | Array of individual codes | — |
+| `dtlList` | Array of individual codes |   |
 
 **Code Detail Object:**
 
@@ -486,7 +486,7 @@ Retrieves KRA notices and announcements relevant to your TIS. Poll this periodic
 
 | Field | Description | Length |
 |-------|-------------|--------|
-| `noticeNo` | Notice Number (NUMBER) | — |
+| `noticeNo` | Notice Number (NUMBER) |   |
 | `title` | Notice Title | 1000 |
 | `cont` | Notice Content (full text) | 4000 |
 | `dtlUrl` | Detail URL for more info | 200 |
@@ -518,7 +518,7 @@ Retrieves KRA's official item classification codes (HS Code hierarchy). You need
 |-------|-------------|--------|
 | `itemClsCd` | Item Classification Code | 10 |
 | `itemClsNm` | Item Classification Name | 200 |
-| `itemClsLvl` | Hierarchy Level (NUMBER) | — |
+| `itemClsLvl` | Hierarchy Level (NUMBER) |   |
 | `taxTyCd` | Associated Tax Type Code (see [7.1](#71-tax-type)) | 5 |
 | `mjrTgYn` | Is Major Target? (`Y`/`N`) | 1 |
 | `useYn` | Active flag | 1 |
@@ -881,7 +881,7 @@ After reviewing an imported item from customs, you must confirm or reject it usi
 #### Request Body Structure
 
 The request has three sections:
-1. **Transaction header** — top-level fields
+1. **Transaction header**   top-level fields
 2. **Receipt info** (`receipt` object)
 3. **Item list** (`itemList` array)
 
@@ -1036,7 +1036,7 @@ The request has three sections:
 | `taxAmt` | NUMBER(18,2) | ✅ | Tax Amount for this line |
 | `totAmt` | NUMBER(18,2) | ✅ | Total Amount for this line |
 
-#### Success Response — Critical Fields
+#### Success Response   Critical Fields
 
 ```json
 {
@@ -1056,7 +1056,7 @@ The request has three sections:
 |-------|-------------|-------------|
 | `curRcptNo` | Current Receipt Number | ✅ Yes |
 | `totRcptNo` | Total Receipts issued so far | ✅ Yes |
-| `intrlData` | Internal Data (26 chars) — KRA control data | ✅ Yes |
+| `intrlData` | Internal Data (26 chars)   KRA control data | ✅ Yes |
 | `rcptSign` | Receipt Signature (16 chars) | ✅ Yes |
 | `sdcDateTime` | Control Unit Date-Time | ✅ Yes |
 
@@ -1346,7 +1346,7 @@ Updates the inventory master record (remaining/current quantity) for an item. Ca
 
 ### 7.4 Countries Code
 
-**Code Classification:** `05` — Full list of 252 countries. Key values relevant to Kenya:
+**Code Classification:** `05`   Full list of 252 countries. Key values relevant to Kenya:
 
 | Code | Country |
 |------|---------|
@@ -1371,7 +1371,7 @@ Updates the inventory master record (remaining/current quantity) for an item. Ca
 
 ### 7.5 Packaging Unit
 
-**Code Classification:** `17` — 52 packaging units. Key values:
+**Code Classification:** `17`   52 packaging units. Key values:
 
 | Code | Name |
 |------|------|
@@ -1395,11 +1395,11 @@ Updates the inventory master record (remaining/current quantity) for an item. Ca
 
 ### 7.6 Unit of Quantity
 
-**Code Classification:** `10` — 43 units. Key values:
+**Code Classification:** `10`   43 units. Key values:
 
 | Code | Name |
 |------|------|
-| `U` | Pieces/Item [Number] — most common |
+| `U` | Pieces/Item [Number]   most common |
 | `KG` | Kilo-Gramme |
 | `L` | Litre |
 | `M` | Metre |
@@ -1419,7 +1419,7 @@ Updates the inventory master record (remaining/current quantity) for an item. Ca
 
 ### 7.7 Currency
 
-**Code Classification:** `33` — 179 currencies. Key values:
+**Code Classification:** `33`   179 currencies. Key values:
 
 | Code | Currency |
 |------|---------|
@@ -1479,7 +1479,7 @@ Updates the inventory master record (remaining/current quantity) for an item. Ca
 
 ### 7.11 Transaction Progress
 
-**Code Classification:** `11` — Used for both `salesSttsCd` and `pchsSttsCd`
+**Code Classification:** `11`   Used for both `salesSttsCd` and `pchsSttsCd`
 
 | Code | Name |
 |------|------|
@@ -1518,7 +1518,7 @@ Updates the inventory master record (remaining/current quantity) for an item. Ca
 
 ### 7.14 Stock In/Out
 
-**Code Classification:** `12` — Stock Movement Types
+**Code Classification:** `12`   Stock Movement Types
 
 **Incoming (stock increases):**
 
@@ -1600,7 +1600,7 @@ Updates the inventory master record (remaining/current quantity) for an item. Ca
 | `993` | Server | Error during deletion |
 | `994` | Server | Overlapping/duplicate data |
 | `995` | Server | No downloaded file |
-| `999` | Server | Unknown error — contact KRA |
+| `999` | Server | Unknown error   contact KRA |
 
 ---
 
@@ -1614,11 +1614,11 @@ The `itemCd` field follows a strict format and must be unique per item. You gene
 
 | Part | Example | Meaning |
 |------|---------|---------|
-| `KE` | `KE` | Country of Origin (Kenya) — 2 chars |
-| `2` | `2` | Product Type (Finished Product) — 1 char |
-| `NT` | `NT` | Packaging Unit (Net) — 2 chars |
-| `BA` | `BA` | Quantity Unit (Barrel) — 2 chars |
-| `0000012` | `0000012` | Sequential number, increments from `0000001` — 7 chars |
+| `KE` | `KE` | Country of Origin (Kenya)   2 chars |
+| `2` | `2` | Product Type (Finished Product)   1 char |
+| `NT` | `NT` | Packaging Unit (Net)   2 chars |
+| `BA` | `BA` | Quantity Unit (Barrel)   2 chars |
+| `0000012` | `0000012` | Sequential number, increments from `0000001`   7 chars |
 
 **Total length:** 14 characters
 
@@ -1773,15 +1773,15 @@ async function callOSCU(endpoint, payload) {
     if (data.resultCd !== '000') {
         // Handle error
         if (data.resultCd === '001') {
-            // No results — not necessarily an error
+            // No results   not necessarily an error
             return [];
         }
         if (data.resultCd === '901') {
-            // Invalid device — re-initialize
+            // Invalid device   re-initialize
             await reinitializeDevice();
         }
         if (data.resultCd === '994') {
-            // Duplicate data — ignore or log
+            // Duplicate data   ignore or log
             console.warn('Duplicate data, ignoring:', data.resultMsg);
         }
         throw new Error(`eTIMS Error ${data.resultCd}: ${data.resultMsg}`);
@@ -1795,7 +1795,7 @@ async function callOSCU(endpoint, payload) {
 
 | Scenario | Code | Action |
 |----------|------|--------|
-| No results for a date range | `001` | Normal — store `resultDt` as new sync point |
+| No results for a date range | `001` | Normal   store `resultDt` as new sync point |
 | Device rejected | `901` | Re-register device with KRA |
 | Device already registered | `902` | Do not re-initialize; use stored cmcKey |
 | Duplicate invoice | `994` | Invoice already submitted; do not resubmit |
@@ -1842,7 +1842,7 @@ For a Point-of-Sale system, the critical path is:
 ### Scenario 4: Service Business (No Physical Stock)
 
 - Set `itemTyCd = "3"` (Service) for all items
-- Skip all stock IO calls — services have no inventory
+- Skip all stock IO calls   services have no inventory
 - Sales flow remains the same: `/saveTrnsSalesOsdc` is still required
 - Use `taxTyCd = "A"` (Exempt) or `"B"` (16%) as appropriate to your service
 

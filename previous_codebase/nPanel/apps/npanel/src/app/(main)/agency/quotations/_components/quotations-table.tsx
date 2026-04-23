@@ -67,9 +67,9 @@ export const QUOTATION_STATUSES = [
 ] as const;
 
 const formatCurrency = (amount: string | number | null | undefined, currency: string) => {
-	if (amount === null || amount === undefined || amount === "") return "—";
+	if (amount === null || amount === undefined || amount === "") return " ";
 	const n = typeof amount === "number" ? amount : Number(amount);
-	if (!Number.isFinite(n)) return "—";
+	if (!Number.isFinite(n)) return " ";
 	return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(n);
 };
 
@@ -246,12 +246,12 @@ export function QuotationsTable({ quotations, onRefetch }: QuotationsTableProps)
 							>
 								<div className="flex items-center gap-2">
 									<FileText className="h-4 w-4 text-muted-foreground" />
-									{q.quotationNumber ?? "—"}
+									{q.quotationNumber ?? " "}
 								</div>
 							</TableCell>
 							<TableCell>
 								<div className="flex flex-col">
-									<span>{q.customerName ?? "—"}</span>
+									<span>{q.customerName ?? " "}</span>
 									{q.customerEmail && <span className="text-muted-foreground text-sm">{q.customerEmail}</span>}
 								</div>
 							</TableCell>

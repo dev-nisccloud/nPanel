@@ -384,7 +384,7 @@ export function CreativeAssetsDetailPage({
               Internal Version
             </p>
             <p className="text-sm font-medium">
-              {asset.currentInternalVersion ? `v${asset.currentInternalVersion}` : "—"}
+              {asset.currentInternalVersion ? `v${asset.currentInternalVersion}` : " "}
             </p>
           </div>
 
@@ -393,7 +393,7 @@ export function CreativeAssetsDetailPage({
               Public Version
             </p>
             <p className="text-sm font-medium">
-              {asset.currentPublicVersion ? `v${asset.currentPublicVersion}` : "—"}
+              {asset.currentPublicVersion ? `v${asset.currentPublicVersion}` : " "}
             </p>
           </div>
 
@@ -403,8 +403,8 @@ export function CreativeAssetsDetailPage({
             </p>
             <p className="text-sm font-medium">
               {asset.versions && asset.versions.length > 0
-                ? asset.versions[0]?.mimeType || "—"
-                : "—"}
+                ? asset.versions[0]?.mimeType || " "
+                : " "}
             </p>
           </div>
 

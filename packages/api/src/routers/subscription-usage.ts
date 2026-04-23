@@ -11,7 +11,7 @@ import {
 } from "@npanel/db/schema/products";
 
 // ============================================================================
-// ZOD SCHEMAS — independent from the database schema layer
+// ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
 
 const subscriptionUsageOutputSchema = z.object({

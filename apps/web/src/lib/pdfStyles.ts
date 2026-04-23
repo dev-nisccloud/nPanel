@@ -110,7 +110,7 @@ export const pdfContainers = StyleSheet.create({
         paddingVertical: 16,
         flex: 1
     },
-    /** Full width of column; avoid `flex: 1` here — in a column parent it can grow vertically. */
+    /** Full width of column; avoid `flex: 1` here   in a column parent it can grow vertically. */
     CompanyDetails: {
         paddingLeft: 40,
         paddingRight: 20,
@@ -129,7 +129,7 @@ export const pdfContainers = StyleSheet.create({
 })
 
 /**
- * Invoice/quotation header logo frame — matches web branding:
+ * Invoice/quotation header logo frame   matches web branding:
  * - Auth layout (`auth.tsx`): `width={180} height={60}` with `h-15 w-auto` (60px tall).
  * - Sidebar expanded (`app-sidebar.tsx`): `h-12` (48px) is slightly smaller; PDF uses the auth size.
  * CSS px @ 96dpi → PDF pt: 180×60 → 135×45 (3:1).
@@ -165,7 +165,7 @@ export const pdfInvoiceMeta = {
     },
     /**
      * Bill To body: one `Text` with `\\n`-separated lines (`PdfCompanyDetailsBlock`).
-     * `lineHeight` is a **unitless multiplier** (like CSS), not points — `13` would mean 13× fontSize.
+     * `lineHeight` is a **unitless multiplier** (like CSS), not points   `13` would mean 13× fontSize.
      */
     valueBillTo: {
         fontSize: 10,

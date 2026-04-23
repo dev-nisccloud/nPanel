@@ -3,7 +3,7 @@ import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, 
 import { user } from "./auth";
 import { team } from "./teams";
 // =============================================================================
-// nisc_em_domain — Sending domains verified with AWS SES
+// nisc_em_domain   Sending domains verified with AWS SES
 // =============================================================================
 // One row per domain per team. The dkim_tokens array is what you show the
 // customer so they know what CNAME records to add to their DNS provider.
@@ -42,7 +42,7 @@ export const niscEmDomain = pgTable("nisc_em_domain", {
     dnsRecords: jsonb("dns_records").$type().default([]),
     // True after SetIdentityFeedbackForwardingEnabled(false) is called.
     // Must be disabled once verified so SES stops email-forwarding bounces/complaints
-    // (they come through SNS instead — that is the whole point of our setup).
+    // (they come through SNS instead   that is the whole point of our setup).
     feedbackForwardingDisabled: boolean("feedback_forwarding_disabled")
         .default(false)
         .notNull(),
@@ -59,7 +59,7 @@ export const niscEmDomain = pgTable("nisc_em_domain", {
     index("nisc_em_domain_dkimStatus_idx").on(table.dkimStatus),
 ]);
 // =============================================================================
-// nisc_em_audience — Contact lists (equivalent to Brevo "lists")
+// nisc_em_audience   Contact lists (equivalent to Brevo "lists")
 // =============================================================================
 export const niscEmAudience = pgTable("nisc_em_audience", {
     id: text("id").primaryKey(),
@@ -74,7 +74,7 @@ export const niscEmAudience = pgTable("nisc_em_audience", {
     index("nisc_em_audience_userId_idx").on(table.userId),
 ]);
 // =============================================================================
-// nisc_em_contact — Individual contacts within an audience
+// nisc_em_contact   Individual contacts within an audience
 // =============================================================================
 // status is updated by the SNS webhook:
 //   permanent bounce  → BOUNCED   + add to nisc_em_suppression
@@ -109,7 +109,7 @@ export const niscEmContact = pgTable("nisc_em_contact", {
     index("nisc_em_contact_status_idx").on(table.status),
 ]);
 // =============================================================================
-// nisc_em_campaign — Email campaigns
+// nisc_em_campaign   Email campaigns
 // =============================================================================
 export const niscEmCampaign = pgTable("nisc_em_campaign", {
     id: text("id").primaryKey(),
@@ -141,7 +141,7 @@ export const niscEmCampaign = pgTable("nisc_em_campaign", {
     // This is the denominator for all rate calculations:
     //   openRate = countWhere(opened_at IS NOT NULL) / totalRecipients
     totalRecipients: integer("total_recipients").default(0).notNull(),
-    // Incremented as emails leave the queue — used for send progress
+    // Incremented as emails leave the queue   used for send progress
     totalSent: integer("total_sent").default(0).notNull(),
     scheduledAt: timestamp("scheduled_at"),
     sentAt: timestamp("sent_at"), // when first email left the queue
@@ -157,7 +157,7 @@ export const niscEmCampaign = pgTable("nisc_em_campaign", {
     index("nisc_em_campaign_scheduledAt_idx").on(table.scheduledAt),
 ]);
 // =============================================================================
-// nisc_em_send_job — Background send job tracker
+// nisc_em_send_job   Background send job tracker
 // =============================================================================
 // One or more send jobs can exist per campaign (e.g. batched sends).
 // QStash message ID is stored for deduplication and retry tracking.
@@ -172,7 +172,7 @@ export const niscEmSendJob = pgTable("nisc_em_send_job", {
     qstashMessageId: text("qstash_message_id"),
     // How many emails this job is responsible for sending
     batchSize: integer("batch_size").default(0).notNull(),
-    // Incremented as each SendRawEmail call completes — powers progress UI
+    // Incremented as each SendRawEmail call completes   powers progress UI
     processedCount: integer("processed_count").default(0).notNull(),
     errorMessage: text("error_message"),
     scheduledFor: timestamp("scheduled_for"),
@@ -187,11 +187,11 @@ export const niscEmSendJob = pgTable("nisc_em_send_job", {
     index("nisc_em_send_job_scheduledFor_idx").on(table.scheduledFor),
 ]);
 // =============================================================================
-// nisc_em_email — One row per individual email send
+// nisc_em_email   One row per individual email send
 // =============================================================================
 // This is the core tracking table. Every call to SES SendRawEmail creates one
 // row. The ses_message_id (returned by SES) is the lookup key used by every
-// inbound SNS event notification — it is UNIQUE and heavily indexed.
+// inbound SNS event notification   it is UNIQUE and heavily indexed.
 //
 // WHY denormalized counters + timestamp columns here (not only in events):
 //   At scale (thousands of customers, daily campaigns) analytics queries are
@@ -217,7 +217,7 @@ export const niscEmEmail = pgTable("nisc_em_email", {
     // The MessageId returned by SES SendRawEmail.
     // Example: "0100017c1234abcd-f5e4d3c2-b1a0-9f8e-7d6c-5b4a3c2d1e0f-000000"
     // This is what arrives in body.mail.messageId on every SNS notification.
-    // MUST be unique — SNS sends exactly one messageId per email sent.
+    // MUST be unique   SNS sends exactly one messageId per email sent.
     sesMessageId: text("ses_message_id").unique(),
     // QUEUED | SENDING | SENT | DELIVERED | OPENED | CLICKED | BOUNCED | COMPLAINED | FAILED
     // Follows the highest-severity event received (CLICKED > OPENED > DELIVERED > SENT)
@@ -233,15 +233,15 @@ export const niscEmEmail = pgTable("nisc_em_email", {
     sentAt: timestamp("sent_at"),
     // From SNS Delivery event: body.delivery.timestamp
     deliveredAt: timestamp("delivered_at"),
-    // From SNS Open event: body.open.timestamp — FIRST open only
+    // From SNS Open event: body.open.timestamp   FIRST open only
     openedAt: timestamp("opened_at"),
-    // From SNS Click event: body.click.timestamp — FIRST click only
+    // From SNS Click event: body.click.timestamp   FIRST click only
     clickedAt: timestamp("clicked_at"),
     // From SNS Bounce event: body.bounce.timestamp
     bouncedAt: timestamp("bounced_at"),
     // From SNS Bounce event: body.bounce.bounceType
     // "Permanent" → hard bounce (unsubscribe + suppress)
-    // "Transient" → soft bounce (do NOT suppress — mailbox full, OOO, etc.)
+    // "Transient" → soft bounce (do NOT suppress   mailbox full, OOO, etc.)
     bounceType: text("bounce_type"),
     // From SNS Bounce event: body.bounce.bounceSubType
     // Permanent sub-types: General | NoEmail | Suppressed | OnAccountSuppressionList
@@ -252,7 +252,7 @@ export const niscEmEmail = pgTable("nisc_em_email", {
     // From SNS Complaint event: body.complaint.complaintFeedbackType
     // abuse | fraud | virus | other (or null if ISP did not include it)
     complaintFeedbackType: text("complaint_feedback_type"),
-    // Set if SendRawEmail itself throws — the SNS events will never arrive
+    // Set if SendRawEmail itself throws   the SNS events will never arrive
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
@@ -272,7 +272,7 @@ export const niscEmEmail = pgTable("nisc_em_email", {
     index("nisc_em_email_campaignId_deliveredAt_idx").on(table.campaignId, table.deliveredAt),
 ]);
 // =============================================================================
-// nisc_em_email_event — Raw event log (one row per SES event occurrence)
+// nisc_em_email_event   Raw event log (one row per SES event occurrence)
 // =============================================================================
 // Append-only. Never updated. Used for:
 //   - Per-contact engagement history ("what links did John click?")
@@ -314,9 +314,9 @@ export const niscEmEmailEvent = pgTable("nisc_em_email_event", {
     ipAddress: text("ip_address"),
     // body.open.userAgent | body.click.userAgent
     userAgent: text("user_agent"),
-    // body.click.link — the original URL before SES wrapped it
+    // body.click.link   the original URL before SES wrapped it
     link: text("link"),
-    // body.click.linkTags — custom tags you added to links in the template
+    // body.click.linkTags   custom tags you added to links in the template
     linkTags: jsonb("link_tags").$type(),
     // --- Bounce specific ---------------------------------------------------
     // body.bounce.bounceType: Permanent | Transient
@@ -372,7 +372,7 @@ export const niscEmEmailEvent = pgTable("nisc_em_email_event", {
     index("nisc_em_email_event_emailId_eventType_idx").on(table.emailId, table.eventType),
 ]);
 // =============================================================================
-// nisc_em_suppression — Suppression list (per-team or account-wide)
+// nisc_em_suppression   Suppression list (per-team or account-wide)
 // =============================================================================
 // Hard-bounces and complaints become rows here (`reason` = HARD_BOUNCE | COMPLAINT | MANUAL).
 // Same address may have both a bounce and a complaint row (different `reason`).
@@ -385,7 +385,7 @@ export const niscEmSuppression = pgTable("nisc_em_suppression", {
     email: text("email").notNull(),
     // HARD_BOUNCE | COMPLAINT | MANUAL
     reason: text("reason").notNull(),
-    // Which campaign/email triggered the suppression (nullable — manual entries have no source)
+    // Which campaign/email triggered the suppression (nullable   manual entries have no source)
     sourceCampaignId: text("source_campaign_id").references(() => niscEmCampaign.id, { onDelete: "set null" }),
     sourceEmailId: text("source_email_id").references(() => niscEmEmail.id, {
         onDelete: "set null",
@@ -402,7 +402,7 @@ export const niscEmSuppression = pgTable("nisc_em_suppression", {
     index("nisc_em_suppression_reason_idx").on(table.reason),
 ]);
 // =============================================================================
-// nisc_em_quota_window — snapshot of SES account quota (24-hour window)
+// nisc_em_quota_window   snapshot of SES account quota (24-hour window)
 // =============================================================================
 // SES exposes account-level limits:
 // - Max24HourSend (emails per 24-hour rolling window)
@@ -430,7 +430,7 @@ export const niscEmQuotaWindow = pgTable("nisc_em_quota_window", {
     index("nisc_em_quota_window_end_idx").on(table.windowEnd),
 ]);
 // =============================================================================
-// nisc_em_quota_reservation — projected quota usage for a send job
+// nisc_em_quota_reservation   projected quota usage for a send job
 // =============================================================================
 export const niscEmQuotaReservation = pgTable("nisc_em_quota_reservation", {
     id: text("id").primaryKey(),

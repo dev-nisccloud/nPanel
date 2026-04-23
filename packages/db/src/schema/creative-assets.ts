@@ -168,7 +168,7 @@ export const creativeAssetComment = pgTable(
     parentCommentId: text("parent_comment_id"),
     replyCount: integer("reply_count").default(0).notNull(),
 
-    // Prisma: `String[]` (required, no `@default`) — app supplies `[]` when needed.
+    // Prisma: `String[]` (required, no `@default`)   app supplies `[]` when needed.
     mentions: jsonb("mentions").notNull(),
 
     createdAt: timestamp("created_at").notNull(),

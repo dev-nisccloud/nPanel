@@ -263,19 +263,19 @@ export function GenerateInvoicesNode({
         <div className="rounded-md border px-2 py-1.5">
           <div className="text-muted-foreground">Meta</div>
           <div className="font-medium">
-            {metaTotal != null ? formatMoney(metaTotal, "KES") : "—"}
+            {metaTotal != null ? formatMoney(metaTotal, "KES") : " "}
           </div>
         </div>
         <div className="rounded-md border px-2 py-1.5">
           <div className="text-muted-foreground">Google Ads</div>
           <div className="font-medium">
-            {googleTotal != null ? formatMoney(googleTotal, "KES") : "—"}
+            {googleTotal != null ? formatMoney(googleTotal, "KES") : " "}
           </div>
         </div>
         <div className="rounded-md border px-2 py-1.5">
           <div className="text-muted-foreground">LinkedIn</div>
           <div className="font-medium">
-            {linkedInTotal != null ? formatMoney(linkedInTotal, "KES") : "—"}
+            {linkedInTotal != null ? formatMoney(linkedInTotal, "KES") : " "}
           </div>
         </div>
       </div>

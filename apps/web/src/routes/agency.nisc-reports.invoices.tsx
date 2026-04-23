@@ -128,20 +128,20 @@ export default function NiscInvoicesReportPage() {
                   <tbody className="divide-y divide-border/40">
                     {(invoiceList.data?.rows ?? []).map(inv => (
                       <tr key={inv.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{inv.invoiceNumber ?? "—"}</td>
-                        <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{(inv as any).teamName ?? "—"}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{inv.invoiceNumber ?? " "}</td>
+                        <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{(inv as any).teamName ?? " "}</td>
                         <td className="px-4 py-2.5 font-mono font-semibold">{fmt(inv.amount)}</td>
                         <td className="px-4 py-2.5"><StatusPill s={inv.status} /></td>
-                        <td className="px-4 py-2.5 text-xs">{inv.issueDate ? format(inv.issueDate, "MMM dd, yyyy") : "—"}</td>
-                        <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd, yyyy") : "—"}</td>
-                        <td className="px-4 py-2.5 text-xs text-emerald-600 dark:text-emerald-400">{inv.paidAt ? format(inv.paidAt, "MMM dd") : "—"}</td>
+                        <td className="px-4 py-2.5 text-xs">{inv.issueDate ? format(inv.issueDate, "MMM dd, yyyy") : " "}</td>
+                        <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd, yyyy") : " "}</td>
+                        <td className="px-4 py-2.5 text-xs text-emerald-600 dark:text-emerald-400">{inv.paidAt ? format(inv.paidAt, "MMM dd") : " "}</td>
                         <td className="px-4 py-2.5 text-xs">
                           {inv.kraStatus
                             ? <span className="inline-flex items-center gap-1">
                               {inv.kraStatus === "VERIFIED" ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <AlertCircle className="h-3.5 w-3.5 text-amber-500" />}
                               {inv.kraStatus}
                             </span>
-                            : <span className="text-muted-foreground">—</span>}
+                            : <span className="text-muted-foreground"> </span>}
                         </td>
                       </tr>
                     ))}
@@ -212,12 +212,12 @@ export default function NiscInvoicesReportPage() {
                     <tbody className="divide-y divide-border/40">
                       {creditNotes.data.rows.map(cn => (
                         <tr key={cn.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-2.5 font-mono text-xs">{cn.creditNumber ?? "—"}</td>
-                          <td className="px-4 py-2.5 font-medium">{cn.teamName ?? "—"}</td>
+                          <td className="px-4 py-2.5 font-mono text-xs">{cn.creditNumber ?? " "}</td>
+                          <td className="px-4 py-2.5 font-medium">{cn.teamName ?? " "}</td>
                           <td className="px-4 py-2.5 font-mono font-semibold">{fmt(cn.amount)}</td>
-                          <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">{cn.reason ?? "—"}</td>
+                          <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[200px] truncate">{cn.reason ?? " "}</td>
                           <td className="px-4 py-2.5"><StatusPill s={cn.status} /></td>
-                          <td className="px-4 py-2.5 text-xs">{cn.issuedAt ? format(cn.issuedAt, "MMM dd, yyyy") : "—"}</td>
+                          <td className="px-4 py-2.5 text-xs">{cn.issuedAt ? format(cn.issuedAt, "MMM dd, yyyy") : " "}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -268,8 +268,8 @@ export default function NiscInvoicesReportPage() {
                     <tbody className="divide-y divide-border/40">
                       {kra.data.rows.map(r => (
                         <tr key={r.id} className="hover:bg-muted/20">
-                          <td className="px-4 py-2.5 font-mono text-xs">{r.invoiceNumber ?? "—"}</td>
-                          <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{r.teamName ?? "—"}</td>
+                          <td className="px-4 py-2.5 font-mono text-xs">{r.invoiceNumber ?? " "}</td>
+                          <td className="px-4 py-2.5 font-medium max-w-[140px] truncate">{r.teamName ?? " "}</td>
                           <td className="px-4 py-2.5 font-mono">{fmt(r.amount)}</td>
                           <td className="px-4 py-2.5">
                             {r.kraStatus
@@ -280,9 +280,9 @@ export default function NiscInvoicesReportPage() {
                               )}>{r.kraStatus}</span>
                               : <span className="text-xs text-muted-foreground">Not Submitted</span>}
                           </td>
-                          <td className="px-4 py-2.5 font-mono text-xs">{r.kraInvoiceNumber ?? "—"}</td>
-                          <td className="px-4 py-2.5 font-mono text-xs">{r.kraReceiptNumber ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-xs">{r.kraVerifiedDate ? format(r.kraVerifiedDate, "MMM dd, yyyy") : "—"}</td>
+                          <td className="px-4 py-2.5 font-mono text-xs">{r.kraInvoiceNumber ?? " "}</td>
+                          <td className="px-4 py-2.5 font-mono text-xs">{r.kraReceiptNumber ?? " "}</td>
+                          <td className="px-4 py-2.5 text-xs">{r.kraVerifiedDate ? format(r.kraVerifiedDate, "MMM dd, yyyy") : " "}</td>
                         </tr>
                       ))}
                     </tbody>

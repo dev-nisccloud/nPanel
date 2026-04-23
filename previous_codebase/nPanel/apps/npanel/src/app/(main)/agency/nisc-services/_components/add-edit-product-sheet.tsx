@@ -450,7 +450,7 @@ export function AddEditProductSheet({
                                             <CardDescription>Category and service type drive how this product is reported and grouped</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
-                                            {/* Category — visual card picker */}
+                                            {/* Category   visual card picker */}
                                             <FormField
                                                 control={form.control}
                                                 name="category"
@@ -478,7 +478,7 @@ export function AddEditProductSheet({
                                                 )}
                                             />
 
-                                            {/* Service type — free text with suggestions */}
+                                            {/* Service type   free text with suggestions */}
                                             <FormField
                                                 control={form.control}
                                                 name="serviceType"
@@ -528,7 +528,7 @@ export function AddEditProductSheet({
                                         <CardContent className="space-y-3">
                                             {featureFields.length === 0 && (
                                                 <p className="text-sm text-muted-foreground py-2 text-center">
-                                                    No features yet — add the key capabilities clients care about.
+                                                    No features yet   add the key capabilities clients care about.
                                                 </p>
                                             )}
                                             {featureFields.map((field, index) => (

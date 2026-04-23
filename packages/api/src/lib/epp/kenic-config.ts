@@ -74,7 +74,7 @@ export function getKenicEppConfig(requireAuth: boolean): KenicEppEnvConfig {
 	}
 	if (!rejectUnauthorized) {
 		console.warn(
-			"[KENIC EPP] KENIC_EPP_REJECT_UNAUTHORIZED=false — TLS cert verification is DISABLED. " +
+			"[KENIC EPP] KENIC_EPP_REJECT_UNAUTHORIZED=false   TLS cert verification is DISABLED. " +
 				"Connection is still encrypted but peer certificate is NOT validated. " +
 				"Set to true once the registry cert issue is resolved."
 		);

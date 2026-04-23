@@ -250,7 +250,7 @@ export function WordPressInstancesTable({ domainName, onInstallClick }: WordPres
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {item.title || "—"}
+                    {item.title || " "}
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(item)}

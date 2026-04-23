@@ -10,7 +10,7 @@ function header(headers, name, fallback) {
 /**
  * Geo/locale hints from request headers (e.g. `x-vercel-ip-*` on Vercel).
  * Pass `request.headers` from your server (Hono, RR resource route, etc.).
- * In the browser, there are no geo headers — defaults apply.
+ * In the browser, there are no geo headers   defaults apply.
  */
 export function getCountryCodeSync(headers) {
     return header(headers, "x-vercel-ip-country", "SE");

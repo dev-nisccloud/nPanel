@@ -23,7 +23,7 @@ import {
 } from "../lib/products-cache";
 
 // ============================================================================
-// ZOD SCHEMAS — independent from the database schema layer
+// ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
 
 // --- Enum schemas ------------------------------------------------------------

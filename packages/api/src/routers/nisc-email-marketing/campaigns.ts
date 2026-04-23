@@ -40,6 +40,10 @@ function isAgencyUserRole(role: string | null | undefined): boolean {
   return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 }
 
+function isAgencySuperAdminRole(role: string | null | undefined): boolean {
+  return role === "AGENCY_SUPER_ADMIN";
+}
+
 async function assertCampaignAccess(campaignId: string, userId: string) {
   const [campaign] = await db
     .select({
@@ -74,7 +78,11 @@ async function assertCampaignAccess(campaignId: string, userId: string) {
   throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 }
 
-async function assertCampaignOwnerAccess(campaignId: string, userId: string) {
+async function assertCampaignOwnerAccess(
+  campaignId: string,
+  userId: string,
+  role: string | null | undefined,
+) {
   const [campaign] = await db
     .select({
       id: niscEmCampaign.id,
@@ -99,7 +107,7 @@ async function assertCampaignOwnerAccess(campaignId: string, userId: string) {
     .limit(1);
 
   if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
-  if (campaign.userId !== userId) {
+  if (!isAgencySuperAdminRole(role) && campaign.userId !== userId) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Only the campaign creator can modify it" });
   }
   return campaign;
@@ -395,9 +403,10 @@ export const niscEmailMarketingCampaignsRouter = router({
 
   send: protectedProcedure.input(campaignSendInputSchema).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    const campaign = await assertCampaignOwnerAccess(input.id, userId);
+    const campaign = await assertCampaignOwnerAccess(input.id, userId, userRole);
     const now = new Date();
 
     if (["SENDING", "SENT", "CANCELLED"].includes(campaign.status)) {
@@ -415,7 +424,7 @@ export const niscEmailMarketingCampaignsRouter = router({
     // Two-phase send:
     //   1. Flip the campaign to SENDING/SCHEDULED so the dispatcher is allowed
     //      to claim its queued rows. We must do this BEFORE publishing to QStash
-    //      — otherwise QStash can fire the worker before the row-level status is
+    //        otherwise QStash can fire the worker before the row-level status is
     //      committed and the dispatcher's claim query will select nothing.
     //   2. Publish the QStash job. If this fails, roll the campaign back to its
     //      previous status so the user can retry without getting stuck in
@@ -437,7 +446,7 @@ export const niscEmailMarketingCampaignsRouter = router({
         shouldSchedule ? scheduledAt : null,
       );
     } catch (err) {
-      // Rollback: only if nobody else has moved the campaign since — we don't
+      // Rollback: only if nobody else has moved the campaign since   we don't
       // want to clobber a concurrent cancel or a dispatcher that already
       // transitioned us to SENT.
       await db
@@ -463,9 +472,10 @@ export const niscEmailMarketingCampaignsRouter = router({
 
   cancel: protectedProcedure.input(campaignCancelInputSchema).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    const campaign = await assertCampaignOwnerAccess(input.id, userId);
+    const campaign = await assertCampaignOwnerAccess(input.id, userId, userRole);
     if (campaign.status !== "SCHEDULED") {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Campaign is not scheduled" });
     }
@@ -481,9 +491,10 @@ export const niscEmailMarketingCampaignsRouter = router({
 
   delete: protectedProcedure.input(z.object({ id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    await assertCampaignOwnerAccess(input.id, userId);
+    await assertCampaignOwnerAccess(input.id, userId, userRole);
     await db.delete(niscEmCampaign).where(eq(niscEmCampaign.id, input.id));
     return { ok: true };
   }),

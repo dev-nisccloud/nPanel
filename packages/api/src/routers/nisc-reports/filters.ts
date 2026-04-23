@@ -15,7 +15,7 @@ export const reportFiltersSchema = z.object({
   // Financial dimensions
   currency: z.string().optional(),
 
-  // Status dimensions — when omitted ALL statuses are returned including DRAFT
+  // Status dimensions   when omitted ALL statuses are returned including DRAFT
   invoiceStatuses: z.array(z.string()).optional(),
   subscriptionStatuses: z.array(z.string()).optional(),
   orderStatuses: z.array(z.string()).optional(),

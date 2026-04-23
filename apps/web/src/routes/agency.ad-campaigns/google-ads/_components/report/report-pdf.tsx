@@ -75,13 +75,13 @@ function fmtDate(dateString: string) {
 
 function fmtNum(v: any): string {
     const n = typeof v === "string" ? parseFloat(v) : Number(v);
-    if (!Number.isFinite(n)) return "—";
+    if (!Number.isFinite(n)) return " ";
     return new Intl.NumberFormat("en-US", { notation: "compact", compactDisplay: "short" }).format(n);
 }
 
 function fmtMoney(v: any, currency: string): string {
     const n = typeof v === "string" ? parseFloat(v) : Number(v);
-    if (!Number.isFinite(n)) return "—";
+    if (!Number.isFinite(n)) return " ";
     return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
@@ -91,9 +91,9 @@ function asNumber(v: any): number {
 }
 
 function safeShort(s: any): string {
-    if (s == null) return "—";
+    if (s == null) return " ";
     const v = String(s);
-    return v.length ? v : "—";
+    return v.length ? v : " ";
 }
 
 function unwrapArray(v: any): any[] {
@@ -636,7 +636,7 @@ const ReportContentPage = (props: any) => {
         { label: "Conversions", value: fmtNum(insights.conversions || 0), color: "#f97316" },
         { label: "Conv. Value", value: fmtMoney(insights.conversions_value || 0, currency), color: "#0ea5e9" },
         { label: "Interactions", value: fmtNum(insights.interactions || 0), color: "#a855f7" },
-        { label: "Interaction Rate", value: insights.interaction_rate ? `${Number(insights.interaction_rate).toFixed(2)}%` : "—", color: "#7c3aed" },
+        { label: "Interaction Rate", value: insights.interaction_rate ? `${Number(insights.interaction_rate).toFixed(2)}%` : " ", color: "#7c3aed" },
         { label: "Avg CPC", value: fmtMoney(insights.cpc || 0, currency), color: "#fb923c" },
     ];
 
@@ -667,7 +667,7 @@ const ReportContentPage = (props: any) => {
                 {(!campaignTargeting || campaignTargeting.length === 0) && (
                     <View style={styles.tableRow}>
                         <Text style={[styles.tableCellName, styles.tableCellWrap]}>No targeting data available</Text>
-                        <Text style={styles.tableCellValue}>—</Text>
+                        <Text style={styles.tableCellValue}> </Text>
                     </View>
                 )}
             </View>
@@ -691,7 +691,7 @@ const ReportContentPage = (props: any) => {
                 {(!adGroups || adGroups.length === 0) && (
                     <View style={styles.tableRow}>
                         <Text style={[styles.tableCellName, styles.tableCellWrap]}>No ad groups found</Text>
-                        <Text style={styles.tableCellValue}>—</Text>
+                        <Text style={styles.tableCellValue}> </Text>
                     </View>
                 )}
             </View>

@@ -235,16 +235,16 @@ export default function NiscSubscriptionsReportPage() {
                   <tbody className="divide-y divide-border/40">
                     {(list.data?.rows ?? []).map(s => (
                       <tr key={s.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{s.teamName ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-xs max-w-[160px] truncate">{s.productName ?? "—"}</td>
+                        <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{s.teamName ?? " "}</td>
+                        <td className="px-4 py-2.5 text-xs max-w-[160px] truncate">{s.productName ?? " "}</td>
                         <td className="px-4 py-2.5">
                           <span className={cn("inline-flex px-2 py-0.5 rounded text-[11px] font-semibold",
                             SUB_STATUS_COLORS[s.status] ?? "bg-muted text-muted-foreground")}>{s.status}</span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-muted-foreground">{s.billingCycle ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground">{s.billingCycle ?? " "}</td>
                         <td className="px-4 py-2.5 font-mono font-semibold">{fmt(s.mrr)}</td>
-                        <td className="px-4 py-2.5 text-xs">{s.nextRenewalDate ? format(s.nextRenewalDate, "MMM dd, yyyy") : "—"}</td>
-                        <td className="px-4 py-2.5 text-xs">{s.expiryDate ? format(s.expiryDate, "MMM dd, yyyy") : "—"}</td>
+                        <td className="px-4 py-2.5 text-xs">{s.nextRenewalDate ? format(s.nextRenewalDate, "MMM dd, yyyy") : " "}</td>
+                        <td className="px-4 py-2.5 text-xs">{s.expiryDate ? format(s.expiryDate, "MMM dd, yyyy") : " "}</td>
                       </tr>
                     ))}
                     {(list.data?.rows ?? []).length === 0 && (
@@ -278,9 +278,9 @@ export default function NiscSubscriptionsReportPage() {
                   <tbody className="divide-y divide-border/40">
                     {(renewals.data ?? []).map(r => (
                       <tr key={r.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{r.teamName ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-xs max-w-[160px] truncate">{r.productName ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-xs">{r.renewalDate ? format(r.renewalDate, "MMM dd, yyyy") : "—"}</td>
+                        <td className="px-4 py-2.5 font-medium max-w-[160px] truncate">{r.teamName ?? " "}</td>
+                        <td className="px-4 py-2.5 text-xs max-w-[160px] truncate">{r.productName ?? " "}</td>
+                        <td className="px-4 py-2.5 text-xs">{r.renewalDate ? format(r.renewalDate, "MMM dd, yyyy") : " "}</td>
                         <td className="px-4 py-2.5">
                           <span className={cn("font-bold text-sm", r.daysUntilRenewal <= 15 ? "text-red-600 dark:text-red-400" : r.daysUntilRenewal <= 30 ? "text-amber-600 dark:text-amber-400" : "")}>
                             {r.daysUntilRenewal}d
@@ -336,15 +336,15 @@ export default function NiscSubscriptionsReportPage() {
                     <tbody className="divide-y divide-border/40">
                       {churn.data.rows.map(r => (
                         <tr key={r.id} className="hover:bg-muted/20">
-                          <td className="px-4 py-2.5 font-medium truncate max-w-[160px]">{r.teamName ?? "—"}</td>
-                          <td className="px-4 py-2.5 text-xs truncate max-w-[160px]">{r.productName ?? "—"}</td>
+                          <td className="px-4 py-2.5 font-medium truncate max-w-[160px]">{r.teamName ?? " "}</td>
+                          <td className="px-4 py-2.5 text-xs truncate max-w-[160px]">{r.productName ?? " "}</td>
                           <td className="px-4 py-2.5 text-xs">{format(r.churnDate, "MMM dd, yyyy")}</td>
                           <td className="px-4 py-2.5 text-xs font-mono">{r.tenureDays}d</td>
                           <td className="px-4 py-2.5 font-mono font-semibold text-red-600 dark:text-red-400">{fmt(r.mrrLost)}</td>
                         </tr>
                       ))}
                       {churn.data.rows.length === 0 && (
-                        <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm italic">No churn in this period — great!</td></tr>
+                        <tr><td colSpan={5} className="py-8 text-center text-muted-foreground text-sm italic">No churn in this period   great!</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -373,8 +373,8 @@ export default function NiscSubscriptionsReportPage() {
                   <tbody className="divide-y divide-border/40">
                     {(upgrades.data ?? []).map(r => (
                       <tr key={r.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-2.5 font-medium truncate max-w-[160px]">{r.teamName ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-xs truncate max-w-[160px]">{r.productName ?? "—"}</td>
+                        <td className="px-4 py-2.5 font-medium truncate max-w-[160px]">{r.teamName ?? " "}</td>
+                        <td className="px-4 py-2.5 text-xs truncate max-w-[160px]">{r.productName ?? " "}</td>
                         <td className="px-4 py-2.5">
                           <span className={cn("inline-flex px-2 py-0.5 rounded text-[11px] font-semibold",
                             r.changeType === "UPGRADE" ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300")}>

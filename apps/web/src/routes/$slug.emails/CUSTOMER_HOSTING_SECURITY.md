@@ -1,4 +1,4 @@
-# Customer-Side Hosting — Security Measures
+# Customer-Side Hosting   Security Measures
 
 This document describes **all security measures** that protect customer-side hosting: how access is controlled, how ownership is enforced, and how we prevent customers from seeing or acting on other teams’ hosting resources.
 
@@ -13,7 +13,7 @@ Customer hosting lives under `/{teamSlug}/hosting`. The `[slug]` layout runs **b
 | Measure | Description |
 |--------|-------------|
 | **Agency slug block** | If `slug === "agency"`, redirect to `/agency/dashboard` so customer layout never runs for agency routes. |
-| **Role check** | `requireRole(["CUSTOMER"])` — user must be authenticated and have role `CUSTOMER`. Non‑customers (e.g. agency) are redirected to the right dashboard. |
+| **Role check** | `requireRole(["CUSTOMER"])`   user must be authenticated and have role `CUSTOMER`. Non‑customers (e.g. agency) are redirected to the right dashboard. |
 | **Agency user redirect** | If user has role containing `"AGENCY"`, redirect to `/agency/dashboard` so agency users cannot use customer routes. |
 | **Team access** | `verifyTeamAccess(slug)` ensures the user is a **member** of the team for that slug (via `TeamMember`). If not, redirect to `/create-team`. |
 | **Team active** | Only teams with `isActive: true` are considered; inactive teams get no access. |
@@ -29,13 +29,13 @@ Customer hosting lives under `/{teamSlug}/hosting`. The `[slug]` layout runs **b
 
 ## 2. List: which subscriptions the customer sees
 
-**Location:** `packages/api/src/routers/plesk/subscriptions.ts` — `getByTeamFilterIds`
+**Location:** `packages/api/src/routers/plesk/subscriptions.ts`   `getByTeamFilterIds`
 
 **Frontend:** `apps/npanel/src/app/(main)/[slug]/hosting/_components/use-hosting-subscriptions.ts`
 
 ### Backend
 
-- **Auth:** `protectedProcedure` — requires valid session.
+- **Auth:** `protectedProcedure`   requires valid session.
 - **Input:** `teamId` (required), optional `hostingSubType` (e.g. `"WEB_HOSTING"`).
 - **Logic:**
   1. Load **ServiceSubscription** rows where:
@@ -51,7 +51,7 @@ So the list is **strictly team-scoped**: only subscriptions linked to that team 
 ### Frontend
 
 - **Team from URL:** Team slug is taken from pathname (`pathname.split("/")[1]`).
-- **Team ID:** `trpc.teams.getTeamIdBySlug.useQuery({ slug: teamSlug })` — no Plesk call without a resolved team ID.
+- **Team ID:** `trpc.teams.getTeamIdBySlug.useQuery({ slug: teamSlug })`   no Plesk call without a resolved team ID.
 - **Query gating:** `getByTeamFilterIds` runs only when `!!teamData?.id`.
 - **Subtype:** `hostingSubType: "WEB_HOSTING"` is passed so only web hosting subscriptions are shown.
 
@@ -61,14 +61,14 @@ So the list is **strictly team-scoped**: only subscriptions linked to that team 
 
 ## 3. Detail: access to a single subscription
 
-**Location:** `packages/api/src/routers/hosting.ts` — `getDetailWithSubscription`
+**Location:** `packages/api/src/routers/hosting.ts`   `getDetailWithSubscription`
 
 **Frontend:** `apps/npanel/src/app/(main)/[slug]/hosting/_components/use-hosting-detail-batched.ts`  
 **Page:** `apps/npanel/src/app/(main)/[slug]/hosting/_components/hosting-detail-page.tsx`
 
 ### Backend
 
-- **Auth:** `protectedProcedure` — requires valid session.
+- **Auth:** `protectedProcedure`   requires valid session.
 - **Input:** `subscriptionId` (Plesk webspace id), optional `teamId` for ownership check.
 - **Steps:**
   1. Fetch the subscription from Plesk by id (no team filter at Plesk level).
@@ -91,7 +91,7 @@ So for customer requests we **always** pass `teamId`; the backend then ties the 
 
 ### Frontend
 
-- **Team from URL:** Same as list — team slug from pathname, then `getTeamIdBySlug`.
+- **Team from URL:** Same as list   team slug from pathname, then `getTeamIdBySlug`.
 - **Query gating:** `getDetailWithSubscription` runs only when `!!subscriptionId && !!teamData?.id`.
 - **Ownership:** `teamId: teamData?.id` is sent so the backend can enforce the check above.
 - **Errors:**

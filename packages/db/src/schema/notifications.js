@@ -33,7 +33,7 @@ export const notification = pgTable("notification", {
     index("notification_teamId_seen_idx").on(table.teamId, table.seen),
 ]);
 // --- NotificationActivityLog -------------------------------------------------
-// Parity: NotificationActivityLog — userId has no User relation in Prisma (no FK).
+// Parity: NotificationActivityLog   userId has no User relation in Prisma (no FK).
 export const notificationActivityLog = pgTable("notification_activity_log", {
     id: text("_id").primaryKey(),
     notificationId: text("notification_id")

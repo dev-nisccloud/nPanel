@@ -62,7 +62,7 @@ export async function handleTestKenicConnection(c: Context) {
     // 3. TCP reachability
     const tcp = await testTcpReachability(cfg.host, cfg.port);
 
-    // 4. TLS cert inspection (always rejectUnauthorized=false here — diagnostic only)
+    // 4. TLS cert inspection (always rejectUnauthorized=false here   diagnostic only)
     let tlsCert: Record<string, unknown> | null = null;
     let tlsError: string | null = null;
     if (tcp.reachable) {
@@ -104,10 +104,10 @@ export async function handleTestKenicConnection(c: Context) {
         tlsWillValidate: resolved.rejectUnauthorized ? tlsWillValidate : true,
         rejectUnauthorizedDisabled: !resolved.rejectUnauthorized,
         note: !resolved.rejectUnauthorized
-          ? "KENIC_EPP_REJECT_UNAUTHORIZED=false — cert is NOT verified (connection still encrypted)"
+          ? "KENIC_EPP_REJECT_UNAUTHORIZED=false   cert is NOT verified (connection still encrypted)"
           : tlsWillValidate
-            ? "Cert SAN matches tlsServername — TLS validation should pass"
-            : `Cert SAN [${(tlsCert?.subjectAltNamesDns as string[] | undefined)?.join(", ") ?? "none"}] does NOT include '${resolved.tlsServername}' — TLS validation will fail. Set KENIC_EPP_TLS_SERVERNAME to '${tlsCert?.suggestedTlsServername ?? "?"}'`,
+            ? "Cert SAN matches tlsServername   TLS validation should pass"
+            : `Cert SAN [${(tlsCert?.subjectAltNamesDns as string[] | undefined)?.join(", ") ?? "none"}] does NOT include '${resolved.tlsServername}'   TLS validation will fail. Set KENIC_EPP_TLS_SERVERNAME to '${tlsCert?.suggestedTlsServername ?? "?"}'`,
       },
     });
   } catch (error: unknown) {

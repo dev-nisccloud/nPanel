@@ -387,7 +387,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
     },
   });
 
-  // Poll payment status — real-time only, no cache (staleTime/gcTime 0)
+  // Poll payment status   real-time only, no cache (staleTime/gcTime 0)
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
     { checkoutRequestId: checkoutRequestId! },
     {

@@ -28,7 +28,7 @@ interface ApiCallDebug {
 }
 
 /** BATCH_GET  /v2/{endpoint}?ids=List(id1,id2,…)  → { names, debug } (REST.li 2.0.0 format)
- *  IMPORTANT: List() syntax must NOT be URL-encoded — append as raw string, not via URLSearchParams */
+ *  IMPORTANT: List() syntax must NOT be URL-encoded   append as raw string, not via URLSearchParams */
 async function batchGetNames(
 	accessToken: string,
 	endpoint: string,
@@ -158,7 +158,7 @@ async function batchGetGeoNames(accessToken: string, geoIds: string[]) {
 	}
 }
 
-/** Facets whose values can be decoded purely from the URN — no API needed */
+/** Facets whose values can be decoded purely from the URN   no API needed */
 function parseInlineFacet(facetKey: string, urns: string[]): string[] {
 	return urns.map(urn => {
 		const colonIdx = urn.indexOf(':(');
@@ -231,7 +231,7 @@ const PARSEABLE_FACETS = new Set([
 ]);
 
 const BATCH_GET_CONFIG: Record<string, { endpoint: string; nameExtractor: (e: any) => string; extraParams: Record<string, string> }> = {
-	// No locale params — the /v2 standardized endpoints reject them (403 ACCESS_DENIED for locale.*)
+	// No locale params   the /v2 standardized endpoints reject them (403 ACCESS_DENIED for locale.*)
 	industries:     { endpoint: '/v2/industries',    nameExtractor: multiLocaleName, extraParams: {} },
 	companyIndustry:{ endpoint: '/v2/industries',    nameExtractor: multiLocaleName, extraParams: {} },
 	titles:         { endpoint: '/v2/titles',         nameExtractor: multiLocaleName, extraParams: {} },
@@ -241,7 +241,7 @@ const BATCH_GET_CONFIG: Record<string, { endpoint: string; nameExtractor: (e: an
 };
 
 const GET_ALL_CONFIG: Record<string, { endpoint: string; extraParams: Record<string, string> }> = {
-	// No locale params — seniorities explicitly rejects locale.language / locale.country
+	// No locale params   seniorities explicitly rejects locale.language / locale.country
 	seniorities: { endpoint: '/v2/seniorities', extraParams: {} },
 	functions:   { endpoint: '/v2/functions',   extraParams: {} },
 	jobFunctions:{ endpoint: '/v2/functions',   extraParams: {} },
@@ -513,7 +513,7 @@ export const linkedInAdsCampaignsRouter = router({
 
 			if (facetMap.size === 0) return { data: [], debug: [] };
 
-			// 2. Build the list of tasks — one per facet that needs an API call
+			// 2. Build the list of tasks   one per facet that needs an API call
 			type Task = {
 				facetKey: string;
 				ids: string[];

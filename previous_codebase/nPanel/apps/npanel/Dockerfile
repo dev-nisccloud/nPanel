@@ -82,7 +82,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/db/prisma/generated ./no
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
 # Do NOT set PORT here: Cloud Run injects PORT at runtime (default 8080). Hardcoding PORT can conflict with Cloud Run and break the build/deploy.
-# Fallback so app doesn't crash when no secret is provided at runtime (Docker warns about ENV secrets—override in production via GCP Secret Manager or -e)
+# Fallback so app doesn't crash when no secret is provided at runtime (Docker warns about ENV secrets override in production via GCP Secret Manager or -e)
 ENV BETTER_AUTH_SECRET="6314f0d045ce9041126b81021bc5123bd51f718ec650ed8aa06f3ffe5ac45558"
 
 # In monorepo standalone mode, the entrypoint is nested in the apps folder

@@ -46,7 +46,7 @@ export function HostingCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base font-semibold line-clamp-2 flex-1">
-            {data.subscriptionName ?? "—"}
+            {data.subscriptionName ?? " "}
           </CardTitle>
           <Badge
             variant={getStatusBadgeVariant(data.status)}

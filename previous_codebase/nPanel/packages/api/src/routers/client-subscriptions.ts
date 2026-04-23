@@ -4,7 +4,7 @@ import { protectedProcedure, router } from "../trpc";
 import prisma, { Prisma } from "@npanel/db";
 
 // ============================================================================
-// ZOD SCHEMAS — independent from the database schema layer
+// ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
 
 // --- Enum schemas ------------------------------------------------------------
@@ -1392,8 +1392,8 @@ export const clientSubscriptionsRouter = router({
                 : "Your service will be suspended 7 days after the expiry date if not renewed.";
             const subscriptionDateStr = sub.subscriptionDate
                 ? new Date(sub.subscriptionDate).toLocaleDateString()
-                : "—";
-            const expiryDateStr = sub.expiryDate ? new Date(sub.expiryDate).toLocaleDateString() : "—";
+                : " ";
+            const expiryDateStr = sub.expiryDate ? new Date(sub.expiryDate).toLocaleDateString() : " ";
 
             const { renderServiceRenewalReminderEmail } = await import("../lib/email-templates");
             const html = await renderServiceRenewalReminderEmail({

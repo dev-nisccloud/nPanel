@@ -120,8 +120,8 @@ model NiscProductAddOn {
 
 // --- NiscProductPlan ---------------------------------------------------------
 // A pricing tier within a product. Supports two pricing models:
-//   FIXED      — set price per billing cycle
-//   COMMISSION — percentage of a variable base amount (e.g. ad spend)
+//   FIXED        set price per billing cycle
+//   COMMISSION   percentage of a variable base amount (e.g. ad spend)
 //
 // Feature availability is declared per plan via planFeatures.
 // Any feature key NOT present in planFeatures defaults to available=false
@@ -149,9 +149,9 @@ model NiscProductPlan {
 
   // Per-plan feature availability.
   // Shape: [{ key: String, available: Boolean, valueOverride?: String }]
-  //   key           — matches a key in NiscProduct.features[]
-  //   available     — true/false for this plan
-  //   valueOverride — optional display override, e.g. "50GB" instead of "Storage"
+  //   key             matches a key in NiscProduct.features[]
+  //   available       true/false for this plan
+  //   valueOverride   optional display override, e.g. "50GB" instead of "Storage"
   // Application ensures every product feature key appears here (defaulting to false).
   planFeatures Json[] @default([])
 
@@ -192,7 +192,7 @@ model NiscProductPlan {
 // --- NiscProductPlanUsage ----------------------------------------------------
 // Usage limit/configuration per product+plan (optional user/team override).
 // Defines limit value and overuse behaviour (HARD = block, SOFT = allow and flag).
-// usageKind: e.g. "image_generations", "background_removals" — generic for any plan.
+// usageKind: e.g. "image_generations", "background_removals"   generic for any plan.
 // limitValue: string for flexibility ("100", "unlimited", future formats).
 
 model NiscProductPlanUsage {
@@ -206,7 +206,7 @@ model NiscProductPlanUsage {
   limitValue String // e.g. "100", "1000", "unlimited"
   overuse    NiscUsageOveruse // HARD = block when over; SOFT = allow and flag/bill
 
-  period String? // optional: "MONTHLY", "YEARLY", "DAILY" — reset window (app/cron applies)
+  period String? // optional: "MONTHLY", "YEARLY", "DAILY"   reset window (app/cron applies)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -227,7 +227,7 @@ model NiscProductPlanUsage {
 // domains, hosting, media buying, SEO, email marketing, social media, etc.
 //
 // Key design decisions:
-// • userId and teamId are both optional — a subscription can belong to an
+// • userId and teamId are both optional   a subscription can belong to an
 //   individual, a team, or both.
 // • Common service fields have typed columns (indexed, queryable).
 // • serviceRefs is a JSONB bag for cross-table reference IDs to other models
@@ -238,15 +238,15 @@ model NiscClientSubscription {
   id String @id @default(cuid())
 
   name        String? // Name of the subscription which can be a combination of the product and plan name
-  description String? // e.g. "registration", "transfer", "renewal" — further describes the subscription
+  description String? // e.g. "registration", "transfer", "renewal"   further describes the subscription
 
-  // Ownership — both optional
+  // Ownership   both optional
   userId String? // individual client contact
   teamId String? // company / team
 
   productId     String
   productPlanId String? // null for custom / one-off engagements
-  orderId       String? // Order that created this subscription (if any) — legacy
+  orderId       String? // Order that created this subscription (if any)   legacy
   niscOrderId   String? // Nisc order that created this subscription (new flow)
   subscribedBy  String? // User ID of agency staff who enrolled the client
   recordedBy    String? // User ID of admin who manually created this record
@@ -297,7 +297,7 @@ model NiscClientSubscription {
 
   // ── serviceRefs: flexible JSONB cross-table reference bag ─────────────────
   // Stores IDs pointing to related records in other tables.
-  // No FK constraints — application resolves references as needed.
+  // No FK constraints   application resolves references as needed.
   //
   // Examples:
   //   { "socialMediaPageTokenId": "xxx" }
@@ -360,7 +360,7 @@ model NiscClientSubscription {
 
 // --- NiscClientSubscriptionUsage ---------------------------------------------
 // Per-subscription usage balance per usage kind. Credits can be reduced (on use)
-// or increased (top-up, renewal, manual). No period columns — refill/reset via app/cron.
+// or increased (top-up, renewal, manual). No period columns   refill/reset via app/cron.
 // One row per (subscriptionId, usageKind); uniqueness enforced by application or unique constraint.
 
 model NiscClientSubscriptionUsage {
@@ -539,7 +539,7 @@ model NiscProductPromo {
 // --- NiscProductPromoRedeem --------------------------------------------------
 // Records each time a user redeems a Nisc product promo (coupon code).
 // Promos can be applied to: orders (new purchase), subscriptions (new signup or
-// existing subscription — e.g. discount applied to current plan), or renewals.
+// existing subscription   e.g. discount applied to current plan), or renewals.
 // Used for audit, usage counting, and reporting.
 
 model NiscProductPromoRedeem {
@@ -547,7 +547,7 @@ model NiscProductPromoRedeem {
   promoId    String
   redeemedAt DateTime @default(now())
 
-  // Who redeemed (optional — could be guest checkout or agency-applied)
+  // Who redeemed (optional   could be guest checkout or agency-applied)
   userId String?
   teamId String?
 

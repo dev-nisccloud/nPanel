@@ -147,7 +147,7 @@ export function DomainSearchSection({
 
 	const onLoadingChangeRef = React.useRef(onLoadingChange);
 	onLoadingChangeRef.current = onLoadingChange;
-	// NOTE: useEffect (NOT useLayoutEffect) — reporting loading state to parent is a side-effect,
+	// NOTE: useEffect (NOT useLayoutEffect)   reporting loading state to parent is a side-effect,
 	// not a DOM measurement. useLayoutEffect here caused synchronous state cascade during commit.
 	React.useEffect(() => {
 		onLoadingChangeRef.current?.(isSelected ? isLoading : false);

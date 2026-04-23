@@ -73,13 +73,13 @@ function fmtDate(dateString: string) {
 
 function fmtNum(v: any): string {
     const n = typeof v === "string" ? parseFloat(v) : Number(v);
-    if (!Number.isFinite(n)) return "—";
+    if (!Number.isFinite(n)) return " ";
     return new Intl.NumberFormat("en-US", { notation: "compact", compactDisplay: "short" }).format(n);
 }
 
 function fmtMoney(v: any, currency: string): string {
     const n = typeof v === "string" ? parseFloat(v) : Number(v);
-    if (!Number.isFinite(n)) return "—";
+    if (!Number.isFinite(n)) return " ";
     return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
@@ -89,9 +89,9 @@ function asNumber(v: any): number {
 }
 
 function safeShort(s: any): string {
-    if (s == null) return "—";
+    if (s == null) return " ";
     const v = String(s);
-    return v.length ? v : "—";
+    return v.length ? v : " ";
 }
 
 function unwrapArray(v: any): any[] {
@@ -285,8 +285,8 @@ const CategoryMultiLineChart = ({
     series: Array<{ key: string; label: string; color: string }>;
 }) => {
     const data = (rows || [])
-        .map((r) => ({ ...r, __x: safeShort(r?.[xKey] ?? "—") }))
-        .filter((r) => r.__x && r.__x !== "—");
+        .map((r) => ({ ...r, __x: safeShort(r?.[xKey] ?? " ") }))
+        .filter((r) => r.__x && r.__x !== " ");
     if (!data.length) return null;
 
     const width = 480;
@@ -719,9 +719,9 @@ const ReportContentPage = (props: any) => {
                 {(!adSets || adSets.length === 0) && (
                     <View style={styles.tableRow}>
                         <Text style={styles.tableCellName}>No ad sets found</Text>
-                        <Text style={styles.tableCellValue}>—</Text>
-                        <Text style={styles.tableCellValue}>—</Text>
-                        <Text style={styles.tableCellValue}>—</Text>
+                        <Text style={styles.tableCellValue}> </Text>
+                        <Text style={styles.tableCellValue}> </Text>
+                        <Text style={styles.tableCellValue}> </Text>
                     </View>
                 )}
             </View>
@@ -738,7 +738,7 @@ const ReportContentPage = (props: any) => {
                         <View key={i} style={styles.tableRow}>
                             <Text style={[styles.tableCellName, styles.tableCellWrap, { width: "35%" }]}>{a?.name || `Ad Set ${a?.id}`}</Text>
                             <Text style={[styles.tableCellValue, { width: "65%", textAlign: "left", fontWeight: "normal" }]}>
-                                {targeting || "—"}
+                                {targeting || " "}
                             </Text>
                         </View>
                     );
@@ -755,7 +755,7 @@ const ReportContentPage = (props: any) => {
                     { label: "Spend", value: fmtMoney(a?.insights?.spend || 0, currency), color: "#059669" },
                     { label: "Leads", value: fmtNum(a?.insights?.oneClickLeads || 0), color: "#f97316" },
                     { label: "Video Views", value: fmtNum(a?.insights?.videoViews || 0), color: "#0ea5e9" },
-                    { label: "Status", value: safeShort(a?.status || "—"), color: "#64748b" },
+                    { label: "Status", value: safeShort(a?.status || " "), color: "#64748b" },
                 ];
 
                 return (

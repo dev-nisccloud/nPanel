@@ -204,7 +204,7 @@ export function CreativeAssetCard({
                 Internal Version
               </p>
               <p className="text-sm font-medium">
-                {data.currentInternalVersion ? `v${data.currentInternalVersion}` : "—"}
+                {data.currentInternalVersion ? `v${data.currentInternalVersion}` : " "}
               </p>
             </div>
             
@@ -213,7 +213,7 @@ export function CreativeAssetCard({
                 Public Version
               </p>
               <p className="text-sm font-medium">
-                {data.currentPublicVersion ? `v${data.currentPublicVersion}` : "—"}
+                {data.currentPublicVersion ? `v${data.currentPublicVersion}` : " "}
               </p>
             </div>
           </div>

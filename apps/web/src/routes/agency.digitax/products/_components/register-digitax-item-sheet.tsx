@@ -29,16 +29,16 @@ import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 
 const ITEM_CLASS_OPTIONS: ComboboxItem[] = [
-  { id: "81111600", label: "81111600 — Computer programmers" },
-  { id: "80161500", label: "80161500 — Management support services" },
-  { id: "84111600", label: "84111600 — Audit services" },
-  { id: "83111600", label: "83111600 — Mobile communications services" },
-  { id: "82101600", label: "82101600 — Broadcast advertising" },
-  { id: "80171600", label: "80171600 — Publicity and marketing support services" },
-  { id: "82111600", label: "82111600 — Non technical writing" },
-  { id: "82141600", label: "82141600 — Graphic display services" },
-  { id: "86111600", label: "86111600 — Adult education" },
-  { id: "76111600", label: "76111600 — Building component cleaning services" },
+  { id: "81111600", label: "81111600   Computer programmers" },
+  { id: "80161500", label: "80161500   Management support services" },
+  { id: "84111600", label: "84111600   Audit services" },
+  { id: "83111600", label: "83111600   Mobile communications services" },
+  { id: "82101600", label: "82101600   Broadcast advertising" },
+  { id: "80171600", label: "80171600   Publicity and marketing support services" },
+  { id: "82111600", label: "82111600   Non technical writing" },
+  { id: "82141600", label: "82141600   Graphic display services" },
+  { id: "86111600", label: "86111600   Adult education" },
+  { id: "76111600", label: "76111600   Building component cleaning services" },
 ].sort((a, b) => a.id.localeCompare(b.id));
 
 const formSchema = z.object({

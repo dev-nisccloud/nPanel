@@ -1022,7 +1022,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 								</div>
 							)}
 
-							{/* Step 2: Email Template — choose template or provide HTML */}
+							{/* Step 2: Email Template   choose template or provide HTML */}
 							{step === 2 && (
 								<div className="space-y-4 min-w-0 overflow-x-auto">
 									<div>
@@ -1116,7 +1116,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 										<div className="min-w-0">
 											<Label>Write or paste content</Label>
 											<Textarea
-												placeholder="Type or paste HTML content here. You can also use plain text — line breaks will be preserved in the sent email."
+												placeholder="Type or paste HTML content here. You can also use plain text   line breaks will be preserved in the sent email."
 												value={htmlContent}
 												onChange={(e) => {
 													const v = e.target.value;
@@ -1288,7 +1288,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 								</div>
 							)}
 
-							{/* Step 4: Preview — how the email will look to recipients */}
+							{/* Step 4: Preview   how the email will look to recipients */}
 							{step === 4 && (
 								<div className="space-y-4">
 									<div>

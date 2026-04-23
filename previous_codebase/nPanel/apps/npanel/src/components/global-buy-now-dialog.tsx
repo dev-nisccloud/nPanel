@@ -230,7 +230,7 @@ export function GlobalBuyNowDialog() {
     },
   });
 
-  // Create order on payment success — called from poll callback to avoid useEffect latency
+  // Create order on payment success   called from poll callback to avoid useEffect latency
   const triggerOrderFromPayment = React.useCallback(
     (checkoutRequestIdParam: string) => {
       if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;

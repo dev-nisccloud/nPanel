@@ -1,4 +1,4 @@
-# Nisc Sales Report Feature — Comprehensive Design Document
+# Nisc Sales Report Feature   Comprehensive Design Document
 
 **Version:** 1.1  
 **Date:** April 2026  
@@ -10,7 +10,7 @@
 
 1. [Overview & Goals](#1-overview--goals)
 2. [Current State Analysis](#2-current-state-analysis)
-3. [Data Foundation — What We Have](#3-data-foundation--what-we-have)
+3. [Data Foundation   What We Have](#3-data-foundation--what-we-have)
 4. [Report Catalogue](#4-report-catalogue)
    - 4.1 [Revenue & Collections Reports](#41-revenue--collections-reports)
    - 4.2 [Invoicing Reports](#42-invoicing-reports)
@@ -36,16 +36,16 @@
 
 ## 1. Overview & Goals
 
-The current sales reporting implementation is a collection of pre-aggregated snapshots and a single large `computeSalesReportOverview` function. It only covers invoice totals, a partial MRR number, and limited subscription counts. It does not reflect the full financial picture of the business and sometimes produces inaccurate numbers because it conflates document-creation events with actual paid revenue — not because DRAFT documents should be hidden, but because totals were miscategorised.
+The current sales reporting implementation is a collection of pre-aggregated snapshots and a single large `computeSalesReportOverview` function. It only covers invoice totals, a partial MRR number, and limited subscription counts. It does not reflect the full financial picture of the business and sometimes produces inaccurate numbers because it conflates document-creation events with actual paid revenue   not because DRAFT documents should be hidden, but because totals were miscategorised.
 
 **Goals for the new Nisc Sales Report feature:**
 
-- **Comprehensive** — Every significant business event that has a monetary or operational impact must be reportable.
-- **Real-time** — All reports query live data directly from the source tables on demand. No pre-aggregated snapshot tables are introduced or maintained. The existing `reporting.*` snapshot tables may continue to exist but the new system does not depend on them.
-- **Inclusive of all statuses** — DRAFT invoices and DRAFT quotations are valid documents that the business created. They are reportable just like any other status. Reports surface the full picture and let the user filter by status (including or excluding DRAFT) rather than hiding data by default.
-- **Flexible** — Every report must accept a date range and a set of optional dimension filters (team/client, product category, service type, billing cycle, currency, status). No report should have hard-coded date windows or hard-coded status exclusions.
-- **Actionable** — Every report should answer a specific business question, not just display data.
-- **Exportable** — Every report should be exportable as CSV and PDF.
+- **Comprehensive**   Every significant business event that has a monetary or operational impact must be reportable.
+- **Real-time**   All reports query live data directly from the source tables on demand. No pre-aggregated snapshot tables are introduced or maintained. The existing `reporting.*` snapshot tables may continue to exist but the new system does not depend on them.
+- **Inclusive of all statuses**   DRAFT invoices and DRAFT quotations are valid documents that the business created. They are reportable just like any other status. Reports surface the full picture and let the user filter by status (including or excluding DRAFT) rather than hiding data by default.
+- **Flexible**   Every report must accept a date range and a set of optional dimension filters (team/client, product category, service type, billing cycle, currency, status). No report should have hard-coded date windows or hard-coded status exclusions.
+- **Actionable**   Every report should answer a specific business question, not just display data.
+- **Exportable**   Every report should be exportable as CSV and PDF.
 
 ---
 
@@ -65,77 +65,77 @@ The current sales reporting implementation is a collection of pre-aggregated sna
 
 ### Known gaps and inaccuracies
 
-1. **Status misclassification in aggregations** — The snapshot aggregation in `aggregateSales()` does not distinguish between what is actually collected cash (PAID), what is billed but unpaid (SENT/OVERDUE), and what is still a draft document. This makes the "total revenue" figure unreliable because it does not clearly communicate what has been received vs. what is pending vs. what is still being prepared. The fix is not to hide DRAFT documents but to report each status accurately and separately.
+1. **Status misclassification in aggregations**   The snapshot aggregation in `aggregateSales()` does not distinguish between what is actually collected cash (PAID), what is billed but unpaid (SENT/OVERDUE), and what is still a draft document. This makes the "total revenue" figure unreliable because it does not clearly communicate what has been received vs. what is pending vs. what is still being prepared. The fix is not to hide DRAFT documents but to report each status accurately and separately.
 
-2. **No quotation-to-invoice conversion tracking** — Quotations are never queried in any current report. There is no way to see pipeline value or conversion rates.
+2. **No quotation-to-invoice conversion tracking**   Quotations are never queried in any current report. There is no way to see pipeline value or conversion rates.
 
-3. **No per-client breakdown** — Revenue is only broken down by team (company/client) in a very coarse way. There is no drill-down to see individual client payment history, outstanding balances, or lifetime value.
+3. **No per-client breakdown**   Revenue is only broken down by team (company/client) in a very coarse way. There is no drill-down to see individual client payment history, outstanding balances, or lifetime value.
 
-4. **No overdue / collections visibility** — There is no report that surfaces invoices past their due date, aging buckets, or outstanding balances.
+4. **No overdue / collections visibility**   There is no report that surfaces invoices past their due date, aging buckets, or outstanding balances.
 
-5. **No cost/margin tracking** — `niscProductPlan.cost`, `niscClientSubscription.agreedCost`, and `niscClientSubscriptionRenewal.providerRenewalPrice` are never used in any report. We have gross margin data but never show it.
+5. **No cost/margin tracking**   `niscProductPlan.cost`, `niscClientSubscription.agreedCost`, and `niscClientSubscriptionRenewal.providerRenewalPrice` are never used in any report. We have gross margin data but never show it.
 
-6. **No commission reporting** — `niscCommissionEntry` table exists with full commission data but is never queried in any report.
+6. **No commission reporting**   `niscCommissionEntry` table exists with full commission data but is never queried in any report.
 
-7. **No payment method / gateway breakdown** — `paymentTransaction` and `invoiceTransaction.method` data are never surfaced.
+7. **No payment method / gateway breakdown**   `paymentTransaction` and `invoiceTransaction.method` data are never surfaced.
 
-8. **No credit note impact** — `invoice_credit_note` is never factored into effective revenue in the reports.
+8. **No credit note impact**   `invoice_credit_note` is never factored into effective revenue in the reports.
 
-9. **No promotional analysis** — `niscProductPromoRedeem` data is never used in any report.
+9. **No promotional analysis**   `niscProductPromoRedeem` data is never used in any report.
 
-10. **No domain or hosting operational reports** — Domain expiry, upcoming renewals, hosting subscription states are not in the reports module at all.
+10. **No domain or hosting operational reports**   Domain expiry, upcoming renewals, hosting subscription states are not in the reports module at all.
 
-11. **No KRA/eTIMS compliance reporting** — `kraStatus`, `kraInvoiceNumber`, `kraReceiptNumber` on invoices are never reported on.
+11. **No KRA/eTIMS compliance reporting**   `kraStatus`, `kraInvoiceNumber`, `kraReceiptNumber` on invoices are never reported on.
 
 ---
 
-## 3. Data Foundation — What We Have
+## 3. Data Foundation   What We Have
 
 This section maps every relevant schema to what reports it enables.
 
 ### 3.1 Invoicing (`invoice`, `invoice_line_item`, `invoice_transaction`, `invoice_credit_note`)
 
 **Statuses (all reportable):**
-- `DRAFT` — Created internally, not yet sent to or acknowledged by the client. Represents the value of invoices being prepared. Included in reports; clearly labelled as DRAFT in all outputs.
-- `SENT` — Delivered to the client and awaiting payment. This is billed but uncollected revenue.
-- `PAID` — Payment confirmed. This is collected (actual) revenue.
-- `OVERDUE` — Past the due date without payment.
-- `PARTIALLY_PAID` — Some payment received, balance remains.
-- `CANCELLED` — Voided, no financial impact.
-- `CREDITED` — Reversed via a credit note.
+- `DRAFT`   Created internally, not yet sent to or acknowledged by the client. Represents the value of invoices being prepared. Included in reports; clearly labelled as DRAFT in all outputs.
+- `SENT`   Delivered to the client and awaiting payment. This is billed but uncollected revenue.
+- `PAID`   Payment confirmed. This is collected (actual) revenue.
+- `OVERDUE`   Past the due date without payment.
+- `PARTIALLY_PAID`   Some payment received, balance remains.
+- `CANCELLED`   Voided, no financial impact.
+- `CREDITED`   Reversed via a credit note.
 
 **Key fields for reporting:**
-- `amount`, `subtotal`, `tax`, `taxPercentage`, `vat`, `discount` — financial figures
-- `currency` — multi-currency support
-- `creditedAmount`, `creditBalance` — credit note impact
-- `issueDate`, `dueDate`, `paidAt`, `sentAt` — time dimensions
+- `amount`, `subtotal`, `tax`, `taxPercentage`, `vat`, `discount`   financial figures
+- `currency`   multi-currency support
+- `creditedAmount`, `creditBalance`   credit note impact
+- `issueDate`, `dueDate`, `paidAt`, `sentAt`   time dimensions
 - `teamId` → client/company dimension
 - `createdBy` → staff dimension
 - `kraStatus`, `kraInvoiceNumber`, `kraReceiptNumber` → compliance dimension
 
 **`invoiceTransaction`** provides:
 - `method` (payment method: M-PESA, bank transfer, card, etc.)
-- `amount`, `paidAt` — actual cash received and when
+- `amount`, `paidAt`   actual cash received and when
 - `status` (PENDING, COMPLETED, FAILED, REFUNDED)
 - `gateway`, `providerReference`, `receiptNumber`
 
 **`invoice_credit_note`** provides:
-- `amount`, `reason`, `issuedAt`, `appliedAt` — credit adjustments
+- `amount`, `reason`, `issuedAt`, `appliedAt`   credit adjustments
 
 ### 3.2 Quotations (`quotation`, `quotation_line_item`)
 
 **Statuses (all reportable):**
-- `DRAFT` — Created internally, not yet sent to the client. Represents work in preparation. Included in reports; clearly labelled as DRAFT in all outputs.
-- `SENT` — Delivered to the client. Active pipeline.
-- `ACCEPTED` — Client agreed, should convert to an invoice. Won pipeline.
-- `REJECTED` — Client declined. Lost.
-- `EXPIRED` — Passed the validity period. Lost.
+- `DRAFT`   Created internally, not yet sent to the client. Represents work in preparation. Included in reports; clearly labelled as DRAFT in all outputs.
+- `SENT`   Delivered to the client. Active pipeline.
+- `ACCEPTED`   Client agreed, should convert to an invoice. Won pipeline.
+- `REJECTED`   Client declined. Lost.
+- `EXPIRED`   Passed the validity period. Lost.
 
 **Key fields:**
-- `amount`, `subtotal`, `tax`, `discount` — quote value
-- `issueDate`, `createdAt` — time dimensions
-- `customerName`, `customerEmail` — prospect information
-- `createdBy` — staff who wrote it
+- `amount`, `subtotal`, `tax`, `discount`   quote value
+- `issueDate`, `createdAt`   time dimensions
+- `customerName`, `customerEmail`   prospect information
+- `createdBy`   staff who wrote it
 
 ### 3.3 Subscriptions (`nisc_client_subscription`, `nisc_client_subscription_renewal`)
 
@@ -157,38 +157,38 @@ This is the **core recurring revenue source** and the most important table for M
 - `autoRenew` → renewal risk flag
 
 **`niscClientSubscriptionRenewal`** provides:
-- `renewalDate`, `newExpiryDate` — renewal history
-- `renewalPrice`, `providerRenewalPrice` — renewal financials
-- `renewalType` — type of renewal event
-- `billingCycle` — cycle at time of renewal
+- `renewalDate`, `newExpiryDate`   renewal history
+- `renewalPrice`, `providerRenewalPrice`   renewal financials
+- `renewalType`   type of renewal event
+- `billingCycle`   cycle at time of renewal
 
 ### 3.4 Commission Entries (`nisc_commission_entry`)
 
-- `period` — billing period the commission is for
-- `baseAmount` + `commissionRate` + `commissionAmount` — commission financials
-- `status` (`DRAFT`, `INVOICED`, `PAID`, etc.) — billing state
+- `period`   billing period the commission is for
+- `baseAmount` + `commissionRate` + `commissionAmount`   commission financials
+- `status` (`DRAFT`, `INVOICED`, `PAID`, etc.)   billing state
 - `teamId` → client dimension
 - `subscriptionId` → subscription link
 - `invoiceId` → invoice link (when billed)
 
 ### 3.5 Orders (`nisc_order`, `nisc_order_item`, `order`)
 
-**`nisc_order`** — the new order flow (customer-initiated or staff-created):
+**`nisc_order`**   the new order flow (customer-initiated or staff-created):
 - `status` (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`)
 - `total`, `subtotal`, `currency`
 - `invoiceId` → linked invoice
 - `niscProductPromoId` → promo used
 - `paymentTransactionId` → payment link
 
-**`order`** — the older order model (hosting/domain provisioning):
+**`order`**   the older order model (hosting/domain provisioning):
 - `type` (`DOMAIN_REGISTRATION`, `HOSTING`, `HOSTING_RENEWAL`, `DOMAIN_RENEWAL`, etc.)
 - `status` (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`, `REFUNDED`)
 - `subtotal`, `total`
 
 ### 3.6 Domains (`domain`, `domain_renewal`, `domain_transfer`)
 
-- `registrationDate`, `expirationDate`, `renewalDate` — lifecycle dates
-- `openProviderPrice`, `niscPrice` — cost vs. sell price → margin
+- `registrationDate`, `expirationDate`, `renewalDate`   lifecycle dates
+- `openProviderPrice`, `niscPrice`   cost vs. sell price → margin
 - `teamId` → client dimension
 
 ### 3.7 Hosting (`hosting_subscription`, `hosting_renewal`, `hosting_plan`)
@@ -201,7 +201,7 @@ This is the **core recurring revenue source** and the most important table for M
 
 ### 3.8 Payment Transactions (`payment_transaction`)
 
-- `gateway` (`MPESA`, `BANK`, etc.) — payment channel
+- `gateway` (`MPESA`, `BANK`, etc.)   payment channel
 - `amount`, `paidAmount`, `currency`
 - `status` (`PENDING`, `COMPLETED`, `FAILED`, `REFUNDED`)
 - `initiatedAt`, `processedAt`, `failedAt`, `refundedAt`
@@ -209,16 +209,16 @@ This is the **core recurring revenue source** and the most important table for M
 
 ### 3.9 Products (`nisc_product`, `nisc_product_plan`)
 
-- `category` (`CLOUD`, `MARKETING`, `CONSULTING`, `CUSTOM`, `AI`) — category dimension
-- `serviceType` — service type dimension
-- `pricingModel` (`FIXED`, `COMMISSION`, `USAGE_BASED`) — pricing model dimension
-- `price`, `cost`, `commissionRate` — financials
+- `category` (`CLOUD`, `MARKETING`, `CONSULTING`, `CUSTOM`, `AI`)   category dimension
+- `serviceType`   service type dimension
+- `pricingModel` (`FIXED`, `COMMISSION`, `USAGE_BASED`)   pricing model dimension
+- `price`, `cost`, `commissionRate`   financials
 
 ### 3.10 Promotions (`nisc_product_promo`, `nisc_product_promo_redeem`, `promo`)
 
 - `discountType`, `discountValue`
 - `usageCount`, `usageLimit`
-- `redeemedAt`, `discountApplied`, `orderValue` — financial impact of promotions
+- `redeemedAt`, `discountApplied`, `orderValue`   financial impact of promotions
 
 ### 3.11 Tickets (`ticket`)
 
@@ -243,11 +243,11 @@ This is the **core recurring revenue source** and the most important table for M
 ## 4. Report Catalogue
 
 Every report in this catalogue follows the same principles:
-- All data is queried live from the source tables on demand — no snapshot tables are required.
+- All data is queried live from the source tables on demand   no snapshot tables are required.
 - All date range parameters default to a sensible window but are always overridable.
 - Every filter is optional; omitting it means "all".
 - **All statuses are included by default, including DRAFT.** DRAFT documents are real business activity and should appear in reports. The user can narrow results by selecting specific statuses at any time.
-- When a report has a monetary "collected" or "paid" KPI, it draws only from PAID status invoices or COMPLETED transactions — but the underlying list views and counts always show everything unless filtered otherwise.
+- When a report has a monetary "collected" or "paid" KPI, it draws only from PAID status invoices or COMPLETED transactions   but the underlying list views and counts always show everything unless filtered otherwise.
 - Multi-currency data is reported in the document's native currency by default, with an optional "normalize to base currency" toggle.
 
 ---
@@ -261,15 +261,15 @@ Every report in this catalogue follows the same principles:
 **Data sources:** `invoice`, `invoice_transaction`, `invoice_credit_note`
 
 **Metrics:**
-- **Total Invoiced** — Sum of `invoice.amount` grouped by status (DRAFT, SENT, OVERDUE, PAID, etc.) so the user can see what was issued in each state within the period (by `issueDate` or `createdAt`).
-- **Collected (Cash In)** — Sum of `invoice_transaction.amount` where `status = COMPLETED` and `paidAt` is within the period. This is the only figure that represents actual money received.
-- **Billed but Unpaid** — Sum of `invoice.amount` for SENT + OVERDUE + PARTIALLY_PAID invoices. Money that has been sent to clients but not yet collected.
-- **In Draft** — Sum of `invoice.amount` for DRAFT invoices in the period. Documents being prepared internally.
-- **Net Collected Revenue** — Collected amount minus credit note amounts applied in the period (`invoice_credit_note.amount` where `appliedAt` is in the period).
-- **Outstanding (Overdue)** — Sum of `invoice.amount` for SENT and OVERDUE invoices where `dueDate < today`.
-- **Tax Collected** — Sum of `invoice.tax` for PAID invoices.
-- **Average Invoice Value** — Total Invoiced (all non-CANCELLED) ÷ count of invoices.
-- **Payment Rate** — (Paid invoices ÷ Sent invoices) × 100.
+- **Total Invoiced**   Sum of `invoice.amount` grouped by status (DRAFT, SENT, OVERDUE, PAID, etc.) so the user can see what was issued in each state within the period (by `issueDate` or `createdAt`).
+- **Collected (Cash In)**   Sum of `invoice_transaction.amount` where `status = COMPLETED` and `paidAt` is within the period. This is the only figure that represents actual money received.
+- **Billed but Unpaid**   Sum of `invoice.amount` for SENT + OVERDUE + PARTIALLY_PAID invoices. Money that has been sent to clients but not yet collected.
+- **In Draft**   Sum of `invoice.amount` for DRAFT invoices in the period. Documents being prepared internally.
+- **Net Collected Revenue**   Collected amount minus credit note amounts applied in the period (`invoice_credit_note.amount` where `appliedAt` is in the period).
+- **Outstanding (Overdue)**   Sum of `invoice.amount` for SENT and OVERDUE invoices where `dueDate < today`.
+- **Tax Collected**   Sum of `invoice.tax` for PAID invoices.
+- **Average Invoice Value**   Total Invoiced (all non-CANCELLED) ÷ count of invoices.
+- **Payment Rate**   (Paid invoices ÷ Sent invoices) × 100.
 
 **Dimensions / Filters:** Date range (by `issueDate` or `paidAt`), team/client, currency, created_by.
 
@@ -286,10 +286,10 @@ Every report in this catalogue follows the same principles:
 **Output:** Time-series chart with configurable granularity (daily, weekly, monthly).
 
 **Series available (each as a separate line/bar, all toggleable):**
-- DRAFT invoice value — documents being prepared in the period
-- Invoiced (SENT) amount — billed to clients
-- Collected (PAID) amount — actually received
-- Overdue amount — billed but past due date
+- DRAFT invoice value   documents being prepared in the period
+- Invoiced (SENT) amount   billed to clients
+- Collected (PAID) amount   actually received
+- Overdue amount   billed but past due date
 - Credit notes issued
 
 **Dimensions / Filters:** Date range, team/client, product category, service type, currency.
@@ -325,7 +325,7 @@ Every report in this catalogue follows the same principles:
 **Data sources:** `invoice_line_item`, `nisc_client_subscription`, `nisc_product`, `nisc_product_plan`
 
 **Output per category row:**
-- Category (CLOUD, MARKETING, CONSULTING, AI, CUSTOM — plus a "Manual Invoice" catch-all for invoices not linked to a subscription)
+- Category (CLOUD, MARKETING, CONSULTING, AI, CUSTOM   plus a "Manual Invoice" catch-all for invoices not linked to a subscription)
 - Total invoiced (all statuses including DRAFT)
 - Total collected (PAID only)
 - In draft value
@@ -342,7 +342,7 @@ Every report in this catalogue follows the same principles:
 
 **Data sources:** `invoice`
 
-**Scope:** All invoices with `status IN ('SENT', 'OVERDUE', 'PARTIALLY_PAID')` — DRAFT invoices have no due date context yet, CANCELLED and PAID invoices are not outstanding. DRAFT invoices can optionally be shown in a separate "Preparing" row for visibility.
+**Scope:** All invoices with `status IN ('SENT', 'OVERDUE', 'PARTIALLY_PAID')`   DRAFT invoices have no due date context yet, CANCELLED and PAID invoices are not outstanding. DRAFT invoices can optionally be shown in a separate "Preparing" row for visibility.
 
 **Aging buckets:**
 - Current (due in the future)
@@ -380,7 +380,7 @@ Every report in this catalogue follows the same principles:
 
 **Data sources:** `invoice`
 
-**Output:** Count and total amount per status bucket — **DRAFT, SENT, PAID, OVERDUE, PARTIALLY_PAID, CANCELLED, CREDITED** — all shown by default. No status is hidden. This gives the complete picture of all invoice activity in the period.
+**Output:** Count and total amount per status bucket   **DRAFT, SENT, PAID, OVERDUE, PARTIALLY_PAID, CANCELLED, CREDITED**   all shown by default. No status is hidden. This gives the complete picture of all invoice activity in the period.
 
 ---
 
@@ -402,10 +402,10 @@ Invoice number, client, amount, currency, status, issue date, due date, paid at,
 **Data sources:** `invoice`
 
 **Metrics:**
-- **Time in Draft** — Average `sentAt - createdAt` for invoices that have a `sentAt` set. Shows how long invoices sit as DRAFT before being sent. Useful for spotting bottlenecks in the billing process.
-- **Time to Pay** — Average `paidAt - sentAt` for PAID invoices. Shows client payment behaviour.
-- **Percentage paid within due date** — (Invoices where `paidAt <= dueDate`) ÷ total PAID invoices × 100.
-- **Currently in Draft** — Count and total value of invoices still in DRAFT status (no `sentAt`). These are created but not yet delivered to any client.
+- **Time in Draft**   Average `sentAt - createdAt` for invoices that have a `sentAt` set. Shows how long invoices sit as DRAFT before being sent. Useful for spotting bottlenecks in the billing process.
+- **Time to Pay**   Average `paidAt - sentAt` for PAID invoices. Shows client payment behaviour.
+- **Percentage paid within due date**   (Invoices where `paidAt <= dueDate`) ÷ total PAID invoices × 100.
+- **Currently in Draft**   Count and total value of invoices still in DRAFT status (no `sentAt`). These are created but not yet delivered to any client.
 
 **Dimensions / Filters:** Date range, team/client.
 
@@ -446,15 +446,15 @@ Invoice number, client, amount, currency, status, issue date, due date, paid at,
 **Data sources:** `quotation`
 
 **Metrics (shown for all statuses):**
-- **In Preparation (DRAFT)** — Sum of `quotation.amount` for DRAFT quotations. Value being prepared but not yet sent. This is visible pipeline work in progress.
-- **Active Pipeline (SENT)** — Sum for SENT quotations. Value in the client's hands awaiting a decision.
-- **Won Value (ACCEPTED)** — Sum for ACCEPTED quotations in the period.
-- **Lost Value (REJECTED)** — Sum for REJECTED quotations in the period.
-- **Expired Value (EXPIRED)** — Sum for EXPIRED quotations in the period.
-- **Win Rate** — ACCEPTED ÷ (ACCEPTED + REJECTED + EXPIRED) × 100. Only counts decisions, not DRAFT.
-- **Average Quote Value** — Won value ÷ count of ACCEPTED quotes.
-- **Average Time to Decision** — For ACCEPTED/REJECTED quotes: `updatedAt - issueDate`.
-- **Average Time to Send** — For quotes with `sentAt`: `sentAt - createdAt`. Shows how quickly DRAFT quotes become active.
+- **In Preparation (DRAFT)**   Sum of `quotation.amount` for DRAFT quotations. Value being prepared but not yet sent. This is visible pipeline work in progress.
+- **Active Pipeline (SENT)**   Sum for SENT quotations. Value in the client's hands awaiting a decision.
+- **Won Value (ACCEPTED)**   Sum for ACCEPTED quotations in the period.
+- **Lost Value (REJECTED)**   Sum for REJECTED quotations in the period.
+- **Expired Value (EXPIRED)**   Sum for EXPIRED quotations in the period.
+- **Win Rate**   ACCEPTED ÷ (ACCEPTED + REJECTED + EXPIRED) × 100. Only counts decisions, not DRAFT.
+- **Average Quote Value**   Won value ÷ count of ACCEPTED quotes.
+- **Average Time to Decision**   For ACCEPTED/REJECTED quotes: `updatedAt - issueDate`.
+- **Average Time to Send**   For quotes with `sentAt`: `sentAt - createdAt`. Shows how quickly DRAFT quotes become active.
 
 **Dimensions / Filters:** Date range (by `issueDate`), created_by.
 
@@ -467,10 +467,10 @@ Invoice number, client, amount, currency, status, issue date, due date, paid at,
 **Data sources:** `quotation`
 
 **Funnel stages (all included):**
-1. DRAFT — Created internally
-2. SENT — Delivered to client
-3. ACCEPTED — Client agreed
-4. Converted to Invoice (requires matching `quotation → invoice` linkage — see Architecture notes)
+1. DRAFT   Created internally
+2. SENT   Delivered to client
+3. ACCEPTED   Client agreed
+4. Converted to Invoice (requires matching `quotation → invoice` linkage   see Architecture notes)
 5. PAID (via the linked invoice)
 
 **Drop-off rates** are calculated at each stage transition so you can see where quotations stall or get lost.
@@ -521,11 +521,11 @@ Invoice number, client, amount, currency, status, issue date, due date, paid at,
 **Data sources:** `nisc_client_subscription`
 
 **Tracks changes between two periods:**
-- **New MRR** — MRR from subscriptions where `subscriptionDate` is within the period.
-- **Expansion MRR** — MRR increase from upgrades (`upgradedToSubscriptionId` set in period; new plan price minus old plan price).
-- **Contraction MRR** — MRR decrease from downgrades.
-- **Churned MRR** — MRR lost from subscriptions where `status` changed to CANCELLED or EXPIRED in the period.
-- **Net MRR Change** — New + Expansion − Contraction − Churned.
+- **New MRR**   MRR from subscriptions where `subscriptionDate` is within the period.
+- **Expansion MRR**   MRR increase from upgrades (`upgradedToSubscriptionId` set in period; new plan price minus old plan price).
+- **Contraction MRR**   MRR decrease from downgrades.
+- **Churned MRR**   MRR lost from subscriptions where `status` changed to CANCELLED or EXPIRED in the period.
+- **Net MRR Change**   New + Expansion − Contraction − Churned.
 
 ---
 
@@ -638,8 +638,8 @@ Invoice number, client, amount, currency, status, issue date, due date, paid at,
 **Data sources:** `team`, `invoice`, `nisc_order`, `nisc_client_subscription`
 
 **Definition:**
-- **New client** — First invoice or subscription created in the period (no prior records under their `teamId`).
-- **Returning client** — Had prior invoices or subscriptions before the period start.
+- **New client**   First invoice or subscription created in the period (no prior records under their `teamId`).
+- **Returning client**   Had prior invoices or subscriptions before the period start.
 
 **Metrics:** Count of new clients, count of returning clients, revenue from each group.
 
@@ -1062,7 +1062,7 @@ type ReportFilters = {
   currency?: string;            // filter to specific currency (default: show all)
   normalizeToCurrency?: string; // convert all amounts to this currency
 
-  // Status dimensions — when omitted, ALL statuses are returned including DRAFT
+  // Status dimensions   when omitted, ALL statuses are returned including DRAFT
   // Pass a non-empty array to restrict to those specific statuses only
   invoiceStatuses?: string[];        // e.g. ["PAID"] or ["SENT", "OVERDUE"] or ["DRAFT"]
   subscriptionStatuses?: string[];
@@ -1081,24 +1081,24 @@ type ReportFilters = {
 
 **Key rules:**
 
-1. **Status filters default to ALL.** When `invoiceStatuses` is not provided, the query returns invoices of every status including DRAFT. The caller (UI) decides which statuses to show — the API never pre-filters unless explicitly told to.
+1. **Status filters default to ALL.** When `invoiceStatuses` is not provided, the query returns invoices of every status including DRAFT. The caller (UI) decides which statuses to show   the API never pre-filters unless explicitly told to.
 
-2. **KPI metrics distinguish status clearly.** Even when a report returns all statuses, the aggregated KPI values (e.g. "Total Collected") always filter to the relevant status (PAID) internally. The status-inclusive data is for the breakdown/list — not for conflating all invoices into one revenue number.
+2. **KPI metrics distinguish status clearly.** Even when a report returns all statuses, the aggregated KPI values (e.g. "Total Collected") always filter to the relevant status (PAID) internally. The status-inclusive data is for the breakdown/list   not for conflating all invoices into one revenue number.
 
-3. **No magic exclusions.** There is no global `includeDraft` toggle because it implies DRAFT is something to hide. Instead, status is just a filter dimension like any other. If a particular view only makes sense for PAID invoices (e.g. tax collected), that is documented per-report — not enforced globally.
+3. **No magic exclusions.** There is no global `includeDraft` toggle because it implies DRAFT is something to hide. Instead, status is just a filter dimension like any other. If a particular view only makes sense for PAID invoices (e.g. tax collected), that is documented per-report   not enforced globally.
 
 ---
 
 ## 6. Architecture Approach
 
-### 6.1 Computation Strategy — Live Queries Only
+### 6.1 Computation Strategy   Live Queries Only
 
 **All reports query the source tables directly, on demand. No new snapshot or materialization tables are created.**
 
 The existing `reporting.*` tables (`sales_report_snapshot`, `revenue_by_service_snapshot`, etc.) are legacy infrastructure from the old implementation. The new system does not write to or read from them. They can be deprecated over time.
 
 **Why live queries work:**
-- The key tables (`invoice`, `nisc_client_subscription`, `quotation`, `domain`, etc.) are all indexed on the columns used for filtering — `createdAt`, `issueDate`, `dueDate`, `teamId`, `status`, `productId`.
+- The key tables (`invoice`, `nisc_client_subscription`, `quotation`, `domain`, etc.) are all indexed on the columns used for filtering   `createdAt`, `issueDate`, `dueDate`, `teamId`, `status`, `productId`.
 - Drizzle ORM's `groupBy`, `sum`, `count`, `avg` push aggregation down to PostgreSQL, which handles it efficiently.
 - For most real-world business data volumes (thousands to low-tens-of-thousands of records per table), live aggregation with proper indexes returns in well under one second.
 - If a specific query becomes noticeably slow as data grows, a targeted PostgreSQL index or a server-side computed field can be added without rearchitecting the entire reporting module.
@@ -1217,7 +1217,7 @@ Every query that computes aggregations uses the `invoiceStatuses` (or equivalent
 // Shared helper used by all invoice-related report queries
 function buildInvoiceStatusCondition(statuses?: string[]) {
   if (!statuses || statuses.length === 0) {
-    return undefined; // no filter — all statuses returned, including DRAFT
+    return undefined; // no filter   all statuses returned, including DRAFT
   }
   return inArray(invoice.status, statuses);
 }
@@ -1234,7 +1234,7 @@ const condition = and(
 **KPI metrics that need a specific status always pass it explicitly** rather than relying on a global default:
 
 ```typescript
-// "Collected revenue" — always PAID, regardless of UI filter
+// "Collected revenue"   always PAID, regardless of UI filter
 const collected = await db
   .select({ total: sum(invoiceTransaction.amount) })
   .from(invoiceTransaction)
@@ -1244,7 +1244,7 @@ const collected = await db
     lte(invoiceTransaction.paidAt, filters.to),
   ));
 
-// "Invoice count by status" — passes no status filter, returns all
+// "Invoice count by status"   passes no status filter, returns all
 const byStatus = await db
   .select({ status: invoice.status, count: count(), total: sum(invoice.amount) })
   .from(invoice)

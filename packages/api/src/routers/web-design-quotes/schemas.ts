@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * API-layer schemas for web design quote requests.
- * Independent from DB Prisma schema and UI schemas—no shared types across layers.
+ * Independent from DB Prisma schema and UI schemas no shared types across layers.
  */
 
 // ---------------------------------------------------------------------------
