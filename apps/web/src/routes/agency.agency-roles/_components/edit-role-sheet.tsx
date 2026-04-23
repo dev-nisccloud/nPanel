@@ -3,7 +3,6 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 
@@ -31,7 +30,6 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import {
   agencyMenuKeysUi,
-  agencyMenuKeyUiSchema,
   createRoleFormSchema,
   type CreateRoleFormData,
 } from "./schema";
@@ -45,7 +43,7 @@ interface EditRoleSheetProps {
 
 const steps = ["Role details", "Sidebar access"] as const;
 
-const groupByCategory = (keys: readonly z.infer<typeof agencyMenuKeyUiSchema>[]) => {
+const groupByCategory = (keys: readonly string[]) => {
   const groups: Record<string, string[]> = {};
 
   keys.forEach((key) => {

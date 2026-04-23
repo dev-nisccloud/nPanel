@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
-import { agencyRoleWithPermissionsUiSchema, agencyMenuKeyUiSchema } from "./schema";
+import { agencyRoleWithPermissionsUiSchema } from "./schema";
 
 interface ViewRoleSheetProps {
 	open: boolean;
