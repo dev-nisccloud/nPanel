@@ -1,8 +1,9 @@
-import { db, eq, inArray, sql } from "@npanel/db";
+import { and, db, eq, inArray, sql } from "@npanel/db";
 import { niscEmCampaign, niscEmEmail } from "@npanel/db/schema";
 import { randomUUID } from "node:crypto";
 
-import { getQuotaStatus } from "./quota-reservation";
+import { getRedisClient } from "./redis";
+import { getSesSendQuotaSnapshot } from "./ses-quota";
 import { getSesClient, sendSesRawEmail } from "./ses-client";
 
 // =============================================================================
@@ -37,13 +38,12 @@ export type NiscEmDispatchDebug = {
   maxRuntimeMs: number;
   claimBatchSize: number;
   ratePerSecond: number;
+  rateLimiterMode: "redis_global" | "local_fallback";
   lockHolder: string | null;
   quota: {
     maxSendRate: number;
     max24HourSend: number;
-    sentLast24HoursAtStart: number;
-    reservedEmails: number;
-    remainingEmails: number;
+    sentLast24Hours: number;
   };
   queue: {
     eligibleQueuedCountAtStart: number;
@@ -77,7 +77,7 @@ const LOCK_LEASE_MS = 60 * 1000;
 /** How often the dispatcher heartbeats to extend its lease. */
 const LOCK_HEARTBEAT_MS = 15 * 1000;
 
-const LOCK_KEY = "nisc_em_global_dispatch";
+const LOCK_KEY_PREFIX = "nisc_em_dispatch";
 
 /** Campaign statuses that are allowed to absorb the final state transition. */
 const CAMPAIGN_TERMINAL_GUARD = ["SENDING", "SCHEDULED"] as const;
@@ -259,6 +259,54 @@ class TokenBucketPerSecond {
   }
 }
 
+/**
+ * Account-wide fixed-window limiter backed by Upstash Redis.
+ *
+ * Why this exists:
+ * - SES maxSendRate is account/global, not per worker/process.
+ * - Multiple campaign workers can run concurrently (by design).
+ * - A local in-process token bucket cannot coordinate across those workers.
+ *
+ * Algorithm:
+ * - key = `nisc_em_ses_rate:<region>:<epochSecond>`
+ * - INCR key
+ * - first hit sets a short TTL (2s)
+ * - allow only when counter <= configured rate
+ */
+class RedisFixedWindowPerSecondLimiter {
+  constructor(
+    private readonly ratePerSecond: number,
+    private readonly keyPrefix: string,
+  ) {}
+
+  async take(): Promise<void> {
+    const redis = getRedisClient();
+    if (!redis) {
+      throw new Error("UPSTASH_REDIS_UNAVAILABLE");
+    }
+
+    while (true) {
+      const now = Date.now();
+      const epochSecond = Math.floor(now / 1000);
+      const key = `${this.keyPrefix}:${epochSecond}`;
+
+      const used = Number(await redis.incr(key));
+      if (used === 1) {
+        // Keep key briefly for late arrivals / retries in same second window.
+        await redis.expire(key, 2);
+      }
+
+      if (used <= this.ratePerSecond) {
+        return;
+      }
+
+      // Window exhausted: wait for next second boundary.
+      const sleepMs = Math.max(5, 1000 - (now % 1000));
+      await new Promise((r) => setTimeout(r, sleepMs));
+    }
+  }
+}
+
 // =============================================================================
 // SES error classification
 // =============================================================================
@@ -361,14 +409,22 @@ function isRetryableSesError(error: unknown): boolean {
 // 0016_melodic_stardust) is self-cleaning (expires_at < now => stealable) and
 // holder-scoped (heartbeat / release only target the current run).
 
-async function tryAcquireLease(holder: string, now: Date): Promise<boolean> {
+function buildLeaseKey(campaignId: string): string {
+  return `${LOCK_KEY_PREFIX}:${campaignId}`;
+}
+
+async function tryAcquireLease(
+  lockKey: string,
+  holder: string,
+  now: Date,
+): Promise<boolean> {
   const expiresAt = new Date(now.getTime() + LOCK_LEASE_MS);
 
   // Insert a fresh lease. On conflict, steal it only if the previous lease is expired.
   // RETURNING holder lets us detect whether we actually own it.
   const res = await db.execute<{ holder: string }>(sql`
     insert into nisc_em_dispatcher_lease (lock_key, holder, acquired_at, expires_at, heartbeat_at)
-    values (${LOCK_KEY}, ${holder}, ${now}, ${expiresAt}, ${now})
+    values (${lockKey}, ${holder}, ${now}, ${expiresAt}, ${now})
     on conflict (lock_key) do update
       set holder = excluded.holder,
           acquired_at = excluded.acquired_at,
@@ -381,21 +437,21 @@ async function tryAcquireLease(holder: string, now: Date): Promise<boolean> {
   return row?.holder === holder;
 }
 
-async function heartbeatLease(holder: string, now: Date): Promise<void> {
+async function heartbeatLease(lockKey: string, holder: string, now: Date): Promise<void> {
   const expiresAt = new Date(now.getTime() + LOCK_LEASE_MS);
   await db.execute(sql`
     update nisc_em_dispatcher_lease
        set expires_at = ${expiresAt},
            heartbeat_at = ${now}
-     where lock_key = ${LOCK_KEY}
+     where lock_key = ${lockKey}
        and holder = ${holder}
   `);
 }
 
-async function releaseLease(holder: string): Promise<void> {
+async function releaseLease(lockKey: string, holder: string): Promise<void> {
   await db.execute(sql`
     delete from nisc_em_dispatcher_lease
-     where lock_key = ${LOCK_KEY}
+     where lock_key = ${lockKey}
        and holder = ${holder}
   `);
 }
@@ -407,6 +463,7 @@ async function releaseLease(holder: string): Promise<void> {
 async function claimQueuedEmails(params: {
   now: Date;
   limit: number;
+  campaignId: string;
 }): Promise<
   Array<{
     id: string;
@@ -416,7 +473,7 @@ async function claimQueuedEmails(params: {
     subject: string;
   }>
 > {
-  const { now, limit } = params;
+  const { now, limit, campaignId } = params;
 
   // Claim via SKIP LOCKED so multiple invocations don't double-send.
   //
@@ -441,6 +498,7 @@ async function claimQueuedEmails(params: {
               e.status = 'QUEUED'
               or (e.status = 'SENDING' and e.updated_at <= ${staleCutoff})
             )
+        and c.id = ${campaignId}
         and (
           c.status = 'SENDING'
           or (
@@ -471,7 +529,7 @@ async function claimQueuedEmails(params: {
  * Counts emails that should be picked up on the next dispatcher run.
  * Mirrors the `claimQueuedEmails` selector (QUEUED + stale SENDING, eligible campaign).
  */
-async function countEligiblePending(now: Date): Promise<number> {
+async function countEligiblePending(now: Date, campaignId: string): Promise<number> {
   const staleCutoff = new Date(now.getTime() - STALE_SENDING_RECLAIM_MS);
   const res = await db.execute<{ value: number }>(sql`
     select count(*)::int as "value"
@@ -481,6 +539,7 @@ async function countEligiblePending(now: Date): Promise<number> {
             e.status = 'QUEUED'
             or (e.status = 'SENDING' and e.updated_at <= ${staleCutoff})
           )
+      and c.id = ${campaignId}
       and (
         c.status = 'SENDING'
         or (
@@ -493,12 +552,13 @@ async function countEligiblePending(now: Date): Promise<number> {
   return Number(row?.value ?? 0);
 }
 
-async function countEligibleQueuedEmails(now: Date): Promise<number> {
+async function countEligibleQueuedEmails(now: Date, campaignId: string): Promise<number> {
   const res = await db.execute<{ value: number }>(sql`
     select count(*)::int as "value"
     from ${niscEmEmail} e
     join ${niscEmCampaign} c on c.id = e.campaign_id
     where e.status = 'QUEUED'
+      and c.id = ${campaignId}
       and (
         c.status = 'SENDING'
         or (
@@ -511,12 +571,16 @@ async function countEligibleQueuedEmails(now: Date): Promise<number> {
   return Number(row?.value ?? 0);
 }
 
-async function countEligibleEmailsByStatus(now: Date): Promise<Record<string, number>> {
+async function countEligibleEmailsByStatus(
+  now: Date,
+  campaignId: string,
+): Promise<Record<string, number>> {
   const res = await db.execute<{ status: string; value: number }>(sql`
     select e.status as "status", count(*)::int as "value"
     from ${niscEmEmail} e
     join ${niscEmCampaign} c on c.id = e.campaign_id
-    where (
+    where c.id = ${campaignId}
+      and (
       c.status = 'SENDING'
       or (
         c.status = 'SCHEDULED'
@@ -655,18 +719,19 @@ async function requeueUnattemptedBatchEmails(emailIds: string[], now: Date): Pro
  * resurrect it to SENDING/SENT on the next flush. We guard by only UPDATE-ing
  * rows whose current status is in {SENDING, SCHEDULED}.
  */
-async function updateCampaignStatuses(campaignIds: string[]): Promise<void> {
-  if (campaignIds.length === 0) return;
+async function updateCampaignStatuses(campaignId: string): Promise<void> {
   const rows = await db
     .select({
       campaignId: niscEmEmail.campaignId,
       queuedCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'QUEUED')`,
       sendingCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'SENDING')`,
-      sentCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'SENT')`,
+      sentCount: sql<number>`count(*) filter (
+        where ${niscEmEmail.status} in ('SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'BOUNCED', 'COMPLAINED')
+      )`,
       failedCount: sql<number>`count(*) filter (where ${niscEmEmail.status} = 'FAILED')`,
     })
     .from(niscEmEmail)
-    .where(inArray(niscEmEmail.campaignId, campaignIds))
+    .where(eq(niscEmEmail.campaignId, campaignId))
     .groupBy(niscEmEmail.campaignId);
 
   const now = new Date();
@@ -688,7 +753,10 @@ async function updateCampaignStatuses(campaignIds: string[]): Promise<void> {
         updatedAt: now,
       })
       .where(
-        sql`${niscEmCampaign.id} = ${r.campaignId} and ${niscEmCampaign.status} in ${CAMPAIGN_TERMINAL_GUARD}`,
+        and(
+          eq(niscEmCampaign.id, r.campaignId),
+          inArray(niscEmCampaign.status, [...CAMPAIGN_TERMINAL_GUARD]),
+        ),
       );
   }
 }
@@ -698,6 +766,7 @@ async function updateCampaignStatuses(campaignIds: string[]): Promise<void> {
 // =============================================================================
 
 export async function dispatchNiscEmEmailQueueWithDebug(params?: {
+  campaignId: string;
   maxRuntimeMs?: number;
   claimBatchSize?: number;
 }): Promise<{ result: DispatchResult; debug: NiscEmDispatchDebug }> {
@@ -707,12 +776,18 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
   const claimBatchSize = clamp(params?.claimBatchSize ?? 200, 1, 2_000);
   const warnings: string[] = [];
 
-  const debugNow = new Date();
-  const eligibleQueuedCountAtStart = await countEligibleQueuedEmails(debugNow);
-  const eligibleByStatusAtStart = await countEligibleEmailsByStatus(debugNow);
+  const campaignId = params?.campaignId;
+  if (!campaignId) {
+    throw new Error("dispatchNiscEmEmailQueueWithDebug requires campaignId");
+  }
 
+  const debugNow = new Date();
+  const eligibleQueuedCountAtStart = await countEligibleQueuedEmails(debugNow, campaignId);
+  const eligibleByStatusAtStart = await countEligibleEmailsByStatus(debugNow, campaignId);
+
+  const lockKey = buildLeaseKey(campaignId);
   const holder = `${process.pid}-${randomUUID()}`;
-  const lockOk = await tryAcquireLease(holder, new Date());
+  const lockOk = await tryAcquireLease(lockKey, holder, new Date());
   if (!lockOk) {
     return {
       result: { ran: false, reason: "LOCK_HELD" },
@@ -721,13 +796,12 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
         maxRuntimeMs,
         claimBatchSize,
         ratePerSecond: 0,
+        rateLimiterMode: "redis_global",
         lockHolder: null,
         quota: {
           maxSendRate: 0,
           max24HourSend: 0,
-          sentLast24HoursAtStart: 0,
-          reservedEmails: 0,
-          remainingEmails: 0,
+          sentLast24Hours: 0,
         },
         queue: {
           eligibleQueuedCountAtStart,
@@ -743,7 +817,7 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
 
   // Periodic heartbeat so the lease never expires while we're actively working.
   const heartbeatTimer = setInterval(() => {
-    heartbeatLease(holder, new Date()).catch((err) => {
+    heartbeatLease(lockKey, holder, new Date()).catch((err) => {
       console.error(
         JSON.stringify({
           msg: "nisc_em_dispatch_heartbeat_failed",
@@ -764,26 +838,30 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
   let permanentlyFailed = 0;
   let throttled = 0;
   let ratePerSecond = 0;
+  let rateLimiterMode: "redis_global" | "local_fallback" = "redis_global";
   let consecutiveThrottleCount = 0;
   let lastStatusFlushMs = startedMs;
-  const touchedCampaignIds = new Set<string>();
-
   try {
-    const quota = await getQuotaStatus(new Date());
+    const sesQuota = await getSesSendQuotaSnapshot();
     const envRate = envInt("NISC_EM_MAX_SEND_RATE");
     const configuredRate = envRate && envRate > 0 ? envRate : 14;
-    const maxRate = Math.max(1, Math.floor(quota.maxSendRate || configuredRate));
+    const maxRate = Math.max(1, Math.floor(sesQuota.maxSendRate || configuredRate));
     ratePerSecond = clamp(Math.min(configuredRate, maxRate), 1, 1000);
-    const limiter = new TokenBucketPerSecond(ratePerSecond);
+    const sesRegion = (process.env.AWS_SES_REGION ?? "unknown").trim().toLowerCase();
+    const redisLimiter = new RedisFixedWindowPerSecondLimiter(
+      ratePerSecond,
+      `nisc_em_ses_rate:${sesRegion}`,
+    );
+    const localLimiter = new TokenBucketPerSecond(ratePerSecond);
+    let usingLocalLimiterFallback = false;
     const ses = getSesClient();
 
     while (Date.now() - startedMs < maxRuntimeMs) {
       const now = new Date();
-      const batch = await claimQueuedEmails({ now, limit: claimBatchSize });
+      const batch = await claimQueuedEmails({ now, limit: claimBatchSize, campaignId });
       if (batch.length === 0) break;
 
       claimed += batch.length;
-      for (const b of batch) touchedCampaignIds.add(b.campaignId);
 
       const campaignIds = Array.from(new Set(batch.map((b) => b.campaignId)));
       const campaigns = await db.query.niscEmCampaign.findMany({
@@ -832,7 +910,27 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
           | { ok: true; messageId: string | null }
           | { ok: false; error: unknown };
         try {
-          await limiter.take();
+          try {
+            await redisLimiter.take();
+          } catch (limiterErr) {
+            // Fallback safety: if Redis is unavailable, keep local limiting so we
+            // still throttle each worker and avoid a complete fail-stop.
+            if (!usingLocalLimiterFallback) {
+              usingLocalLimiterFallback = true;
+              rateLimiterMode = "local_fallback";
+              const message =
+                limiterErr instanceof Error ? limiterErr.message : String(limiterErr);
+              warnings.push(`redis_global_rate_limiter_unavailable:${message}`);
+              console.error(
+                JSON.stringify({
+                  msg: "nisc_em_dispatch_global_rate_limiter_unavailable",
+                  error: message,
+                  fallback: "local_token_bucket",
+                }),
+              );
+            }
+            await localLimiter.take();
+          }
           const res = await sendSesRawEmail(ses, { RawMessage: { Data: raw } });
           sesResponse = { ok: true, messageId: res.MessageId ?? null };
           if (!res.MessageId) {
@@ -896,9 +994,8 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
         // while a large campaign drains.
         if (Date.now() - lastStatusFlushMs > CAMPAIGN_STATUS_UPDATE_INTERVAL_MS) {
           lastStatusFlushMs = Date.now();
-          const ids = Array.from(touchedCampaignIds);
           // Best-effort; never let a partial-rollup error kill the run.
-          updateCampaignStatuses(ids).catch((e) => {
+          updateCampaignStatuses(campaignId).catch((e) => {
             console.error(
               JSON.stringify({
                 msg: "nisc_em_dispatch_rollup_flush_failed",
@@ -928,19 +1025,17 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
     }
 
     // Final rollup — authoritative state once we stop the main loop.
-    if (touchedCampaignIds.size > 0) {
-      try {
-        await updateCampaignStatuses(Array.from(touchedCampaignIds));
-      } catch (err) {
-        warnings.push(
-          `final_rollup_failed:${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
+    try {
+      await updateCampaignStatuses(campaignId);
+    } catch (err) {
+      warnings.push(
+        `final_rollup_failed:${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
-    const eligibleQueuedCountAtEnd = await countEligibleQueuedEmails(new Date());
-    const eligibleByStatusAtEnd = await countEligibleEmailsByStatus(new Date());
-    const remainingEligible = await countEligiblePending(new Date());
+    const eligibleQueuedCountAtEnd = await countEligibleQueuedEmails(new Date(), campaignId);
+    const eligibleByStatusAtEnd = await countEligibleEmailsByStatus(new Date(), campaignId);
+    const remainingEligible = await countEligiblePending(new Date(), campaignId);
 
     return {
       result: {
@@ -959,13 +1054,12 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
         maxRuntimeMs,
         claimBatchSize,
         ratePerSecond,
+        rateLimiterMode,
         lockHolder: holder,
         quota: {
-          maxSendRate: quota.maxSendRate,
-          max24HourSend: quota.max24HourSend,
-          sentLast24HoursAtStart: quota.sentLast24HoursAtStart,
-          reservedEmails: quota.reservedEmails,
-          remainingEmails: quota.remainingEmails,
+          maxSendRate: sesQuota.maxSendRate,
+          max24HourSend: sesQuota.max24HourSend,
+          sentLast24Hours: sesQuota.sentLast24Hours,
         },
         queue: {
           eligibleQueuedCountAtStart,
@@ -980,7 +1074,7 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
   } finally {
     clearInterval(heartbeatTimer);
     try {
-      await releaseLease(holder);
+      await releaseLease(lockKey, holder);
     } catch (err) {
       console.error(
         JSON.stringify({

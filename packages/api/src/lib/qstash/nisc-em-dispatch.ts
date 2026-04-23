@@ -27,10 +27,12 @@ function isLoopbackUrl(url: string): boolean {
 }
 
 /**
- * Enqueue a global Nisc email marketing dispatcher run.
- * This worker is designed to be safe to call many times; a global advisory lock ensures only one run is active.
+ * Enqueue a campaign-scoped Nisc email marketing dispatcher run.
  */
-export async function enqueueNiscEmDispatch(scheduledFor?: Date | null): Promise<NiscEmDispatchJobResult> {
+export async function enqueueNiscEmDispatch(
+  campaignId: string,
+  scheduledFor?: Date | null,
+): Promise<NiscEmDispatchJobResult> {
   const url = getWorkerEndpoint();
   if (!url) {
     throw new Error(
@@ -44,7 +46,7 @@ export async function enqueueNiscEmDispatch(scheduledFor?: Date | null): Promise
   }
 
   const client = getQStashClient();
-  const payload: NiscEmDispatchJobPayload = { kind: "NISC_EM_DISPATCH" };
+  const payload: NiscEmDispatchJobPayload = { kind: "NISC_EM_DISPATCH", campaignId };
 
   const now = Date.now();
   const scheduledMs = scheduledFor?.getTime() ?? 0;

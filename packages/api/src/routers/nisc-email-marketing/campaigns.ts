@@ -27,6 +27,19 @@ async function assertTeamMember(teamId: string, userId: string) {
   return member ?? null;
 }
 
+async function listUserTeamIds(userId: string): Promise<string[]> {
+  const rows = await db
+    .select({ teamId: teamMember.teamId })
+    .from(teamMember)
+    .where(eq(teamMember.userId, userId));
+  return rows.map((r) => r.teamId);
+}
+
+function isAgencyUserRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+}
+
 async function assertCampaignAccess(campaignId: string, userId: string) {
   const [campaign] = await db
     .select({
@@ -59,6 +72,68 @@ async function assertCampaignAccess(campaignId: string, userId: string) {
     return campaign;
   }
   throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+
+async function assertCampaignOwnerAccess(campaignId: string, userId: string) {
+  const [campaign] = await db
+    .select({
+      id: niscEmCampaign.id,
+      userId: niscEmCampaign.userId,
+      teamId: niscEmCampaign.teamId,
+      name: niscEmCampaign.name,
+      status: niscEmCampaign.status,
+      subject: niscEmCampaign.subject,
+      fromEmail: niscEmCampaign.fromEmail,
+      fromName: niscEmCampaign.fromName,
+      domainId: niscEmCampaign.domainId,
+      htmlContent: niscEmCampaign.htmlContent,
+      textContent: niscEmCampaign.textContent,
+      scheduledAt: niscEmCampaign.scheduledAt,
+      sentAt: niscEmCampaign.sentAt,
+      createdAt: niscEmCampaign.createdAt,
+      updatedAt: niscEmCampaign.updatedAt,
+      totalRecipients: niscEmCampaign.totalRecipients,
+    })
+    .from(niscEmCampaign)
+    .where(eq(niscEmCampaign.id, campaignId))
+    .limit(1);
+
+  if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+  if (campaign.userId !== userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only the campaign creator can modify it" });
+  }
+  return campaign;
+}
+
+async function assertCampaignReadAccess(campaignId: string, userId: string, role: string | null | undefined) {
+  if (isAgencyUserRole(role)) {
+    const [campaign] = await db
+      .select({
+        id: niscEmCampaign.id,
+        userId: niscEmCampaign.userId,
+        teamId: niscEmCampaign.teamId,
+        name: niscEmCampaign.name,
+        status: niscEmCampaign.status,
+        subject: niscEmCampaign.subject,
+        fromEmail: niscEmCampaign.fromEmail,
+        fromName: niscEmCampaign.fromName,
+        domainId: niscEmCampaign.domainId,
+        htmlContent: niscEmCampaign.htmlContent,
+        textContent: niscEmCampaign.textContent,
+        scheduledAt: niscEmCampaign.scheduledAt,
+        sentAt: niscEmCampaign.sentAt,
+        createdAt: niscEmCampaign.createdAt,
+        updatedAt: niscEmCampaign.updatedAt,
+        totalRecipients: niscEmCampaign.totalRecipients,
+      })
+      .from(niscEmCampaign)
+      .where(eq(niscEmCampaign.id, campaignId))
+      .limit(1);
+    if (!campaign) throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+    return campaign;
+  }
+
+  return assertCampaignAccess(campaignId, userId);
 }
 
 async function fetchRecipients(campaignId: string) {
@@ -129,15 +204,30 @@ function mapCampaignSummary(row: {
 export const niscEmailMarketingCampaignsRouter = router({
   list: protectedProcedure.input(campaignListFiltersSchema).query(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
     const conditions = [];
-    if (input.teamId) {
+    if (isAgencyUserRole(userRole)) {
+      // Agency-side view: list all campaigns globally.
+    } else if (input.teamId) {
       const member = await assertTeamMember(input.teamId, userId);
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
       conditions.push(eq(niscEmCampaign.teamId, input.teamId));
     } else {
-      conditions.push(eq(niscEmCampaign.userId, userId));
+      const teamIds = await listUserTeamIds(userId);
+      // Agency-side default scope: all campaigns in teams the user belongs to.
+      // Keep personal fallback so non-team users still see their own campaigns.
+      if (teamIds.length > 0) {
+        conditions.push(
+          or(
+            inArray(niscEmCampaign.teamId, teamIds),
+            eq(niscEmCampaign.userId, userId),
+          ),
+        );
+      } else {
+        conditions.push(eq(niscEmCampaign.userId, userId));
+      }
     }
 
     if (input.status) {
@@ -195,9 +285,10 @@ export const niscEmailMarketingCampaignsRouter = router({
 
   getById: protectedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    const row = await assertCampaignAccess(input.id, userId);
+    const row = await assertCampaignReadAccess(input.id, userId, userRole);
     const recipients = await fetchRecipients(row.id);
 
     return campaignDetailSchema.parse({
@@ -306,7 +397,7 @@ export const niscEmailMarketingCampaignsRouter = router({
     const userId = ctx.session?.user?.id;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    const campaign = await assertCampaignAccess(input.id, userId);
+    const campaign = await assertCampaignOwnerAccess(input.id, userId);
     const now = new Date();
 
     if (["SENDING", "SENT", "CANCELLED"].includes(campaign.status)) {
@@ -341,7 +432,10 @@ export const niscEmailMarketingCampaignsRouter = router({
 
     let dispatchResult: Awaited<ReturnType<typeof enqueueNiscEmDispatch>>;
     try {
-      dispatchResult = await enqueueNiscEmDispatch(shouldSchedule ? scheduledAt : null);
+      dispatchResult = await enqueueNiscEmDispatch(
+        campaign.id,
+        shouldSchedule ? scheduledAt : null,
+      );
     } catch (err) {
       // Rollback: only if nobody else has moved the campaign since — we don't
       // want to clobber a concurrent cancel or a dispatcher that already
@@ -371,7 +465,7 @@ export const niscEmailMarketingCampaignsRouter = router({
     const userId = ctx.session?.user?.id;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    const campaign = await assertCampaignAccess(input.id, userId);
+    const campaign = await assertCampaignOwnerAccess(input.id, userId);
     if (campaign.status !== "SCHEDULED") {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Campaign is not scheduled" });
     }
@@ -389,7 +483,7 @@ export const niscEmailMarketingCampaignsRouter = router({
     const userId = ctx.session?.user?.id;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
 
-    await assertCampaignAccess(input.id, userId);
+    await assertCampaignOwnerAccess(input.id, userId);
     await db.delete(niscEmCampaign).where(eq(niscEmCampaign.id, input.id));
     return { ok: true };
   }),
