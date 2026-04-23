@@ -11,7 +11,7 @@ import {
 	getGoogleAdsDeveloperToken,
 } from '../../lib/google-ads-credentials';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
-import { getUserGoogleAdsIntegration } from '../../lib/google-ads-user-integration';
+import { getGoogleAdsIntegrationForSession } from '../../lib/google-ads-user-integration';
 
 /**
  * Format date for Google Ads API (YYYYMMDD format)
@@ -51,7 +51,10 @@ export const googleAdsAdsRouter = router({
 					});
 				}
 
-				const integration = await getUserGoogleAdsIntegration(userId);
+				const integration = await getGoogleAdsIntegrationForSession({
+					userId,
+					role: ctx.session?.user?.role,
+				});
 
 				// Remove dashes from customer ID for API call
 				const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
@@ -373,7 +376,10 @@ export const googleAdsAdsRouter = router({
 					});
 				}
 
-				const integration = await getUserGoogleAdsIntegration(userId);
+				const integration = await getGoogleAdsIntegrationForSession({
+					userId,
+					role: ctx.session?.user?.role,
+				});
 				const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
 
 				const client = createGoogleAdsClient({

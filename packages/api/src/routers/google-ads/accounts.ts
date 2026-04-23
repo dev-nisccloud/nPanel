@@ -19,7 +19,7 @@ import {
 	getGoogleAdsDeveloperToken,
 } from '../../lib/google-ads-credentials';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
-import { getUserGoogleAdsIntegration } from '../../lib/google-ads-user-integration';
+import { getGoogleAdsIntegrationForSession } from '../../lib/google-ads-user-integration';
 
 // ============================================================================
 // ZOD SCHEMAS
@@ -46,7 +46,10 @@ export const googleAdsAccountsRouter = router({
 					});
 				}
 
-				const integration = await getUserGoogleAdsIntegration(userId);
+				const integration = await getGoogleAdsIntegrationForSession({
+					userId,
+					role: ctx.session?.user?.role,
+				});
 
 				// 1. Read-first: Try to get from database first
 				const existingDbAccounts = await db
@@ -256,7 +259,10 @@ export const googleAdsAccountsRouter = router({
 					});
 				}
 
-				const integration = await getUserGoogleAdsIntegration(userId);
+				const integration = await getGoogleAdsIntegrationForSession({
+					userId,
+					role: ctx.session?.user?.role,
+				});
 
 				// Remove dashes from customer ID for API call
 				const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
