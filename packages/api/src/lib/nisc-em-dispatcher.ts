@@ -630,6 +630,25 @@ async function writeFailureStatus(
 }
 
 /**
+ * Rows claimed into SENDING but never attempted in this run (because runtime
+ * budget elapsed mid-batch) must be returned to QUEUED immediately.
+ *
+ * If we leave them as fresh SENDING, the next chained run won't reclaim them
+ * until the stale timeout elapses, which makes the campaign appear "stuck"
+ * despite healthy SES and no explicit errors.
+ */
+async function requeueUnattemptedBatchEmails(emailIds: string[], now: Date): Promise<void> {
+  if (emailIds.length === 0) return;
+  await db
+    .update(niscEmEmail)
+    .set({
+      status: "QUEUED",
+      updatedAt: now,
+    })
+    .where(inArray(niscEmEmail.id, emailIds));
+}
+
+/**
  * Re-aggregate email counts per touched campaign and update campaign status.
  *
  * Preserves CANCELLED — a user may cancel a campaign mid-drain and we must not
@@ -781,8 +800,13 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
       });
       const campaignById = new Map(campaigns.map((c) => [c.id, c]));
 
-      for (const email of batch) {
-        if (Date.now() - startedMs >= maxRuntimeMs) break;
+      let cutShortAtIndex: number | null = null;
+      for (let i = 0; i < batch.length; i++) {
+        if (Date.now() - startedMs >= maxRuntimeMs) {
+          cutShortAtIndex = i;
+          break;
+        }
+        const email = batch[i]!;
 
         const campaign = campaignById.get(email.campaignId);
         if (!campaign) {
@@ -882,6 +906,23 @@ export async function dispatchNiscEmEmailQueueWithDebug(params?: {
               }),
             );
           });
+        }
+      }
+
+      if (cutShortAtIndex != null) {
+        const unattempted = batch.slice(cutShortAtIndex).map((e) => e.id);
+        if (unattempted.length > 0) {
+          await requeueUnattemptedBatchEmails(unattempted, new Date());
+          requeued += unattempted.length;
+          warnings.push(`requeued_unattempted_claimed_rows:${unattempted.length}`);
+          console.log(
+            JSON.stringify({
+              msg: "nisc_em_dispatch_requeued_unattempted_claimed_rows",
+              count: unattempted.length,
+              claimBatchSize,
+              elapsedMs: Date.now() - startedMs,
+            }),
+          );
         }
       }
     }
