@@ -2,7 +2,7 @@ import { router, protectedProcedure } from '../../trpc';
 import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
-import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -25,7 +25,10 @@ export const linkedInAdsAuthRouter = router({
 					message: 'User session not found',
 				});
 			}
-			const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
+			const tokenData = await getStoredLinkedInAccessTokenForSession({
+				userId,
+				role: ctx.session?.user?.role,
+			});
 
 			if (!tokenData) {
 				return {

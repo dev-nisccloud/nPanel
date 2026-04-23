@@ -3,7 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { request } from 'undici';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 
 // ---------------------------------------------------------------------------
 // Targeting resolution helpers
@@ -250,8 +250,8 @@ const GET_ALL_CONFIG: Record<string, { endpoint: string; extraParams: Record<str
 /**
  * Get user's LinkedIn integration with valid tokens
  */
-async function getUserIntegration(userId: string) {
-	const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
+async function getUserIntegration(userId: string, role?: string | null) {
+	const tokenData = await getStoredLinkedInAccessTokenForSession({ userId, role });
 
 	if (!tokenData) {
 		throw new TRPCError({
@@ -307,7 +307,7 @@ export const linkedInAdsCampaignsRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration(userId);
+				const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });
@@ -493,7 +493,7 @@ export const linkedInAdsCampaignsRouter = router({
 		.query(async ({ input, ctx }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
-			const { accessToken } = await getUserIntegration(userId);
+			const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
 
 			// 1. Extract URNs grouped by facet key
 			const facetMap = new Map<string, string[]>();
@@ -640,7 +640,7 @@ export const linkedInAdsCampaignsRouter = router({
 		.query(async ({ input, ctx }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
-			const { accessToken } = await getUserIntegration(userId);
+			const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
 
 			const extractId = (urn: string) => {
 				const colonIdx = urn.indexOf(':(');
@@ -786,7 +786,7 @@ export const linkedInAdsCampaignsRouter = router({
 					});
 				}
 
-				const { accessToken } = await getUserIntegration(userId);
+				const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
 
 				// Create LinkedIn Ads client
 				const client = new LinkedInAdsClient({ accessToken });
