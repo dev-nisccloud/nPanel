@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { CreateMediaBuyingSubscriptionDialog } from "./agency.ad-campaigns/_components/create-media-buying-subscription-dialog";
 
 /** Format customer ID with dashes for display (XXXXXXXXXX -> XXX-XXX-XXXX) */
 function formatCustomerIdDisplay(customerId: string): string {
@@ -252,6 +253,13 @@ export default function GoogleAdsAccountPage() {
 									<span>Timezone: {account.timeZone}</span>
 								</div>
 							</div>
+						</div>
+						<div className="flex items-center">
+							<CreateMediaBuyingSubscriptionDialog
+								platform="GOOGLE_ADS"
+								accountId={customerId}
+								accountName={account.accountName ?? null}
+							/>
 						</div>
 					</div>
 				</div>

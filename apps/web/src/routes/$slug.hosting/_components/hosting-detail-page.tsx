@@ -5,6 +5,7 @@ import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight
 import { Icons } from "@/components/icons";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
+import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ function HostingDetailSkeleton() {
 }
 
 // Error component
-function HostingDetailError({ error, onRetry, teamSlug }: { error: Error | null; onRetry: () => void; teamSlug: string }) {
+function HostingDetailError({ error, onRetry, teamSlug }: { error: Error; onRetry: () => void; teamSlug: string }) {
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
@@ -124,8 +125,13 @@ function HostingDetailError({ error, onRetry, teamSlug }: { error: Error | null;
 export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const { pathname } = useLocation();
   const teamSlug = pathname.split("/")[1];
-  const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId, teamSlug);
+  const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
+  const mailboxQuotaLimitBytes = React.useMemo(() => {
+    const limits = hostingData?.limits?.limit ?? [];
+    const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
+    return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
+  }, [hostingData?.limits?.limit]);
 
   // Show loading state
   if (isLoading) {
@@ -283,7 +289,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="mail" className="mt-10">
-              <MailTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+              <MailTable
+                siteId={hostingData.id}
+                domainName={hostingData.gen_info?.name}
+                maxMailboxQuotaBytes={mailboxQuotaLimitBytes}
+              />
             </TabsContent>
 
             <TabsContent value="file-manager" className="mt-10">

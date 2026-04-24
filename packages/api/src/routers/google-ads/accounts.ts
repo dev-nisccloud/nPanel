@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, inArray } from '@npanel/db';
+import { and, desc, eq, ilike, inArray, sql } from '@npanel/db';
 import { router, protectedProcedure } from '../../trpc';
 import { db } from '@npanel/db';
 import {
 	googleAdsAccount,
 	googleAdsAccountActivityLog,
 } from '@npanel/db/schema/google-ads';
+import { niscClientSubscription, niscProduct } from '@npanel/db/schema/products';
 import { team, teamMember } from '@npanel/db/schema/teams';
 import {
 	createGoogleAdsClient,
@@ -21,6 +22,7 @@ import {
 } from '../../lib/google-ads-credentials';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
 import { getGoogleAdsIntegrationForSession } from '../../lib/google-ads-user-integration';
+import { getGoogleAdsExecutionContext } from './access';
 
 const isAgencyUserRole = (role: string | null | undefined) =>
 	['AGENCY_USER', 'AGENCY_ADMIN', 'AGENCY_SUPER_ADMIN'].includes(role ?? '');
@@ -37,6 +39,72 @@ async function getAccessibleTeamIds(userId: string): Promise<string[]> {
 		}),
 	]);
 	return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
+
+function formatGoogleCustomerIdDashed(customerId: string): string {
+	const raw = customerId.replace(/-/g, '');
+	return raw.length === 10
+		? `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6)}`
+		: customerId;
+}
+
+async function hasGoogleSubscriptionAccess(teamIds: string[], customerId: string): Promise<boolean> {
+	if (teamIds.length === 0) return false;
+	const raw = customerId.replace(/-/g, '');
+	const dashed = formatGoogleCustomerIdDashed(raw);
+	const [linked] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`,
+				sql`((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${raw} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${dashed})`,
+			),
+		)
+		.limit(1);
+	return !!linked;
+}
+
+async function getGoogleLinkedAccountsFromSubscriptions(teamIds: string[]) {
+	if (teamIds.length === 0) return [];
+	const rows = await db
+		.select({
+			serviceRefs: niscClientSubscription.serviceRefs,
+			name: niscClientSubscription.name,
+		})
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`,
+			),
+		);
+
+	const byId = new Map<string, { customerId: string; accountName: string | null }>();
+	for (const row of rows) {
+		const refs = row.serviceRefs as Record<string, unknown> | null;
+		const accountId = typeof refs?.adAccountId === 'string' ? refs.adAccountId.replace(/-/g, '').trim() : '';
+		if (!accountId) continue;
+		const accountNameRaw = typeof refs?.adAccountName === 'string' ? refs.adAccountName.trim() : '';
+		const accountName = accountNameRaw || row.name || null;
+		if (!byId.has(accountId)) {
+			byId.set(accountId, { customerId: accountId, accountName });
+		}
+	}
+
+	return [...byId.values()].map((acc) => ({
+		customerId: acc.customerId,
+		accountName: acc.accountName,
+		currencyCode: null,
+		timeZone: null,
+		status: 'ACTIVE' as const,
+		resourceName: `customers/${acc.customerId}`,
+	}));
 }
 
 // ============================================================================
@@ -74,6 +142,18 @@ export const googleAdsAccountsRouter = router({
 							retrieved_at: new Date().toISOString(),
 							total_accounts: 0,
 							source: 'team_scoped_cache',
+						},
+					};
+				}
+				if (!isAgencyUser) {
+					const linkedAccounts = await getGoogleLinkedAccountsFromSubscriptions(accessibleTeamIds);
+					return {
+						success: true,
+						data: linkedAccounts,
+						meta: {
+							retrieved_at: new Date().toISOString(),
+							total_accounts: linkedAccounts.length,
+							source: 'team_scoped_subscription_link',
 						},
 					};
 				}
@@ -122,25 +202,6 @@ export const googleAdsAccountsRouter = router({
 						},
 					};
 				}
-				if (!isAgencyUser) {
-					return {
-						success: true,
-						data: existingDbAccounts.map(acc => ({
-							customerId: acc.customerId,
-							accountName: acc.accountName,
-							currencyCode: acc.currencyCode,
-							timeZone: acc.timeZone,
-							status: acc.status,
-							resourceName: `customers/${acc.customerId}`,
-						})),
-						meta: {
-							retrieved_at: newest?.updatedAt.toISOString() || new Date().toISOString(),
-							total_accounts: existingDbAccounts.length,
-							source: 'team_scoped_cache',
-						},
-					};
-				}
-
 				// 2. Fetch from Google Ads API if needed
 				const client = createGoogleAdsClient({
 					developerToken: getGoogleAdsDeveloperToken(),
@@ -306,49 +367,10 @@ export const googleAdsAccountsRouter = router({
 		.input(GetAccountDetailsRequestSchema)
 		.query(async ({ input, ctx }) => {
 			try {
-				const userId = ctx.session?.user?.id;
-				const role = ctx.session?.user?.role;
-				if (!userId) {
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'User session not found',
-					});
-				}
-				const isAgencyUser = isAgencyUserRole(role);
-				if (!isAgencyUser) {
-					const accessibleTeamIds = await getAccessibleTeamIds(userId);
-					if (accessibleTeamIds.length === 0) {
-						throw new TRPCError({
-							code: 'FORBIDDEN',
-							message: 'You do not have access to this Google Ads account',
-						});
-					}
-					const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
-					const [linkedAccount] = await db
-						.select()
-						.from(googleAdsAccount)
-						.where(
-							and(
-								eq(googleAdsAccount.customerId, customerIdWithoutDashes),
-								inArray(googleAdsAccount.teamId, accessibleTeamIds),
-							),
-						)
-						.limit(1);
-					if (!linkedAccount) {
-						throw new TRPCError({
-							code: 'FORBIDDEN',
-							message: 'You do not have access to this Google Ads account',
-						});
-					}
-				}
-
-				const integration = await getGoogleAdsIntegrationForSession({
-					userId,
-					role,
-				});
-
-				// Remove dashes from customer ID for API call
-				const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
+				const { integration, customerIdWithoutDashes } = await getGoogleAdsExecutionContext(
+					ctx,
+					input.customerId,
+				);
 
 				// Create Google Ads client
 				const client = createGoogleAdsClient({

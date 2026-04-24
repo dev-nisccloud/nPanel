@@ -27,7 +27,7 @@ export const pleskSubscriptionByIdResponseSchema = z.object({
                 "sb-site-uuid": z.string().optional(),
                 description: z.string().optional(),
                 "admin-description": z.string().optional(),
-              }),
+              }).optional(),
               hosting: z.object({
                 vrt_hst: z.object({
                   property: z.array(z.object({
@@ -69,7 +69,7 @@ export const pleskSubscriptionByIdResponseSchema = z.object({
                   value: z.boolean().optional(),
                 })).optional(),
               }).optional(),
-            }),
+            }).optional(),
           }),
         }),
       }).optional(),

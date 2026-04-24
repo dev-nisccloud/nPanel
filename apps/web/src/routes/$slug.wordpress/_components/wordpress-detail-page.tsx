@@ -44,7 +44,6 @@ import { WordPressThemes } from "./wordpress-themes";
 import { WordPressTools } from "./wordpress-tools";
 import { wordpressInstallationSchema } from "./schema";
 import { useWordPressDetailBatched } from "./use-wordpress-detail-batched";
-import { LinkToTeamDialog } from "./link-to-team-dialog";
 import pluginData from "./plugin-data.json";
 import themeData from "./theme-data.json";
 
@@ -147,7 +146,6 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
   const { pathname } = useLocation();
   const teamSlug = pathname.split("/")[1] ?? "";
   const { data: wpData, subscription: subscriptionData, isLoading, isError, error, refetch } = useWordPressDetailBatched(installationId);
-  const [isLinkToTeamOpen, setIsLinkToTeamOpen] = React.useState(false);
   const [isUnlinkDialogOpen, setIsUnlinkDialogOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
 
@@ -240,16 +238,6 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setIsActionMenuOpen(false);
-                    setTimeout(() => setIsLinkToTeamOpen(true), 0);
-                  }}
-                  disabled={isLinkedToTeam}
-                >
-                  Link to Team
-                </DropdownMenuItem>
                 {isLinkedToTeam && (
                   <DropdownMenuItem
                     onSelect={(e) => {
@@ -381,18 +369,6 @@ export function WordPressDetailPage({ installationId }: WordPressDetailPageProps
           </Tabs>
         </div>
       </div>
-
-      {/* Link to Team Dialog */}
-      <LinkToTeamDialog
-        open={isLinkToTeamOpen}
-        onOpenChange={setIsLinkToTeamOpen}
-        installationId={wpInstallationId}
-        onSuccess={() => {
-          // Invalidate batched query to refresh data
-          utils.wordpressSubscriptions.getDetailWithSubscription.invalidate({ installationId: wpInstallationId });
-          refetch();
-        }}
-      />
 
       {/* Unlink Confirmation Dialog */}
       <AlertDialog open={isUnlinkDialogOpen} onOpenChange={setIsUnlinkDialogOpen}>

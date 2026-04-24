@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConnectMetaAds } from "./agency.ad-campaigns/meta-ads/_components/connect-meta-ads";
+import { CreateMediaBuyingSubscriptionDialog } from "./agency.ad-campaigns/_components/create-media-buying-subscription-dialog";
 import type { StoredCredentials } from "./agency.ad-campaigns/meta-ads/_components/schemas";
 import type { MetaAdsAccount } from "./agency.ad-campaigns/meta-ads/_components/schemas";
 
@@ -473,6 +474,14 @@ export default function MetaAdsPage() {
 							</div>
 
 							<div className="flex items-center gap-2 w-full md:w-auto">
+								<CreateMediaBuyingSubscriptionDialog
+									platform="META_ADS"
+									accountId={selectedAccountId}
+									accountName={
+										(accounts as any[]).find((acc: any) => acc.accountId === selectedAccountId)?.accountName ??
+										null
+									}
+								/>
 								<Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
 									<PopoverTrigger asChild>
 										<Button variant="outline" size="sm" className="h-10 w-full md:w-auto justify-start shadow-sm border-muted/60 font-medium whitespace-nowrap">

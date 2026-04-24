@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, inArray, sql, type InferSelectModel } from "@npanel/db";
+import { and, desc, eq, ilike, inArray, sql, type InferSelectModel } from "@npanel/db";
 import { db } from "@npanel/db";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
+import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { router, protectedProcedure } from '../../trpc';
@@ -27,6 +28,80 @@ async function getAccessibleTeamIds(userId: string): Promise<string[]> {
 		}),
 	]);
 	return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
+
+function normalizeMetaAccountId(value: string): string {
+	const trimmed = value.trim();
+	if (trimmed.startsWith("act_")) {
+		return trimmed;
+	}
+	const numeric = trimmed.replace(/[^0-9]/g, "");
+	return numeric.length > 0 ? `act_${numeric}` : trimmed;
+}
+
+async function hasMetaSubscriptionAccess(teamIds: string[], accountId: string): Promise<boolean> {
+	if (teamIds.length === 0) return false;
+	const normalized = normalizeMetaAccountId(accountId);
+	const numeric = normalized.replace(/^act_/, "");
+	const [linked] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"META_ADS"}`,
+				sql`((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${normalized} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${numeric})`,
+			),
+		)
+		.limit(1);
+	return !!linked;
+}
+
+async function getMetaLinkedAccountsFromSubscriptions(teamIds: string[]) {
+	if (teamIds.length === 0) return [];
+	const rows = await db
+		.select({
+			serviceRefs: niscClientSubscription.serviceRefs,
+			name: niscClientSubscription.name,
+		})
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"META_ADS"}`,
+			),
+		);
+
+	const byId = new Map<string, { accountId: string; accountName: string | null }>();
+	for (const row of rows) {
+		const refs = row.serviceRefs as Record<string, unknown> | null;
+		const accountIdRaw = typeof refs?.adAccountId === "string" ? refs.adAccountId.trim() : "";
+		if (!accountIdRaw) continue;
+		const accountId = normalizeMetaAccountId(accountIdRaw);
+		const accountNameRaw = typeof refs?.adAccountName === "string" ? refs.adAccountName.trim() : "";
+		const accountName = accountNameRaw || row.name || null;
+		if (!byId.has(accountId)) {
+			byId.set(accountId, { accountId, accountName });
+		}
+	}
+
+	return [...byId.values()].map((acc) => ({
+		id: acc.accountId,
+		accountId: acc.accountId,
+		accountName: acc.accountName,
+		currency: null,
+		timezone: null,
+		status: 'ACTIVE' as const,
+		spendLimit: null,
+		amountSpent: null,
+		balance: null,
+		instagramUserId: null,
+		updatedAt: new Date(),
+	}));
 }
 
 /**
@@ -123,6 +198,30 @@ export const metaAdsAccountsRouter = router({
 							retrieved_at: new Date().toISOString(),
 							total_accounts: 0,
 							source: 'team_scoped_cache',
+						},
+					};
+				}
+				if (!isAgency) {
+					const linkedAccounts = await getMetaLinkedAccountsFromSubscriptions(teamIds);
+					return {
+						success: true,
+						data: linkedAccounts.map((acc) => ({
+							id: acc.id,
+							accountId: acc.accountId,
+							accountName: acc.accountName,
+							currency: acc.currency,
+							timezone: acc.timezone,
+							status: acc.status,
+							spendLimit: acc.spendLimit,
+							amountSpent: acc.amountSpent,
+							balance: acc.balance,
+							instagramUserId: acc.instagramUserId,
+							updatedAt: acc.updatedAt,
+						})),
+						meta: {
+							retrieved_at: new Date().toISOString(),
+							total_accounts: linkedAccounts.length,
+							source: 'team_scoped_subscription_link',
 						},
 					};
 				}
@@ -293,7 +392,8 @@ export const metaAdsAccountsRouter = router({
 						),
 						columns: { id: true },
 					});
-					if (!linkedAccount) {
+					const hasSubscriptionAccess = await hasMetaSubscriptionAccess(teamIds, normalizedAccountId);
+					if (!linkedAccount && !hasSubscriptionAccess) {
 						throw new TRPCError({
 							code: 'FORBIDDEN',
 							message: 'You do not have access to this Meta ad account',
@@ -378,7 +478,8 @@ export const metaAdsAccountsRouter = router({
 						),
 						columns: { id: true },
 					});
-					if (!linkedAccount) {
+					const hasSubscriptionAccess = await hasMetaSubscriptionAccess(teamIds, normalizedId);
+					if (!linkedAccount && !hasSubscriptionAccess) {
 						throw new TRPCError({
 							code: 'FORBIDDEN',
 							message: 'You do not have access to this Meta ad account',

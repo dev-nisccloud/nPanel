@@ -52,6 +52,7 @@ import { AddMailAddressSheet } from "./add-mail-address-sheet";
 interface MailTableProps {
   siteId: number;
   domainName?: string;
+  maxMailboxQuotaBytes?: number;
 }
 
 // Loading skeleton component
@@ -170,7 +171,7 @@ function MailTableError({ error, onRetry }: { error: Error; onRetry: () => void 
   );
 }
 
-export function MailTable({ siteId, domainName }: MailTableProps) {
+export function MailTable({ siteId, domainName, maxMailboxQuotaBytes }: MailTableProps) {
   const { data: emailsData, isLoading, isError, error, refetch } = useEmailsBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
@@ -495,6 +496,8 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
           }
         }}
         siteId={siteId}
+        domainName={domainName}
+        maxMailboxQuotaBytes={maxMailboxQuotaBytes}
         initialValues={sheetInitial || undefined}
         mode={sheetMode}
         onSuccess={() => {

@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "@npanel/db";
+import { and, eq, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { hostingPlan, wordPressInstance, wordPressInstanceActivityLog } from "@npanel/db/schema/hosting";
+import { niscClientSubscription } from "@npanel/db/schema/products";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import * as crypto from "node:crypto";
 
@@ -254,17 +255,48 @@ export const wordpressSubscriptionsRouter = router({
 				});
 			}
 			if (!isAgencyUserRole(actor.role)) {
-				if (!subscription?.teamId) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You do not have access to this WordPress installation",
+				if (subscription?.teamId) {
+					await ensureTeamReadAccess({
+						teamId: subscription.teamId,
+						userId: actor.userId,
+						role: actor.role,
 					});
+				} else {
+					// Customer fallback: allow access when WP installation domain belongs to a hosting
+					// subscription domain that the current user can access through their team(s).
+					const installationDomain = String(installation?.domain?.name ?? "").trim().toLowerCase();
+					if (!installationDomain) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You do not have access to this WordPress installation",
+						});
+					}
+
+					const accessibleHostingDomains = await db
+						.select({ primaryDomain: niscClientSubscription.primaryDomain })
+						.from(niscClientSubscription)
+						.innerJoin(team, eq(team.id, niscClientSubscription.teamId))
+						.leftJoin(teamMember, eq(teamMember.teamId, niscClientSubscription.teamId))
+						.where(
+							or(
+								eq(teamMember.userId, actor.userId),
+								eq(team.createdById, actor.userId),
+							),
+						);
+
+					const hasDomainAccess = accessibleHostingDomains.some((row) => {
+						const baseDomain = String(row.primaryDomain ?? "").trim().toLowerCase();
+						if (!baseDomain) return false;
+						return installationDomain === baseDomain || installationDomain.endsWith(`.${baseDomain}`);
+					});
+
+					if (!hasDomainAccess) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You do not have access to this WordPress installation",
+						});
+					}
 				}
-				await ensureTeamReadAccess({
-					teamId: subscription.teamId,
-					userId: actor.userId,
-					role: actor.role,
-				});
 			}
 
 			return {

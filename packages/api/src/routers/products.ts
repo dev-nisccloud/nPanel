@@ -11,7 +11,7 @@ import {
 	niscProductPlan,
 	niscProductPlanUsage,
 } from "@npanel/db/schema/products";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import {
     getCached,
     setCached,
@@ -590,7 +590,7 @@ export const productsRouter = router({
         }),
 
     /** Get plans for pricing table from products named "web hosting" or "website hosting" (case-insensitive). Returns product-level feature list (table rows) and plans with per-feature values (enabled + valueOverride exactly as stored, no number conversion). */
-    getHostingPlansForPricing: protectedProcedure
+    getHostingPlansForPricing: publicProcedure
         .output(
             z.object({
                 productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
@@ -615,10 +615,7 @@ export const productsRouter = router({
                 ),
             })
         )
-        .query(async ({ ctx }) => {
-            const actor = getAuthenticatedActor(ctx);
-            assertAgencyReadAccess(actor.role);
-
+        .query(async () => {
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
@@ -703,7 +700,7 @@ export const productsRouter = router({
         }),
 
     /** Get plans for pricing table from products named "email hosting" (case-insensitive). Same shape as getHostingPlansForPricing. */
-    getEmailHostingPlansForPricing: protectedProcedure
+    getEmailHostingPlansForPricing: publicProcedure
         .output(
             z.object({
                 productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
@@ -728,10 +725,7 @@ export const productsRouter = router({
                 ),
             })
         )
-        .query(async ({ ctx }) => {
-            const actor = getAuthenticatedActor(ctx);
-            assertAgencyReadAccess(actor.role);
-
+        .query(async () => {
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
@@ -809,7 +803,7 @@ export const productsRouter = router({
         }),
 
     /** Get plans for pricing by marketplace slug. Searches products by name using slug-derived or predefined search terms (e.g. website-hosting → "website hosting", "web hosting"). Same output shape as getHostingPlansForPricing. */
-    getPlansForPricingBySlug: protectedProcedure
+    getPlansForPricingBySlug: publicProcedure
         .input(z.object({ slug: z.string().min(1) }))
         .output(
             z.object({
@@ -835,10 +829,7 @@ export const productsRouter = router({
                 ),
             })
         )
-        .query(async ({ ctx, input }) => {
-            const actor = getAuthenticatedActor(ctx);
-            assertAgencyReadAccess(actor.role);
-
+        .query(async ({ input }) => {
             const slug = input.slug.trim().toLowerCase();
             const searchTerms = getSearchTermsForMarketplaceSlug(slug);
 

@@ -195,15 +195,39 @@ export const hostingRouter = router({
 			}
 			const role = session.user.role;
 
-			// Resolve subscriptionId: numeric Plesk id, or NiscClientSubscription id (CUID) or HostingSubscription id (CUID)
-			// Customer list uses NiscClientSubscription.id; Plesk id is in serviceRefs.pleskSubscriptionId or pleskFilterId
+			// Resolve subscriptionId: numeric Plesk id, or NiscClientSubscription id (CUID), or legacy HostingSubscription id (CUID for agency only)
+			// Customer access is always enforced through nisc_client_subscription + team membership.
 			let subscriptionIdNumber: number;
 			const parsedNumber = parseInt(input.subscriptionId, 10);
 			if (!Number.isNaN(parsedNumber) && parsedNumber > 0) {
 				subscriptionIdNumber = parsedNumber;
+				if (!isAgencyUserRole(role)) {
+					// Customer-side guardrail: only allow Plesk IDs linked to one of the caller's teams via nisc_client_subscription.
+					const numericId = String(parsedNumber);
+					const accessibleRow = await db
+						.select({ id: niscClientSubscription.id })
+						.from(niscClientSubscription)
+						.innerJoin(teamMember, eq(teamMember.teamId, niscClientSubscription.teamId))
+						.where(
+							and(
+								eq(teamMember.userId, session.user.id),
+								or(
+									eq(niscClientSubscription.pleskFilterId, numericId),
+									sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${numericId}`,
+								),
+								...(input.teamId ? [eq(niscClientSubscription.teamId, input.teamId)] : []),
+							),
+						)
+						.limit(1);
+					if (!accessibleRow[0]) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You do not have access to this resource",
+						});
+					}
+				}
 			} else {
-				// CUID path: resolve NiscClientSubscription (customer) or HostingSubscription (agency/legacy)
-				// 1) Try NiscClientSubscription (customer hosting list uses this id); teamId required for ownership
+				// CUID path: resolve NiscClientSubscription first (source of truth)
 				const niscSubRows = await db
 					.select({
 						teamId: niscClientSubscription.teamId,
@@ -216,17 +240,14 @@ export const hostingRouter = router({
 					.limit(1);
 				const niscSub = niscSubRows[0];
 				if (niscSub) {
-					if (!input.teamId) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Team context is required to view this subscription",
-						});
-					}
-					if (niscSub.teamId !== input.teamId) {
+					if (input.teamId && niscSub.teamId !== input.teamId) {
 						throw new TRPCError({
 							code: "FORBIDDEN",
 							message: "You do not have access to this resource",
 						});
+					}
+					if (!isAgencyUserRole(role)) {
+						await ensureTeamReadAccess(niscSub.teamId, session.user.id, role);
 					}
 					let pleskIdStr: string | null = null;
 					const refs = niscSub.serviceRefs as Record<string, unknown> | null;
@@ -234,7 +255,7 @@ export const hostingRouter = router({
 						pleskIdStr = String(refs.pleskSubscriptionId);
 					}
 					if (!pleskIdStr && niscSub.pleskFilterId) pleskIdStr = niscSub.pleskFilterId;
-					if (!pleskIdStr && niscSub.hostingSubscriptionId) {
+					if (!pleskIdStr && niscSub.hostingSubscriptionId && isAgencyUserRole(role)) {
 						const hsRows = await db
 							.select({ pleskFilterId: hostingSubscription.pleskFilterId })
 							.from(hostingSubscription)
@@ -252,7 +273,13 @@ export const hostingRouter = router({
 					}
 					subscriptionIdNumber = pleskNum;
 				} else {
-					// 2) Fallback: HostingSubscription id (legacy/agency)
+					// Legacy fallback: HostingSubscription id is agency-only.
+					if (!isAgencyUserRole(role)) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You do not have access to this resource",
+						});
+					}
 					const hostingSubRows = await db
 						.select({
 							pleskFilterId: hostingSubscription.pleskFilterId,
@@ -266,35 +293,6 @@ export const hostingRouter = router({
 						throw new TRPCError({
 							code: "NOT_FOUND",
 							message: "Hosting subscription not found",
-						});
-					}
-					if (!input.teamId) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Team context is required to view this subscription",
-						});
-					}
-					const teamId = input.teamId;
-					const accessRows = await db
-						.select({ id: serviceSubscription.id })
-						.from(serviceSubscription)
-						.innerJoin(
-							niscServicePlan,
-							eq(serviceSubscription.niscServicePlanId, niscServicePlan.id),
-						)
-						.where(
-							and(
-								eq(serviceSubscription.teamId, teamId),
-								eq(serviceSubscription.hostingSubscriptionId, input.subscriptionId),
-								eq(niscServicePlan.planType, "HOSTING"),
-							),
-						)
-						.limit(1);
-					const hasAccess = accessRows[0];
-					if (!hasAccess && hostingSub.teamId !== teamId) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "You do not have access to this resource",
 						});
 					}
 					const pleskNum = parseInt(hostingSub.pleskFilterId, 10);
@@ -458,6 +456,7 @@ export const hostingRouter = router({
 							and(
 								eq(niscClientSubscription.teamId, input.teamId),
 								or(
+									eq(niscClientSubscription.id, input.subscriptionId),
 									...(pleskFilterId
 										? [eq(niscClientSubscription.pleskFilterId, pleskFilterId)]
 										: []),
@@ -733,6 +732,11 @@ export const hostingRouter = router({
 		.input(linkToTeamInputSchema)
 		.output(linkToTeamOutputSchema)
 		.mutation(async ({ ctx, input }) => {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Direct team linking is disabled. Use subscription-based linking.",
+			});
+
 			const session = ctx.session;
 			if (!session?.user?.id) {
 				throw new TRPCError({

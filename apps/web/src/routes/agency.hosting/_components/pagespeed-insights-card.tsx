@@ -89,12 +89,21 @@ export function PageSpeedInsightsCard({ domainName }: PageSpeedInsightsCardProps
   const [forceRefreshDesktop, setForceRefreshDesktop] = React.useState(false);
 
   const domainUrl = React.useMemo(() => {
-    // Ensure URL has protocol
     if (!domainName) return null;
-    if (domainName.startsWith('http://') || domainName.startsWith('https://')) {
-      return domainName;
+    const normalizedInput = domainName.trim();
+    if (!normalizedInput) return null;
+
+    const candidate = /^https?:\/\//i.test(normalizedInput)
+      ? normalizedInput
+      : `https://${normalizedInput}`;
+
+    try {
+      const parsed = new URL(candidate);
+      if (!parsed.hostname || parsed.hostname.includes(" ")) return null;
+      return parsed.toString();
+    } catch {
+      return null;
     }
-    return `https://${domainName}`;
   }, [domainName]);
 
   // Separate queries for mobile and desktop - React Query will cache them separately

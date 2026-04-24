@@ -71,8 +71,8 @@ export function ExtractZipDialog({
     }
 
     return {
-      host: process.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com",
-      port: parseInt(process.env.VITE_PUBLIC_FTP_PORT || "21"),
+      host: import.meta.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com",
+      port: parseInt(import.meta.env.VITE_PUBLIC_FTP_PORT || "21", 10),
       user: String(ftpLogin),
       password: String(ftpPassword),
       secure: true,

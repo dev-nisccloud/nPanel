@@ -92,7 +92,7 @@ export function CreateSubscriptionForHostingDialog({
   const { data: products = [], isLoading: isLoadingProducts } =
     trpc.products.getAll.useQuery({ isActive: true }, { enabled: open });
 
-  const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(
+  const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(
     undefined,
     { enabled: open && linkType === "team" }
   );

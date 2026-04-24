@@ -1,14 +1,20 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { and, eq, ilike, inArray, sql } from '@npanel/db';
+import { db } from '@npanel/db';
+import { niscClientSubscription, niscProduct } from '@npanel/db/schema/products';
+import { team, teamMember } from '@npanel/db/schema/teams';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessToken, getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 
 /**
  * Get user's LinkedIn integration with valid tokens
  */
 async function getUserIntegration(userId: string, role?: string | null) {
-	const tokenData = await getStoredLinkedInAccessTokenForSession({ userId, role });
+	const tokenData =
+		(await getStoredLinkedInAccessTokenForSession({ userId, role })) ??
+		(await getStoredLinkedInAccessToken());
 
 	if (!tokenData) {
 		throw new TRPCError({
@@ -32,6 +38,91 @@ function normalizeStatusArray(statuses: unknown): string[] {
 		.filter((status): status is string => Boolean(status));
 }
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+	['AGENCY_USER', 'AGENCY_ADMIN', 'AGENCY_SUPER_ADMIN'].includes(role ?? '');
+
+async function getAccessibleTeamIds(userId: string): Promise<string[]> {
+	const [memberships, ownedTeams] = await Promise.all([
+		db.query.teamMember.findMany({
+			where: eq(teamMember.userId, userId),
+			columns: { teamId: true },
+		}),
+		db.query.team.findMany({
+			where: eq(team.createdById, userId),
+			columns: { id: true },
+		}),
+	]);
+	return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
+
+function normalizeLinkedInAccountUrn(value: string): string {
+	if (value.startsWith('urn:li:sponsoredAccount:')) return value;
+	const numeric = value.replace(/[^0-9]/g, '');
+	return numeric.length > 0 ? `urn:li:sponsoredAccount:${numeric}` : value;
+}
+
+async function hasLinkedInSubscriptionAccess(teamIds: string[], accountId: string): Promise<boolean> {
+	if (teamIds.length === 0) return false;
+	const urn = normalizeLinkedInAccountUrn(accountId);
+	const numeric = accountId.replace(/[^0-9]/g, '');
+	const [linked] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`,
+				sql`((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${accountId} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${urn} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${numeric})`,
+			),
+		)
+		.limit(1);
+	return !!linked;
+}
+
+async function getLinkedInLinkedAccountsFromSubscriptions(teamIds: string[]) {
+	if (teamIds.length === 0) return [];
+	const rows = await db
+		.select({
+			serviceRefs: niscClientSubscription.serviceRefs,
+			name: niscClientSubscription.name,
+		})
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`,
+			),
+		);
+
+	const byId = new Map<string, { id: string; name: string | null }>();
+	for (const row of rows) {
+		const refs = row.serviceRefs as Record<string, unknown> | null;
+		const accountIdRaw = typeof refs?.adAccountId === 'string' ? refs.adAccountId.trim() : '';
+		if (!accountIdRaw) continue;
+		const accountId = normalizeLinkedInAccountUrn(accountIdRaw);
+		const accountNameRaw = typeof refs?.adAccountName === 'string' ? refs.adAccountName.trim() : '';
+		const accountName = accountNameRaw || row.name || null;
+		if (!byId.has(accountId)) {
+			byId.set(accountId, { id: accountId, name: accountName });
+		}
+	}
+
+	return [...byId.values()].map((acc) => ({
+		id: acc.id,
+		name: acc.name,
+		currency: null,
+		timezone: null,
+		status: null,
+		servingStatuses: [],
+		reference: null,
+		type: null,
+	}));
+}
+
 export const linkedInAdsAccountsRouter = router({
 	/**
 	 * List all accessible LinkedIn ad accounts
@@ -40,11 +131,25 @@ export const linkedInAdsAccountsRouter = router({
 	listAdAccounts: protectedProcedure.query(async ({ ctx }) => {
 		try {
 			const userId = ctx.session?.user?.id;
+			const role = ctx.session?.user?.role;
 			if (!userId) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message: 'User session not found',
 				});
+			}
+			if (!isAgencyUserRole(role)) {
+				const teamIds = await getAccessibleTeamIds(userId);
+				const linkedAccounts = await getLinkedInLinkedAccountsFromSubscriptions(teamIds);
+				return {
+					success: true,
+					data: linkedAccounts,
+					meta: {
+						retrieved_at: new Date().toISOString(),
+						total_accounts: linkedAccounts.length,
+						source: 'team_scoped_subscription_link',
+					},
+				};
 			}
 
 			const { accessToken, integrationId } = await getUserIntegration(userId, ctx.session?.user?.role);
@@ -139,11 +244,28 @@ export const linkedInAdsAccountsRouter = router({
 		.query(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
 					});
+				}
+				if (!isAgencyUserRole(role)) {
+					const teamIds = await getAccessibleTeamIds(userId);
+					if (teamIds.length === 0) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this LinkedIn ad account',
+						});
+					}
+					const hasSubscriptionAccess = await hasLinkedInSubscriptionAccess(teamIds, input.accountId);
+					if (!hasSubscriptionAccess) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this LinkedIn ad account',
+						});
+					}
 				}
 
 				const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);

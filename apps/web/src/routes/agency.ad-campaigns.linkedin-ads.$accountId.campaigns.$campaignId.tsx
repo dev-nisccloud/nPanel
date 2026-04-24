@@ -635,6 +635,11 @@ export default function LinkedInCampaignDetailsPage() {
 
   const accountId = String(params?.accountId || "");
   const campaignGroupId = String(params?.campaignId || "");
+  const normalizeLinkedInId = React.useCallback((value: string) => value.replace(/[^0-9]/g, ""), []);
+  const normalizedCampaignGroupId = React.useMemo(
+    () => normalizeLinkedInId(campaignGroupId),
+    [campaignGroupId, normalizeLinkedInId]
+  );
 
   const timeRange = React.useMemo(
     () => ({
@@ -667,8 +672,16 @@ export default function LinkedInCampaignDetailsPage() {
 
   const campaignGroup = React.useMemo(() => {
     const groups = campaignGroupsData?.data || [];
-    return groups.find((group: any) => String(group.id) === campaignGroupId) || null;
-  }, [campaignGroupsData, campaignGroupId]);
+    return (
+      groups.find((group: any) => {
+        const groupIdRaw = String(group.id ?? "");
+        return (
+          groupIdRaw === campaignGroupId ||
+          normalizeLinkedInId(groupIdRaw) === normalizedCampaignGroupId
+        );
+      }) || null
+    );
+  }, [campaignGroupsData, campaignGroupId, normalizedCampaignGroupId, normalizeLinkedInId]);
 
   const {
     data: campaignsData,
@@ -676,7 +689,7 @@ export default function LinkedInCampaignDetailsPage() {
     isFetching: isFetchingCampaigns,
     refetch: refetchCampaigns,
   } = trpc.linkedInAds.campaigns.listCampaigns.useQuery(
-    { accountId, campaignGroupId, timeRange },
+    { accountId, campaignGroupId: normalizedCampaignGroupId || campaignGroupId, timeRange },
     {
       enabled: !!accountId && !!campaignGroupId && !!campaignGroup,
       refetchOnWindowFocus: false,

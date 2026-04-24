@@ -78,16 +78,10 @@ function transformPleskSubscriptionToDetail(
 }
 
 /**
- * Custom hook for fetching hosting subscription detail with subscription link (batched).
- * When teamSlug is provided, resolves teamId and passes it for ownership (required for CUID subscription ids).
+ * Custom hook for fetching hosting subscription detail with subscription link (batched)
+ * This replaces the previous pattern of 2 sequential queries with a single batched query
  */
-export function useHostingDetailBatched(subscriptionId: string, teamSlug?: string) {
-  const { data: teamData } = trpc.teams.getTeamIdBySlug.useQuery(
-    { slug: teamSlug ?? "" },
-    { enabled: !!teamSlug }
-  );
-  const teamId = teamData?.id;
-
+export function useHostingDetailBatched(subscriptionId: string) {
   const {
     data: batchedData,
     isLoading,
@@ -96,9 +90,9 @@ export function useHostingDetailBatched(subscriptionId: string, teamSlug?: strin
     refetch,
     isRefetching,
   } = trpc.hosting.getDetailWithSubscription.useQuery(
-    { subscriptionId, teamId: teamId ?? undefined },
+    { subscriptionId },
     {
-      enabled: !!subscriptionId && (!!teamId || /^\d+$/.test(subscriptionId)),
+      enabled: !!subscriptionId,
       staleTime: 10 * 60 * 1000, // 10 minutes
       gcTime: 30 * 60 * 1000, // 30 minutes
       retry: (failureCount, error: any) => {
@@ -108,7 +102,6 @@ export function useHostingDetailBatched(subscriptionId: string, teamSlug?: strin
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
         // Don't retry on not found errors
         if (error?.data?.code === "NOT_FOUND") return false;
-        if (error?.data?.code === "FORBIDDEN" || error?.data?.code === "BAD_REQUEST") return false;
         // Don't retry on rate limit errors
         if (error?.data?.code === "TOO_MANY_REQUESTS") return false;
         // Retry up to 2 times for other errors
@@ -119,7 +112,6 @@ export function useHostingDetailBatched(subscriptionId: string, teamSlug?: strin
       refetchOnReconnect: true,
     }
   );
-  const isLoadingTeam = !!teamSlug && !teamData && !!subscriptionId && !/^\d+$/.test(subscriptionId);
 
   // Handle API errors
   useEffect(() => {
@@ -137,10 +129,6 @@ export function useHostingDetailBatched(subscriptionId: string, teamSlug?: strin
         });
       } else if (error?.data?.code === "NOT_FOUND") {
         toast.error("Hosting subscription not found.");
-      } else if (error?.data?.code === "FORBIDDEN") {
-        toast.error("You do not have access to this subscription.");
-      } else if (error?.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid request. Please open this page from your hosting list.");
       } else if (error?.data?.code === "INTERNAL_SERVER_ERROR") {
         toast.error("Server error occurred while fetching subscription details.");
       } else {
@@ -178,7 +166,7 @@ export function useHostingDetailBatched(subscriptionId: string, teamSlug?: strin
   return {
     data: transformedData,
     subscription: subscriptionData,
-    isLoading: isLoading || isRefetching || isLoadingTeam,
+    isLoading: isLoading || isRefetching,
     isError: isError || !!transformationError,
     error: error || transformationError,
     refetch,

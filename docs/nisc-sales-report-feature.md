@@ -778,7 +778,7 @@ Invoice number, client, amount, currency, status, issue date, due date, paid at,
 
 **Data sources:** `domain_renewal`
 
-**Columns:** Domain name, client (`teamId`), renewal date, OpenProvider cost, NISC price, margin, renewed by.
+**Columns:** Domain name, client (`teamId`), renewal date, OpenProvider cost, Nisc Cloud price, margin, renewed by.
 
 **Aggregates:** Total renewal revenue, total cost, total margin, renewal count.
 
@@ -816,7 +816,7 @@ Invoice number, client, amount, currency, status, issue date, due date, paid at,
 
 **Data sources:** `hosting_renewal`, `hosting_subscription`
 
-**Columns:** Client, primary domain, hosting type, renewal date, expiry date, billing cycle, NISC price, invoice number.
+**Columns:** Client, primary domain, hosting type, renewal date, expiry date, billing cycle, Nisc Cloud price, invoice number.
 
 **Aggregates:** Total renewal revenue for the period.
 

@@ -124,29 +124,64 @@ export const metaAdsInsightsRouter = router({
                     ? [...breakdowns, 'publisher_platform']
                     : breakdowns;
 
-                const response = await client.getInsights(input.entityId, {
-                    level: input.level,
-                    timeRange: input.timeRange,
-                    breakdowns: allBreakdowns,
-                    metrics: [
-                        'impressions',
-                        'clicks',
-                        'inline_link_clicks',
-                        'spend',
-                        'date_start',
-                        'date_stop',
-                    ],
-                });
+                const metrics = [
+                    'impressions',
+                    'clicks',
+                    // Avoid action-derived metrics here; they can force action_type combinations
+                    // that Meta rejects with age/gender/region/hourly breakdowns.
+                    'spend',
+                    'date_start',
+                    'date_stop',
+                ];
 
-                // Filter rows if platform specified
-                const filteredData = input.publisherPlatform
-                    ? response.data.filter((row: any) => row.publisher_platform === input.publisherPlatform)
-                    : response.data;
+                try {
+                    const response = await client.getInsights(input.entityId, {
+                        level: input.level,
+                        timeRange: input.timeRange,
+                        breakdowns: allBreakdowns,
+                        metrics,
+                    });
 
-                return {
-                    success: true,
-                    data: filteredData,
-                };
+                    // Filter rows if platform specified
+                    const filteredData = input.publisherPlatform
+                        ? response.data.filter((row: any) => row.publisher_platform === input.publisherPlatform)
+                        : response.data;
+
+                    return {
+                        success: true,
+                        data: filteredData,
+                        meta: {
+                            fallbackUsed: false,
+                        },
+                    };
+                } catch (primaryError) {
+                    const message = primaryError instanceof Error ? primaryError.message : String(primaryError ?? '');
+                    const hasInvalidBreakdownCombo =
+                        message.includes('Current combination of data breakdown columns') ||
+                        message.includes('action_type');
+
+                    // Fallback: retry without forcing publisher_platform in breakdowns.
+                    // This keeps charts loading even when Meta rejects the combined breakdown set.
+                    if (hasInvalidBreakdownCombo && allBreakdowns.includes('publisher_platform')) {
+                        const fallbackResponse = await client.getInsights(input.entityId, {
+                            level: input.level,
+                            timeRange: input.timeRange,
+                            breakdowns,
+                            metrics,
+                        });
+
+                        return {
+                            success: true,
+                            data: fallbackResponse.data,
+                            meta: {
+                                fallbackUsed: true,
+                                fallbackReason: 'invalid_breakdown_combination',
+                            },
+                        };
+                    }
+
+                    throw primaryError;
+                }
             } catch (error) {
                 const oauthError = await handleMetaAdsOAuthError(error);
                 if (oauthError) throw oauthError;

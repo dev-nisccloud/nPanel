@@ -1514,6 +1514,7 @@ export default function CampaignDetailsPage() {
 	const utils = trpc.useUtils();
 	const accountId = params?.accountId as string;
 	const campaignId = params?.campaignId as string;
+	const isCampaignQueryEnabled = !!accountId && !!campaignId;
 	const publisherPlatform = (searchParams.get("platform") || "facebook") as any;
 
 
@@ -1527,7 +1528,7 @@ export default function CampaignDetailsPage() {
     } = trpc.metaAds.campaigns.getCampaignDetails.useQuery(
         { accountId, campaignId, publisherPlatform },
         {
-            enabled: !!accountId && !!campaignId,
+            enabled: isCampaignQueryEnabled,
             refetchOnWindowFocus: false,
             retry: 1,
             staleTime: 0,
@@ -1776,7 +1777,7 @@ export default function CampaignDetailsPage() {
     }, [adSets, genderBreakdown, platformBreakdown, deviceBreakdown, regionBreakdown, placementBreakdown, dailyPerformance, hourlyPerformance, engagementActionsData, adsByAdSet, targetingByAdSet]);
 
     // Loading state
-    if (isLoadingCampaign || isLoadingAccount) {
+    if (!isCampaignQueryEnabled || isLoadingCampaign || isLoadingAccount || isFetchingCampaign || isFetchingAccount) {
         return (
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto space-y-6">
@@ -1790,7 +1791,7 @@ export default function CampaignDetailsPage() {
     }
 
     // Error state
-    if (campaignError || !campaign) {
+    if ((campaignError && !isFetchingCampaign) || (!campaign && !isLoadingCampaign && !isFetchingCampaign)) {
         return (
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
