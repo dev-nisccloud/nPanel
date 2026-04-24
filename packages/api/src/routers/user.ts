@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { eq } from "@npanel/db";
+import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 
@@ -20,15 +21,20 @@ const updateNotificationPreferencesInputSchema = z.object({
     browserNotificationPermission: z.enum(["default", "granted", "denied"]).optional(),
 });
 
+function getActorId(ctx: { session: { user?: { id?: string } } | null }) {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+    }
+    return userId;
+}
+
 export const userRouter = router({
     // Get current user's notification preferences
     getNotificationPreferences: protectedProcedure
         .output(notificationPreferencesSchema)
         .query(async ({ ctx }) => {
-            const userId = ctx.session?.user?.id;
-            if (!userId) {
-                throw new Error("Unauthorized");
-            }
+            const userId = getActorId(ctx);
 
             const [userRow] = await db
                 .select({
@@ -43,7 +49,7 @@ export const userRouter = router({
                 .limit(1);
 
             if (!userRow) {
-                throw new Error("User not found");
+                throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
             }
 
             return {
@@ -60,10 +66,7 @@ export const userRouter = router({
         .input(updateNotificationPreferencesInputSchema)
         .output(notificationPreferencesSchema)
         .mutation(async ({ ctx, input }) => {
-            const userId = ctx.session?.user?.id;
-            if (!userId) {
-                throw new Error("Unauthorized");
-            }
+            const userId = getActorId(ctx);
 
             const [updatedUser] = await db
                 .update(user)
@@ -81,7 +84,7 @@ export const userRouter = router({
                 });
 
             if (!updatedUser) {
-                throw new Error("User not found");
+                throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
             }
 
             return {

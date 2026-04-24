@@ -14,6 +14,7 @@ import {
 } from "@npanel/db/schema/products";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { team } from "@npanel/db/schema/teams";
+import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
@@ -32,11 +33,76 @@ function generateNiscOrderNumber(): string {
 	return `Nisc-${year}-${timestamp}-${random}`;
 }
 
+function isAgencyUserRole(role: string | null | undefined): boolean {
+	return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+}
+
+function isAgencySuperAdminRole(role: string | null | undefined): boolean {
+	return role === "AGENCY_SUPER_ADMIN";
+}
+
+async function isTeamMember(teamId: string, userId: string): Promise<boolean> {
+	const [member] = await db
+		.select({ id: teamMember.id })
+		.from(teamMember)
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+		.limit(1);
+	return Boolean(member);
+}
+
+async function canAccessOrderRead(orderId: string, userId: string, role: string | null | undefined) {
+	const [order] = await db
+		.select({
+			id: niscOrder.id,
+			userId: niscOrder.userId,
+			teamId: niscOrder.teamId,
+		})
+		.from(niscOrder)
+		.where(eq(niscOrder.id, orderId))
+		.limit(1);
+
+	if (!order) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Nisc order not found" });
+	}
+
+	if (isAgencyUserRole(role)) return order;
+	if (order.userId === userId) return order;
+	if (order.teamId && (await isTeamMember(order.teamId, userId))) return order;
+
+	throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+
+async function canAccessOrderMutation(orderId: string, userId: string, role: string | null | undefined) {
+	const [order] = await db
+		.select({
+			id: niscOrder.id,
+			userId: niscOrder.userId,
+		})
+		.from(niscOrder)
+		.where(eq(niscOrder.id, orderId))
+		.limit(1);
+
+	if (!order) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Nisc order not found" });
+	}
+
+	if (!isAgencySuperAdminRole(role) && order.userId !== userId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only the order creator can modify it",
+		});
+	}
+
+	return order;
+}
+
 export const niscServiceOrdersRouter = router({
 	getAll: protectedProcedure
 		.input(getAllNiscOrdersInputSchema)
 		.query(async ({ ctx, input }) => {
-			if (!ctx.session?.user?.id) {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You must be logged in to view Nisc orders",
@@ -44,6 +110,9 @@ export const niscServiceOrdersRouter = router({
 			}
 
 			const conditions = [];
+			if (!isAgencyUserRole(userRole)) {
+				conditions.push(eq(niscOrder.userId, userId));
+			}
 			if (input.userId != null) conditions.push(eq(niscOrder.userId, input.userId));
 			if (input.teamId != null) conditions.push(eq(niscOrder.teamId, input.teamId));
 			if (input.status != null) conditions.push(eq(niscOrder.status, input.status));
@@ -111,12 +180,16 @@ export const niscServiceOrdersRouter = router({
 	getById: protectedProcedure
 		.input(getNiscOrderByIdInputSchema)
 		.query(async ({ ctx, input }) => {
-			if (!ctx.session?.user?.id) {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You must be logged in to view Nisc orders",
 				});
 			}
+
+			await canAccessOrderRead(input.id, userId, userRole);
 
 			const order = await db.query.niscOrder.findFirst({
 				where: eq(niscOrder.id, input.id),
@@ -157,6 +230,15 @@ export const niscServiceOrdersRouter = router({
 					code: "UNAUTHORIZED",
 					message: "You must be logged in to create Nisc orders",
 				});
+			}
+			const userRole = session.user.role;
+			if (!isAgencySuperAdminRole(userRole)) {
+				if (input.userId && input.userId !== session.user.id) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only agency super admin can create orders for other users",
+					});
+				}
 			}
 
 			const teamRow = input.teamId
@@ -764,18 +846,18 @@ export const niscServiceOrdersRouter = router({
 	retry: protectedProcedure
 		.input(retryNiscOrderInputSchema)
 		.mutation(async ({ ctx, input }) => {
-			if (!ctx.session?.user?.id) {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You must be logged in to retry Nisc orders",
 				});
 			}
 
-			const retryOrderRows = await db
-				.select()
-				.from(niscOrder)
-				.where(eq(niscOrder.id, input.niscOrderId))
-				.limit(1);
+			await canAccessOrderMutation(input.niscOrderId, userId, userRole);
+
+			const retryOrderRows = await db.select().from(niscOrder).where(eq(niscOrder.id, input.niscOrderId)).limit(1);
 			const order = retryOrderRows[0];
 
 			if (!order) {

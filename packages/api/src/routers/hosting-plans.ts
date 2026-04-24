@@ -10,6 +10,9 @@ import {
 } from "@npanel/db/schema/hosting";
 import { protectedProcedure, router } from "../trpc";
 
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+	role === "AGENCY_SUPER_ADMIN";
+
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
@@ -240,6 +243,12 @@ export const hostingPlansRouter = router({
 					message: "You must be logged in to create service plans",
 				});
 			}
+			if (!isAgencySuperAdminRole(session.user.role)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency super admins can create service plans",
+				});
+			}
 
 			// Validate hostingSubType is provided for HOSTING plans
 			if (input.planType === "HOSTING" && !input.hostingSubType) {
@@ -365,6 +374,12 @@ export const hostingPlansRouter = router({
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You must be logged in to update service plans",
+				});
+			}
+			if (!isAgencySuperAdminRole(session.user.role)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency super admins can update service plans",
 				});
 			}
 
@@ -674,6 +689,12 @@ export const hostingPlansRouter = router({
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You must be logged in to delete service plans",
+				});
+			}
+			if (!isAgencySuperAdminRole(session.user.role)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency super admins can delete service plans",
 				});
 			}
 

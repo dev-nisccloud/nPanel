@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq } from "@npanel/db";
-import { protectedProcedure, router } from "../trpc";
+import { publicProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
 import { tldSettings } from "@npanel/db/schema/nameservers";
 
@@ -26,7 +26,7 @@ export const publicPricingRouter = router({
    * Public: get default TLD margin configuration (no prices).
    * Returns whether margin is percentage or fixed and the corresponding values.
    */
-  getDefaultMarginConfig: protectedProcedure
+  getDefaultMarginConfig: publicProcedure
     .output(
       z.object({
         success: z.boolean(),
@@ -92,7 +92,7 @@ export const publicPricingRouter = router({
   /**
    * Public: get exchange rates only (no conversion).
    */
-  getExchangeRatesPublic: protectedProcedure
+  getExchangeRatesPublic: publicProcedure
     .input(
       z
         .object({
@@ -138,7 +138,7 @@ export const publicPricingRouter = router({
    * Legacy: batch currency conversion. Requires POST/mutation.
    * Prefer getExchangeRatesPublic + client-side math for new usage.
    */
-  convertPricesPublic: protectedProcedure
+  convertPricesPublic: publicProcedure
     .input(
       z.object({
         prices: z.array(

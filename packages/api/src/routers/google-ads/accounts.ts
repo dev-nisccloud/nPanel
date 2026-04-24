@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq } from '@npanel/db';
+import { and, desc, eq, inArray } from '@npanel/db';
 import { router, protectedProcedure } from '../../trpc';
 import { db } from '@npanel/db';
 import {
 	googleAdsAccount,
 	googleAdsAccountActivityLog,
 } from '@npanel/db/schema/google-ads';
+import { team, teamMember } from '@npanel/db/schema/teams';
 import {
 	createGoogleAdsClient,
 	getAccessibleCustomers,
@@ -20,6 +21,23 @@ import {
 } from '../../lib/google-ads-credentials';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
 import { getGoogleAdsIntegrationForSession } from '../../lib/google-ads-user-integration';
+
+const isAgencyUserRole = (role: string | null | undefined) =>
+	['AGENCY_USER', 'AGENCY_ADMIN', 'AGENCY_SUPER_ADMIN'].includes(role ?? '');
+
+async function getAccessibleTeamIds(userId: string): Promise<string[]> {
+	const [memberships, ownedTeams] = await Promise.all([
+		db.query.teamMember.findMany({
+			where: eq(teamMember.userId, userId),
+			columns: { teamId: true },
+		}),
+		db.query.team.findMany({
+			where: eq(team.createdById, userId),
+			columns: { id: true },
+		}),
+	]);
+	return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
 
 // ============================================================================
 // ZOD SCHEMAS
@@ -39,23 +57,42 @@ export const googleAdsAccountsRouter = router({
 		.query(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
 					});
 				}
+				const isAgencyUser = isAgencyUserRole(role);
+				const accessibleTeamIds = isAgencyUser ? [] : await getAccessibleTeamIds(userId);
+				if (!isAgencyUser && accessibleTeamIds.length === 0) {
+					return {
+						success: true,
+						data: [],
+						meta: {
+							retrieved_at: new Date().toISOString(),
+							total_accounts: 0,
+							source: 'team_scoped_cache',
+						},
+					};
+				}
 
 				const integration = await getGoogleAdsIntegrationForSession({
 					userId,
-					role: ctx.session?.user?.role,
+					role,
 				});
 
 				// 1. Read-first: Try to get from database first
 				const existingDbAccounts = await db
 					.select()
 					.from(googleAdsAccount)
-					.where(eq(googleAdsAccount.integrationId, integration.id))
+					.where(
+						and(
+							eq(googleAdsAccount.integrationId, integration.id),
+							isAgencyUser ? undefined : inArray(googleAdsAccount.teamId, accessibleTeamIds),
+						),
+					)
 					.orderBy(desc(googleAdsAccount.updatedAt));
 
 				// Freshness threshold: 30 minutes
@@ -82,6 +119,24 @@ export const googleAdsAccountsRouter = router({
 							retrieved_at: newest.updatedAt.toISOString(),
 							total_accounts: existingDbAccounts.length,
 							source: 'database',
+						},
+					};
+				}
+				if (!isAgencyUser) {
+					return {
+						success: true,
+						data: existingDbAccounts.map(acc => ({
+							customerId: acc.customerId,
+							accountName: acc.accountName,
+							currencyCode: acc.currencyCode,
+							timeZone: acc.timeZone,
+							status: acc.status,
+							resourceName: `customers/${acc.customerId}`,
+						})),
+						meta: {
+							retrieved_at: newest?.updatedAt.toISOString() || new Date().toISOString(),
+							total_accounts: existingDbAccounts.length,
+							source: 'team_scoped_cache',
 						},
 					};
 				}
@@ -252,16 +307,44 @@ export const googleAdsAccountsRouter = router({
 		.query(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
 					});
 				}
+				const isAgencyUser = isAgencyUserRole(role);
+				if (!isAgencyUser) {
+					const accessibleTeamIds = await getAccessibleTeamIds(userId);
+					if (accessibleTeamIds.length === 0) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Google Ads account',
+						});
+					}
+					const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
+					const [linkedAccount] = await db
+						.select()
+						.from(googleAdsAccount)
+						.where(
+							and(
+								eq(googleAdsAccount.customerId, customerIdWithoutDashes),
+								inArray(googleAdsAccount.teamId, accessibleTeamIds),
+							),
+						)
+						.limit(1);
+					if (!linkedAccount) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Google Ads account',
+						});
+					}
+				}
 
 				const integration = await getGoogleAdsIntegrationForSession({
 					userId,
-					role: ctx.session?.user?.role,
+					role,
 				});
 
 				// Remove dashes from customer ID for API call

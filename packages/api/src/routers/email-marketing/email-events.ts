@@ -17,6 +17,9 @@ import {
 	emailGlobalEventsResponseSchema,
 } from "./schemas";
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
 async function assertTeamMember(teamId: string, userId: string) {
 	const [member] = await db
 		.select({ id: teamMember.id })
@@ -26,7 +29,15 @@ async function assertTeamMember(teamId: string, userId: string) {
 	return member ?? null;
 }
 
-async function assertCampaignAccess(campaignId: string, userId: string) {
+async function assertCampaignAccess(
+	campaignId: string,
+	userId: string,
+	userRole: string | null | undefined,
+) {
+	if (isAgencyUserRole(userRole)) {
+		return;
+	}
+
 	const [campaign] = await db
 		.select({ id: emailCampaign.id, userId: emailCampaign.userId, teamId: emailCampaign.teamId })
 		.from(emailCampaign)
@@ -44,7 +55,15 @@ async function assertCampaignAccess(campaignId: string, userId: string) {
 	throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 }
 
-async function assertRecipientAccess(recipientId: string, userId: string) {
+async function assertRecipientAccess(
+	recipientId: string,
+	userId: string,
+	userRole: string | null | undefined,
+) {
+	if (isAgencyUserRole(userRole)) {
+		return;
+	}
+
 	const [row] = await db
 		.select({
 			id: campaignRecipient.id,
@@ -80,9 +99,9 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
+			// Allow all agency roles for global read
 			const userRole = session.user.role;
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyUserRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to view global email events",
@@ -108,6 +127,7 @@ export const emailMarketingEmailEventsRouter = router({
 		.input(z.object({ id: z.string().min(1) }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
 			if (!userId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -143,7 +163,7 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			if (event.campaignUserId !== userId) {
+			if (!isAgencyUserRole(userRole) && event.campaignUserId !== userId) {
 				if (event.campaignTeamId) {
 					const member = await assertTeamMember(event.campaignTeamId, userId);
 					if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
@@ -163,6 +183,7 @@ export const emailMarketingEmailEventsRouter = router({
 		.input(emailEventListFiltersSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
 			if (!userId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -179,10 +200,10 @@ export const emailMarketingEmailEventsRouter = router({
 
 			// Access check: ensure user can see the campaign
 			if (input.campaignId) {
-				await assertCampaignAccess(input.campaignId, userId);
+				await assertCampaignAccess(input.campaignId, userId, userRole);
 			}
 			if (input.campaignRecipientId) {
-				await assertRecipientAccess(input.campaignRecipientId, userId);
+				await assertRecipientAccess(input.campaignRecipientId, userId, userRole);
 			}
 
 			const conditions = [];
@@ -251,6 +272,7 @@ export const emailMarketingEmailEventsRouter = router({
 		.input(campaignEventSummaryInputSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
 			if (!userId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -258,7 +280,7 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			await assertCampaignAccess(input.campaignId, userId);
+			await assertCampaignAccess(input.campaignId, userId, userRole);
 
 			const [grouped, totalRecipientsRes, openedUniqueRows, clickedUniqueRows] =
 				await Promise.all([
@@ -330,6 +352,7 @@ export const emailMarketingEmailEventsRouter = router({
 		.input(topClickedLinksInputSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
 			if (!userId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
@@ -337,7 +360,7 @@ export const emailMarketingEmailEventsRouter = router({
 				});
 			}
 
-			await assertCampaignAccess(input.campaignId, userId);
+			await assertCampaignAccess(input.campaignId, userId, userRole);
 
 			const clickEvents = await db
 				.select({ data: emailEvent.data })

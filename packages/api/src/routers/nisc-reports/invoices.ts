@@ -5,6 +5,7 @@ import { invoice, invoiceTransaction, creditNote, invoiceActivityLog } from "@np
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
+import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
 
 export const niscInvoicesRouter = router({
   // ─── I-01 Status Summary ───────────────────────────────────────────────────
@@ -16,8 +17,13 @@ export const niscInvoicesRouter = router({
       amount: z.number(),
       currency: z.string(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
 
       const rows = await db
         .select({ status: invoice.status, amount: invoice.amount })
@@ -25,7 +31,12 @@ export const niscInvoicesRouter = router({
         .where(and(
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       const map = new Map<string, { count: number; amount: number }>();
@@ -66,15 +77,25 @@ export const niscInvoicesRouter = router({
       })),
       total: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, invoiceStatuses, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
 
       const rows = await db.query.invoice.findMany({
         where: and(
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length     ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
           invoiceStatuses?.length ? inArray(invoice.status, invoiceStatuses) : undefined,
         ),
         with: { team: { columns: { name: true } } },
@@ -94,7 +115,12 @@ export const niscInvoicesRouter = router({
         .where(and(
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length     ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
           invoiceStatuses?.length ? inArray(invoice.status, invoiceStatuses) : undefined,
         ));
 
@@ -118,8 +144,13 @@ export const niscInvoicesRouter = router({
       currentlyInDraftCount:  z.number(),
       currentlyInDraftAmount: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
 
       const rows = await db
         .select({
@@ -134,7 +165,12 @@ export const niscInvoicesRouter = router({
         .where(and(
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       const draftDays: number[] = [];
@@ -187,15 +223,25 @@ export const niscInvoicesRouter = router({
       totalApplied: z.number(),
       totalPending: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
 
       const rows = await db.query.creditNote.findMany({
         where: and(
           gte(creditNote.issuedAt, from),
           lte(creditNote.issuedAt, to),
-          teamIds?.length ? inArray(creditNote.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(creditNote.createdBy, scope.userId),
+            teamColumn: creditNote.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: { team: { columns: { name: true } } },
         orderBy: [desc(creditNote.issuedAt)],
@@ -210,7 +256,12 @@ export const niscInvoicesRouter = router({
         .where(and(
           gte(creditNote.issuedAt, from),
           lte(creditNote.issuedAt, to),
-          teamIds?.length ? inArray(creditNote.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(creditNote.createdBy, scope.userId),
+            teamColumn: creditNote.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       let totalIssued = 0, totalApplied = 0;
@@ -263,15 +314,25 @@ export const niscInvoicesRouter = router({
         NOT_SUBMITTED: z.number(),
       }),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
 
       const rows = await db.query.invoice.findMany({
         where: and(
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: { team: { columns: { name: true } } },
         columns: {

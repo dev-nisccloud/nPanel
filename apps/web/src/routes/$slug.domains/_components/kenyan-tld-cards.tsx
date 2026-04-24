@@ -59,13 +59,6 @@ function toDomainSearchResult(item: KenicCardItem, priced: PricedFees): DomainSe
 	};
 }
 
-const formatMarginInfo = (calc: PricedFees["createCalc"], formatPrice: (n: number, c: string) => string) => {
-	if (!calc.marginType || calc.marginAmount <= 0) return null;
-	if (calc.marginType === "PERCENTAGE") return `+${calc.marginValue}% (+${formatPrice(calc.marginAmount, calc.currency)})`;
-	const fixed = parseFloat(calc.marginValue || "0");
-	return `+${formatPrice(fixed, calc.currency)}`;
-};
-
 const KENYAN_LIST_SKELETON = (
 	<div className="space-y-0 mb-6">
 		{Array.from({ length: 6 }).map((_, i) => (
@@ -265,15 +258,11 @@ export function KenyanTldCards({
 					};
 					const displayResult = toDomainSearchResult(item, priced);
 					const currency = item.currency ?? "KES";
-					const marginLabel = formatMarginInfo(priced.createCalc, formatPrice);
 					return (
 						<DomainResultRow
 							key={item.domain}
 							domain={item.domain}
 							isAvailable={item.available}
-							originalPrice={item.createPrice}
-							originalCurrency={currency}
-							marginLabel={marginLabel ?? undefined}
 							displayPrice={priced.createFinal}
 							displayCurrency={currency}
 							reason={item.reason ?? undefined}

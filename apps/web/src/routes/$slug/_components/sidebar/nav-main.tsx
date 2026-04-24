@@ -35,6 +35,7 @@ interface NavMainProps {
 // Helper to replace /dashboard/ with /{teamSlug}/
 const replaceTeamSlug = (url: string, teamSlug?: string): string => {
   if (!teamSlug) return url;
+  if (url === "/dashboard") return `/${teamSlug}/dashboard`;
   return url.replace(/^\/dashboard\//, `/${teamSlug}/`);
 };
 

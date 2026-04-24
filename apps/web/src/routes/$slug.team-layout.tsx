@@ -1,8 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Navigate, useParams } from "react-router";
+import { Navigate, Outlet, useParams } from "react-router";
 
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -38,7 +37,7 @@ function readPreference<T extends string>(key: string, allowed: readonly string[
   }
 }
 
-export default function TeamLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default function TeamLayout() {
   const params = useParams();
   const slug = params.slug as string | undefined;
 
@@ -64,25 +63,13 @@ export default function TeamLayout({ children }: Readonly<{ children: ReactNode 
   }, []);
 
   const role = (session?.user as { role?: string } | undefined)?.role;
-  const isCustomer = role === "CUSTOMER";
-
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[team-layout]", {
-      slug,
-      role,
-      isCustomer,
-      teamQueryEnabled:
-        Boolean(
-          prefsReady && slug && !isPending && session?.user && isCustomer && slug !== "agency",
-        ),
-    });
-  }
+  const isAgencyUser = role?.includes("AGENCY") ?? false;
 
   const teamQuery = trpc.teams.getTeamIdBySlug.useQuery(
     { slug: slug ?? "" },
     {
       enabled: Boolean(
-        prefsReady && slug && !isPending && session?.user && isCustomer && slug !== "agency",
+        prefsReady && slug && !isPending && session?.user && slug !== "agency" && !isAgencyUser,
       ),
       retry: false,
     },
@@ -111,12 +98,8 @@ export default function TeamLayout({ children }: Readonly<{ children: ReactNode 
     return <Navigate to="/auth/login" replace />;
   }
 
-  if (role?.includes("AGENCY")) {
+  if (isAgencyUser) {
     return <Navigate to="/agency/dashboard" replace />;
-  }
-
-  if (!isCustomer) {
-    return <Navigate to="/auth/login" replace />;
   }
 
   if (!slug) {
@@ -137,7 +120,7 @@ export default function TeamLayout({ children }: Readonly<{ children: ReactNode 
 
   const teamRow = teamQuery.data;
   if (!teamRow) {
-    return null;
+    return <Navigate to="/create-team" replace />;
   }
 
   return (
@@ -151,7 +134,7 @@ export default function TeamLayout({ children }: Readonly<{ children: ReactNode 
           contentLayout={contentLayout}
           teamSlug={teamRow.slug}
         >
-          {children}
+          <Outlet />
         </TeamSidebarLayout>
       </SwitchingTeamProvider>
     </NavigationLoadingProvider>

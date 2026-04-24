@@ -6,6 +6,9 @@ import { getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-crede
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
 /**
  * LinkedIn Ads Auth Router
  * Reuses existing SocialMediaIntegration for LinkedIn OAuth
@@ -19,10 +22,17 @@ export const linkedInAdsAuthRouter = router({
 	getStoredCredentials: protectedProcedure.query(async ({ ctx }) => {
 		try {
 			const userId = ctx.session?.user?.id;
+			const role = ctx.session?.user?.role;
 			if (!userId) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message: 'User session not found',
+				});
+			}
+			if (!isAgencyUserRole(role)) {
+				throw new TRPCError({
+					code: 'FORBIDDEN',
+					message: 'Only agency users can access LinkedIn Ads credentials',
 				});
 			}
 			const tokenData = await getStoredLinkedInAccessTokenForSession({
@@ -124,8 +134,15 @@ export const linkedInAdsAuthRouter = router({
 				redirectUri: z.string().url().optional(),
 			})
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			try {
+				const role = ctx.session?.user?.role;
+				if (!isAgencyUserRole(role)) {
+					throw new TRPCError({
+						code: 'FORBIDDEN',
+						message: 'Only agency users can connect LinkedIn Ads',
+					});
+				}
 				const clientId = process.env.LINKEDIN_CLIENT_ID;
 				if (!clientId) {
 					throw new TRPCError({

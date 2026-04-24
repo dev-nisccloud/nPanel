@@ -11,6 +11,25 @@ import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
 
+const isAgencyRole = (role: string | null | undefined) =>
+  ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdmin = (role: string | null | undefined) => role === "AGENCY_SUPER_ADMIN";
+
+async function assertTeamMutationAccess(teamId: string, actorUserId: string, actorRole: string | null | undefined) {
+  if (isAgencySuperAdmin(actorRole)) return;
+  const [teamRow] = await db
+    .select({ createdById: team.createdById })
+    .from(team)
+    .where(eq(team.id, teamId))
+    .limit(1);
+  if (!teamRow || teamRow.createdById !== actorUserId) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You do not have permission to modify this team",
+    });
+  }
+}
+
 /**
  * Sends a transactional HTML email via AWS SES using the same sender/config
  * pattern as the agency invoicing flow (NISC_TX_* env vars + configuration set).
@@ -950,7 +969,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
@@ -992,7 +1011,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
@@ -1041,7 +1060,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
@@ -1101,7 +1120,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
@@ -1175,12 +1194,13 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
         });
       }
+      await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
 
       const [existingTeam] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
 
@@ -1262,12 +1282,13 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
         });
       }
+      await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
 
       const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
 
@@ -1326,7 +1347,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      const isAgency = userRole === "AGENCY_ADMIN" || userRole === "AGENCY_SUPER_ADMIN";
+      const isAgency = isAgencyRole(userRole);
 
       const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
 
@@ -1337,7 +1358,9 @@ export const teamsRouter = router({
         });
       }
 
-      if (!isAgency) {
+      if (isAgency) {
+        await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
+      } else {
         const [membership] = await db
           .select({ role: teamMember.role })
           .from(teamMember)
@@ -1492,12 +1515,13 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
         });
       }
+      await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
 
       const member = await db.query.teamMember.findFirst({
         where: eq(teamMember.id, input.memberId),
@@ -1571,7 +1595,7 @@ export const teamsRouter = router({
       }
 
       const userRole = session.user.role;
-      if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+      if (!isAgencyRole(userRole)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have permission",
@@ -1591,6 +1615,7 @@ export const teamsRouter = router({
           message: "Invite not found",
         });
       }
+      await assertTeamMutationAccess(invite.teamId, session.user.id, userRole);
 
       const now = new Date();
       await db.transaction(async (tx) => {

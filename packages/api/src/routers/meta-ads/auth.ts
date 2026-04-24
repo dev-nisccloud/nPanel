@@ -2,7 +2,11 @@ import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { router, protectedProcedure } from '../../trpc';
+import { TRPCError } from "@trpc/server";
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
+
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 
 /**
  * Meta Ads Auth Router
@@ -14,8 +18,15 @@ export const metaAdsAuthRouter = router({
 	 * Get stored Meta credentials (integration status)
 	 * Reuses the same integration as social media marketing
 	 */
-	getStoredCredentials: protectedProcedure.query(async () => {
+	getStoredCredentials: protectedProcedure.query(async ({ ctx }) => {
 		try {
+			const role = ctx.session?.user?.role;
+			if (!isAgencyUserRole(role)) {
+				throw new TRPCError({
+					code: 'FORBIDDEN',
+					message: 'Only agency users can access Meta Ads credentials',
+				});
+			}
 			const tokenData = await getStoredMetaAccessToken();
 
 			if (!tokenData) {
@@ -87,8 +98,13 @@ export const metaAdsAuthRouter = router({
 			};
 		} catch (error) {
 			console.error('Meta Ads API get stored credentials error:', error);
-
-			throw new Error('Failed to retrieve stored credentials');
+			if (error instanceof TRPCError) {
+				throw error;
+			}
+			throw new TRPCError({
+				code: 'INTERNAL_SERVER_ERROR',
+				message: 'Failed to retrieve stored credentials',
+			});
 		}
 	}),
 });

@@ -7,7 +7,7 @@ import {
   hivelocityPricingSettingsActivityLog,
 } from "@npanel/db/schema/hivelocity-pricing-settings";
 import { z } from "zod";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 
 const productTypeSchema = z.enum(["DEDICATED_SERVERS", "VPS", "VDS"]);
 const marginTypeSchema = z.enum(["PERCENTAGE", "FIXED"]);
@@ -128,13 +128,52 @@ async function fetchByUserAndType(userId: string, productType: z.infer<typeof pr
   };
 }
 
+async function fetchDefaultByType(productType: z.infer<typeof productTypeSchema>) {
+  const [row] = await db
+    .select()
+    .from(hivelocityPricingSettings)
+    .where(and(eq(hivelocityPricingSettings.productType, productType), eq(hivelocityPricingSettings.isDefault, true)))
+    .orderBy(desc(hivelocityPricingSettings.updatedAt))
+    .limit(1);
+
+  if (!row) return null;
+
+  const logsCountRes = await db
+    .select({ value: count() })
+    .from(hivelocityPricingSettingsActivityLog)
+    .where(eq(hivelocityPricingSettingsActivityLog.hivelocityPricingSettingsId, row.id));
+
+  return {
+    ...row,
+    _count: {
+      activityLogs: Number(logsCountRes[0]?.value ?? 0),
+    },
+  };
+}
+
+function isAgencySuperAdminRole(role: string | null | undefined) {
+  return role === "AGENCY_SUPER_ADMIN";
+}
+
+function assertOwnerOrSuperAdmin(
+  ownerUserId: string,
+  actorUserId: string,
+  actorRole: string | null | undefined,
+) {
+  if (ownerUserId !== actorUserId && !isAgencySuperAdminRole(actorRole)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only the pricing owner or an agency super admin can modify pricing settings.",
+    });
+  }
+}
+
 export const hivelocityPricingSettingsRouter = router({
-  get: protectedProcedure
+  get: publicProcedure
     .input(getSchema)
     .output(z.object({ success: z.boolean(), data: settingsResponseSchema.nullable() }))
-    .query(async ({ ctx, input }) => {
-      const userId = ctx.session!.user!.id;
-      const data = await fetchByUserAndType(userId, input.productType);
+    .query(async ({ input }) => {
+      const data = await fetchDefaultByType(input.productType);
       return { success: true, data };
     }),
 
@@ -143,10 +182,14 @@ export const hivelocityPricingSettingsRouter = router({
     .output(z.object({ success: z.boolean(), data: settingsResponseSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
+      const userRole = ctx.session?.user?.role;
       const now = new Date();
 
       try {
-        const existing = await fetchByUserAndType(userId, input.productType);
+        const existing = await fetchDefaultByType(input.productType);
+        if (existing) {
+          assertOwnerOrSuperAdmin(existing.userId, userId, userRole);
+        }
 
         const createdOrUpdatedId = await db.transaction(async (tx) => {
           if (!existing) {
@@ -225,7 +268,7 @@ export const hivelocityPricingSettingsRouter = router({
           return existing.id;
         });
 
-        const data = await fetchByUserAndType(userId, input.productType);
+        const data = await fetchDefaultByType(input.productType);
         if (!data || data.id !== createdOrUpdatedId) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
@@ -249,11 +292,13 @@ export const hivelocityPricingSettingsRouter = router({
     .output(z.object({ success: z.boolean(), message: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
-      const existing = await fetchByUserAndType(userId, input.productType);
+      const userRole = ctx.session?.user?.role;
+      const existing = await fetchDefaultByType(input.productType);
 
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Pricing settings not found" });
       }
+      assertOwnerOrSuperAdmin(existing.userId, userId, userRole);
 
       const now = new Date();
 
@@ -272,7 +317,7 @@ export const hivelocityPricingSettingsRouter = router({
 
         await tx
           .delete(hivelocityPricingSettings)
-          .where(and(eq(hivelocityPricingSettings.id, existing.id), eq(hivelocityPricingSettings.userId, userId)));
+          .where(eq(hivelocityPricingSettings.id, existing.id));
       });
 
       return { success: true, message: "Pricing settings deleted" };
@@ -306,7 +351,8 @@ export const hivelocityPricingSettingsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
-      const settings = await fetchByUserAndType(userId, input.productType);
+      const userRole = ctx.session?.user?.role;
+      const settings = await fetchDefaultByType(input.productType);
       if (!settings) {
         return {
           success: true,
@@ -314,6 +360,7 @@ export const hivelocityPricingSettingsRouter = router({
           pagination: { total: 0, limit: input.limit, offset: input.offset, hasMore: false },
         };
       }
+      assertOwnerOrSuperAdmin(settings.userId, userId, userRole);
 
       const [rows, totalRes] = await Promise.all([
         db

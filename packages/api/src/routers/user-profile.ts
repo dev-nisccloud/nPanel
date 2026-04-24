@@ -132,6 +132,18 @@ function mapProfileRow(p: typeof userProfile.$inferSelect | undefined) {
   };
 }
 
+function isAgencyUserRole(role: string | null | undefined): boolean {
+  return role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+}
+
+function getActor(ctx: { session: { user?: { id?: string; role?: string | null } } | null }) {
+  const actor = ctx.session?.user;
+  if (!actor?.id) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+  }
+  return { id: actor.id, role: actor.role };
+}
+
 export const userProfileRouter = router({
   /**
    * Get current user's full profile information
@@ -356,8 +368,12 @@ export const userProfileRouter = router({
    * Get user information by ID with optional field selection
    * This is useful for cases where you only need specific user fields
    */
-  getUserById: protectedProcedure.input(getUserByIdInputSchema).query(async ({ input }) => {
+  getUserById: protectedProcedure.input(getUserByIdInputSchema).query(async ({ ctx, input }) => {
+    const actor = getActor(ctx);
     const { userId, fields } = input;
+    if (!isAgencyUserRole(actor.role) && actor.id !== userId) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this user" });
+    }
 
     const includeProfile = fields?.includes("profile") ?? false;
 
@@ -453,10 +469,20 @@ export const userProfileRouter = router({
   getUsersByIds: protectedProcedure
     .input(getUsersByIdsInputSchema)
     .output(getUsersByIdsOutputSchema)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const actor = getActor(ctx);
       const { userIds, fields } = input;
+      const requestedUserIds = Array.from(new Set(userIds));
 
-      const uniqueUserIds = Array.from(new Set(userIds));
+      const uniqueUserIds = isAgencyUserRole(actor.role)
+        ? requestedUserIds
+        : requestedUserIds.includes(actor.id)
+          ? [actor.id]
+          : [];
+
+      if (uniqueUserIds.length === 0) {
+        return {};
+      }
 
       const includeProfile = fields?.includes("profile") ?? false;
       const allFields = !fields || fields.length === 0;

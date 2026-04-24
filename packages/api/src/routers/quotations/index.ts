@@ -32,6 +32,7 @@ type DbLike = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+const isAgencySuperAdmin = (role: string) => role === "AGENCY_SUPER_ADMIN";
 
 function parseDate(value: unknown): Date | null {
 	if (!value) return null;
@@ -78,6 +79,25 @@ async function ensureQuotationAccess(_db: DbLike, userId: string, role: string, 
 	if (isAgencyUser(role)) return qRow;
 	if (qRow.createdBy !== userId) {
 		throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this quotation." });
+	}
+	return qRow;
+}
+
+async function ensureQuotationMutationAccess(_db: DbLike, userId: string, role: string, quotationId: string) {
+	const rows = await _db
+		.select({ createdBy: quotation.createdBy })
+		.from(quotation)
+		.where(eq(quotation.id, quotationId))
+		.limit(1);
+	const qRow = rows[0];
+	if (!qRow) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Quotation not found." });
+	}
+	if (!isAgencySuperAdmin(role) && qRow.createdBy !== userId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only the quotation creator can modify it.",
+		});
 	}
 	return qRow;
 }
@@ -422,6 +442,12 @@ export const quotationsRouter = router({
 		.output(quotationDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
+			if (!isAgencySuperAdmin(user.role) && input.createdBy && input.createdBy !== user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency super admin can create quotations for other users.",
+				});
+			}
 			const quotationId = input.id ?? crypto.randomUUID();
 			const token = input.token ?? crypto.randomUUID();
 
@@ -504,7 +530,7 @@ export const quotationsRouter = router({
 		.output(quotationDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(db, user.id, user.role, input.id);
+			await ensureQuotationMutationAccess(db, user.id, user.role, input.id);
 
 			await db.transaction(async (tx) => {
 				const data = buildQuotationUpdateData(input, user.id);
@@ -577,7 +603,7 @@ export const quotationsRouter = router({
 		.output(quotationDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(db, user.id, user.role, input.id);
+			await ensureQuotationMutationAccess(db, user.id, user.role, input.id);
 			await db.transaction(async (tx) => {
 				await tx
 					.update(quotation)
@@ -604,7 +630,7 @@ export const quotationsRouter = router({
 		.output(z.object({ success: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(db, user.id, user.role, input.quotationId);
+			await ensureQuotationMutationAccess(db, user.id, user.role, input.quotationId);
 			await db.transaction(async (tx) => {
 				const qRows = await tx
 					.select({ id: quotation.id, quotationNumber: quotation.quotationNumber })
@@ -638,7 +664,7 @@ export const quotationsRouter = router({
 		.output(z.object({ success: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureQuotationAccess(db, user.id, user.role, input.quotationId);
+			await ensureQuotationMutationAccess(db, user.id, user.role, input.quotationId);
 			const quotationDetail = await fetchQuotationDetail(db, input.quotationId);
 			const { sendEmail } = await import("../../lib/email");
 			const { renderQuotationDeliveryEmail } = await import("../../lib/email-templates");

@@ -129,20 +129,29 @@ export function useDomainSearch(
     return parts[parts.length - 1] ?? t;
   }, []);
 
-  /** Returns true if search was started (valid query); false if invalid (error set). */
-  const triggerSearch = React.useCallback((): boolean => {
+  /**
+   * Starts a search if valid.
+   * - started=false: invalid/empty input
+   * - changed=false: same query as last submitted (no new fetch cycle expected)
+   */
+  const triggerSearch = React.useCallback((): { started: boolean; changed: boolean } => {
     const raw = domainName.trim();
-    if (!raw) return false;
+    if (!raw) return { started: false, changed: false };
     setError(null);
     const sanitized = sanitizeDomainName(raw);
     if (!isValidSearchQuery(sanitized)) {
       setError("Enter a valid search query to find your domain.");
-      return false;
+      return { started: false, changed: false };
     }
-    setSearchQueryName(toSingleLabelName(sanitized));
+    const nextSearchQuery = toSingleLabelName(sanitized);
+    const isSameQuery = nextSearchQuery === searchQueryName && raw === rawSearchQueryForResults;
+    if (isSameQuery) {
+      return { started: true, changed: false };
+    }
+    setSearchQueryName(nextSearchQuery);
     setRawSearchQueryForResults(raw);
-    return true;
-  }, [domainName, sanitizeDomainName, isValidSearchQuery, toSingleLabelName]);
+    return { started: true, changed: true };
+  }, [domainName, sanitizeDomainName, isValidSearchQuery, toSingleLabelName, searchQueryName, rawSearchQueryForResults]);
 
   const handleAddToCart = React.useCallback(
     (result: DomainSearchResult) => {

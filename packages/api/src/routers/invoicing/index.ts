@@ -47,6 +47,7 @@ type DbLike = typeof db | DbTransaction;
 
 const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+const isAgencySuperAdmin = (role: string) => role === "AGENCY_SUPER_ADMIN";
 // // Unused function commented out
 // const isCustomer = (role: string) => role === "CUSTOMER"; // Unused, commented out
 
@@ -134,6 +135,37 @@ async function ensureTeamAccess(_db: DbLike, userId: string, role: string, teamI
 	}
 }
 
+async function ensureTeamMutationAccess(
+	_db: DbLike,
+	userId: string,
+	role: string,
+	teamId: string | null | undefined,
+) {
+	if (isAgencySuperAdmin(role)) {
+		return;
+	}
+	if (!teamId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Invoice is not associated with any team.",
+		});
+	}
+	const [teamRow] = await db
+		.select({ createdById: team.createdById })
+		.from(team)
+		.where(eq(team.id, teamId))
+		.limit(1);
+	if (!teamRow) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+	}
+	if (teamRow.createdById !== userId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only the team owner can modify team invoices.",
+		});
+	}
+}
+
 async function ensureInvoiceAccess(_db: DbLike, userId: string, role: string, invoiceId: string) {
 	const invAcc = await db.query.invoice.findFirst({
 		where: eq(invoice.id, invoiceId),
@@ -165,6 +197,28 @@ async function ensureInvoiceAccess(_db: DbLike, userId: string, role: string, in
 		});
 	}
 
+	return invAcc;
+}
+
+async function ensureInvoiceMutationAccess(
+	_db: DbLike,
+	userId: string,
+	role: string,
+	invoiceId: string,
+) {
+	const invAcc = await db.query.invoice.findFirst({
+		where: eq(invoice.id, invoiceId),
+		columns: { teamId: true, createdBy: true },
+	});
+	if (!invAcc) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
+	}
+	if (!isAgencySuperAdmin(role) && invAcc.createdBy !== userId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only the invoice creator can modify it.",
+		});
+	}
 	return invAcc;
 }
 
@@ -838,7 +892,7 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			const invRows = await db
 				.select({
@@ -987,7 +1041,7 @@ export const invoicingRouter = router({
 			const user = await getAuthenticatedUser(ctx);
 
 			if (input.teamId) {
-				await ensureTeamAccess(db, user.id, user.role, input.teamId);
+				await ensureTeamMutationAccess(db, user.id, user.role, input.teamId);
 			}
 
 			const invoiceId = input.id ?? crypto.randomUUID();
@@ -1151,11 +1205,11 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			const invoiceRecord = await ensureInvoiceAccess(db, user.id, user.role, input.id);
+			const invoiceRecord = await ensureInvoiceMutationAccess(db, user.id, user.role, input.id);
 
 			await db.transaction(async (tx) => {
 				if (input.teamId && input.teamId !== invoiceRecord.teamId) {
-					await ensureTeamAccess(tx, user.id, user.role, input.teamId);
+					await ensureTeamMutationAccess(tx, user.id, user.role, input.teamId);
 				}
 
 				const data = buildInvoiceUpdateData(input, user.id);
@@ -1241,7 +1295,7 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(db, user.id, user.role, input.id);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.id);
 
 			await db.transaction(async (tx) => {
 				const now = new Date();
@@ -1272,7 +1326,7 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			const transactionId = input.id ?? crypto.randomUUID();
 
@@ -1353,7 +1407,7 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			await db.transaction(async (tx) => {
 				const transRows = await tx
@@ -1397,7 +1451,7 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			const creditNoteId = input.id ?? crypto.randomUUID();
 
@@ -1481,7 +1535,7 @@ export const invoicingRouter = router({
 		.output(invoiceDetailSchema)
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			await db.transaction(async (tx) => {
 				const existingRows = await tx
@@ -1526,7 +1580,7 @@ export const invoicingRouter = router({
 			const user = await getAuthenticatedUser(ctx);
 
 			if (input.teamId) {
-				await ensureTeamAccess(db, user.id, user.role, input.teamId);
+				await ensureTeamMutationAccess(db, user.id, user.role, input.teamId);
 			}
 
 			const invoiceId = input.id ?? crypto.randomUUID();
@@ -1657,7 +1711,7 @@ export const invoicingRouter = router({
 		.output(z.object({ success: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
-			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			await db.transaction(async (tx) => {
 				const invRows = await tx
@@ -1702,7 +1756,7 @@ export const invoicingRouter = router({
 
 			// Enforce access per-invoice (agency users can delete any; others must have access).
 			for (const invoiceId of input.invoiceIds) {
-				await ensureInvoiceAccess(db, user.id, user.role, invoiceId);
+				await ensureInvoiceMutationAccess(db, user.id, user.role, invoiceId);
 			}
 
 			await db.transaction(async (tx) => {
@@ -1728,7 +1782,7 @@ export const invoicingRouter = router({
 			const { renderInvoiceDeliveryEmail } = await import("../../lib/email-templates");
 			const { getSesClient, sendSesRawEmail } = await import("../../lib/ses-client");
 
-			await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+			await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
 
 			const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
 

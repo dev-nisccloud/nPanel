@@ -84,6 +84,39 @@ async function getAuthenticatedUser(ctx: Context) {
 const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 
+async function getAccessibleTeamIds(userId: string): Promise<string[]> {
+	const [memberships, ownedTeams] = await Promise.all([
+		db
+			.select({ teamId: teamMember.teamId })
+			.from(teamMember)
+			.where(eq(teamMember.userId, userId)),
+		db
+			.select({ id: teamTable.id })
+			.from(teamTable)
+			.where(eq(teamTable.createdById, userId)),
+	]);
+
+	return [
+		...new Set([
+			...memberships.map((membership: { teamId: string }) => membership.teamId),
+			...ownedTeams.map((teamRow: { id: string }) => teamRow.id),
+		]),
+	];
+}
+
+function buildTransactionReadCondition(params: {
+	isAgency: boolean;
+	userId: string;
+	teamIds: string[];
+}) {
+	const { isAgency, userId, teamIds } = params;
+	if (isAgency) return undefined;
+
+	return teamIds.length > 0
+		? or(eq(paymentTransaction.userId, userId), inArray(paymentTransaction.teamId, teamIds))
+		: eq(paymentTransaction.userId, userId);
+}
+
 export const paymentTransactionsRouter = router({
 	list: protectedProcedure
 		.input(
@@ -102,29 +135,21 @@ export const paymentTransactionsRouter = router({
 		)
 		.query(async ({ ctx, input }) => {
 			const user = await getAuthenticatedUser(ctx);
+			const agencyUser = isAgencyUser(user.role);
+			const accessibleTeams = agencyUser ? [] : await getAccessibleTeamIds(user.id);
 
 			const conditions: any[] = [];
 
 			// For agency users, show all transactions
 			// For customers, filter by their user ID or team
-			if (!isAgencyUser(user.role)) {
-				const memberships = await db
-					.select({ teamId: teamMember.teamId })
-					.from(teamMember)
-					.where(eq(teamMember.userId, user.id));
-
-				const accessibleTeams = memberships.map(
-					(membership: { teamId: string }) => membership.teamId,
+			if (!agencyUser) {
+				conditions.push(
+					buildTransactionReadCondition({
+						isAgency: agencyUser,
+						userId: user.id,
+						teamIds: accessibleTeams,
+					}),
 				);
-				const accessConditions =
-					accessibleTeams.length > 0
-						? or(
-								eq(paymentTransaction.userId, user.id),
-								inArray(paymentTransaction.teamId, accessibleTeams),
-							)
-						: eq(paymentTransaction.userId, user.id);
-
-				conditions.push(accessConditions);
 			}
 
 			if (input.status) {
@@ -239,12 +264,23 @@ export const paymentTransactionsRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			await getAuthenticatedUser(ctx);
+			const user = await getAuthenticatedUser(ctx);
+			const agencyUser = isAgencyUser(user.role);
+			const accessibleTeams = agencyUser ? [] : await getAccessibleTeamIds(user.id);
 
 			const [tx] = await db
 				.select()
 				.from(paymentTransaction)
-				.where(eq(paymentTransaction.id, input.id))
+				.where(
+					and(
+						eq(paymentTransaction.id, input.id),
+						buildTransactionReadCondition({
+							isAgency: agencyUser,
+							userId: user.id,
+							teamIds: accessibleTeams,
+						}),
+					),
+				)
 				.limit(1);
 			if (!tx) {
 				throw new TRPCError({

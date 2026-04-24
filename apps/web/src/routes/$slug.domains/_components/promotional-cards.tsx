@@ -169,7 +169,6 @@ function SearchTldCard({
   const displayCurrency = calculated
     ? ((calculated as any).displayCurrency ?? calculated.currency)
     : displayResult?.price?.reseller?.currency || 'KES';
-  const originalPrice = calculated?.originalPrice ?? displayResult?.price?.reseller?.price;
   const isAvailable = rawResult != null;
 
   const handleCartAction = (e?: React.MouseEvent) => {
@@ -191,10 +190,6 @@ function SearchTldCard({
     );
   }
 
-  const discountPercent = originalPrice && displayPrice && originalPrice > displayPrice
-    ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
-    : 0;
-
   return (
     <>
       <div className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -213,25 +208,11 @@ function SearchTldCard({
           </h3>
 
           {isAvailable && (
-            <>
-              {discountPercent > 0 && (
-                <div className="flex gap-2 font-medium mb-2">
-                  <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
-                    Save {discountPercent}%
-                  </Badge>
-                </div>
-              )}
-              <div className="flex items-baseline gap-2">
-                {originalPrice != null && originalPrice > (displayPrice ?? 0) && (
-                  <span className="text-sm text-muted-foreground line-through">
-                    {formatPrice(originalPrice, displayCurrency)}
-                  </span>
-                )}
-                <span className="text-2xl font-bold text-card-foreground">
-                  {formatPrice(displayPrice, displayCurrency)}/1st yr
-                </span>
-              </div>
-            </>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-card-foreground">
+                {formatPrice(displayPrice, displayCurrency)}/1st yr
+              </span>
+            </div>
           )}
         </div>
 
@@ -442,22 +423,6 @@ function BundleCard({
     }, 0);
   }, [pricedBundleResults]);
 
-  // Calculate original total for discount calculation (also in KES)
-  const originalTotal = React.useMemo(() => {
-    return pricedBundleResults.reduce((sum, result) => {
-      const calculated = result.price?.calculated;
-      // Use originalPrice and convert if needed, or use reseller price
-      const price = calculated?.originalPrice ?? result.price?.reseller?.price ?? 0;
-      // If original currency is not KES and we have conversion info, we'd need to convert
-      // For now, assume pricing hook handles this or prices are already comparable
-      return sum + price;
-    }, 0);
-  }, [pricedBundleResults]);
-
-  const discountPercent = originalTotal > bundleTotal
-    ? Math.round(((originalTotal - bundleTotal) / originalTotal) * 100)
-    : 0;
-
   const allInCart = bundleDomains.every(domain => isDomainInCart(domain));
   const anyInCart = bundleDomains.some(domain => isDomainInCart(domain));
 
@@ -510,18 +475,7 @@ function BundleCard({
             {searchQuery}.<span className="text-purple-600 dark:text-purple-400">com</span> + .<span className="text-purple-600 dark:text-purple-400">co.ke</span> + .<span className="text-purple-600 dark:text-purple-400">info</span> + .<span className="text-purple-600 dark:text-purple-400">online</span>
           </h3>
           
-          {discountPercent > 0 && (
-            <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 mb-2">
-              Save {discountPercent}%
-            </Badge>
-          )}
-
           <div className="flex items-baseline gap-2">
-            {originalTotal > bundleTotal && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(originalTotal, 'KES')}
-              </span>
-            )}
             <span className="text-2xl font-bold text-card-foreground">
               {formatPrice(bundleTotal, 'KES')}/1st yr
             </span>

@@ -12,6 +12,12 @@ import { domain, domainTransfer } from "@npanel/db/schema/domains";
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+  ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+  role === "AGENCY_SUPER_ADMIN";
+
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -173,14 +179,19 @@ type NameserverGroupWithTldSettings = NameserverGroupWithRelations & {
 };
 
 async function fetchNameserverGroupById(
-  userId: string,
+  userId: string | undefined,
   groupId: string,
 ): Promise<NameserverGroupWithRelations | null> {
-  const [groupRow] = await db
+  const groupQuery = db
     .select()
     .from(nameserverGroup)
-    .where(and(eq(nameserverGroup.id, groupId), eq(nameserverGroup.userId, userId)))
+    .where(
+      userId
+        ? and(eq(nameserverGroup.id, groupId), eq(nameserverGroup.userId, userId))
+        : eq(nameserverGroup.id, groupId),
+    )
     .limit(1);
+  const [groupRow] = await groupQuery;
 
   if (!groupRow) {
     return null;
@@ -225,7 +236,7 @@ async function fetchNameserverGroupById(
 }
 
 async function fetchNameserverGroupWithTldSettingsById(
-  userId: string,
+  userId: string | undefined,
   groupId: string,
 ): Promise<NameserverGroupWithTldSettings | null> {
   const base = await fetchNameserverGroupById(userId, groupId);
@@ -390,10 +401,11 @@ export const nameserverGroupsRouter = router({
     .query(async ({ ctx, input }) => {
       const { session } = ctx;
       const userId = session!.user!.id;
+      const userRole = session?.user?.role;
 
       try {
         const groupWithRelations = await fetchNameserverGroupWithTldSettingsById(
-          userId,
+          isAgencyUserRole(userRole) ? undefined : userId,
           input.id,
         );
 
@@ -427,11 +439,14 @@ export const nameserverGroupsRouter = router({
     .query(async ({ ctx, input }) => {
       const { session } = ctx;
       const userId = session!.user!.id;
+      const userRole = session?.user?.role;
 
       try {
         const baseConditions: ReturnType<typeof and>[] = [];
 
-        baseConditions.push(eq(nameserverGroup.userId, userId));
+        if (!isAgencyUserRole(userRole)) {
+          baseConditions.push(eq(nameserverGroup.userId, userId));
+        }
 
         if (input.search) {
           const pattern = `%${input.search}%`;
@@ -462,7 +477,7 @@ export const nameserverGroupsRouter = router({
 
         const detailedGroups: NameserverGroupWithRelations[] = await Promise.all(
           groups.map(async (group) => {
-            const base = await fetchNameserverGroupById(userId, group.id);
+            const base = await fetchNameserverGroupById(undefined, group.id);
             // `fetchNameserverGroupById` already filters by userId, but be safe
             if (!base) {
               return {
@@ -516,15 +531,22 @@ export const nameserverGroupsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { session } = ctx;
       const userId = session!.user!.id;
+      const userRole = session?.user?.role;
 
       try {
         // Check if nameserver group exists and belongs to user
-        const existingGroup = await fetchNameserverGroupById(userId, input.id);
+        const existingGroup = await fetchNameserverGroupById(undefined, input.id);
 
         if (!existingGroup) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Nameserver group not found",
+          });
+        }
+        if (!isAgencySuperAdminRole(userRole) && existingGroup.userId !== userId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the nameserver group owner can modify it",
           });
         }
 
@@ -629,15 +651,22 @@ export const nameserverGroupsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { session } = ctx;
       const userId = session!.user!.id;
+      const userRole = session?.user?.role;
 
       try {
         // Check if nameserver group exists and belongs to user
-        const existingGroup = await fetchNameserverGroupById(userId, input.id);
+        const existingGroup = await fetchNameserverGroupById(undefined, input.id);
 
         if (!existingGroup) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Nameserver group not found",
+          });
+        }
+        if (!isAgencySuperAdminRole(userRole) && existingGroup.userId !== userId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the nameserver group owner can delete it",
           });
         }
 
@@ -668,12 +697,7 @@ export const nameserverGroupsRouter = router({
         await db.transaction(async (tx) => {
           await tx
             .delete(nameserverGroup)
-            .where(
-              and(
-                eq(nameserverGroup.id, input.id),
-                eq(nameserverGroup.userId, userId),
-              ),
-            );
+            .where(eq(nameserverGroup.id, input.id));
 
           await tx.insert(nameserverGroupActivityLog).values({
             id: crypto.randomUUID(),
@@ -714,24 +738,26 @@ export const nameserverGroupsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { session } = ctx;
       const userId = session!.user!.id;
+      const userRole = session?.user?.role;
 
       try {
         // Check if nameserver group exists and belongs to user
         const [existingGroupRow] = await db
           .select()
           .from(nameserverGroup)
-          .where(
-            and(
-              eq(nameserverGroup.id, input.id),
-              eq(nameserverGroup.userId, userId),
-            ),
-          )
+          .where(eq(nameserverGroup.id, input.id))
           .limit(1);
 
         if (!existingGroupRow) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Nameserver group not found",
+          });
+        }
+        if (!isAgencySuperAdminRole(userRole) && existingGroupRow.userId !== userId) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the nameserver group owner can set default",
           });
         }
 
@@ -741,17 +767,12 @@ export const nameserverGroupsRouter = router({
           await tx
             .update(nameserverGroup)
             .set({ isDefault: false, updatedAt: now })
-            .where(and(eq(nameserverGroup.userId, userId), eq(nameserverGroup.isDefault, true)));
+            .where(and(eq(nameserverGroup.userId, existingGroupRow.userId), eq(nameserverGroup.isDefault, true)));
 
           await tx
             .update(nameserverGroup)
             .set({ isDefault: true, updatedAt: now })
-            .where(
-              and(
-                eq(nameserverGroup.id, input.id),
-                eq(nameserverGroup.userId, userId),
-              ),
-            );
+            .where(eq(nameserverGroup.id, input.id));
 
           await tx.insert(nameserverGroupActivityLog).values({
             id: crypto.randomUUID(),
@@ -766,7 +787,7 @@ export const nameserverGroupsRouter = router({
           });
         });
 
-        const updatedGroup = await fetchNameserverGroupById(userId, input.id);
+        const updatedGroup = await fetchNameserverGroupById(existingGroupRow.userId, input.id);
 
         if (!updatedGroup) {
           throw new TRPCError({
@@ -798,18 +819,14 @@ export const nameserverGroupsRouter = router({
     .query(async ({ ctx, input }) => {
       const { session } = ctx;
       const userId = session!.user!.id;
+      const userRole = session?.user?.role;
 
       try {
         // Check if nameserver group exists and belongs to user
         const existingGroupRow = await db
           .select({ id: nameserverGroup.id })
           .from(nameserverGroup)
-          .where(
-            and(
-              eq(nameserverGroup.id, input.id),
-              eq(nameserverGroup.userId, userId),
-            ),
-          )
+          .where(eq(nameserverGroup.id, input.id))
           .limit(1);
 
         if (!existingGroupRow[0]) {
@@ -817,6 +834,19 @@ export const nameserverGroupsRouter = router({
             code: "NOT_FOUND",
             message: "Nameserver group not found",
           });
+        }
+        if (!isAgencyUserRole(userRole)) {
+          const ownerCheck = await db
+            .select({ userId: nameserverGroup.userId })
+            .from(nameserverGroup)
+            .where(eq(nameserverGroup.id, input.id))
+            .limit(1);
+          if (ownerCheck[0]?.userId !== userId) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "You do not have access to these activity logs",
+            });
+          }
         }
 
         const [logs, totalRes] = await Promise.all([

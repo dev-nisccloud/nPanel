@@ -17,6 +17,12 @@ import {
 } from "./schemas";
 import { getUserTeamIds, orUserOrTeamMember, personalScope } from "./team-scope";
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+  ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+  role === "AGENCY_SUPER_ADMIN";
+
 /**
  * Transform function to ensure clean data (no ORM types leak)
  */
@@ -39,8 +45,15 @@ export const imageGenUploadsRouter = router({
     .output(z.object({ data: imageGenUploadSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+      if (input.teamId && !isAgencyUserRole(userRole)) {
+        const userTeamIds = await getUserTeamIds(userId);
+        if (!userTeamIds.includes(input.teamId)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team" });
+        }
       }
 
       if (!input.mimeType.startsWith("image/")) {
@@ -100,6 +113,7 @@ export const imageGenUploadsRouter = router({
     .output(getUploadsResponseSchema)
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
@@ -109,10 +123,16 @@ export const imageGenUploadsRouter = router({
 
       let whereCond;
       if (teamId) {
-        if (!userTeamIds.includes(teamId)) {
-          return { data: [], nextPage: null };
+        if (isAgencyUserRole(userRole)) {
+          whereCond = eq(imageGenUpload.teamId, teamId);
+        } else {
+          if (!userTeamIds.includes(teamId)) {
+            return { data: [], nextPage: null };
+          }
+          whereCond = eq(imageGenUpload.teamId, teamId);
         }
-        whereCond = eq(imageGenUpload.teamId, teamId);
+      } else if (isAgencyUserRole(userRole)) {
+        whereCond = undefined;
       } else {
         whereCond = personalScope(imageGenUpload.userId, imageGenUpload.teamId, userId);
       }
@@ -129,7 +149,7 @@ export const imageGenUploadsRouter = router({
           updatedAt: imageGenUpload.updatedAt,
         })
         .from(imageGenUpload)
-        .where(whereCond)
+        .where(whereCond ?? undefined)
         .orderBy(desc(imageGenUpload.createdAt))
         .limit(limit)
         .offset((page - 1) * limit);
@@ -145,25 +165,20 @@ export const imageGenUploadsRouter = router({
     .output(z.object({ data: z.object({ id: z.string() }) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
-      const userTeamIds = await getUserTeamIds(userId);
       const existingUpload = await db.query.imageGenUpload.findFirst({
-        where: and(
-          eq(imageGenUpload.id, input.id),
-          orUserOrTeamMember(
-            imageGenUpload.userId,
-            imageGenUpload.teamId,
-            userId,
-            userTeamIds,
-          ),
-        ),
+        where: eq(imageGenUpload.id, input.id),
       });
 
       if (!existingUpload) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Upload not found" });
+      }
+      if (!isAgencySuperAdminRole(userRole) && existingUpload.userId !== userId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the upload owner can delete it" });
       }
 
       await db.insert(imageGenUploadActivityLog).values({

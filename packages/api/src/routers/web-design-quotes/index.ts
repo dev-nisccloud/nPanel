@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { webDesignQuoteRequest } from "@npanel/db/schema/web-design-quotes";
-import { count, desc, eq } from "@npanel/db";
+import { and, count, desc, eq } from "@npanel/db";
 import { protectedProcedure, router } from "../../trpc";
 import {
 	apiWebDesignProjectTypeSchema,
@@ -66,16 +66,23 @@ export const webDesignQuotesRouter = router({
 		.output(webDesignQuoteListOutputSchema)
 		.query(async ({ ctx, input }) => {
 			const session = ctx.session;
-			if (!session?.user?.id) {
+			const actorId = session?.user?.id;
+			const actorRole = session?.user?.role;
+			if (!actorId) {
 				throw new TRPCError({
 					code: "UNAUTHORIZED",
 					message: "You must be logged in to list quote requests",
 				});
 			}
+			const isAgencyUser =
+				actorRole === "AGENCY_USER" ||
+				actorRole === "AGENCY_ADMIN" ||
+				actorRole === "AGENCY_SUPER_ADMIN";
 
-			const whereClause = input.status
-				? eq(webDesignQuoteRequest.status, input.status)
-				: undefined;
+			const whereClause = and(
+				input.status ? eq(webDesignQuoteRequest.status, input.status) : undefined,
+				isAgencyUser ? undefined : eq(webDesignQuoteRequest.submittedById, actorId),
+			);
 
 			const [items, total] = await Promise.all([
 				db

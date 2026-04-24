@@ -417,6 +417,50 @@ async function isTeamMember(teamId: string, userId: string) {
     return !!m;
 }
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+    role === "AGENCY_SUPER_ADMIN";
+
+async function getMemberTeamIds(userId: string) {
+    const memberships = await db
+        .select({ teamId: teamMember.teamId })
+        .from(teamMember)
+        .where(eq(teamMember.userId, userId));
+    return memberships.map((m) => m.teamId);
+}
+
+async function buildSubscriptionReadScope(userId: string, role: string | null | undefined) {
+    if (isAgencyUserRole(role)) return undefined;
+    const memberTeamIds = await getMemberTeamIds(userId);
+    const clauses: SQL[] = [eq(niscClientSubscription.userId, userId)];
+    if (memberTeamIds.length > 0) {
+        clauses.push(inArray(niscClientSubscription.teamId, memberTeamIds));
+    }
+    return clauses.length === 1 ? clauses[0] : or(...clauses);
+}
+
+async function canReadSubscription(
+    subscription: { userId?: string | null; teamId?: string | null },
+    userId: string,
+    role: string | null | undefined,
+) {
+    if (isAgencyUserRole(role)) return true;
+    if (subscription.userId === userId) return true;
+    if (subscription.teamId) return isTeamMember(subscription.teamId, userId);
+    return false;
+}
+
+function canMutateSubscription(
+    subscription: { userId?: string | null; recordedBy?: string | null },
+    userId: string,
+    role: string | null | undefined,
+) {
+    if (isAgencySuperAdminRole(role)) return true;
+    return subscription.userId === userId || subscription.recordedBy === userId;
+}
+
 // ============================================================================
 // ROUTER
 // ============================================================================
@@ -438,6 +482,8 @@ export const clientSubscriptionsRouter = router({
             }
 
             const filters = buildListSubscriptionFilters(input);
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            if (readScope) filters.push(readScope);
             const subs = await db
                 .select()
                 .from(niscClientSubscription)
@@ -492,8 +538,13 @@ export const clientSubscriptionsRouter = router({
                 productIdFilter = ids;
             }
 
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            const whereParts: SQL[] = [];
+            if (productIdFilter) whereParts.push(inArray(niscClientSubscription.productId, productIdFilter));
+            if (readScope) whereParts.push(readScope);
+
             const subs = await db.query.niscClientSubscription.findMany({
-                where: productIdFilter ? inArray(niscClientSubscription.productId, productIdFilter) : undefined,
+                where: whereParts.length ? and(...whereParts) : undefined,
                 orderBy: (s, { desc: d }) => [d(s.createdAt)],
                 limit: input?.limit ?? 100,
                 offset: input?.offset ?? 0,
@@ -569,7 +620,7 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            if (!(await isTeamMember(teamId, session.user.id))) {
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
@@ -683,7 +734,7 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            if (!(await isTeamMember(teamId, session.user.id))) {
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
@@ -789,7 +840,7 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            if (!(await isTeamMember(teamId, session.user.id))) {
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
@@ -879,7 +930,7 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
-            if (!(await isTeamMember(teamId, session.user.id))) {
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
@@ -948,6 +999,14 @@ export const clientSubscriptionsRouter = router({
                 });
             }
 
+            const canRead = await canReadSubscription(sub, session.user.id, session.user.role);
+            if (!canRead) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this subscription",
+                });
+            }
+
             if (input.teamSlug) {
                 const slugTeamId = await getTeamIdBySlug(input.teamSlug);
                 if (!slugTeamId) {
@@ -956,7 +1015,7 @@ export const clientSubscriptionsRouter = router({
                         message: "Team not found",
                     });
                 }
-                if (!(await isTeamMember(slugTeamId, session.user.id))) {
+                if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(slugTeamId, session.user.id))) {
                     throw new TRPCError({
                         code: "FORBIDDEN",
                         message: "You do not have access to this team",
@@ -1032,6 +1091,15 @@ export const clientSubscriptionsRouter = router({
                 .from(niscClientSubscription)
                 .where(eq(niscClientSubscription.openProviderId, input.openProviderId))
                 .limit(1);
+            if (sub) {
+                const canRead = await canReadSubscription(sub, session.user.id, session.user.role);
+                if (!canRead) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this subscription",
+                    });
+                }
+            }
             return sub ? mapSubscription(sub) : null;
         }),
 
@@ -1048,10 +1116,13 @@ export const clientSubscriptionsRouter = router({
                 });
             }
             if (input.openProviderIds.length === 0) return [];
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            const whereParts: SQL[] = [inArray(niscClientSubscription.openProviderId, input.openProviderIds)];
+            if (readScope) whereParts.push(readScope);
             const subs = await db
                 .select({ openProviderId: niscClientSubscription.openProviderId })
                 .from(niscClientSubscription)
-                .where(inArray(niscClientSubscription.openProviderId, input.openProviderIds));
+                .where(and(...whereParts));
             return subs
                 .map((s) => s.openProviderId)
                 .filter((id): id is number => id != null);
@@ -1070,10 +1141,16 @@ export const clientSubscriptionsRouter = router({
                 });
             }
             const idStr = String(input.pleskSubscriptionId);
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
             const [sub] = await db
                 .select({ id: niscClientSubscription.id })
                 .from(niscClientSubscription)
-                .where(sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${idStr}`)
+                .where(
+                    and(
+                        sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${idStr}`,
+                        readScope ?? sql`true`,
+                    ),
+                )
                 .limit(1);
             return { hasLinked: !!sub };
         }),
@@ -1092,16 +1169,11 @@ export const clientSubscriptionsRouter = router({
             }
             if (input.pleskSubscriptionIds.length === 0) return [];
             const idStrs = [...new Set(input.pleskSubscriptionIds.map((id) => String(id)))];
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
             const subs = await db
                 .select({ serviceRefs: niscClientSubscription.serviceRefs })
                 .from(niscClientSubscription)
-                .where(
-                    or(
-                        ...idStrs.map(
-                            (id) => sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${id}`,
-                        ),
-                    ),
-                );
+                .where(and(or(...idStrs.map((id) => sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${id}`)), readScope ?? sql`true`));
             const found = new Set<string>();
             for (const sub of subs) {
                 const refs = sub.serviceRefs as Record<string, unknown> | null;
@@ -1123,6 +1195,30 @@ export const clientSubscriptionsRouter = router({
                     code: "UNAUTHORIZED",
                     message: "You must be logged in to create subscriptions",
                 });
+            }
+
+            if (!isAgencySuperAdminRole(session.user.role)) {
+                if (input.userId && input.userId !== session.user.id) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "Only AGENCY_SUPER_ADMIN can create subscriptions for another user",
+                    });
+                }
+                if (input.recordedBy && input.recordedBy !== session.user.id) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "Only AGENCY_SUPER_ADMIN can set recordedBy to another user",
+                    });
+                }
+            }
+            if (input.teamId && !isAgencyUserRole(session.user.role)) {
+                const member = await isTeamMember(input.teamId, session.user.id);
+                if (!member) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this team",
+                    });
+                }
             }
 
             const [product] = await db
@@ -1248,6 +1344,12 @@ export const clientSubscriptionsRouter = router({
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
+            if (!canMutateSubscription(existing, session.user.id, session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only the owner can update this subscription",
+                });
+            }
 
             const { id, ...rest } = input;
             const patch: Record<string, unknown> = {};
@@ -1325,6 +1427,12 @@ export const clientSubscriptionsRouter = router({
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
+            if (!canMutateSubscription(existing, session.user.id, session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only the owner can cancel this subscription",
+                });
+            }
             if (existing.status === "CANCELLED") {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -1391,6 +1499,12 @@ export const clientSubscriptionsRouter = router({
             });
             if (!sub) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+            if (!canMutateSubscription(sub, session.user.id, session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only the owner can send renewal emails for this subscription",
+                });
             }
 
             const productName = sub.product.name;
@@ -1478,6 +1592,12 @@ export const clientSubscriptionsRouter = router({
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
+            if (!canMutateSubscription(existing, session.user.id, session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only the owner can renew this subscription",
+                });
+            }
 
             const renewalId = crypto.randomUUID();
             const updatedSub = await db.transaction(async (tx) => {
@@ -1560,6 +1680,12 @@ export const clientSubscriptionsRouter = router({
             if (!sub) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
             }
+            if (!canMutateSubscription(sub, session.user.id, session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only the owner can record commission entries for this subscription",
+                });
+            }
             if (sub.pricingModel !== "COMMISSION") {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
@@ -1632,6 +1758,9 @@ export const clientSubscriptionsRouter = router({
             if (input?.status !== undefined) parts.push(eq(niscCommissionEntry.status, input.status));
             if (input?.periodFrom) parts.push(gte(niscCommissionEntry.period, input.periodFrom));
             if (input?.periodTo) parts.push(lte(niscCommissionEntry.period, input.periodTo));
+            if (!isAgencyUserRole(session.user.role)) {
+                parts.push(eq(niscCommissionEntry.createdBy, session.user.id));
+            }
 
             const entries = await db
                 .select()
@@ -1662,6 +1791,12 @@ export const clientSubscriptionsRouter = router({
                 .limit(1);
             if (!existing) {
                 throw new TRPCError({ code: "NOT_FOUND", message: "Commission entry not found" });
+            }
+            if (!isAgencySuperAdminRole(session.user.role) && existing.createdBy !== session.user.id) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only the owner can update this commission entry",
+                });
             }
 
             const validTransitions: Record<string, string[]> = {
@@ -1730,6 +1865,20 @@ export const clientSubscriptionsRouter = router({
                     ilike(niscProduct.name, "%domain%"),
                 ) as SQL,
             ];
+            if (!isAgencyUserRole(session.user.role)) {
+                if (input.userId != null && input.userId !== session.user.id) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You can only list your own domain subscriptions",
+                    });
+                }
+                if (input.teamId != null && !(await isTeamMember(input.teamId, session.user.id))) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this team",
+                    });
+                }
+            }
             if (input.userId != null) domainParts.push(eq(niscClientSubscription.userId, input.userId));
             if (input.teamId != null) domainParts.push(eq(niscClientSubscription.teamId, input.teamId));
 

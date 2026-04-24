@@ -51,7 +51,7 @@ export const sidebarItems: NavGroup[] = [
     items: [
       {
         title: "Home",
-        url: "/dashboard/dashboard",
+        url: "/dashboard",
         icon: (props: any) => React.createElement(Icons.Home, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {

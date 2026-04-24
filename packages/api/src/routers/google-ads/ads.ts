@@ -11,7 +11,7 @@ import {
 	getGoogleAdsDeveloperToken,
 } from '../../lib/google-ads-credentials';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
-import { getGoogleAdsIntegrationForSession } from '../../lib/google-ads-user-integration';
+import { getGoogleAdsExecutionContext } from './access';
 
 /**
  * Format date for Google Ads API (YYYYMMDD format)
@@ -43,21 +43,10 @@ export const googleAdsAdsRouter = router({
 		)
 		.query(async ({ input, ctx }) => {
 			try {
-				const userId = ctx.session?.user?.id;
-				if (!userId) {
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'User session not found',
-					});
-				}
-
-				const integration = await getGoogleAdsIntegrationForSession({
-					userId,
-					role: ctx.session?.user?.role,
-				});
-
-				// Remove dashes from customer ID for API call
-				const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
+				const { integration, customerIdWithoutDashes } = await getGoogleAdsExecutionContext(
+					ctx,
+					input.customerId,
+				);
 
 				// Create Google Ads client
 				const client = createGoogleAdsClient({
@@ -368,19 +357,10 @@ export const googleAdsAdsRouter = router({
 		)
 		.query(async ({ input, ctx }) => {
 			try {
-				const userId = ctx.session?.user?.id;
-				if (!userId) {
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'User session not found',
-					});
-				}
-
-				const integration = await getGoogleAdsIntegrationForSession({
-					userId,
-					role: ctx.session?.user?.role,
-				});
-				const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
+				const { integration, customerIdWithoutDashes } = await getGoogleAdsExecutionContext(
+					ctx,
+					input.customerId,
+				);
 
 				const client = createGoogleAdsClient({
 					developerToken: getGoogleAdsDeveloperToken(),

@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { and, count, desc, eq, gt, gte, inArray, lte, sql, sum } from "@npanel/db";
 import { db } from "@npanel/db";
+import { invoice } from "@npanel/db/schema/invoicing";
 import { invoiceTransaction } from "@npanel/db/schema/invoicing";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInMinutes } from "date-fns";
+import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
 
 export const niscPaymentsRouter = router({
   // ─── PY-01 Payment Method Breakdown ───────────────────────────────────────
@@ -17,16 +19,27 @@ export const niscPaymentsRouter = router({
       amount:         z.number(),
       percentOfTotal: z.number(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
 
       const rows = await db
         .select({ method: invoiceTransaction.method, amount: invoiceTransaction.amount })
         .from(invoiceTransaction)
+        .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
         .where(and(
           eq(invoiceTransaction.status, "COMPLETED"),
           gte(invoiceTransaction.paidAt, from),
           lte(invoiceTransaction.paidAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       const map = new Map<string, { count: number; amount: number }>();
@@ -61,8 +74,12 @@ export const niscPaymentsRouter = router({
       successRate:         z.number(),
       avgProcessingMinutes:z.number(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
 
       const rows = await db
         .select({
@@ -75,6 +92,12 @@ export const niscPaymentsRouter = router({
         .where(and(
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            teamColumn: paymentTransaction.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       const map = new Map<string, {
@@ -122,8 +145,13 @@ export const niscPaymentsRouter = router({
       })),
       total: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
       const now = new Date();
       const threshold24h = new Date(now.getTime() - 24 * 3600000);
@@ -133,7 +161,12 @@ export const niscPaymentsRouter = router({
           inArray(paymentTransaction.status, ["PENDING", "FAILED"]),
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
-          teamIds?.length ? inArray(paymentTransaction.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            teamColumn: paymentTransaction.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: { team: { columns: { name: true } } },
         orderBy: [desc(paymentTransaction.initiatedAt)],
@@ -148,6 +181,12 @@ export const niscPaymentsRouter = router({
           inArray(paymentTransaction.status, ["PENDING", "FAILED"]),
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            teamColumn: paymentTransaction.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       return {
@@ -181,8 +220,13 @@ export const niscPaymentsRouter = router({
       })),
       totalRefunded: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
 
       const rows = await db.query.paymentTransaction.findMany({
@@ -190,7 +234,12 @@ export const niscPaymentsRouter = router({
           eq(paymentTransaction.status, "REFUNDED"),
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
-          teamIds?.length ? inArray(paymentTransaction.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            teamColumn: paymentTransaction.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: { team: { columns: { name: true } } },
         orderBy: [desc(paymentTransaction.refundedAt)],
@@ -205,6 +254,12 @@ export const niscPaymentsRouter = router({
           eq(paymentTransaction.status, "REFUNDED"),
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            teamColumn: paymentTransaction.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
       const totalRefunded = all.reduce((s, r) => s + toNum(r.amount), 0);
 

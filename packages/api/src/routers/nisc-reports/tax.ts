@@ -4,6 +4,7 @@ import { db } from "@npanel/db";
 import { invoice } from "@npanel/db/schema/invoicing";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
+import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
 
 export const niscTaxRouter = router({
   // ─── T-01 Tax Summary ─────────────────────────────────────────────────────
@@ -23,8 +24,13 @@ export const niscTaxRouter = router({
       })),
       currency:            z.string(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
 
       const paid = await db
         .select({
@@ -38,7 +44,12 @@ export const niscTaxRouter = router({
           eq(invoice.status, "PAID"),
           gte(invoice.paidAt, from),
           lte(invoice.paidAt, to),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       const pending = await db
@@ -48,7 +59,12 @@ export const niscTaxRouter = router({
           inArray(invoice.status, ["SENT", "OVERDUE", "PARTIALLY_PAID", "DRAFT"]),
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       let taxableAmount = 0, vatCollected = 0, taxCollected = 0;

@@ -144,6 +144,9 @@ const updateProfileOutputSchema = z.object({
 
 type AgencyUserOutput = z.infer<typeof userOutputSchema>;
 
+const isAgencyRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
@@ -162,9 +165,9 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view users
+			// Any agency role can view users
 			const userRole = session.user.role;
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to view users",
@@ -208,9 +211,9 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view user details
+			// Any agency role can view user details
 			const userRole = session.user.role;
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to view user details",
@@ -743,9 +746,9 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view sessions
+			// Any agency role can view sessions
 			const userRole = session.user.role;
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to view sessions",
@@ -805,9 +808,9 @@ export const manageUsersRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_SUPER_ADMIN to view profiles
+			// Any agency role can view profiles
 			const userRole = session.user.role;
-			if (userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to view profiles",

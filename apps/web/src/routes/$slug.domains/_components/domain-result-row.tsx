@@ -20,11 +20,6 @@ export interface DomainResultRowProps {
 	domain: string;
 	/** Whether the domain is available for registration. */
 	isAvailable: boolean;
-	/** Original price before markup (small text below domain). */
-	originalPrice?: number;
-	originalCurrency?: string;
-	/** Margin description e.g. "+15% (+KSh 100)" or "+KSh 50" ? shown below original. */
-	marginLabel?: string | null;
 	/** Final price to show (after markup and conversion) ? bold, primary. */
 	displayPrice: number;
 	displayCurrency: string;
@@ -45,9 +40,6 @@ export interface DomainResultRowProps {
 export function DomainResultRow({
 	domain,
 	isAvailable,
-	originalPrice,
-	originalCurrency,
-	marginLabel,
 	displayPrice,
 	displayCurrency,
 	reason,
@@ -73,7 +65,7 @@ export function DomainResultRow({
 	return (
 		<>
 			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 first:pt-0">
-				{/* Left: domain, original, margin, badge, reason */}
+				{/* Left: domain, availability, reason */}
 				<div className="min-w-0 flex-1 space-y-1">
 					<div className="flex flex-wrap items-center gap-2">
 						<span className="font-bold text-sm text-foreground truncate" title={domain}>
@@ -89,16 +81,6 @@ export function DomainResultRow({
 							{isAvailable ? "Available" : "Taken"}
 						</Badge>
 					</div>
-					{isAvailable && (originalPrice != null || marginLabel) && (
-						<div className="space-y-0.5 text-[11px] text-muted-foreground">
-							{originalPrice != null && (
-								<div>Original: {formatPrice(originalPrice, originalCurrency)}</div>
-							)}
-							{marginLabel != null && marginLabel !== "" && (
-								<div className="text-green-600 dark:text-green-400">{marginLabel}</div>
-							)}
-						</div>
-					)}
 					{reason != null && reason !== "" && (
 						<div className="text-[11px] text-muted-foreground line-clamp-2" title={reason}>
 							{reason}

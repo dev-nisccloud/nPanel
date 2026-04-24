@@ -1,15 +1,33 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, sql, type InferSelectModel } from "@npanel/db";
+import { and, desc, eq, inArray, sql, type InferSelectModel } from "@npanel/db";
 import { db } from "@npanel/db";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { router, protectedProcedure } from '../../trpc';
 import { MetaAdsClient } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
 import { handleMetaAdsOAuthError } from './error-handler';
 
 type MetaAdsAccountRow = InferSelectModel<typeof metaAdsAccount>;
+
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+async function getAccessibleTeamIds(userId: string): Promise<string[]> {
+	const [memberships, ownedTeams] = await Promise.all([
+		db.query.teamMember.findMany({
+			where: eq(teamMember.userId, userId),
+			columns: { teamId: true },
+		}),
+		db.query.team.findMany({
+			where: eq(team.createdById, userId),
+			columns: { id: true },
+		}),
+	]);
+	return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
 
 /**
  * Get user's Meta integration with valid tokens
@@ -88,11 +106,25 @@ export const metaAdsAccountsRouter = router({
 		.query(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
 					});
+				}
+				const isAgency = isAgencyUserRole(role);
+				const teamIds = isAgency ? [] : await getAccessibleTeamIds(userId);
+				if (!isAgency && teamIds.length === 0) {
+					return {
+						success: true,
+						data: [],
+						meta: {
+							retrieved_at: new Date().toISOString(),
+							total_accounts: 0,
+							source: 'team_scoped_cache',
+						},
+					};
 				}
 
 				const { accessToken, integrationId } = await getUserIntegration();
@@ -100,7 +132,10 @@ export const metaAdsAccountsRouter = router({
 				// 1. Check local database first
 				const existingDbAccounts: MetaAdsAccountRow[] =
 					await db.query.metaAdsAccount.findMany({
-						where: eq(metaAdsAccount.integrationId, integrationId),
+						where: and(
+							eq(metaAdsAccount.integrationId, integrationId),
+							isAgency ? undefined : inArray(metaAdsAccount.teamId, teamIds),
+						),
 					});
 
 				// Freshness threshold: 30 minutes
@@ -185,15 +220,19 @@ export const metaAdsAccountsRouter = router({
 						});
 				}
 
+				const scopedResults = isAgency
+					? accountsToSync
+					: accountsToSync.filter((acc) => acc.teamId && teamIds.includes(acc.teamId));
+
 				return {
 					success: true,
-					data: accountsToSync.map(acc => ({
+					data: scopedResults.map(acc => ({
 						...acc,
 						updatedAt: acc.updatedAt.toISOString(),
 					})),
 					meta: {
 						retrieved_at: now.toISOString(),
-						total_accounts: accountsToSync.length,
+						total_accounts: scopedResults.length,
 						source: 'api',
 					},
 				};
@@ -229,11 +268,37 @@ export const metaAdsAccountsRouter = router({
 		.query(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
 					});
+				}
+				if (!isAgencyUserRole(role)) {
+					const teamIds = await getAccessibleTeamIds(userId);
+					if (teamIds.length === 0) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
+					const normalizedAccountId = input.accountId.startsWith('act_')
+						? input.accountId
+						: `act_${input.accountId}`;
+					const linkedAccount = await db.query.metaAdsAccount.findFirst({
+						where: and(
+							eq(metaAdsAccount.accountId, normalizedAccountId),
+							inArray(metaAdsAccount.teamId, teamIds),
+						),
+						columns: { id: true },
+					});
+					if (!linkedAccount) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
 				}
 
 				const { accessToken } = await getUserIntegration();
@@ -288,8 +353,38 @@ export const metaAdsAccountsRouter = router({
 				accountId: z.string().min(1, 'Account ID is required'),
 			})
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			try {
+				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
+				if (!userId) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+				}
+				if (!isAgencyUserRole(role)) {
+					const teamIds = await getAccessibleTeamIds(userId);
+					if (teamIds.length === 0) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
+					const normalizedId = input.accountId.startsWith('act_')
+						? input.accountId
+						: `act_${input.accountId}`;
+					const linkedAccount = await db.query.metaAdsAccount.findFirst({
+						where: and(
+							eq(metaAdsAccount.accountId, normalizedId),
+							inArray(metaAdsAccount.teamId, teamIds),
+						),
+						columns: { id: true },
+					});
+					if (!linkedAccount) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
+				}
 				const { accessToken } = await getUserIntegration();
 				const client = new MetaAdsClient({ accessToken });
 
