@@ -22,20 +22,6 @@ const formatPrice = (price?: number, currency?: string) => {
 	return `${symbol} ${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)}`;
 };
 
-/** Format margin for display e.g. "+15% (+KSh 100)" or "+KSh 50" */
-function formatMarginLabel(
-	marginType: string | null,
-	marginValue: string | null,
-	marginAmount: number,
-	currency: string,
-	format: (n: number, c: string) => string
-): string | null {
-	if (!marginType || marginAmount <= 0) return null;
-	if (marginType === "PERCENTAGE") return `+${marginValue}% (+${format(marginAmount, currency)})`;
-	const fixed = parseFloat(marginValue ?? "0");
-	return `+${format(fixed, currency)}`;
-}
-
 /** Suggested single-TLD cards order: .co.ke, .ke, then .com */
 const SUGGESTED_OPEN_TLDS = ["com"] as const;
 
@@ -338,7 +324,6 @@ function TopLevelCardsInner({
 	if (showCoKe && kenicCoKe) {
 		const currency = kenicCoKe.currency ?? "KES";
 		const createCalc = getPricingInfo(kenicCoKe.domain, kenicCoKe.createPrice ?? 0, currency);
-		const marginLabel = formatMarginLabel(createCalc.marginType, createCalc.marginValue, createCalc.marginAmount, currency, formatPrice);
 		const displayResult: DomainSearchResult = {
 			domain: kenicCoKe.domain,
 			status: "free",
@@ -357,8 +342,6 @@ function TopLevelCardsInner({
 				available
 				displayPrice={createCalc.finalPrice}
 				currency={currency}
-				originalPrice={kenicCoKe.createPrice ?? undefined}
-				marginLabel={marginLabel}
 				displayResult={displayResult}
 				isDomainInCart={isDomainInCart}
 				onAddToCart={onAddToCart}
@@ -372,7 +355,6 @@ function TopLevelCardsInner({
 	if (showKe && kenicKe) {
 		const currency = kenicKe.currency ?? "KES";
 		const createCalc = getPricingInfo(kenicKe.domain, kenicKe.createPrice ?? 0, currency);
-		const marginLabel = formatMarginLabel(createCalc.marginType, createCalc.marginValue, createCalc.marginAmount, currency, formatPrice);
 		const displayResult: DomainSearchResult = {
 			domain: kenicKe.domain,
 			status: "free",
@@ -391,8 +373,6 @@ function TopLevelCardsInner({
 				available
 				displayPrice={createCalc.finalPrice}
 				currency={currency}
-				originalPrice={kenicKe.createPrice ?? undefined}
-				marginLabel={marginLabel}
 				displayResult={displayResult}
 				isDomainInCart={isDomainInCart}
 				onAddToCart={onAddToCart}
@@ -422,7 +402,7 @@ function TopLevelCardsInner({
 			);
 		}
 
-	// .com from OpenProvider ? original in converted (KES), display price after markup + conversion, show markup %
+		// .com from OpenProvider; display only final price for customer view
 	for (const tld of SUGGESTED_OPEN_TLDS) {
 		const domain = `${name}.${tld}`;
 		const r = byDomain.get(domain);
@@ -441,16 +421,6 @@ function TopLevelCardsInner({
 		} | undefined;
 		const displayPrice = calc?.convertedPrice ?? calc?.finalPrice ?? r.price?.reseller?.price ?? 0;
 		const currency = calc?.displayCurrency ?? calc?.currency ?? r.price?.reseller?.currency ?? "USD";
-		// Original shown in display (converted) currency; markup from calculated or (display - original)
-		const originalPrice = calc?.convertedOriginalPrice ?? calc?.originalPrice ?? r.price?.reseller?.price;
-		const marginAmountDisplay = originalPrice != null && displayPrice != null ? displayPrice - originalPrice : (calc?.marginAmount ?? 0);
-		const marginLabel = formatMarginLabel(
-			calc?.marginType ?? null,
-			calc?.marginValue ?? null,
-			marginAmountDisplay,
-			currency,
-			formatPrice
-		);
 		cards.push(
 			<SingleTldCard
 				key={tld}
@@ -459,8 +429,6 @@ function TopLevelCardsInner({
 				available
 				displayPrice={displayPrice}
 				currency={currency}
-				originalPrice={originalPrice}
-				marginLabel={marginLabel}
 				displayResult={r}
 				isDomainInCart={isDomainInCart}
 				onAddToCart={onAddToCart}
@@ -480,8 +448,6 @@ function SingleTldCard({
 	available,
 	displayPrice,
 	currency,
-	originalPrice,
-	marginLabel,
 	displayResult,
 	isDomainInCart,
 	onAddToCart,
@@ -494,8 +460,6 @@ function SingleTldCard({
 	available: boolean;
 	displayPrice: number;
 	currency: string;
-	originalPrice?: number;
-	marginLabel?: string | null;
 	displayResult: DomainSearchResult;
 	isDomainInCart: (d: string) => boolean;
 	onAddToCart: (r: DomainSearchResult) => void;
@@ -518,12 +482,6 @@ function SingleTldCard({
 				<div className="font-bold text-base text-primary mb-1 truncate" title={domain}>{domain}</div>
 				{available && (
 					<div className="space-y-0.5 mb-2">
-						{originalPrice != null && (
-							<div className="text-xs text-muted-foreground">Original: {formatPriceProp(originalPrice, currency)}</div>
-						)}
-						{marginLabel != null && marginLabel !== "" && (
-							<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
-						)}
 						<div className="text-base font-bold text-foreground">{formatPriceProp(displayPrice, currency)}</div>
 					</div>
 				)}

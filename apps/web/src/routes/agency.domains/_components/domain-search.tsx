@@ -80,7 +80,10 @@ function DomainSearchContent() {
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && domainSearch.domainName.trim()) {
-                    if (domainSearch.triggerSearch()) setIsSearching(true);
+                    const result = domainSearch.triggerSearch();
+                    if (result.started && result.changed) {
+                      setIsSearching(true);
+                    }
                   }
                 }}
                 className="flex-1 h-12 text-base"
@@ -89,7 +92,10 @@ function DomainSearchContent() {
               <Button
                 size="lg"
                 onClick={() => {
-                  if (domainSearch.triggerSearch()) setIsSearching(true);
+                  const result = domainSearch.triggerSearch();
+                  if (result.started && result.changed) {
+                    setIsSearching(true);
+                  }
                 }}
                 disabled={!domainSearch.domainName.trim() || isSearching}
                 className="h-12 px-8"

@@ -5,6 +5,30 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+    role === "AGENCY_SUPER_ADMIN";
+
+function assertAgencyReadAccess(role: string | null | undefined) {
+    if (!isAgencyUserRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency users can access eTIMS sales data.",
+        });
+    }
+}
+
+function assertAgencyMutationAccess(role: string | null | undefined) {
+    if (!isAgencySuperAdminRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency super admins can modify eTIMS sales data.",
+        });
+    }
+}
+
 export const etimsSalesRouter = router({
     /**
      * Submit sales transaction and generate tax invoice
@@ -13,7 +37,8 @@ export const etimsSalesRouter = router({
         .input(z.object({
             transaction: z.any() // Using any for large complex object, ideally should be strictly typed
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+            assertAgencyMutationAccess(ctx.session?.user?.role);
             const [config] = await db
                 .select()
                 .from(eTimsConfiguration)
@@ -78,7 +103,8 @@ export const etimsSalesRouter = router({
             lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
             bhfId: z.string().optional(),
         }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+            assertAgencyReadAccess(ctx.session?.user?.role);
             const [config] = await db
                 .select()
                 .from(eTimsConfiguration)
@@ -144,7 +170,8 @@ export const etimsSalesRouter = router({
         .input(z.object({
             invcNo: z.string(),
         }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+            assertAgencyReadAccess(ctx.session?.user?.role);
             const [config] = await db
                 .select()
                 .from(eTimsConfiguration)

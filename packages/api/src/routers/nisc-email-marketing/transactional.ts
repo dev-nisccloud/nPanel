@@ -1,11 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
-import { niscEmCampaign, niscEmEmail } from "@npanel/db/schema";
+import { niscEmCampaign, niscEmEmail, team, teamMember } from "@npanel/db/schema";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
 import { getSesClient, sendSesRawEmail } from "../../lib/ses-client";
+
+function isAgencySuperAdminRole(role: string | null | undefined): boolean {
+  return role === "AGENCY_SUPER_ADMIN";
+}
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -172,6 +176,7 @@ export const niscEmailMarketingTransactionalRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
+      const userRole = (ctx.session?.user as any)?.role as string | undefined;
 
       const fromDomain = requireEnv("NISC_TX_EMAIL_DOMAIN");
       const fromAddress = optionalEnv("NISC_TX_FROM_EMAIL") ?? `noreply@${fromDomain}`;
@@ -185,6 +190,30 @@ export const niscEmailMarketingTransactionalRouter = router({
           code: "BAD_REQUEST",
           message: "Either html or text must be provided.",
         });
+      }
+
+      if (input.teamId) {
+        const [teamRow] = await db
+          .select({ id: team.id, createdById: team.createdById })
+          .from(team)
+          .where(eq(team.id, input.teamId))
+          .limit(1);
+        if (!teamRow) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Team not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && teamRow.createdById !== userId) {
+          const [membership] = await db
+            .select({ id: teamMember.id })
+            .from(teamMember)
+            .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
+            .limit(1);
+          if (!membership) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "You do not have access to this team",
+            });
+          }
+        }
       }
 
       const campaignId = await getOrCreateTransactionalCampaign({

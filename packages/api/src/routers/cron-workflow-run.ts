@@ -1,12 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
-import { and, desc, eq } from "@npanel/db";
+import { and, desc, eq, inArray, or, type SQL } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
   cronWorkflowEdgeSnapshot,
   cronWorkflowRun,
   cronWorkflowRunInvoice,
 } from "@npanel/db/schema/cron-workflow-runs";
+import { teamMember } from "@npanel/db/schema/teams";
 import { z } from "zod";
 
 import { getRedisClient } from "../lib/redis";
@@ -44,6 +45,55 @@ async function getRunForUser(runId: string, userId: string) {
   return rows[0] ?? null;
 }
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+  ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+  role === "AGENCY_SUPER_ADMIN";
+
+async function getMemberTeamIds(userId: string) {
+  const rows = await db
+    .select({ teamId: teamMember.teamId })
+    .from(teamMember)
+    .where(eq(teamMember.userId, userId));
+  return rows.map((row) => row.teamId);
+}
+
+async function buildRunReadScope(userId: string, role: string | null | undefined) {
+  if (isAgencyUserRole(role)) return undefined;
+  const memberTeamIds = await getMemberTeamIds(userId);
+  const scopes: SQL[] = [eq(cronWorkflowRun.createdById, userId)];
+  if (memberTeamIds.length > 0) {
+    scopes.push(inArray(cronWorkflowRun.teamId, memberTeamIds));
+  }
+  return scopes.length === 1 ? scopes[0] : or(...scopes);
+}
+
+async function canReadRun(
+  run: { createdById: string; teamId: string | null },
+  userId: string,
+  role: string | null | undefined,
+) {
+  if (isAgencyUserRole(role)) return true;
+  if (run.createdById === userId) return true;
+  if (!run.teamId) return false;
+  const [membership] = await db
+    .select({ id: teamMember.id })
+    .from(teamMember)
+    .where(and(eq(teamMember.teamId, run.teamId), eq(teamMember.userId, userId)))
+    .limit(1);
+  return Boolean(membership);
+}
+
+function canMutateRun(
+  run: { createdById: string },
+  userId: string,
+  role: string | null | undefined,
+) {
+  if (isAgencySuperAdminRole(role)) return true;
+  return run.createdById === userId;
+}
+
 async function invalidateRunCache(runId: string) {
   const redis = getRedisClient();
   if (!redis) return;
@@ -67,10 +117,12 @@ export const cronWorkflowRunRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
-      const where =
-        input.jobKey != null
-          ? and(eq(cronWorkflowRun.createdById, userId), eq(cronWorkflowRun.jobKey, input.jobKey))
-          : eq(cronWorkflowRun.createdById, userId);
+      const userRole = ctx.session!.user!.role;
+      const readScope = await buildRunReadScope(userId, userRole);
+      const whereParts: SQL[] = [];
+      if (readScope) whereParts.push(readScope);
+      if (input.jobKey != null) whereParts.push(eq(cronWorkflowRun.jobKey, input.jobKey));
+      const where = whereParts.length === 0 ? undefined : whereParts.length === 1 ? whereParts[0] : and(...whereParts);
 
       const rows = await db
         .select({
@@ -100,9 +152,24 @@ export const cronWorkflowRunRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
+      const userRole = ctx.session!.user!.role;
       const id = crypto.randomUUID();
       const name = input.name?.trim() || defaultRunName(input.jobKey);
       const now = new Date();
+
+      if (input.teamId && !isAgencyUserRole(userRole)) {
+        const [membership] = await db
+          .select({ id: teamMember.id })
+          .from(teamMember)
+          .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
+          .limit(1);
+        if (!membership) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to this team.",
+          });
+        }
+      }
 
       await db.insert(cronWorkflowRun).values({
         id,
@@ -125,13 +192,17 @@ export const cronWorkflowRunRouter = router({
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
+      const userRole = ctx.session!.user!.role;
       const redis = getRedisClient();
       if (redis) {
         try {
           const raw = await redis.get(cacheKey(input.id));
           if (typeof raw === "string") {
             const parsed = JSON.parse(raw) as { createdById?: string };
-            if (parsed.createdById === userId) {
+            if (
+              isAgencyUserRole(userRole) ||
+              parsed.createdById === userId
+            ) {
               return parsed as typeof parsed & { graphStateJson: unknown; version: number };
             }
           }
@@ -140,9 +211,17 @@ export const cronWorkflowRunRouter = router({
         }
       }
 
-      const row = await getRunForUser(input.id, userId);
+      const rows = await db
+        .select()
+        .from(cronWorkflowRun)
+        .where(eq(cronWorkflowRun.id, input.id))
+        .limit(1);
+      const row = rows[0] ?? null;
       if (!row) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Workflow run not found." });
+      }
+      if (!(await canReadRun(row, userId, userRole))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this workflow run." });
       }
 
       const invoices = await db
@@ -164,7 +243,7 @@ export const cronWorkflowRunRouter = router({
         teamId: row.teamId ?? null,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
-        createdById: userId,
+        createdById: row.createdById,
         invoices,
       };
 
@@ -190,9 +269,18 @@ export const cronWorkflowRunRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
-      const row = await getRunForUser(input.id, userId);
+      const userRole = ctx.session!.user!.role;
+      const rows = await db
+        .select()
+        .from(cronWorkflowRun)
+        .where(eq(cronWorkflowRun.id, input.id))
+        .limit(1);
+      const row = rows[0] ?? null;
       if (!row) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Workflow run not found." });
+      }
+      if (!canMutateRun(row, userId, userRole)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the run creator can modify this workflow run." });
       }
 
       const patch: Partial<typeof cronWorkflowRun.$inferInsert> = {
@@ -205,7 +293,12 @@ export const cronWorkflowRunRouter = router({
       await db.update(cronWorkflowRun).set(patch).where(eq(cronWorkflowRun.id, input.id));
       await invalidateRunCache(input.id);
 
-      const next = await getRunForUser(input.id, userId);
+      const nextRows = await db
+        .select()
+        .from(cronWorkflowRun)
+        .where(eq(cronWorkflowRun.id, input.id))
+        .limit(1);
+      const next = nextRows[0] ?? null;
       return {
         id: input.id,
         name: next!.name,
@@ -225,9 +318,18 @@ export const cronWorkflowRunRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
-      const row = await getRunForUser(input.id, userId);
+      const userRole = ctx.session!.user!.role;
+      const rows = await db
+        .select()
+        .from(cronWorkflowRun)
+        .where(eq(cronWorkflowRun.id, input.id))
+        .limit(1);
+      const row = rows[0] ?? null;
       if (!row) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Workflow run not found." });
+      }
+      if (!canMutateRun(row, userId, userRole)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the run creator can modify this workflow run." });
       }
       if (row.version !== input.version) {
         throw new TRPCError({
@@ -262,9 +364,18 @@ export const cronWorkflowRunRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
-      const row = await getRunForUser(input.runId, userId);
+      const userRole = ctx.session!.user!.role;
+      const rows = await db
+        .select()
+        .from(cronWorkflowRun)
+        .where(eq(cronWorkflowRun.id, input.runId))
+        .limit(1);
+      const row = rows[0] ?? null;
       if (!row) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Workflow run not found." });
+      }
+      if (!canMutateRun(row, userId, userRole)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the run creator can modify this workflow run." });
       }
 
       const existingRows = await db
@@ -304,9 +415,18 @@ export const cronWorkflowRunRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session!.user!.id;
-      const row = await getRunForUser(input.runId, userId);
+      const userRole = ctx.session!.user!.role;
+      const rows = await db
+        .select()
+        .from(cronWorkflowRun)
+        .where(eq(cronWorkflowRun.id, input.runId))
+        .limit(1);
+      const row = rows[0] ?? null;
       if (!row) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Workflow run not found." });
+      }
+      if (!canMutateRun(row, userId, userRole)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the run creator can modify this workflow run." });
       }
 
       await db.transaction(async (tx) => {

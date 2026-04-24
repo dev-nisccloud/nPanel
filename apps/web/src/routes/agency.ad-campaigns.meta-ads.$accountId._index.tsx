@@ -26,6 +26,7 @@ import {
 	ChevronDown,
 	Eye
 } from "lucide-react";
+import { CreateMediaBuyingSubscriptionDialog } from "./agency.ad-campaigns/_components/create-media-buying-subscription-dialog";
 
 export default function MetaAdsAccountDetailPage() {
 	const params = useParams();
@@ -318,6 +319,11 @@ export default function MetaAdsAccountDetailPage() {
 							</div>
 						</div>
 						<div className="flex items-center gap-2">
+							<CreateMediaBuyingSubscriptionDialog
+								platform="META_ADS"
+								accountId={accountId}
+								accountName={account.name || account.account_id || null}
+							/>
 							<Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
 								<PopoverTrigger asChild>
 									<Button variant="outline" size="sm" className="h-9 shadow-sm border-muted/60 font-medium">

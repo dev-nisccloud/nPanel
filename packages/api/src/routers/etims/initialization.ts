@@ -7,6 +7,9 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+    role === "AGENCY_SUPER_ADMIN";
+
 export const etimsInitializationRouter = router({
     /**
      * Initialize OSCU device and obtain communication key (cmcKey)
@@ -21,7 +24,13 @@ export const etimsInitializationRouter = router({
             dvcSrlNo: z.string().min(1, "Device serial number is required"),
             isSandbox: z.boolean().default(true),
         }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+            if (!isAgencySuperAdminRole(ctx.session?.user?.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency super admins can initialize eTIMS devices.",
+                });
+            }
             // Trim inputs to avoid whitespace issues
             const tin = input.tin.trim();
             const bhfId = input.bhfId.trim();

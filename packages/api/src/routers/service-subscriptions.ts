@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNull } from "@npanel/db";
+import { and, desc, eq, inArray, isNull } from "@npanel/db";
 import * as crypto from "node:crypto";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
@@ -12,7 +12,7 @@ import {
 	niscServicePlan,
 } from "@npanel/db/schema/hosting";
 import { serviceSubscription, serviceSubscriptionActivityLog } from "@npanel/db/schema/service-subscriptions";
-import { team } from "@npanel/db/schema/teams";
+import { team, teamMember } from "@npanel/db/schema/teams";
 
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -152,6 +152,50 @@ function calculateNextRenewalDate(
 	return date;
 }
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role: string | null | undefined) => role === "AGENCY_SUPER_ADMIN";
+
+async function getUserRole(userId: string, sessionUser?: { role?: string | null }): Promise<string> {
+	if (sessionUser?.role) return sessionUser.role;
+	const [dbUser] = await db.select({ role: user.role }).from(user).where(eq(user.id, userId)).limit(1);
+	if (!dbUser) throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
+	return dbUser.role;
+}
+
+async function isTeamMemberOrOwner(teamId: string, userId: string): Promise<boolean> {
+	const [membership] = await db
+		.select({ id: teamMember.id })
+		.from(teamMember)
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+		.limit(1);
+	if (membership) return true;
+	const [t] = await db.select({ createdById: team.createdById }).from(team).where(eq(team.id, teamId)).limit(1);
+	return t?.createdById === userId;
+}
+
+async function ensureTeamReadAccess(teamId: string, userId: string, role: string) {
+	if (isAgencyUserRole(role)) return;
+	if (!(await isTeamMemberOrOwner(teamId, userId))) {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+	}
+}
+
+async function ensureTeamMutationAccess(teamId: string, userId: string, role: string) {
+	if (isAgencySuperAdminRole(role)) return;
+	const [t] = await db.select({ createdById: team.createdById }).from(team).where(eq(team.id, teamId)).limit(1);
+	if (!t) throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+	if (isAgencyUserRole(role) && t.createdById !== userId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only the team owner can mutate subscriptions",
+		});
+	}
+	if (!isAgencyUserRole(role) && t.createdById !== userId) {
+		throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+	}
+}
+
 export const serviceSubscriptionsRouter = router({
 	// Link hosting subscription to service subscription
 	linkToSubscription: protectedProcedure
@@ -166,18 +210,14 @@ export const serviceSubscriptionsRouter = router({
 				});
 			}
 
-			// Check user role - only agency admins can link subscriptions
-			const userRes = await db.query.user.findFirst({
-				where: eq(user.id, session.user.id),
-				columns: { role: true },
-			});
-
-			if (!userRes || (userRes.role !== "AGENCY_ADMIN" && userRes.role !== "AGENCY_SUPER_ADMIN")) {
+			const role = await getUserRole(session.user.id, session.user);
+			if (!isAgencyUserRole(role)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to link subscriptions",
 				});
 			}
+			await ensureTeamMutationAccess(input.teamId, session.user.id, role);
 
 			// Find or create hosting subscription by pleskFilterId
 			let hostingSubscriptionRes = await db.query.hostingSubscription.findFirst({
@@ -461,6 +501,10 @@ export const serviceSubscriptionsRouter = router({
 			if (!serviceSubscriptionRes) {
 				return null;
 			}
+			const role = await getUserRole(session.user.id, session.user);
+			if (serviceSubscriptionRes.teamId) {
+				await ensureTeamReadAccess(serviceSubscriptionRes.teamId, session.user.id, role);
+			}
 
 			return {
 				id: serviceSubscriptionRes.id,
@@ -496,7 +540,21 @@ export const serviceSubscriptionsRouter = router({
 				});
 			}
 
+			const role = await getUserRole(session.user.id, session.user);
 			const whereConditions = [];
+			if (!isAgencyUserRole(role)) {
+				const memberships = await db
+					.select({ teamId: teamMember.teamId })
+					.from(teamMember)
+					.where(eq(teamMember.userId, session.user.id));
+				const ownTeams = await db
+					.select({ id: team.id })
+					.from(team)
+					.where(eq(team.createdById, session.user.id));
+				const allowedTeamIds = Array.from(new Set([...memberships.map((m) => m.teamId), ...ownTeams.map((t) => t.id)]));
+				if (allowedTeamIds.length === 0) return [];
+				whereConditions.push(inArray(serviceSubscription.teamId, allowedTeamIds));
+			}
 			if (input?.teamId) whereConditions.push(eq(serviceSubscription.teamId, input.teamId));
 			if (input?.status) whereConditions.push(eq(serviceSubscription.status, input.status));
 			if (input?.planType) whereConditions.push(eq(niscServicePlan.planType, input.planType));

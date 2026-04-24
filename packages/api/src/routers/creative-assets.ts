@@ -416,6 +416,16 @@ async function getAuthenticatedUser(ctx: Pick<Context, "session">) {
 const isAgencyUser = (role: string) => {
 	return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 };
+const isAgencySuperAdmin = (role: string) => role === "AGENCY_SUPER_ADMIN";
+
+function assertOwnerOrSuperAdmin(ownerUserId: string, actorUserId: string, actorRole: string, resource: string) {
+	if (!isAgencySuperAdmin(actorRole) && ownerUserId !== actorUserId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `Only the ${resource} creator can modify it`,
+		});
+	}
+}
 
 // Helper to check if user is customer
 const isCustomer = (role: string) => {
@@ -554,6 +564,7 @@ export const creativeAssetsRouter = router({
 					message: "Creative asset not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
 
 			// Check permissions for agency users
 			if (isAgencyUser(user.role)) {
@@ -680,6 +691,7 @@ export const creativeAssetsRouter = router({
 					message: "Version not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
 
 			// Check permission
 			const permission = version.creativeAsset.permissions.find(
@@ -826,6 +838,7 @@ export const creativeAssetsRouter = router({
 					message: "Version not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
 
 			// Check permission
 			const permission = version.creativeAsset.permissions.find(
@@ -916,6 +929,7 @@ export const creativeAssetsRouter = router({
 					message: "Version not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
 
 			// Check permission
 			const permission = version.creativeAsset.permissions.find(
@@ -1021,6 +1035,7 @@ export const creativeAssetsRouter = router({
 					message: "Version not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
 
 			// Check if version is public
 			if (!version.isPublic) {
@@ -1113,6 +1128,7 @@ export const creativeAssetsRouter = router({
 					message: "Version not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
 
 			// Check if version is public
 			if (!version.isPublic) {
@@ -2067,6 +2083,7 @@ export const creativeAssetsRouter = router({
 					message: "Asset not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(assetRow.createdBy, user.id, user.role, "asset");
 
 			const p = input.permissions;
 			const now = new Date();
@@ -2165,6 +2182,7 @@ export const creativeAssetsRouter = router({
 					message: "Creative asset not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
 
 			// Check permission
 			const permission = asset.permissions.find((p) => p.userId === user.id);
@@ -2286,6 +2304,7 @@ export const creativeAssetsRouter = router({
 					message: "Creative asset not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
 
 			// Check permission
 			const permission = asset.permissions.find((p) => p.userId === user.id);
@@ -2366,6 +2385,7 @@ export const creativeAssetsRouter = router({
 					message: "Creative asset not found",
 				});
 			}
+			assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
 
 			// Check if asset is archived
 			if (asset.status !== "ARCHIVED") {

@@ -10,7 +10,7 @@ import {
 	metaContentCalendarMedia,
 	socialMediaPageToken,
 } from '@npanel/db/schema/social-media-marketing';
-import { teamMember } from '@npanel/db/schema/teams';
+import { team, teamMember } from '@npanel/db/schema/teams';
 import { router, protectedProcedure, type Context } from '../../../trpc';
 import {
 	schedulePublish,
@@ -291,13 +291,18 @@ async function ensurePageTokenAccess(
 			message: 'This page is not associated with any team',
 		});
 	}
+	const [membership, ownedTeam] = await Promise.all([
+		db.query.teamMember.findFirst({
+			where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+			columns: { id: true },
+		}),
+		db.query.team.findFirst({
+			where: and(eq(team.id, pageToken.teamId), eq(team.createdById, userId)),
+			columns: { id: true },
+		}),
+	]);
 
-	const membership = await db.query.teamMember.findFirst({
-		where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
-		columns: { id: true },
-	});
-
-	if (!membership) {
+	if (!membership && !ownedTeam) {
 		throw new TRPCError({
 			code: 'FORBIDDEN',
 			message: 'You do not have access to this page',
@@ -377,13 +382,19 @@ async function ensureCalendarPostAccess(
 		return post;
 	}
 
-	// Check team membership
-	const membership = await db.query.teamMember.findFirst({
-		where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
-		columns: { id: true },
-	});
+	// Check team membership or ownership
+	const [membership, ownedTeam] = await Promise.all([
+		db.query.teamMember.findFirst({
+			where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+			columns: { id: true },
+		}),
+		db.query.team.findFirst({
+			where: and(eq(team.id, pageToken.teamId), eq(team.createdById, userId)),
+			columns: { id: true },
+		}),
+	]);
 
-	if (!membership) {
+	if (!membership && !ownedTeam) {
 		throw new TRPCError({
 			code: 'FORBIDDEN',
 			message: 'You do not have access to this post',
@@ -656,12 +667,23 @@ export const metaContentCalendarRouter = router({
 				await ensurePageTokenAccess(user.id, user.role, input.pageTokenId);
 				conditions.push(eq(metaContentCalendar.pageTokenId, input.pageTokenId));
 			} else if (!isAgencyUser(user.role)) {
-				const memberships = await db.query.teamMember.findMany({
-					where: eq(teamMember.userId, user.id),
-					columns: { teamId: true },
-				});
+				const [memberships, ownedTeams] = await Promise.all([
+					db.query.teamMember.findMany({
+						where: eq(teamMember.userId, user.id),
+						columns: { teamId: true },
+					}),
+					db.query.team.findMany({
+						where: eq(team.createdById, user.id),
+						columns: { id: true },
+					}),
+				]);
 
-				const teamIds = memberships.map((m) => m.teamId);
+				const teamIds = [
+					...new Set([
+						...memberships.map((m) => m.teamId),
+						...ownedTeams.map((t) => t.id),
+					]),
+				];
 
 				const pageTokens =
 					teamIds.length > 0

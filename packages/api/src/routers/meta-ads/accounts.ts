@@ -1,15 +1,108 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, sql, type InferSelectModel } from "@npanel/db";
+import { and, desc, eq, ilike, inArray, sql, type InferSelectModel } from "@npanel/db";
 import { db } from "@npanel/db";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
+import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { router, protectedProcedure } from '../../trpc';
 import { MetaAdsClient } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
 import { handleMetaAdsOAuthError } from './error-handler';
 
 type MetaAdsAccountRow = InferSelectModel<typeof metaAdsAccount>;
+
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+async function getAccessibleTeamIds(userId: string): Promise<string[]> {
+	const [memberships, ownedTeams] = await Promise.all([
+		db.query.teamMember.findMany({
+			where: eq(teamMember.userId, userId),
+			columns: { teamId: true },
+		}),
+		db.query.team.findMany({
+			where: eq(team.createdById, userId),
+			columns: { id: true },
+		}),
+	]);
+	return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
+
+function normalizeMetaAccountId(value: string): string {
+	const trimmed = value.trim();
+	if (trimmed.startsWith("act_")) {
+		return trimmed;
+	}
+	const numeric = trimmed.replace(/[^0-9]/g, "");
+	return numeric.length > 0 ? `act_${numeric}` : trimmed;
+}
+
+async function hasMetaSubscriptionAccess(teamIds: string[], accountId: string): Promise<boolean> {
+	if (teamIds.length === 0) return false;
+	const normalized = normalizeMetaAccountId(accountId);
+	const numeric = normalized.replace(/^act_/, "");
+	const [linked] = await db
+		.select({ id: niscClientSubscription.id })
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"META_ADS"}`,
+				sql`((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${normalized} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${numeric})`,
+			),
+		)
+		.limit(1);
+	return !!linked;
+}
+
+async function getMetaLinkedAccountsFromSubscriptions(teamIds: string[]) {
+	if (teamIds.length === 0) return [];
+	const rows = await db
+		.select({
+			serviceRefs: niscClientSubscription.serviceRefs,
+			name: niscClientSubscription.name,
+		})
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+		.where(
+			and(
+				inArray(niscClientSubscription.teamId, teamIds),
+				ilike(niscProduct.name, "%media buying%"),
+				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"META_ADS"}`,
+			),
+		);
+
+	const byId = new Map<string, { accountId: string; accountName: string | null }>();
+	for (const row of rows) {
+		const refs = row.serviceRefs as Record<string, unknown> | null;
+		const accountIdRaw = typeof refs?.adAccountId === "string" ? refs.adAccountId.trim() : "";
+		if (!accountIdRaw) continue;
+		const accountId = normalizeMetaAccountId(accountIdRaw);
+		const accountNameRaw = typeof refs?.adAccountName === "string" ? refs.adAccountName.trim() : "";
+		const accountName = accountNameRaw || row.name || null;
+		if (!byId.has(accountId)) {
+			byId.set(accountId, { accountId, accountName });
+		}
+	}
+
+	return [...byId.values()].map((acc) => ({
+		id: acc.accountId,
+		accountId: acc.accountId,
+		accountName: acc.accountName,
+		currency: null,
+		timezone: null,
+		status: 'ACTIVE' as const,
+		spendLimit: null,
+		amountSpent: null,
+		balance: null,
+		instagramUserId: null,
+		updatedAt: new Date(),
+	}));
+}
 
 /**
  * Get user's Meta integration with valid tokens
@@ -88,11 +181,49 @@ export const metaAdsAccountsRouter = router({
 		.query(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
 					});
+				}
+				const isAgency = isAgencyUserRole(role);
+				const teamIds = isAgency ? [] : await getAccessibleTeamIds(userId);
+				if (!isAgency && teamIds.length === 0) {
+					return {
+						success: true,
+						data: [],
+						meta: {
+							retrieved_at: new Date().toISOString(),
+							total_accounts: 0,
+							source: 'team_scoped_cache',
+						},
+					};
+				}
+				if (!isAgency) {
+					const linkedAccounts = await getMetaLinkedAccountsFromSubscriptions(teamIds);
+					return {
+						success: true,
+						data: linkedAccounts.map((acc) => ({
+							id: acc.id,
+							accountId: acc.accountId,
+							accountName: acc.accountName,
+							currency: acc.currency,
+							timezone: acc.timezone,
+							status: acc.status,
+							spendLimit: acc.spendLimit,
+							amountSpent: acc.amountSpent,
+							balance: acc.balance,
+							instagramUserId: acc.instagramUserId,
+							updatedAt: acc.updatedAt,
+						})),
+						meta: {
+							retrieved_at: new Date().toISOString(),
+							total_accounts: linkedAccounts.length,
+							source: 'team_scoped_subscription_link',
+						},
+					};
 				}
 
 				const { accessToken, integrationId } = await getUserIntegration();
@@ -100,7 +231,10 @@ export const metaAdsAccountsRouter = router({
 				// 1. Check local database first
 				const existingDbAccounts: MetaAdsAccountRow[] =
 					await db.query.metaAdsAccount.findMany({
-						where: eq(metaAdsAccount.integrationId, integrationId),
+						where: and(
+							eq(metaAdsAccount.integrationId, integrationId),
+							isAgency ? undefined : inArray(metaAdsAccount.teamId, teamIds),
+						),
 					});
 
 				// Freshness threshold: 30 minutes
@@ -185,15 +319,19 @@ export const metaAdsAccountsRouter = router({
 						});
 				}
 
+				const scopedResults = isAgency
+					? accountsToSync
+					: accountsToSync.filter((acc) => acc.teamId && teamIds.includes(acc.teamId));
+
 				return {
 					success: true,
-					data: accountsToSync.map(acc => ({
+					data: scopedResults.map(acc => ({
 						...acc,
 						updatedAt: acc.updatedAt.toISOString(),
 					})),
 					meta: {
 						retrieved_at: now.toISOString(),
-						total_accounts: accountsToSync.length,
+						total_accounts: scopedResults.length,
 						source: 'api',
 					},
 				};
@@ -229,11 +367,38 @@ export const metaAdsAccountsRouter = router({
 		.query(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
 					});
+				}
+				if (!isAgencyUserRole(role)) {
+					const teamIds = await getAccessibleTeamIds(userId);
+					if (teamIds.length === 0) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
+					const normalizedAccountId = input.accountId.startsWith('act_')
+						? input.accountId
+						: `act_${input.accountId}`;
+					const linkedAccount = await db.query.metaAdsAccount.findFirst({
+						where: and(
+							eq(metaAdsAccount.accountId, normalizedAccountId),
+							inArray(metaAdsAccount.teamId, teamIds),
+						),
+						columns: { id: true },
+					});
+					const hasSubscriptionAccess = await hasMetaSubscriptionAccess(teamIds, normalizedAccountId);
+					if (!linkedAccount && !hasSubscriptionAccess) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
 				}
 
 				const { accessToken } = await getUserIntegration();
@@ -288,8 +453,39 @@ export const metaAdsAccountsRouter = router({
 				accountId: z.string().min(1, 'Account ID is required'),
 			})
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
 			try {
+				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
+				if (!userId) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+				}
+				if (!isAgencyUserRole(role)) {
+					const teamIds = await getAccessibleTeamIds(userId);
+					if (teamIds.length === 0) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
+					const normalizedId = input.accountId.startsWith('act_')
+						? input.accountId
+						: `act_${input.accountId}`;
+					const linkedAccount = await db.query.metaAdsAccount.findFirst({
+						where: and(
+							eq(metaAdsAccount.accountId, normalizedId),
+							inArray(metaAdsAccount.teamId, teamIds),
+						),
+						columns: { id: true },
+					});
+					const hasSubscriptionAccess = await hasMetaSubscriptionAccess(teamIds, normalizedId);
+					if (!linkedAccount && !hasSubscriptionAccess) {
+						throw new TRPCError({
+							code: 'FORBIDDEN',
+							message: 'You do not have access to this Meta ad account',
+						});
+					}
+				}
 				const { accessToken } = await getUserIntegration();
 				const client = new MetaAdsClient({ accessToken });
 

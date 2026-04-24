@@ -14,6 +14,12 @@ import {
   imageGenTemplateSchema,
 } from "./schemas";
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+  ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+  role === "AGENCY_SUPER_ADMIN";
+
 export const imageGenTemplatesRouter = router({
   create: protectedProcedure
     .input(createTemplateSchema)
@@ -57,6 +63,7 @@ export const imageGenTemplatesRouter = router({
     .output(z.object({ data: imageGenTemplateSchema }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
@@ -64,7 +71,9 @@ export const imageGenTemplatesRouter = router({
       const template = await db.query.imageGenTemplate.findFirst({
         where: and(
           eq(imageGenTemplate.id, input.id),
-          or(eq(imageGenTemplate.isPublic, true), eq(imageGenTemplate.userId, userId)),
+          isAgencyUserRole(userRole)
+            ? eq(imageGenTemplate.id, input.id)
+            : or(eq(imageGenTemplate.isPublic, true), eq(imageGenTemplate.userId, userId)),
         ),
       });
 
@@ -80,6 +89,7 @@ export const imageGenTemplatesRouter = router({
     .output(z.object({ data: z.array(imageGenTemplateSchema) }))
     .query(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
@@ -100,7 +110,11 @@ export const imageGenTemplatesRouter = router({
           userId: imageGenTemplate.userId,
         })
         .from(imageGenTemplate)
-        .where(eq(imageGenTemplate.isPublic, true))
+        .where(
+          isAgencyUserRole(userRole)
+            ? undefined
+            : eq(imageGenTemplate.isPublic, true),
+        )
         .orderBy(desc(imageGenTemplate.updatedAt))
         .limit(limit)
         .offset((page - 1) * limit);
@@ -113,6 +127,7 @@ export const imageGenTemplatesRouter = router({
     .output(z.object({ data: imageGenTemplateSchema }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
@@ -120,13 +135,19 @@ export const imageGenTemplatesRouter = router({
       const { id, ...updateData } = input;
 
       const existingTemplate = await db.query.imageGenTemplate.findFirst({
-        where: and(eq(imageGenTemplate.id, id), eq(imageGenTemplate.userId, userId)),
+        where: eq(imageGenTemplate.id, id),
       });
 
       if (!existingTemplate) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Template not found or you don't have permission to update it",
+        });
+      }
+      if (!isAgencySuperAdminRole(userRole) && existingTemplate.userId !== userId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the template owner can update it",
         });
       }
 
@@ -153,21 +174,25 @@ export const imageGenTemplatesRouter = router({
     .output(z.object({ data: z.object({ id: z.string() }) }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) {
         throw new TRPCError({ code: "UNAUTHORIZED" });
       }
 
       const existingTemplate = await db.query.imageGenTemplate.findFirst({
-        where: and(
-          eq(imageGenTemplate.id, input.id),
-          eq(imageGenTemplate.userId, userId),
-        ),
+        where: eq(imageGenTemplate.id, input.id),
       });
 
       if (!existingTemplate) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Template not found or you don't have permission to delete it",
+        });
+      }
+      if (!isAgencySuperAdminRole(userRole) && existingTemplate.userId !== userId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only the template owner can delete it",
         });
       }
 

@@ -22,6 +22,8 @@ import { randomUUID } from 'node:crypto';
 // These maintain independence while allowing type-safe Prisma queries
 const META_FACEBOOK_PLATFORM = 'META_FACEBOOK' as const;
 const ACTIVE_STATUS = 'ACTIVE' as const;
+const isAgencyUserRole = (role: string | null | undefined) =>
+	role === 'AGENCY_USER' || role === 'AGENCY_ADMIN' || role === 'AGENCY_SUPER_ADMIN';
 
 // Get global settings from environment variables
 const getMetaAppId = () => {
@@ -198,10 +200,17 @@ export const metaAuthRouter = router({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
+					});
+				}
+				if (!isAgencyUserRole(userRole)) {
+					throw new TRPCError({
+						code: 'FORBIDDEN',
+						message: 'Only agency users can manage Meta integration tokens',
 					});
 				}
 
@@ -384,10 +393,17 @@ export const metaAuthRouter = router({
 		.mutation(async ({ input, ctx }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: 'UNAUTHORIZED',
 						message: 'User session not found',
+					});
+				}
+				if (!isAgencyUserRole(userRole)) {
+					throw new TRPCError({
+						code: 'FORBIDDEN',
+						message: 'Only agency users can manage Meta integration tokens',
 					});
 				}
 
@@ -595,8 +611,14 @@ export const metaAuthRouter = router({
 				redirectUri: z.string().url().optional(),
 			})
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ input, ctx }) => {
 			try {
+				if (!isAgencyUserRole(ctx.session?.user?.role)) {
+					throw new TRPCError({
+						code: 'FORBIDDEN',
+						message: 'Only agency users can manage Meta integration tokens',
+					});
+				}
 				const appId = getMetaAppId();
 				const apiVersion = getMetaApiVersion();
 
@@ -649,8 +671,14 @@ export const metaAuthRouter = router({
 	/**
 	 * Get stored Meta credentials (integration status)
 	 */
-	getStoredCredentials: protectedProcedure.query(async () => {
+	getStoredCredentials: protectedProcedure.query(async ({ ctx }) => {
 		try {
+			if (!isAgencyUserRole(ctx.session?.user?.role)) {
+				throw new TRPCError({
+					code: 'FORBIDDEN',
+					message: 'Only agency users can view Meta integration credentials',
+				});
+			}
 			const integration = await db.query.socialMediaIntegration.findFirst({
 				where: eq(socialMediaIntegration.platform, META_FACEBOOK_PLATFORM),
 				orderBy: [desc(socialMediaIntegration.createdAt)],

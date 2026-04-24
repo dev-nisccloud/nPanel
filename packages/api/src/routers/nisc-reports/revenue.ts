@@ -6,6 +6,7 @@ import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
 import { team } from "@npanel/db/schema/teams";
+import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
 
 // ─── R-01: Revenue Overview KPIs ─────────────────────────────────────────────
 const overviewOutput = z.object({
@@ -76,15 +77,25 @@ export const niscRevenueRouter = router({
   overview: protectedProcedure
     .input(reportFiltersSchema)
     .output(overviewOutput)
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, invoiceStatuses } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const now = new Date();
 
       // All invoices in period
       const whereBase = and(
         gte(invoice.createdAt, from),
         lte(invoice.createdAt, to),
-        teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+        buildOwnerOrTeamReadScope({
+          isAgencyUser: scope.isAgencyUser,
+          ownerCondition: eq(invoice.createdBy, scope.userId),
+          teamColumn: invoice.teamId,
+          teamIds: scope.teamIds,
+        }),
         invoiceStatuses?.length ? inArray(invoice.status, invoiceStatuses) : undefined,
       );
 
@@ -132,7 +143,12 @@ export const niscRevenueRouter = router({
           isNotNull(creditNote.appliedAt),
           gte(creditNote.appliedAt, from),
           lte(creditNote.appliedAt, to),
-          teamIds?.length ? inArray(creditNote.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(creditNote.createdBy, scope.userId),
+            teamColumn: creditNote.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
       const creditNoteTotal = cnRows.reduce((a, r) => a + toNum(r.amount), 0);
 
@@ -143,7 +159,12 @@ export const niscRevenueRouter = router({
         .where(and(
           inArray(invoice.status, ["SENT", "OVERDUE"]),
           lt(invoice.dueDate, now),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
       const outstanding = overdueRows.reduce((s, r) => s + toNum(r.amount), 0);
 
@@ -170,8 +191,13 @@ export const niscRevenueRouter = router({
   trend: protectedProcedure
     .input(reportFiltersSchema)
     .output(z.array(trendRow))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, granularity, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
 
       const invoices = await db
         .select({
@@ -185,7 +211,12 @@ export const niscRevenueRouter = router({
         .where(and(
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       // Credit notes in period
@@ -195,6 +226,12 @@ export const niscRevenueRouter = router({
         .where(and(
           gte(creditNote.issuedAt, from),
           lte(creditNote.issuedAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(creditNote.createdBy, scope.userId),
+            teamColumn: creditNote.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       // Build per-period buckets
@@ -239,15 +276,25 @@ export const niscRevenueRouter = router({
   byClient: protectedProcedure
     .input(reportFiltersSchema)
     .output(z.array(clientRevenueRow))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const now = new Date();
 
       const invoices = await db.query.invoice.findMany({
         where: and(
           gte(invoice.createdAt, from),
           lte(invoice.createdAt, to),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: { team: { columns: { id: true, name: true } } },
         columns: { id: true, teamId: true, amount: true, status: true, dueDate: true, paidAt: true, sentAt: true, createdAt: true, invoiceNumber: true, currency: true, customerName: true, issueDate: true },
@@ -314,14 +361,27 @@ export const niscRevenueRouter = router({
       inDraft: z.number(),
       invoiceCount: z.number(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
       // Invoice data grouped by category from line items / subscriptions is complex  
       // for now we return a flat breakdown by invoice status as a proxy
       const invoices = await db
         .select({ status: invoice.status, amount: invoice.amount })
         .from(invoice)
-        .where(and(gte(invoice.createdAt, from), lte(invoice.createdAt, to)));
+        .where(and(
+          gte(invoice.createdAt, from),
+          lte(invoice.createdAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
+        ));
 
       // Simplified: one "Invoices" category   will be expanded when order → subscription link is added
       let totalInvoiced = 0, totalCollected = 0, inDraft = 0, invoiceCount = 0;
@@ -340,8 +400,13 @@ export const niscRevenueRouter = router({
   aging: protectedProcedure
     .input(reportFiltersSchema)
     .output(agingOutput)
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const now = new Date();
 
       const outstandingInvs = await db
@@ -349,7 +414,12 @@ export const niscRevenueRouter = router({
         .from(invoice)
         .where(and(
           inArray(invoice.status, ["SENT", "OVERDUE", "PARTIALLY_PAID"]),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       const buckets = {
@@ -384,8 +454,13 @@ export const niscRevenueRouter = router({
   outstandingList: protectedProcedure
     .input(reportFiltersSchema)
     .output(z.object({ rows: z.array(outstandingInvoiceRow), total: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { teamIds, invoiceStatuses, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const now = new Date();
       const statuses = invoiceStatuses?.length ? invoiceStatuses : ["SENT", "OVERDUE", "PARTIALLY_PAID"];
       const offset = (page - 1) * pageSize;
@@ -393,7 +468,12 @@ export const niscRevenueRouter = router({
       const rows = await db.query.invoice.findMany({
         where: and(
           inArray(invoice.status, statuses),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: { team: { columns: { name: true } } },
         columns: { id: true, invoiceNumber: true, amount: true, currency: true, status: true, issueDate: true, dueDate: true, customerName: true },
@@ -407,7 +487,12 @@ export const niscRevenueRouter = router({
         .from(invoice)
         .where(and(
           inArray(invoice.status, statuses),
-          teamIds?.length ? inArray(invoice.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       return {

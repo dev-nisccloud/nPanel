@@ -4,6 +4,7 @@ import { db } from "@npanel/db";
 import { niscClientSubscription, niscCommissionEntry } from "@npanel/db/schema/products";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, monthlyMrr, toNum } from "./filters";
+import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
 
 const FIXED = "FIXED";
 
@@ -27,8 +28,13 @@ export const niscProfitabilityRouter = router({
       totalCost:       z.number(),
       avgMarginPct:    z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { teamIds, subscriptionStatuses, productCategories, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
       const statuses = subscriptionStatuses?.length ? subscriptionStatuses : ["ACTIVE"];
 
@@ -37,7 +43,12 @@ export const niscProfitabilityRouter = router({
           inArray(niscClientSubscription.status, statuses),
           isNull(niscClientSubscription.upgradedToSubscriptionId),
           isNull(niscClientSubscription.downgradedToSubscriptionId),
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: {
           team:    { columns: { name: true } },
@@ -98,15 +109,25 @@ export const niscProfitabilityRouter = router({
       totalPaid:    z.number(),
       totalPending: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
 
       const rows = await db.query.niscCommissionEntry.findMany({
         where: and(
           gte(niscCommissionEntry.createdAt, from),
           lte(niscCommissionEntry.createdAt, to),
-          teamIds?.length ? inArray(niscCommissionEntry.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscCommissionEntry.createdBy, scope.userId),
+            teamColumn: niscCommissionEntry.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: { team: { columns: { name: true } } },
         orderBy: [desc(niscCommissionEntry.createdAt)],
@@ -121,7 +142,12 @@ export const niscProfitabilityRouter = router({
         .where(and(
           gte(niscCommissionEntry.createdAt, from),
           lte(niscCommissionEntry.createdAt, to),
-          teamIds?.length ? inArray(niscCommissionEntry.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscCommissionEntry.createdBy, scope.userId),
+            teamColumn: niscCommissionEntry.teamId,
+            teamIds: scope.teamIds,
+          }),
         ));
 
       let totalEarned = 0, totalBilled = 0, totalPaid = 0;

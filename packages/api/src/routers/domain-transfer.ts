@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "@npanel/db";
+import { and, desc, eq, inArray, or, type SQL } from "@npanel/db";
 import * as crypto from "crypto";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { teamMember } from "@npanel/db/schema/teams";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
@@ -92,6 +93,17 @@ type DomainTransferRequestListItem = {
 		email: string;
 	};
 };
+
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+async function getMemberTeamIds(userId: string) {
+	const memberships = await db
+		.select({ teamId: teamMember.teamId })
+		.from(teamMember)
+		.where(eq(teamMember.userId, userId));
+	return memberships.map((m) => m.teamId);
+}
 
 export const domainTransferRouter = router({
 	/**
@@ -266,8 +278,22 @@ export const domainTransferRouter = router({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
+			const userRole = ctx.session.user.role;
 			const now = new Date();
 			const id = crypto.randomUUID();
+			if (input.teamId && !isAgencyUserRole(userRole)) {
+				const [membership] = await db
+					.select({ id: teamMember.id })
+					.from(teamMember)
+					.where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
+					.limit(1);
+				if (!membership) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this team.",
+					});
+				}
+			}
 
 			await db.insert(domainTransferRequest).values({
 				id,
@@ -370,7 +396,19 @@ export const domainTransferRouter = router({
 	 * List domain transfer requests for the agency (all requests; auth required).
 	 * Does not return authCode for security.
 	 */
-	listTransferRequests: protectedProcedure.query(async () => {
+	listTransferRequests: protectedProcedure.query(async ({ ctx }) => {
+		const userId = ctx.session.user.id;
+		const userRole = ctx.session.user.role;
+		let whereClause: SQL | undefined;
+		if (!isAgencyUserRole(userRole)) {
+			const memberTeamIds = await getMemberTeamIds(userId);
+			const scopes: SQL[] = [eq(domainTransferRequest.createdById, userId)];
+			if (memberTeamIds.length > 0) {
+				scopes.push(inArray(domainTransferRequest.teamId, memberTeamIds));
+			}
+			whereClause = scopes.length === 1 ? scopes[0] : or(...scopes);
+		}
+
 		const rows = await db
 			.select({
 				id: domainTransferRequest.id,
@@ -392,6 +430,7 @@ export const domainTransferRouter = router({
 			})
 			.from(domainTransferRequest)
 			.innerJoin(userTable, eq(domainTransferRequest.createdById, userTable.id))
+			.where(whereClause ?? undefined)
 			.orderBy(desc(domainTransferRequest.createdAt));
 
 		return rows.map(

@@ -142,6 +142,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const [isCreateSubscriptionOpen, setIsCreateSubscriptionOpen] = React.useState(false);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+  const mailboxQuotaLimitBytes = React.useMemo(() => {
+    const limits = hostingData?.limits?.limit ?? [];
+    const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
+    return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
+  }, [hostingData?.limits?.limit]);
 
   const utils = trpc.useUtils();
   const { data: hasLinkedResult } =
@@ -348,7 +353,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="mail" className="mt-10">
-              <MailTable siteId={hostingData.id} domainName={hostingData.gen_info?.name} />
+              <MailTable
+                siteId={hostingData.id}
+                domainName={hostingData.gen_info?.name}
+                maxMailboxQuotaBytes={mailboxQuotaLimitBytes}
+              />
             </TabsContent>
 
             <TabsContent value="file-manager" className="mt-10">

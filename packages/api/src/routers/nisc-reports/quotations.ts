@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { and, count, desc, gte, inArray, lte } from "@npanel/db";
+import { and, count, desc, eq, gte, inArray, lte } from "@npanel/db";
 import { db } from "@npanel/db";
 import { quotation } from "@npanel/db/schema/quotations";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
+import { resolveReportReadScope } from "./access";
 
 export const niscQuotationsRouter = router({
   // ─── Q-01 Pipeline Overview ────────────────────────────────────────────────
@@ -22,8 +23,12 @@ export const niscQuotationsRouter = router({
       avgTimeToSend:       z.number(),
       byStatus:            z.array(z.object({ status: z.string(), count: z.number(), amount: z.number() })),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, quotationStatuses } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
 
       const rows = await db
         .select({
@@ -38,6 +43,7 @@ export const niscQuotationsRouter = router({
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
           quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined,
+          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ));
 
       const byStatusMap = new Map<string, { count: number; amount: number }>();
@@ -107,8 +113,12 @@ export const niscQuotationsRouter = router({
       amount:     z.number(),
       dropOffPct: z.number(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
 
       const rows = await db
         .select({ status: quotation.status, amount: quotation.amount })
@@ -116,6 +126,7 @@ export const niscQuotationsRouter = router({
         .where(and(
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
+          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ));
 
       const stages: Record<string, { count: number; amount: number }> = {
@@ -158,8 +169,12 @@ export const niscQuotationsRouter = router({
       })),
       total: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, quotationStatuses, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
       const offset = (page - 1) * pageSize;
 
       const rows = await db.query.quotation.findMany({
@@ -167,6 +182,7 @@ export const niscQuotationsRouter = router({
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
           quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined,
+          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ),
         columns: {
           id: true, quotationNumber: true, customerName: true, customerEmail: true,
@@ -185,6 +201,7 @@ export const niscQuotationsRouter = router({
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
           quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined,
+          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ));
 
       return {

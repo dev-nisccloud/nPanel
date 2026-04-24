@@ -21,6 +21,7 @@ import {
 	Calendar as CalendarIcon,
 	AlertTriangle
 } from "lucide-react";
+import { CreateMediaBuyingSubscriptionDialog } from "./agency.ad-campaigns/_components/create-media-buying-subscription-dialog";
 
 export default function LinkedInAdsAccountDetailPage() {
 	const params = useParams();
@@ -349,6 +350,11 @@ export default function LinkedInAdsAccountDetailPage() {
 							</CardDescription>
 						</div>
 						<div className="flex items-center gap-2">
+							<CreateMediaBuyingSubscriptionDialog
+								platform="LINKEDIN_ADS"
+								accountId={accountUrn}
+								accountName={account.name || null}
+							/>
 							<Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
 								<PopoverTrigger asChild>
 									<Button variant="outline" size="sm">

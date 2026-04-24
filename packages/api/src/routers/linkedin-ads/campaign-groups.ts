@@ -2,13 +2,15 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessToken, getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 
 /**
  * Get user's LinkedIn integration with valid tokens
  */
 async function getUserIntegration(userId: string, role?: string | null) {
-	const tokenData = await getStoredLinkedInAccessTokenForSession({ userId, role });
+	const tokenData =
+		(await getStoredLinkedInAccessTokenForSession({ userId, role })) ??
+		(await getStoredLinkedInAccessToken());
 
 	if (!tokenData) {
 		throw new TRPCError({
@@ -124,7 +126,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
 								start: formatDateForLinkedIn(startDate),
 								end: formatDateForLinkedIn(endDate),
 							},
-							accounts: [input.accountId],
+							accounts: [accountUrn],
 							pivots: [{ pivot: 'CAMPAIGN_GROUP' }],
 							fields: [
 								'impressions',

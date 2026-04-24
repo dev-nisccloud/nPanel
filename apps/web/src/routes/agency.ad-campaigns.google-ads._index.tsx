@@ -26,6 +26,7 @@ import {
 import { useNavigate } from "react-router";
 import { cn } from "@/lib/utils";
 import { ConnectGoogleAds } from "./agency.ad-campaigns/google-ads/_components/connect-google-ads";
+import { CreateMediaBuyingSubscriptionDialog } from "./agency.ad-campaigns/_components/create-media-buying-subscription-dialog";
 import type { StoredCredentials } from "./agency.ad-campaigns/google-ads/_components/schemas";
 import type { GoogleAdsAccount } from "./agency.ad-campaigns/google-ads/_components/schemas";
 
@@ -380,6 +381,14 @@ export default function GoogleAdsPage() {
 							</div>
 
 							<div className="flex items-center gap-2 w-full md:w-auto">
+								<CreateMediaBuyingSubscriptionDialog
+									platform="GOOGLE_ADS"
+									accountId={selectedCustomerId}
+									accountName={
+										accounts.find((acc: GoogleAdsAccount) => acc.customerId === selectedCustomerId)
+											?.accountName ?? null
+									}
+								/>
 								<Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
 									<PopoverTrigger asChild>
 										<Button variant="outline" size="sm" className="h-10 w-full md:w-auto justify-start shadow-sm border-muted/60 font-medium whitespace-nowrap">

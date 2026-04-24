@@ -51,7 +51,7 @@ export const sidebarItems: NavGroup[] = [
     items: [
       {
         title: "Home",
-        url: "/dashboard/dashboard",
+        url: "/dashboard",
         icon: (props: any) => React.createElement(Icons.Home, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
@@ -95,15 +95,15 @@ export const sidebarItems: NavGroup[] = [
     id: 2,
     label: "Digital Marketing",
     items: [
-      {
-        title: "Nisc Social",
-        url: "/dashboard/social-media",
-        icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        subItems: [
-          { title: "Facebook", url: "/dashboard/social-media/facebook", },
-          // { title: "LinkedIn", url: "/dashboard/social-media-marketing/linkedin", },
-        ],
-      },
+      // {
+      //   title: "Nisc Social",
+      //   url: "/dashboard/social-media",
+      //   icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "Facebook", url: "/dashboard/social-media/facebook", },
+      //     // { title: "LinkedIn", url: "/dashboard/social-media-marketing/linkedin", },
+      //   ],
+      // },
       {
         title: "Media Buying",
         url: "/dashboard/ad-campaigns",
@@ -115,14 +115,13 @@ export const sidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Email Marketing",
-        url: "/dashboard/email-marketing",
+        title: "Nisc Email Marketing",
+        url: "/dashboard/nisc-email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Campaigns", url: "/dashboard/email-marketing/campaigns", },
-          { title: "Audiences", url: "/dashboard/email-marketing/audiences", },
-          { title: "Email Builder", url: "/dashboard/email-marketing/email-builder", },
-          { title: "Domains", url: "/dashboard/email-marketing/domain-configuration", },
+          { title: "Campaigns", url: "/dashboard/nisc-email-marketing/campaigns", },
+          { title: "Audiences", url: "/dashboard/nisc-email-marketing/audiences", },
+          { title: "Domains", url: "/dashboard/nisc-email-marketing/domain-configuration", },
         ],
       },
       {

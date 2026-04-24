@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useNavigate, useLocation } from "react-router";
+import { useParams, useNavigate, useLocation, Outlet } from "react-router";
 import { ArrowLeft, Download } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
@@ -306,57 +306,60 @@ export default function InvoiceViewPage() {
 	const previewData = transformInvoiceToPreviewData(invoice);
 
 	return (
-		<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
-			<div className="flex items-center justify-between gap-4">
-				<div className="flex items-center gap-4">
-					<Button
-						onClick={() => navigate(invoicesPath)}
-						variant="ghost"
-						size="sm"
-					>
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back to Invoices
-					</Button>
-					<div className="flex flex-col gap-2">
-						<h1 className="text-base font-semibold tracking-tight">
-							Invoice {invoice.invoiceNumber || "View"}
-						</h1>
-						<p className="text-xs text-muted-foreground">
-							View invoice details and preview
-						</p>
+		<>
+			<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
+				<div className="flex items-center justify-between gap-4">
+					<div className="flex items-center gap-4">
+						<Button
+							onClick={() => navigate(invoicesPath)}
+							variant="ghost"
+							size="sm"
+						>
+							<ArrowLeft className="mr-2 h-4 w-4" />
+							Back to Invoices
+						</Button>
+						<div className="flex flex-col gap-2">
+							<h1 className="text-base font-semibold tracking-tight">
+								Invoice {invoice.invoiceNumber || "View"}
+							</h1>
+							<p className="text-xs text-muted-foreground">
+								View invoice details and preview
+							</p>
+						</div>
 					</div>
+					<Button
+						onClick={handleDownloadInvoice}
+						disabled={isDownloading}
+						variant="outline"
+					>
+						{isDownloading ? (
+							<>
+								<Spinner className="mr-2 h-4 w-4" />
+								Downloading...
+							</>
+						) : (
+							<>
+								<Download className="mr-2 h-4 w-4" />
+								Download Invoice
+							</>
+						)}
+					</Button>
 				</div>
-				<Button
-					onClick={handleDownloadInvoice}
-					disabled={isDownloading}
-					variant="outline"
-				>
-					{isDownloading ? (
-						<>
-							<Spinner className="mr-2 h-4 w-4" />
-							Downloading...
-						</>
-					) : (
-						<>
-							<Download className="mr-2 h-4 w-4" />
-							Download Invoice
-						</>
-					)}
-				</Button>
-			</div>
 
-			{/* Center the preview */}
-			<div className="flex justify-center items-start">
-				<PreviewDetails
-					yourDetails={previewData.yourDetails}
-					companyDetails={previewData.companyDetails}
-					invoiceDetails={previewData.invoiceDetails}
-					paymentDetails={previewData.paymentDetails}
-					invoiceTerms={previewData.invoiceTerms}
-					// No onClick handler - makes sections non-clickable
-				/>
+				{/* Center the preview */}
+				<div className="flex justify-center items-start">
+					<PreviewDetails
+						yourDetails={previewData.yourDetails}
+						companyDetails={previewData.companyDetails}
+						invoiceDetails={previewData.invoiceDetails}
+						paymentDetails={previewData.paymentDetails}
+						invoiceTerms={previewData.invoiceTerms}
+						// No onClick handler - makes sections non-clickable
+					/>
+				</div>
 			</div>
-		</div>
+			<Outlet />
+		</>
 	);
 }
 

@@ -47,7 +47,36 @@ async function assertTeamMember(teamId: string, userId: string) {
 	return member ?? null;
 }
 
-async function assertDomainAccess(domainId: string, userId: string) {
+const isAgencyUserRole = (role: string | null | undefined) =>
+	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+	role === "AGENCY_SUPER_ADMIN";
+
+async function assertDomainReadAccess(
+	domainId: string,
+	userId: string,
+	userRole: string | null | undefined,
+) {
+	if (isAgencyUserRole(userRole)) {
+		const [domain] = await db
+			.select()
+			.from(emailDomain)
+			.where(eq(emailDomain.id, domainId))
+			.limit(1);
+		if (!domain) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+		}
+		return domain;
+	}
+	return assertDomainMutationAccess(domainId, userId, userRole);
+}
+
+async function assertDomainMutationAccess(
+	domainId: string,
+	userId: string,
+	userRole: string | null | undefined,
+) {
 	const [domain] = await db
 		.select()
 		.from(emailDomain)
@@ -58,13 +87,7 @@ async function assertDomainAccess(domainId: string, userId: string) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
 	}
 
-	if (domain.userId === userId) return domain;
-
-	if (domain.teamId) {
-		const member = await assertTeamMember(domain.teamId, userId);
-		if (!member) {
-			throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-		}
+	if (domain.userId === userId || isAgencySuperAdminRole(userRole)) {
 		return domain;
 	}
 
@@ -196,6 +219,7 @@ export const emailMarketingDomainsRouter = router({
 		.query(async ({ ctx, input }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -203,7 +227,7 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const domain = await assertDomainAccess(input.id, userId);
+				const domain = await assertDomainReadAccess(input.id, userId, userRole);
 
 				// Sync with Resend to get latest verification status
 				if (domain.resendDomainId) {
@@ -286,6 +310,7 @@ export const emailMarketingDomainsRouter = router({
 		.query(async ({ ctx, input }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -293,19 +318,22 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const accessOr = [eq(emailDomain.userId, userId)];
-				if (input.teamId) {
-					accessOr.push(
-						sql`(${emailDomain.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
-					);
+				const conditions = [];
+				if (!isAgencyUserRole(userRole)) {
+					const accessOr = [eq(emailDomain.userId, userId)];
+					if (input.teamId) {
+						accessOr.push(
+							sql`(${emailDomain.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
+						);
+					}
+					conditions.push(or(...accessOr));
 				}
-
-				const conditions = [or(...accessOr)];
 				if (input.status) conditions.push(eq(emailDomain.status, input.status));
 				if (input.search)
 					conditions.push(ilike(emailDomain.domainName, `%${input.search}%`));
+				if (input.teamId) conditions.push(eq(emailDomain.teamId, input.teamId));
 
-				const whereClause = and(...conditions);
+				const whereClause = conditions.length > 0 ? and(...conditions) : sql`true`;
 
 				const [domains, totalRes] = await Promise.all([
 					db
@@ -350,6 +378,7 @@ export const emailMarketingDomainsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -357,7 +386,7 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const domain = await assertDomainAccess(input.id, userId);
+				const domain = await assertDomainMutationAccess(input.id, userId, userRole);
 
 				// Update domain and create activity log in a single transaction
 				const updatedDomain = await db.transaction(async (tx: any) => {
@@ -426,6 +455,7 @@ export const emailMarketingDomainsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -433,10 +463,13 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				const domain = await assertDomainAccess(input.id, userId);
+				const domain = await assertDomainMutationAccess(input.id, userId, userRole);
 				if (domain.teamId) {
 					const member = await assertTeamMember(domain.teamId, userId);
-					if (!member || member.role !== "OWNER") {
+					if (
+						!isAgencySuperAdminRole(userRole) &&
+						(!member || member.role !== "OWNER")
+					) {
 						throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
 					}
 				}
@@ -477,6 +510,7 @@ export const emailMarketingDomainsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			try {
 				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
 				if (!userId) {
 					throw new TRPCError({
 						code: "UNAUTHORIZED",
@@ -497,8 +531,11 @@ export const emailMarketingDomainsRouter = router({
 					});
 				}
 
-				// Check access
-				if (domain.userId !== userId) {
+				// Check mutation access
+				if (
+					domain.userId !== userId &&
+					!isAgencySuperAdminRole(userRole)
+				) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "Access denied",

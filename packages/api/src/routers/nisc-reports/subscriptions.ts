@@ -9,6 +9,7 @@ import {
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, monthlyMrr } from "./filters";
 import { differenceInDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
 
 const FIXED = "FIXED";
 const ACTIVE = "ACTIVE";
@@ -31,8 +32,13 @@ export const niscSubscriptionsRouter = router({
       byClient:    z.array(z.object({ teamId: z.string(), teamName: z.string(), mrr: z.number(), count: z.number() })),
       totalActive: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { teamIds, subscriptionStatuses, productCategories } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const statuses = subscriptionStatuses?.length ? subscriptionStatuses : [ACTIVE];
 
       const subs = await db.query.niscClientSubscription.findMany({
@@ -40,7 +46,12 @@ export const niscSubscriptionsRouter = router({
           inArray(niscClientSubscription.status, statuses),
           isNull(niscClientSubscription.upgradedToSubscriptionId),
           isNull(niscClientSubscription.downgradedToSubscriptionId),
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: {
           product: { columns: { category: true, name: true } },
@@ -92,13 +103,23 @@ export const niscSubscriptionsRouter = router({
       netChange:     z.number(),
       periodLabel:   z.string(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
 
       const newSubs = await db.query.niscClientSubscription.findMany({
         where: and(
           gte(niscClientSubscription.subscriptionDate, from),
           lte(niscClientSubscription.subscriptionDate, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
       });
       let newMrr = 0;
@@ -111,6 +132,12 @@ export const niscSubscriptionsRouter = router({
           inArray(niscClientSubscription.status, [CANCELLED, EXPIRED]),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
       });
       let churnedMrr = 0;
@@ -123,6 +150,12 @@ export const niscSubscriptionsRouter = router({
           eq(niscClientSubscription.status, UPGRADED),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
       });
       let expansionMrr = 0;
@@ -135,6 +168,12 @@ export const niscSubscriptionsRouter = router({
           eq(niscClientSubscription.status, DOWNGRADED),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
       });
       let contractionMrr = 0;
@@ -157,12 +196,22 @@ export const niscSubscriptionsRouter = router({
       count:   z.number(),
       mrr:     z.number(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { teamIds, productCategories } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const allStatuses = ["ACTIVE", "PENDING", "CANCELLED", "EXPIRED", "SUSPENDED", "UPGRADED", "DOWNGRADED"];
 
       const subs = await db.query.niscClientSubscription.findMany({
-        where: teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+        where: buildOwnerOrTeamReadScope({
+          isAgencyUser: scope.isAgencyUser,
+          ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          teamColumn: niscClientSubscription.teamId,
+          teamIds: scope.teamIds,
+        }),
         with: { product: { columns: { category: true } } },
       });
 
@@ -202,13 +251,23 @@ export const niscSubscriptionsRouter = router({
       })),
       total: z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { teamIds, subscriptionStatuses, productCategories, page, pageSize } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const offset = (page - 1) * pageSize;
 
       const rows = await db.query.niscClientSubscription.findMany({
         where: and(
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
           subscriptionStatuses?.length ? inArray(niscClientSubscription.status, subscriptionStatuses) : undefined,
         ),
         with: {
@@ -224,7 +283,12 @@ export const niscSubscriptionsRouter = router({
         .select({ c: count() })
         .from(niscClientSubscription)
         .where(and(
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
           subscriptionStatuses?.length ? inArray(niscClientSubscription.status, subscriptionStatuses) : undefined,
         ));
 
@@ -260,8 +324,13 @@ export const niscSubscriptionsRouter = router({
       status:          z.string(),
       daysUntilRenewal:z.number(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { teamIds, withinDays } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
       const now = new Date();
       const future = new Date(now.getTime() + withinDays * 86400000);
 
@@ -270,7 +339,12 @@ export const niscSubscriptionsRouter = router({
           eq(niscClientSubscription.status, ACTIVE),
           gte(niscClientSubscription.nextRenewalDate, now),
           lte(niscClientSubscription.nextRenewalDate, future),
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: {
           team:    { columns: { name: true } },
@@ -310,15 +384,25 @@ export const niscSubscriptionsRouter = router({
       totalChurnedMrr: z.number(),
       churnRate:       z.number(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
 
       const churned = await db.query.niscClientSubscription.findMany({
         where: and(
           inArray(niscClientSubscription.status, [CANCELLED, EXPIRED]),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: {
           team:    { columns: { name: true } },
@@ -329,7 +413,15 @@ export const niscSubscriptionsRouter = router({
       const [activeAtStartRow] = await db
         .select({ c: count() })
         .from(niscClientSubscription)
-        .where(eq(niscClientSubscription.status, ACTIVE));
+        .where(and(
+          eq(niscClientSubscription.status, ACTIVE),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
+        ));
       const activeAtStart = Number(activeAtStartRow?.c ?? 0) + churned.length;
 
       let totalChurnedMrr = 0;
@@ -368,15 +460,25 @@ export const niscSubscriptionsRouter = router({
       priceDelta:  z.number(),
       eventDate:   z.date(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
 
       const upgraded = await db.query.niscClientSubscription.findMany({
         where: and(
           eq(niscClientSubscription.status, UPGRADED),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: {
           team:    { columns: { name: true } },
@@ -388,7 +490,12 @@ export const niscSubscriptionsRouter = router({
           eq(niscClientSubscription.status, DOWNGRADED),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
-          teamIds?.length ? inArray(niscClientSubscription.teamId, teamIds) : undefined,
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         with: {
           team:    { columns: { name: true } },

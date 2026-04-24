@@ -5,6 +5,12 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+const isAgencySuperAdminRole = (role: string | null | undefined) =>
+    role === "AGENCY_SUPER_ADMIN";
+
 export const etimsAuthRouter = router({
     /**
      * Generate OAuth 2.0 access token from KRA eTIMS
@@ -13,7 +19,15 @@ export const etimsAuthRouter = router({
         .input(z.object({
             grantType: z.literal("client_credentials").default("client_credentials"),
         }))
-        .mutation(async () => {
+        .mutation(async ({ ctx }) => {
+            const role = ctx.session?.user?.role;
+            if (!isAgencySuperAdminRole(role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency super admins can generate eTIMS tokens.",
+                });
+            }
+
             // 1. Fetch global eTIMS Configuration
             const [config] = await db
                 .select()
@@ -70,7 +84,15 @@ export const etimsAuthRouter = router({
      * Get current eTIMS configuration status
      */
     getConfiguration: protectedProcedure
-        .query(async () => {
+        .query(async ({ ctx }) => {
+            const role = ctx.session?.user?.role;
+            if (!isAgencyUserRole(role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can view eTIMS configuration.",
+                });
+            }
+
             const [config] = await db
                 .select()
                 .from(eTimsConfiguration)

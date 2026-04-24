@@ -15,6 +15,10 @@ function isAgencySuperAdminRole(role: string | null | undefined): boolean {
     return role === "AGENCY_SUPER_ADMIN";
 }
 
+function isAgencyUserRole(role: string | null | undefined): boolean {
+    return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+}
+
 // --- Independent UI/API Schemas ---
 
 const createEmailBuilderDesignSchema = z.object({
@@ -65,8 +69,21 @@ export const emailBuilderRouter = router({
         .input(createEmailBuilderDesignSchema)
         .mutation(async ({ ctx, input }) => {
             const userId = ctx.session?.user?.id;
+            const userRole = ctx.session?.user?.role;
             if (!userId) {
                 throw new TRPCError({ code: "UNAUTHORIZED" });
+            }
+
+            if (input.teamId && !isAgencyUserRole(userRole)) {
+                const membership = await db.query.teamMember.findFirst({
+                    where: and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)),
+                });
+                if (!membership) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this team",
+                    });
+                }
             }
 
             const now = new Date();
@@ -114,7 +131,7 @@ export const emailBuilderRouter = router({
                 throw new TRPCError({ code: "UNAUTHORIZED" });
             }
 
-            const isAgencyUser = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+            const isAgencyUser = isAgencyUserRole(role);
             const design = await db.query.emailBuilderDesign.findFirst({
                 where: (ebd) =>
                     isAgencyUser
@@ -124,19 +141,16 @@ export const emailBuilderRouter = router({
                             or(
                                 eq(ebd.userId, userId),
                                 eq(ebd.isPublic, true),
-                                or(
-                                    isNull(ebd.teamId),
-                                    exists(
-                                        db
-                                            .select()
-                                            .from(teamMember)
-                                            .where(
-                                                and(
-                                                    eq(teamMember.teamId, ebd.teamId),
-                                                    eq(teamMember.userId, userId),
-                                                ),
+                                exists(
+                                    db
+                                        .select()
+                                        .from(teamMember)
+                                        .where(
+                                            and(
+                                                eq(teamMember.teamId, ebd.teamId),
+                                                eq(teamMember.userId, userId),
                                             ),
-                                    ),
+                                        ),
                                 ),
                             ),
                         ),
@@ -160,7 +174,7 @@ export const emailBuilderRouter = router({
             }
 
             const { page, limit, teamId } = input;
-            const isAgencyUser = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+            const isAgencyUser = isAgencyUserRole(role);
 
             const baseWhere = teamId
                 ? isAgencyUser
@@ -181,9 +195,22 @@ export const emailBuilderRouter = router({
                     )
                 : isAgencyUser
                     ? undefined
-                    : and(
-                        eq(emailBuilderDesign.userId, userId),
-                        isNull(emailBuilderDesign.teamId),
+                    : or(
+                        and(
+                            eq(emailBuilderDesign.userId, userId),
+                            isNull(emailBuilderDesign.teamId),
+                        ),
+                        exists(
+                            db
+                                .select()
+                                .from(teamMember)
+                                .where(
+                                    and(
+                                        eq(teamMember.teamId, emailBuilderDesign.teamId),
+                                        eq(teamMember.userId, userId),
+                                    ),
+                                ),
+                        ),
                     );
 
             const designs = await db

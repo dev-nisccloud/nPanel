@@ -134,7 +134,7 @@ export function LinkToSubscriptionDialog({
 	}, [expiryDate, form]);
 
 	// Fetch teams for combobox
-	const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(undefined, {
+	const { data: teams = [], isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(undefined, {
 		enabled: open,
 	});
 

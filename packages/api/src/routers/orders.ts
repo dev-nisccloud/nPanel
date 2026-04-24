@@ -31,6 +31,9 @@ import { ensurePleskIntegration, provisionToPlesk } from "../lib/plesk-integrati
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbLike = typeof db | DbTransaction;
 
+const isAgencyRole = (role: string) =>
+	role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+
 /** Sequential invoice number (same pattern as invoicing router). */
 async function generateNextInvoiceNumber(tx: DbLike): Promise<string> {
 	const now = new Date();
@@ -354,10 +357,10 @@ export const ordersRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
+			// Any agency role can read all orders
 			// Optimize: Pass session user to avoid database query if role is in session
 			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to view orders",
@@ -538,7 +541,7 @@ export const ordersRouter = router({
 			}
 
 			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Only agency users can view the global order summary",
@@ -584,7 +587,7 @@ export const ordersRouter = router({
 			}
 
 			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
-			const isAgency = userRole === "AGENCY_ADMIN" || userRole === "AGENCY_SUPER_ADMIN";
+			const isAgency = isAgencyRole(userRole);
 
 			if (!isAgency) {
 				const [membership] = await db
@@ -652,7 +655,7 @@ export const ordersRouter = router({
 			}
 
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to view orders",
@@ -812,7 +815,7 @@ export const ordersRouter = router({
 			}
 
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission",
@@ -848,7 +851,7 @@ export const ordersRouter = router({
 			}
 
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to create orders",
@@ -1439,7 +1442,7 @@ export const ordersRouter = router({
 			}
 
 			const userRole = await getUserRole(session.user.id);
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to create orders",
@@ -2454,10 +2457,10 @@ export const ordersRouter = router({
 				});
 			}
 
-			// Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN
+			// Any agency role can delete own orders; super admin can override ownership
 			// Optimize: Pass session user to avoid database query if role is in session
 			const userRole = await getUserRole(session.user.id, session.user as { role?: string });
-			if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+			if (!isAgencyRole(userRole)) {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "You do not have permission to delete orders",
@@ -2478,6 +2481,13 @@ export const ordersRouter = router({
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Order not found",
+				});
+			}
+
+			if (userRole !== "AGENCY_SUPER_ADMIN" && order.createdBy !== session.user.id) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only the order creator can delete it",
 				});
 			}
 

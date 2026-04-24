@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, eq } from "@npanel/db";
+import { and, eq, inArray } from "@npanel/db";
 import { router, protectedProcedure } from '../../../trpc';
 import { createMetaClient, MetaApiError } from '../../../lib/meta-client';
 import { getStoredMetaAccessToken, getStoredPageAccessToken } from '../../../lib/meta-credentials';
@@ -11,6 +11,7 @@ import {
 	socialMediaIntegration,
 	socialMediaPageToken,
 } from "@npanel/db/schema/social-media-marketing";
+import { team, teamMember } from "@npanel/db/schema/teams";
 
 // Validation schema for pages list request
 const PagesListRequestSchema = z.object({
@@ -20,14 +21,72 @@ const PagesListRequestSchema = z.object({
 	useStoredToken: z.boolean().optional().default(true), // Whether to use stored token if available
 });
 
+const isAgencyUserRole = (role: string | null | undefined) =>
+	role === 'AGENCY_USER' || role === 'AGENCY_ADMIN' || role === 'AGENCY_SUPER_ADMIN';
+
+async function getAccessibleTeamIds(userId: string): Promise<string[]> {
+	const [memberships, ownedTeams] = await Promise.all([
+		db.query.teamMember.findMany({
+			where: eq(teamMember.userId, userId),
+			columns: { teamId: true },
+		}),
+		db.query.team.findMany({
+			where: eq(team.createdById, userId),
+			columns: { id: true },
+		}),
+	]);
+	return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
+
 export const metaPagesListRouter = router({
 	/**
 	 * Get list of Facebook Pages managed by the user
 	 */
 	getPages: protectedProcedure
 		.input(PagesListRequestSchema)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
+				const userId = ctx.session?.user?.id;
+				const role = ctx.session?.user?.role;
+				if (!userId) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+				}
+				if (!isAgencyUserRole(role)) {
+					const teamIds = await getAccessibleTeamIds(userId);
+					if (teamIds.length === 0) {
+						return {
+							success: true,
+							data: [],
+							meta: { retrieved_at: new Date().toISOString(), total_pages: 0, source: 'team_scoped_tokens' },
+						};
+					}
+					const storedPages = await db.query.socialMediaPageToken.findMany({
+						where: and(
+							eq(socialMediaPageToken.platform, 'META_FACEBOOK'),
+							eq(socialMediaPageToken.isActive, true),
+							inArray(socialMediaPageToken.teamId, teamIds),
+						),
+						columns: {
+							pageId: true,
+							pageName: true,
+							pageUsername: true,
+							pagePicture: true,
+							pageCategory: true,
+						},
+					});
+					return {
+						success: true,
+						data: storedPages.map((page) => ({
+							id: page.pageId,
+							name: page.pageName,
+							username: page.pageUsername,
+							picture: page.pagePicture ? { data: { url: page.pagePicture } } : undefined,
+							category: page.pageCategory,
+							access_token: null,
+						})),
+						meta: { retrieved_at: new Date().toISOString(), total_pages: storedPages.length, source: 'team_scoped_tokens' },
+					};
+				}
 				// Get access token - use stored token if available and not explicitly provided
 				let accessToken = input.accessToken;
 				if (!accessToken && input.useStoredToken) {
@@ -208,8 +267,13 @@ export const metaPagesListRouter = router({
 				pageId: z.string().min(1, 'Page ID is required'),
 			})
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
+				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
+				if (!userId) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+				}
 				// Find the page token in the database (Meta Facebook only)
 				const pageToken = await db.query.socialMediaPageToken.findFirst({
 					where: and(
@@ -229,6 +293,24 @@ export const metaPagesListRouter = router({
 						code: 'NOT_FOUND',
 						message: 'Page token not found for this page. Please refresh the pages list.',
 					});
+				}
+				if (!isAgencyUserRole(userRole)) {
+					if (!pageToken.teamId) {
+						throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this page token' });
+					}
+					const [membership, ownedTeam] = await Promise.all([
+						db.query.teamMember.findFirst({
+							where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+							columns: { id: true },
+						}),
+						db.query.team.findFirst({
+							where: and(eq(team.id, pageToken.teamId), eq(team.createdById, userId)),
+							columns: { id: true },
+						}),
+					]);
+					if (!membership && !ownedTeam) {
+						throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this page token' });
+					}
 				}
 
 				return {
@@ -264,8 +346,39 @@ export const metaPagesListRouter = router({
 				useStoredToken: z.boolean().optional().default(true), // Whether to use stored token if available
 			})
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
+				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
+				if (!userId) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+				}
+				if (!isAgencyUserRole(userRole)) {
+					const pageToken = await db.query.socialMediaPageToken.findFirst({
+						where: and(
+							eq(socialMediaPageToken.pageId, input.pageId),
+							eq(socialMediaPageToken.platform, 'META_FACEBOOK'),
+							eq(socialMediaPageToken.isActive, true),
+						),
+						columns: { teamId: true },
+					});
+					if (!pageToken?.teamId) {
+						throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this page' });
+					}
+					const [membership, ownedTeam] = await Promise.all([
+						db.query.teamMember.findFirst({
+							where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+							columns: { id: true },
+						}),
+						db.query.team.findFirst({
+							where: and(eq(team.id, pageToken.teamId), eq(team.createdById, userId)),
+							columns: { id: true },
+						}),
+					]);
+					if (!membership && !ownedTeam) {
+						throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this page' });
+					}
+				}
 				// Get access token - use stored token if available and not explicitly provided
 				let accessToken = input.accessToken;
 				if (!accessToken && input.useStoredToken) {
@@ -374,8 +487,39 @@ export const metaPagesListRouter = router({
 				useStoredToken: z.boolean().optional().default(true),
 			})
 		)
-		.query(async ({ input }) => {
+		.query(async ({ input, ctx }) => {
 			try {
+				const userId = ctx.session?.user?.id;
+				const userRole = ctx.session?.user?.role;
+				if (!userId) {
+					throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+				}
+				if (!isAgencyUserRole(userRole)) {
+					const pageToken = await db.query.socialMediaPageToken.findFirst({
+						where: and(
+							eq(socialMediaPageToken.pageId, input.pageId),
+							eq(socialMediaPageToken.platform, 'META_FACEBOOK'),
+							eq(socialMediaPageToken.isActive, true),
+						),
+						columns: { teamId: true },
+					});
+					if (!pageToken?.teamId) {
+						throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this page insights' });
+					}
+					const [membership, ownedTeam] = await Promise.all([
+						db.query.teamMember.findFirst({
+							where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+							columns: { id: true },
+						}),
+						db.query.team.findFirst({
+							where: and(eq(team.id, pageToken.teamId), eq(team.createdById, userId)),
+							columns: { id: true },
+						}),
+					]);
+					if (!membership && !ownedTeam) {
+						throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this page insights' });
+					}
+				}
 				// For page insights, we need a page access token, not a user access token
 				// Step 1: Try to get stored page token
 				let accessToken = input.accessToken;

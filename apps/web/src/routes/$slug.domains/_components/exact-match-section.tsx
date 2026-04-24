@@ -215,12 +215,6 @@ export function ExactMatchSection({
 			marginValue: createCalc.marginValue,
 			currency: createCalc.currency,
 		});
-		const marginLabel =
-			createCalc.marginType && createCalc.marginAmount > 0
-				? createCalc.marginType === "PERCENTAGE"
-					? `+${createCalc.marginValue}% (+${formatPrice(createCalc.marginAmount, createCalc.currency)})`
-					: `+${formatPrice(parseFloat(String(createCalc.marginValue ?? 0)), createCalc.currency)}`
-				: null;
 		const isInCart = isDomainInCart(kenicCard.domain);
 
 		return (
@@ -243,12 +237,6 @@ export function ExactMatchSection({
 					</div>
 					{kenicCard.available && (
 						<div className="space-y-0.5 mb-2">
-							{kenicCard.createPrice != null && (
-								<div className="text-xs text-muted-foreground">Original: {formatPrice(kenicCard.createPrice, currency)}</div>
-							)}
-							{marginLabel != null && marginLabel !== "" && (
-								<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
-							)}
 							<div className="text-base font-bold text-foreground">{formatPrice(createFinal, currency)}</div>
 						</div>
 					)}
@@ -317,24 +305,6 @@ export function ExactMatchSection({
 			? (calculated.convertedPrice ?? calculated.finalPrice)
 			: r.price?.reseller?.price;
 		const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? r.price?.reseller?.currency ?? "USD";
-		// Original: show in display currency (converted) when available, so the card matches .com / other cards
-		const originalPrice = calculated?.convertedOriginalPrice ?? calculated?.originalPrice ?? r.price?.reseller?.price;
-		const originalCurrency = calculated?.convertedOriginalPrice != null ? displayCurrency : (calculated?.currency ?? r.price?.reseller?.currency ?? "USD");
-		// Margin in display currency for the label
-		const marginAmountOriginal = calculated?.marginAmount ?? 0;
-		const marginInDisplayCurrency =
-			calculated?.convertedPrice != null &&
-			calculated?.finalPrice != null &&
-			calculated.finalPrice > 0 &&
-			marginAmountOriginal > 0
-				? marginAmountOriginal * (calculated.convertedPrice / calculated.finalPrice)
-				: marginAmountOriginal;
-		const marginLabel =
-			calculated?.marginType && (marginAmountOriginal > 0 || (calculated.marginValue != null && calculated.marginValue !== ""))
-				? calculated.marginType === "PERCENTAGE"
-					? `+${calculated.marginValue}% (+${formatPrice(marginInDisplayCurrency, displayCurrency)})`
-					: `+${formatPrice(marginInDisplayCurrency, displayCurrency)}`
-				: null;
 		const isAvailable = r.status === "free";
 		const isInCart = isDomainInCart(r.domain);
 		const tld = r.domain.includes(".") ? r.domain.split(".").slice(-1)[0] ?? "" : "";
@@ -359,12 +329,6 @@ export function ExactMatchSection({
 					</div>
 					{isAvailable && r.price && (
 						<div className="space-y-0.5 mb-2">
-							{originalPrice != null && (
-								<div className="text-xs text-muted-foreground">Original: {formatPrice(originalPrice, originalCurrency)}</div>
-							)}
-							{marginLabel != null && marginLabel !== "" && (
-								<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
-							)}
 							<div className="text-base font-bold text-foreground">{formatPrice(displayPrice, displayCurrency)}</div>
 						</div>
 					)}

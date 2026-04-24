@@ -3,7 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { request } from 'undici';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessToken, getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 
 // ---------------------------------------------------------------------------
 // Targeting resolution helpers
@@ -251,7 +251,9 @@ const GET_ALL_CONFIG: Record<string, { endpoint: string; extraParams: Record<str
  * Get user's LinkedIn integration with valid tokens
  */
 async function getUserIntegration(userId: string, role?: string | null) {
-	const tokenData = await getStoredLinkedInAccessTokenForSession({ userId, role });
+	const tokenData =
+		(await getStoredLinkedInAccessTokenForSession({ userId, role })) ??
+		(await getStoredLinkedInAccessToken());
 
 	if (!tokenData) {
 		throw new TRPCError({

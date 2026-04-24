@@ -7,7 +7,7 @@ import * as schema from "./schema";
 /**
  * Postgres pool sized for the dispatcher + normal API traffic.
  *
- * The NISC email marketing dispatcher can issue 2 writes per email at ~14 emails/s,
+ * The Nisc Cloud email marketing dispatcher can issue 2 writes per email at ~14 emails/s,
  * plus claim queries, campaign fetches and bookkeeping updates, all concurrently
  * with regular tRPC traffic and other workers. With the `pg` default `max: 10`
  * the pool saturates and individual writes start timing out   which, combined

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, count, desc, eq, gte, inArray, lte } from "@npanel/db";
+import { and, count, eq, gte, inArray, lte, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";
 import { niscClientSubscription } from "@npanel/db/schema/products";
@@ -8,6 +8,7 @@ import { quotation } from "@npanel/db/schema/quotations";
 import { team } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, monthlyMrr, toNum } from "./filters";
+import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
 
 const FIXED = "FIXED";
 const ACTIVE = "ACTIVE";
@@ -28,9 +29,14 @@ export const niscClientsRouter = router({
       pipelineValue:  z.number(),
       lastActivity:   z.date().nullable(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to, teamIds, specificTeamId } = input;
-      const filterTeams = specificTeamId ? [specificTeamId] : teamIds;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: specificTeamId ? [specificTeamId] : teamIds,
+      });
+      const filterTeams = scope.teamIds;
 
       // Get all teams
       const teamRows = await db.query.team.findMany({
@@ -81,6 +87,7 @@ export const niscClientsRouter = router({
             gte(quotation.createdAt, from),
             lte(quotation.createdAt, to),
             inArray(quotation.status, ["DRAFT", "SENT"]),
+            scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
           ));
         const pipelineValue = quotes.reduce((s, q) => s + toNum(q.amount), 0);
 
@@ -112,13 +119,23 @@ export const niscClientsRouter = router({
       at6Months:      z.number(),
       at12Months:     z.number(),
     })))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
 
       const subs = await db.query.niscClientSubscription.findMany({
         where: and(
           gte(niscClientSubscription.subscriptionDate, from),
           lte(niscClientSubscription.subscriptionDate, to),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            teamColumn: niscClientSubscription.teamId,
+            teamIds: scope.teamIds,
+          }),
         ),
         columns: {
           id: true, teamId: true, subscriptionDate: true, status: true,
@@ -169,14 +186,26 @@ export const niscClientsRouter = router({
       returningClientsRevenue: z.number(),
       periodLabel:          z.string(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const { from, to } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+      });
 
       // Get all invoices ever (to determine "new" vs "returning")
       const allInvoices = await db
         .select({ teamId: invoice.teamId, createdAt: invoice.createdAt, amount: invoice.amount, status: invoice.status })
         .from(invoice)
-        .where(inArray(invoice.status, ["DRAFT", "SENT", "PAID", "OVERDUE", "PARTIALLY_PAID"]));
+        .where(and(
+          inArray(invoice.status, ["DRAFT", "SENT", "PAID", "OVERDUE", "PARTIALLY_PAID"]),
+          buildOwnerOrTeamReadScope({
+            isAgencyUser: scope.isAgencyUser,
+            ownerCondition: eq(invoice.createdBy, scope.userId),
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
+        ));
 
       // Period invoices
       const periodTeams = new Map<string, { firstEver: Date; periodAmount: number }>();

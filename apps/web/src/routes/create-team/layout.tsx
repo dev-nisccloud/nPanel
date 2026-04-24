@@ -25,9 +25,12 @@ export default function CreateTeamLayout({ children }: Readonly<{ children: Reac
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(apiUrl("/api/auth/redirect-target"), {
+        const res = await fetch(
+          apiUrl("/api/auth/redirect-target?redirect=/create-team"),
+          {
           credentials: "include",
-        });
+          },
+        );
         const contentType = res.headers.get("content-type") ?? "";
         if (!res.ok || !contentType.includes("application/json")) {
           const text = await res.text().catch(() => "");

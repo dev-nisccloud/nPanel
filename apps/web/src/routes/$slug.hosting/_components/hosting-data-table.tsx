@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Link } from "react-router";
 import { useLocation } from "react-router";
+import { toast } from "@/components/ui/sonner";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
 // Table imports (commented out for performance)
@@ -137,6 +138,10 @@ function HostingTableError({ error, onRetry }: { error: Error; onRetry: () => vo
   );
 }
 
+function getDetailRouteId(subscription: { pleskSubscriptionId?: string | null }) {
+  return subscription.pleskSubscriptionId ?? null;
+}
+
 export function HostingDataTable() {
   const { pathname } = useLocation();
   const teamSlug = pathname.split("/")[1];
@@ -163,8 +168,13 @@ export function HostingDataTable() {
   //   getRowId: (row) => row.id.toString() 
   // });
 
-  const handleViewDetails = (subscription: { id: string }) => {
-    window.location.href = `/${teamSlug}/hosting/${subscription.id}`;
+  const handleViewDetails = (subscription: { id: string; pleskSubscriptionId?: string | null }) => {
+    const detailId = getDetailRouteId(subscription);
+    if (!detailId) {
+      toast.error("This subscription has no linked Plesk ID yet.");
+      return;
+    }
+    window.location.href = `/${teamSlug}/hosting/${detailId}`;
   };
 
   // Show loading state
@@ -204,12 +214,18 @@ export function HostingDataTable() {
             filteredData.map((subscription) => (
               <TableRow key={subscription.id}>
                 <TableCell className="pl-6">
-                  <Link
-                    to={`/${teamSlug}/hosting/${subscription.id}`}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
-                  </Link>
+                  {getDetailRouteId(subscription) ? (
+                    <Link
+                      to={`/${teamSlug}/hosting/${getDetailRouteId(subscription)}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-muted-foreground">
+                      {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -242,7 +258,14 @@ export function HostingDataTable() {
       <HostingCardsList
         data={filteredData}
         onViewDetails={(sub) => {
-          const payload = typeof sub === "string" ? { id: sub } : typeof sub === "number" ? { id: String(sub) } : { id: String((sub as { id: string }).id) };
+          const payload = typeof sub === "string"
+            ? { id: sub }
+            : typeof sub === "number"
+              ? { id: String(sub) }
+              : {
+                  id: String((sub as { id: string }).id),
+                  pleskSubscriptionId: (sub as { pleskSubscriptionId?: string | null }).pleskSubscriptionId ?? null,
+                };
           handleViewDetails(payload);
         }}
         cols={3}

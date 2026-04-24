@@ -798,7 +798,7 @@ export function GlobalBuyNowDialog() {
         return (
           <div className="space-y-4">
             <div className="text-center py-2">
-              <h3 className="text-lg font-semibold text-foreground">Select plan ? {planSelectionProductName}</h3>
+              <h3 className="text-lg font-semibold text-foreground">Select plan: {planSelectionProductName}</h3>
               <p className="text-sm text-muted-foreground">Choose a plan from the list</p>
             </div>
             {plans.length === 0 ? (
@@ -1110,7 +1110,7 @@ export function GlobalBuyNowDialog() {
     if (isCartMode) return totalItems === 1 ? "Complete your purchase" : `Review ${totalItems} items`;
     if (effectiveStep === "product") return `Buy ${hasDomain ? ctx?.domain?.domain ?? ctx?.productName : ctx?.productName}`;
     if (effectiveStep === "hosting-upsell") return "Add hosting";
-    if (effectiveStep === "plan-selection") return `Select plan ? ${planSelectionProductName}`;
+    if (effectiveStep === "plan-selection") return `Select plan: ${planSelectionProductName}`;
     if (effectiveStep === "review") return "Complete and review";
     if (effectiveStep === "payment") return "Choose payment method";
     if (effectiveStep === "success") return "Order confirmed";

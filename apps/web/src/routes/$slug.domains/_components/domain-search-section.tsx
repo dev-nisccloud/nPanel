@@ -28,13 +28,6 @@ const formatPrice = (price?: number, currency?: string) => {
 	return `${symbol} ${formatted}`;
 };
 
-function formatMarginInfo(calculated: NonNullable<DomainSearchResult["price"]>["calculated"], format: (n: number, c: string) => string) {
-	if (!calculated?.marginType || calculated.marginAmount <= 0) return null;
-	if (calculated.marginType === "PERCENTAGE") return `+${calculated.marginValue}% (+${format(calculated.marginAmount, calculated.currency)})`;
-	const fixed = parseFloat(String(calculated.marginValue ?? 0));
-	return `+${format(fixed, calculated.currency)}`;
-}
-
 function sectionResultToRowProps(
 	result: DomainSearchResult,
 	isDomainInCart: (domain: string) => boolean,
@@ -51,16 +44,9 @@ function sectionResultToRowProps(
 	} | undefined;
 	const displayPrice = calculated?.convertedPrice ?? calculated?.finalPrice ?? result.price?.reseller?.price ?? 0;
 	const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? result.price?.reseller?.currency ?? "USD";
-	// Show original in display (converted) currency when available
-	const originalPrice = calculated?.convertedOriginalPrice ?? calculated?.originalPrice ?? result.price?.reseller?.price;
-	const originalCurrency = displayCurrency;
-	const marginLabel = formatMarginInfo(result.price?.calculated, formatPrice);
 	return {
 		domain: result.domain,
 		isAvailable: result.status === "free",
-		originalPrice,
-		originalCurrency,
-		marginLabel: marginLabel ?? undefined,
 		displayPrice,
 		displayCurrency,
 		reason: result.reason ?? undefined,

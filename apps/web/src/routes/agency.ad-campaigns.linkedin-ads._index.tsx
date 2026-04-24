@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import type { StoredCredentials } from "./agency.ad-campaigns/linkedin-ads/_components/schemas";
+import { CreateMediaBuyingSubscriptionDialog } from "./agency.ad-campaigns/_components/create-media-buying-subscription-dialog";
 
 export default function LinkedInAdsPage() {
 	const navigate = useNavigate();
@@ -366,6 +367,13 @@ export default function LinkedInAdsPage() {
 							</div>
 
 							<div className="flex items-center gap-2 w-full md:w-auto">
+								<CreateMediaBuyingSubscriptionDialog
+									platform="LINKEDIN_ADS"
+									accountId={selectedAccountId}
+									accountName={
+										accounts.find((account) => String(account.id) === selectedAccountId)?.name ?? null
+									}
+								/>
 								<Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
 									<PopoverTrigger asChild>
 										<Button variant="outline" size="sm" className="h-10 w-full md:w-auto justify-start shadow-sm border-muted/60 font-medium whitespace-nowrap">

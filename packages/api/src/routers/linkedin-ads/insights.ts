@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../trpc";
 import { LinkedInAdsClient } from "../../lib/linkedin-ads-client";
-import { getStoredLinkedInAccessTokenForSession } from "../../lib/linkedin-credentials";
+import { getStoredLinkedInAccessToken, getStoredLinkedInAccessTokenForSession } from "../../lib/linkedin-credentials";
 import { request } from "undici";
 
 const LI_BASE = "https://api.linkedin.com";
@@ -136,7 +136,9 @@ async function resolveAdTargetingEntitiesByUrns(args: {
 }
 
 async function getUserIntegration(userId: string, role?: string | null) {
-  const tokenData = await getStoredLinkedInAccessTokenForSession({ userId, role });
+  const tokenData =
+    (await getStoredLinkedInAccessTokenForSession({ userId, role })) ??
+    (await getStoredLinkedInAccessToken());
   if (!tokenData) {
     throw new TRPCError({
       code: "BAD_REQUEST",

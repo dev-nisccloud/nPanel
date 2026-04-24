@@ -9,6 +9,7 @@ import {
   niscClientSubscriptionUsage,
   niscClientSubscriptionUsageActivityLog,
 } from "@npanel/db/schema/products";
+import { team, teamMember } from "@npanel/db/schema/teams";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -125,6 +126,69 @@ function parseCreditsAsNumber(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function isAgencyUserRole(role: string | null | undefined): boolean {
+  return role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+}
+
+function isAgencySuperAdminRole(role: string | null | undefined): boolean {
+  return role === "AGENCY_SUPER_ADMIN";
+}
+
+async function getActor(ctx: { session: { user?: { id?: string; role?: string | null } } | null }) {
+  const sessionUser = ctx.session?.user;
+  if (!sessionUser?.id) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+  }
+  return { userId: sessionUser.id, role: sessionUser.role ?? null };
+}
+
+async function ensureSubscriptionReadAccess(params: {
+  subscriptionId: string;
+  userId: string;
+  role: string | null | undefined;
+}) {
+  const { subscriptionId, userId, role } = params;
+  const subscription = await db.query.niscClientSubscription.findFirst({
+    where: eq(niscClientSubscription.id, subscriptionId),
+    columns: { id: true, userId: true, teamId: true },
+  });
+  if (!subscription) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+  }
+  if (isAgencyUserRole(role)) return subscription;
+  if (subscription.userId === userId) return subscription;
+  if (!subscription.teamId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this subscription" });
+  }
+  const [membership, ownedTeam] = await Promise.all([
+    db.query.teamMember.findFirst({
+      where: and(eq(teamMember.teamId, subscription.teamId), eq(teamMember.userId, userId)),
+      columns: { id: true },
+    }),
+    db.query.team.findFirst({
+      where: and(eq(team.id, subscription.teamId), eq(team.createdById, userId)),
+      columns: { id: true },
+    }),
+  ]);
+  if (!membership && !ownedTeam) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this subscription" });
+  }
+  return subscription;
+}
+
+async function ensureSubscriptionMutationAccess(params: {
+  subscriptionId: string;
+  userId: string;
+  role: string | null | undefined;
+}) {
+  const subscription = await ensureSubscriptionReadAccess(params);
+  if (isAgencySuperAdminRole(params.role)) return subscription;
+  if (subscription.userId !== params.userId) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to modify this subscription" });
+  }
+  return subscription;
+}
+
 // ============================================================================
 // ROUTER
 // ============================================================================
@@ -135,9 +199,12 @@ export const subscriptionUsageRouter = router({
     .input(getOrCreateUsageInputSchema)
     .output(subscriptionUsageOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-      }
+      const actor = await getActor(ctx);
+      await ensureSubscriptionMutationAccess({
+        subscriptionId: input.subscriptionId,
+        userId: actor.userId,
+        role: actor.role,
+      });
       const [existing] = await db
         .select()
         .from(niscClientSubscriptionUsage)
@@ -149,15 +216,6 @@ export const subscriptionUsageRouter = router({
         )
         .limit(1);
       if (existing) return mapSubscriptionUsage(existing);
-
-      const [subscription] = await db
-        .select({ id: niscClientSubscription.id })
-        .from(niscClientSubscription)
-        .where(eq(niscClientSubscription.id, input.subscriptionId))
-        .limit(1);
-      if (!subscription) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
-      }
 
       const [created] = await db
         .insert(niscClientSubscriptionUsage)
@@ -179,9 +237,7 @@ export const subscriptionUsageRouter = router({
     .input(z.object({ id: z.string() }))
     .output(subscriptionUsageOutputSchema)
     .query(async ({ ctx, input }) => {
-      if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-      }
+      const actor = await getActor(ctx);
       const [row] = await db
         .select()
         .from(niscClientSubscriptionUsage)
@@ -190,6 +246,11 @@ export const subscriptionUsageRouter = router({
       if (!row) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscription usage not found" });
       }
+      await ensureSubscriptionReadAccess({
+        subscriptionId: row.subscriptionId,
+        userId: actor.userId,
+        role: actor.role,
+      });
       return mapSubscriptionUsage(row);
     }),
 
@@ -198,9 +259,12 @@ export const subscriptionUsageRouter = router({
     .input(listForSubscriptionInputSchema)
     .output(z.array(subscriptionUsageOutputSchema))
     .query(async ({ ctx, input }) => {
-      if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-      }
+      const actor = await getActor(ctx);
+      await ensureSubscriptionReadAccess({
+        subscriptionId: input.subscriptionId,
+        userId: actor.userId,
+        role: actor.role,
+      });
       const rows = await db
         .select()
         .from(niscClientSubscriptionUsage)
@@ -214,9 +278,7 @@ export const subscriptionUsageRouter = router({
     .input(setCreditsInputSchema)
     .output(subscriptionUsageOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-      }
+      const actor = await getActor(ctx);
       const [usage] = await db
         .select()
         .from(niscClientSubscriptionUsage)
@@ -225,6 +287,11 @@ export const subscriptionUsageRouter = router({
       if (!usage) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscription usage not found" });
       }
+      await ensureSubscriptionMutationAccess({
+        subscriptionId: usage.subscriptionId,
+        userId: actor.userId,
+        role: actor.role,
+      });
       const previousCredits = usage.credits;
       const [updated] = await db
         .update(niscClientSubscriptionUsage)
@@ -240,7 +307,7 @@ export const subscriptionUsageRouter = router({
       await db.insert(niscClientSubscriptionUsageActivityLog).values({
         id: crypto.randomUUID(),
         subscriptionUsageId: input.subscriptionUsageId,
-        userId: ctx.session.user.id,
+        userId: actor.userId,
         action: "CREDIT_ADJUST",
         description: input.description ?? `Credits set to ${input.credits}`,
         metadata:
@@ -264,9 +331,7 @@ export const subscriptionUsageRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-      }
+      const actor = await getActor(ctx);
       const [usage] = await db
         .select()
         .from(niscClientSubscriptionUsage)
@@ -275,6 +340,11 @@ export const subscriptionUsageRouter = router({
       if (!usage) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Subscription usage not found" });
       }
+      await ensureSubscriptionMutationAccess({
+        subscriptionId: usage.subscriptionId,
+        userId: actor.userId,
+        role: actor.role,
+      });
       const current = parseCreditsAsNumber(usage.credits);
       const delta = Number.parseFloat(input.delta);
       if (!Number.isFinite(delta)) {
@@ -299,7 +369,7 @@ export const subscriptionUsageRouter = router({
       await db.insert(niscClientSubscriptionUsageActivityLog).values({
         id: crypto.randomUUID(),
         subscriptionUsageId: input.subscriptionUsageId,
-        userId: ctx.session.user.id,
+        userId: actor.userId,
         action: input.action,
         description: input.description ?? null,
         metadata:
@@ -326,9 +396,20 @@ export const subscriptionUsageRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (!ctx.session?.user?.id) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+      const actor = await getActor(ctx);
+      const [usage] = await db
+        .select({ subscriptionId: niscClientSubscriptionUsage.subscriptionId })
+        .from(niscClientSubscriptionUsage)
+        .where(eq(niscClientSubscriptionUsage.id, input.subscriptionUsageId))
+        .limit(1);
+      if (!usage) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Subscription usage not found" });
       }
+      await ensureSubscriptionReadAccess({
+        subscriptionId: usage.subscriptionId,
+        userId: actor.userId,
+        role: actor.role,
+      });
       const whereUsage = eq(
         niscClientSubscriptionUsageActivityLog.subscriptionUsageId,
         input.subscriptionUsageId,
