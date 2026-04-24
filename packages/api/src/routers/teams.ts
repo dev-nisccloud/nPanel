@@ -9,7 +9,84 @@ import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
-import { sendEmail } from "react-email-starter/src/email";
+import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
+
+/**
+ * Sends a transactional HTML email via AWS SES using the same sender/config
+ * pattern as the agency invoicing flow (NISC_TX_* env vars + configuration set).
+ * Returns { success } rather than throwing, so batch callers can decide per-recipient.
+ */
+async function sendTransactionalEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const fromDomainRaw = process.env.NISC_TX_EMAIL_DOMAIN?.trim();
+    const fromDomain =
+      fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
+    const fromEmail = (process.env.NISC_TX_FROM_EMAIL?.trim() ||
+      (fromDomain ? `noreply@${fromDomain}` : "noreply@npanel.com")) as string;
+    const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
+    const replyTo = process.env.NISC_TX_REPLY_TO?.trim() || undefined;
+
+    const stripHeaderUnsafe = (value: string) =>
+      value.replace(/[\r\n]+/g, " ").trim();
+    const toRfc2047Utf8 = (value: string): string => {
+      if (/^[\x00-\x7F]*$/.test(value)) return value;
+      const buf = Buffer.from(value, "utf8");
+      return `=?UTF-8?B?${buf.toString("base64")}?=`;
+    };
+    const parseDisplayEmail = (
+      value: string,
+    ): { name: string | null; email: string } => {
+      const v = stripHeaderUnsafe(value);
+      const m = v.match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/);
+      if (m) return { name: m[1]?.trim() || null, email: m[2]!.trim() };
+      return { name: null, email: v };
+    };
+    const buildFromHeader = (n: string | null, e: string) => {
+      const parsed = parseDisplayEmail(e);
+      const name = stripHeaderUnsafe(n ?? parsed.name ?? "");
+      const email = stripHeaderUnsafe(parsed.email);
+      return name ? `${toRfc2047Utf8(name)} <${email}>` : email;
+    };
+
+    const boundary = `npanel-alt-${crypto.randomUUID()}`;
+    const lines: string[] = [];
+    lines.push(`From: ${buildFromHeader(fromName, fromEmail)}`);
+    lines.push(`To: ${stripHeaderUnsafe(params.to)}`);
+    lines.push(
+      `Subject: ${toRfc2047Utf8(stripHeaderUnsafe(params.subject))}`,
+    );
+    if (replyTo) lines.push(`Reply-To: ${stripHeaderUnsafe(replyTo)}`);
+    lines.push("MIME-Version: 1.0");
+    lines.push(
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    );
+    lines.push("");
+    lines.push(`--${boundary}`);
+    lines.push('Content-Type: text/html; charset="UTF-8"');
+    lines.push("Content-Transfer-Encoding: 7bit");
+    lines.push("");
+    lines.push(params.html);
+    lines.push("");
+    lines.push(`--${boundary}--`);
+    lines.push("");
+    const raw = Buffer.from(lines.join("\r\n"), "utf8");
+
+    const ses = getSesClient();
+    await sendSesRawEmail(ses, {
+      RawMessage: { Data: raw },
+      Destinations: [params.to],
+    });
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
 
 // Zod schemas for API - independent from database schema
 const createTeamInputSchema = z.object({
@@ -206,7 +283,8 @@ export const teamsRouter = router({
 
       const { team: createdTeam, invites } = result;
 
-      // Send invite emails after successful team creation
+      // Send invite emails after successful team creation (via SES, matching
+      // the transactional email pattern used by agency invoicing).
       if (invites.length > 0) {
         const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
 
@@ -225,15 +303,27 @@ export const teamsRouter = router({
 
             return {
               to: invite.email,
-              subject: `You've been invited to join ${createdTeam.name} on npanel`,
+              subject: `You've been invited to join ${createdTeam.name} on Nisc Cloud`,
               html,
               inviteCode: invite.code,
             };
           }),
         );
 
-        const { sendEmailBatch } = await import("react-email-starter/src/email");
-        const results = await sendEmailBatch(emailsToSend);
+        const results = await Promise.all(
+          emailsToSend.map(async (e) => {
+            const r = await sendTransactionalEmail({
+              to: e.to,
+              subject: e.subject,
+              html: e.html,
+            });
+            return {
+              email: e.to,
+              success: r.success,
+              error: r.success ? undefined : r.error,
+            };
+          }),
+        );
 
         const activityLogs = results
           .map((result) => {
@@ -1341,11 +1431,15 @@ export const teamsRouter = router({
           expiresInDays: 7,
         });
 
-        await sendEmail({
+        const result = await sendTransactionalEmail({
           to: input.email,
           subject: `You've been invited to join ${teamRow.name} on Nisc Cloud`,
           html,
         });
+
+        if (!result.success) {
+          console.error("Failed to send invite email:", result.error);
+        }
       } catch (emailError) {
         console.error("Failed to send invite email:", emailError);
       }

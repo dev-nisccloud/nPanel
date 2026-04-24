@@ -18,26 +18,23 @@ export const EmailFooter = ({
   const email = customEmail || companyBranding.email;
   const phone = customPhone || companyBranding.phone;
 
+  const websiteDisplay = companyBranding.website.replace(/^https?:\/\//, "");
+
   return (
     <Section style={emailStyles.footerSection}>
       <Row>
-        <Column style={emailStyles.footerLeftColumn}>
-          <Img
-            alt={companyBranding.footerLogo.alt}
-            height={companyBranding.footerLogo.height}
-            src={companyBranding.footerLogo.src}
-          />
-          <Text style={emailStyles.footerTagline}>
-            {companyBranding.tagline}
-          </Text>
-        </Column>
-        <Column align="left" style={emailStyles.footerRightColumn}>
+        <Column align="left" style={emailStyles.footerLeftColumn}>
           <Row>
             <Text style={emailStyles.footerAddress}>
               {address}
             </Text>
             <Text style={emailStyles.footerContact}>
               {email}
+            </Text>
+            <Text style={emailStyles.footerContact}>
+              <Link href={companyBranding.website} style={emailStyles.footerContactLink}>
+                {websiteDisplay}
+              </Link>
             </Text>
             <Text style={emailStyles.footerContact}>
               {phone}
@@ -72,6 +69,15 @@ export const EmailFooter = ({
               </Column>
             </Row>
           )}
+        </Column>
+        <Column align="right" style={emailStyles.footerRightColumn}>
+          <Img
+            alt={companyBranding.footerLogo.alt}
+            width={companyBranding.footerLogo.width}
+            height={companyBranding.footerLogo.height}
+            src={companyBranding.footerLogo.src}
+            style={emailStyles.footerLogoImg}
+          />
         </Column>
       </Row>
     </Section>

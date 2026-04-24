@@ -62,6 +62,18 @@ export const emailStyles = {
     marginBottom: '8px',
   },
 
+  signatureTagline: {
+    fontSize: '14px',
+    fontFamily:
+      "'Inter', 'Inter Sans Serif', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    fontStyle: 'italic' as const,
+    fontWeight: '400',
+    color: '#6b7280',
+    lineHeight: '22px',
+    marginTop: '14px',
+    marginBottom: '0',
+  },
+
   // Footer styles
   footerSection: {
     marginTop: '32px',
@@ -70,13 +82,15 @@ export const emailStyles = {
   },
 
   footerLeftColumn: {
-    width: '50%',
-    paddingRight: '40px',
+    width: '60%',
+    paddingRight: '24px',
+    verticalAlign: 'middle' as const,
   },
 
   footerRightColumn: {
-    width: '50%',
-    verticalAlign: 'bottom',
+    width: '40%',
+    verticalAlign: 'middle' as const,
+    textAlign: 'right' as const,
   },
 
   footerCompanyName: {
@@ -131,6 +145,17 @@ export const emailStyles = {
     margin: '0 0 4px 0',
     textAlign: 'left' as const,
   },
+
+  footerContactLink: {
+    color: '#6b7280',
+    textDecoration: 'none',
+  },
+
+  footerLogoImg: {
+    display: 'inline-block',
+    verticalAlign: 'middle' as const,
+    marginLeft: 'auto',
+  },
 };
 
 // Company branding constants
@@ -144,7 +169,8 @@ export const companyBranding = {
   footerLogo: {
     src: "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png",
     alt: "Nisc Cloud Limited",
-    height: "42",
+    width: "175",
+    height: "50",
   },
   name: "Nisc Cloud Limited",
   tagline: "Transforming Businesses to stand out and succeed",

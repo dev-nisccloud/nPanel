@@ -24,7 +24,7 @@ type CreateTeamInput = {
 };
 
 const STEPS = [
-  { key: 1, label: "Company details", icon: Building2 },
+  { key: 1, label: "Organization details", icon: Building2 },
   { key: 2, label: "Invite members", icon: Users },
 ] as const;
 
@@ -38,28 +38,28 @@ export function CreateTeamForm() {
 
   const createTeamMutation = trpc.teams.create.useMutation({
     onSuccess: (data) => {
-      toast.success("Company created successfully!");
+      toast.success("Organization created successfully!");
       const teamSlug = data.team.slug;
       // Full page navigation so server re-runs and sees the new team (avoids staying on create-team)
       window.location.assign(`/${teamSlug}/dashboard`);
     },
     onError: (error: { message?: string }) => {
-      toast.error(error.message || "Failed to create company");
+      toast.error(error.message || "Failed to create organization");
     },
   });
 
   const handleNext = () => {
     if (currentStep === 1) {
       if (!formData.teamName.trim()) {
-        toast.error("Company name is required");
+        toast.error("Organization name is required");
         return;
       }
       if (formData.teamName.trim().length < 2) {
-        toast.error("Company name must be at least 2 characters");
+        toast.error("Organization name must be at least 2 characters");
         return;
       }
       if (formData.teamName.trim().length > 100) {
-        toast.error("Company name must be less than 100 characters");
+        toast.error("Organization name must be less than 100 characters");
         return;
       }
     }
@@ -132,21 +132,21 @@ export function CreateTeamForm() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {currentStep === 1 ? "Create your company" : "Invite members"}
+              {currentStep === 1 ? "Create your organization" : "Invite your team"}
             </h1>
-            <p className="text-muted-foreground text-sm mt-1.5 max-w-[280px] mx-auto">
+            <p className="text-muted-foreground text-sm mt-1.5 max-w-[320px] mx-auto leading-relaxed">
               {currentStep === 1
-                ? "Give your company a name and choose a default currency for billing."
-                : "Add colleagues by email. You can skip this and invite them later."}
+                ? "An organization keeps your domains, hosting, subscriptions, and team in one private workspace."
+                : "Invited people will only see this organization’s resources. Add them now or skip and do it later."}
             </p>
           </div>
 
-          {/* Step 1: Company Details */}
+          {/* Step 1: Organization Details */}
           {currentStep === 1 && (
             <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
               <div className="space-y-2 w-full">
                 <Label htmlFor="teamName" className="text-sm font-medium">
-                  Company name <span className="text-destructive">*</span>
+                  Organization name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="teamName"
@@ -200,8 +200,8 @@ export function CreateTeamForm() {
                   className="min-h-[120px] w-full resize-none rounded-lg border-border/80 focus-visible:ring-2"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Separate with commas or new lines. Optional   you can invite later from
-                  company settings.
+                  Separate with commas or new lines. They’ll only get access to this
+                  organization   you can always invite more people later.
                 </p>
               </div>
             </div>
@@ -228,7 +228,7 @@ export function CreateTeamForm() {
                 className="flex-1 h-11 rounded-lg gap-2"
                 disabled={createTeamMutation.isPending}
               >
-                {createTeamMutation.isPending ? "Creating…" : "Create company"}
+                {createTeamMutation.isPending ? "Creating…" : "Create organization"}
                 {!createTeamMutation.isPending && (
                   <ArrowRight className="h-4 w-4" />
                 )}

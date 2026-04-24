@@ -18,30 +18,31 @@ export default function CreateTeamRouteLayout() {
           </div>
           <div className="max-w-sm flex-1 flex flex-col justify-center">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Set up your company in minutes
+              Why create an organization?
             </h2>
             <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-              Create a workspace, add your company, and start managing domains, hosting, and
-              billing in one place.
+              An organization is a private workspace for your business. Everything inside it  
+              domains, hosting, subscriptions, and teammates   stays separate from your other
+              organizations.
             </p>
             <ul className="mt-8 space-y-4 text-sm text-muted-foreground">
-              <li className="flex items-center gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
                   1
                 </span>
-                Company name and currency
+                <span>Keep each organization’s resources and billing separate</span>
               </li>
-              <li className="flex items-center gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
                   2
                 </span>
-                Optional: invite members by email
+                <span>Invite teammates to only the organization they should access</span>
               </li>
-              <li className="flex items-center gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
+              <li className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-xs font-medium">
                   3
                 </span>
-                You’re in   head to your dashboard
+                <span>Each organization has its own subscriptions and dashboard</span>
               </li>
             </ul>
           </div>

@@ -1,26 +1,22 @@
 import { Text } from '@react-email/components';
-import { emailStyles } from './shared-styles';
+import { companyBranding, emailStyles } from './shared-styles';
 
 interface EmailSignatureProps {
   salutation?: string;
   signature?: string;
-  website?: string;
+  tagline?: string;
 }
 
-export const EmailSignature = ({ 
+export const EmailSignature = ({
   salutation = "Best regards,",
   signature = "The Nisc Cloud Team",
-  website = "https://www.nisccloud.com"
+  tagline = companyBranding.tagline,
 }: EmailSignatureProps) => {
   return (
     <>
       <Text style={emailStyles.salutation}>{salutation}</Text>
       <Text style={emailStyles.signature}>{signature}</Text>
-      <Text style={emailStyles.text}>
-        <a style={emailStyles.anchor} href={website}>
-          www.nisccloud.com
-        </a>
-      </Text>
+      <Text style={emailStyles.signatureTagline}>{tagline}</Text>
     </>
   );
 };
