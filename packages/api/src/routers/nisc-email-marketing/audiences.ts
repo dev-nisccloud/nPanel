@@ -110,7 +110,15 @@ function splitName(full: string | null | undefined): { firstName: string | null;
 export const niscEmailMarketingAudiencesRouter = router({
   create: protectedProcedure.input(audienceCreateInputSchema).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+    if (!isAgencyUserRole(userRole) && !input.teamId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "teamId is required for customer audience creation",
+      });
+    }
 
     if (input.teamId) {
       const member = await assertTeamMember(input.teamId, userId);
@@ -210,8 +218,10 @@ export const niscEmailMarketingAudiencesRouter = router({
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
       conditions.push(eq(niscEmAudience.teamId, input.teamId));
     } else {
-      // Personal audiences: only user
-      conditions.push(eq(niscEmAudience.userId, userId));
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "teamId is required for customer audience listing",
+      });
     }
 
     if (input.search) {

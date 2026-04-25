@@ -27,14 +27,6 @@ async function assertTeamMember(teamId: string, userId: string) {
   return member ?? null;
 }
 
-async function listUserTeamIds(userId: string): Promise<string[]> {
-  const rows = await db
-    .select({ teamId: teamMember.teamId })
-    .from(teamMember)
-    .where(eq(teamMember.userId, userId));
-  return rows.map((r) => r.teamId);
-}
-
 function isAgencyUserRole(role: string | null | undefined): boolean {
   if (!role) return false;
   return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
@@ -223,19 +215,10 @@ export const niscEmailMarketingCampaignsRouter = router({
       if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
       conditions.push(eq(niscEmCampaign.teamId, input.teamId));
     } else {
-      const teamIds = await listUserTeamIds(userId);
-      // Agency-side default scope: all campaigns in teams the user belongs to.
-      // Keep personal fallback so non-team users still see their own campaigns.
-      if (teamIds.length > 0) {
-        conditions.push(
-          or(
-            inArray(niscEmCampaign.teamId, teamIds),
-            eq(niscEmCampaign.userId, userId),
-          ),
-        );
-      } else {
-        conditions.push(eq(niscEmCampaign.userId, userId));
-      }
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "teamId is required for customer campaign listing",
+      });
     }
 
     if (input.status) {
@@ -325,7 +308,19 @@ export const niscEmailMarketingCampaignsRouter = router({
 
   create: protectedProcedure.input(campaignCreateInputSchema).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+    if (!isAgencyUserRole(userRole)) {
+      if (!input.teamId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "teamId is required for customer campaign creation",
+        });
+      }
+      const member = await assertTeamMember(input.teamId, userId);
+      if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+    }
 
     if (input.emailDomainId) {
       const [domain] = await db

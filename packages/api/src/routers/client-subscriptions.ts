@@ -834,6 +834,110 @@ export const clientSubscriptionsRouter = router({
             });
         }),
 
+    /**
+     * List Nisc Email Marketing subscriptions for a team (customer view). Matches products whose name
+     * contains "nisc email marketing" or "email marketing" (case-insensitive), same criteria as
+     * products.getNiscEmailMarketingPlansForPricing. Caller must be a member of the team.
+     */
+    listForTeamNiscEmailMarketing: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.array(
+                z.object({
+                    id: z.string(),
+                    pleskSubscriptionId: z.string().nullable(),
+                    subscriptionName: z.string().nullable(),
+                    status: subscriptionStatusSchema,
+                    productName: z.string(),
+                    productPlanName: z.string().nullable(),
+                    subscriptionDate: z.date().nullable(),
+                    expiryDate: z.date().nullable(),
+                    primaryDomain: z.string().nullable(),
+                }),
+            ),
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const emProducts = await db
+                .select({ id: niscProduct.id })
+                .from(niscProduct)
+                .where(
+                    and(
+                        eq(niscProduct.isActive, true),
+                        or(
+                            ilike(niscProduct.name, "%nisc email marketing%"),
+                            ilike(niscProduct.name, "%email marketing%"),
+                        ),
+                    ),
+                );
+            const productIds = emProducts.map((p) => p.id);
+            if (productIds.length === 0) return [];
+
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: and(
+                    eq(niscClientSubscription.teamId, teamId),
+                    inArray(niscClientSubscription.productId, productIds),
+                ),
+                orderBy: (s, { desc: d }) => [d(s.createdAt)],
+                columns: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    subscriptionDate: true,
+                    expiryDate: true,
+                    primaryDomain: true,
+                    serviceRefs: true,
+                    pleskFilterId: true,
+                },
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
+                },
+            });
+
+            return subs.map((sub) => {
+                let pleskId: string | null = null;
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+                    pleskId = String(refs.pleskSubscriptionId);
+                }
+                if (!pleskId && sub.pleskFilterId) pleskId = sub.pleskFilterId;
+                return {
+                    id: sub.id,
+                    pleskSubscriptionId: pleskId,
+                    subscriptionName: sub.name ?? null,
+                    status: sub.status as SubscriptionStatus,
+                    productName: sub.product.name,
+                    productPlanName: sub.productPlan?.name ?? null,
+                    subscriptionDate: sub.subscriptionDate,
+                    expiryDate: sub.expiryDate,
+                    primaryDomain: sub.primaryDomain,
+                };
+            });
+        }),
+
     /** List domain subscriptions for a team (customer view). Returns subscriptions for products whose name contains "domains" (case-insensitive). Caller must be a member of the team. */
     listForTeamDomains: protectedProcedure
         .input(z.object({ teamSlug: z.string().min(1) }))
