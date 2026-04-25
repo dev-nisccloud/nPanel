@@ -18,6 +18,7 @@ import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
+import { processNiscOrder } from "../lib/nisc-order-processor";
 import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
@@ -39,6 +40,20 @@ function isAgencyUserRole(role: string | null | undefined): boolean {
 
 function isAgencySuperAdminRole(role: string | null | undefined): boolean {
 	return role === "AGENCY_SUPER_ADMIN";
+}
+
+function resolveOrderServiceType(serviceType: string): string {
+	return serviceType === "domains" ? "domain_registration" : serviceType;
+}
+
+function requiresExternalProvisioning(serviceType: string): boolean {
+	const resolved = resolveOrderServiceType(serviceType);
+	return (
+		resolved === "web_hosting" ||
+		resolved === "email_hosting" ||
+		resolved === "domain_registration" ||
+		resolved === "domain_transfer"
+	);
 }
 
 async function isTeamMember(teamId: string, userId: string): Promise<boolean> {
@@ -584,6 +599,18 @@ export const niscServiceOrdersRouter = router({
 				}
 			}
 
+			const serviceTypeByProductId = new Map<string, string>();
+			{
+				const productIds = Array.from(new Set(input.items.map((i) => i.productId)));
+				const rows = await db
+					.select({ id: niscProduct.id, serviceType: niscProduct.serviceType })
+					.from(niscProduct)
+					.where(inArray(niscProduct.id, productIds));
+				for (const row of rows) {
+					serviceTypeByProductId.set(row.id, row.serviceType);
+				}
+			}
+
 			const needsProfile = await Promise.all(
 				input.items.map(async (i) => {
 					const pRows = await db
@@ -765,28 +792,43 @@ export const niscServiceOrdersRouter = router({
 				}
 			}
 
-			let qstashMessageId: string | null = null;
-			try {
-				const result = await enqueueNiscOrderProcessing(order.id);
-				qstashMessageId = result.messageId;
-			} catch (err) {
+			const hasExternalProvisioningItems = input.items.some((item) => {
+				const serviceType = serviceTypeByProductId.get(item.productId);
+				return serviceType ? requiresExternalProvisioning(serviceType) : true;
+			});
+
+			if (hasExternalProvisioningItems) {
+				let qstashMessageId: string | null = null;
+				try {
+					const result = await enqueueNiscOrderProcessing(order.id);
+					qstashMessageId = result.messageId;
+				} catch (err) {
+					await db
+						.update(niscOrder)
+						.set({
+							failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
+						})
+						.where(eq(niscOrder.id, order.id));
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message:
+							err instanceof Error ? err.message : "Failed to enqueue order for processing",
+					});
+				}
+
 				await db
 					.update(niscOrder)
-					.set({
-						failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
-					})
+					.set({ qstashMessageId })
 					.where(eq(niscOrder.id, order.id));
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						err instanceof Error ? err.message : "Failed to enqueue order for processing",
-				});
+			} else {
+				const processResult = await processNiscOrder(order.id);
+				if (!processResult.ok) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: processResult.failureReason || "Failed to complete order processing",
+					});
+				}
 			}
-
-			await db
-				.update(niscOrder)
-				.set({ qstashMessageId })
-				.where(eq(niscOrder.id, order.id));
 
 			// Fire-and-forget: send "order received" email to the logged-in user
 			void (async () => {

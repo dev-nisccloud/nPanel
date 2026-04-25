@@ -72,6 +72,8 @@ interface BuyNowDialogProps {
   buyDomainHref?: string;
   /** If "add_to_cart", dialog stops at review and saves configured item to cart. */
   intent?: "buy_now" | "add_to_cart";
+  /** Start non-Hivelocity flows directly on the payment step. */
+  startAtPayment?: boolean;
 }
 
 type Step = "domain" | "hivelocity_config" | "review" | "payment" | "success" | "error";
@@ -154,10 +156,18 @@ export function BuyNowDialog({
   teamId,
   buyDomainHref,
   intent = "buy_now",
+  startAtPayment = false,
 }: BuyNowDialogProps) {
   const isHivelocityPlan = Boolean(plan?.hivelocity);
   const showDomainStep = !!requireDomainStep && !!teamId;
-  const initialStep: Step = showDomainStep ? "domain" : isHivelocityPlan ? "hivelocity_config" : "review";
+  const shouldStartAtPayment = startAtPayment && !showDomainStep && !isHivelocityPlan && intent === "buy_now";
+  const initialStep: Step = showDomainStep
+    ? "domain"
+    : isHivelocityPlan
+      ? "hivelocity_config"
+      : shouldStartAtPayment
+        ? "payment"
+        : "review";
 
   const { addHivelocity } = useCartStore();
 
@@ -520,7 +530,13 @@ export function BuyNowDialog({
   // Reset state when dialog opens/closes
   React.useEffect(() => {
     if (open && plan) {
-      const first: Step = showDomainStep ? "domain" : plan.hivelocity ? "hivelocity_config" : "review";
+      const first: Step = showDomainStep
+        ? "domain"
+        : plan.hivelocity
+          ? "hivelocity_config"
+          : shouldStartAtPayment
+            ? "payment"
+            : "review";
       setCurrentStep(first);
       setManualDomain("");
       setSelectedDomainId(null);
@@ -558,7 +574,7 @@ export function BuyNowDialog({
       const ref = `${planShort}${timestamp}`.substring(0, 12);
       setAccountReference(ref);
     }
-  }, [open, plan, showDomainStep]);
+  }, [open, plan, showDomainStep, shouldStartAtPayment]);
 
   // Helper function to get user-friendly error messages
   const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
@@ -888,7 +904,11 @@ export function BuyNowDialog({
 
   const handleBack = () => {
     if (currentStep === "payment") {
-      setCurrentStep("review");
+      if (shouldStartAtPayment) {
+        onOpenChange(false);
+      } else {
+        setCurrentStep("review");
+      }
     } else if (currentStep === "review" && showDomainStep) {
       setCurrentStep("domain");
     } else if (currentStep === "review" && isHivelocityPlan) {
@@ -1938,13 +1958,15 @@ export function BuyNowDialog({
           )}
           {currentStep === "payment" && (
             <>
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="text-primary"
-              >
-                Back
-              </Button>
+              {!shouldStartAtPayment && (
+                <Button
+                  variant="ghost"
+                  onClick={handleBack}
+                  className="text-primary"
+                >
+                  Back
+                </Button>
+              )}
               <Button
                 onClick={() => onOpenChange(false)}
                 variant="outline"

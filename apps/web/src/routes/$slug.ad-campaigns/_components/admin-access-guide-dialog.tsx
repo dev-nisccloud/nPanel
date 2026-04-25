@@ -100,7 +100,7 @@ const GUIDES: Record<AdPlatform, PlatformGuide> = {
     title: "Google Ads Access",
     description:
       "Share access to your Google Ads account so Nisc Cloud can manage campaigns and pull performance data on your behalf.",
-    niscContact: "ads@nisccloud.com",
+    niscContact: "nisccloudmarketing@gmail.com",
     niscContactLabel: "Nisc Cloud Google Account Email",
     accessUrl: "https://ads.google.com/",
     accessUrlLabel: "Open Google Ads",
@@ -126,7 +126,7 @@ const GUIDES: Record<AdPlatform, PlatformGuide> = {
         heading: "Add Nisc Cloud as a User",
         instructions: [
           'Click the "+" (plus) icon above the existing users list.',
-          'Enter the Nisc Cloud email: ads@nisccloud.com',
+          'Enter the Nisc Cloud email: nisccloudmarketing@gmail.com',
           'Set the access level to "Standard"  this allows Nisc Cloud to manage campaigns without touching billing details.',
           'Click "Send invitation".',
         ],

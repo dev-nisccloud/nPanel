@@ -180,9 +180,6 @@ export function MediaBuyingPricing({ platform }: MediaBuyingPricingProps) {
           {/* Selected plan summary */}
           {selectedPlan && commissionRate && (
             <div className="rounded-xl border border-primary/20 bg-primary/5 px-5 py-4 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                {selectedPlan.name}:
-              </span>{" "}
               You will be billed at{" "}
               <span className="font-semibold text-foreground">
                 {commissionRate}

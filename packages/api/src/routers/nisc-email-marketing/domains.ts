@@ -287,7 +287,18 @@ export const niscEmailMarketingDomainsRouter = router({
   // These return the legacy schemas but are backed by SES + nisc_em_domain.
   create: protectedProcedure.input(emailDomainCreateInputSchema).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;
+    const userRole = ctx.session?.user?.role;
     if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+    if (!isAgencyUserRole(userRole) && !input.teamId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "teamId is required for customer domain creation",
+      });
+    }
+    if (input.teamId) {
+      const member = await assertTeamMember(input.teamId, userId);
+      if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+    }
     const teamId = input.teamId ?? null;
     const domainName = input.domainName.trim().toLowerCase();
     const detail = await addDomainCore({ userId, teamId, domainName });
@@ -356,13 +367,15 @@ export const niscEmailMarketingDomainsRouter = router({
 
     const conditions = [];
     if (!isAgencyUserRole(userRole)) {
-      const accessOr = [eq(niscEmDomain.userId, userId)];
-      if (input.teamId) {
-        accessOr.push(
-          sql`(${niscEmDomain.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
-        );
+      if (!input.teamId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "teamId is required for customer domain listing",
+        });
       }
-      conditions.push(or(...accessOr));
+      const member = await assertTeamMember(input.teamId, userId);
+      if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      conditions.push(eq(niscEmDomain.teamId, input.teamId));
     }
     if (input.status) conditions.push(eq(niscEmDomain.status, input.status));
     if (input.search) conditions.push(ilike(niscEmDomain.domainName, `%${input.search}%`));
@@ -390,7 +403,18 @@ export const niscEmailMarketingDomainsRouter = router({
     .input(niscEmailDomainCreateInputSchema)
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+      if (!isAgencyUserRole(userRole) && !input.teamId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "teamId is required for customer domain creation",
+        });
+      }
+      if (input.teamId) {
+        const member = await assertTeamMember(input.teamId, userId);
+        if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+      }
 
       const teamId = input.teamId ?? null;
       const domainName = input.domainName.trim().toLowerCase();
@@ -468,13 +492,15 @@ export const niscEmailMarketingDomainsRouter = router({
 
       const conditions = [];
       if (!isAgencyUserRole(userRole)) {
-        const accessOr = [eq(niscEmDomain.userId, userId)];
-        if (input.teamId) {
-          accessOr.push(
-            sql`(${niscEmDomain.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`,
-          );
+        if (!input.teamId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "teamId is required for customer domain listing",
+          });
         }
-        conditions.push(or(...accessOr));
+        const member = await assertTeamMember(input.teamId, userId);
+        if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        conditions.push(eq(niscEmDomain.teamId, input.teamId));
       }
       if (input.status) conditions.push(eq(niscEmDomain.status, input.status));
       if (input.search) conditions.push(ilike(niscEmDomain.domainName, `%${input.search}%`));
