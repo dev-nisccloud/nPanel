@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, count, desc, eq, ilike, inArray, or } from "@npanel/db";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { teamMember } from "@npanel/db/schema/teams";
@@ -241,6 +241,9 @@ export const niscEmailMarketingCampaignsRouter = router({
         ),
       );
     }
+    // Hide only campaigns whose name is exactly "Transactional" (case-insensitive).
+    // Names that contain additional words, e.g. "Transactional Welcome", are returned.
+    conditions.push(sql`lower(trim(${niscEmCampaign.name})) <> 'transactional'`);
 
     const whereClause = and(...conditions);
 
@@ -372,7 +375,11 @@ export const niscEmailMarketingCampaignsRouter = router({
           contactId: null,
           toEmail,
           fromEmail: input.fromEmail,
+          fromName: input.fromName ?? null,
+          replyTo: null,
           subject: input.subject,
+          htmlContent: input.htmlContent ?? null,
+          textContent: input.textContent ?? null,
           sesMessageId: null,
           status: "QUEUED",
           opens: 0,
