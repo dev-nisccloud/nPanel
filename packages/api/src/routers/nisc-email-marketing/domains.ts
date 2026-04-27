@@ -12,6 +12,7 @@ import {
   niscEmailDomainDetailSchema,
   niscEmailDomainListFiltersSchema,
   niscEmailDomainListResponseSchema,
+  niscEmailDomainSendTestEmailInputSchema,
   niscEmailDomainSummarySchema,
   niscEmailDomainVerifyInputSchema,
 } from "./schemas";
@@ -22,6 +23,7 @@ import {
   emailDomainListResponseSchema,
   emailDomainSummarySchema,
 } from "../email-marketing/schemas";
+import { sendSesRawEmail } from "../../lib/ses-client";
 
 async function assertTeamMember(teamId: string, userId: string) {
   const [member] = await db
@@ -323,6 +325,58 @@ export const niscEmailMarketingDomainsRouter = router({
     const row = await verifyDomainCore({ userId, id: input.id });
     return mapToLegacyDomainDetail(row);
   }),
+
+  sendTestEmail: protectedProcedure
+    .input(niscEmailDomainSendTestEmailInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session?.user?.id;
+      const userRole = ctx.session?.user?.role;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+
+      const domain = await assertDomainOwnerAccess(input.domainId, userId, userRole);
+      if (domain.status !== "VERIFIED") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Domain must be verified before sending test email",
+        });
+      }
+
+      const ses = getSesClient();
+      const timestamp = new Date().toLocaleString();
+      const body = `This is a test email from nPanel - ${timestamp} to test the domain name - ${domain.domainName} verification on npanel.`;
+      const fromEmail = `send@${domain.domainName}`;
+
+      try {
+        const res = await sendSesRawEmail(ses, {
+          Source: fromEmail,
+          Destinations: [input.to, ...(input.cc ?? []), ...(input.bcc ?? [])],
+          RawMessage: {
+            Data: Buffer.from(
+              [
+                `From: nPanel <${fromEmail}>`,
+                `To: ${input.to}`,
+                ...(input.cc.length ? [`Cc: ${input.cc.join(", ")}`] : []),
+                "Subject: nPanel domain verification test email",
+                "MIME-Version: 1.0",
+                'Content-Type: text/plain; charset="UTF-8"',
+                "",
+                body,
+                "",
+              ].join("\r\n"),
+              "utf8",
+            ),
+          },
+        });
+
+        return {
+          ok: true,
+          messageId: res.MessageId ?? null,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to send test email";
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+      }
+    }),
 
   delete: protectedProcedure.input(z.object({ id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
     const userId = ctx.session?.user?.id;

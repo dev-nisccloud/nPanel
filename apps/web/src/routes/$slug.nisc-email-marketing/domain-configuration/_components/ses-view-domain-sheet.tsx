@@ -130,7 +130,7 @@ export function SesViewDomainSheet(props: {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Domain Information</h3>
-                  <Button variant="outline" size="sm" onClick={handleVerify} disabled={isVerifying}>
+                  <Button type="button" variant="outline" size="sm" onClick={handleVerify} disabled={isVerifying}>
                     {isVerifying ? (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -203,6 +203,7 @@ export function SesViewDomainSheet(props: {
                                 {record.name}
                               </code>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 flex-shrink-0"
@@ -220,6 +221,7 @@ export function SesViewDomainSheet(props: {
                                 {record.type}
                               </code>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 flex-shrink-0"
@@ -238,6 +240,7 @@ export function SesViewDomainSheet(props: {
                                   {record.priority}
                                 </code>
                                 <Button
+                                  type="button"
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7 flex-shrink-0"
@@ -256,6 +259,7 @@ export function SesViewDomainSheet(props: {
                                 {record.value}
                               </code>
                               <Button
+                                type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-7 w-7 flex-shrink-0"
