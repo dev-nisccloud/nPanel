@@ -41,33 +41,35 @@ export const EmailFooter = ({
             </Text>
           </Row>
           {showSocialLinks && (
-            <Row style={emailStyles.socialRow}>
-              <Column style={emailStyles.socialColumn}>
-                <Link href={companyBranding.socialLinks.facebook}>
-                  <Img
-                    alt="Facebook"
-                    height="36"
-                    src="https://react.email/static/facebook-logo.png"
-                    width="36"
-                  />
-                </Link>
-              </Column>
-              <Column style={emailStyles.socialColumn}>
-                <Link href={companyBranding.socialLinks.twitter}>
-                  <Img alt="X" height="36" src="https://react.email/static/x-logo.png" width="36" />
-                </Link>
-              </Column>
-              <Column style={emailStyles.socialColumn}>
-                <Link href={companyBranding.socialLinks.instagram}>
-                  <Img
-                    alt="Instagram"
-                    height="36"
-                    src="https://react.email/static/instagram-logo.png"
-                    width="36"
-                  />
-                </Link>
-              </Column>
-            </Row>
+            <Section style={emailStyles.socialRow}>
+              <Link href={companyBranding.socialLinks.facebook} style={emailStyles.socialLink}>
+                <Img
+                  alt="Facebook"
+                  height="36"
+                  src="https://react.email/static/facebook-logo.png"
+                  width="36"
+                  style={emailStyles.socialIcon}
+                />
+              </Link>
+              <Link href={companyBranding.socialLinks.twitter} style={emailStyles.socialLink}>
+                <Img
+                  alt="X"
+                  height="36"
+                  src="https://react.email/static/x-logo.png"
+                  width="36"
+                  style={emailStyles.socialIcon}
+                />
+              </Link>
+              <Link href={companyBranding.socialLinks.instagram} style={emailStyles.socialLink}>
+                <Img
+                  alt="Instagram"
+                  height="36"
+                  src="https://react.email/static/instagram-logo.png"
+                  width="36"
+                  style={emailStyles.socialIcon}
+                />
+              </Link>
+            </Section>
           )}
         </Column>
         <Column align="right" style={emailStyles.footerRightColumn}>

@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
 import { apiKey } from "@npanel/db/schema/auth-extras";
 import { user } from "@npanel/db/schema/auth";
+import { and, isNull, or } from "@npanel/db";
+import { userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
 
 type AuthSessionNonNull = NonNullable<
   Awaited<ReturnType<typeof auth.api.getSession>>
@@ -37,6 +39,9 @@ export type Session =
 export type Context = {
   session: Session;
   apiKey?: { id: string; permissions: string[] };
+  mfaRequired?: boolean;
+  mfaVerified?: boolean;
+  mfaSetupRequired?: boolean;
   /** Used by AI chat to get a tRPC caller. Injected by the app. */
   createCaller?: (ctx: Context) => unknown;
   ipAddress?: string | null;
@@ -143,8 +148,57 @@ export async function createContext({
     headers: context.req.raw.headers,
   });
   const ipAddress = context.req.raw.headers.get("x-forwarded-for") ?? null;
+
+  let mfaRequired = false;
+  let mfaVerified = true;
+  let mfaSetupRequired = false;
+  const sessionUserId = session?.user?.id;
+  const sessionId = session?.session?.id;
+  if (typeof sessionUserId === "string" && sessionUserId.length > 0 && sessionId) {
+    const mfaRows = await db
+      .select({
+        id: userMfaSettings.id,
+        setupRequired: userMfaSettings.setupRequired,
+      })
+      .from(userMfaSettings)
+      .where(
+        and(
+          eq(userMfaSettings.userId, sessionUserId),
+          or(
+            eq(userMfaSettings.emailOtpEnabled, true),
+            eq(userMfaSettings.setupRequired, true),
+          ),
+        ),
+      )
+      .limit(1);
+
+    mfaRequired = Boolean(mfaRows[0]);
+    mfaSetupRequired = mfaRows[0]?.setupRequired === true;
+
+    if (!mfaRequired && mfaSetupRequired) {
+      mfaRequired = true;
+    }
+
+    if (mfaRequired) {
+      const pendingRows = await db
+        .select({ id: userMfaSession.id })
+        .from(userMfaSession)
+        .where(
+          and(
+            eq(userMfaSession.sessionId, sessionId),
+            isNull(userMfaSession.verifiedAt),
+          ),
+        )
+        .limit(1);
+      mfaVerified = !pendingRows[0];
+    }
+  }
+
   return {
     session: session as Session,
+    mfaRequired,
+    mfaVerified,
+    mfaSetupRequired,
     createCaller,
     ipAddress,
   };
