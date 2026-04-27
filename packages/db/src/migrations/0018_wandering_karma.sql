@@ -1,0 +1,1 @@
+ALTER TABLE "user_mfa_settings" ADD COLUMN "setup_required" boolean DEFAULT false NOT NULL;

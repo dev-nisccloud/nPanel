@@ -114,13 +114,23 @@ export const emailStyles = {
   },
 
   socialRow: {
-    height: '44px',
-    width: '56px',
-    verticalAlign: 'bottom',
+    marginTop: '8px',
     textAlign: 'left' as const,
+    lineHeight: '0',
+  },
+
+  socialLink: {
+    display: 'inline-block',
+    marginRight: '8px',
+    textDecoration: 'none',
+  },
+
+  socialIcon: {
+    display: 'block',
   },
 
   socialColumn: {
+    textAlign: 'left' as const,
     paddingRight: '8px',
   },
 

@@ -1,15 +1,160 @@
 import { auth } from "@npanel/auth";
+import { sendMfaEmailOtp } from "@npanel/auth/mfa-email";
 import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-target";
-import { db } from "@npanel/db";
+import { and, db, desc, eq, gt, isNull } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
+import {
+  userActivityLog,
+  userMfaChallenge,
+  userMfaSession,
+  userMfaSettings,
+} from "@npanel/db/schema/auth-extras";
 import { env } from "@npanel/env/server";
-import { eq } from "@npanel/db";
+import { createHash, randomInt, randomUUID } from "node:crypto";
 import type { Hono } from "hono";
 
 const FALLBACK_REDIRECT = "/auth/login";
+const MFA_VERIFY_REDIRECT = "/auth/mfa";
+const MFA_OTP_TTL_MINUTES = 10;
+const MFA_MAX_ATTEMPTS = 5;
+const MFA_RESEND_COOLDOWN_SECONDS = 45;
 
 function frontendBase(): string {
   return env.CORS_ORIGIN.replace(/\/+$/, "") || "http://localhost:3002";
+}
+
+function hashMfaCode(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
+}
+
+function generateOtpCode(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
+
+async function getSessionUser(headers: Headers) {
+  const session = await auth.api.getSession({ headers });
+  return session?.user ?? null;
+}
+
+async function getSessionRecord(headers: Headers) {
+  const session = await auth.api.getSession({ headers });
+  return session?.session ?? null;
+}
+
+async function getMfaStateForUser(userId: string): Promise<{
+  enabled: boolean;
+  setupRequired: boolean;
+}> {
+  const rows = await db
+    .select({
+      emailOtpEnabled: userMfaSettings.emailOtpEnabled,
+      setupRequired: userMfaSettings.setupRequired,
+    })
+    .from(userMfaSettings)
+    .where(eq(userMfaSettings.userId, userId))
+    .limit(1);
+  return {
+    enabled: rows[0]?.emailOtpEnabled === true,
+    setupRequired: rows[0]?.setupRequired === true,
+  };
+}
+
+async function isSessionMfaVerified(sessionId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: userMfaSession.id })
+    .from(userMfaSession)
+    .where(
+      and(
+        eq(userMfaSession.sessionId, sessionId),
+        isNull(userMfaSession.verifiedAt),
+      ),
+    )
+    .limit(1);
+  return !rows[0];
+}
+
+async function logMfaActivity(params: {
+  userId: string;
+  action: string;
+  description: string;
+  metadata?: Record<string, unknown>;
+  headers: Headers;
+}) {
+  await db.insert(userActivityLog).values({
+    id: randomUUID(),
+    userId: params.userId,
+    action: params.action,
+    description: params.description,
+    metadata: params.metadata ?? null,
+    ipAddress:
+      params.headers.get("x-forwarded-for") ??
+      params.headers.get("x-real-ip") ??
+      "unknown",
+    userAgent: params.headers.get("user-agent") ?? "unknown",
+    createdAt: new Date(),
+  });
+}
+
+async function issueAndSendMfaEmailOtp(params: {
+  userId: string;
+  sessionId: string;
+  email: string;
+  name: string | null | undefined;
+}) {
+  const now = new Date();
+
+  const lastChallengeRows = await db
+    .select({ createdAt: userMfaChallenge.createdAt })
+    .from(userMfaChallenge)
+    .where(
+      and(
+        eq(userMfaChallenge.userId, params.userId),
+        eq(userMfaChallenge.sessionId, params.sessionId),
+      ),
+    )
+    .orderBy(desc(userMfaChallenge.createdAt))
+    .limit(1);
+
+  const lastChallengeAt = lastChallengeRows[0]?.createdAt;
+  if (lastChallengeAt) {
+    const ageMs = now.getTime() - new Date(lastChallengeAt).getTime();
+    if (ageMs < MFA_RESEND_COOLDOWN_SECONDS * 1000) {
+      const waitSeconds = Math.ceil((MFA_RESEND_COOLDOWN_SECONDS * 1000 - ageMs) / 1000);
+      return {
+        ok: false as const,
+        status: 429,
+        message: `Please wait ${waitSeconds}s before requesting another code.`,
+      };
+    }
+  }
+
+  const code = generateOtpCode();
+  const expiresAt = new Date(now.getTime() + MFA_OTP_TTL_MINUTES * 60 * 1000);
+  await db.insert(userMfaChallenge).values({
+    id: randomUUID(),
+    userId: params.userId,
+    sessionId: params.sessionId,
+    codeHash: hashMfaCode(code),
+    expiresAt,
+    consumedAt: null,
+    attempts: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await sendMfaEmailOtp({
+    userId: params.userId,
+    to: params.email,
+    userFirstname: params.name || "User",
+    otpCode: code,
+    expiresInMinutes: MFA_OTP_TTL_MINUTES,
+  });
+
+  return {
+    ok: true as const,
+    status: 200,
+    expiresAt: expiresAt.toISOString(),
+  };
 }
 
 /**
@@ -37,8 +182,24 @@ export function registerAuthCustomRoutes(app: Hono) {
         console.error("[server][redirect-target] getRootRedirectTargetFromHeaders CRASHED:", err);
         throw err;
       });
-      const redirect =
-        typeof target === "string" && target ? target : FALLBACK_REDIRECT;
+      let redirect = typeof target === "string" && target ? target : FALLBACK_REDIRECT;
+      const sessionRecord = await getSessionRecord(c.req.raw.headers);
+      if (sessionRecord?.id && sessionRecord.userId) {
+        const mfaState = await getMfaStateForUser(sessionRecord.userId);
+        if (mfaState.enabled || mfaState.setupRequired) {
+          const verified = await isSessionMfaVerified(sessionRecord.id);
+          if (!verified || mfaState.setupRequired) {
+            const preferredPostMfaTarget =
+              (typeof requestedRedirect === "string" && requestedRedirect.trim()
+                ? requestedRedirect.trim()
+                : target) || "/";
+            const mfaQuery = new URLSearchParams({
+              redirect: preferredPostMfaTarget,
+            }).toString();
+            redirect = `${MFA_VERIFY_REDIRECT}?${mfaQuery}`;
+          }
+        }
+      }
       if (process.env.NODE_ENV !== "production") {
         console.log("[server][redirect-target][result]", { redirect });
       }
@@ -90,6 +251,340 @@ export function registerAuthCustomRoutes(app: Hono) {
         {
           error:
             error instanceof Error ? error.message : "Failed to verify email",
+        },
+        500,
+      );
+    }
+  });
+
+  app.get("/api/auth/mfa/status", async (c) => {
+    try {
+      const sessionRecord = await getSessionRecord(c.req.raw.headers);
+      const sessionUser = await getSessionUser(c.req.raw.headers);
+      if (!sessionRecord || !sessionUser) {
+        return c.json({ error: "Authentication required" }, 401);
+      }
+
+      const mfaState = await getMfaStateForUser(sessionUser.id);
+      if (!mfaState.enabled && !mfaState.setupRequired) {
+        return c.json({
+          required: false,
+          verified: true,
+          enabled: false,
+          setupRequired: false,
+        });
+      }
+
+      const verified = await isSessionMfaVerified(sessionRecord.id);
+      return c.json({
+        required: true,
+        verified,
+        enabled: mfaState.enabled,
+        setupRequired: mfaState.setupRequired,
+      });
+    } catch (error: unknown) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Failed to fetch MFA status",
+        },
+        500,
+      );
+    }
+  });
+
+  app.post("/api/auth/mfa/settings/email-otp", async (c) => {
+    try {
+      const sessionUser = await getSessionUser(c.req.raw.headers);
+      if (!sessionUser) {
+        return c.json({ error: "Authentication required" }, 401);
+      }
+
+      const body = (await c.req.json().catch(() => ({}))) as { enabled?: boolean };
+      const enabled = body.enabled !== false;
+      const now = new Date();
+
+      const rows = await db
+        .select({ id: userMfaSettings.id })
+        .from(userMfaSettings)
+        .where(eq(userMfaSettings.userId, sessionUser.id))
+        .limit(1);
+
+      if (rows[0]) {
+        await db
+          .update(userMfaSettings)
+          .set({
+            emailOtpEnabled: enabled,
+            setupRequired: false,
+            preferredMethod: "EMAIL_OTP",
+            updatedAt: now,
+          })
+          .where(eq(userMfaSettings.userId, sessionUser.id));
+      } else {
+        await db.insert(userMfaSettings).values({
+          id: randomUUID(),
+          userId: sessionUser.id,
+          emailOtpEnabled: enabled,
+          setupRequired: false,
+          preferredMethod: "EMAIL_OTP",
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      await logMfaActivity({
+        userId: sessionUser.id,
+        action: enabled ? "MFA_EMAIL_OTP_ENABLED" : "MFA_EMAIL_OTP_DISABLED",
+        description: enabled
+          ? "User enabled MFA via email OTP"
+          : "User disabled MFA via email OTP",
+        headers: c.req.raw.headers,
+      }).catch((error) => console.error("Failed to log MFA setting change:", error));
+
+      return c.json({ success: true, enabled });
+    } catch (error: unknown) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Failed to update MFA settings",
+        },
+        500,
+      );
+    }
+  });
+
+  app.post("/api/auth/mfa/challenge", async (c) => {
+    try {
+      const sessionRecord = await getSessionRecord(c.req.raw.headers);
+      const sessionUser = await getSessionUser(c.req.raw.headers);
+      if (!sessionRecord || !sessionUser) {
+        return c.json({ error: "Authentication required" }, 401);
+      }
+
+      const body = (await c.req.json().catch(() => ({}))) as {
+        intent?: "LOGIN" | "SETUP" | "DISABLE";
+      };
+      const intent =
+        body.intent === "SETUP" || body.intent === "DISABLE"
+          ? body.intent
+          : "LOGIN";
+
+      const mfaState = await getMfaStateForUser(sessionUser.id);
+      if (intent === "LOGIN" && !mfaState.enabled) {
+        return c.json({ error: "MFA is not enabled for this account" }, 400);
+      }
+      if (intent === "DISABLE" && !mfaState.enabled) {
+        return c.json({ error: "MFA is already disabled for this account" }, 400);
+      }
+
+      const existingRows = await db
+        .select({ id: userMfaSession.id })
+        .from(userMfaSession)
+        .where(eq(userMfaSession.sessionId, sessionRecord.id))
+        .limit(1);
+
+      if (!existingRows[0]) {
+        await db.insert(userMfaSession).values({
+          id: randomUUID(),
+          userId: sessionUser.id,
+          sessionId: sessionRecord.id,
+          requiredAt: new Date(),
+          verifiedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      const issued = await issueAndSendMfaEmailOtp({
+        userId: sessionUser.id,
+        sessionId: sessionRecord.id,
+        email: sessionUser.email,
+        name: sessionUser.name,
+      });
+
+      if (!issued.ok) {
+        return c.json({ error: issued.message }, issued.status);
+      }
+
+      await logMfaActivity({
+        userId: sessionUser.id,
+        action: "MFA_EMAIL_OTP_CHALLENGE_SENT",
+        description: "Sent email OTP for MFA verification",
+        metadata: {
+          sessionId: sessionRecord.id,
+          expiresAt: issued.expiresAt,
+          intent,
+        },
+        headers: c.req.raw.headers,
+      }).catch((error) => console.error("Failed to log MFA challenge:", error));
+
+      return c.json({ success: true, expiresAt: issued.expiresAt });
+    } catch (error: unknown) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Failed to send verification code",
+        },
+        500,
+      );
+    }
+  });
+
+  app.post("/api/auth/mfa/verify", async (c) => {
+    try {
+      const sessionRecord = await getSessionRecord(c.req.raw.headers);
+      const sessionUser = await getSessionUser(c.req.raw.headers);
+      if (!sessionRecord || !sessionUser) {
+        return c.json({ error: "Authentication required" }, 401);
+      }
+
+      const body = (await c.req.json()) as {
+        code?: string;
+        intent?: "LOGIN" | "SETUP" | "DISABLE";
+      };
+      const code = body.code?.trim() ?? "";
+      const intent =
+        body.intent === "SETUP" || body.intent === "DISABLE"
+          ? body.intent
+          : "LOGIN";
+      if (!/^\d{6}$/.test(code)) {
+        return c.json({ error: "Please enter a valid 6-digit code." }, 400);
+      }
+
+      const challengeRows = await db
+        .select({
+          id: userMfaChallenge.id,
+          codeHash: userMfaChallenge.codeHash,
+          expiresAt: userMfaChallenge.expiresAt,
+          attempts: userMfaChallenge.attempts,
+        })
+        .from(userMfaChallenge)
+        .where(
+          and(
+            eq(userMfaChallenge.userId, sessionUser.id),
+            eq(userMfaChallenge.sessionId, sessionRecord.id),
+            isNull(userMfaChallenge.consumedAt),
+            gt(userMfaChallenge.expiresAt, new Date()),
+          ),
+        )
+        .orderBy(desc(userMfaChallenge.createdAt))
+        .limit(1);
+
+      const challenge = challengeRows[0];
+      if (!challenge) {
+        return c.json({ error: "Code expired or not found. Request a new code." }, 400);
+      }
+
+      if (challenge.attempts >= MFA_MAX_ATTEMPTS) {
+        return c.json({ error: "Too many attempts. Request a new code." }, 429);
+      }
+
+      const submittedHash = hashMfaCode(code);
+      if (submittedHash !== challenge.codeHash) {
+        await db
+          .update(userMfaChallenge)
+          .set({ attempts: challenge.attempts + 1, updatedAt: new Date() })
+          .where(eq(userMfaChallenge.id, challenge.id));
+        return c.json({ error: "Invalid verification code." }, 400);
+      }
+
+      const now = new Date();
+      await db.transaction(async (tx) => {
+        await tx
+          .update(userMfaChallenge)
+          .set({ consumedAt: now, updatedAt: now })
+          .where(eq(userMfaChallenge.id, challenge.id));
+
+        const sessionRows = await tx
+          .select({ id: userMfaSession.id })
+          .from(userMfaSession)
+          .where(eq(userMfaSession.sessionId, sessionRecord.id))
+          .limit(1);
+
+        if (sessionRows[0]) {
+          await tx
+            .update(userMfaSession)
+            .set({ verifiedAt: now, updatedAt: now })
+            .where(eq(userMfaSession.sessionId, sessionRecord.id));
+        } else {
+          await tx.insert(userMfaSession).values({
+            id: randomUUID(),
+            userId: sessionUser.id,
+            sessionId: sessionRecord.id,
+            requiredAt: now,
+            verifiedAt: now,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+
+        if (intent === "SETUP") {
+          const settingRows = await tx
+            .select({ id: userMfaSettings.id })
+            .from(userMfaSettings)
+            .where(eq(userMfaSettings.userId, sessionUser.id))
+            .limit(1);
+
+          if (settingRows[0]) {
+            await tx
+              .update(userMfaSettings)
+              .set({
+                emailOtpEnabled: true,
+                setupRequired: false,
+                preferredMethod: "EMAIL_OTP",
+                updatedAt: now,
+              })
+              .where(eq(userMfaSettings.userId, sessionUser.id));
+          } else {
+            await tx.insert(userMfaSettings).values({
+              id: randomUUID(),
+              userId: sessionUser.id,
+              emailOtpEnabled: true,
+              setupRequired: false,
+              preferredMethod: "EMAIL_OTP",
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
+        }
+
+        if (intent === "DISABLE") {
+          await tx
+            .update(userMfaSettings)
+            .set({
+              emailOtpEnabled: false,
+              setupRequired: false,
+              preferredMethod: "EMAIL_OTP",
+              updatedAt: now,
+            })
+            .where(eq(userMfaSettings.userId, sessionUser.id));
+        }
+      });
+
+      await logMfaActivity({
+        userId: sessionUser.id,
+        action:
+          intent === "SETUP"
+            ? "MFA_EMAIL_OTP_SETUP_VERIFIED"
+            : intent === "DISABLE"
+              ? "MFA_EMAIL_OTP_DISABLE_VERIFIED"
+              : "MFA_EMAIL_OTP_VERIFIED",
+        description:
+          intent === "SETUP"
+            ? "MFA email OTP setup verified successfully"
+            : intent === "DISABLE"
+              ? "MFA email OTP disable verified successfully"
+              : "MFA email OTP verified successfully",
+        metadata: { sessionId: sessionRecord.id, intent },
+        headers: c.req.raw.headers,
+      }).catch((error) => console.error("Failed to log MFA verification:", error));
+
+      return c.json({ success: true });
+    } catch (error: unknown) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Failed to verify code",
         },
         500,
       );

@@ -1,5 +1,11 @@
-import { render } from '@react-email/render';
-import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail } from 'react-email-starter/emails';
+import { render } from "@react-email/render";
+import {
+  EmailOtpEmail,
+  PasswordResetSuccessEmail,
+  ResetPasswordEmail,
+  TeamInviteEmail,
+  WelcomeEmail,
+} from "react-email-starter/emails";
 
 export async function renderResetPasswordEmail({
   userFirstname,
@@ -63,4 +69,22 @@ export async function renderTeamInviteEmail({
     acceptInviteLink,
     expiresInDays,
   }));
+}
+
+export async function renderEmailOtpEmail({
+  userFirstname,
+  otpCode,
+  expiresInMinutes,
+}: {
+  userFirstname: string;
+  otpCode: string;
+  expiresInMinutes?: number;
+}) {
+  return render(
+    EmailOtpEmail({
+      userFirstname,
+      otpCode,
+      expiresInMinutes,
+    }),
+  );
 }

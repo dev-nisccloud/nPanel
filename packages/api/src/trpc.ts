@@ -98,6 +98,22 @@ export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
     });
   }
 
+  if (ctx.mfaSetupRequired) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "MFA_SETUP_REQUIRED",
+      cause: "Session requires MFA setup before access",
+    });
+  }
+
+  if (ctx.mfaRequired && !ctx.mfaVerified) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "MFA_REQUIRED",
+      cause: "Session requires MFA verification",
+    });
+  }
+
   return next({
     ctx: {
       ...ctx,

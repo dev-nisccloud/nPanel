@@ -68,14 +68,12 @@ export async function redirectToTarget(retryAfterMs = 0): Promise<boolean> {
     target = await doFetch();
   }
 
-  // Loop guard: if we're already on an auth page and the resolved target is also
-  // an auth page (e.g. fallback to /auth/login), don't redirect   it would loop.
-  if (
-    typeof window !== "undefined" &&
-    window.location.pathname.startsWith("/auth") &&
-    target.startsWith("/auth")
-  ) {
-    return false;
+  // Loop guard: avoid redirect loops only when the target is exactly the current
+  // path or fallback login; allow auth->auth transitions like /auth/login -> /auth/mfa.
+  if (typeof window !== "undefined") {
+    const current = window.location.pathname;
+    if (target === current) return false;
+    if (current.startsWith("/auth") && target === FALLBACK_REDIRECT) return false;
   }
 
   window.location.replace(target);

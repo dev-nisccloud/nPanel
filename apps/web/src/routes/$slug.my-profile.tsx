@@ -3,11 +3,12 @@
 import { useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Activity } from "lucide-react";
+import { User, Activity, Shield } from "lucide-react";
 
 import { ProfileHeader } from "./$slug.my-profile/_components/profile-header";
 import { ProfileForm } from "./$slug.my-profile/_components/profile-form";
 import { AccountActivitiesList } from "./$slug.my-profile/_components/account-activities-list";
+import { SecurityMfaForm } from "./$slug.my-profile/_components/security-mfa-form";
 
 export default function MyProfilePage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -28,13 +29,17 @@ export default function MyProfilePage() {
           <ProfileHeader />
         </div>
 
-        {/* Tabs for Profile and Account Activities */}
+        {/* Tabs for Profile, Security and Account Activities */}
         <div className="mt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-xl grid-cols-3">
               <TabsTrigger value="profile" className="gap-2">
                 <User className="h-4 w-4" />
                 Profile
+              </TabsTrigger>
+              <TabsTrigger value="security" className="gap-2">
+                <Shield className="h-4 w-4" />
+                Security
               </TabsTrigger>
               <TabsTrigger value="activities" className="gap-2">
                 <Activity className="h-4 w-4" />
@@ -44,6 +49,10 @@ export default function MyProfilePage() {
 
             <TabsContent value="profile" className="mt-6">
               <ProfileForm />
+            </TabsContent>
+
+            <TabsContent value="security" className="mt-6">
+              <SecurityMfaForm />
             </TabsContent>
 
             <TabsContent value="activities" className="mt-6">

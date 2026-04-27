@@ -27,3 +27,4 @@ export { CampaignCreatedEmail } from './campaign-created-email';
 export { CampaignCompletedEmail } from './campaign-completed-email';
 export { CampaignScheduledEmail } from './campaign-scheduled-email';
 export { CampaignCancelledEmail } from './campaign-cancelled-email';
+export { EmailOtpEmail } from './email-otp';
