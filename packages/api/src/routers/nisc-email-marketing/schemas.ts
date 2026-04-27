@@ -35,6 +35,14 @@ export const niscEmailDomainVerifyInputSchema = z.object({
 });
 export type NiscEmailDomainVerifyInput = z.infer<typeof niscEmailDomainVerifyInputSchema>;
 
+export const niscEmailDomainSendTestEmailInputSchema = z.object({
+  domainId: z.string().min(1),
+  to: z.string().email(),
+  cc: z.array(z.string().email()).optional().default([]),
+  bcc: z.array(z.string().email()).optional().default([]),
+});
+export type NiscEmailDomainSendTestEmailInput = z.infer<typeof niscEmailDomainSendTestEmailInputSchema>;
+
 export const niscEmailDomainListFiltersSchema = z.object({
   teamId: optStrNullable(),
   status: niscEmailDomainStatusSchema.optional(),

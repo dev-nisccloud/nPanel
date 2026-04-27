@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Globe, XIcon, CheckCircle2, Clock, XCircle, AlertCircle, Copy, RefreshCw } from "lucide-react";
+import { Globe, XIcon, CheckCircle2, Clock, XCircle, AlertCircle, Copy, RefreshCw, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Sheet,
@@ -17,6 +17,8 @@ import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 type EmailDomainDetail = RouterOutputs["niscEmailMarketing"]["domains"]["getById"];
 
@@ -66,6 +68,10 @@ const formatDate = (value: Date | string | null | undefined) => {
 
 export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainSheetProps) {
 	const [isVerifying, setIsVerifying] = React.useState(false);
+	const [isTestEmailSheetOpen, setIsTestEmailSheetOpen] = React.useState(false);
+	const [toEmail, setToEmail] = React.useState("");
+	const [ccText, setCcText] = React.useState("");
+	const [bccText, setBccText] = React.useState("");
 	const utils = trpc.useUtils();
 
 	const { data: domain, isLoading, refetch } = trpc.niscEmailMarketing.domains.getById.useQuery(
@@ -93,6 +99,21 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 		},
 	});
 
+	const sendTestEmailMutation = trpc.niscEmailMarketing.domains.sendTestEmail.useMutation({
+		onSuccess: () => {
+			toast.success("Test email sent", {
+				description: "The domain test email has been sent successfully.",
+			});
+			setIsTestEmailSheetOpen(false);
+			setToEmail("");
+			setCcText("");
+			setBccText("");
+		},
+		onError: (e) => {
+			toast.error("Failed to send test email", { description: e.message });
+		},
+	});
+
 	const handleVerify = async () => {
 		if (!domainId) return;
 		setIsVerifying(true);
@@ -106,6 +127,22 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 	const copyToClipboard = (text: string) => {
 		navigator.clipboard.writeText(text);
 		toast.success("Copied to clipboard");
+	};
+
+	const parseEmailList = (value: string) =>
+		value
+			.split(/[,\n]/g)
+			.map((v) => v.trim())
+			.filter(Boolean);
+
+	const handleSendTestEmail = async () => {
+		if (!domainId) return;
+		await sendTestEmailMutation.mutateAsync({
+			domainId,
+			to: toEmail.trim(),
+			cc: parseEmailList(ccText),
+			bcc: parseEmailList(bccText),
+		});
 	};
 
 	return (
@@ -147,9 +184,9 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 						<div className="space-y-6 pb-6">
 							{/* Domain Information */}
 							<div className="space-y-4">
-								<div className="flex items-center justify-between">
-									<h3 className="text-lg font-semibold">Domain Information</h3>
+								<div className="flex items-center justify-end gap-2">
 									<Button
+										type="button"
 										variant="outline"
 										size="sm"
 										onClick={handleVerify}
@@ -166,6 +203,16 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 												Refresh Status
 											</>
 										)}
+									</Button>
+									<Button
+										type="button"
+										variant="default"
+										size="sm"
+										onClick={() => setIsTestEmailSheetOpen(true)}
+										disabled={domain.status !== "VERIFIED"}
+									>
+										<Mail className="mr-2 h-4 w-4" />
+										Send test email
 									</Button>
 								</div>
 								<div className="rounded-lg border bg-card p-4 space-y-3">
@@ -209,6 +256,7 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 											</p>
 										</div>
 										<Button
+											type="button"
 											variant="outline"
 											size="sm"
 											onClick={handleVerify}
@@ -259,6 +307,7 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 																{record.name}
 															</code>
 															<Button
+																type="button"
 																variant="ghost"
 																size="icon"
 																className="h-7 w-7 flex-shrink-0"
@@ -276,6 +325,7 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 																{record.type}
 															</code>
 															<Button
+																type="button"
 																variant="ghost"
 																size="icon"
 																className="h-7 w-7 flex-shrink-0"
@@ -294,6 +344,7 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 																	{record.priority}
 																</code>
 																<Button
+																	type="button"
 																	variant="ghost"
 																	size="icon"
 																	className="h-7 w-7 flex-shrink-0"
@@ -312,6 +363,7 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 																{record.value}
 															</code>
 															<Button
+																type="button"
 																variant="ghost"
 																size="icon"
 																className="h-7 w-7 flex-shrink-0"
@@ -345,6 +397,82 @@ export function ViewDomainSheet({ open, onOpenChange, domainId }: ViewDomainShee
 					)}
 				</ScrollArea>
 			</SheetContent>
+
+			<Sheet open={isTestEmailSheetOpen} onOpenChange={setIsTestEmailSheetOpen}>
+				<SheetContent side="right" className="w-full sm:max-w-xl overflow-hidden flex flex-col p-0">
+					<SheetHeader className="px-6 pt-6 pb-2 flex-shrink-0">
+						<div className="flex items-center justify-between">
+							<div>
+								<SheetTitle>Send test email</SheetTitle>
+								<SheetDescription>
+									Send one test email for domain verification using a fixed nPanel message body.
+								</SheetDescription>
+							</div>
+							<SheetClose asChild>
+								<Button size="icon" variant="ghost" className="p-0 m-0 size-auto hover:bg-transparent">
+									<XIcon className="size-5" />
+								</Button>
+							</SheetClose>
+						</div>
+					</SheetHeader>
+
+					<ScrollArea className="flex-1 min-h-0 px-6 pr-4">
+						<div className="space-y-4 pb-6">
+							<div className="space-y-2">
+								<p className="text-sm font-medium">To (single recipient)</p>
+								<Input
+									type="email"
+									placeholder="recipient@example.com"
+									value={toEmail}
+									onChange={(e) => setToEmail(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-2">
+								<p className="text-sm font-medium">CC (optional, unlimited)</p>
+								<Textarea
+									placeholder="cc1@example.com, cc2@example.com"
+									value={ccText}
+									onChange={(e) => setCcText(e.target.value)}
+									rows={3}
+								/>
+							</div>
+							<div className="space-y-2">
+								<p className="text-sm font-medium">BCC (optional, unlimited)</p>
+								<Textarea
+									placeholder="bcc1@example.com, bcc2@example.com"
+									value={bccText}
+									onChange={(e) => setBccText(e.target.value)}
+									rows={3}
+								/>
+							</div>
+							<div className="space-y-2">
+								<p className="text-sm font-medium">Message (fixed)</p>
+								<div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+									This is a test email from nPanel - timestamp to test the domain name -{" "}
+									<span className="font-medium text-foreground">{domain?.domainName ?? "-"}</span> verification on npanel.
+								</div>
+							</div>
+							<div className="flex justify-end gap-2 pt-2">
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => setIsTestEmailSheetOpen(false)}
+									disabled={sendTestEmailMutation.isPending}
+								>
+									Cancel
+								</Button>
+								<Button
+									type="button"
+									onClick={handleSendTestEmail}
+									disabled={sendTestEmailMutation.isPending || !toEmail.trim()}
+								>
+									{sendTestEmailMutation.isPending ? "Sending..." : "Send test email"}
+								</Button>
+							</div>
+						</div>
+					</ScrollArea>
+				</SheetContent>
+			</Sheet>
 		</Sheet>
 	);
 }
