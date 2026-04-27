@@ -287,6 +287,7 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Campaigns", url: "/agency/nisc-email-marketing/campaigns", },
           { title: "Audiences", url: "/agency/nisc-email-marketing/audiences", },
           { title: "Email Builder", url: "/agency/nisc-email-marketing/email-builder", },
+          { title: "Email Events", url: "/agency/nisc-email-marketing/email-events", },
           { title: "Domains", url: "/agency/nisc-email-marketing/domain-configuration", },
         ],
       },

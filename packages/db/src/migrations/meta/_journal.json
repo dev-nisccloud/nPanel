@@ -134,6 +134,13 @@
       "when": 1777273281202,
       "tag": "0018_wandering_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1777291756101,
+      "tag": "0019_nice_ted_forrester",
+      "breakpoints": true
     }
   ]
 }

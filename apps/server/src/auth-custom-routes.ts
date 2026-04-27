@@ -9,6 +9,7 @@ import {
   userMfaSession,
   userMfaSettings,
 } from "@npanel/db/schema/auth-extras";
+import { notification, notificationActivityLog } from "@npanel/db/schema/notifications";
 import { env } from "@npanel/env/server";
 import { createHash, randomInt, randomUUID } from "node:crypto";
 import type { Hono } from "hono";
@@ -92,6 +93,56 @@ async function logMfaActivity(params: {
       "unknown",
     userAgent: params.headers.get("user-agent") ?? "unknown",
     createdAt: new Date(),
+  });
+}
+
+async function createMfaNotification(params: {
+  userId: string;
+  title: string;
+  message: string;
+  action: "MFA_ENABLED" | "MFA_DISABLED";
+  headers: Headers;
+}) {
+  const now = new Date();
+  const notificationId = randomUUID();
+  const ipAddress =
+    params.headers.get("x-forwarded-for") ??
+    params.headers.get("x-real-ip") ??
+    null;
+  const userAgent = params.headers.get("user-agent") ?? null;
+
+  await db.insert(notification).values({
+    id: notificationId,
+    userId: params.userId,
+    teamId: null,
+    type: "SYSTEM",
+    priority: "NORMAL",
+    title: params.title,
+    message: params.message,
+    link: null,
+    metadata: {
+      action: params.action,
+      ipAddress,
+    },
+    seen: false,
+    readAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await db.insert(notificationActivityLog).values({
+    id: randomUUID(),
+    notificationId,
+    userId: params.userId,
+    action: "CREATE",
+    description: `Notification created for ${params.action}`,
+    metadata: {
+      action: params.action,
+      ipAddress,
+    },
+    ipAddress,
+    userAgent,
+    createdAt: now,
   });
 }
 
@@ -341,6 +392,16 @@ export function registerAuthCustomRoutes(app: Hono) {
         headers: c.req.raw.headers,
       }).catch((error) => console.error("Failed to log MFA setting change:", error));
 
+      await createMfaNotification({
+        userId: sessionUser.id,
+        title: enabled ? "Two-Factor Authentication Enabled" : "Two-Factor Authentication Disabled",
+        message: enabled
+          ? "Email OTP two-factor authentication has been enabled on your account."
+          : "Email OTP two-factor authentication has been disabled on your account.",
+        action: enabled ? "MFA_ENABLED" : "MFA_DISABLED",
+        headers: c.req.raw.headers,
+      }).catch((error) => console.error("Failed to create MFA setting notification:", error));
+
       return c.json({ success: true, enabled });
     } catch (error: unknown) {
       return c.json(
@@ -578,6 +639,22 @@ export function registerAuthCustomRoutes(app: Hono) {
         metadata: { sessionId: sessionRecord.id, intent },
         headers: c.req.raw.headers,
       }).catch((error) => console.error("Failed to log MFA verification:", error));
+
+      if (intent === "SETUP" || intent === "DISABLE") {
+        await createMfaNotification({
+          userId: sessionUser.id,
+          title:
+            intent === "SETUP"
+              ? "Two-Factor Authentication Enabled"
+              : "Two-Factor Authentication Disabled",
+          message:
+            intent === "SETUP"
+              ? "Email OTP two-factor authentication has been enabled on your account."
+              : "Email OTP two-factor authentication has been disabled on your account.",
+          action: intent === "SETUP" ? "MFA_ENABLED" : "MFA_DISABLED",
+          headers: c.req.raw.headers,
+        }).catch((error) => console.error("Failed to create MFA verify notification:", error));
+      }
 
       return c.json({ success: true });
     } catch (error: unknown) {

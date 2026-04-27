@@ -226,6 +226,23 @@ export const niscEmailMarketingTransactionalRouter = router({
 
       const now = new Date();
       const emailId = randomUUID();
+      const normalizedHtml = input.html?.trim() ? input.html : null;
+      const normalizedText = input.text?.trim() ? input.text : null;
+
+      // Keep the transactional campaign in sync with the latest sent content.
+      // Event detail preview reads from campaign content today.
+      await db
+        .update(niscEmCampaign)
+        .set({
+          subject: input.subject,
+          fromEmail: fromAddress,
+          fromName,
+          replyTo: replyTo ?? null,
+          htmlContent: normalizedHtml,
+          textContent: normalizedText,
+          updatedAt: now,
+        })
+        .where(eq(niscEmCampaign.id, campaignId));
 
       // Insert first so SNS webhook can link events even if they arrive fast.
       await db.insert(niscEmEmail).values({
@@ -234,7 +251,11 @@ export const niscEmailMarketingTransactionalRouter = router({
         contactId: null,
         toEmail: input.to,
         fromEmail: fromAddress,
+        fromName: fromName ?? null,
+        replyTo: replyTo ?? null,
         subject: input.subject,
+        htmlContent: normalizedHtml,
+        textContent: normalizedText,
         sesMessageId: null,
         status: "SENDING",
         opens: 0,
@@ -260,8 +281,8 @@ export const niscEmailMarketingTransactionalRouter = router({
           to: input.to,
           subject: stripHeaderUnsafe(input.subject),
           replyTo: replyTo ? stripHeaderUnsafe(replyTo) : null,
-          text: input.text ?? null,
-          html: input.html ?? null,
+          text: normalizedText,
+          html: normalizedHtml,
         });
 
         const res = await sendSesRawEmail(ses, {

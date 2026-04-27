@@ -330,7 +330,11 @@ export const niscEmEmail = pgTable(
     // Snapshot of recipient address at send time (contact email may change later)
     toEmail: text("to_email").notNull(),
     fromEmail: text("from_email").notNull(),
+    fromName: text("from_name"),
+    replyTo: text("reply_to"),
     subject: text("subject").notNull(),
+    htmlContent: text("html_content"),
+    textContent: text("text_content"),
 
     // The MessageId returned by SES SendRawEmail.
     // Example: "0100017c1234abcd-f5e4d3c2-b1a0-9f8e-7d6c-5b4a3c2d1e0f-000000"

@@ -41,6 +41,7 @@ export const agencyMenuKeys = [
 	"/agency/nisc-email-marketing/audiences",
 	"/agency/nisc-email-marketing/email-builder",
 	"/agency/nisc-email-marketing/domain-configuration",
+	"/agency/nisc-email-marketing/email-events",
 
 	"/agency/seo",
 	"/agency/seo-reports",
