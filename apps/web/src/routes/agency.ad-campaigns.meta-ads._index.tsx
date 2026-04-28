@@ -23,11 +23,8 @@ import {
 	Building2,
 	MousePointer2,
 	Eye,
-	ChevronDown,
-	Facebook,
-	Instagram
+	ChevronDown
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConnectMetaAds } from "./agency.ad-campaigns/meta-ads/_components/connect-meta-ads";
 import { CreateMediaBuyingSubscriptionDialog } from "./agency.ad-campaigns/_components/create-media-buying-subscription-dialog";
 import type { StoredCredentials } from "./agency.ad-campaigns/meta-ads/_components/schemas";
@@ -45,7 +42,6 @@ export default function MetaAdsPage() {
 	const paramTo = searchParams.get("to");
 
 	const [selectedAccountId, setSelectedAccountId] = React.useState<string>(paramAccountId || "");
-	const publisherPlatform = (searchParams.get("platform") || "facebook") as any;
 	const [isSyncing, setIsSyncing] = React.useState(false);
 
 	const utils = trpc.useUtils();
@@ -205,7 +201,6 @@ export default function MetaAdsPage() {
 		{
 			accountId: selectedAccountId,
 			timeRange,
-			publisherPlatform,
 		},
 		{
 			enabled: !!selectedAccountId && isConnected,
@@ -372,34 +367,6 @@ export default function MetaAdsPage() {
 					</div>
 				) : (
 					<>
-						{/* Platform Switcher */}
-						<div className="mt-8">
-							<Tabs
-								value={publisherPlatform}
-								onValueChange={(value) => {
-									updateSearchParams({ platform: value === "facebook" ? undefined : value });
-								}}
-								className="w-full sm:w-auto"
-							>
-								<TabsList className="bg-muted/50 border border-muted/60 p-1 h-9">
-									<TabsTrigger
-										value="facebook"
-										className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm gap-2"
-									>
-										<Facebook className="h-3.5 w-3.5" />
-										Facebook
-									</TabsTrigger>
-									<TabsTrigger
-										value="instagram"
-										className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm gap-2"
-									>
-										<Instagram className="h-3.5 w-3.5" />
-										Instagram
-									</TabsTrigger>
-								</TabsList>
-							</Tabs>
-						</div>
-
 						{/* Account Switcher & Date Picker */}
 
 						<div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-b border-muted pb-6">

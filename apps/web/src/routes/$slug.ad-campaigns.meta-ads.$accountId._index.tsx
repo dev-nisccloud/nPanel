@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useParams, useNavigate } from "react-router";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,10 +30,8 @@ import { useTeamAdAccountAccess } from "./$slug.ad-campaigns/_components/use-tea
 export default function MetaAdsAccountDetailPage() {
 	const params = useParams();
 	const navigate = useNavigate();
-	const [searchParams, setSearchParams] = useSearchParams();
 	const accountId = params?.accountId as string;
 	const teamSlug = typeof params?.slug === "string" ? params.slug : "";
-	const publisherPlatform = (searchParams.get("platform") || "facebook") as any;
 	const { hasTeamAccess } = useTeamAdAccountAccess({
 		teamSlug,
 		platform: "META_ADS",
@@ -81,7 +78,6 @@ export default function MetaAdsAccountDetailPage() {
 		{
 			accountId,
 			timeRange,
-			publisherPlatform,
 		},
 		{
 			enabled: !!accountId && hasTeamAccess,
@@ -266,38 +262,6 @@ export default function MetaAdsAccountDetailPage() {
 						<ArrowLeft className="mr-1 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
 						Back to Overview
 					</Button>
-
-					{/* Platform Tabs */}
-					<div className="flex items-center justify-between mt-2">
-						<Tabs
-							value={searchParams.get("platform") || "facebook"}
-							onValueChange={(value) => {
-								const newParams = new URLSearchParams(searchParams);
-								if (value === "facebook") {
-									newParams.delete("platform");
-								} else {
-									newParams.set("platform", value);
-								}
-								setSearchParams(newParams);
-							}}
-							className="w-full sm:w-auto"
-						>
-							<TabsList className="bg-muted/50 border border-muted/60 p-1 h-9">
-								<TabsTrigger
-									value="facebook"
-									className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-								>
-									Facebook
-								</TabsTrigger>
-								<TabsTrigger
-									value="instagram"
-									className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-								>
-									Instagram
-								</TabsTrigger>
-							</TabsList>
-						</Tabs>
-					</div>
 
 					<div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
 						<div className="space-y-1.5">
