@@ -63,8 +63,10 @@ const getInstagramAppSecret = () => {
 	return appSecret;
 };
 
-const getFrontendUrl = () =>
-	process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001';
+const getFrontendUrl = () => {
+	const url = process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001';
+	return url.replace(/\/$/, '');
+};
 
 const getDefaultRedirectUri = () =>
 	`${getFrontendUrl()}/agency/social-media-marketing/instagram/callback`;
