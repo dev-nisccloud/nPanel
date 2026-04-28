@@ -23,6 +23,7 @@ export const agencyMenuKeys = [
 
 	"/agency/social-media-marketing",
 	"/agency/social-media-marketing/facebook",
+	"/agency/social-media-marketing/instagram",
 	"/agency/social-media-marketing/linkedin",
 
 	"/agency/ad-campaigns",
