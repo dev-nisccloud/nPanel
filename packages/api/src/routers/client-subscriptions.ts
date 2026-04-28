@@ -52,7 +52,7 @@ const hostingTypeSchema = z.enum([
 ]);
 
 const renewalTypeSchema = z.enum(["FIXED_BILLING", "DOMAIN", "HOSTING"]);
-const adAccountPlatformSchema = z.enum(["META_ADS", "GOOGLE_ADS", "LINKEDIN_ADS"]);
+const adAccountPlatformSchema = z.enum(["META_ADS", "GOOGLE_ADS", "LINKEDIN_ADS", "INSTAGRAM_ADS"]);
 
 const commissionEntryStatusSchema = z.enum([
     "DRAFT",

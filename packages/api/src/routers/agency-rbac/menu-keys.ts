@@ -28,6 +28,7 @@ export const agencyMenuKeys = [
 
 	"/agency/ad-campaigns",
 	"/agency/ad-campaigns/meta-ads",
+	"/agency/ad-campaigns/instagram-ads",
 	"/agency/ad-campaigns/google-ads",
 	"/agency/ad-campaigns/linkedin-ads",
 
