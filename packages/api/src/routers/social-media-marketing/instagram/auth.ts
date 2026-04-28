@@ -99,7 +99,7 @@ interface LongLivedTokenResponse {
 	expires_in: number; // seconds, ~5184000 (60 days)
 }
 
-interface InstagramProfile {
+export interface InstagramProfile {
 	id: string;
 	user_id?: string;
 	username?: string;
