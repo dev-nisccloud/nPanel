@@ -69,6 +69,7 @@ import { instagramRouter } from "./social-media-marketing/instagram";
 import { serviceSubscriptionsRouter } from "./service-subscriptions";
 import { googleAdsRouter } from "./google-ads";
 import { metaAdsRouter } from "./meta-ads";
+import { instagramAdsRouter } from "./instagram-ads";
 import { linkedInAdsRouter } from "./linkedin-ads";
 import { imageGenStudioRouter } from "./imagegen-studio";
 import { stabilityAiRouter } from "./stability-ai";
@@ -221,6 +222,8 @@ export const appRouter = router({
 	googleAds: googleAdsRouter,
 	// Meta Ads Integration
 	metaAds: metaAdsRouter,
+	// Instagram Ads Integration
+	instagramAds: instagramAdsRouter,
 	// LinkedIn Ads Integration
 	linkedInAds: linkedInAdsRouter,
 	// ImageGen Studio

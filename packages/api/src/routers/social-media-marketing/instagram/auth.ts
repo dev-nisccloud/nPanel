@@ -35,7 +35,13 @@ const DEFAULT_INSTAGRAM_SCOPES = [
 	'instagram_business_content_publish',
 	'instagram_business_manage_messages',
 	'instagram_business_manage_comments',
+	'ads_read',
+	'ads_management',
 ] as const;
+
+const getMetaApiVersion = () => {
+	return process.env.META_API_VERSION || 'v24.0';
+};
 
 // ============================================================================
 // Env helpers
@@ -63,10 +69,8 @@ const getInstagramAppSecret = () => {
 	return appSecret;
 };
 
-const getFrontendUrl = () => {
-	const url = process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001';
-	return url.replace(/\/$/, '');
-};
+const getFrontendUrl = () =>
+	process.env.FRONTEND_URL || process.env.VITE_PUBLIC_APP_URL || 'http://localhost:3001';
 
 const getDefaultRedirectUri = () =>
 	`${getFrontendUrl()}/agency/social-media-marketing/instagram/callback`;
@@ -101,7 +105,7 @@ interface LongLivedTokenResponse {
 	expires_in: number; // seconds, ~5184000 (60 days)
 }
 
-export interface InstagramProfile {
+interface InstagramProfile {
 	id: string;
 	user_id?: string;
 	username?: string;
@@ -126,18 +130,19 @@ async function exchangeCodeForShortLivedToken(
 ): Promise<ShortLivedTokenResponse> {
 	const appId = getInstagramAppId();
 	const appSecret = getInstagramAppSecret();
+	const apiVersion = getMetaApiVersion();
+	const url = `https://graph.facebook.com/${apiVersion}/oauth/access_token`;
 
-	const body = new URLSearchParams();
-	body.append('client_id', appId);
-	body.append('client_secret', appSecret);
-	body.append('grant_type', 'authorization_code');
-	body.append('redirect_uri', redirectUri);
-	body.append('code', code);
+	const params = new URLSearchParams({
+		client_id: appId,
+		client_secret: appSecret,
+		redirect_uri: redirectUri,
+		code: code,
+	});
 
-	const response = await request(IG_TOKEN_URL, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: body.toString(),
+	const response = await request(`${url}?${params.toString()}`, {
+		method: 'GET',
+		headers: { 'Content-Type': 'application/json' },
 	});
 
 	const data = (await response.body.json()) as unknown;
@@ -152,13 +157,19 @@ async function exchangeCodeForShortLivedToken(
 async function exchangeShortLivedTokenForLongLived(
 	shortLivedToken: string,
 ): Promise<LongLivedTokenResponse> {
+	const appId = getInstagramAppId();
 	const appSecret = getInstagramAppSecret();
-	const url = new URL(`${IG_GRAPH_URL}/access_token`);
-	url.searchParams.set('grant_type', 'ig_exchange_token');
-	url.searchParams.set('client_secret', appSecret);
-	url.searchParams.set('access_token', shortLivedToken);
+	const apiVersion = getMetaApiVersion();
+	const url = `https://graph.facebook.com/${apiVersion}/oauth/access_token`;
 
-	const response = await request(url.toString(), {
+	const params = new URLSearchParams({
+		grant_type: 'fb_exchange_token',
+		client_id: appId,
+		client_secret: appSecret,
+		fb_exchange_token: shortLivedToken,
+	});
+
+	const response = await request(`${url}?${params.toString()}`, {
 		method: 'GET',
 		headers: { 'Content-Type': 'application/json' },
 	});
@@ -176,11 +187,19 @@ async function exchangeShortLivedTokenForLongLived(
 async function refreshLongLivedToken(
 	longLivedToken: string,
 ): Promise<LongLivedTokenResponse> {
-	const url = new URL(`${IG_GRAPH_URL}/refresh_access_token`);
-	url.searchParams.set('grant_type', 'ig_refresh_token');
-	url.searchParams.set('access_token', longLivedToken);
+	const appId = getInstagramAppId();
+	const appSecret = getInstagramAppSecret();
+	const apiVersion = getMetaApiVersion();
+	const url = `https://graph.facebook.com/${apiVersion}/oauth/access_token`;
 
-	const response = await request(url.toString(), {
+	const params = new URLSearchParams({
+		grant_type: 'fb_exchange_token',
+		client_id: appId,
+		client_secret: appSecret,
+		fb_exchange_token: longLivedToken,
+	});
+
+	const response = await request(`${url}?${params.toString()}`, {
 		method: 'GET',
 		headers: { 'Content-Type': 'application/json' },
 	});
@@ -317,14 +336,36 @@ export const instagramAuthRouter = router({
 				// Step 3: optional profile lookup for nicer logs
 				const profile = await fetchInstagramProfile(longLived.access_token);
 
-				// Normalise scopes returned by the short-lived exchange (can be
-				// either string[] or comma-separated string depending on response).
+				// Normalise scopes
 				let scope: string | undefined;
+				
+				// Try to get scopes from exchange response first
 				if (Array.isArray(shortLived.permissions)) {
 					scope = shortLived.permissions.join(',');
 				} else if (typeof shortLived.permissions === 'string') {
 					scope = shortLived.permissions;
 				}
+
+				// If not in response, fetch from /me/permissions (more reliable for Meta tokens)
+				if (!scope) {
+					try {
+						const apiVersion = getMetaApiVersion();
+						const permissionsResponse = await request(
+							`https://graph.facebook.com/${apiVersion}/me/permissions?access_token=${longLived.access_token}`,
+							{ method: 'GET' }
+						);
+						const permissionsData = (await permissionsResponse.body.json()) as any;
+						if (permissionsData.data) {
+							const grantedPermissions = permissionsData.data
+								.filter((p: any) => p.status === 'granted')
+								.map((p: any) => p.permission);
+							scope = grantedPermissions.join(',');
+						}
+					} catch (error) {
+						console.warn('Failed to fetch Instagram/Meta permissions, using defaults:', error);
+					}
+				}
+
 				if (!scope) scope = [...DEFAULT_INSTAGRAM_SCOPES].join(',');
 
 				const existing = await db.query.socialMediaIntegration.findFirst({

@@ -40,7 +40,7 @@ export class MetaAdsClient {
 	constructor(config: MetaAdsApiConfig) {
 		this.config = {
 			accessToken: config.accessToken,
-			apiVersion: config.apiVersion || 'v24.0',
+			apiVersion: config.apiVersion || process.env.META_API_VERSION || 'v24.0',
 			baseUrl: config.baseUrl || 'https://graph.facebook.com',
 		};
 	}

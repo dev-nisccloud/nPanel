@@ -23,7 +23,7 @@ import {
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 
-type AdPlatform = "META_ADS" | "GOOGLE_ADS" | "LINKEDIN_ADS";
+type AdPlatform = "META_ADS" | "GOOGLE_ADS" | "LINKEDIN_ADS" | "INSTAGRAM_ADS";
 
 interface CreateMediaBuyingSubscriptionDialogProps {
   platform: AdPlatform;
