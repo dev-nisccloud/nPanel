@@ -65,6 +65,7 @@ import { quotationsRouter } from "./quotations";
 import { teamBillingRouter } from "./team-billing";
 import { metaRouter } from "./social-media-marketing/meta";
 import { linkedinRouter } from "./social-media-marketing/linkedin";
+import { instagramRouter } from "./social-media-marketing/instagram";
 import { serviceSubscriptionsRouter } from "./service-subscriptions";
 import { googleAdsRouter } from "./google-ads";
 import { metaAdsRouter } from "./meta-ads";
@@ -210,10 +211,11 @@ export const appRouter = router({
 	teamBilling: teamBillingRouter,
 	// Service Subscriptions Management
 	serviceSubscriptions: serviceSubscriptionsRouter,
-	// Social Media Marketing - Meta/Facebook & LinkedIn
+	// Social Media Marketing - Meta/Facebook, LinkedIn & Instagram (standalone)
 	socialMediaMarketing: router({
 		meta: metaRouter,
 		linkedin: linkedinRouter,
+		instagram: instagramRouter,
 	}),
 	// Google Ads Integration
 	googleAds: googleAdsRouter,

@@ -263,7 +263,7 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.SocialMediaMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Facebook", url: "/agency/social-media-marketing/facebook", },
-          // { title: "Instagram", url: "/agency/social-media-marketing/instagram", },
+          { title: "Instagram", url: "/agency/social-media-marketing/instagram", },
           // { title: "Twitter", url: "/agency/social-media-marketing/twitter", },
           { title: "LinkedIn", url: "/agency/social-media-marketing/linkedin", },
           // { title: "TikTok", url: "/agency/social-media-marketing/tiktok", },
