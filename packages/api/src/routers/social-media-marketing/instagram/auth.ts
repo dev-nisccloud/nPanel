@@ -93,19 +93,19 @@ const GenerateAuthUrlRequestSchema = z.object({
 // Token type definitions returned by Instagram
 // ============================================================================
 
-interface ShortLivedTokenResponse {
+export interface ShortLivedTokenResponse {
 	access_token: string;
 	user_id: number | string;
 	permissions?: string[] | string;
 }
 
-interface LongLivedTokenResponse {
+export interface LongLivedTokenResponse {
 	access_token: string;
 	token_type: string;
 	expires_in: number; // seconds, ~5184000 (60 days)
 }
 
-interface InstagramProfile {
+export interface InstagramProfile {
 	id: string;
 	user_id?: string;
 	username?: string;
