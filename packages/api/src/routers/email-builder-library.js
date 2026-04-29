@@ -38,6 +38,7 @@ const listLibraryItemsSchema = z.object({
     onlyImages: z.boolean().default(true),
     search: z.string().optional(),
 });
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 export const emailBuilderLibraryRouter = router({
     /**
      * Create a library item from an UploadThing upload.
@@ -50,12 +51,13 @@ export const emailBuilderLibraryRouter = router({
     }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const { teamId, ...rest } = input;
         // If teamId is provided, ensure the user is a member of that team
-        if (teamId) {
+        if (teamId && !isAgencyUserRole(userRole)) {
             const membership = await db.query.teamMember.findFirst({
                 where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
             });
@@ -106,12 +108,13 @@ export const emailBuilderLibraryRouter = router({
     }))
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const { page, limit, teamId, onlyImages, search } = input;
         // If teamId is provided, ensure the user is a member of that team
-        if (teamId) {
+        if (teamId && !isAgencyUserRole(userRole)) {
             const membership = await db.query.teamMember.findFirst({
                 where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
             });
@@ -127,8 +130,10 @@ export const emailBuilderLibraryRouter = router({
             whereConditions.push(eq(emailBuilderLibrary.teamId, teamId));
         }
         else {
-            whereConditions.push(eq(emailBuilderLibrary.userId, userId));
-            whereConditions.push(isNull(emailBuilderLibrary.teamId));
+            if (!isAgencyUserRole(userRole)) {
+                whereConditions.push(eq(emailBuilderLibrary.userId, userId));
+                whereConditions.push(isNull(emailBuilderLibrary.teamId));
+            }
         }
         if (onlyImages) {
             whereConditions.push(ilike(emailBuilderLibrary.mimeType, "image/%"));
@@ -136,9 +141,13 @@ export const emailBuilderLibraryRouter = router({
         if (search && search.trim().length > 0) {
             whereConditions.push(ilike(emailBuilderLibrary.fileName, `%${search.trim()}%`));
         }
-        const whereClause = whereConditions.length === 1 ? whereConditions[0] : and(...whereConditions);
+        const whereClause = whereConditions.length === 0
+            ? undefined
+            : whereConditions.length === 1
+                ? whereConditions[0]
+                : and(...whereConditions);
         const items = await db.query.emailBuilderLibrary.findMany({
-            where: whereClause,
+            where: whereClause ?? undefined,
             limit,
             offset: (page - 1) * limit,
             orderBy: [desc(emailBuilderLibrary.createdAt)],

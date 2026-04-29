@@ -91,6 +91,7 @@ export declare const metaAdsAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 since?: string | undefined;
                 until?: string | undefined;
             } | undefined;
+            publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
             data: {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 function buildSubscriptionDeleteXml(data) {
     if (!data.id)
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Subscription ID is required' });
@@ -17,7 +17,7 @@ function buildSubscriptionDeleteXml(data) {
 </packet>`;
 }
 export const subscriptionsDeleteRouter = router({
-    delete: publicProcedure
+    delete: protectedProcedure
         .input(z.object({ id: z.number() }))
         .mutation(async ({ input }) => {
         try {

@@ -15,7 +15,7 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
             email: string;
             emailVerified: boolean;
             image: string | null;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             lastLoginAt: Date | null;
             createdAt: Date;
@@ -91,7 +91,7 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
     getUserById: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             userId: string;
-            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "profile")[] | undefined;
+            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "status" | "email" | "emailVerified" | "role" | "lastLoginAt" | "image" | "profile")[] | undefined;
         };
         output: Record<string, unknown>;
         meta: object;
@@ -103,7 +103,7 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
     getUsersByIds: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             userIds: string[];
-            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "profile")[] | undefined;
+            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "status" | "email" | "emailVerified" | "role" | "lastLoginAt" | "image" | "profile")[] | undefined;
         };
         output: Record<string, any>;
         meta: object;

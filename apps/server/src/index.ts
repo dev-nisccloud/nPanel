@@ -27,6 +27,7 @@ import { handleMpesaWebhook } from "./api/webhooks/mpesa";
 import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator";
 import { handleResendWebhook } from "./api/webhooks/resend";
 import { handleSnsWebhook } from "./api/webhooks/sns";
+import { handleMyIp } from "./api/my-ip";
 
 const app = new Hono();
 
@@ -77,6 +78,7 @@ app.get("/api/manifest.json", handleManifest);
 app.get("/api/plesk/health-check", handlePleskHealthCheck);
 app.get("/api/plesk/test-connection", handleTestPleskConnection);
 app.get("/api/kenic/test-connection", handleTestKenicConnection);
+app.get("/api/my-ip", handleMyIp);
 
 // Webhooks
 app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);

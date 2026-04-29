@@ -45,9 +45,9 @@ export declare const metaPageContentRouter: import("@trpc/server").TRPCBuiltRout
             accessToken?: string | undefined;
             fields?: string[] | undefined;
             limit?: number | undefined;
-            since?: string | undefined;
             apiVersion?: string | undefined;
             useStoredToken?: boolean | undefined;
+            since?: string | undefined;
             until?: string | undefined;
             contentType?: "posts" | undefined;
         };
@@ -76,9 +76,9 @@ export declare const metaPageContentRouter: import("@trpc/server").TRPCBuiltRout
             accessToken?: string | undefined;
             fields?: string[] | undefined;
             limit?: number | undefined;
-            since?: string | undefined;
             apiVersion?: string | undefined;
             useStoredToken?: boolean | undefined;
+            since?: string | undefined;
             until?: string | undefined;
             contentType?: "photos" | undefined;
         };
@@ -107,9 +107,9 @@ export declare const metaPageContentRouter: import("@trpc/server").TRPCBuiltRout
             accessToken?: string | undefined;
             fields?: string[] | undefined;
             limit?: number | undefined;
-            since?: string | undefined;
             apiVersion?: string | undefined;
             useStoredToken?: boolean | undefined;
+            since?: string | undefined;
             until?: string | undefined;
             contentType?: "videos" | undefined;
         };
@@ -138,9 +138,9 @@ export declare const metaPageContentRouter: import("@trpc/server").TRPCBuiltRout
             accessToken?: string | undefined;
             fields?: string[] | undefined;
             limit?: number | undefined;
-            since?: string | undefined;
             apiVersion?: string | undefined;
             useStoredToken?: boolean | undefined;
+            since?: string | undefined;
             until?: string | undefined;
             contentType?: "events" | undefined;
         };

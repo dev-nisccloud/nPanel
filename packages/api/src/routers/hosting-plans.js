@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@npanel/db";
 import { niscServicePlan, niscServicePlanActivityLog, } from "@npanel/db/schema/hosting";
 import { protectedProcedure, router } from "../trpc";
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
@@ -212,6 +213,12 @@ export const hostingPlansRouter = router({
                 message: "You must be logged in to create service plans",
             });
         }
+        if (!isAgencySuperAdminRole(session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency super admins can create service plans",
+            });
+        }
         // Validate hostingSubType is provided for HOSTING plans
         if (input.planType === "HOSTING" && !input.hostingSubType) {
             throw new TRPCError({
@@ -329,6 +336,12 @@ export const hostingPlansRouter = router({
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You must be logged in to update service plans",
+            });
+        }
+        if (!isAgencySuperAdminRole(session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency super admins can update service plans",
             });
         }
         const userId = session.user.id;
@@ -615,6 +628,12 @@ export const hostingPlansRouter = router({
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You must be logged in to delete service plans",
+            });
+        }
+        if (!isAgencySuperAdminRole(session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency super admins can delete service plans",
             });
         }
         const userId = session.user.id;

@@ -9,9 +9,11 @@ import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
 import { niscClientSubscription, niscProduct, niscProductPlan, } from "@npanel/db/schema/products";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { team } from "@npanel/db/schema/teams";
+import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
+import { processNiscOrder } from "../lib/nisc-order-processor";
 import { createFromPaymentInputSchema, createOrderInputSchema, getAllNiscOrdersInputSchema, getNiscOrderByIdInputSchema, retryNiscOrderInputSchema, } from "./nisc-service-orders-schemas";
 function generateNiscOrderNumber() {
     const year = new Date().getFullYear();
@@ -19,17 +21,87 @@ function generateNiscOrderNumber() {
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
     return `Nisc-${year}-${timestamp}-${random}`;
 }
+function isAgencyUserRole(role) {
+    return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+}
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
+function resolveOrderServiceType(serviceType) {
+    return serviceType === "domains" ? "domain_registration" : serviceType;
+}
+function requiresExternalProvisioning(serviceType) {
+    const resolved = resolveOrderServiceType(serviceType);
+    return (resolved === "web_hosting" ||
+        resolved === "email_hosting" ||
+        resolved === "domain_registration" ||
+        resolved === "domain_transfer");
+}
+async function isTeamMember(teamId, userId) {
+    const [member] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+        .limit(1);
+    return Boolean(member);
+}
+async function canAccessOrderRead(orderId, userId, role) {
+    const [order] = await db
+        .select({
+        id: niscOrder.id,
+        userId: niscOrder.userId,
+        teamId: niscOrder.teamId,
+    })
+        .from(niscOrder)
+        .where(eq(niscOrder.id, orderId))
+        .limit(1);
+    if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Nisc order not found" });
+    }
+    if (isAgencyUserRole(role))
+        return order;
+    if (order.userId === userId)
+        return order;
+    if (order.teamId && (await isTeamMember(order.teamId, userId)))
+        return order;
+    throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+async function canAccessOrderMutation(orderId, userId, role) {
+    const [order] = await db
+        .select({
+        id: niscOrder.id,
+        userId: niscOrder.userId,
+    })
+        .from(niscOrder)
+        .where(eq(niscOrder.id, orderId))
+        .limit(1);
+    if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Nisc order not found" });
+    }
+    if (!isAgencySuperAdminRole(role) && order.userId !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the order creator can modify it",
+        });
+    }
+    return order;
+}
 export const niscServiceOrdersRouter = router({
     getAll: protectedProcedure
         .input(getAllNiscOrdersInputSchema)
         .query(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
+        const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
+        if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You must be logged in to view Nisc orders",
             });
         }
         const conditions = [];
+        if (!isAgencyUserRole(userRole)) {
+            conditions.push(eq(niscOrder.userId, userId));
+        }
         if (input.userId != null)
             conditions.push(eq(niscOrder.userId, input.userId));
         if (input.teamId != null)
@@ -97,12 +169,15 @@ export const niscServiceOrdersRouter = router({
     getById: protectedProcedure
         .input(getNiscOrderByIdInputSchema)
         .query(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
+        const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
+        if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You must be logged in to view Nisc orders",
             });
         }
+        await canAccessOrderRead(input.id, userId, userRole);
         const order = await db.query.niscOrder.findFirst({
             where: eq(niscOrder.id, input.id),
             with: {
@@ -139,6 +214,15 @@ export const niscServiceOrdersRouter = router({
                 code: "UNAUTHORIZED",
                 message: "You must be logged in to create Nisc orders",
             });
+        }
+        const userRole = session.user.role;
+        if (!isAgencySuperAdminRole(userRole)) {
+            if (input.userId && input.userId !== session.user.id) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency super admin can create orders for other users",
+                });
+            }
         }
         const teamRow = input.teamId
             ? await db
@@ -434,6 +518,17 @@ export const niscServiceOrdersRouter = router({
                 });
             }
         }
+        const serviceTypeByProductId = new Map();
+        {
+            const productIds = Array.from(new Set(input.items.map((i) => i.productId)));
+            const rows = await db
+                .select({ id: niscProduct.id, serviceType: niscProduct.serviceType })
+                .from(niscProduct)
+                .where(inArray(niscProduct.id, productIds));
+            for (const row of rows) {
+                serviceTypeByProductId.set(row.id, row.serviceType);
+            }
+        }
         const needsProfile = await Promise.all(input.items.map(async (i) => {
             const pRows = await db
                 .select({ serviceType: niscProduct.serviceType })
@@ -599,27 +694,42 @@ export const niscServiceOrdersRouter = router({
                     .where(eq(domainTransferRequest.id, requestId));
             }
         }
-        let qstashMessageId = null;
-        try {
-            const result = await enqueueNiscOrderProcessing(order.id);
-            qstashMessageId = result.messageId;
-        }
-        catch (err) {
+        const hasExternalProvisioningItems = input.items.some((item) => {
+            const serviceType = serviceTypeByProductId.get(item.productId);
+            return serviceType ? requiresExternalProvisioning(serviceType) : true;
+        });
+        if (hasExternalProvisioningItems) {
+            let qstashMessageId = null;
+            try {
+                const result = await enqueueNiscOrderProcessing(order.id);
+                qstashMessageId = result.messageId;
+            }
+            catch (err) {
+                await db
+                    .update(niscOrder)
+                    .set({
+                    failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
+                })
+                    .where(eq(niscOrder.id, order.id));
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: err instanceof Error ? err.message : "Failed to enqueue order for processing",
+                });
+            }
             await db
                 .update(niscOrder)
-                .set({
-                failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
-            })
+                .set({ qstashMessageId })
                 .where(eq(niscOrder.id, order.id));
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: err instanceof Error ? err.message : "Failed to enqueue order for processing",
-            });
         }
-        await db
-            .update(niscOrder)
-            .set({ qstashMessageId })
-            .where(eq(niscOrder.id, order.id));
+        else {
+            const processResult = await processNiscOrder(order.id);
+            if (!processResult.ok) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: processResult.failureReason || "Failed to complete order processing",
+                });
+            }
+        }
         // Fire-and-forget: send "order received" email to the logged-in user
         void (async () => {
             try {
@@ -678,17 +788,16 @@ export const niscServiceOrdersRouter = router({
     retry: protectedProcedure
         .input(retryNiscOrderInputSchema)
         .mutation(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
+        const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
+        if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "You must be logged in to retry Nisc orders",
             });
         }
-        const retryOrderRows = await db
-            .select()
-            .from(niscOrder)
-            .where(eq(niscOrder.id, input.niscOrderId))
-            .limit(1);
+        await canAccessOrderMutation(input.niscOrderId, userId, userRole);
+        const retryOrderRows = await db.select().from(niscOrder).where(eq(niscOrder.id, input.niscOrderId)).limit(1);
         const order = retryOrderRows[0];
         if (!order) {
             throw new TRPCError({

@@ -11,7 +11,7 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;
@@ -29,7 +29,7 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;
@@ -43,14 +43,14 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             password: string;
-            role: "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
         };
         output: {
             id: string;
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;
@@ -64,14 +64,14 @@ export declare const manageUsersRouter: import("@trpc/server").TRPCBuiltRouter<{
             userId: string;
             name?: string | undefined;
             email?: string | undefined;
-            role?: "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER" | undefined;
+            role?: "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | undefined;
         };
         output: {
             id: string;
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;

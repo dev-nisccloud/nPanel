@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 async function updateWpPluginAutoUpdates(installationId, pluginUpdates) {
     const endpoint = `/v1/installations/${installationId}/plugins`;
     // Use PATCH method as per the official API docs for updating settings (autoUpdates, status)
@@ -20,7 +20,7 @@ async function updateWpPluginAutoUpdates(installationId, pluginUpdates) {
     return data;
 }
 export const wpPluginsAutoupdateRouter = router({
-    update: publicProcedure
+    update: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         plugins: z.array(z.object({ slug: z.string(), autoUpdates: z.boolean().optional(), status: z.boolean().optional() })).min(1),

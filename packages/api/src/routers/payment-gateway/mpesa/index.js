@@ -1,12 +1,39 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "@npanel/db";
+import { and, eq, inArray, or } from "@npanel/db";
 import { router, protectedProcedure } from "../../../trpc";
 import { db } from "@npanel/db";
 import { paymentTransaction, paymentTransactionActivityLog, } from "@npanel/db/schema/payment-transactions";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { createMpesaClientFromEnv, MpesaApiError, } from "./client";
 import { StkPushRequestSchema, StkPushQueryRequestSchema, } from "./types";
 import { isTerminalResultCode, isProcessingResultCode, } from "./error-codes";
+const isAgencyUserRole = (role) => role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+const getTransactionReadCondition = async (params) => {
+    const { userId, role, checkoutRequestId } = params;
+    if (isAgencyUserRole(role)) {
+        return eq(paymentTransaction.checkoutRequestId, checkoutRequestId);
+    }
+    const [membershipRows, ownedRows] = await Promise.all([
+        db.query.teamMember.findMany({
+            where: eq(teamMember.userId, userId),
+            columns: { teamId: true },
+        }),
+        db.query.team.findMany({
+            where: eq(team.createdById, userId),
+            columns: { id: true },
+        }),
+    ]);
+    const accessibleTeamIds = [
+        ...new Set([
+            ...membershipRows.map((row) => row.teamId),
+            ...ownedRows.map((row) => row.id),
+        ]),
+    ];
+    return and(eq(paymentTransaction.checkoutRequestId, checkoutRequestId), accessibleTeamIds.length > 0
+        ? or(eq(paymentTransaction.userId, userId), inArray(paymentTransaction.teamId, accessibleTeamIds))
+        : eq(paymentTransaction.userId, userId));
+};
 /**
  * M-Pesa payment gateway router
  *
@@ -43,7 +70,26 @@ export const mpesaRouter = router({
                 });
             }
             const userId = ctx.session.user.id;
+            const userRole = ctx.session.user.role;
             const now = new Date();
+            if (input.teamId && !isAgencyUserRole(userRole)) {
+                const [membership, ownedTeam] = await Promise.all([
+                    db.query.teamMember.findFirst({
+                        where: and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)),
+                        columns: { id: true },
+                    }),
+                    db.query.team.findFirst({
+                        where: and(eq(team.id, input.teamId), eq(team.createdById, userId)),
+                        columns: { id: true },
+                    }),
+                ]);
+                if (!membership && !ownedTeam) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this team",
+                    });
+                }
+            }
             // Create M-Pesa client
             const mpesaClient = createMpesaClientFromEnv();
             // Initiate STK Push
@@ -234,8 +280,15 @@ export const mpesaRouter = router({
         if (!ctx.session?.user?.id) {
             throw new TRPCError({ code: "UNAUTHORIZED", message: "Authentication required" });
         }
+        const userId = ctx.session.user.id;
+        const userRole = ctx.session.user.role;
+        const readCondition = await getTransactionReadCondition({
+            userId,
+            role: userRole,
+            checkoutRequestId: input.checkoutRequestId,
+        });
         const transaction = await db.query.paymentTransaction.findFirst({
-            where: and(eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId), eq(paymentTransaction.userId, ctx.session.user.id)),
+            where: readCondition,
             columns: {
                 status: true,
                 gatewayStatus: true,
@@ -273,6 +326,7 @@ export const mpesaRouter = router({
                 });
             }
             const userId = ctx.session.user.id;
+            const userRole = ctx.session.user.role;
             // Lightweight read for terminal check only (status + fields needed for response)
             const terminalFields = {
                 status: true,
@@ -282,10 +336,18 @@ export const mpesaRouter = router({
                 checkoutRequestId: true,
             };
             const getTransaction = async () => db.query.paymentTransaction.findFirst({
-                where: and(eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId), eq(paymentTransaction.userId, userId)),
+                where: await getTransactionReadCondition({
+                    userId,
+                    role: userRole,
+                    checkoutRequestId: input.checkoutRequestId,
+                }),
             });
-            const getTransactionForTerminalCheck = () => db.query.paymentTransaction.findFirst({
-                where: and(eq(paymentTransaction.checkoutRequestId, input.checkoutRequestId), eq(paymentTransaction.userId, userId)),
+            const getTransactionForTerminalCheck = async () => db.query.paymentTransaction.findFirst({
+                where: await getTransactionReadCondition({
+                    userId,
+                    role: userRole,
+                    checkoutRequestId: input.checkoutRequestId,
+                }),
                 columns: terminalFields,
             });
             // Helper: return terminal state from DB (webhook already ran)

@@ -100,6 +100,7 @@ import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
 import { apiKeysRouter } from "./api-keys";
 import { digitaxRouter } from "./digitax";
+import { ipRecordsRouter } from "./ip-records";
 
 
 export const appRouter = router({
@@ -284,5 +285,7 @@ export const appRouter = router({
 	apiKeys: apiKeysRouter,
 	// DigiTax Integration
 	digitax: digitaxRouter,
+	// IP Records
+	ipRecords: ipRecordsRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 async function updateWpThemeAutoUpdates(installationId, themes) {
     const endpoint = `/v1/installations/${installationId}/themes`;
     // Use PATCH method for updating settings in bulk, consistent with plugins endpoint
@@ -19,7 +19,7 @@ async function updateWpThemeAutoUpdates(installationId, themes) {
     return data;
 }
 export const wpThemesAutoupdateRouter = router({
-    update: publicProcedure
+    update: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         themes: z.array(z.object({ slug: z.string(), autoUpdates: z.boolean().optional(), status: z.boolean().optional() })).min(1),

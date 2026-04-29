@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessToken, getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 /**
  * Get user's LinkedIn integration with valid tokens
  */
-async function getUserIntegration(userId) {
-    const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
+async function getUserIntegration(userId, role) {
+    const tokenData = (await getStoredLinkedInAccessTokenForSession({ userId, role })) ??
+        (await getStoredLinkedInAccessToken());
     if (!tokenData) {
         throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -71,7 +72,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
                     message: 'User session not found',
                 });
             }
-            const { accessToken } = await getUserIntegration(userId);
+            const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
             // Create LinkedIn Ads client
             const client = new LinkedInAdsClient({ accessToken });
             // Ensure account ID is in URN format
@@ -110,7 +111,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
                             start: formatDateForLinkedIn(startDate),
                             end: formatDateForLinkedIn(endDate),
                         },
-                        accounts: [input.accountId],
+                        accounts: [accountUrn],
                         pivots: [{ pivot: 'CAMPAIGN_GROUP' }],
                         fields: [
                             'impressions',
@@ -221,7 +222,7 @@ export const linkedInAdsCampaignGroupsRouter = router({
                     message: 'User session not found',
                 });
             }
-            const { accessToken } = await getUserIntegration(userId);
+            const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
             // Create LinkedIn Ads client
             const client = new LinkedInAdsClient({ accessToken });
             // Get campaign group details directly from LinkedIn API

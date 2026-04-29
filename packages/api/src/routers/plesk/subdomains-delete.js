@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, publicProcedure } from "../../trpc";
+import { router, protectedProcedure } from "../../trpc";
 import { sendPleskXmlRequest } from "../../lib/plesk/xml-client";
 export const subdomainsDeleteRouter = router({
-    delete: publicProcedure
+    delete: protectedProcedure
         .input(z.object({
         id: z.number().optional(),
         name: z.string().optional(),

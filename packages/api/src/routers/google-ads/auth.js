@@ -9,6 +9,7 @@ import { googleAdsIntegration, googleAdsIntegrationActivityLog, } from '@npanel/
 import { getGoogleAdsClientId, getGoogleAdsClientSecret, getGoogleAdsRedirectUri, } from '../../lib/google-ads-credentials';
 import { refreshAccessToken } from '../../lib/google-ads-client';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
+import { getGoogleAdsIntegrationForSession } from '../../lib/google-ads-user-integration';
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
@@ -255,12 +256,21 @@ export const googleAdsAuthRouter = router({
                     message: 'User session not found',
                 });
             }
-            const [integration] = await db
-                .select()
-                .from(googleAdsIntegration)
-                .where(eq(googleAdsIntegration.userId, userId))
-                .orderBy(desc(googleAdsIntegration.createdAt))
-                .limit(1);
+            let integration = null;
+            try {
+                integration = await getGoogleAdsIntegrationForSession({
+                    userId,
+                    role: ctx.session?.user?.role,
+                });
+            }
+            catch (error) {
+                if (error instanceof TRPCError && error.code === 'BAD_REQUEST') {
+                    integration = null;
+                }
+                else {
+                    throw error;
+                }
+            }
             if (!integration) {
                 return {
                     success: true,
@@ -270,77 +280,9 @@ export const googleAdsAuthRouter = router({
                     },
                 };
             }
-            // Check if token is expired
+            // getGoogleAdsIntegrationForSession already refreshes expired tokens when possible.
             const isExpired = integration.accessTokenExpiresAt &&
                 new Date(integration.accessTokenExpiresAt) < new Date();
-            // If expired, try to refresh
-            if (isExpired && integration.refreshToken) {
-                try {
-                    const clientId = getGoogleAdsClientId();
-                    const clientSecret = getGoogleAdsClientSecret();
-                    const tokenResponse = await refreshAccessToken(integration.refreshToken, clientId, clientSecret);
-                    const expiresAt = new Date();
-                    expiresAt.setSeconds(expiresAt.getSeconds() + tokenResponse.expires_in);
-                    await db
-                        .update(googleAdsIntegration)
-                        .set({
-                        accessToken: tokenResponse.access_token,
-                        accessTokenExpiresAt: expiresAt,
-                        lastTokenRefreshAt: new Date(),
-                        updatedAt: new Date(),
-                    })
-                        .where(eq(googleAdsIntegration.id, integration.id));
-                    await db.insert(googleAdsIntegrationActivityLog).values({
-                        id: randomUUID(),
-                        integrationId: integration.id,
-                        userId,
-                        action: 'TOKEN_REFRESH',
-                        description: 'Access token automatically refreshed',
-                        metadata: {
-                            expiresAt: expiresAt.toISOString(),
-                            expiresIn: tokenResponse.expires_in,
-                        },
-                        ipAddress: null,
-                        userAgent: null,
-                        createdAt: new Date(),
-                    });
-                    // Return updated integration
-                    return {
-                        success: true,
-                        data: {
-                            integrationId: integration.id,
-                            hasAccessToken: true,
-                            hasRefreshToken: !!integration.refreshToken,
-                            accessTokenExpiresAt: expiresAt.toISOString(),
-                            isExpired: false,
-                            scope: integration.scope,
-                            status: String(integration.status),
-                            userId: integration.userId,
-                            connected: true, // Add connected field for frontend
-                        },
-                        meta: {
-                            has_credentials: true,
-                            created_at: integration.createdAt.toISOString(),
-                            updated_at: new Date().toISOString(),
-                        },
-                    };
-                }
-                catch (refreshError) {
-                    // If refresh fails, mark as expired
-                    console.error('Failed to refresh Google Ads token:', refreshError);
-                    const errorInfo = GoogleAdsErrorHandler.handleError(refreshError);
-                    if (errorInfo.type === 'refresh-token') {
-                        // Update status to EXPIRED
-                        await db
-                            .update(googleAdsIntegration)
-                            .set({
-                            status: 'EXPIRED',
-                            updatedAt: new Date(),
-                        })
-                            .where(eq(googleAdsIntegration.id, integration.id));
-                    }
-                }
-            }
             // Determine if connected (has valid tokens and status is ACTIVE)
             const connected = !!integration.refreshToken &&
                 integration.status === ACTIVE_STATUS &&

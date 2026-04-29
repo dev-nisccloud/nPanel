@@ -24,6 +24,7 @@ export declare const metaAdsAccountsRouter: import("@trpc/server").TRPCBuiltRout
                 spendLimit: string | null;
                 amountSpent: string | null;
                 balance: string | null;
+                instagramUserId: null;
                 updatedAt: Date;
             }[];
             meta: {
@@ -34,16 +35,19 @@ export declare const metaAdsAccountsRouter: import("@trpc/server").TRPCBuiltRout
         } | {
             success: boolean;
             data: {
-                id: string;
-                accountId: string;
-                accountName: string | null;
-                currency: string | null;
-                timezone: string | null;
-                status: "ACTIVE" | "CLOSED" | "DISABLED" | "UNSETTLED" | "PENDING_REVIEW" | "IN_GRACE_PERIOD" | "PENDING_CLOSURE";
-                spendLimit: string | null;
-                amountSpent: string | null;
-                balance: string | null;
                 updatedAt: string;
+                id: string;
+                integrationId: string;
+                accountId: any;
+                accountName: any;
+                currency: any;
+                timezone: any;
+                status: "ACTIVE" | "CLOSED" | "DISABLED" | "UNSETTLED" | "PENDING_REVIEW" | "IN_GRACE_PERIOD" | "PENDING_CLOSURE";
+                spendLimit: any;
+                amountSpent: any;
+                balance: any;
+                instagramUserId: any;
+                createdAt: Date;
             }[];
             meta: {
                 retrieved_at: string;
@@ -73,6 +77,26 @@ export declare const metaAdsAccountsRouter: import("@trpc/server").TRPCBuiltRout
                 amount_spent?: string;
                 balance?: string;
             };
+        };
+        meta: object;
+    }>;
+    /**
+     * Get Instagram accounts connected/authorized for use with a specific ad account
+     * Calls GET /{act_id}/connected_instagram_accounts
+     * Requires ads_read scope on the stored token.
+     */
+    getConnectedInstagramAccounts: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            accountId: string;
+        };
+        output: {
+            success: boolean;
+            data: {
+                id: string;
+                username?: string;
+                name?: string;
+                profile_pic?: string;
+            }[];
         };
         meta: object;
     }>;

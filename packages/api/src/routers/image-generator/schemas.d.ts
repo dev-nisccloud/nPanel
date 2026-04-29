@@ -13,16 +13,16 @@ export declare const variationStatusSchema: z.ZodEnum<{
 }>;
 export type VariationStatus = z.infer<typeof variationStatusSchema>;
 export declare const aspectRatioSchema: z.ZodEnum<{
-    "21:9": "21:9";
-    "16:9": "16:9";
-    "3:2": "3:2";
-    "5:4": "5:4";
     "1:1": "1:1";
-    "4:5": "4:5";
     "2:3": "2:3";
-    "9:16": "9:16";
+    "3:2": "3:2";
     "3:4": "3:4";
     "4:3": "4:3";
+    "4:5": "4:5";
+    "5:4": "5:4";
+    "9:16": "9:16";
+    "16:9": "16:9";
+    "21:9": "21:9";
 }>;
 export declare const outputFormatSchema: z.ZodEnum<{
     png: "png";
@@ -37,16 +37,16 @@ export declare const startGenerationSchema: z.ZodObject<{
     prompt: z.ZodString;
     referenceImageUrls: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
     aspectRatio: z.ZodDefault<z.ZodEnum<{
-        "21:9": "21:9";
-        "16:9": "16:9";
-        "3:2": "3:2";
-        "5:4": "5:4";
         "1:1": "1:1";
-        "4:5": "4:5";
         "2:3": "2:3";
-        "9:16": "9:16";
+        "3:2": "3:2";
         "3:4": "3:4";
         "4:3": "4:3";
+        "4:5": "4:5";
+        "5:4": "5:4";
+        "9:16": "9:16";
+        "16:9": "16:9";
+        "21:9": "21:9";
     }>>;
     outputFormat: z.ZodDefault<z.ZodEnum<{
         png: "png";
@@ -208,16 +208,16 @@ export declare const generateImageSchema: z.ZodObject<{
     prompt: z.ZodString;
     referenceImageUrls: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
     aspectRatio: z.ZodDefault<z.ZodEnum<{
-        "21:9": "21:9";
-        "16:9": "16:9";
-        "3:2": "3:2";
-        "5:4": "5:4";
         "1:1": "1:1";
-        "4:5": "4:5";
         "2:3": "2:3";
-        "9:16": "9:16";
+        "3:2": "3:2";
         "3:4": "3:4";
         "4:3": "4:3";
+        "4:5": "4:5";
+        "5:4": "5:4";
+        "9:16": "9:16";
+        "16:9": "16:9";
+        "21:9": "21:9";
     }>>;
     outputFormat: z.ZodDefault<z.ZodEnum<{
         png: "png";

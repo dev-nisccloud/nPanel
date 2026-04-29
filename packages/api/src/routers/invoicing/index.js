@@ -5,10 +5,14 @@ import { and, count, desc, eq, ilike, inArray, isNull, or, sql } from "@npanel/d
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 import { creditNote, creditNoteActivityLog, invoice, invoiceActivityLog, invoiceCounter, invoiceLineItem, invoiceTransaction, invoiceTransactionActivityLog, } from "@npanel/db/schema/invoicing";
+import { order } from "@npanel/db/schema/orders";
+import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
 import { activityLogSchema, creditNoteInputSchema, creditNoteOutputSchema, invoiceCreateInputSchema, invoiceDetailSchema, invoiceLineItemOutputSchema, invoiceListFiltersSchema, invoiceListResponseSchema, invoicePaymentStatusSchema, invoiceStatusSchema, invoiceSummarySchema, invoiceTransactionInputSchema, invoiceTransactionOutputSchema, invoiceUpdateInputSchema, nextInvoiceNumberSchema, nullableStringSchema, submitInvoiceSchema, updatePaymentInputSchema, } from "./schemas";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
 // // Unused function commented out
 // const isCustomer = (role: string) => role === "CUSTOMER"; // Unused, commented out
 function parseDate(value) {
@@ -81,6 +85,31 @@ async function ensureTeamAccess(_db, userId, role, teamId) {
         });
     }
 }
+async function ensureTeamMutationAccess(_db, userId, role, teamId) {
+    if (isAgencySuperAdmin(role)) {
+        return;
+    }
+    if (!teamId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Invoice is not associated with any team.",
+        });
+    }
+    const [teamRow] = await db
+        .select({ createdById: team.createdById })
+        .from(team)
+        .where(eq(team.id, teamId))
+        .limit(1);
+    if (!teamRow) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+    }
+    if (teamRow.createdById !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the team owner can modify team invoices.",
+        });
+    }
+}
 async function ensureInvoiceAccess(_db, userId, role, invoiceId) {
     const invAcc = await db.query.invoice.findFirst({
         where: eq(invoice.id, invoiceId),
@@ -109,6 +138,57 @@ async function ensureInvoiceAccess(_db, userId, role, invoiceId) {
         });
     }
     return invAcc;
+}
+async function ensureInvoiceMutationAccess(_db, userId, role, invoiceId) {
+    const invAcc = await db.query.invoice.findFirst({
+        where: eq(invoice.id, invoiceId),
+        columns: { teamId: true, createdBy: true },
+    });
+    if (!invAcc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
+    }
+    if (!isAgencySuperAdmin(role) && invAcc.createdBy !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the invoice creator can modify it.",
+        });
+    }
+    return invAcc;
+}
+async function deleteInvoices(tx, invoiceIds) {
+    if (invoiceIds.length === 0)
+        return;
+    // Remove or detach external references that may be RESTRICTed.
+    await tx.delete(cronWorkflowRunInvoice).where(inArray(cronWorkflowRunInvoice.invoiceId, invoiceIds));
+    // These should be SET NULL in DB, but we null them explicitly for safety.
+    await tx.update(order).set({ invoiceId: null }).where(inArray(order.invoiceId, invoiceIds));
+    await tx.update(niscOrder).set({ invoiceId: null }).where(inArray(niscOrder.invoiceId, invoiceIds));
+    // Delete children explicitly (some DBs/migrations may not have cascades applied).
+    const transactionIds = await tx
+        .select({ id: invoiceTransaction.id })
+        .from(invoiceTransaction)
+        .where(inArray(invoiceTransaction.invoiceId, invoiceIds));
+    const transactionIdList = transactionIds.map((t) => t.id);
+    if (transactionIdList.length > 0) {
+        await tx
+            .delete(invoiceTransactionActivityLog)
+            .where(inArray(invoiceTransactionActivityLog.invoiceTransactionId, transactionIdList));
+    }
+    const creditNoteIds = await tx
+        .select({ id: creditNote.id })
+        .from(creditNote)
+        .where(inArray(creditNote.invoiceId, invoiceIds));
+    const creditNoteIdList = creditNoteIds.map((c) => c.id);
+    if (creditNoteIdList.length > 0) {
+        await tx
+            .delete(creditNoteActivityLog)
+            .where(inArray(creditNoteActivityLog.creditNoteId, creditNoteIdList));
+    }
+    await tx.delete(invoiceLineItem).where(inArray(invoiceLineItem.invoiceId, invoiceIds));
+    await tx.delete(invoiceTransaction).where(inArray(invoiceTransaction.invoiceId, invoiceIds));
+    await tx.delete(invoiceActivityLog).where(inArray(invoiceActivityLog.invoiceId, invoiceIds));
+    await tx.delete(creditNote).where(inArray(creditNote.invoiceId, invoiceIds));
+    await tx.delete(invoice).where(inArray(invoice.id, invoiceIds));
 }
 function buildInvoiceData(input) {
     const data = {
@@ -623,7 +703,7 @@ export const invoicingRouter = router({
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
         const invRows = await db
             .select({
             id: invoice.id,
@@ -761,7 +841,7 @@ export const invoicingRouter = router({
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
         if (input.teamId) {
-            await ensureTeamAccess(db, user.id, user.role, input.teamId);
+            await ensureTeamMutationAccess(db, user.id, user.role, input.teamId);
         }
         const invoiceId = input.id ?? crypto.randomUUID();
         const token = input.token ?? crypto.randomUUID();
@@ -910,10 +990,10 @@ export const invoicingRouter = router({
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        const invoiceRecord = await ensureInvoiceAccess(db, user.id, user.role, input.id);
+        const invoiceRecord = await ensureInvoiceMutationAccess(db, user.id, user.role, input.id);
         await db.transaction(async (tx) => {
             if (input.teamId && input.teamId !== invoiceRecord.teamId) {
-                await ensureTeamAccess(tx, user.id, user.role, input.teamId);
+                await ensureTeamMutationAccess(tx, user.id, user.role, input.teamId);
             }
             const data = buildInvoiceUpdateData(input, user.id);
             await tx
@@ -984,7 +1064,7 @@ export const invoicingRouter = router({
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        await ensureInvoiceAccess(db, user.id, user.role, input.id);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.id);
         await db.transaction(async (tx) => {
             const now = new Date();
             await tx
@@ -1011,7 +1091,7 @@ export const invoicingRouter = router({
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
         const transactionId = input.id ?? crypto.randomUUID();
         await db.transaction(async (tx) => {
             const now = new Date();
@@ -1082,7 +1162,7 @@ export const invoicingRouter = router({
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
         await db.transaction(async (tx) => {
             const transRows = await tx
                 .select({ id: invoiceTransaction.id })
@@ -1119,7 +1199,7 @@ export const invoicingRouter = router({
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
         const creditNoteId = input.id ?? crypto.randomUUID();
         await db.transaction(async (tx) => {
             const now = new Date();
@@ -1193,7 +1273,7 @@ export const invoicingRouter = router({
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
         await db.transaction(async (tx) => {
             const existingRows = await tx
                 .select({ id: creditNote.id })
@@ -1230,7 +1310,7 @@ export const invoicingRouter = router({
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
         if (input.teamId) {
-            await ensureTeamAccess(db, user.id, user.role, input.teamId);
+            await ensureTeamMutationAccess(db, user.id, user.role, input.teamId);
         }
         const invoiceId = input.id ?? crypto.randomUUID();
         const token = input.token ?? crypto.randomUUID();
@@ -1343,7 +1423,7 @@ export const invoicingRouter = router({
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
         await db.transaction(async (tx) => {
             const invRows = await tx
                 .select({ id: invoice.id, invoiceNumber: invoice.invoiceNumber })
@@ -1366,42 +1446,57 @@ export const invoicingRouter = router({
                     invoiceNumber: inv.invoiceNumber,
                 },
             });
-            await tx
-                .delete(invoiceTransaction)
-                .where(eq(invoiceTransaction.invoiceId, input.invoiceId));
-            await tx
-                .delete(invoiceActivityLog)
-                .where(eq(invoiceActivityLog.invoiceId, input.invoiceId));
-            await tx.delete(creditNote).where(eq(creditNote.invoiceId, input.invoiceId));
-            await tx.delete(invoice).where(eq(invoice.id, input.invoiceId));
+            await deleteInvoices(tx, [input.invoiceId]);
         });
         return { success: true };
+    }),
+    bulkDeleteInvoices: protectedProcedure
+        .input(z.object({
+        invoiceIds: z.array(z.string().uuid()).min(1),
+    }))
+        .output(z.object({ success: z.boolean(), deletedCount: z.number().int().nonnegative() }))
+        .mutation(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        // Enforce access per-invoice (agency users can delete any; others must have access).
+        for (const invoiceId of input.invoiceIds) {
+            await ensureInvoiceMutationAccess(db, user.id, user.role, invoiceId);
+        }
+        await db.transaction(async (tx) => {
+            await deleteInvoices(tx, input.invoiceIds);
+        });
+        return { success: true, deletedCount: input.invoiceIds.length };
     }),
     resendEmailReminder: protectedProcedure
         .input(z.object({
         invoiceId: z.string().uuid(),
+        to: z.string().email().optional(),
         pdfBase64: z.string(), // Base64 encoded PDF blob
+        cc: z.array(z.string().email()).optional(),
+        bcc: z.array(z.string().email()).optional(),
     }))
         .output(invoiceDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
-        const { sendEmail } = await import("../../lib/email");
         const { renderInvoiceDeliveryEmail } = await import("../../lib/email-templates");
-        await ensureInvoiceAccess(db, user.id, user.role, input.invoiceId);
+        const { getSesClient, sendSesRawEmail } = await import("../../lib/ses-client");
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
         const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
-        if (!invoiceDetail.customerEmail) {
+        const toEmail = input.to?.trim() || invoiceDetail.customerEmail?.trim();
+        if (!toEmail) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: "Invoice does not have a customer email address.",
+                message: "No recipient email address provided.",
             });
         }
-        // Prepare services list for email
-        const services = invoiceDetail.lineItems.map((item) => ({
-            name: item.name || "Service",
-            description: item.description || undefined,
-            quantity: item.quantity || undefined,
-            price: item.price ? `${invoiceDetail.currency} ${item.price}` : undefined,
-        }));
+        const formatMoney = (currency, value) => {
+            const n = typeof value === "number" ? value : Number(value);
+            const safe = Number.isFinite(n) ? n : 0;
+            const formatted = new Intl.NumberFormat("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(safe);
+            return `${currency} ${formatted}`;
+        };
         // Format dates for email
         const formatDate = (date) => {
             if (!date)
@@ -1418,9 +1513,8 @@ export const invoicingRouter = router({
             invoiceNumber: invoiceDetail.invoiceNumber || "N/A",
             issueDate: formatDate(invoiceDetail.issueDate),
             dueDate: formatDate(invoiceDetail.dueDate),
-            totalAmount: invoiceDetail.amount || "0.00",
+            totalAmount: formatMoney(invoiceDetail.currency || "KES", invoiceDetail.amount),
             currency: invoiceDetail.currency || "KES",
-            services,
             supportEmail: "billing@nisccloud.com",
             supportPhone: "+254 748 777 666",
         });
@@ -1432,18 +1526,92 @@ export const invoicingRouter = router({
             ? `${sanitizeFilename(invoiceDetail.invoiceNumber)}.pdf`
             : "Invoice.pdf";
         // Prepare PDF attachment
-        const attachments = [{
-                filename: pdfFilename,
-                content: Buffer.from(input.pdfBase64, "base64"),
-                contentType: "application/pdf",
-            }];
+        const pdfBuffer = Buffer.from(input.pdfBase64, "base64");
+        const stripHeaderUnsafe = (value) => value.replace(/[\r\n]+/g, " ").trim();
+        const toRfc2047Utf8 = (value) => {
+            if (/^[\x00-\x7F]*$/.test(value))
+                return value;
+            const buf = Buffer.from(value, "utf8");
+            return `=?UTF-8?B?${buf.toString("base64")}?=`;
+        };
+        const parseDisplayEmail = (value) => {
+            const v = stripHeaderUnsafe(value);
+            const m = v.match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/);
+            if (m)
+                return { name: m[1]?.trim() || null, email: m[2].trim() };
+            return { name: null, email: v };
+        };
+        const buildFromHeader = (fromName, fromEmail) => {
+            const parsed = parseDisplayEmail(fromEmail);
+            const name = stripHeaderUnsafe(fromName ?? parsed.name ?? "");
+            const email = stripHeaderUnsafe(parsed.email);
+            return name ? `${toRfc2047Utf8(name)} <${email}>` : email;
+        };
+        const buildRawMimeWithPdf = (params) => {
+            const boundaryMixed = `npanel-mixed-${crypto.randomUUID()}`;
+            const boundaryAlt = `npanel-alt-${crypto.randomUUID()}`;
+            const lines = [];
+            lines.push(`From: ${params.from}`);
+            lines.push(`To: ${params.to}`);
+            if (params.cc && params.cc.length > 0) {
+                lines.push(`Cc: ${params.cc.join(", ")}`);
+            }
+            lines.push(`Subject: ${toRfc2047Utf8(params.subject)}`);
+            if (params.replyTo)
+                lines.push(`Reply-To: ${params.replyTo}`);
+            lines.push("MIME-Version: 1.0");
+            lines.push(`Content-Type: multipart/mixed; boundary="${boundaryMixed}"`);
+            lines.push("");
+            // alternative part
+            lines.push(`--${boundaryMixed}`);
+            lines.push(`Content-Type: multipart/alternative; boundary="${boundaryAlt}"`);
+            lines.push("");
+            lines.push(`--${boundaryAlt}`);
+            lines.push('Content-Type: text/html; charset="UTF-8"');
+            lines.push("Content-Transfer-Encoding: 7bit");
+            lines.push("");
+            lines.push(params.html);
+            lines.push("");
+            lines.push(`--${boundaryAlt}--`);
+            lines.push("");
+            // attachment part
+            lines.push(`--${boundaryMixed}`);
+            lines.push(`Content-Type: application/pdf; name="${params.attachmentFilename}"`);
+            lines.push("Content-Transfer-Encoding: base64");
+            lines.push(`Content-Disposition: attachment; filename="${params.attachmentFilename}"`);
+            lines.push("");
+            lines.push(params.attachment.toString("base64"));
+            lines.push("");
+            lines.push(`--${boundaryMixed}--`);
+            lines.push("");
+            return Buffer.from(lines.join("\r\n"), "utf8");
+        };
         // Send email with PDF attachment
         try {
-            await sendEmail({
-                to: invoiceDetail.customerEmail,
-                subject: `Invoice Reminder: ${invoiceDetail.invoiceNumber || "Invoice"} from Nisc Cloud Limited`,
+            const fromDomainRaw = process.env.NISC_TX_EMAIL_DOMAIN?.trim();
+            const fromDomain = fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
+            const fromEmail = (process.env.NISC_TX_FROM_EMAIL?.trim() ||
+                (fromDomain ? `noreply@${fromDomain}` : "noreply@npanel.com"));
+            const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
+            const replyTo = process.env.NISC_TX_REPLY_TO?.trim() || undefined;
+            const to = toEmail;
+            const cc = input.cc?.filter(Boolean);
+            const bcc = input.bcc?.filter(Boolean);
+            const destinations = [to, ...(cc ?? []), ...(bcc ?? [])];
+            const raw = buildRawMimeWithPdf({
+                from: buildFromHeader(fromName, fromEmail),
+                to,
+                cc,
+                subject: stripHeaderUnsafe(`Invoice Reminder: ${invoiceDetail.invoiceNumber || "Invoice"} from ${fromName}`),
+                replyTo: replyTo ? stripHeaderUnsafe(replyTo) : null,
                 html: emailHtml,
-                attachments,
+                attachmentFilename: pdfFilename,
+                attachment: pdfBuffer,
+            });
+            const ses = getSesClient();
+            await sendSesRawEmail(ses, {
+                RawMessage: { Data: raw },
+                Destinations: destinations,
             });
             // Batch: Update reminderSentAt timestamp and log activity in a transaction
             // This reduces connection usage from 2 sequential queries to 1 transaction
@@ -1458,7 +1626,9 @@ export const invoicingRouter = router({
                     action: "REMINDER_SENT",
                     description: "Email reminder sent",
                     metadata: {
-                        sentTo: invoiceDetail.customerEmail,
+                        sentTo: to,
+                        cc: cc ?? [],
+                        bccCount: bcc?.length ?? 0,
                     },
                 });
             });

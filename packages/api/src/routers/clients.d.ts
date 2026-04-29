@@ -11,7 +11,7 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;
@@ -25,14 +25,14 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             name: string;
             email: string;
             password: string;
-            role?: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER" | undefined;
+            role?: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | undefined;
         };
         output: {
             id: string;
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;
@@ -46,14 +46,14 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             userId: string;
             name?: string | undefined;
             email?: string | undefined;
-            role?: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER" | undefined;
+            role?: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | undefined;
         };
         output: {
             id: string;
             name: string;
             email: string;
             emailVerified: boolean;
-            role: "CUSTOMER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | "AGENCY_USER";
+            role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN";
             status: "ACTIVE" | "SUSPENDED" | "BANNED" | "DEACTIVATED";
             image: string | null;
             lastLoginAt: Date | null;

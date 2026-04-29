@@ -40,10 +40,12 @@ export declare const etimsItemsRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             success: boolean;
             data: any;
+            requiresReinitialization?: undefined;
             errorMessage?: undefined;
         } | {
             success: boolean;
             data: null;
+            requiresReinitialization: boolean;
             errorMessage: any;
         };
         meta: object;

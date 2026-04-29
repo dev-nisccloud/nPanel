@@ -15,6 +15,7 @@ export declare const subscriptionsRouter: import("@trpc/server").TRPCBuiltRouter
     getById: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             id: number;
+            teamId?: string | undefined;
         };
         output: {
             raw: string;

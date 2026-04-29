@@ -16,6 +16,7 @@ export declare const metaAdsAdSetsRouter: import("@trpc/server").TRPCBuiltRouter
                 since?: string | undefined;
                 until?: string | undefined;
             } | undefined;
+            publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
             data: {
@@ -27,6 +28,8 @@ export declare const metaAdsAdSetsRouter: import("@trpc/server").TRPCBuiltRouter
                 budget_remaining: string | null;
                 bid_amount: any;
                 targeting: any;
+                publisher_platforms: any;
+                instagram_positions: any;
                 start_time: any;
                 stop_time: any;
                 created_time: any;
@@ -72,6 +75,7 @@ export declare const metaAdsAdSetsRouter: import("@trpc/server").TRPCBuiltRouter
     getAdSetDetails: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             adSetId: string;
+            publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
             data: {
@@ -83,6 +87,8 @@ export declare const metaAdsAdSetsRouter: import("@trpc/server").TRPCBuiltRouter
                 budget_remaining: any;
                 bid_amount: any;
                 targeting: any;
+                publisher_platforms: any;
+                instagram_positions: any;
                 start_time: any;
                 stop_time: any;
                 created_time: any;

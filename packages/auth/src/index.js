@@ -1,15 +1,15 @@
 import { db } from "@npanel/db";
 import * as authSchema from "@npanel/db/schema/auth";
-import { userActivityLog } from "@npanel/db/schema/auth-extras";
+import { userActivityLog, userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
 import { notification, notificationActivityLog, } from "@npanel/db/schema/notifications";
 import { session, user } from "@npanel/db/schema/auth";
 import { env } from "@npanel/env/server";
 import { renderEmailVerificationEmail, renderPasswordResetSuccessEmail, renderResetPasswordEmail, } from "react-email-starter/src/email-templates";
-import { sendEmail } from "react-email-starter/src/email";
+import { sendTransactionalEmail } from "./transactional-email";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { eq } from "@npanel/db";
+import { and, eq } from "@npanel/db";
 const resolvedTrustedOrigins = (() => {
     const addUrlToList = (list, url) => {
         if (url) {
@@ -67,6 +67,12 @@ export const auth = betterAuth({
     trustedOrigins: resolvedTrustedOrigins,
     baseURL: undefined,
     secret: env.BETTER_AUTH_SECRET,
+    socialProviders: {
+        google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+        },
+    },
     session: {
         expiresIn: 60 * 60 * 2,
         updateAge: 0,
@@ -216,6 +222,40 @@ export const auth = betterAuth({
                                 .update(user)
                                 .set({ lastLoginAt: new Date() })
                                 .where(eq(user.id, newSession.user.id));
+                            const mfaRows = await tx
+                                .select({ id: userMfaSettings.id })
+                                .from(userMfaSettings)
+                                .where(and(eq(userMfaSettings.userId, newSession.user.id), eq(userMfaSettings.emailOtpEnabled, true)))
+                                .limit(1);
+                            if (mfaRows[0] && newSession.session?.id) {
+                                const existingMfaSession = await tx
+                                    .select({ id: userMfaSession.id })
+                                    .from(userMfaSession)
+                                    .where(eq(userMfaSession.sessionId, newSession.session.id))
+                                    .limit(1);
+                                if (!existingMfaSession[0]) {
+                                    await tx.insert(userMfaSession).values({
+                                        id: crypto.randomUUID(),
+                                        userId: newSession.user.id,
+                                        sessionId: newSession.session.id,
+                                        requiredAt: new Date(),
+                                        verifiedAt: null,
+                                        createdAt: new Date(),
+                                        updatedAt: new Date(),
+                                    });
+                                }
+                                else {
+                                    await tx
+                                        .update(userMfaSession)
+                                        .set({
+                                        userId: newSession.user.id,
+                                        requiredAt: new Date(),
+                                        verifiedAt: null,
+                                        updatedAt: new Date(),
+                                    })
+                                        .where(eq(userMfaSession.sessionId, newSession.session.id));
+                                }
+                            }
                             await tx.insert(userActivityLog).values({
                                 id: crypto.randomUUID(),
                                 userId: newSession.user.id,
@@ -344,6 +384,62 @@ export const auth = betterAuth({
                             userAgent: signupHeaders?.get("user-agent") || null,
                             createdAt: new Date(),
                         });
+                        const settingsRows = await tx
+                            .select({ id: userMfaSettings.id })
+                            .from(userMfaSettings)
+                            .where(eq(userMfaSettings.userId, signupUserId))
+                            .limit(1);
+                        if (settingsRows[0]) {
+                            await tx
+                                .update(userMfaSettings)
+                                .set({
+                                setupRequired: true,
+                                emailOtpEnabled: false,
+                                preferredMethod: "EMAIL_OTP",
+                                updatedAt: new Date(),
+                            })
+                                .where(eq(userMfaSettings.userId, signupUserId));
+                        }
+                        else {
+                            await tx.insert(userMfaSettings).values({
+                                id: crypto.randomUUID(),
+                                userId: signupUserId,
+                                setupRequired: true,
+                                emailOtpEnabled: false,
+                                preferredMethod: "EMAIL_OTP",
+                                createdAt: new Date(),
+                                updatedAt: new Date(),
+                            });
+                        }
+                        if (newSession.session?.id) {
+                            const existingMfaSession = await tx
+                                .select({ id: userMfaSession.id })
+                                .from(userMfaSession)
+                                .where(eq(userMfaSession.sessionId, newSession.session.id))
+                                .limit(1);
+                            if (!existingMfaSession[0]) {
+                                await tx.insert(userMfaSession).values({
+                                    id: crypto.randomUUID(),
+                                    userId: signupUserId,
+                                    sessionId: newSession.session.id,
+                                    requiredAt: new Date(),
+                                    verifiedAt: null,
+                                    createdAt: new Date(),
+                                    updatedAt: new Date(),
+                                });
+                            }
+                            else {
+                                await tx
+                                    .update(userMfaSession)
+                                    .set({
+                                    userId: signupUserId,
+                                    requiredAt: new Date(),
+                                    verifiedAt: null,
+                                    updatedAt: new Date(),
+                                })
+                                    .where(eq(userMfaSession.sessionId, newSession.session.id));
+                            }
+                        }
                     })
                         .catch((error) => console.error("Failed to log signup / create signup notification:", error));
                 }
@@ -481,7 +577,8 @@ export const auth = betterAuth({
                 userFirstname: u.name || "User",
                 resetPasswordLink: resetUrl,
             });
-            await sendEmail({
+            await sendTransactionalEmail({
+                userId: u.id,
                 to: u.email,
                 subject: "Reset your password - npanel",
                 html,
@@ -564,7 +661,8 @@ export const auth = betterAuth({
                     userFirstname: u.name || "User",
                     loginLink,
                 });
-                await sendEmail({
+                await sendTransactionalEmail({
+                    userId: u.id,
                     to: u.email,
                     subject: "Password reset successful - npanel",
                     html,
@@ -646,7 +744,8 @@ export const auth = betterAuth({
                 userFirstname: u.name || "User",
                 verificationLink: verificationUrl,
             });
-            await sendEmail({
+            await sendTransactionalEmail({
+                userId: u.id,
                 to: u.email,
                 subject: "Welcome to npanel - Verify your email",
                 html,

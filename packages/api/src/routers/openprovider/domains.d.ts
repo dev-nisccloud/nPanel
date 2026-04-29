@@ -177,7 +177,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
             data: {
                 id: string;
                 domain: string;
-                status: "ACTIVE" | "PENDING" | "EXPIRED" | "SUSPENDED" | "TRANSFERRING";
+                status: "PENDING" | "ACTIVE" | "EXPIRED" | "SUSPENDED" | "TRANSFERRING";
                 registrationDate: string;
                 expiryDate: string;
                 clientName: any;
@@ -383,7 +383,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
                 name: string;
                 extension: string;
             };
-            operation: "create" | "transfer" | "renew" | "restore";
+            operation: "create" | "renew" | "transfer" | "restore";
             period?: number | undefined;
             additional_data?: {
                 idn_script?: string | undefined;
@@ -421,7 +421,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
             meta: {
                 priced_at: string;
                 domain: string;
-                operation: "create" | "transfer" | "renew" | "restore";
+                operation: "create" | "renew" | "transfer" | "restore";
                 period: number;
             };
         };

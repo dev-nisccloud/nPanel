@@ -22,10 +22,9 @@ function isLoopbackUrl(url) {
     }
 }
 /**
- * Enqueue a global Nisc email marketing dispatcher run.
- * This worker is designed to be safe to call many times; a global advisory lock ensures only one run is active.
+ * Enqueue a campaign-scoped Nisc email marketing dispatcher run.
  */
-export async function enqueueNiscEmDispatch(scheduledFor) {
+export async function enqueueNiscEmDispatch(campaignId, scheduledFor) {
     const url = getWorkerEndpoint();
     if (!url) {
         throw new Error("Nisc EM dispatch worker URL not configured. Set QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT, VITE_PUBLIC_APP_URL, or VERCEL_URL.");
@@ -34,7 +33,7 @@ export async function enqueueNiscEmDispatch(scheduledFor) {
         throw new Error("QStash cannot call localhost. For local development set QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT to a public URL (e.g. from ngrok).");
     }
     const client = getQStashClient();
-    const payload = { kind: "NISC_EM_DISPATCH" };
+    const payload = { kind: "NISC_EM_DISPATCH", campaignId };
     const now = Date.now();
     const scheduledMs = scheduledFor?.getTime() ?? 0;
     const isScheduled = scheduledFor != null && scheduledMs > now;

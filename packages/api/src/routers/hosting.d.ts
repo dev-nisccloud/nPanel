@@ -28,7 +28,7 @@ export declare const hostingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 subscriptionDate: string | null;
                 billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
                 nextRenewalDate: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "CANCELLED" | "FAILED";
+                status: "PENDING" | "ACTIVE" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED";
                 autoRenew: boolean;
             } | null;
         };

@@ -28,6 +28,25 @@ export declare const currencyConversionRouter: import("@trpc/server").TRPCBuiltR
         };
         meta: object;
     }>;
+    /**
+     * Drops cached rates for the base currency, fetches fresh rates from the provider,
+     * rewrites cache, and returns the new payload. Use from UI “refresh” on converter nodes.
+     */
+    refreshExchangeRates: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            baseCurrency?: string | undefined;
+        };
+        output: {
+            success: boolean;
+            data?: {
+                base: string;
+                rates: Record<string, number>;
+                timestamp: number;
+            } | undefined;
+            error?: string | undefined;
+        };
+        meta: object;
+    }>;
     convertPrices: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             prices: {

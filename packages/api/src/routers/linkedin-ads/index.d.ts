@@ -88,6 +88,24 @@ export declare const linkedInAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 data: {
                     id: string;
                     name: string | null;
+                    currency: null;
+                    timezone: null;
+                    status: null;
+                    servingStatuses: never[];
+                    reference: null;
+                    type: null;
+                }[];
+                meta: {
+                    retrieved_at: string;
+                    total_accounts: number;
+                    source: string;
+                    paging?: undefined;
+                };
+            } | {
+                success: boolean;
+                data: {
+                    id: string;
+                    name: string | null;
                     currency: string | null;
                     timezone: string | null;
                     status: string | null;
@@ -106,6 +124,7 @@ export declare const linkedInAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                             href: string;
                         }>;
                     } | undefined;
+                    source?: undefined;
                 };
             } | {
                 success: boolean;
@@ -113,6 +132,7 @@ export declare const linkedInAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 meta: {
                     retrieved_at: string;
                     total_accounts: number;
+                    source?: undefined;
                     paging?: undefined;
                 };
             };

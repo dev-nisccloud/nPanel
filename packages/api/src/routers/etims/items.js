@@ -5,6 +5,24 @@ import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration, eTimsItem } from "@npanel/db/schema/etims";
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
+function assertAgencyReadAccess(role) {
+    if (!isAgencyUserRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency users can access eTIMS item data.",
+        });
+    }
+}
+function assertAgencyMutationAccess(role) {
+    if (!isAgencySuperAdminRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency super admins can modify eTIMS item data.",
+        });
+    }
+}
 export const etimsItemsRouter = router({
     /**
      * Create or update item/product information
@@ -40,7 +58,8 @@ export const etimsItemsRouter = router({
             modrId: z.string()
         })
     }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+        assertAgencyMutationAccess(ctx.session?.user?.role);
         const [config] = await db
             .select()
             .from(eTimsConfiguration)
@@ -70,25 +89,30 @@ export const etimsItemsRouter = router({
                     message: "itemCd is required for registering items in KRA eTIMS.",
                 });
             }
-            // If itemCd is missing (new item), we might need to handle it.
-            // But for now pass what we have.
+            const etimsHeaders = {
+                tin: config.kraPin,
+                bhfId: config.branchId,
+                cmcKey: config.cmcKey,
+                accessToken: undefined,
+            };
+            // Note: The KRA Sandbox enforces a strict server-side test script.
+            // If you get a 400 NPE about `TestSessionApiLog.getApiNo()` being null,
+            // it means you MUST go to the KRA Developer Portal -> Automated Testing
+            // and start/resume your app test. The KRA API gateway uses that web
+            // session state to allow requests like /saveItem to proceed.
             const { itemCd, ...restItem } = input.item;
             const itemPayload = {
                 ...restItem,
                 ...(itemCd ? { itemCd } : {}),
-                itemStdNm: input.item.itemStdNm || null,
-                btchNo: input.item.btchNo || null,
-                bcd: input.item.bcd || null,
-                grpPrcL5: input.item.grpPrcL5 || null,
-                addInfo: input.item.addInfo || null,
-                sftyQty: input.item.sftyQty || null,
+                itemStdNm: input.item.itemStdNm ?? null,
+                btchNo: input.item.btchNo ?? null,
+                bcd: input.item.bcd ?? null,
+                // Use ?? so an explicit 0 is preserved (|| would convert 0 to null)
+                grpPrcL5: input.item.grpPrcL5 ?? 0,
+                addInfo: input.item.addInfo ?? null,
+                sftyQty: input.item.sftyQty ?? null,
             };
-            const result = await client.saveItem({
-                tin: config.kraPin,
-                bhfId: config.branchId,
-                cmcKey: config.cmcKey,
-                accessToken: undefined
-            }, itemPayload);
+            const result = await client.saveItem(etimsHeaders, itemPayload);
             // Persist successful item to DB
             if (result.resultCd === "000") {
                 // Check if itemCd is returned in data, otherwise use input
@@ -136,12 +160,27 @@ export const etimsItemsRouter = router({
             };
         }
         catch (error) {
-            // KRA sandbox can intermittently fail with internal "TestSessionApiLog" errors.
-            // Don't break the UI with a 500: return a non-fatal response so user can retry.
             console.warn("[eTIMS Save Item Error]", error?.message ?? error);
+            // KRA sandbox raises a Java NullPointerException against TestSessionApiLog
+            // when the test session associated with the device/TIN has expired or been
+            // reset on KRA's side.  Re-initializing the device in Settings creates a
+            // fresh session and resolves the issue.
+            const isSessionExpiry = typeof error?.message === "string" &&
+                error.message.includes("TestSessionApiLog");
+            if (isSessionExpiry) {
+                return {
+                    success: false,
+                    data: null,
+                    requiresReinitialization: true,
+                    errorMessage: "KRA eTIMS sandbox session has expired. " +
+                        "Please go to KRA eTIMS → Settings and click \"Re-Initialize Device\" " +
+                        "to create a new test session, then try again.",
+                };
+            }
             return {
                 success: false,
                 data: null,
+                requiresReinitialization: false,
                 errorMessage: error?.message || "Failed to save eTIMS item",
             };
         }
@@ -154,7 +193,8 @@ export const etimsItemsRouter = router({
         lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
         bhfId: z.string().optional(),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const [config] = await db
             .select()
             .from(eTimsConfiguration)
@@ -211,7 +251,8 @@ export const etimsItemsRouter = router({
             regrNm: z.string()
         })
     }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+        assertAgencyMutationAccess(ctx.session?.user?.role);
         const [config] = await db
             .select()
             .from(eTimsConfiguration)

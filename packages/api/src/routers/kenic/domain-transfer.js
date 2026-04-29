@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { executeKenicTransferRequest } from "../../lib/kenic-transfer-request";
 const domainTransferInputSchema = z.object({
     name: z.string().min(1),
@@ -12,7 +12,7 @@ const domainTransferInputSchema = z.object({
  * Initiates transfer of a domain to us (gaining registrar). Auth code must be obtained from current registrar.
  */
 export const kenicDomainTransferRouter = router({
-    request: publicProcedure
+    request: protectedProcedure
         .input(domainTransferInputSchema)
         .mutation(async ({ input }) => executeKenicTransferRequest(input)),
 });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, publicProcedure } from '../../trpc';
+import { router, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
 // Helper function to ensure client is authenticated
 async function ensureAuthenticated(client) {
@@ -44,7 +44,7 @@ export const openProviderTldRouter = router({
     /**
      * Get TLDs with query parameters (GET-style)
      */
-    getTlds: publicProcedure
+    getTlds: protectedProcedure
         .input(TldQuerySchema)
         .query(async ({ input }) => {
         try {
@@ -126,7 +126,7 @@ export const openProviderTldRouter = router({
     /**
      * Get TLDs with request body (POST-style)
      */
-    getTldsPost: publicProcedure
+    getTldsPost: protectedProcedure
         .input(TldRequestSchema)
         .mutation(async ({ input }) => {
         try {
@@ -210,7 +210,7 @@ export const openProviderTldRouter = router({
     /**
      * Get popular TLD extensions
      */
-    getPopularTlds: publicProcedure
+    getPopularTlds: protectedProcedure
         .query(async () => {
         try {
             const client = createOpenProviderClient();
@@ -268,7 +268,7 @@ export const openProviderTldRouter = router({
     /**
      * Get TLD by extension
      */
-    getTldByExtension: publicProcedure
+    getTldByExtension: protectedProcedure
         .input(z.object({
         extension: z.string().min(1, 'Extension is required'),
     }))
@@ -338,7 +338,7 @@ export const openProviderTldRouter = router({
     /**
      * Search TLDs by name pattern
      */
-    searchTlds: publicProcedure
+    searchTlds: protectedProcedure
         .input(z.object({
         pattern: z.string().min(1, 'Search pattern is required'),
         limit: z.number().min(1).max(2500).optional(),

@@ -14,6 +14,7 @@ const agencyRoleOutputSchema = z.object({
     id: z.string(),
     name: z.string(),
     description: z.string().nullable(),
+    menus: z.array(z.string()),
     isSystem: z.boolean(),
     createdAt: z.date(),
     updatedAt: z.date(),
@@ -30,12 +31,14 @@ const listPermissionsOutputSchema = z.array(agencyPermissionOutputSchema);
 const createRoleInputSchema = z.object({
     name: z.string().min(2).max(80),
     description: z.string().max(400).optional(),
+    menus: z.array(z.string()).default([]),
 });
 const updateRoleInputSchema = z
     .object({
     roleId: z.string(),
     name: z.string().min(2).max(80).optional(),
     description: z.string().max(400).optional(),
+    menus: z.array(z.string()).optional(),
 })
     .refine((data) => data.name !== undefined || data.description !== undefined, {
     message: "At least one field must be provided for update",
@@ -57,7 +60,7 @@ const okSchema = z.object({ success: z.boolean() });
 const myMenuAccessOutputSchema = z.object({
     roleId: z.string().nullable(),
     roleName: z.string().nullable(),
-    allowedKeys: z.array(agencyMenuKeySchema),
+    allowedKeys: z.array(z.string()),
 });
 const getRoleByIdInputSchema = z.object({
     roleId: z.string(),
@@ -89,6 +92,7 @@ export const agencyRbacRouter = router({
             id: r.id,
             name: r.name,
             description: r.description ?? null,
+            menus: r.menus,
             isSystem: r.isSystem,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt,
@@ -114,6 +118,7 @@ export const agencyRbacRouter = router({
         if (!role) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
         }
+        const dbMenus = role.menus ?? [];
         const permissionKeys = role.permissions
             .map((rp) => rp.permission.key)
             .filter((key) => agencyMenuKeySchema.safeParse(key).success) ?? [];
@@ -121,10 +126,11 @@ export const agencyRbacRouter = router({
             id: role.id,
             name: role.name,
             description: role.description ?? null,
+            menus: dbMenus,
             isSystem: role.isSystem,
             createdAt: role.createdAt,
             updatedAt: role.updatedAt,
-            permissionKeys: Array.from(new Set(permissionKeys)),
+            permissionKeys: Array.from(new Set([...dbMenus, ...permissionKeys])),
         };
     }),
     roleCreate: protectedProcedure
@@ -138,6 +144,7 @@ export const agencyRbacRouter = router({
             id: crypto.randomUUID(),
             name: input.name,
             description: input.description ?? null,
+            menus: input.menus,
             isSystem: false,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -150,6 +157,7 @@ export const agencyRbacRouter = router({
             id: role.id,
             name: role.name,
             description: role.description ?? null,
+            menus: role.menus,
             isSystem: role.isSystem,
             createdAt: role.createdAt,
             updatedAt: role.updatedAt,
@@ -171,6 +179,7 @@ export const agencyRbacRouter = router({
             .set({
             name: input.name ?? undefined,
             description: input.description ?? undefined,
+            menus: input.menus ?? undefined,
             updatedAt: new Date(),
         })
             .where(eq(agencyRole.id, input.roleId))
@@ -182,6 +191,7 @@ export const agencyRbacRouter = router({
             id: updated.id,
             name: updated.name,
             description: updated.description ?? null,
+            menus: updated.menus,
             isSystem: updated.isSystem,
             createdAt: updated.createdAt,
             updatedAt: updated.updatedAt,
@@ -360,13 +370,21 @@ export const agencyRbacRouter = router({
         if (!["AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"].includes(userRes.role)) {
             return { roleId: null, roleName: null, allowedKeys: [] };
         }
-        const keys = userRes.agencyRole?.permissions
+        if (userRes.role === "AGENCY_SUPER_ADMIN") {
+            return {
+                roleId: userRes.agencyRole?.id ?? null,
+                roleName: userRes.agencyRole?.name ?? null,
+                allowedKeys: Array.from(agencyMenuKeys),
+            };
+        }
+        const dbMenus = userRes.agencyRole?.menus ?? [];
+        const permissionKeys = userRes.agencyRole?.permissions
             .map((p) => p.permission.key)
             .filter((k) => agencyMenuKeySchema.safeParse(k).success) ?? [];
         return {
             roleId: userRes.agencyRole?.id ?? null,
             roleName: userRes.agencyRole?.name ?? null,
-            allowedKeys: Array.from(new Set(keys)),
+            allowedKeys: Array.from(new Set([...dbMenus, ...permissionKeys])),
         };
     }),
 });

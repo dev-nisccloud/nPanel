@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Enhanced error parsing for better debugging
  */
@@ -37,25 +37,49 @@ function parseXmlError(xml, operation) {
  * Strips domain name from host if present to ensure relative host in Plesk
  */
 function getRelativeHost(host, domainName) {
+    const trimmed = host.trim();
+    if (trimmed === '@')
+        return '';
     if (!domainName)
         return host;
     // Normalize to handle case-insensitivity and trailing dots
-    const lowerHost = host.toLowerCase().replace(/\.$/, '');
+    const lowerHost = trimmed.toLowerCase().replace(/\.$/, '');
     const lowerDomain = domainName.toLowerCase().replace(/\.$/, '');
     if (lowerHost === lowerDomain) {
         return '';
     }
     if (lowerHost.endsWith('.' + lowerDomain)) {
         // Strip the .domain.com part
-        return host.substring(0, host.length - (lowerDomain.length + 1)).replace(/\.$/, '');
+        return trimmed.substring(0, trimmed.length - (lowerDomain.length + 1)).replace(/\.$/, '');
     }
     // Even if it didn't match the domain suffix, we should strip trailing dots
     // because Plesk might append the domain if it thinks it's a subdomain.
     // If input was "sub.", we want "sub".
-    return host.replace(/\.$/, '');
+    return trimmed.replace(/\.$/, '');
+}
+function escapeXml(val) {
+    return val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function buildDnsAddRecXml(input) {
+    const optVal = input.opt === undefined || input.opt === null || String(input.opt).trim() === ''
+        ? undefined
+        : String(input.opt);
+    // NOTE: Some Plesk versions reject <ttl> for add_rec ("Expected is ( opt )"), so we do not send it.
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+  <dns>
+    <add_rec>
+      <site-id>${input.siteId}</site-id>
+      <type>${escapeXml(input.type)}</type>
+      <host>${escapeXml(input.host)}</host>
+      <value>${escapeXml(input.value)}</value>${optVal ? `
+      <opt>${escapeXml(optVal)}</opt>` : ''}
+    </add_rec>
+  </dns>
+</packet>`;
 }
 export const dnsUpdateRouter = router({
-    update: publicProcedure
+    update: protectedProcedure
         .input(z.object({
         siteId: z.number(),
         recordId: z.number(),
@@ -124,22 +148,20 @@ export const dnsUpdateRouter = router({
         // 2. Create the new record
         // Ensure host is relative to domain to avoid double-suffixing in Plesk
         const relativeHost = getRelativeHost(input.host, input.domainName);
-        const sanitizedHost = relativeHost.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const sanitizedValue = input.value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        // Using the same simple structure as dns-create.ts
-        // Note: We're omitting opt and ttl for now as they cause issues with some Plesk versions
-        const createXml = `<?xml version="1.0" encoding="UTF-8"?>
-<packet>
-  <dns>
-    <add_rec>
-      <site-id>${input.siteId}</site-id>
-      <type>${input.type}</type>
-      <host>${sanitizedHost}</host>
-      <value>${sanitizedValue}</value>
-    </add_rec>
-  </dns>
-</packet>`;
-        const createResponse = await sendPleskXmlRequest(createXml);
+        const createXmlPrimary = buildDnsAddRecXml({
+            siteId: input.siteId,
+            type: input.type,
+            host: relativeHost,
+            value: input.value,
+            opt: input.opt,
+        });
+        const createXmlFallback = buildDnsAddRecXml({
+            siteId: input.siteId,
+            type: input.type,
+            host: relativeHost,
+            value: input.value,
+        });
+        let createResponse = await sendPleskXmlRequest(createXmlPrimary);
         if (createResponse.isHostUnreachable) {
             throw new TRPCError({
                 code: "SERVICE_UNAVAILABLE",
@@ -173,10 +195,38 @@ export const dnsUpdateRouter = router({
             : parsedCreate?.packet?.dns?.add_rec?.result;
         if (createResult?.status === "error") {
             const errorInfo = parseXmlError(createResponse.xml, 'add_rec');
-            throw new TRPCError({
-                code: "BAD_REQUEST",
-                message: `DNS record deleted, but failed to create new one: ${errorInfo.error}. You may need to manually recreate the record.`,
-            });
+            // Some Plesk versions reject <ttl> and/or <opt>. Retry once without them.
+            createResponse = await sendPleskXmlRequest(createXmlFallback);
+            if (!createResponse.xml || createResponse.xml.trim() === '') {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "DNS record deleted, but received empty response when creating new one.",
+                });
+            }
+            let parsedRetry;
+            try {
+                parsedRetry = parser.parse(createResponse.xml);
+            }
+            catch {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "DNS record deleted, but failed to parse creation response.",
+                });
+            }
+            const retryResult = Array.isArray(parsedRetry?.packet?.dns?.add_rec?.result)
+                ? parsedRetry.packet.dns.add_rec.result[0]
+                : parsedRetry?.packet?.dns?.add_rec?.result;
+            if (retryResult?.status === "error") {
+                const retryErrorInfo = parseXmlError(createResponse.xml, 'add_rec');
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: `DNS record deleted, but failed to create new one: ${retryErrorInfo.error || errorInfo.error}. You may need to manually recreate the record.`,
+                });
+            }
+            return {
+                success: true,
+                recordId: retryResult?.id,
+            };
         }
         return {
             success: true,

@@ -29,6 +29,7 @@ export const metaAdsInsightsRouter = router({
             since: z.string(), // YYYY-MM-DD
             until: z.string(), // YYYY-MM-DD
         }),
+        publisherPlatform: z.enum(['facebook', 'instagram', 'audience_network', 'messenger']).optional(),
     }))
         .query(async ({ input }) => {
         try {
@@ -61,10 +62,15 @@ export const metaAdsInsightsRouter = router({
                     'date_stop',
                     'actions',
                 ],
+                breakdowns: input.publisherPlatform ? ['publisher_platform'] : undefined,
             });
+            // Filter rows if platform specified
+            const filteredData = input.publisherPlatform
+                ? response.data.filter((row) => row.publisher_platform === input.publisherPlatform)
+                : response.data;
             return {
                 success: true,
-                data: response.data,
+                data: filteredData,
             };
         }
         catch (error) {
@@ -89,6 +95,7 @@ export const metaAdsInsightsRouter = router({
             until: z.string(),
         }),
         breakdown: z.enum(['age', 'gender', 'publisher_platform', 'device_platform', 'region', 'platform_position', 'hourly_stats_aggregated_by_audience_time_zone']),
+        publisherPlatform: z.enum(['facebook', 'instagram', 'audience_network', 'messenger']).optional(),
     }))
         .query(async ({ input }) => {
         try {
@@ -99,23 +106,62 @@ export const metaAdsInsightsRouter = router({
                 : input.breakdown === 'device_platform'
                     ? ['publisher_platform', 'device_platform']
                     : [input.breakdown];
-            const response = await client.getInsights(input.entityId, {
-                level: input.level,
-                timeRange: input.timeRange,
-                breakdowns,
-                metrics: [
-                    'impressions',
-                    'clicks',
-                    'inline_link_clicks',
-                    'spend',
-                    'date_start',
-                    'date_stop',
-                ],
-            });
-            return {
-                success: true,
-                data: response.data,
-            };
+            // If we have a filter but it's not the primary breakdown, we need to add publisher_platform to the breakdown list
+            const allBreakdowns = input.publisherPlatform && !breakdowns.includes('publisher_platform')
+                ? [...breakdowns, 'publisher_platform']
+                : breakdowns;
+            const metrics = [
+                'impressions',
+                'clicks',
+                // Avoid action-derived metrics here; they can force action_type combinations
+                // that Meta rejects with age/gender/region/hourly breakdowns.
+                'spend',
+                'date_start',
+                'date_stop',
+            ];
+            try {
+                const response = await client.getInsights(input.entityId, {
+                    level: input.level,
+                    timeRange: input.timeRange,
+                    breakdowns: allBreakdowns,
+                    metrics,
+                });
+                // Filter rows if platform specified
+                const filteredData = input.publisherPlatform
+                    ? response.data.filter((row) => row.publisher_platform === input.publisherPlatform)
+                    : response.data;
+                return {
+                    success: true,
+                    data: filteredData,
+                    meta: {
+                        fallbackUsed: false,
+                    },
+                };
+            }
+            catch (primaryError) {
+                const message = primaryError instanceof Error ? primaryError.message : String(primaryError ?? '');
+                const hasInvalidBreakdownCombo = message.includes('Current combination of data breakdown columns') ||
+                    message.includes('action_type');
+                // Fallback: retry without forcing publisher_platform in breakdowns.
+                // This keeps charts loading even when Meta rejects the combined breakdown set.
+                if (hasInvalidBreakdownCombo && allBreakdowns.includes('publisher_platform')) {
+                    const fallbackResponse = await client.getInsights(input.entityId, {
+                        level: input.level,
+                        timeRange: input.timeRange,
+                        breakdowns,
+                        metrics,
+                    });
+                    return {
+                        success: true,
+                        data: fallbackResponse.data,
+                        meta: {
+                            fallbackUsed: true,
+                            fallbackReason: 'invalid_breakdown_combination',
+                        },
+                    };
+                }
+                throw primaryError;
+            }
         }
         catch (error) {
             const oauthError = await handleMetaAdsOAuthError(error);

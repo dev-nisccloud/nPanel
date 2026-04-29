@@ -26,8 +26,17 @@ export type Session = (Omit<AuthSessionNonNull, "user"> & {
  */
 export type Context = {
     session: Session;
+    apiKey?: {
+        id: string;
+        permissions: string[];
+    };
+    mfaRequired?: boolean;
+    mfaVerified?: boolean;
+    mfaSetupRequired?: boolean;
     /** Used by AI chat to get a tRPC caller. Injected by the app. */
     createCaller?: (ctx: Context) => unknown;
+    ipAddress?: string | null;
+    apiKeyError?: string | null;
 };
 export type CreateContextOptions = {
     context: HonoContext;

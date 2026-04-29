@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { eq } from "@npanel/db";
+import { and, eq, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { hostingPlan, wordPressInstance, wordPressInstanceActivityLog } from "@npanel/db/schema/hosting";
-import { team } from "@npanel/db/schema/teams";
+import { niscClientSubscription } from "@npanel/db/schema/products";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import * as crypto from "node:crypto";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
@@ -55,6 +56,56 @@ const getDetailWithSubscriptionOutputSchema = z.object({
     installation: z.any(), // WordPress installation data from WP Toolkit
     subscription: getByInstallationIdOutputSchema.nullable(),
 });
+function getActor(ctx) {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You must be logged in",
+        });
+    }
+    return { userId, role: ctx.session?.user?.role };
+}
+function isAgencyUserRole(role) {
+    return role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+}
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
+async function ensureTeamReadAccess(params) {
+    if (isAgencyUserRole(params.role))
+        return;
+    const [membership, ownedTeam] = await Promise.all([
+        db.query.teamMember.findFirst({
+            where: and(eq(teamMember.teamId, params.teamId), eq(teamMember.userId, params.userId)),
+            columns: { id: true },
+        }),
+        db.query.team.findFirst({
+            where: and(eq(team.id, params.teamId), eq(team.createdById, params.userId)),
+            columns: { id: true },
+        }),
+    ]);
+    if (!membership && !ownedTeam) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to this team",
+        });
+    }
+}
+async function ensureTeamMutationAccess(params) {
+    if (isAgencySuperAdminRole(params.role))
+        return;
+    const ownedTeam = await db.query.team.findFirst({
+        where: and(eq(team.id, params.teamId), eq(team.createdById, params.userId)),
+        columns: { id: true },
+    });
+    if (!ownedTeam) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have permission to modify this team subscription",
+        });
+    }
+}
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
@@ -64,13 +115,7 @@ export const wordpressSubscriptionsRouter = router({
         .input(getDetailWithSubscriptionInputSchema)
         .output(getDetailWithSubscriptionOutputSchema)
         .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view subscriptions",
-            });
-        }
+        const actor = getActor(ctx);
         // Fetch WordPress installation and subscription link in parallel
         const [installationResult, subscriptionResult] = await Promise.allSettled([
             // Fetch from WP Toolkit
@@ -170,6 +215,44 @@ export const wordpressSubscriptionsRouter = router({
                 message: `WordPress installation with ID ${input.installationId} not found`,
             });
         }
+        if (!isAgencyUserRole(actor.role)) {
+            if (subscription?.teamId) {
+                await ensureTeamReadAccess({
+                    teamId: subscription.teamId,
+                    userId: actor.userId,
+                    role: actor.role,
+                });
+            }
+            else {
+                // Customer fallback: allow access when WP installation domain belongs to a hosting
+                // subscription domain that the current user can access through their team(s).
+                const installationDomain = String(installation?.domain?.name ?? "").trim().toLowerCase();
+                if (!installationDomain) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this WordPress installation",
+                    });
+                }
+                const accessibleHostingDomains = await db
+                    .select({ primaryDomain: niscClientSubscription.primaryDomain })
+                    .from(niscClientSubscription)
+                    .innerJoin(team, eq(team.id, niscClientSubscription.teamId))
+                    .leftJoin(teamMember, eq(teamMember.teamId, niscClientSubscription.teamId))
+                    .where(or(eq(teamMember.userId, actor.userId), eq(team.createdById, actor.userId)));
+                const hasDomainAccess = accessibleHostingDomains.some((row) => {
+                    const baseDomain = String(row.primaryDomain ?? "").trim().toLowerCase();
+                    if (!baseDomain)
+                        return false;
+                    return installationDomain === baseDomain || installationDomain.endsWith(`.${baseDomain}`);
+                });
+                if (!hasDomainAccess) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this WordPress installation",
+                    });
+                }
+            }
+        }
         return {
             installation,
             subscription,
@@ -180,13 +263,7 @@ export const wordpressSubscriptionsRouter = router({
         .input(getByInstallationIdInputSchema)
         .output(getByInstallationIdOutputSchema)
         .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view subscriptions",
-            });
-        }
+        const actor = getActor(ctx);
         const subscription = await db.query.wordPressInstance.findFirst({
             where: eq(wordPressInstance.installationId, input.installationId),
             with: {
@@ -197,6 +274,19 @@ export const wordpressSubscriptionsRouter = router({
             throw new TRPCError({
                 code: "NOT_FOUND",
                 message: "WordPress subscription not found",
+            });
+        }
+        if (!subscription.teamId && !isAgencyUserRole(actor.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this WordPress subscription",
+            });
+        }
+        if (subscription.teamId) {
+            await ensureTeamReadAccess({
+                teamId: subscription.teamId,
+                userId: actor.userId,
+                role: actor.role,
             });
         }
         return {
@@ -213,14 +303,8 @@ export const wordpressSubscriptionsRouter = router({
         .input(linkToTeamInputSchema)
         .output(linkToTeamOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to link subscriptions",
-            });
-        }
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         // Verify team exists
         const teamRow = await db.query.team.findFirst({
             where: eq(team.id, input.teamId),
@@ -231,6 +315,11 @@ export const wordpressSubscriptionsRouter = router({
                 message: "Team not found",
             });
         }
+        await ensureTeamMutationAccess({
+            teamId: teamRow.id,
+            userId: actor.userId,
+            role: actor.role,
+        });
         // Check if WordPress instance with this installationId already exists
         const existingInstance = await db.query.wordPressInstance.findFirst({
             where: eq(wordPressInstance.installationId, input.installationId),
@@ -306,14 +395,8 @@ export const wordpressSubscriptionsRouter = router({
         .input(unlinkFromTeamInputSchema)
         .output(unlinkFromTeamOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to unlink subscriptions",
-            });
-        }
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         // Find the WordPress instance
         const instance = await db.query.wordPressInstance.findFirst({
             where: eq(wordPressInstance.id, input.subscriptionId),
@@ -333,6 +416,11 @@ export const wordpressSubscriptionsRouter = router({
                 message: "WordPress instance is not linked to any team",
             });
         }
+        await ensureTeamMutationAccess({
+            teamId: instance.teamId,
+            userId: actor.userId,
+            role: actor.role,
+        });
         const teamName = instance.team?.name || "Unknown Team";
         // Log activity before deletion (we need the instance ID)
         await db.insert(wordPressInstanceActivityLog).values({
@@ -362,14 +450,8 @@ export const wordpressSubscriptionsRouter = router({
         .input(updateSubscriptionInputSchema)
         .output(updateSubscriptionOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to update subscriptions",
-            });
-        }
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         // Find the WordPress instance
         const existingInstance = await db.query.wordPressInstance.findFirst({
             where: eq(wordPressInstance.id, input.subscriptionId),
@@ -380,6 +462,17 @@ export const wordpressSubscriptionsRouter = router({
                 message: "WordPress instance not found",
             });
         }
+        if (!existingInstance.teamId) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Cannot update an unscoped WordPress subscription",
+            });
+        }
+        await ensureTeamMutationAccess({
+            teamId: existingInstance.teamId,
+            userId: actor.userId,
+            role: actor.role,
+        });
         // Build update data - only include fields that are provided
         const updateData = {
             updatedAt: new Date(),

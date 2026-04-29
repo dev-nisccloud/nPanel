@@ -65,9 +65,11 @@ import { quotationsRouter } from "./quotations";
 import { teamBillingRouter } from "./team-billing";
 import { metaRouter } from "./social-media-marketing/meta";
 import { linkedinRouter } from "./social-media-marketing/linkedin";
+import { instagramRouter } from "./social-media-marketing/instagram";
 import { serviceSubscriptionsRouter } from "./service-subscriptions";
 import { googleAdsRouter } from "./google-ads";
 import { metaAdsRouter } from "./meta-ads";
+import { instagramAdsRouter } from "./instagram-ads";
 import { linkedInAdsRouter } from "./linkedin-ads";
 import { imageGenStudioRouter } from "./imagegen-studio";
 import { stabilityAiRouter } from "./stability-ai";
@@ -86,6 +88,7 @@ import { emailBuilderLibraryRouter } from "./email-builder-library";
 import { aiRouter } from "./ai";
 import { etimsRouter } from "./etims";
 import { reportsRouter } from "./reports";
+import { niscReportsRouter } from "./nisc-reports";
 import { productsRouter } from "./products";
 import { clientSubscriptionsRouter } from "./client-subscriptions";
 import { subscriptionUsageRouter } from "./subscription-usage";
@@ -93,6 +96,10 @@ import { niscServiceOrdersRouter } from "./nisc-service-orders";
 import { publicPricingRouter } from "./public-pricing";
 import { agencyRbacRouter } from "./agency-rbac";
 import { hivelocityRouter } from "./hivelocity";
+import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
+import { cronWorkflowRunRouter } from "./cron-workflow-run";
+import { apiKeysRouter } from "./api-keys";
+import { digitaxRouter } from "./digitax";
 export const appRouter = router({
     healthCheck: publicProcedure.query(() => {
         return "OK";
@@ -203,15 +210,18 @@ export const appRouter = router({
     teamBilling: teamBillingRouter,
     // Service Subscriptions Management
     serviceSubscriptions: serviceSubscriptionsRouter,
-    // Social Media Marketing - Meta/Facebook & LinkedIn
+    // Social Media Marketing - Meta/Facebook, LinkedIn & Instagram (standalone)
     socialMediaMarketing: router({
         meta: metaRouter,
         linkedin: linkedinRouter,
+        instagram: instagramRouter,
     }),
     // Google Ads Integration
     googleAds: googleAdsRouter,
     // Meta Ads Integration
     metaAds: metaAdsRouter,
+    // Instagram Ads Integration
+    instagramAds: instagramAdsRouter,
     // LinkedIn Ads Integration
     linkedInAds: linkedInAdsRouter,
     // ImageGen Studio
@@ -248,6 +258,8 @@ export const appRouter = router({
     etims: etimsRouter,
     // Reports & Analytics
     reports: reportsRouter,
+    // Nisc Cloud Sales Reporting (new   comprehensive live-query system)
+    niscReports: niscReportsRouter,
     // Product Catalogue Management
     products: productsRouter,
     // Client Subscriptions Management (universal)
@@ -262,4 +274,12 @@ export const appRouter = router({
     agencyRbac: agencyRbacRouter,
     // Hivelocity integration (dedicated servers / VPS / VDS reseller)
     hivelocity: hivelocityRouter,
+    // Hivelocity pricing (currency + margin shown in UI)
+    hivelocityPricingSettings: hivelocityPricingSettingsRouter,
+    // Cron / workflow runs (node editor persistence)
+    cronWorkflowRun: cronWorkflowRunRouter,
+    // API Keys Management
+    apiKeys: apiKeysRouter,
+    // DigiTax Integration
+    digitax: digitaxRouter,
 });

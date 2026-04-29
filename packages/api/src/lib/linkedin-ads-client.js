@@ -494,32 +494,96 @@ export class LinkedInAdsClient {
             'created',
             'lastModified',
         ];
+        const targetCampaignGroupUrn = campaignGroupUrn.startsWith('urn:li:')
+            ? campaignGroupUrn
+            : this.ensureUrn(campaignGroupUrn, 'CAMPAIGN_GROUP');
+        const targetCampaignGroupId = targetCampaignGroupUrn.split(':').pop() || '';
+        // Strategy 1 (legacy direct filter): this was the previously working path.
+        try {
+            const direct = await this.makeRequest('GET', '/rest/adCampaignsV2', {
+                campaignGroup: targetCampaignGroupUrn,
+                fields: (options?.fields || defaultFields).join(','),
+            });
+            const directElements = this.normalizeElements(direct);
+            this.debugLog('campaigns-strategy-result', {
+                endpoint: '/rest/adCampaignsV2',
+                strategy: 'direct-campaign-group-filter',
+                elementsCount: directElements.length,
+                targetCampaignGroupUrn,
+            });
+            if (directElements.length > 0) {
+                return {
+                    ...direct,
+                    elements: directElements,
+                };
+            }
+            this.debugLog('campaigns-strategy-fallback', {
+                reason: 'direct-returned-empty',
+                targetCampaignGroupUrn,
+            });
+        }
+        catch (error) {
+            this.debugLog('campaigns-strategy-error', {
+                endpoint: '/rest/adCampaignsV2',
+                strategy: 'direct-campaign-group-filter',
+                status: error?.status,
+                message: error?.message,
+            });
+        }
+        // Strategy 2 fallback: account-wide search + local campaign-group filtering.
         const accountId = this.extractAccountId(accountIdOrUrn);
         const endpoint = `/rest/adAccounts/${accountId}/adCampaigns`;
-        // Direct strategy: plain finder search, then local campaign-group filtering.
-        // This is the stable shape for this tenant/version and avoids repeated 400s.
         const fallback = await this.makeRequest('GET', endpoint, {
             q: 'search',
             ...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
             ...(options?.pageToken ? { pageToken: options.pageToken } : {}),
         });
         const fallbackElements = this.normalizeElements(fallback);
+        const extractCampaignGroupRefs = (campaign) => {
+            const refs = new Set();
+            const addRef = (value) => {
+                if (typeof value === 'string' && value.trim().length > 0)
+                    refs.add(value.trim());
+                if (typeof value === 'number')
+                    refs.add(String(value));
+                if (value && typeof value === 'object') {
+                    const obj = value;
+                    for (const key of ['id', 'urn', 'campaignGroup', 'campaignGroupUrn', 'campaignGroupId', 'entity']) {
+                        const v = obj[key];
+                        if (typeof v === 'string' && v.trim().length > 0)
+                            refs.add(v.trim());
+                        if (typeof v === 'number')
+                            refs.add(String(v));
+                    }
+                }
+            };
+            addRef(campaign?.campaignGroup);
+            addRef(campaign?.campaignGroupV2);
+            addRef(campaign?.campaignGroupUrn);
+            addRef(campaign?.campaignGroupId);
+            addRef(campaign?.campaignGroupAssociation);
+            addRef(campaign?.campaignGroupAssociationV2);
+            return [...refs];
+        };
+        const filteredElements = fallbackElements.filter((campaign) => {
+            const refs = extractCampaignGroupRefs(campaign);
+            return refs.some((ref) => {
+                const normalizedRefId = ref.replace(/[^0-9]/g, '');
+                return ref === targetCampaignGroupUrn || normalizedRefId === targetCampaignGroupId;
+            });
+        });
         this.debugLog('campaigns-strategy-result', {
             endpoint,
             strategy: 'finder-search-all-local-filter',
-            params: {
-                q: 'search',
-                ...(options?.pageSize !== undefined ? { pageSize: options.pageSize } : {}),
-                ...(options?.pageToken ? { pageToken: options.pageToken } : {}),
-            },
-            elementsCount: fallbackElements.length,
+            targetCampaignGroupUrn,
+            targetCampaignGroupId,
+            totalCampaigns: fallbackElements.length,
+            matchedCampaigns: filteredElements.length,
+            firstCampaignKeys: Object.keys(fallbackElements[0] || {}),
         });
-        const targetCampaignGroupUrn = campaignGroupUrn.startsWith('urn:li:')
-            ? campaignGroupUrn
-            : this.ensureUrn(campaignGroupUrn, 'CAMPAIGN_GROUP');
         return {
             ...fallback,
-            elements: fallbackElements.filter((campaign) => String(campaign?.campaignGroup || '') === targetCampaignGroupUrn),
+            elements: filteredElements,
         };
     }
     /**

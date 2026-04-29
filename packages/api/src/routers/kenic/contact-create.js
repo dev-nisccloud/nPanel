@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { createConnection, readFrame, sendFrame } from "../../lib/epp/epp-client";
 import { buildLoginXml, buildLogoutXml, buildContactCreateXml } from "../../lib/epp/epp-xml";
 import { getKenicEppConfig } from "../../lib/epp/kenic-config";
@@ -80,7 +80,7 @@ const contactCreateInputSchema = z.object({
  * Create a contact (registrant/admin/tech) to use in domain create.
  */
 export const kenicContactCreateRouter = router({
-    create: publicProcedure
+    create: protectedProcedure
         .input(contactCreateInputSchema)
         .mutation(async ({ input }) => {
         let socket;

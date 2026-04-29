@@ -1,6 +1,8 @@
 type HivelocityRequestOptions = {
     method?: "GET" | "POST" | "PUT" | "DELETE";
     query?: Record<string, string | number | boolean | null | undefined>;
+    /** JSON request body (for POST/PUT). */
+    body?: unknown;
     headers?: Record<string, string | undefined>;
     /** If true, throws when `HIVELOCITY_API_KEY` is missing. */
     requireApiKey?: boolean;

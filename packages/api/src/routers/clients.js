@@ -187,6 +187,9 @@ async function getUserRole(userId, sessionUser) {
     }
     return dbUser.role;
 }
+function isAgencyRole(role) {
+    return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+}
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
@@ -203,10 +206,10 @@ export const clientsRouter = router({
                 message: "You must be logged in to view clients",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view clients
+        // Any agency role can view clients
         // Optimize: Pass session user to avoid database query if role is in session
         const userRole = await getUserRole(session.user.id, session.user);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to view clients",
@@ -242,9 +245,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to create clients",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to create clients
+        // Only allow AGENCY_SUPER_ADMIN to create clients
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to create clients",
@@ -380,9 +383,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to update clients",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to update clients
+        // Only allow AGENCY_SUPER_ADMIN to update clients
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to update clients",
@@ -502,9 +505,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to change client status",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to change status
+        // Only allow AGENCY_SUPER_ADMIN to change status
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to change client status",
@@ -592,9 +595,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to request password reset",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to request password reset
+        // Only allow AGENCY_SUPER_ADMIN to request password reset
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to request password reset",
@@ -656,9 +659,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to view sessions",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view sessions
+        // Any agency role can view sessions
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to view sessions",
@@ -704,9 +707,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to view profile",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view profiles
+        // Any agency role can view profiles
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to view profiles",
@@ -758,9 +761,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to update profile",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to update profiles
+        // Only allow AGENCY_SUPER_ADMIN to update profiles
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to update profiles",
@@ -875,9 +878,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to view integrations",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to view integrations
+        // Any agency role can view integrations
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to view integrations",
@@ -932,9 +935,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to create integrations",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to create integrations
+        // Only allow AGENCY_SUPER_ADMIN to create integrations
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to create integrations",
@@ -1298,9 +1301,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to check email verification status",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to check verification
+        // Only allow AGENCY_SUPER_ADMIN to check verification
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to check email verification status",
@@ -1412,9 +1415,9 @@ export const clientsRouter = router({
                 message: "You must be logged in to send email verification",
             });
         }
-        // Only allow AGENCY_ADMIN and AGENCY_SUPER_ADMIN to send verification
+        // Only allow AGENCY_SUPER_ADMIN to send verification
         const userRole = await getUserRole(session.user.id);
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (userRole !== "AGENCY_SUPER_ADMIN") {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission to send email verification",

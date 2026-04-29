@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { seoReport, seoReportActivityLog } from "@npanel/db/schema/seo-reports";
-import { teamMember } from "@npanel/db/schema/teams";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
 import { GoogleSearchConsoleClient } from "../../lib/google-search-console-client";
 import { GoogleAnalyticsClient } from "../../lib/google-analytics-client";
@@ -40,11 +40,17 @@ async function ensureAccess(userId, role, report) {
     if (report.userId === userId)
         return;
     if (report.teamId) {
-        const m = await db.query.teamMember.findFirst({
-            where: and(eq(teamMember.teamId, report.teamId), eq(teamMember.userId, userId)),
-            columns: { id: true },
-        });
-        if (m)
+        const [m, ownedTeam] = await Promise.all([
+            db.query.teamMember.findFirst({
+                where: and(eq(teamMember.teamId, report.teamId), eq(teamMember.userId, userId)),
+                columns: { id: true },
+            }),
+            db.query.team.findFirst({
+                where: and(eq(team.id, report.teamId), eq(team.createdById, userId)),
+                columns: { id: true },
+            }),
+        ]);
+        if (m || ownedTeam)
             return;
     }
     throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this report." });
@@ -746,6 +752,21 @@ export const seoReportsRouter = router({
         .output(seoReportDetailSchema)
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
+        if (!isAgencyUser(user.role) && input.teamId) {
+            const [membership, ownedTeam] = await Promise.all([
+                db.query.teamMember.findFirst({
+                    where: and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, user.id)),
+                    columns: { id: true },
+                }),
+                db.query.team.findFirst({
+                    where: and(eq(team.id, input.teamId), eq(team.createdById, user.id)),
+                    columns: { id: true },
+                }),
+            ]);
+            if (!membership && !ownedTeam) {
+                throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team." });
+            }
+        }
         const id = crypto.randomUUID();
         await db.transaction(async (tx) => {
             await tx.insert(seoReport).values({

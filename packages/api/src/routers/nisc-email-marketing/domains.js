@@ -7,8 +7,9 @@ import { protectedProcedure, router } from "../../trpc";
 import { niscEmDomain, niscEmCampaign } from "@npanel/db/schema";
 import { randomUUID } from "node:crypto";
 import { getSesClient, buildEasyDkimDnsRecords } from "../../lib/ses-client";
-import { niscEmailDomainCreateInputSchema, niscEmailDomainDetailSchema, niscEmailDomainListFiltersSchema, niscEmailDomainListResponseSchema, niscEmailDomainSummarySchema, niscEmailDomainVerifyInputSchema, } from "./schemas";
+import { niscEmailDomainCreateInputSchema, niscEmailDomainDetailSchema, niscEmailDomainListFiltersSchema, niscEmailDomainListResponseSchema, niscEmailDomainSendTestEmailInputSchema, niscEmailDomainSummarySchema, niscEmailDomainVerifyInputSchema, } from "./schemas";
 import { emailDomainCreateInputSchema, emailDomainDetailSchema, emailDomainListFiltersSchema, emailDomainListResponseSchema, emailDomainSummarySchema, } from "../email-marketing/schemas";
+import { sendSesRawEmail } from "../../lib/ses-client";
 async function assertTeamMember(teamId, userId) {
     const [member] = await db
         .select({ id: teamMember.id, role: teamMember.role })
@@ -16,6 +17,14 @@ async function assertTeamMember(teamId, userId) {
         .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
         .limit(1);
     return member ?? null;
+}
+function isAgencyUserRole(role) {
+    if (!role)
+        return false;
+    return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+}
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
 }
 async function assertDomainAccess(domainId, userId) {
     const [domain] = await db
@@ -36,6 +45,32 @@ async function assertDomainAccess(domainId, userId) {
         return domain;
     }
     throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+async function assertDomainReadAccess(domainId, userId, role) {
+    if (isAgencyUserRole(role)) {
+        const [domain] = await db
+            .select()
+            .from(niscEmDomain)
+            .where(eq(niscEmDomain.id, domainId))
+            .limit(1);
+        if (!domain)
+            throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+        return domain;
+    }
+    return assertDomainAccess(domainId, userId);
+}
+async function assertDomainOwnerAccess(domainId, userId, role) {
+    const [domain] = await db
+        .select()
+        .from(niscEmDomain)
+        .where(eq(niscEmDomain.id, domainId))
+        .limit(1);
+    if (!domain)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+    if (!isAgencySuperAdminRole(role) && domain.userId !== userId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the domain creator can modify it" });
+    }
+    return domain;
 }
 function mapDkimStatusToDb(status) {
     const s = status ?? "NotStarted";
@@ -194,7 +229,7 @@ export const niscEmailMarketingDomainsRouter = router({
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
         const role = ctx.session?.user?.role;
-        if (role !== "AGENCY_ADMIN" && role !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyUserRole(role)) {
             throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to list all domains" });
         }
         const rows = await db
@@ -209,8 +244,20 @@ export const niscEmailMarketingDomainsRouter = router({
     // These return the legacy schemas but are backed by SES + nisc_em_domain.
     create: protectedProcedure.input(emailDomainCreateInputSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+        if (!isAgencyUserRole(userRole) && !input.teamId) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "teamId is required for customer domain creation",
+            });
+        }
+        if (input.teamId) {
+            const member = await assertTeamMember(input.teamId, userId);
+            if (!member)
+                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
         const teamId = input.teamId ?? null;
         const domainName = input.domainName.trim().toLowerCase();
         const detail = await addDomainCore({ userId, teamId, domainName });
@@ -220,35 +267,75 @@ export const niscEmailMarketingDomainsRouter = router({
     }),
     getById: protectedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const domain = await assertDomainAccess(input.id, userId);
+        const domain = await assertDomainReadAccess(input.id, userId, userRole);
         return mapToLegacyDomainDetail(domain);
     }),
     verify: protectedProcedure.input(z.object({ id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+        await assertDomainOwnerAccess(input.id, userId, userRole);
         const row = await verifyDomainCore({ userId, id: input.id });
         return mapToLegacyDomainDetail(row);
     }),
+    sendTestEmail: protectedProcedure
+        .input(niscEmailDomainSendTestEmailInputSchema)
+        .mutation(async ({ ctx, input }) => {
+        const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
+        if (!userId)
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+        const domain = await assertDomainOwnerAccess(input.domainId, userId, userRole);
+        if (domain.status !== "VERIFIED") {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Domain must be verified before sending test email",
+            });
+        }
+        const ses = getSesClient();
+        const timestamp = new Date().toLocaleString();
+        const body = `This is a test email from nPanel - ${timestamp} to test the domain name - ${domain.domainName} verification on npanel.`;
+        const fromEmail = `send@${domain.domainName}`;
+        try {
+            const res = await sendSesRawEmail(ses, {
+                Source: fromEmail,
+                Destinations: [input.to, ...(input.cc ?? []), ...(input.bcc ?? [])],
+                RawMessage: {
+                    Data: Buffer.from([
+                        `From: nPanel <${fromEmail}>`,
+                        `To: ${input.to}`,
+                        ...(input.cc.length ? [`Cc: ${input.cc.join(", ")}`] : []),
+                        "Subject: nPanel domain verification test email",
+                        "MIME-Version: 1.0",
+                        'Content-Type: text/plain; charset="UTF-8"',
+                        "",
+                        body,
+                        "",
+                    ].join("\r\n"), "utf8"),
+                },
+            });
+            return {
+                ok: true,
+                messageId: res.MessageId ?? null,
+            };
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to send test email";
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+        }
+    }),
     delete: protectedProcedure.input(z.object({ id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
         // Reuse remove's logic directly by calling the same code path (duplicated here for clarity).
         // (We keep the existing `remove` procedure for the new Nisc UI as well.)
-        const domain = await assertDomainAccess(input.id, userId);
-        if (domain.teamId) {
-            const member = await assertTeamMember(domain.teamId, userId);
-            if (!member || member.role !== "OWNER") {
-                throw new TRPCError({ code: "FORBIDDEN", message: "Only team owners can delete this domain" });
-            }
-        }
-        else {
-            if (domain.userId !== userId)
-                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-        }
+        const domain = await assertDomainOwnerAccess(input.id, userId, userRole);
         const [campaignCountRes] = await db
             .select({ value: count() })
             .from(niscEmCampaign)
@@ -276,18 +363,27 @@ export const niscEmailMarketingDomainsRouter = router({
     }),
     listLegacy: protectedProcedure.input(emailDomainListFiltersSchema).query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const accessOr = [eq(niscEmDomain.userId, userId)];
-        if (input.teamId) {
-            accessOr.push(sql `(${niscEmDomain.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`);
+        const conditions = [];
+        if (!isAgencyUserRole(userRole)) {
+            if (!input.teamId) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "teamId is required for customer domain listing",
+                });
+            }
+            const member = await assertTeamMember(input.teamId, userId);
+            if (!member)
+                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+            conditions.push(eq(niscEmDomain.teamId, input.teamId));
         }
-        const conditions = [or(...accessOr)];
         if (input.status)
             conditions.push(eq(niscEmDomain.status, input.status));
         if (input.search)
             conditions.push(ilike(niscEmDomain.domainName, `%${input.search}%`));
-        const whereClause = and(...conditions);
+        const whereClause = conditions.length > 0 ? and(...conditions) : sql `true`;
         const [domains, totalRes] = await Promise.all([
             db
                 .select()
@@ -308,8 +404,20 @@ export const niscEmailMarketingDomainsRouter = router({
         .input(niscEmailDomainCreateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+        if (!isAgencyUserRole(userRole) && !input.teamId) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "teamId is required for customer domain creation",
+            });
+        }
+        if (input.teamId) {
+            const member = await assertTeamMember(input.teamId, userId);
+            if (!member)
+                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
         const teamId = input.teamId ?? null;
         const domainName = input.domainName.trim().toLowerCase();
         return addDomainCore({ userId, teamId, domainName });
@@ -318,9 +426,10 @@ export const niscEmailMarketingDomainsRouter = router({
         .input(niscEmailDomainVerifyInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const domain = await assertDomainAccess(input.id, userId);
+        const domain = await assertDomainOwnerAccess(input.id, userId, userRole);
         const ses = getSesClient();
         const attrs = await ses.getIdentityDkimAttributes({ Identities: [domain.domainName] });
         const entries = Object.entries(attrs.DkimAttributes ?? {});
@@ -369,18 +478,27 @@ export const niscEmailMarketingDomainsRouter = router({
         .input(niscEmailDomainListFiltersSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const accessOr = [eq(niscEmDomain.userId, userId)];
-        if (input.teamId) {
-            accessOr.push(sql `(${niscEmDomain.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`);
+        const conditions = [];
+        if (!isAgencyUserRole(userRole)) {
+            if (!input.teamId) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "teamId is required for customer domain listing",
+                });
+            }
+            const member = await assertTeamMember(input.teamId, userId);
+            if (!member)
+                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+            conditions.push(eq(niscEmDomain.teamId, input.teamId));
         }
-        const conditions = [or(...accessOr)];
         if (input.status)
             conditions.push(eq(niscEmDomain.status, input.status));
         if (input.search)
             conditions.push(ilike(niscEmDomain.domainName, `%${input.search}%`));
-        const whereClause = and(...conditions);
+        const whereClause = conditions.length > 0 ? and(...conditions) : sql `true`;
         const [domains, totalRes] = await Promise.all([
             db
                 .select()
@@ -405,21 +523,10 @@ export const niscEmailMarketingDomainsRouter = router({
         .input(z.object({ id: z.string().min(1) }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const domain = await assertDomainAccess(input.id, userId);
-        // Ownership enforcement: user-owned domains can be deleted by their owner;
-        // team-owned domains require OWNER role.
-        if (domain.teamId) {
-            const member = await assertTeamMember(domain.teamId, userId);
-            if (!member || member.role !== "OWNER") {
-                throw new TRPCError({ code: "FORBIDDEN", message: "Only team owners can delete this domain" });
-            }
-        }
-        else {
-            if (domain.userId !== userId)
-                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-        }
+        const domain = await assertDomainOwnerAccess(input.id, userId, userRole);
         const [campaignCountRes] = await db
             .select({ value: count() })
             .from(niscEmCampaign)

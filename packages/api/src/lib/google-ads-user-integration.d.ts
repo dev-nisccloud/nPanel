@@ -1,16 +1,36 @@
 /**
- * Active Google Ads integration for the user, with access token refreshed when expired.
+ * Active Google Ads integration for a specific user, with access token refreshed when expired.
  */
 export declare function getUserGoogleAdsIntegration(userId: string): Promise<{
     id: string;
-    userId: string;
+    createdAt: Date;
+    updatedAt: Date;
     status: string;
-    refreshToken: string;
+    userId: string;
     accessToken: string;
+    refreshToken: string;
     accessTokenExpiresAt: Date | null;
     scope: string | null;
     tokenType: string | null;
     lastTokenRefreshAt: Date | null;
+}>;
+/**
+ * Session-aware integration lookup.
+ * Agency users share the latest active Google Ads integration across the agency.
+ */
+export declare function getGoogleAdsIntegrationForSession(params: {
+    userId: string;
+    role?: string | null;
+}): Promise<{
+    id: string;
     createdAt: Date;
     updatedAt: Date;
+    status: string;
+    userId: string;
+    accessToken: string;
+    refreshToken: string;
+    accessTokenExpiresAt: Date | null;
+    scope: string | null;
+    tokenType: string | null;
+    lastTokenRefreshAt: Date | null;
 }>;

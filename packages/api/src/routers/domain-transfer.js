@@ -1,9 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "@npanel/db";
+import { and, desc, eq, inArray, or } from "@npanel/db";
 import * as crypto from "crypto";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { teamMember } from "@npanel/db/schema/teams";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
@@ -53,11 +54,19 @@ function buildReturn(transferStatus, transferrable, provider, parsed, opts) {
         error: opts.error ?? null,
     };
 }
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+async function getMemberTeamIds(userId) {
+    const memberships = await db
+        .select({ teamId: teamMember.teamId })
+        .from(teamMember)
+        .where(eq(teamMember.userId, userId));
+    return memberships.map((m) => m.teamId);
+}
 export const domainTransferRouter = router({
     /**
      * Check if a domain can be transferred and get the price.
      * Identifies TLD first (same as domain search): KENIC for .ke/.co.ke/etc., OpenProvider for others.
-     * KENIC: EPP domain check only → available or ready + price.
+     * KENIC: EPP domain check only Ã¢â€ â€™ available or ready + price.
      * OpenProvider: RDAP for status (available / locked / ready), then transfer pricing when ready.
      */
     checkTransfer: publicProcedure
@@ -103,10 +112,10 @@ export const domainTransferRouter = router({
                         error: "This domain is locked at the current registrar. Unlock it in your registrar's control panel, then try the transfer again.",
                     });
                 }
-                // exists && !locked → ready; get price below
+                // exists && !locked Ã¢â€ â€™ ready; get price below
             }
             else {
-                // RDAP failed for this TLD   fall back to OpenProvider domain check
+                // RDAP failed for this TLD Ã¢â‚¬â€ fall back to OpenProvider domain check
                 try {
                     const client = createOpenProviderClient();
                     await client.authenticate({
@@ -151,7 +160,7 @@ export const domainTransferRouter = router({
                             error: result.reason ?? `Domain status is "${result.status}". It cannot be transferred.`,
                         });
                     }
-                    // active/in use → ready; get price below
+                    // active/in use Ã¢â€ â€™ ready; get price below
                 }
                 catch (error) {
                     const message = error instanceof OpenProviderApiError
@@ -163,7 +172,7 @@ export const domainTransferRouter = router({
                 }
             }
         }
-        // Ready to transfer   get price from OpenProvider (KENIC returns earlier with pending_check)
+        // Ready to transfer Ã¢â‚¬â€ get price from OpenProvider (KENIC returns earlier with pending_check)
         try {
             const client = createOpenProviderClient();
             await client.authenticate({
@@ -221,8 +230,22 @@ export const domainTransferRouter = router({
     }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session.user.id;
+        const userRole = ctx.session.user.role;
         const now = new Date();
         const id = crypto.randomUUID();
+        if (input.teamId && !isAgencyUserRole(userRole)) {
+            const [membership] = await db
+                .select({ id: teamMember.id })
+                .from(teamMember)
+                .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
+                .limit(1);
+            if (!membership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team.",
+                });
+            }
+        }
         await db.insert(domainTransferRequest).values({
             id,
             domainName: input.domain,
@@ -323,7 +346,18 @@ export const domainTransferRouter = router({
      * List domain transfer requests for the agency (all requests; auth required).
      * Does not return authCode for security.
      */
-    listTransferRequests: protectedProcedure.query(async () => {
+    listTransferRequests: protectedProcedure.query(async ({ ctx }) => {
+        const userId = ctx.session.user.id;
+        const userRole = ctx.session.user.role;
+        let whereClause;
+        if (!isAgencyUserRole(userRole)) {
+            const memberTeamIds = await getMemberTeamIds(userId);
+            const scopes = [eq(domainTransferRequest.createdById, userId)];
+            if (memberTeamIds.length > 0) {
+                scopes.push(inArray(domainTransferRequest.teamId, memberTeamIds));
+            }
+            whereClause = scopes.length === 1 ? scopes[0] : or(...scopes);
+        }
         const rows = await db
             .select({
             id: domainTransferRequest.id,
@@ -345,6 +379,7 @@ export const domainTransferRouter = router({
         })
             .from(domainTransferRequest)
             .innerJoin(userTable, eq(domainTransferRequest.createdById, userTable.id))
+            .where(whereClause ?? undefined)
             .orderBy(desc(domainTransferRequest.createdAt));
         return rows.map((r) => ({
             ...r,

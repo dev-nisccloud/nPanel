@@ -172,6 +172,23 @@ export declare const metaAdsAccount: import("drizzle-orm/pg-core").PgTableWithCo
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        instagramUserId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "instagram_user_id";
+            tableName: "meta_ads_account";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         teamId: import("drizzle-orm/pg-core").PgColumn<{
             name: "team_id";
             tableName: "meta_ads_account";

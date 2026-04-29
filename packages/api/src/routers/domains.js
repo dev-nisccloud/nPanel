@@ -114,6 +114,9 @@ const updateTeamOutputSchema = domainOutputSchema;
 function isAgencyUser(role) {
     return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 }
+function isAgencySuperAdmin(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
 async function getAuthenticatedUser(ctx) {
     const uid = ctx.session?.user?.id;
     if (!uid) {
@@ -143,6 +146,34 @@ async function ensureTeamAccess(teamId, userId, role) {
             message: "You do not have access to this team.",
         });
     }
+}
+async function ensureDomainReadAccess(domainId, userId, role) {
+    const domainRow = await fetchDomainById(domainId);
+    if (!domainRow) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+    }
+    if (isAgencyUser(role))
+        return domainRow;
+    if (domainRow.userId === userId)
+        return domainRow;
+    if (domainRow.teamId) {
+        await ensureTeamAccess(domainRow.teamId, userId, role);
+        return domainRow;
+    }
+    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this domain." });
+}
+async function ensureDomainMutationAccess(domainId, userId, role) {
+    const domainRow = await fetchDomainById(domainId);
+    if (!domainRow) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
+    }
+    if (!isAgencySuperAdmin(role) && domainRow.userId !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the domain creator can modify it",
+        });
+    }
+    return domainRow;
 }
 async function fetchDomainById(id) {
     const [row] = await db
@@ -238,11 +269,12 @@ export const domainsRouter = router({
         .input(linkDomainToTeamInputSchema)
         .output(linkDomainToTeamOutputSchema)
         .mutation(async ({ input, ctx }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
+        const authenticatedUser = await getAuthenticatedUser(ctx);
+        const userId = authenticatedUser.id;
+        if (!isAgencyUser(authenticatedUser.role)) {
             throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to link a domain",
+                code: "FORBIDDEN",
+                message: "You do not have permission to link domains",
             });
         }
         try {
@@ -391,21 +423,12 @@ export const domainsRouter = router({
         .query(async ({ input, ctx }) => {
         const authenticatedUser = await getAuthenticatedUser(ctx);
         try {
-            const domainRow = await fetchDomainById(input.id);
+            const domainRow = await ensureDomainReadAccess(input.id, authenticatedUser.id, authenticatedUser.role);
             if (!domainRow) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "Domain not found",
                 });
-            }
-            if (!isAgencyUser(authenticatedUser.role)) {
-                if (!domainRow.teamId) {
-                    throw new TRPCError({
-                        code: "FORBIDDEN",
-                        message: "You do not have access to this domain.",
-                    });
-                }
-                await ensureTeamAccess(domainRow.teamId, authenticatedUser.id, authenticatedUser.role);
             }
             return domainRow;
         }
@@ -428,15 +451,13 @@ export const domainsRouter = router({
         .input(getByDomainNameInputSchema)
         .output(getByDomainNameOutputSchema)
         .query(async ({ input, ctx }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view domains",
-            });
-        }
+        const authenticatedUser = await getAuthenticatedUser(ctx);
         try {
-            return await fetchDomainByDomainName(input.domainName);
+            const row = await fetchDomainByDomainName(input.domainName);
+            if (!row)
+                return null;
+            await ensureDomainReadAccess(row.id, authenticatedUser.id, authenticatedUser.role);
+            return row;
         }
         catch (error) {
             console.error("Get domain by domain name error:", error);
@@ -513,13 +534,8 @@ export const domainsRouter = router({
         .input(getDomainsByUserInputSchema)
         .output(getDomainsByUserOutputSchema)
         .query(async ({ ctx }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view domains",
-            });
-        }
+        const authenticatedUser = await getAuthenticatedUser(ctx);
+        const userId = authenticatedUser.id;
         try {
             const rows = await db
                 .select({
@@ -551,7 +567,7 @@ export const domainsRouter = router({
                 .from(domain)
                 .leftJoin(userTable, eq(domain.userId, userTable.id))
                 .leftJoin(team, eq(domain.teamId, team.id))
-                .where(eq(domain.userId, userId))
+                .where(isAgencyUser(authenticatedUser.role) ? undefined : eq(domain.userId, userId))
                 .orderBy(desc(domain.createdAt));
             return rows.map((r) => ({
                 ...r,
@@ -574,13 +590,9 @@ export const domainsRouter = router({
         .input(updateDomainNotesInputSchema)
         .output(updateDomainNotesOutputSchema)
         .mutation(async ({ input, ctx }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to update domain notes",
-            });
-        }
+        const authenticatedUser = await getAuthenticatedUser(ctx);
+        const userId = authenticatedUser.id;
+        await ensureDomainMutationAccess(input.id, authenticatedUser.id, authenticatedUser.role);
         try {
             await db.transaction(async (tx) => {
                 await tx
@@ -624,18 +636,10 @@ export const domainsRouter = router({
         .input(unlinkDomainFromTeamInputSchema)
         .output(unlinkDomainFromTeamOutputSchema)
         .mutation(async ({ input, ctx }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to unlink a domain",
-            });
-        }
+        const authenticatedUser = await getAuthenticatedUser(ctx);
+        const userId = authenticatedUser.id;
         try {
-            const existing = await fetchDomainById(input.id);
-            if (!existing) {
-                throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
-            }
+            const existing = await ensureDomainMutationAccess(input.id, authenticatedUser.id, authenticatedUser.role);
             await db.transaction(async (tx) => {
                 await tx
                     .update(domain)
@@ -685,13 +689,8 @@ export const domainsRouter = router({
         .input(updateTeamInputSchema)
         .output(updateTeamOutputSchema)
         .mutation(async ({ input, ctx }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to link a domain",
-            });
-        }
+        const authenticatedUser = await getAuthenticatedUser(ctx);
+        const userId = authenticatedUser.id;
         try {
             const [teamRow] = await db
                 .select({ id: team.id, name: team.name, slug: team.slug })
@@ -704,10 +703,7 @@ export const domainsRouter = router({
                     message: "Team not found",
                 });
             }
-            const existingDomain = await fetchDomainById(input.id);
-            if (!existingDomain) {
-                throw new TRPCError({ code: "NOT_FOUND", message: "Domain not found" });
-            }
+            const existingDomain = await ensureDomainMutationAccess(input.id, authenticatedUser.id, authenticatedUser.role);
             const [teamOwner] = await db
                 .select({ id: userTable.id })
                 .from(teamMember)

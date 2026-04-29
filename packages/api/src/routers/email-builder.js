@@ -6,6 +6,12 @@ import { db } from "@npanel/db";
 import { emailBuilderDesign, emailBuilderDesignActivityLog, } from "@npanel/db/schema/email-builder-design";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
+function isAgencyUserRole(role) {
+    return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+}
 // --- Independent UI/API Schemas ---
 const createEmailBuilderDesignSchema = z.object({
     name: z.string().min(1, "Name is required"),
@@ -39,13 +45,28 @@ const duplicateEmailBuilderDesignSchema = z.object({
 });
 // --- Router ---
 export const emailBuilderRouter = router({
+    // Role helper for agency-side broad read access.
+    // Agency users can read globally; mutations stay creator-only.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     // Create a new design
     create: protectedProcedure
         .input(createEmailBuilderDesignSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+        if (input.teamId && !isAgencyUserRole(userRole)) {
+            const membership = await db.query.teamMember.findFirst({
+                where: and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)),
+            });
+            if (!membership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
         }
         const now = new Date();
         const [design] = await db.insert(emailBuilderDesign).values({
@@ -82,14 +103,18 @@ export const emailBuilderRouter = router({
         .input(getEmailBuilderDesignSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const role = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
+        const isAgencyUser = isAgencyUserRole(role);
         const design = await db.query.emailBuilderDesign.findFirst({
-            where: (ebd) => and(eq(ebd.id, input.id), or(eq(ebd.userId, userId), eq(ebd.isPublic, true), or(isNull(ebd.teamId), exists(db
-                .select()
-                .from(teamMember)
-                .where(and(eq(teamMember.teamId, ebd.teamId), eq(teamMember.userId, userId))))))),
+            where: (ebd) => isAgencyUser
+                ? eq(ebd.id, input.id)
+                : and(eq(ebd.id, input.id), or(eq(ebd.userId, userId), eq(ebd.isPublic, true), exists(db
+                    .select()
+                    .from(teamMember)
+                    .where(and(eq(teamMember.teamId, ebd.teamId), eq(teamMember.userId, userId)))))),
         });
         if (!design) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
@@ -101,16 +126,25 @@ export const emailBuilderRouter = router({
         .input(getEmailBuilderDesignsSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const role = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const { page, limit, teamId } = input;
+        const isAgencyUser = isAgencyUserRole(role);
         const baseWhere = teamId
-            ? and(eq(emailBuilderDesign.teamId, teamId), exists(db
-                .select()
-                .from(teamMember)
-                .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))))
-            : and(eq(emailBuilderDesign.userId, userId), isNull(emailBuilderDesign.teamId));
+            ? isAgencyUser
+                ? eq(emailBuilderDesign.teamId, teamId)
+                : and(eq(emailBuilderDesign.teamId, teamId), exists(db
+                    .select()
+                    .from(teamMember)
+                    .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))))
+            : isAgencyUser
+                ? undefined
+                : or(and(eq(emailBuilderDesign.userId, userId), isNull(emailBuilderDesign.teamId)), exists(db
+                    .select()
+                    .from(teamMember)
+                    .where(and(eq(teamMember.teamId, emailBuilderDesign.teamId), eq(teamMember.userId, userId)))));
         const designs = await db
             .select({
             id: emailBuilderDesign.id,
@@ -124,7 +158,7 @@ export const emailBuilderRouter = router({
             teamId: emailBuilderDesign.teamId,
         })
             .from(emailBuilderDesign)
-            .where(baseWhere)
+            .where(baseWhere ?? undefined)
             .orderBy(asc(emailBuilderDesign.updatedAt))
             .limit(limit)
             .offset((page - 1) * limit);
@@ -138,15 +172,15 @@ export const emailBuilderRouter = router({
         .input(updateEmailBuilderDesignSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const { id, ...updateData } = input;
         const existingDesign = await db.query.emailBuilderDesign.findFirst({
-            where: (ebd) => and(eq(ebd.id, id), or(eq(ebd.userId, userId), exists(db
-                .select()
-                .from(teamMember)
-                .where(and(eq(teamMember.teamId, ebd.teamId), eq(teamMember.userId, userId)))))),
+            where: (ebd) => isAgencySuperAdminRole(userRole)
+                ? eq(ebd.id, id)
+                : and(eq(ebd.id, id), eq(ebd.userId, userId)),
         });
         if (!existingDesign) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Design not found or access denied" });
@@ -182,14 +216,14 @@ export const emailBuilderRouter = router({
         .input(deleteEmailBuilderDesignSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const existingDesign = await db.query.emailBuilderDesign.findFirst({
-            where: (ebd) => and(eq(ebd.id, input.id), or(eq(ebd.userId, userId), exists(db
-                .select()
-                .from(teamMember)
-                .where(and(eq(teamMember.teamId, ebd.teamId), eq(teamMember.userId, userId)))))),
+            where: (ebd) => isAgencySuperAdminRole(userRole)
+                ? eq(ebd.id, input.id)
+                : and(eq(ebd.id, input.id), eq(ebd.userId, userId)),
         });
         if (!existingDesign) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Design not found or access denied" });
@@ -204,14 +238,14 @@ export const emailBuilderRouter = router({
         .input(duplicateEmailBuilderDesignSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const originalDesign = await db.query.emailBuilderDesign.findFirst({
-            where: (ebd) => and(eq(ebd.id, input.id), or(eq(ebd.userId, userId), eq(ebd.isPublic, true), exists(db
-                .select()
-                .from(teamMember)
-                .where(and(eq(teamMember.teamId, ebd.teamId), eq(teamMember.userId, userId)))))),
+            where: (ebd) => isAgencySuperAdminRole(userRole)
+                ? eq(ebd.id, input.id)
+                : and(eq(ebd.id, input.id), eq(ebd.userId, userId)),
         });
         if (!originalDesign) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });

@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 function buildGenSetupSection(data) {
     const elements = [`<name>${data.name}</name>`];
     elements.push(`<owner-id>${data.ownerId}</owner-id>`);
@@ -82,7 +82,7 @@ function buildSubscriptionCreateXml(data) {
 </packet>`;
 }
 export const subscriptionsCreateRouter = router({
-    create: publicProcedure
+    create: protectedProcedure
         .input(z.object({
         name: z.string(),
         ownerId: z.number(),

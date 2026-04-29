@@ -31,19 +31,13 @@ export declare function renderAgencyUserCreatedEmail({ userFirstname, email, pas
     role: string;
     loginLink: string;
 }): Promise<string>;
-export declare function renderInvoiceDeliveryEmail({ customerName, invoiceNumber, issueDate, dueDate, totalAmount, currency, services, supportEmail, supportPhone, }: {
+export declare function renderInvoiceDeliveryEmail({ customerName, invoiceNumber, issueDate, dueDate, totalAmount, currency, supportEmail, supportPhone, }: {
     customerName?: string;
     invoiceNumber?: string;
     issueDate?: string;
     dueDate?: string;
     totalAmount?: string;
     currency?: string;
-    services?: Array<{
-        name: string;
-        description?: string;
-        quantity?: number;
-        price?: string;
-    }>;
     supportEmail?: string;
     supportPhone?: string;
 }): Promise<string>;

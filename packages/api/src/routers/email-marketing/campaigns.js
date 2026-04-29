@@ -34,7 +34,40 @@ async function assertTeamMember(teamId, userId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
     }
 }
-async function assertCampaignAccess(campaignId, userId) {
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
+async function assertCampaignReadAccess(campaignId, userId, userRole) {
+    if (isAgencyUserRole(userRole)) {
+        const [campaign] = await db
+            .select({
+            id: emailCampaign.id,
+            userId: emailCampaign.userId,
+            teamId: emailCampaign.teamId,
+            name: emailCampaign.name,
+            status: emailCampaign.status,
+            emailDomainId: emailCampaign.emailDomainId,
+            subject: emailCampaign.subject,
+            fromEmail: emailCampaign.fromEmail,
+            fromName: emailCampaign.fromName,
+            description: emailCampaign.description,
+            htmlContent: emailCampaign.htmlContent,
+            textContent: emailCampaign.textContent,
+            scheduledAt: emailCampaign.scheduledAt,
+            sentAt: emailCampaign.sentAt,
+            createdAt: emailCampaign.createdAt,
+            updatedAt: emailCampaign.updatedAt,
+        })
+            .from(emailCampaign)
+            .where(eq(emailCampaign.id, campaignId))
+            .limit(1);
+        if (!campaign) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+        }
+        return campaign;
+    }
+    return assertCampaignOwnerAccess(campaignId, userId, userRole);
+}
+async function assertCampaignOwnerAccess(campaignId, userId, userRole) {
     const [campaign] = await db
         .select({
         id: emailCampaign.id,
@@ -60,10 +93,7 @@ async function assertCampaignAccess(campaignId, userId) {
     if (!campaign) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
     }
-    if (campaign.userId === userId)
-        return campaign;
-    if (campaign.teamId) {
-        await assertTeamMember(campaign.teamId, userId);
+    if (campaign.userId === userId || isAgencySuperAdminRole(userRole)) {
         return campaign;
     }
     throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
@@ -80,6 +110,7 @@ export const emailMarketingCampaignsRouter = router({
         .input(campaignCreateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -150,7 +181,7 @@ export const emailMarketingCampaignsRouter = router({
             });
             return id;
         });
-        const campaign = await assertCampaignAccess(campaignId, userId);
+        const campaign = await assertCampaignReadAccess(campaignId, userId, userRole);
         const recipients = await fetchRecipients(campaignId);
         // Notify creator: email + in-app notification (fire-and-forget style; don't block response)
         const viewCampaignLink = getCampaignViewLink(campaign.id);
@@ -210,13 +241,14 @@ export const emailMarketingCampaignsRouter = router({
         .input(z.object({ id: z.string().min(1) }))
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        const campaign = await assertCampaignAccess(input.id, userId);
+        const campaign = await assertCampaignReadAccess(input.id, userId, userRole);
         const recipients = await fetchRecipients(input.id);
         return campaignDetailSchema.parse({
             ...campaign,
@@ -235,22 +267,28 @@ export const emailMarketingCampaignsRouter = router({
         .input(campaignListFiltersSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        const accessOr = [eq(emailCampaign.userId, userId)];
-        if (input.teamId) {
-            accessOr.push(sql `(${emailCampaign.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`);
+        const conditions = [];
+        if (!isAgencyUserRole(userRole)) {
+            const accessOr = [eq(emailCampaign.userId, userId)];
+            if (input.teamId) {
+                accessOr.push(sql `(${emailCampaign.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`);
+            }
+            conditions.push(or(...accessOr));
         }
-        const conditions = [or(...accessOr)];
         if (input.status)
             conditions.push(eq(emailCampaign.status, input.status));
         if (input.search)
             conditions.push(ilike(emailCampaign.name, `%${input.search}%`));
-        const whereClause = and(...conditions);
+        if (input.teamId)
+            conditions.push(eq(emailCampaign.teamId, input.teamId));
+        const whereClause = conditions.length > 0 ? and(...conditions) : sql `true`;
         const [campaigns, totalRes] = await Promise.all([
             db
                 .select({
@@ -299,13 +337,14 @@ export const emailMarketingCampaignsRouter = router({
         .input(campaignUpdateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        const campaign = await assertCampaignAccess(input.id, userId);
+        const campaign = await assertCampaignOwnerAccess(input.id, userId, userRole);
         if (campaign.status === "COMPLETED" || campaign.status === "FAILED") {
             throw new TRPCError({
                 code: "BAD_REQUEST",
@@ -367,7 +406,7 @@ export const emailMarketingCampaignsRouter = router({
                 createdAt: now,
             });
         });
-        const updated = await assertCampaignAccess(input.id, userId);
+        const updated = await assertCampaignReadAccess(input.id, userId, userRole);
         const recipients = await fetchRecipients(input.id);
         return campaignDetailSchema.parse({
             ...updated,
@@ -386,13 +425,14 @@ export const emailMarketingCampaignsRouter = router({
         .input(z.object({ id: z.string().min(1) }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertCampaignAccess(input.id, userId);
+        await assertCampaignOwnerAccess(input.id, userId, userRole);
         await db.delete(emailCampaign).where(eq(emailCampaign.id, input.id));
         return { success: true };
     }),
@@ -400,13 +440,14 @@ export const emailMarketingCampaignsRouter = router({
         .input(campaignSendInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        const campaign = await assertCampaignAccess(input.id, userId);
+        const campaign = await assertCampaignOwnerAccess(input.id, userId, userRole);
         if (campaign.status === "COMPLETED" || campaign.status === "FAILED") {
             throw new TRPCError({
                 code: "BAD_REQUEST",
@@ -585,6 +626,7 @@ export const emailMarketingCampaignsRouter = router({
         .input(campaignCancelInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -592,7 +634,7 @@ export const emailMarketingCampaignsRouter = router({
             });
         }
         // Always fetch fresh from DB to avoid stale cache (e.g. UI showed SCHEDULED but campaign was already sent)
-        const campaign = await assertCampaignAccess(input.id, userId);
+        const campaign = await assertCampaignOwnerAccess(input.id, userId, userRole);
         if (campaign.status !== "SCHEDULED") {
             const statusMessage = campaign.status === "COMPLETED"
                 ? "Campaign has already been sent."
@@ -696,13 +738,14 @@ export const emailMarketingCampaignsRouter = router({
         .input(campaignRecipientAddInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        const campaign = await assertCampaignAccess(input.campaignId, userId);
+        const campaign = await assertCampaignOwnerAccess(input.campaignId, userId, userRole);
         if (campaign.status !== "DRAFT") {
             throw new TRPCError({
                 code: "BAD_REQUEST",
@@ -733,13 +776,14 @@ export const emailMarketingCampaignsRouter = router({
         .input(campaignRecipientListFiltersSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertCampaignAccess(input.campaignId, userId);
+        await assertCampaignReadAccess(input.campaignId, userId, userRole);
         const conditions = [eq(campaignRecipient.campaignId, input.campaignId)];
         if (input.search) {
             conditions.push(ilike(campaignRecipient.toEmail, `%${input.search}%`));

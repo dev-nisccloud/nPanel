@@ -8,7 +8,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
         input: {
             prompt: string;
             referenceImageUrls?: string[] | undefined;
-            aspectRatio?: "21:9" | "16:9" | "3:2" | "5:4" | "1:1" | "4:5" | "2:3" | "9:16" | "3:4" | "4:3" | undefined;
+            aspectRatio?: "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9" | undefined;
             outputFormat?: "png" | "jpg" | undefined;
             resolution?: "1K" | "2K" | "4K" | undefined;
             variations?: number | undefined;
@@ -25,7 +25,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
         input: {
             prompt: string;
             referenceImageUrls?: string[] | undefined;
-            aspectRatio?: "21:9" | "16:9" | "3:2" | "5:4" | "1:1" | "4:5" | "2:3" | "9:16" | "3:4" | "4:3" | undefined;
+            aspectRatio?: "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9" | undefined;
             outputFormat?: "png" | "jpg" | undefined;
             resolution?: "1K" | "2K" | "4K" | undefined;
             variations?: number | undefined;

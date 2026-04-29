@@ -4,6 +4,7 @@ import Replicate from "replicate";
 import { and, count, desc, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
+import { teamMember } from "@npanel/db/schema/teams";
 import { backgroundRemoverGeneration, backgroundRemoverGenerationActivityLog, } from "@npanel/db/schema/image-generator";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -15,6 +16,24 @@ const replicate = new Replicate({
 });
 /** Replicate model: 851-labs/background-remover (InSPyReNet). Input: image (URL). Output: URI string. */
 const BACKGROUND_REMOVER_MODEL = "851-labs/background-remover:a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc";
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
+async function isTeamMemberUser(teamId, userId) {
+    const [membership] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+        .limit(1);
+    return Boolean(membership);
+}
+async function ensureTeamReadAccess(teamId, userId, role) {
+    if (isAgencyUserRole(role))
+        return;
+    const member = await isTeamMemberUser(teamId, userId);
+    if (!member) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team." });
+    }
+}
 /**
  * Run Replicate prediction with timeout and better error handling
  */
@@ -100,6 +119,7 @@ export const backgroundRemoverRouter = router({
         .output(startBackgroundRemovalResponseSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED" });
         const [currentUser] = await db
@@ -115,6 +135,13 @@ export const backgroundRemoverRouter = router({
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Team is required for customer background removal.",
+                });
+            }
+            const hasMembership = await isTeamMemberUser(input.teamId, userId);
+            if (!hasMembership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team.",
                 });
             }
             const creditsResult = await getBackgroundRemoverCreditsForTeam(input.teamId);
@@ -284,17 +311,23 @@ export const backgroundRemoverRouter = router({
         .output(updateBackgroundRemovalAfterUploadResponseSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
-        // Verify ownership
         const [generation] = await db
-            .select({ id: backgroundRemoverGeneration.id })
+            .select({
+            id: backgroundRemoverGeneration.id,
+            userId: backgroundRemoverGeneration.userId,
+        })
             .from(backgroundRemoverGeneration)
-            .where(and(eq(backgroundRemoverGeneration.id, input.generationId), eq(backgroundRemoverGeneration.userId, userId)))
+            .where(eq(backgroundRemoverGeneration.id, input.generationId))
             .limit(1);
         if (!generation) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && generation.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the generation creator can modify it." });
         }
         // Update with UploadThing data
         await db
@@ -321,24 +354,33 @@ export const backgroundRemoverRouter = router({
         .output(getBackgroundRemovalsResponseSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
-        const whereClause = input.teamId
-            ? and(eq(backgroundRemoverGeneration.userId, userId), eq(backgroundRemoverGeneration.teamId, input.teamId))
-            : eq(backgroundRemoverGeneration.userId, userId);
+        let whereClause;
+        if (input.teamId) {
+            await ensureTeamReadAccess(input.teamId, userId, userRole);
+            whereClause = eq(backgroundRemoverGeneration.teamId, input.teamId);
+        }
+        else if (isAgencyUserRole(userRole)) {
+            whereClause = undefined;
+        }
+        else {
+            whereClause = eq(backgroundRemoverGeneration.userId, userId);
+        }
         const [generations, total] = await Promise.all([
             db
                 .select()
                 .from(backgroundRemoverGeneration)
-                .where(whereClause)
+                .where(whereClause ?? sql `true`)
                 .orderBy(desc(backgroundRemoverGeneration.createdAt))
                 .offset((input.page - 1) * input.limit)
                 .limit(input.limit),
             db
                 .select({ value: count(backgroundRemoverGeneration.id) })
                 .from(backgroundRemoverGeneration)
-                .where(whereClause),
+                .where(whereClause ?? sql `true`),
         ]);
         const totalCount = Number(total[0]?.value ?? 0);
         // Transform Prisma data to clean API response
@@ -357,17 +399,20 @@ export const backgroundRemoverRouter = router({
         .input(deleteBackgroundRemovalSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
-        // Check if user has access to this generation
         const [existingGeneration] = await db
             .select()
             .from(backgroundRemoverGeneration)
-            .where(and(eq(backgroundRemoverGeneration.id, input.id), eq(backgroundRemoverGeneration.userId, userId)))
+            .where(eq(backgroundRemoverGeneration.id, input.id))
             .limit(1);
         if (!existingGeneration) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && existingGeneration.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the generation creator can modify it." });
         }
         // Create activity log before deletion
         await db.insert(backgroundRemoverGenerationActivityLog).values({

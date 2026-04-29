@@ -34,6 +34,8 @@ async function assertTeamMember(teamId, userId) {
         });
     }
 }
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
 async function fetchAudienceWithCounts(id) {
     const [row] = await db
         .select({
@@ -53,7 +55,28 @@ async function fetchAudienceWithCounts(id) {
         .limit(1);
     return row ?? null;
 }
-async function assertAudienceAccess(audienceId, userId) {
+async function assertAudienceReadAccess(audienceId, userId, userRole) {
+    if (isAgencyUserRole(userRole)) {
+        const [audience] = await db
+            .select({
+            id: emailAudience.id,
+            userId: emailAudience.userId,
+            teamId: emailAudience.teamId,
+        })
+            .from(emailAudience)
+            .where(eq(emailAudience.id, audienceId))
+            .limit(1);
+        if (!audience) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Audience not found",
+            });
+        }
+        return audience;
+    }
+    return assertAudienceMutationAccess(audienceId, userId, userRole);
+}
+async function assertAudienceMutationAccess(audienceId, userId, userRole) {
     const [audience] = await db
         .select({
         id: emailAudience.id,
@@ -69,11 +92,7 @@ async function assertAudienceAccess(audienceId, userId) {
             message: "Audience not found",
         });
     }
-    if (audience.userId === userId) {
-        return audience;
-    }
-    if (audience.teamId) {
-        await assertTeamMember(audience.teamId, userId);
+    if (audience.userId === userId || isAgencySuperAdminRole(userRole)) {
         return audience;
     }
     throw new TRPCError({
@@ -86,6 +105,7 @@ export const emailMarketingAudiencesRouter = router({
         .input(audienceCreateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
@@ -94,7 +114,7 @@ export const emailMarketingAudiencesRouter = router({
         }
         const now = new Date();
         // If teamId is provided, ensure user is a member of the team
-        if (input.teamId) {
+        if (input.teamId && !isAgencySuperAdminRole(userRole)) {
             await assertTeamMember(input.teamId, userId);
         }
         const id = crypto.randomUUID();
@@ -120,13 +140,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(z.object({ id: z.string().min(1) }))
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.id, userId);
+        await assertAudienceReadAccess(input.id, userId, userRole);
         const withCount = await fetchAudienceWithCounts(input.id);
         if (!withCount) {
             throw new TRPCError({
@@ -152,15 +173,21 @@ export const emailMarketingAudiencesRouter = router({
         .input(audienceListFiltersSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        // Agency-side listing: show all audiences (no creator filter),
-        // with optional filters for teamId and name search.
         const conditions = [];
+        if (!isAgencyUserRole(userRole)) {
+            const accessOr = [eq(emailAudience.userId, userId)];
+            if (input.teamId) {
+                accessOr.push(sql `(${emailAudience.teamId} = ${input.teamId} AND EXISTS (select 1 from ${teamMember} tm where tm.team_id = ${input.teamId} and tm.user_id = ${userId}))`);
+            }
+            conditions.push(sql `(${or(...accessOr)})`);
+        }
         if (input.teamId) {
             conditions.push(eq(emailAudience.teamId, input.teamId));
         }
@@ -204,13 +231,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(audienceUpdateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.id, userId);
+        await assertAudienceMutationAccess(input.id, userId, userRole);
         const now = new Date();
         await db
             .update(emailAudience)
@@ -247,13 +275,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(z.object({ id: z.string().min(1) }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.id, userId);
+        await assertAudienceMutationAccess(input.id, userId, userRole);
         await db.delete(emailAudience).where(eq(emailAudience.id, input.id));
         return { success: true };
     }),
@@ -262,13 +291,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(audienceContactCreateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.audienceId, userId);
+        await assertAudienceMutationAccess(input.audienceId, userId, userRole);
         const now = new Date();
         const id = crypto.randomUUID();
         await db.insert(emailAudienceContact).values({
@@ -308,13 +338,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(audienceContactBulkCreateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.audienceId, userId);
+        await assertAudienceMutationAccess(input.audienceId, userId, userRole);
         const now = new Date();
         // Prepare rows, defaulting status to SUBSCRIBED when not specified
         const rows = input.contacts.map((c) => ({
@@ -346,13 +377,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(audienceContactUpdateInputSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.audienceId, userId);
+        await assertAudienceMutationAccess(input.audienceId, userId, userRole);
         const now = new Date();
         await db
             .update(emailAudienceContact)
@@ -397,13 +429,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(z.object({ id: z.string().min(1), audienceId: z.string().min(1) }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.audienceId, userId);
+        await assertAudienceMutationAccess(input.audienceId, userId, userRole);
         await db
             .delete(emailAudienceContact)
             .where(eq(emailAudienceContact.id, input.id));
@@ -413,13 +446,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(z.object({ audienceId: z.string().min(1) }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.audienceId, userId);
+        await assertAudienceMutationAccess(input.audienceId, userId, userRole);
         const result = await db
             .delete(emailAudienceContact)
             .where(eq(emailAudienceContact.audienceId, input.audienceId))
@@ -430,13 +464,14 @@ export const emailMarketingAudiencesRouter = router({
         .input(audienceContactListFiltersSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({
                 code: "UNAUTHORIZED",
                 message: "User session not found",
             });
         }
-        await assertAudienceAccess(input.audienceId, userId);
+        await assertAudienceReadAccess(input.audienceId, userId, userRole);
         const conditions = [eq(emailAudienceContact.audienceId, input.audienceId)];
         if (input.status === "SUBSCRIBED" ||
             input.status === "UNSUBSCRIBED") {

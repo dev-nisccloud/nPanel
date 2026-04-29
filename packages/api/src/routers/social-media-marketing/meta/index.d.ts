@@ -123,10 +123,30 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 success: boolean;
+                data: {
+                    id: string;
+                    name: string | null;
+                    username: string | null;
+                    picture: {
+                        data: {
+                            url: string;
+                        };
+                    } | undefined;
+                    category: string | null;
+                    access_token: null;
+                }[];
+                meta: {
+                    retrieved_at: string;
+                    total_pages: number;
+                    source: string;
+                };
+            } | {
+                success: boolean;
                 data: any;
                 meta: {
                     retrieved_at: string;
                     total_pages: any;
+                    source?: undefined;
                 };
             };
             meta: object;
@@ -228,11 +248,11 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pageId: string;
                 accessToken?: string | undefined;
                 fields?: string[] | undefined;
-                since?: string | undefined;
-                until?: string | undefined;
                 limit?: number | undefined;
                 apiVersion?: string | undefined;
                 useStoredToken?: boolean | undefined;
+                since?: string | undefined;
+                until?: string | undefined;
                 contentType?: "posts" | undefined;
             };
             output: {
@@ -256,11 +276,11 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pageId: string;
                 accessToken?: string | undefined;
                 fields?: string[] | undefined;
-                since?: string | undefined;
-                until?: string | undefined;
                 limit?: number | undefined;
                 apiVersion?: string | undefined;
                 useStoredToken?: boolean | undefined;
+                since?: string | undefined;
+                until?: string | undefined;
                 contentType?: "photos" | undefined;
             };
             output: {
@@ -284,11 +304,11 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pageId: string;
                 accessToken?: string | undefined;
                 fields?: string[] | undefined;
-                since?: string | undefined;
-                until?: string | undefined;
                 limit?: number | undefined;
                 apiVersion?: string | undefined;
                 useStoredToken?: boolean | undefined;
+                since?: string | undefined;
+                until?: string | undefined;
                 contentType?: "videos" | undefined;
             };
             output: {
@@ -312,11 +332,11 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pageId: string;
                 accessToken?: string | undefined;
                 fields?: string[] | undefined;
-                since?: string | undefined;
-                until?: string | undefined;
                 limit?: number | undefined;
                 apiVersion?: string | undefined;
                 useStoredToken?: boolean | undefined;
+                since?: string | undefined;
+                until?: string | undefined;
                 contentType?: "events" | undefined;
             };
             output: {
@@ -397,7 +417,7 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pageName: string | null;
                 message: string | null;
                 scheduledPublishTime: Date;
-                status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
+                status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
                 published: boolean;
                 publishedAt: Date | null;
                 publishedPostId: string | null;
@@ -434,7 +454,7 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
         getAll: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 pageTokenId?: string | undefined;
-                status?: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED" | undefined;
+                status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED" | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
             };
@@ -445,7 +465,7 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                     pageName: string | null;
                     message: string | null;
                     scheduledPublishTime: Date;
-                    status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
+                    status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
                     published: boolean;
                     publishedAt: Date | null;
                     publishedPostId: string | null;
@@ -491,7 +511,7 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pageName: string | null;
                 message: string | null;
                 scheduledPublishTime: Date;
-                status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
+                status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
                 published: boolean;
                 publishedAt: Date | null;
                 publishedPostId: string | null;
@@ -530,7 +550,7 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 message?: string | undefined;
                 scheduledPublishTime?: unknown;
-                status?: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED" | undefined;
+                status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED" | undefined;
                 mediaItems?: {
                     mediaType: "PHOTO" | "VIDEO";
                     url: string;
@@ -547,7 +567,7 @@ export declare const metaRouter: import("@trpc/server").TRPCBuiltRouter<{
                 pageName: string | null;
                 message: string | null;
                 scheduledPublishTime: Date;
-                status: "DRAFT" | "SCHEDULED" | "FAILED" | "CANCELLED" | "PUBLISHED";
+                status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "PUBLISHED";
                 published: boolean;
                 publishedAt: Date | null;
                 publishedPostId: string | null;

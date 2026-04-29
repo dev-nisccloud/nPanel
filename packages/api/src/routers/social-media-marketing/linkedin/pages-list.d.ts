@@ -15,10 +15,25 @@ export declare const linkedinPagesListRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             success: boolean;
+            data: {
+                id: string;
+                name: string;
+                username: string;
+                picture: string | null;
+                access_token: null;
+            }[];
+            meta: {
+                retrieved_at: string;
+                total_organizations: number;
+                source: string;
+            };
+        } | {
+            success: boolean;
             data: any;
             meta: {
                 retrieved_at: string;
                 total_organizations: any;
+                source?: undefined;
             };
         };
         meta: object;
@@ -53,10 +68,25 @@ export declare const linkedinPagesListRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             success: boolean;
+            data: {
+                id: string;
+                localizedName: string | null;
+                vanityName: string | null;
+                logo: string | null;
+                category: string | null;
+            };
+            meta: {
+                retrieved_at: string;
+                organization_id: string;
+                source: string;
+            };
+        } | {
+            success: boolean;
             data: any;
             meta: {
                 retrieved_at: string;
                 organization_id: string;
+                source?: undefined;
             };
         };
         meta: object;

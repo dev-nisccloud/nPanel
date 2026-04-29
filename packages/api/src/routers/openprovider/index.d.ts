@@ -331,7 +331,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 data: {
                     id: string;
                     domain: string;
-                    status: "ACTIVE" | "PENDING" | "EXPIRED" | "SUSPENDED" | "TRANSFERRING";
+                    status: "PENDING" | "ACTIVE" | "EXPIRED" | "SUSPENDED" | "TRANSFERRING";
                     registrationDate: string;
                     expiryDate: string;
                     clientName: any;
@@ -516,7 +516,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                     name: string;
                     extension: string;
                 };
-                operation: "create" | "transfer" | "renew" | "restore";
+                operation: "create" | "renew" | "transfer" | "restore";
                 period?: number | undefined;
                 additional_data?: {
                     idn_script?: string | undefined;
@@ -554,7 +554,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 meta: {
                     priced_at: string;
                     domain: string;
-                    operation: "create" | "transfer" | "renew" | "restore";
+                    operation: "create" | "renew" | "transfer" | "restore";
                     period: number;
                 };
             };
@@ -879,7 +879,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 type: "master" | "slave";
                 records?: {
                     name: string;
-                    type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                    type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                     value: string;
                     prio?: number | undefined;
                     ttl?: number | undefined;
@@ -984,21 +984,21 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 records?: {
                     add?: {
                         name: string;
-                        type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                        type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                         value: string;
                         prio?: number | undefined;
                         ttl?: number | undefined;
                     }[] | undefined;
                     update?: {
                         name: string;
-                        type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                        type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                         value: string;
                         prio?: number | undefined;
                         ttl?: number | undefined;
                     }[] | undefined;
                     remove?: {
                         name: string;
-                        type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                        type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                         value: string;
                         prio?: number | undefined;
                         ttl?: number | undefined;
@@ -1040,7 +1040,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 zoneName: string;
                 records: {
                     name: string;
-                    type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                    type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                     value: string;
                     prio?: number | undefined;
                     ttl?: number | undefined;
@@ -1064,7 +1064,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 zoneName: string;
                 records: {
                     name: string;
-                    type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                    type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                     value: string;
                     prio?: number | undefined;
                     ttl?: number | undefined;
@@ -1088,7 +1088,7 @@ export declare const openProviderRouter: import("@trpc/server").TRPCBuiltRouter<
                 zoneName: string;
                 records: {
                     name: string;
-                    type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                    type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                     value: string;
                     prio?: number | undefined;
                     ttl?: number | undefined;

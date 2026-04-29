@@ -3,7 +3,7 @@ import { TRPCError } from '@trpc/server';
 import { request } from 'undici';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
-import { getStoredLinkedInAccessTokenForUser } from '../../lib/linkedin-credentials';
+import { getStoredLinkedInAccessToken, getStoredLinkedInAccessTokenForSession } from '../../lib/linkedin-credentials';
 // ---------------------------------------------------------------------------
 // Targeting resolution helpers
 // ---------------------------------------------------------------------------
@@ -233,8 +233,9 @@ const GET_ALL_CONFIG = {
 /**
  * Get user's LinkedIn integration with valid tokens
  */
-async function getUserIntegration(userId) {
-    const tokenData = await getStoredLinkedInAccessTokenForUser(userId);
+async function getUserIntegration(userId, role) {
+    const tokenData = (await getStoredLinkedInAccessTokenForSession({ userId, role })) ??
+        (await getStoredLinkedInAccessToken());
     if (!tokenData) {
         throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -283,7 +284,7 @@ export const linkedInAdsCampaignsRouter = router({
                     message: 'User session not found',
                 });
             }
-            const { accessToken } = await getUserIntegration(userId);
+            const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
             // Create LinkedIn Ads client
             const client = new LinkedInAdsClient({ accessToken });
             // Ensure campaign group ID is in URN format
@@ -454,7 +455,7 @@ export const linkedInAdsCampaignsRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
-        const { accessToken } = await getUserIntegration(userId);
+        const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
         // 1. Extract URNs grouped by facet key
         const facetMap = new Map();
         const andBlocks = input.targetingCriteria?.include?.and;
@@ -593,7 +594,7 @@ export const linkedInAdsCampaignsRouter = router({
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
-        const { accessToken } = await getUserIntegration(userId);
+        const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
         const extractId = (urn) => {
             const colonIdx = urn.indexOf(':(');
             return colonIdx !== -1 ? urn.slice(colonIdx + 1) : String(urn).split(':').pop() || urn;
@@ -724,7 +725,7 @@ export const linkedInAdsCampaignsRouter = router({
                     message: 'User session not found',
                 });
             }
-            const { accessToken } = await getUserIntegration(userId);
+            const { accessToken } = await getUserIntegration(userId, ctx.session?.user?.role);
             // Create LinkedIn Ads client
             const client = new LinkedInAdsClient({ accessToken });
             // Get campaign details directly from LinkedIn API

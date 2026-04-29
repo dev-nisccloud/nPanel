@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { and, asc, count, desc, eq, inArray, isNull, like, ne } from "@npanel/db";
+import { and, asc, count, desc, eq, inArray, isNull, like, ne, or } from "@npanel/db";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { ticket, ticketActivityLog, ticketAttachment, ticketMessage, } from "@npanel/db/schema/tickets";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema (no shared types)
@@ -297,6 +298,54 @@ async function fetchUserRole(userId) {
 function roleIsAgency(role) {
     return (role ?? "").includes("AGENCY");
 }
+function roleIsAgencySuperAdmin(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
+async function getUserTeamIds(userId) {
+    const [memberships, ownedTeams] = await Promise.all([
+        db.query.teamMember.findMany({
+            where: eq(teamMember.userId, userId),
+            columns: { teamId: true },
+        }),
+        db.query.team.findMany({
+            where: eq(team.createdById, userId),
+            columns: { id: true },
+        }),
+    ]);
+    return [
+        ...new Set([
+            ...memberships.map((m) => m.teamId),
+            ...ownedTeams.map((t) => t.id),
+        ]),
+    ];
+}
+async function ensureTeamReadAccess(teamId, userId, role) {
+    if (roleIsAgency(role))
+        return;
+    const [membership, ownedTeam] = await Promise.all([
+        db.query.teamMember.findFirst({
+            where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
+            columns: { id: true },
+        }),
+        db.query.team.findFirst({
+            where: and(eq(team.id, teamId), eq(team.createdById, userId)),
+            columns: { id: true },
+        }),
+    ]);
+    if (!membership && !ownedTeam) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team" });
+    }
+}
+function ensureTicketMutationAccess(ticketRow, userId, role) {
+    if (roleIsAgencySuperAdmin(role))
+        return;
+    if (ticketRow.createdById !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have permission to modify this ticket",
+        });
+    }
+}
 const ticketWithRelations = {
     createdBy: { columns: { id: true, name: true, email: true } },
     team: { columns: { id: true, name: true, slug: true } },
@@ -365,6 +414,7 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
+        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
         const conds = [];
         if (isAgency) {
             if (input.assignedToId) {
@@ -372,7 +422,9 @@ export const ticketsRouter = router({
             }
         }
         else {
-            conds.push(eq(ticket.createdById, sessionUser.id));
+            conds.push(userTeamIds.length > 0
+                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
+                : eq(ticket.createdById, sessionUser.id));
             if (input.teamId) {
                 conds.push(eq(ticket.teamId, input.teamId));
             }
@@ -406,9 +458,12 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
+        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
         const conds = [eq(ticket.id, input.id)];
         if (!isAgency) {
-            conds.push(eq(ticket.createdById, sessionUser.id));
+            conds.push(userTeamIds.length > 0
+                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
+                : eq(ticket.createdById, sessionUser.id));
         }
         const ticketRow = await db.query.ticket.findFirst({
             where: and(...conds),
@@ -428,6 +483,10 @@ export const ticketsRouter = router({
         .output(ticketSchema)
         .mutation(async ({ ctx, input }) => {
         const sessionUser = await getAuthenticatedUser(ctx);
+        const userRole = await fetchUserRole(sessionUser.id);
+        if (input.teamId) {
+            await ensureTeamReadAccess(input.teamId, sessionUser.id, userRole);
+        }
         const ticketNumber = await generateTicketNumber();
         const id = randomUUID();
         const now = new Date();
@@ -473,15 +532,10 @@ export const ticketsRouter = router({
         .mutation(async ({ ctx, input }) => {
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
-        const isAgency = roleIsAgency(userRole);
-        const accessConds = [eq(ticket.id, input.id)];
-        if (!isAgency) {
-            accessConds.push(eq(ticket.createdById, sessionUser.id));
-        }
         const [existingTicket] = await db
             .select()
             .from(ticket)
-            .where(and(...accessConds))
+            .where(eq(ticket.id, input.id))
             .limit(1);
         if (!existingTicket) {
             throw new TRPCError({
@@ -489,6 +543,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
+        ensureTicketMutationAccess(existingTicket, sessionUser.id, userRole);
         const updateData = {
             updatedAt: new Date(),
         };
@@ -523,7 +578,7 @@ export const ticketsRouter = router({
             oldValues.assignedToId = existingTicket.assignedToId;
             updateData.assignedToId = input.assignedToId;
         }
-        if (input.internalNotes !== undefined && isAgency) {
+        if (input.internalNotes !== undefined && roleIsAgency(userRole)) {
             oldValues.internalNotes = existingTicket.internalNotes;
             updateData.internalNotes = input.internalNotes;
         }
@@ -556,9 +611,12 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
+        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
         const ticketConds = [eq(ticket.id, input.ticketId)];
         if (!isAgency) {
-            ticketConds.push(eq(ticket.createdById, sessionUser.id));
+            ticketConds.push(userTeamIds.length > 0
+                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
+                : eq(ticket.createdById, sessionUser.id));
         }
         const [ticketRow] = await db
             .select({ id: ticket.id })
@@ -599,14 +657,10 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
-        const ticketConds = [eq(ticket.id, input.ticketId)];
-        if (!isAgency) {
-            ticketConds.push(eq(ticket.createdById, sessionUser.id));
-        }
         const [ticketRow] = await db
             .select()
             .from(ticket)
-            .where(and(...ticketConds))
+            .where(eq(ticket.id, input.ticketId))
             .limit(1);
         if (!ticketRow) {
             throw new TRPCError({
@@ -614,6 +668,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
+        ensureTicketMutationAccess(ticketRow, sessionUser.id, userRole);
         if (input.isInternal && !isAgency) {
             throw new TRPCError({
                 code: "FORBIDDEN",
@@ -733,15 +788,7 @@ export const ticketsRouter = router({
         }
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
-        const hasAccess = isAgency
-            ? message.ticket.assignedToId === sessionUser.id || message.ticket.assignedToId === null
-            : message.ticket.createdById === sessionUser.id;
-        if (!hasAccess) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have access to this ticket",
-            });
-        }
+        ensureTicketMutationAccess(message.ticket, sessionUser.id, userRole);
         const updatedMessage = await db.transaction(async (tx) => {
             const now = new Date();
             await tx
@@ -788,13 +835,6 @@ export const ticketsRouter = router({
         .mutation(async ({ ctx, input }) => {
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
-        const isAgency = roleIsAgency(userRole);
-        if (!isAgency) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Only agency users can assign tickets",
-            });
-        }
         const [existingTicket] = await db
             .select()
             .from(ticket)
@@ -806,6 +846,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
+        ensureTicketMutationAccess(existingTicket, sessionUser.id, userRole);
         if (input.assignedToId) {
             const [assignedUser] = await db
                 .select({ id: user.id, role: user.role })
@@ -849,15 +890,10 @@ export const ticketsRouter = router({
         .mutation(async ({ ctx, input }) => {
         const sessionUser = await getAuthenticatedUser(ctx);
         const role = await fetchUserRole(sessionUser.id);
-        const isAgency = roleIsAgency(role);
-        const accessConds = [eq(ticket.id, input.ticketId)];
-        if (!isAgency) {
-            accessConds.push(eq(ticket.createdById, sessionUser.id));
-        }
         const [existingTicket] = await db
             .select()
             .from(ticket)
-            .where(and(...accessConds))
+            .where(eq(ticket.id, input.ticketId))
             .limit(1);
         if (!existingTicket) {
             throw new TRPCError({
@@ -865,6 +901,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
+        ensureTicketMutationAccess(existingTicket, sessionUser.id, role);
         const updateData = {
             status: input.status,
             updatedAt: new Date(),
@@ -893,13 +930,6 @@ export const ticketsRouter = router({
         .mutation(async ({ ctx, input }) => {
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
-        const isAgency = roleIsAgency(userRole);
-        if (!isAgency) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Only agency users can archive tickets",
-            });
-        }
         const [existingTicket] = await db
             .select()
             .from(ticket)
@@ -911,6 +941,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
+        ensureTicketMutationAccess(existingTicket, sessionUser.id, userRole);
         const now = new Date();
         await db
             .update(ticket)
@@ -941,9 +972,12 @@ export const ticketsRouter = router({
         const sessionUser = await getAuthenticatedUser(ctx);
         const userRole = await fetchUserRole(sessionUser.id);
         const isAgency = roleIsAgency(userRole);
+        const userTeamIds = isAgency ? [] : await getUserTeamIds(sessionUser.id);
         const ticketConds = [eq(ticket.id, input.ticketId)];
         if (!isAgency) {
-            ticketConds.push(eq(ticket.createdById, sessionUser.id));
+            ticketConds.push(userTeamIds.length > 0
+                ? or(eq(ticket.createdById, sessionUser.id), inArray(ticket.teamId, userTeamIds))
+                : eq(ticket.createdById, sessionUser.id));
         }
         const [ticketRow] = await db
             .select({ id: ticket.id })
@@ -956,6 +990,7 @@ export const ticketsRouter = router({
                 message: "Ticket not found",
             });
         }
+        ensureTicketMutationAccess(ticketRow, sessionUser.id, userRole);
         const result = await db.transaction(async (tx) => {
             const now = new Date();
             const unreadConds = [

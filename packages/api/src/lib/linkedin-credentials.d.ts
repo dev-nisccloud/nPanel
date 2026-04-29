@@ -10,6 +10,13 @@ export declare function getStoredLinkedInAccessTokenForUser(userId: string): Pro
     accessToken: string;
     integrationId: string;
 } | null>;
+export declare function getStoredLinkedInAccessTokenForSession(params: {
+    userId: string;
+    role?: string | null;
+}): Promise<{
+    accessToken: string;
+    integrationId: string;
+} | null>;
 /**
  * Get stored page access token for a specific LinkedIn Organization
  * Returns the access token if available, not expired, and integration is active
