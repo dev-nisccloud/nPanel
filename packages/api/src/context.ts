@@ -46,6 +46,8 @@ export type Context = {
   createCaller?: (ctx: Context) => unknown;
   ipAddress?: string | null;
   apiKeyError?: string | null;
+  /** The raw Hono request, useful for URL and header inspection. */
+  req: HonoContext["req"];
 };
 
 export type CreateContextOptions = {
@@ -57,7 +59,8 @@ export async function createContext({
   context,
   createCaller,
 }: CreateContextOptions): Promise<Context> {
-  const authHeader = context.req.raw.headers.get("Authorization");
+  const req = context.req;
+  const authHeader = req.raw.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.substring(7).trim();
     if (token.startsWith("npanel_sk_")) {
@@ -74,6 +77,7 @@ export async function createContext({
           session: null,
           apiKeyError: "Invalid API Key",
           ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+          req,
         };
       }
 
@@ -82,6 +86,7 @@ export async function createContext({
           session: null,
           apiKeyError: "API Key is revoked",
           ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+          req,
         };
       }
 
@@ -90,6 +95,7 @@ export async function createContext({
           session: null,
           apiKeyError: "API Key has expired",
           ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+          req,
         };
       }
 
@@ -104,6 +110,7 @@ export async function createContext({
           session: null,
           apiKeyError: "Account associated with this API key is inactive",
           ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+          req,
         };
       }
 
@@ -140,6 +147,7 @@ export async function createContext({
         createCaller,
         apiKey: { id: keyRecord.id, permissions: keyRecord.permissions },
         ipAddress,
+        req,
       };
     }
   }
@@ -201,5 +209,6 @@ export async function createContext({
     mfaSetupRequired,
     createCaller,
     ipAddress,
+    req,
   };
 }

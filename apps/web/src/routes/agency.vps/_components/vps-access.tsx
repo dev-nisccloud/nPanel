@@ -10,25 +10,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 interface VpsAccessProps {
   deviceData: any;
+  onTabChange?: (value: string) => void;
 }
 
-export function VpsAccess({ deviceData }: VpsAccessProps) {
+export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
   const [showPassword, setShowPassword] = React.useState(false);
   const credsQuery = trpc.hivelocity.getDeviceInitialCreds.useQuery({ deviceId: deviceData.deviceId });
   const creds = (credsQuery.data?.data as any) || {};
-
-  const consoleMutation = trpc.hivelocity.vpsGetConsoleUrl.useMutation({
-    onSuccess: (data: any) => {
-      if (data.data?.url) {
-        window.open(data.data.url, "_blank");
-      } else {
-        toast.error("Console URL not found in response");
-      }
-    },
-    onError: (err) => {
-      toast.error(`Failed to launch console: ${err.message}`);
-    }
-  });
 
   const resetPasswordMutation = trpc.hivelocity.vpsResetPassword.useMutation({
     onSuccess: () => {
@@ -134,18 +122,20 @@ export function VpsAccess({ deviceData }: VpsAccessProps) {
                 </p>
              </div>
 
-             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
-                <p className="text-sm font-medium">No-Network Access (VNC)</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                   Launch a browser-based KVM console to access your instance even if it has no network connectivity or the OS is unresponsive.
-                </p>
+             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Remote Terminal Access</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    We've integrated a high-performance, secure terminal directly into nPanel. 
+                    Use it to manage your instance without leaving the dashboard.
+                  </p>
+                </div>
                 <Button 
                   className="w-full gap-2" 
-                  onClick={() => consoleMutation.mutate({ deviceId: deviceData.deviceId })}
-                  disabled={consoleMutation.isPending}
+                  onClick={() => onTabChange?.('terminal')}
                 >
                    <Terminal className="h-4 w-4" />
-                   Launch Browser Console
+                   Go to SSH Terminal
                 </Button>
              </div>
 
