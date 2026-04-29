@@ -1,6 +1,5 @@
 import type { NiscEmDispatchJobResult } from "./types";
 /**
- * Enqueue a global Nisc email marketing dispatcher run.
- * This worker is designed to be safe to call many times; a global advisory lock ensures only one run is active.
+ * Enqueue a campaign-scoped Nisc email marketing dispatcher run.
  */
-export declare function enqueueNiscEmDispatch(scheduledFor?: Date | null): Promise<NiscEmDispatchJobResult>;
+export declare function enqueueNiscEmDispatch(campaignId: string, scheduledFor?: Date | null): Promise<NiscEmDispatchJobResult>;

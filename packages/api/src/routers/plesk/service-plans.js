@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML request to fetch all service plans
  */
@@ -33,7 +33,7 @@ function buildServicePlanGetByIdXml(servicePlanId) {
 }
 export const servicePlansRouter = router({
     // Get all service plans
-    getAll: publicProcedure
+    getAll: protectedProcedure
         .input(z.object({}).optional().default({}))
         .query(async () => {
         try {
@@ -96,7 +96,7 @@ export const servicePlansRouter = router({
         }
     }),
     // Get service plan by ID
-    getById: publicProcedure
+    getById: protectedProcedure
         .input(z.object({ id: z.number() }))
         .query(async ({ input }) => {
         const { id } = input;

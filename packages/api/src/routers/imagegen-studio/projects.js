@@ -7,14 +7,23 @@ import { imageGenProject } from "@npanel/db/schema/imagegen-studio";
 import { protectedProcedure, router } from "../../trpc";
 import { createProjectSchema, updateProjectSchema, getProjectSchema, getProjectsSchema, deleteProjectSchema, duplicateProjectSchema, imageGenProjectSchema, } from "./schemas";
 import { getUserTeamIds, orUserOrTeamMember, personalScope } from "./team-scope";
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
 export const imageGenProjectsRouter = router({
     create: protectedProcedure
         .input(createProjectSchema)
         .output(z.object({ data: imageGenProjectSchema }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+        if (input.teamId && !isAgencyUserRole(userRole)) {
+            const userTeamIds = await getUserTeamIds(userId);
+            if (!userTeamIds.includes(input.teamId)) {
+                throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team" });
+            }
         }
         const now = new Date();
         const id = randomUUID();
@@ -46,12 +55,15 @@ export const imageGenProjectsRouter = router({
         .output(z.object({ data: imageGenProjectSchema }))
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const userTeamIds = await getUserTeamIds(userId);
         const project = await db.query.imageGenProject.findFirst({
-            where: and(eq(imageGenProject.id, input.id), orUserOrTeamMember(imageGenProject.userId, imageGenProject.teamId, userId, userTeamIds)),
+            where: isAgencyUserRole(userRole)
+                ? eq(imageGenProject.id, input.id)
+                : and(eq(imageGenProject.id, input.id), orUserOrTeamMember(imageGenProject.userId, imageGenProject.teamId, userId, userTeamIds)),
         });
         if (!project) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
@@ -66,6 +78,7 @@ export const imageGenProjectsRouter = router({
     }))
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
@@ -73,10 +86,18 @@ export const imageGenProjectsRouter = router({
         const userTeamIds = await getUserTeamIds(userId);
         let whereCond;
         if (teamId) {
-            if (!userTeamIds.includes(teamId)) {
-                return { data: [], nextPage: null };
+            if (isAgencyUserRole(userRole)) {
+                whereCond = eq(imageGenProject.teamId, teamId);
             }
-            whereCond = eq(imageGenProject.teamId, teamId);
+            else {
+                if (!userTeamIds.includes(teamId)) {
+                    return { data: [], nextPage: null };
+                }
+                whereCond = eq(imageGenProject.teamId, teamId);
+            }
+        }
+        else if (isAgencyUserRole(userRole)) {
+            whereCond = undefined;
         }
         else {
             whereCond = personalScope(imageGenProject.userId, imageGenProject.teamId, userId);
@@ -94,7 +115,7 @@ export const imageGenProjectsRouter = router({
             teamId: imageGenProject.teamId,
         })
             .from(imageGenProject)
-            .where(whereCond)
+            .where(whereCond ?? undefined)
             .orderBy(desc(imageGenProject.updatedAt))
             .limit(limit)
             .offset((page - 1) * limit);
@@ -108,16 +129,19 @@ export const imageGenProjectsRouter = router({
         .output(z.object({ data: imageGenProjectSchema }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const { id, ...updateData } = input;
-        const userTeamIds = await getUserTeamIds(userId);
         const existingProject = await db.query.imageGenProject.findFirst({
-            where: and(eq(imageGenProject.id, id), orUserOrTeamMember(imageGenProject.userId, imageGenProject.teamId, userId, userTeamIds)),
+            where: eq(imageGenProject.id, id),
         });
         if (!existingProject) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && existingProject.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the project owner can update it" });
         }
         await db
             .update(imageGenProject)
@@ -139,15 +163,18 @@ export const imageGenProjectsRouter = router({
         .output(z.object({ data: z.object({ id: z.string() }) }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
-        const userTeamIds = await getUserTeamIds(userId);
         const existingProject = await db.query.imageGenProject.findFirst({
-            where: and(eq(imageGenProject.id, input.id), orUserOrTeamMember(imageGenProject.userId, imageGenProject.teamId, userId, userTeamIds)),
+            where: eq(imageGenProject.id, input.id),
         });
         if (!existingProject) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && existingProject.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the project owner can delete it" });
         }
         await db.delete(imageGenProject).where(eq(imageGenProject.id, input.id));
         return { data: { id: input.id } };
@@ -157,12 +184,15 @@ export const imageGenProjectsRouter = router({
         .output(z.object({ data: imageGenProjectSchema }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const userTeamIds = await getUserTeamIds(userId);
         const originalProject = await db.query.imageGenProject.findFirst({
-            where: and(eq(imageGenProject.id, input.id), orUserOrTeamMember(imageGenProject.userId, imageGenProject.teamId, userId, userTeamIds)),
+            where: isAgencyUserRole(userRole)
+                ? eq(imageGenProject.id, input.id)
+                : and(eq(imageGenProject.id, input.id), orUserOrTeamMember(imageGenProject.userId, imageGenProject.teamId, userId, userTeamIds)),
         });
         if (!originalProject) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });

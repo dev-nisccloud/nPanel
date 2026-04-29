@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
 import { and, count, desc, eq, inArray } from "@npanel/db";
-import { publicProcedure, protectedProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
@@ -9,7 +9,88 @@ import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
-import { sendEmail } from "react-email-starter/src/email";
+import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
+const isAgencyRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
+async function assertTeamMutationAccess(teamId, actorUserId, actorRole) {
+    if (isAgencySuperAdmin(actorRole))
+        return;
+    const [teamRow] = await db
+        .select({ createdById: team.createdById })
+        .from(team)
+        .where(eq(team.id, teamId))
+        .limit(1);
+    if (!teamRow || teamRow.createdById !== actorUserId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have permission to modify this team",
+        });
+    }
+}
+/**
+ * Sends a transactional HTML email via AWS SES using the same sender/config
+ * pattern as the agency invoicing flow (NISC_TX_* env vars + configuration set).
+ * Returns { success } rather than throwing, so batch callers can decide per-recipient.
+ */
+async function sendTransactionalEmail(params) {
+    try {
+        const fromDomainRaw = process.env.NISC_TX_EMAIL_DOMAIN?.trim();
+        const fromDomain = fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
+        const fromEmail = (process.env.NISC_TX_FROM_EMAIL?.trim() ||
+            (fromDomain ? `noreply@${fromDomain}` : "noreply@npanel.com"));
+        const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
+        const replyTo = process.env.NISC_TX_REPLY_TO?.trim() || undefined;
+        const stripHeaderUnsafe = (value) => value.replace(/[\r\n]+/g, " ").trim();
+        const toRfc2047Utf8 = (value) => {
+            if (/^[\x00-\x7F]*$/.test(value))
+                return value;
+            const buf = Buffer.from(value, "utf8");
+            return `=?UTF-8?B?${buf.toString("base64")}?=`;
+        };
+        const parseDisplayEmail = (value) => {
+            const v = stripHeaderUnsafe(value);
+            const m = v.match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/);
+            if (m)
+                return { name: m[1]?.trim() || null, email: m[2].trim() };
+            return { name: null, email: v };
+        };
+        const buildFromHeader = (n, e) => {
+            const parsed = parseDisplayEmail(e);
+            const name = stripHeaderUnsafe(n ?? parsed.name ?? "");
+            const email = stripHeaderUnsafe(parsed.email);
+            return name ? `${toRfc2047Utf8(name)} <${email}>` : email;
+        };
+        const boundary = `npanel-alt-${crypto.randomUUID()}`;
+        const lines = [];
+        lines.push(`From: ${buildFromHeader(fromName, fromEmail)}`);
+        lines.push(`To: ${stripHeaderUnsafe(params.to)}`);
+        lines.push(`Subject: ${toRfc2047Utf8(stripHeaderUnsafe(params.subject))}`);
+        if (replyTo)
+            lines.push(`Reply-To: ${stripHeaderUnsafe(replyTo)}`);
+        lines.push("MIME-Version: 1.0");
+        lines.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+        lines.push("");
+        lines.push(`--${boundary}`);
+        lines.push('Content-Type: text/html; charset="UTF-8"');
+        lines.push("Content-Transfer-Encoding: 7bit");
+        lines.push("");
+        lines.push(params.html);
+        lines.push("");
+        lines.push(`--${boundary}--`);
+        lines.push("");
+        const raw = Buffer.from(lines.join("\r\n"), "utf8");
+        const ses = getSesClient();
+        await sendSesRawEmail(ses, {
+            RawMessage: { Data: raw },
+            Destinations: [params.to],
+        });
+        return { success: true };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        return { success: false, error: message };
+    }
+}
 // Zod schemas for API - independent from database schema
 const createTeamInputSchema = z.object({
     name: z.string().min(2, "Team name must be at least 2 characters").max(100),
@@ -77,7 +158,7 @@ export const teamsRouter = router({
      * Create a new team
      * Also creates the first team member with OWNER role
      */
-    create: publicProcedure
+    create: protectedProcedure
         .input(createTeamInputSchema)
         .output(createTeamOutputSchema)
         .mutation(async ({ input, ctx }) => {
@@ -177,7 +258,8 @@ export const teamsRouter = router({
             return { team: newTeam, invites: createdInvites };
         });
         const { team: createdTeam, invites } = result;
-        // Send invite emails after successful team creation
+        // Send invite emails after successful team creation (via SES, matching
+        // the transactional email pattern used by agency invoicing).
         if (invites.length > 0) {
             const frontendUrl = process.env.CORS_ORIGIN || "http://localhost:3002";
             const emailsToSend = await Promise.all(invites.map(async (invite) => {
@@ -192,13 +274,23 @@ export const teamsRouter = router({
                 });
                 return {
                     to: invite.email,
-                    subject: `You've been invited to join ${createdTeam.name} on npanel`,
+                    subject: `You've been invited to join ${createdTeam.name} on Nisc Cloud`,
                     html,
                     inviteCode: invite.code,
                 };
             }));
-            const { sendEmailBatch } = await import("react-email-starter/src/email");
-            const results = await sendEmailBatch(emailsToSend);
+            const results = await Promise.all(emailsToSend.map(async (e) => {
+                const r = await sendTransactionalEmail({
+                    to: e.to,
+                    subject: e.subject,
+                    html: e.html,
+                });
+                return {
+                    email: e.to,
+                    success: r.success,
+                    error: r.success ? undefined : r.error,
+                };
+            }));
             const activityLogs = results
                 .map((result) => {
                 const invite = invites.find((inv) => inv.email === result.email);
@@ -265,7 +357,7 @@ export const teamsRouter = router({
             },
         };
     }),
-    getInviteByCode: publicProcedure
+    getInviteByCode: protectedProcedure
         .input(getInviteInputSchema)
         .output(getInviteOutputSchema)
         .query(async ({ input }) => {
@@ -334,7 +426,7 @@ export const teamsRouter = router({
             },
         };
     }),
-    acceptInvite: publicProcedure
+    acceptInvite: protectedProcedure
         .input(acceptInviteInputSchema)
         .output(acceptInviteOutputSchema)
         .mutation(async ({ input, ctx }) => {
@@ -456,7 +548,7 @@ export const teamsRouter = router({
             throw error;
         }
     }),
-    getUserTeams: publicProcedure
+    getUserTeams: protectedProcedure
         .output(z.array(teamMembershipSchema))
         .query(async ({ ctx }) => {
         const session = ctx.session;
@@ -487,7 +579,7 @@ export const teamsRouter = router({
             memberCount: countByTeam.get(membership.team.id) ?? 0,
         }));
     }),
-    checkSlugAvailable: publicProcedure
+    checkSlugAvailable: protectedProcedure
         .input(slugCheckInputSchema)
         .output(slugCheckOutputSchema)
         .query(async ({ input }) => {
@@ -496,7 +588,7 @@ export const teamsRouter = router({
             available: !found,
         };
     }),
-    updateLastAccessedTeam: publicProcedure
+    updateLastAccessedTeam: protectedProcedure
         .input(z.object({
         teamId: z.string(),
     }))
@@ -740,7 +832,7 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
@@ -773,7 +865,7 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
@@ -814,7 +906,7 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
@@ -866,7 +958,7 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
@@ -923,12 +1015,13 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
             });
         }
+        await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
         const [existingTeam] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
         if (!existingTeam) {
             throw new TRPCError({
@@ -1002,12 +1095,13 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
             });
         }
+        await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
         const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
         if (!teamRow) {
             throw new TRPCError({
@@ -1055,7 +1149,7 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        const isAgency = userRole === "AGENCY_ADMIN" || userRole === "AGENCY_SUPER_ADMIN";
+        const isAgency = isAgencyRole(userRole);
         const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
         if (!teamRow) {
             throw new TRPCError({
@@ -1063,7 +1157,10 @@ export const teamsRouter = router({
                 message: "Team not found",
             });
         }
-        if (!isAgency) {
+        if (isAgency) {
+            await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
+        }
+        else {
             const [membership] = await db
                 .select({ role: teamMember.role })
                 .from(teamMember)
@@ -1139,11 +1236,14 @@ export const teamsRouter = router({
                 acceptInviteLink: acceptInviteUrl,
                 expiresInDays: 7,
             });
-            await sendEmail({
+            const result = await sendTransactionalEmail({
                 to: input.email,
                 subject: `You've been invited to join ${teamRow.name} on Nisc Cloud`,
                 html,
             });
+            if (!result.success) {
+                console.error("Failed to send invite email:", result.error);
+            }
         }
         catch (emailError) {
             console.error("Failed to send invite email:", emailError);
@@ -1191,12 +1291,13 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
             });
         }
+        await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
         const member = await db.query.teamMember.findFirst({
             where: eq(teamMember.id, input.memberId),
             with: {
@@ -1260,7 +1361,7 @@ export const teamsRouter = router({
             });
         }
         const userRole = session.user.role;
-        if (userRole !== "AGENCY_ADMIN" && userRole !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyRole(userRole)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have permission",
@@ -1278,6 +1379,7 @@ export const teamsRouter = router({
                 message: "Invite not found",
             });
         }
+        await assertTeamMutationAccess(invite.teamId, session.user.id, userRole);
         const now = new Date();
         await db.transaction(async (tx) => {
             await tx.delete(teamInvite).where(eq(teamInvite.id, input.inviteId));

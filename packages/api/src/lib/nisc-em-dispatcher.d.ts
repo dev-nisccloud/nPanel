@@ -5,21 +5,33 @@ type DispatchResult = {
     ran: true;
     claimed: number;
     sent: number;
-    failed: number;
+    /** Rows we re-queued for a later retry (retryable SES errors). */
+    requeued: number;
+    /** Rows we marked FAILED permanently (non-retryable SES errors). */
+    permanentlyFailed: number;
+    /** Rows where SES threw a throttle-flavoured error, regardless of disposition. */
     throttled: number;
     elapsedMs: number;
+    /**
+     * True when the dispatcher stopped while there were still eligible emails
+     * (either QUEUED or orphaned SENDING rows past the visibility timeout).
+     * The caller should re-enqueue another dispatch to continue draining.
+     */
+    workRemaining: boolean;
+    /** Count of eligible emails still pending at the end of the run. */
+    remainingEligible: number;
 };
 export type NiscEmDispatchDebug = {
     startedAt: string;
     maxRuntimeMs: number;
     claimBatchSize: number;
     ratePerSecond: number;
+    rateLimiterMode: "redis_global" | "local_fallback";
+    lockHolder: string | null;
     quota: {
         maxSendRate: number;
         max24HourSend: number;
-        sentLast24HoursAtStart: number;
-        reservedEmails: number;
-        remainingEmails: number;
+        sentLast24Hours: number;
     };
     queue: {
         eligibleQueuedCountAtStart: number;
@@ -33,16 +45,10 @@ export type NiscEmDispatchDebug = {
             count: number;
         }>;
     };
+    warnings: string[];
 };
-export declare function dispatchNiscEmEmailQueue(params?: {
-    maxRuntimeMs?: number;
-    claimBatchSize?: number;
-}): Promise<DispatchResult>;
-/**
- * Same dispatcher as {@link dispatchNiscEmEmailQueue} but returns extra diagnostics
- * that are useful to correlate with QStash job runs and Cloud Run logs.
- */
 export declare function dispatchNiscEmEmailQueueWithDebug(params?: {
+    campaignId: string;
     maxRuntimeMs?: number;
     claimBatchSize?: number;
 }): Promise<{

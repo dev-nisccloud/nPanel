@@ -8,7 +8,7 @@ export declare const wordpressRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: {
             domain?: string | undefined;
             installationIds?: number[] | undefined;
-            sortBy?: "title" | "displayTitle" | "ownerName" | "version" | undefined;
+            sortBy?: "title" | "version" | "displayTitle" | "ownerName" | undefined;
             sortOrder?: "asc" | "desc" | undefined;
         } | undefined;
         output: {
@@ -21,7 +21,7 @@ export declare const wordpressRouter: import("@trpc/server").TRPCBuiltRouter<{
                 filters: {
                     domain: string | null;
                     installationIds: number[] | null;
-                    sortBy: "title" | "displayTitle" | "ownerName" | "version";
+                    sortBy: "title" | "version" | "displayTitle" | "ownerName";
                     sortOrder: "asc" | "desc";
                 };
                 note: string;

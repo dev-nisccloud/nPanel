@@ -4,6 +4,27 @@ export declare const niscEmailMarketingEmailEventsRouter: import("@trpc/server")
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    getById: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            id: string;
+        };
+        output: {
+            id: string;
+            type: string;
+            eventCreatedAt: Date;
+            recipientEmail: string | null;
+            link: string | null;
+            data: Record<string, unknown> | null;
+            campaignId: string | null;
+            campaignName: string | null;
+            subject: string | null;
+            fromEmail: string | null;
+            fromName: string | null;
+            htmlContent: string | null;
+            textContent: string | null;
+        };
+        meta: object;
+    }>;
     getGlobalEvents: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             from?: unknown;

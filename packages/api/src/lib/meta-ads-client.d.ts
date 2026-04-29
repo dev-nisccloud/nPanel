@@ -308,4 +308,19 @@ export declare class MetaAdsClient {
     deleteAd(adId: string): Promise<{
         success: boolean;
     }>;
+    /**
+     * Get Instagram accounts connected/authorized for use with an ad account
+     * GET /{ad-account-id}/connected_instagram_accounts
+     * Requires: ads_read scope
+     * Returns the list of Instagram User IDs that are authorized to run ads
+     * via this ad account (linked through a Facebook Page or Business Manager).
+     */
+    getConnectedInstagramAccounts(accountId: string): Promise<{
+        data: Array<{
+            id: string;
+            username?: string;
+            name?: string;
+            profile_pic?: string;
+        }>;
+    }>;
 }

@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML to assign/move a database to a different subscription
  * Based on Plesk XML-RPC API: assign-to-subscription operation
@@ -52,7 +52,7 @@ function parseXmlError(xml) {
 }
 export const databasesAssignRouter = router({
     // Assign/move a database to a different subscription
-    assign: publicProcedure
+    assign: protectedProcedure
         .input(z.object({
         databaseId: z.number(),
         targetWebspaceId: z.number(),

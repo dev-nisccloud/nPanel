@@ -148,6 +148,36 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
+    /**
+     * Plans for the Nisc Email Marketing customer app pricing table. Matches products named
+     * "Nisc Email Marketing" or "Email Marketing" (case-insensitive, substring). Same output shape
+     * as getHostingPlansForPricing.
+     */
+    getNiscEmailMarketingPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            productFeatures: {
+                key: string;
+                label: string;
+            }[];
+            plans: {
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: {
+                    available: boolean;
+                    valueOverride: string | null;
+                }[];
+            }[];
+        };
+        meta: object;
+    }>;
     /** Get plans for pricing by marketplace slug. Searches products by name using slug-derived or predefined search terms (e.g. website-hosting → "website hosting", "web hosting"). Same output shape as getHostingPlansForPricing. */
     getPlansForPricingBySlug: import("@trpc/server").TRPCQueryProcedure<{
         input: {

@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML for mail account update operation
  * Uses hybrid strategy: 'set' for single-value fields, 'add' for list fields
@@ -251,7 +251,7 @@ function processUpdateResult(xml, operation, fieldMappings) {
     };
 }
 export const emailsUpdateRouter = router({
-    update: publicProcedure
+    update: protectedProcedure
         .input(z.object({
         siteId: z.number(),
         name: z.string(),

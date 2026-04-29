@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML request to fetch all customers
  */
@@ -41,7 +41,7 @@ function buildCustomerGetByIdXml(customerId) {
 }
 export const customersRouter = router({
     // Get all customers
-    getAll: publicProcedure
+    getAll: protectedProcedure
         .input(z.object({}).optional().default({}))
         .query(async () => {
         try {
@@ -104,7 +104,7 @@ export const customersRouter = router({
         }
     }),
     // Get customer by ID
-    getById: publicProcedure
+    getById: protectedProcedure
         .input(z.object({ id: z.number() }))
         .query(async ({ input }) => {
         const { id: customerId } = input;

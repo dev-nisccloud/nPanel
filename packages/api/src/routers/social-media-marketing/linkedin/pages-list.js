@@ -1,26 +1,76 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, eq } from "@npanel/db";
+import { and, eq, inArray } from "@npanel/db";
 import { router, protectedProcedure } from '../../../trpc';
 import { createLinkedInClient, LinkedInApiError } from '../../../lib/linkedin-client';
 import { getStoredLinkedInAccessToken } from '../../../lib/linkedin-credentials';
 import { LinkedInErrorHandler } from '../../../lib/linkedin-error-handler';
 import { db } from "@npanel/db";
 import { socialMediaIntegration, socialMediaPageToken, } from "@npanel/db/schema/social-media-marketing";
+import { team, teamMember } from "@npanel/db/schema/teams";
 // Validation schema for organizations list request
 const OrganizationsListRequestSchema = z.object({
     accessToken: z.string().optional(), // Optional - will use stored token if not provided
     apiVersion: z.string().optional().default('202603'),
     useStoredToken: z.boolean().optional().default(true), // Whether to use stored token if available
 });
+const isAgencyUserRole = (role) => role === 'AGENCY_USER' || role === 'AGENCY_ADMIN' || role === 'AGENCY_SUPER_ADMIN';
+async function getAccessibleTeamIds(userId) {
+    const [memberships, ownedTeams] = await Promise.all([
+        db.query.teamMember.findMany({
+            where: eq(teamMember.userId, userId),
+            columns: { teamId: true },
+        }),
+        db.query.team.findMany({
+            where: eq(team.createdById, userId),
+            columns: { id: true },
+        }),
+    ]);
+    return [...new Set([...memberships.map((m) => m.teamId), ...ownedTeams.map((t) => t.id)])];
+}
 export const linkedinPagesListRouter = router({
     /**
      * Get list of LinkedIn Organizations managed by the user
      */
     getOrganizations: protectedProcedure
         .input(OrganizationsListRequestSchema)
-        .query(async ({ input }) => {
+        .query(async ({ input, ctx }) => {
         try {
+            const userId = ctx.session?.user?.id;
+            const role = ctx.session?.user?.role;
+            if (!userId) {
+                throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+            }
+            if (!isAgencyUserRole(role)) {
+                const teamIds = await getAccessibleTeamIds(userId);
+                if (teamIds.length === 0) {
+                    return {
+                        success: true,
+                        data: [],
+                        meta: { retrieved_at: new Date().toISOString(), total_organizations: 0, source: 'team_scoped_tokens' },
+                    };
+                }
+                const storedOrgs = await db.query.socialMediaPageToken.findMany({
+                    where: and(eq(socialMediaPageToken.platform, 'LINKEDIN'), eq(socialMediaPageToken.isActive, true), inArray(socialMediaPageToken.teamId, teamIds)),
+                    columns: {
+                        pageId: true,
+                        pageName: true,
+                        pageUsername: true,
+                        pagePicture: true,
+                    },
+                });
+                return {
+                    success: true,
+                    data: storedOrgs.map((org) => ({
+                        id: org.pageId,
+                        name: org.pageName || '',
+                        username: org.pageUsername || '',
+                        picture: org.pagePicture,
+                        access_token: null,
+                    })),
+                    meta: { retrieved_at: new Date().toISOString(), total_organizations: storedOrgs.length, source: 'team_scoped_tokens' },
+                };
+            }
             // Get access token - use stored token if available and not explicitly provided
             let accessToken = input.accessToken;
             if (!accessToken && input.useStoredToken) {
@@ -188,8 +238,13 @@ export const linkedinPagesListRouter = router({
         .input(z.object({
         pageId: z.string().min(1, 'Organization ID is required'),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ input, ctx }) => {
         try {
+            const userId = ctx.session?.user?.id;
+            const userRole = ctx.session?.user?.role;
+            if (!userId) {
+                throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+            }
             // Find the organization token in the database (LinkedIn only)
             const pageToken = await db.query.socialMediaPageToken.findFirst({
                 where: and(eq(socialMediaPageToken.pageId, input.pageId), eq(socialMediaPageToken.platform, 'LINKEDIN'), eq(socialMediaPageToken.isActive, true)),
@@ -204,6 +259,24 @@ export const linkedinPagesListRouter = router({
                     code: 'NOT_FOUND',
                     message: 'Organization token not found for this organization. Please refresh the organizations list.',
                 });
+            }
+            if (!isAgencyUserRole(userRole)) {
+                if (!pageToken.teamId) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this organization token' });
+                }
+                const [membership, ownedTeam] = await Promise.all([
+                    db.query.teamMember.findFirst({
+                        where: and(eq(teamMember.teamId, pageToken.teamId), eq(teamMember.userId, userId)),
+                        columns: { id: true },
+                    }),
+                    db.query.team.findFirst({
+                        where: and(eq(team.id, pageToken.teamId), eq(team.createdById, userId)),
+                        columns: { id: true },
+                    }),
+                ]);
+                if (!membership && !ownedTeam) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this organization token' });
+                }
             }
             return {
                 success: true,
@@ -234,8 +307,47 @@ export const linkedinPagesListRouter = router({
         apiVersion: z.string().optional().default('202603'),
         useStoredToken: z.boolean().optional().default(true),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ input, ctx }) => {
         try {
+            const userId = ctx.session?.user?.id;
+            const role = ctx.session?.user?.role;
+            if (!userId) {
+                throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User session not found' });
+            }
+            if (!isAgencyUserRole(role)) {
+                const teamIds = await getAccessibleTeamIds(userId);
+                if (teamIds.length === 0) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this organization' });
+                }
+                const linkedOrg = await db.query.socialMediaPageToken.findFirst({
+                    where: and(eq(socialMediaPageToken.pageId, input.orgId), eq(socialMediaPageToken.platform, 'LINKEDIN'), eq(socialMediaPageToken.isActive, true), inArray(socialMediaPageToken.teamId, teamIds)),
+                    columns: {
+                        pageId: true,
+                        pageName: true,
+                        pageUsername: true,
+                        pagePicture: true,
+                        pageCategory: true,
+                    },
+                });
+                if (!linkedOrg) {
+                    throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this organization' });
+                }
+                return {
+                    success: true,
+                    data: {
+                        id: linkedOrg.pageId,
+                        localizedName: linkedOrg.pageName,
+                        vanityName: linkedOrg.pageUsername,
+                        logo: linkedOrg.pagePicture,
+                        category: linkedOrg.pageCategory,
+                    },
+                    meta: {
+                        retrieved_at: new Date().toISOString(),
+                        organization_id: input.orgId,
+                        source: 'team_scoped_token',
+                    },
+                };
+            }
             // Get access token - use stored token if available and not explicitly provided
             let accessToken = input.accessToken;
             if (!accessToken && input.useStoredToken) {

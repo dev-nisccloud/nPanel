@@ -3,7 +3,7 @@ import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { teamMember } from "@npanel/db/schema/teams";
-import { niscEmCampaign, niscEmDomain, niscEmEmail, niscEmSendJob } from "@npanel/db/schema";
+import { niscEmCampaign, niscEmDomain, niscEmEmail } from "@npanel/db/schema";
 import { protectedProcedure, router } from "../../trpc";
 import { z } from "zod";
 import { campaignCancelInputSchema, campaignCreateInputSchema, campaignDetailSchema, campaignListFiltersSchema, campaignListResponseSchema, campaignRecipientSummarySchema, campaignSendInputSchema, campaignSummarySchema, } from "../email-marketing/schemas";
@@ -15,6 +15,14 @@ async function assertTeamMember(teamId, userId) {
         .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
         .limit(1);
     return member ?? null;
+}
+function isAgencyUserRole(role) {
+    if (!role)
+        return false;
+    return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+}
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
 }
 async function assertCampaignAccess(campaignId, userId) {
     const [campaign] = await db
@@ -50,6 +58,66 @@ async function assertCampaignAccess(campaignId, userId) {
         return campaign;
     }
     throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+}
+async function assertCampaignOwnerAccess(campaignId, userId, role) {
+    const [campaign] = await db
+        .select({
+        id: niscEmCampaign.id,
+        userId: niscEmCampaign.userId,
+        teamId: niscEmCampaign.teamId,
+        name: niscEmCampaign.name,
+        status: niscEmCampaign.status,
+        subject: niscEmCampaign.subject,
+        fromEmail: niscEmCampaign.fromEmail,
+        fromName: niscEmCampaign.fromName,
+        domainId: niscEmCampaign.domainId,
+        htmlContent: niscEmCampaign.htmlContent,
+        textContent: niscEmCampaign.textContent,
+        scheduledAt: niscEmCampaign.scheduledAt,
+        sentAt: niscEmCampaign.sentAt,
+        createdAt: niscEmCampaign.createdAt,
+        updatedAt: niscEmCampaign.updatedAt,
+        totalRecipients: niscEmCampaign.totalRecipients,
+    })
+        .from(niscEmCampaign)
+        .where(eq(niscEmCampaign.id, campaignId))
+        .limit(1);
+    if (!campaign)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+    if (!isAgencySuperAdminRole(role) && campaign.userId !== userId) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the campaign creator can modify it" });
+    }
+    return campaign;
+}
+async function assertCampaignReadAccess(campaignId, userId, role) {
+    if (isAgencyUserRole(role)) {
+        const [campaign] = await db
+            .select({
+            id: niscEmCampaign.id,
+            userId: niscEmCampaign.userId,
+            teamId: niscEmCampaign.teamId,
+            name: niscEmCampaign.name,
+            status: niscEmCampaign.status,
+            subject: niscEmCampaign.subject,
+            fromEmail: niscEmCampaign.fromEmail,
+            fromName: niscEmCampaign.fromName,
+            domainId: niscEmCampaign.domainId,
+            htmlContent: niscEmCampaign.htmlContent,
+            textContent: niscEmCampaign.textContent,
+            scheduledAt: niscEmCampaign.scheduledAt,
+            sentAt: niscEmCampaign.sentAt,
+            createdAt: niscEmCampaign.createdAt,
+            updatedAt: niscEmCampaign.updatedAt,
+            totalRecipients: niscEmCampaign.totalRecipients,
+        })
+            .from(niscEmCampaign)
+            .where(eq(niscEmCampaign.id, campaignId))
+            .limit(1);
+        if (!campaign)
+            throw new TRPCError({ code: "NOT_FOUND", message: "Campaign not found" });
+        return campaign;
+    }
+    return assertCampaignAccess(campaignId, userId);
 }
 async function fetchRecipients(campaignId) {
     const rows = await db
@@ -99,17 +167,24 @@ function mapCampaignSummary(row) {
 export const niscEmailMarketingCampaignsRouter = router({
     list: protectedProcedure.input(campaignListFiltersSchema).query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
         const conditions = [];
-        if (input.teamId) {
+        if (isAgencyUserRole(userRole)) {
+            // Agency-side view: list all campaigns globally.
+        }
+        else if (input.teamId) {
             const member = await assertTeamMember(input.teamId, userId);
             if (!member)
                 throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
             conditions.push(eq(niscEmCampaign.teamId, input.teamId));
         }
         else {
-            conditions.push(eq(niscEmCampaign.userId, userId));
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "teamId is required for customer campaign listing",
+            });
         }
         if (input.status) {
             const s = input.status;
@@ -124,6 +199,9 @@ export const niscEmailMarketingCampaignsRouter = router({
         if (input.search) {
             conditions.push(or(ilike(niscEmCampaign.name, `%${input.search}%`), ilike(niscEmCampaign.subject, `%${input.search}%`), ilike(niscEmCampaign.status, `%${input.search}%`)));
         }
+        // Hide only campaigns whose name is exactly "Transactional" (case-insensitive).
+        // Names that contain additional words, e.g. "Transactional Welcome", are returned.
+        conditions.push(sql `lower(trim(${niscEmCampaign.name})) <> 'transactional'`);
         const whereClause = and(...conditions);
         const [rows, totalRow] = await Promise.all([
             db
@@ -155,9 +233,10 @@ export const niscEmailMarketingCampaignsRouter = router({
     }),
     getById: protectedProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const row = await assertCampaignAccess(input.id, userId);
+        const row = await assertCampaignReadAccess(input.id, userId, userRole);
         const recipients = await fetchRecipients(row.id);
         return campaignDetailSchema.parse({
             ...mapCampaignSummary({
@@ -184,8 +263,20 @@ export const niscEmailMarketingCampaignsRouter = router({
     }),
     create: protectedProcedure.input(campaignCreateInputSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
+        if (!isAgencyUserRole(userRole)) {
+            if (!input.teamId) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "teamId is required for customer campaign creation",
+                });
+            }
+            const member = await assertTeamMember(input.teamId, userId);
+            if (!member)
+                throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
         if (input.emailDomainId) {
             const [domain] = await db
                 .select({ id: niscEmDomain.id, status: niscEmDomain.status })
@@ -231,7 +322,11 @@ export const niscEmailMarketingCampaignsRouter = router({
                 contactId: null,
                 toEmail,
                 fromEmail: input.fromEmail,
+                fromName: input.fromName ?? null,
+                replyTo: null,
                 subject: input.subject,
+                htmlContent: input.htmlContent ?? null,
+                textContent: input.textContent ?? null,
                 sesMessageId: null,
                 status: "QUEUED",
                 opens: 0,
@@ -254,48 +349,63 @@ export const niscEmailMarketingCampaignsRouter = router({
     }),
     send: protectedProcedure.input(campaignSendInputSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const campaign = await assertCampaignAccess(input.id, userId);
+        const campaign = await assertCampaignOwnerAccess(input.id, userId, userRole);
         const now = new Date();
         if (["SENDING", "SENT", "CANCELLED"].includes(campaign.status)) {
             return { ok: true, status: campaign.status };
         }
         const scheduledAt = campaign.scheduledAt;
-        const shouldSchedule = !input.immediate && scheduledAt && scheduledAt > now;
-        const jobId = randomUUID();
-        const dispatchResult = await enqueueNiscEmDispatch(shouldSchedule ? scheduledAt : null);
-        await db.transaction(async (tx) => {
-            await tx.insert(niscEmSendJob).values({
-                id: jobId,
-                campaignId: campaign.id,
-                status: "QUEUED",
-                qstashMessageId: dispatchResult.messageId,
-                batchSize: Number(campaign.totalRecipients ?? 0),
-                processedCount: 0,
-                errorMessage: null,
-                scheduledFor: shouldSchedule ? scheduledAt : null,
-                startedAt: null,
-                completedAt: null,
-                createdAt: now,
-                updatedAt: now,
-            });
-            await tx
+        const shouldSchedule = Boolean(!input.immediate && scheduledAt && scheduledAt > now);
+        const previousStatus = campaign.status;
+        const nextStatus = shouldSchedule ? "SCHEDULED" : "SENDING";
+        // -------------------------------------------------------------------------
+        // Two-phase send:
+        //   1. Flip the campaign to SENDING/SCHEDULED so the dispatcher is allowed
+        //      to claim its queued rows. We must do this BEFORE publishing to QStash
+        //        otherwise QStash can fire the worker before the row-level status is
+        //      committed and the dispatcher's claim query will select nothing.
+        //   2. Publish the QStash job. If this fails, roll the campaign back to its
+        //      previous status so the user can retry without getting stuck in
+        //      SENDING/SCHEDULED with no dispatcher ever touching it.
+        // -------------------------------------------------------------------------
+        await db
+            .update(niscEmCampaign)
+            .set({
+            status: nextStatus,
+            updatedAt: now,
+            sentAt: shouldSchedule ? null : campaign.sentAt ?? null,
+        })
+            .where(eq(niscEmCampaign.id, campaign.id));
+        let dispatchResult;
+        try {
+            dispatchResult = await enqueueNiscEmDispatch(campaign.id, shouldSchedule ? scheduledAt : null);
+        }
+        catch (err) {
+            // Rollback: only if nobody else has moved the campaign since   we don't
+            // want to clobber a concurrent cancel or a dispatcher that already
+            // transitioned us to SENT.
+            await db
                 .update(niscEmCampaign)
-                .set({
-                status: shouldSchedule ? "SCHEDULED" : "SENDING",
-                updatedAt: now,
-                sentAt: shouldSchedule ? null : campaign.sentAt ?? null,
-            })
-                .where(eq(niscEmCampaign.id, campaign.id));
-        });
+                .set({ status: previousStatus, updatedAt: new Date() })
+                .where(and(eq(niscEmCampaign.id, campaign.id), eq(niscEmCampaign.status, nextStatus)));
+            const message = err instanceof Error ? err.message : "Failed to enqueue dispatch";
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message,
+                cause: err instanceof Error ? err : undefined,
+            });
+        }
         return { ok: true, qstashMessageId: dispatchResult.messageId };
     }),
     cancel: protectedProcedure.input(campaignCancelInputSchema).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        const campaign = await assertCampaignAccess(input.id, userId);
+        const campaign = await assertCampaignOwnerAccess(input.id, userId, userRole);
         if (campaign.status !== "SCHEDULED") {
             throw new TRPCError({ code: "BAD_REQUEST", message: "Campaign is not scheduled" });
         }
@@ -308,9 +418,10 @@ export const niscEmailMarketingCampaignsRouter = router({
     }),
     delete: protectedProcedure.input(z.object({ id: z.string().min(1) })).mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
-        await assertCampaignAccess(input.id, userId);
+        await assertCampaignOwnerAccess(input.id, userId, userRole);
         await db.delete(niscEmCampaign).where(eq(niscEmCampaign.id, input.id));
         return { ok: true };
     }),

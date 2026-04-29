@@ -1,6 +1,22 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex, } from "drizzle-orm/pg-core";
+import { boolean, integer, index, jsonb, pgTable, text, timestamp, uniqueIndex, } from "drizzle-orm/pg-core";
 import { user } from "./auth";
+export const apiKey = pgTable("api_key", {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    permissions: jsonb("permissions").$type().notNull(),
+    expiresAt: timestamp("expires_at"),
+    isActive: boolean("is_active").default(true).notNull(),
+    lastUsedAt: timestamp("last_used_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+    index("api_key_userId_idx").on(table.userId),
+    index("api_key_keyHash_idx").on(table.keyHash),
+]);
 export const customerIntegration = pgTable("customer_integration", {
     id: text("id").primaryKey(),
     userId: text("user_id")
@@ -96,6 +112,83 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
 export const userActivityLogRelations = relations(userActivityLog, ({ one }) => ({
     user: one(user, {
         fields: [userActivityLog.userId],
+        references: [user.id],
+    }),
+}));
+export const apiKeyRelations = relations(apiKey, ({ one }) => ({
+    user: one(user, {
+        fields: [apiKey.userId],
+        references: [user.id],
+    }),
+}));
+export const userMfaSettings = pgTable("user_mfa_settings", {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+        .notNull()
+        .unique()
+        .references(() => user.id, { onDelete: "cascade" }),
+    emailOtpEnabled: boolean("email_otp_enabled").default(false).notNull(),
+    setupRequired: boolean("setup_required").default(false).notNull(),
+    preferredMethod: text("preferred_method").default("EMAIL_OTP").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+}, (table) => [index("user_mfa_settings_userId_idx").on(table.userId)]);
+export const userMfaSession = pgTable("user_mfa_session", {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").notNull().unique(),
+    requiredAt: timestamp("required_at").defaultNow().notNull(),
+    verifiedAt: timestamp("verified_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+}, (table) => [
+    index("user_mfa_session_userId_idx").on(table.userId),
+    index("user_mfa_session_sessionId_idx").on(table.sessionId),
+    index("user_mfa_session_verifiedAt_idx").on(table.verifiedAt),
+]);
+export const userMfaChallenge = pgTable("user_mfa_challenge", {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+        .notNull()
+        .references(() => user.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").notNull(),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    consumedAt: timestamp("consumed_at"),
+    attempts: integer("attempts").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+        .defaultNow()
+        .$onUpdate(() => /* @__PURE__ */ new Date())
+        .notNull(),
+}, (table) => [
+    index("user_mfa_challenge_userId_idx").on(table.userId),
+    index("user_mfa_challenge_sessionId_idx").on(table.sessionId),
+    index("user_mfa_challenge_expiresAt_idx").on(table.expiresAt),
+]);
+export const userMfaSettingsRelations = relations(userMfaSettings, ({ one }) => ({
+    user: one(user, {
+        fields: [userMfaSettings.userId],
+        references: [user.id],
+    }),
+}));
+export const userMfaSessionRelations = relations(userMfaSession, ({ one }) => ({
+    user: one(user, {
+        fields: [userMfaSession.userId],
+        references: [user.id],
+    }),
+}));
+export const userMfaChallengeRelations = relations(userMfaChallenge, ({ one }) => ({
+    user: one(user, {
+        fields: [userMfaChallenge.userId],
         references: [user.id],
     }),
 }));

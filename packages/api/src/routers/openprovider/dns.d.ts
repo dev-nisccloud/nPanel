@@ -16,7 +16,7 @@ export declare const openProviderDnsRouter: import("@trpc/server").TRPCBuiltRout
             type: "master" | "slave";
             records?: {
                 name: string;
-                type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                 value: string;
                 prio?: number | undefined;
                 ttl?: number | undefined;
@@ -130,21 +130,21 @@ export declare const openProviderDnsRouter: import("@trpc/server").TRPCBuiltRout
             records?: {
                 add?: {
                     name: string;
-                    type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                    type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                     value: string;
                     prio?: number | undefined;
                     ttl?: number | undefined;
                 }[] | undefined;
                 update?: {
                     name: string;
-                    type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                    type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                     value: string;
                     prio?: number | undefined;
                     ttl?: number | undefined;
                 }[] | undefined;
                 remove?: {
                     name: string;
-                    type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                    type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                     value: string;
                     prio?: number | undefined;
                     ttl?: number | undefined;
@@ -192,7 +192,7 @@ export declare const openProviderDnsRouter: import("@trpc/server").TRPCBuiltRout
             zoneName: string;
             records: {
                 name: string;
-                type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                 value: string;
                 prio?: number | undefined;
                 ttl?: number | undefined;
@@ -219,7 +219,7 @@ export declare const openProviderDnsRouter: import("@trpc/server").TRPCBuiltRout
             zoneName: string;
             records: {
                 name: string;
-                type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                 value: string;
                 prio?: number | undefined;
                 ttl?: number | undefined;
@@ -246,7 +246,7 @@ export declare const openProviderDnsRouter: import("@trpc/server").TRPCBuiltRout
             zoneName: string;
             records: {
                 name: string;
-                type: "MX" | "NS" | "A" | "AAAA" | "CNAME" | "SRV" | "TXT" | "CAA" | "SSHFP" | "TLSA";
+                type: "MX" | "NS" | "A" | "CNAME" | "TXT" | "AAAA" | "SRV" | "TLSA" | "SSHFP" | "CAA";
                 value: string;
                 prio?: number | undefined;
                 ttl?: number | undefined;

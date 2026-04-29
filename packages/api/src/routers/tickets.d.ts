@@ -10,7 +10,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             assignedToId?: string | undefined;
             status?: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED" | undefined;
             priority?: "NORMAL" | "LOW" | "HIGH" | "URGENT" | undefined;
-            type?: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS" | undefined;
+            type?: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS" | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
         };
@@ -36,7 +36,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             ticketNumber: string;
             subject: string | null;
             description: string | null;
-            type: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS";
+            type: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             status: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED";
             source: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE";
@@ -80,7 +80,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: {
             subject?: string | undefined;
             description?: string | undefined;
-            type?: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS" | undefined;
+            type?: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS" | undefined;
             priority?: "NORMAL" | "LOW" | "HIGH" | "URGENT" | undefined;
             source?: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE" | undefined;
             teamId?: string | undefined;
@@ -91,7 +91,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             ticketNumber: string;
             subject: string | null;
             description: string | null;
-            type: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS";
+            type: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             status: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED";
             source: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE";
@@ -136,7 +136,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             subject?: string | undefined;
             description?: string | undefined;
-            type?: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS" | undefined;
+            type?: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS" | undefined;
             priority?: "NORMAL" | "LOW" | "HIGH" | "URGENT" | undefined;
             status?: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED" | undefined;
             assignedToId?: string | null | undefined;
@@ -148,7 +148,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             ticketNumber: string;
             subject: string | null;
             description: string | null;
-            type: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS";
+            type: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             status: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED";
             source: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE";
@@ -312,7 +312,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             ticketNumber: string;
             subject: string | null;
             description: string | null;
-            type: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS";
+            type: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             status: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED";
             source: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE";
@@ -362,7 +362,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             ticketNumber: string;
             subject: string | null;
             description: string | null;
-            type: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS";
+            type: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             status: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED";
             source: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE";
@@ -411,7 +411,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
             ticketNumber: string;
             subject: string | null;
             description: string | null;
-            type: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS";
+            type: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             status: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED";
             source: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE";
@@ -462,7 +462,7 @@ export declare const ticketsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 ticketNumber: string;
                 subject: string | null;
                 description: string | null;
-                type: "GENERAL" | "DOMAIN" | "HOSTING" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "EMAIL" | "WORDPRESS";
+                type: "GENERAL" | "TECHNICAL" | "BILLING" | "FEATURE" | "BUG" | "ACCOUNT" | "HOSTING" | "DOMAIN" | "EMAIL" | "WORDPRESS";
                 priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
                 status: "OPEN" | "CANCELLED" | "IN_PROGRESS" | "WAITING" | "RESOLVED" | "CLOSED";
                 source: "WEB" | "EMAIL" | "API" | "CHAT" | "PHONE";

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Get the list of plugins for a WordPress installation
  */
@@ -59,7 +59,7 @@ async function getWpPluginCatalog(installationId, options = {}) {
 }
 export const wpPluginsListRouter = router({
     // Get plugins for a WordPress installation
-    getByInstallationId: publicProcedure
+    getByInstallationId: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         try {
@@ -95,7 +95,7 @@ export const wpPluginsListRouter = router({
         }
     }),
     // Get plugin catalog for a WordPress installation
-    getCatalog: publicProcedure
+    getCatalog: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         page: z.number().optional(),

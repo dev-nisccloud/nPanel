@@ -23,6 +23,12 @@ export const niscEmailDomainCreateInputSchema = z.object({
 export const niscEmailDomainVerifyInputSchema = z.object({
     id: z.string().min(1),
 });
+export const niscEmailDomainSendTestEmailInputSchema = z.object({
+    domainId: z.string().min(1),
+    to: z.string().email(),
+    cc: z.array(z.string().email()).optional().default([]),
+    bcc: z.array(z.string().email()).optional().default([]),
+});
 export const niscEmailDomainListFiltersSchema = z.object({
     teamId: optStrNullable(),
     status: niscEmailDomainStatusSchema.optional(),

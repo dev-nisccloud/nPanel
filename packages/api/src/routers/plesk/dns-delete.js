@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML to delete a DNS record by ID
  */
@@ -50,7 +50,7 @@ function parseXmlError(xml) {
 }
 export const dnsDeleteRouter = router({
     // Delete a DNS record
-    delete: publicProcedure
+    delete: protectedProcedure
         .input(z.object({
         recordId: z.number(),
     }))

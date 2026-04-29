@@ -27,7 +27,7 @@ export declare const domainTransferRouter: import("@trpc/server").TRPCBuiltRoute
     /**
      * Check if a domain can be transferred and get the price.
      * Identifies TLD first (same as domain search): KENIC for .ke/.co.ke/etc., OpenProvider for others.
-     * KENIC: EPP domain check only → available or ready + price.
+     * KENIC: EPP domain check only Ã¢â€ â€™ available or ready + price.
      * OpenProvider: RDAP for status (available / locked / ready), then transfer pricing when ready.
      */
     checkTransfer: import("@trpc/server").TRPCMutationProcedure<{

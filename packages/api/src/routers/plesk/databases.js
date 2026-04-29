@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML request to fetch all databases for a specific domain/webspace
  */
@@ -20,7 +20,7 @@ function buildDatabaseGetXml(siteId) {
 }
 export const databasesRouter = router({
     // Get databases for a site
-    getBySiteId: publicProcedure
+    getBySiteId: protectedProcedure
         .input(z.object({ siteId: z.number() }))
         .query(async ({ input }) => {
         const { siteId } = input;

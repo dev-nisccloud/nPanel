@@ -4,8 +4,10 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
+import { Network } from "lucide-react";
 import { NameserverGroupsCards } from "./nameserver-groups-cards";
 import { TldSettingsCards } from "./tld-settings-cards";
+import { DomainsRequestIpTable } from "./domains-request-ip-table";
 
 export function TldSettings() {
   const [activeTab, setActiveTab] = React.useState("tld-settings");
@@ -44,11 +46,21 @@ export function TldSettings() {
             <Icons.Security className="h-4 w-4" />
             Nameservers
           </Button>
+          <Button
+            variant={activeTab === "request-ip" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("request-ip")}
+            className="flex items-center gap-2"
+          >
+            <Network className="h-4 w-4" />
+            Domains Request IP address
+          </Button>
         </div>
 
         {/* Tab Content */}
         {activeTab === "tld-settings" && <TldSettingsCards />}
         {activeTab === "nameservers" && <NameserverGroupsCards />}
+        {activeTab === "request-ip" && <DomainsRequestIpTable />}
       </div>
     </div>
   );

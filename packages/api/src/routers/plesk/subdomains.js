@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML request to fetch subdomains for a given parent domain.
  */
@@ -20,7 +20,7 @@ function buildSubdomainGetXml(parentDomain) {
 }
 export const subdomainsRouter = router({
     // Get subdomains for a parent domain
-    getByParentDomain: publicProcedure
+    getByParentDomain: protectedProcedure
         .input(z.object({ domain: z.string() }))
         .query(async ({ input }) => {
         const { domain } = input;

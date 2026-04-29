@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from '../trpc';
+import { protectedProcedure, router } from '../trpc';
 // Simple in-memory cache (can be upgraded to Redis later)
 const cache = new Map();
 const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
@@ -171,7 +171,7 @@ function formatPageSpeedData(apiResponse) {
     };
 }
 export const pagespeedInsightsRouter = router({
-    getPageSpeed: publicProcedure
+    getPageSpeed: protectedProcedure
         .input(z.object({
         url: z.string().url('Invalid URL format'),
         strategy: z.enum(['mobile', 'desktop']).default('mobile'),

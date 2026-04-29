@@ -15,6 +15,7 @@ export declare const metaAdsInsightsRouter: import("@trpc/server").TRPCBuiltRout
                 since: string;
                 until: string;
             };
+            publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
             success: boolean;
@@ -34,10 +35,22 @@ export declare const metaAdsInsightsRouter: import("@trpc/server").TRPCBuiltRout
                 until: string;
             };
             breakdown: "region" | "gender" | "age" | "publisher_platform" | "device_platform" | "platform_position" | "hourly_stats_aggregated_by_audience_time_zone";
+            publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
             success: boolean;
             data: any[];
+            meta: {
+                fallbackUsed: boolean;
+                fallbackReason?: undefined;
+            };
+        } | {
+            success: boolean;
+            data: any[];
+            meta: {
+                fallbackUsed: boolean;
+                fallbackReason: string;
+            };
         };
         meta: object;
     }>;

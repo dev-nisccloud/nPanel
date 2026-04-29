@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 // Constants for Prisma enum values
 const LINKEDIN_PLATFORM = 'LINKEDIN';
 const ACTIVE_STATUS = 'ACTIVE';
+const isAgencyUserRole = (role) => role === 'AGENCY_USER' || role === 'AGENCY_ADMIN' || role === 'AGENCY_SUPER_ADMIN';
 // Get global settings from environment variables
 const getLinkedInClientId = () => {
     const clientId = process.env.LINKEDIN_CLIENT_ID;
@@ -113,10 +114,17 @@ export const linkedinAuthRouter = router({
         .mutation(async ({ input, ctx }) => {
         try {
             const userId = ctx.session?.user?.id;
+            const userRole = ctx.session?.user?.role;
             if (!userId) {
                 throw new TRPCError({
                     code: 'UNAUTHORIZED',
                     message: 'User session not found',
+                });
+            }
+            if (!isAgencyUserRole(userRole)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can manage LinkedIn integration tokens',
                 });
             }
             // Step 1: Exchange OAuth code for access token and refresh token
@@ -291,10 +299,17 @@ export const linkedinAuthRouter = router({
         .mutation(async ({ input, ctx }) => {
         try {
             const userId = ctx.session?.user?.id;
+            const userRole = ctx.session?.user?.role;
             if (!userId) {
                 throw new TRPCError({
                     code: 'UNAUTHORIZED',
                     message: 'User session not found',
+                });
+            }
+            if (!isAgencyUserRole(userRole)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can manage LinkedIn integration tokens',
                 });
             }
             // Refresh the token
@@ -396,8 +411,14 @@ export const linkedinAuthRouter = router({
         .input(z.object({
         redirectUri: z.string().url().optional(),
     }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
         try {
+            if (!isAgencyUserRole(ctx.session?.user?.role)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can manage LinkedIn integration tokens',
+                });
+            }
             const clientId = getLinkedInClientId();
             const frontendUrl = getFrontendUrl();
             // Required scopes for LinkedIn organization posting and Marketing API
@@ -443,8 +464,14 @@ export const linkedinAuthRouter = router({
     /**
      * Get stored LinkedIn credentials (integration status)
      */
-    getStoredCredentials: protectedProcedure.query(async () => {
+    getStoredCredentials: protectedProcedure.query(async ({ ctx }) => {
         try {
+            if (!isAgencyUserRole(ctx.session?.user?.role)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can view LinkedIn integration credentials',
+                });
+            }
             const integration = await db.query.socialMediaIntegration.findFirst({
                 where: eq(socialMediaIntegration.platform, LINKEDIN_PLATFORM),
                 orderBy: [desc(socialMediaIntegration.createdAt)],

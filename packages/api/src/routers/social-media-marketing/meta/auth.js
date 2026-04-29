@@ -15,6 +15,7 @@ import { randomUUID } from 'node:crypto';
 // These maintain independence while allowing type-safe Prisma queries
 const META_FACEBOOK_PLATFORM = 'META_FACEBOOK';
 const ACTIVE_STATUS = 'ACTIVE';
+const isAgencyUserRole = (role) => role === 'AGENCY_USER' || role === 'AGENCY_ADMIN' || role === 'AGENCY_SUPER_ADMIN';
 // Get global settings from environment variables
 const getMetaAppId = () => {
     const appId = process.env.META_APP_ID || process.env.FACEBOOK_APP_ID;
@@ -141,10 +142,17 @@ export const metaAuthRouter = router({
         .mutation(async ({ input, ctx }) => {
         try {
             const userId = ctx.session?.user?.id;
+            const userRole = ctx.session?.user?.role;
             if (!userId) {
                 throw new TRPCError({
                     code: 'UNAUTHORIZED',
                     message: 'User session not found',
+                });
+            }
+            if (!isAgencyUserRole(userRole)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can manage Meta integration tokens',
                 });
             }
             // Step 1: Exchange OAuth code for short-lived token
@@ -306,10 +314,17 @@ export const metaAuthRouter = router({
         .mutation(async ({ input, ctx }) => {
         try {
             const userId = ctx.session?.user?.id;
+            const userRole = ctx.session?.user?.role;
             if (!userId) {
                 throw new TRPCError({
                     code: 'UNAUTHORIZED',
                     message: 'User session not found',
+                });
+            }
+            if (!isAgencyUserRole(userRole)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can manage Meta integration tokens',
                 });
             }
             const pageToken = await getLongLivedPageToken(input.userAccessToken, input.pageId);
@@ -485,11 +500,17 @@ export const metaAuthRouter = router({
         .input(z.object({
         redirectUri: z.string().url().optional(),
     }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ input, ctx }) => {
         try {
+            if (!isAgencyUserRole(ctx.session?.user?.role)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can manage Meta integration tokens',
+                });
+            }
             const appId = getMetaAppId();
             const apiVersion = getMetaApiVersion();
-            // Default scopes for Facebook Pages management
+            // Default scopes for Facebook Pages management + Ads
             const scopes = [
                 'pages_show_list',
                 'business_management',
@@ -497,6 +518,8 @@ export const metaAuthRouter = router({
                 'pages_manage_engagement',
                 'pages_read_engagement',
                 'read_insights',
+                'ads_read', // Required: read ad accounts, campaigns, insights, connected Instagram accounts
+                'instagram_basic', // Required: list Instagram accounts connected to ad accounts
             ];
             // Generate state for OAuth security
             const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -529,8 +552,14 @@ export const metaAuthRouter = router({
     /**
      * Get stored Meta credentials (integration status)
      */
-    getStoredCredentials: protectedProcedure.query(async () => {
+    getStoredCredentials: protectedProcedure.query(async ({ ctx }) => {
         try {
+            if (!isAgencyUserRole(ctx.session?.user?.role)) {
+                throw new TRPCError({
+                    code: 'FORBIDDEN',
+                    message: 'Only agency users can view Meta integration credentials',
+                });
+            }
             const integration = await db.query.socialMediaIntegration.findFirst({
                 where: eq(socialMediaIntegration.platform, META_FACEBOOK_PLATFORM),
                 orderBy: [desc(socialMediaIntegration.createdAt)],

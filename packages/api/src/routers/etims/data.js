@@ -4,6 +4,15 @@ import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+function assertAgencyReadAccess(role) {
+    if (!isAgencyUserRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency users can access eTIMS data.",
+        });
+    }
+}
 export const etimsDataRouter = router({
     /**
      * Retrieve standard codes (payment types, receipt types, tax codes, etc.)
@@ -16,7 +25,8 @@ export const etimsDataRouter = router({
         accessToken: z.string().optional(),
         cmcKey: z.string().optional(),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const config = {
             baseUrl: process.env.ETIMS_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1",
             tokenUrl: process.env.ETIMS_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate",
@@ -52,7 +62,8 @@ export const etimsDataRouter = router({
         lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
         bhfId: z.string().optional(),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const [config] = await db
             .select()
             .from(eTimsConfiguration)
@@ -106,7 +117,8 @@ export const etimsDataRouter = router({
         .input(z.object({
         lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         // 1. Fetch global eTIMS Configuration
         const [config] = await db
             .select()
@@ -162,7 +174,8 @@ export const etimsDataRouter = router({
         .input(z.object({
         lastReqDt: z.string(),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const [config] = await db
             .select()
             .from(eTimsConfiguration)
@@ -211,7 +224,8 @@ export const etimsDataRouter = router({
         .input(z.object({
         lastReqDt: z.string(),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const [config] = await db
             .select()
             .from(eTimsConfiguration)
@@ -260,7 +274,8 @@ export const etimsDataRouter = router({
         .input(z.object({
         lastReqDt: z.string(),
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const [config] = await db
             .select()
             .from(eTimsConfiguration)

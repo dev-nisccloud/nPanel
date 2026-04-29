@@ -26,7 +26,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -46,7 +46,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -66,7 +66,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -76,6 +76,19 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
             verificationStatus: string | null;
             verificationData: unknown;
             dnsRecords: unknown;
+        };
+        meta: object;
+    }>;
+    sendTestEmail: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            domainId: string;
+            to: string;
+            cc?: string[] | undefined;
+            bcc?: string[] | undefined;
+        };
+        output: {
+            ok: boolean;
+            messageId: string | null;
         };
         meta: object;
     }>;
@@ -91,7 +104,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
     listLegacy: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED" | undefined;
+            status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -100,7 +113,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
             domains: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "VERIFIED" | "FAILED" | "EXPIRED";
+                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -120,7 +133,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
+            status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
             dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
             mailFromMode: "DEFAULT" | "CUSTOM";
             userId: string;
@@ -143,7 +156,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
+            status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
             dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
             mailFromMode: "DEFAULT" | "CUSTOM";
             userId: string;
@@ -162,7 +175,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "PENDING" | "VERIFIED" | "FAILED" | "DELETING" | undefined;
+            status?: "PENDING" | "FAILED" | "VERIFIED" | "DELETING" | undefined;
             search?: string | null | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -171,7 +184,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
             domains: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "VERIFIED" | "FAILED" | "DELETING";
+                status: "PENDING" | "FAILED" | "VERIFIED" | "DELETING";
                 dkimStatus: "NotStarted" | "Pending" | "Success" | "Failed" | "TemporaryFailure";
                 mailFromMode: "DEFAULT" | "CUSTOM";
                 userId: string;

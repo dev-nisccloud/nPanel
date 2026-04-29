@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Example XML:
  * Fetch mail accounts for a given site-id (e.g., 1, 2, 3)
@@ -26,7 +26,7 @@ function buildMailGetXml(siteId) {
 }
 export const emailsRouter = router({
     // Get email accounts for a site
-    getBySiteId: publicProcedure
+    getBySiteId: protectedProcedure
         .input(z.object({ siteId: z.number() }))
         .query(async ({ input }) => {
         const { siteId } = input;

@@ -6,17 +6,17 @@ import { z } from "zod";
  */
 export declare const emailDomainStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
-    VERIFIED: "VERIFIED";
-    FAILED: "FAILED";
     EXPIRED: "EXPIRED";
+    FAILED: "FAILED";
+    VERIFIED: "VERIFIED";
 }>;
 export type EmailDomainStatus = z.infer<typeof emailDomainStatusSchema>;
 export declare const emailCampaignStatusSchema: z.ZodEnum<{
     DRAFT: "DRAFT";
     SCHEDULED: "SCHEDULED";
+    CANCELLED: "CANCELLED";
     FAILED: "FAILED";
     COMPLETED: "COMPLETED";
-    CANCELLED: "CANCELLED";
 }>;
 export type EmailCampaignStatus = z.infer<typeof emailCampaignStatusSchema>;
 export declare const audienceContactStatusSchema: z.ZodEnum<{
@@ -53,9 +53,9 @@ export declare const emailDomainUpdateInputSchema: z.ZodObject<{
     dnsRecords: z.ZodNullable<z.ZodOptional<z.ZodUnknown>>;
     status: z.ZodOptional<z.ZodEnum<{
         PENDING: "PENDING";
-        VERIFIED: "VERIFIED";
-        FAILED: "FAILED";
         EXPIRED: "EXPIRED";
+        FAILED: "FAILED";
+        VERIFIED: "VERIFIED";
     }>>;
 }, z.core.$strip>;
 export type EmailDomainUpdateInput = z.infer<typeof emailDomainUpdateInputSchema>;
@@ -63,9 +63,9 @@ export declare const emailDomainListFiltersSchema: z.ZodObject<{
     teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodOptional<z.ZodEnum<{
         PENDING: "PENDING";
-        VERIFIED: "VERIFIED";
-        FAILED: "FAILED";
         EXPIRED: "EXPIRED";
+        FAILED: "FAILED";
+        VERIFIED: "VERIFIED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
     limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
@@ -77,9 +77,9 @@ export declare const emailDomainSummarySchema: z.ZodObject<{
     domainName: z.ZodString;
     status: z.ZodEnum<{
         PENDING: "PENDING";
-        VERIFIED: "VERIFIED";
-        FAILED: "FAILED";
         EXPIRED: "EXPIRED";
+        FAILED: "FAILED";
+        VERIFIED: "VERIFIED";
     }>;
     resendDomainId: z.ZodNullable<z.ZodString>;
     userId: z.ZodString;
@@ -94,9 +94,9 @@ export declare const emailDomainDetailSchema: z.ZodObject<{
     domainName: z.ZodString;
     status: z.ZodEnum<{
         PENDING: "PENDING";
-        VERIFIED: "VERIFIED";
-        FAILED: "FAILED";
         EXPIRED: "EXPIRED";
+        FAILED: "FAILED";
+        VERIFIED: "VERIFIED";
     }>;
     resendDomainId: z.ZodNullable<z.ZodString>;
     userId: z.ZodString;
@@ -115,9 +115,9 @@ export declare const emailDomainListResponseSchema: z.ZodObject<{
         domainName: z.ZodString;
         status: z.ZodEnum<{
             PENDING: "PENDING";
-            VERIFIED: "VERIFIED";
-            FAILED: "FAILED";
             EXPIRED: "EXPIRED";
+            FAILED: "FAILED";
+            VERIFIED: "VERIFIED";
         }>;
         resendDomainId: z.ZodNullable<z.ZodString>;
         userId: z.ZodString;
@@ -162,9 +162,9 @@ export declare const campaignListFiltersSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
+        CANCELLED: "CANCELLED";
         FAILED: "FAILED";
         COMPLETED: "COMPLETED";
-        CANCELLED: "CANCELLED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
     limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
@@ -189,9 +189,9 @@ export declare const campaignSummarySchema: z.ZodObject<{
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
+        CANCELLED: "CANCELLED";
         FAILED: "FAILED";
         COMPLETED: "COMPLETED";
-        CANCELLED: "CANCELLED";
     }>;
     recipientCount: z.ZodNumber;
     userId: z.ZodString;
@@ -210,9 +210,9 @@ export declare const campaignDetailSchema: z.ZodObject<{
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
+        CANCELLED: "CANCELLED";
         FAILED: "FAILED";
         COMPLETED: "COMPLETED";
-        CANCELLED: "CANCELLED";
     }>;
     recipientCount: z.ZodNumber;
     userId: z.ZodString;
@@ -246,9 +246,9 @@ export declare const campaignListResponseSchema: z.ZodObject<{
         status: z.ZodEnum<{
             DRAFT: "DRAFT";
             SCHEDULED: "SCHEDULED";
+            CANCELLED: "CANCELLED";
             FAILED: "FAILED";
             COMPLETED: "COMPLETED";
-            CANCELLED: "CANCELLED";
         }>;
         recipientCount: z.ZodNumber;
         userId: z.ZodString;

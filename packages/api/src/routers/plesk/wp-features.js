@@ -1,15 +1,15 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../../trpc";
+import { router, protectedProcedure } from "../../trpc";
 import { sendPleskRestRequest } from "../../lib/plesk/rest-client";
 export const wpFeaturesRouter = router({
     // --- Integrity ---
-    getIntegrityInfo: publicProcedure
+    getIntegrityInfo: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/integrity`);
     }),
     // --- Debug ---
-    updateDebugStatus: publicProcedure
+    updateDebugStatus: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         status: z.boolean()
@@ -17,12 +17,12 @@ export const wpFeaturesRouter = router({
         .mutation(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/debug/status`, 'PUT', { status: input.status });
     }),
-    getDebugSettings: publicProcedure
+    getDebugSettings: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/debug/settings`);
     }),
-    updateDebugSettings: publicProcedure
+    updateDebugSettings: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         wpDebug: z.boolean().optional(),
@@ -37,7 +37,7 @@ export const wpFeaturesRouter = router({
         settings);
     }),
     // --- Hotlink Protection ---
-    updateHotlinkProtectionStatus: publicProcedure
+    updateHotlinkProtectionStatus: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         status: z.boolean(),
@@ -45,14 +45,14 @@ export const wpFeaturesRouter = router({
         .mutation(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/hotlink-protection/status`, 'PUT', { status: input.status });
     }),
-    getHotlinkProtectionSettings: publicProcedure
+    getHotlinkProtectionSettings: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/hotlink-protection/settings`);
     }),
     // Note: Skipping complex meta endpoint for now, focusing on enabling/disabling
     // --- Indexing ---
-    toggleIndexing: publicProcedure
+    toggleIndexing: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         status: z.boolean()
@@ -61,12 +61,12 @@ export const wpFeaturesRouter = router({
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/indexing/status`, 'PUT', { status: input.status });
     }),
     // --- Maintenance ---
-    getMaintenanceSettings: publicProcedure
+    getMaintenanceSettings: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/maintenance/settings`);
     }),
-    updateMaintenanceSettings: publicProcedure
+    updateMaintenanceSettings: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         fullMode: z.boolean().optional(),
@@ -87,7 +87,7 @@ export const wpFeaturesRouter = router({
         const { installationId, ...body } = input;
         return sendPleskRestRequest(`/v1/installations/${installationId}/features/maintenance/settings`, 'PUT', body);
     }),
-    toggleMaintenanceMode: publicProcedure
+    toggleMaintenanceMode: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         status: z.boolean()
@@ -96,7 +96,7 @@ export const wpFeaturesRouter = router({
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/maintenance/status`, 'PUT', { status: input.status });
     }),
     // --- Nginx Caching ---
-    toggleNginxCaching: publicProcedure
+    toggleNginxCaching: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         status: z.boolean()
@@ -105,12 +105,12 @@ export const wpFeaturesRouter = router({
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/nginx-caching/status`, 'PUT', { status: input.status });
     }),
     // --- Password Protection ---
-    getPasswordProtection: publicProcedure
+    getPasswordProtection: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/password-protection`);
     }),
-    updatePasswordProtection: publicProcedure
+    updatePasswordProtection: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         status: z.boolean(),
@@ -124,7 +124,7 @@ export const wpFeaturesRouter = router({
         return sendPleskRestRequest(`/v1/installations/${installationId}/features/password-protection`, 'PATCH', body);
     }),
     // --- Smart Updates ---
-    toggleSmartUpdate: publicProcedure
+    toggleSmartUpdate: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         status: z.boolean()
@@ -132,22 +132,22 @@ export const wpFeaturesRouter = router({
         .mutation(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/smart/status`, 'PUT', { status: input.status });
     }),
-    applySmartUpdate: publicProcedure
+    applySmartUpdate: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .mutation(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/smart/result`, 'POST', { confirm: true });
     }),
-    discardSmartUpdate: publicProcedure
+    discardSmartUpdate: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .mutation(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/smart/result`, 'DELETE', { delete: true });
     }),
     // --- Security Measures ---
-    getSecurityMeasures: publicProcedure
+    getSecurityMeasures: protectedProcedure
         .query(async () => {
         return sendPleskRestRequest('/v1/security-measures');
     }),
-    getSecurityStatus: publicProcedure
+    getSecurityStatus: protectedProcedure
         .input(z.object({
         installationsIds: z.array(z.number())
     }))
@@ -156,7 +156,7 @@ export const wpFeaturesRouter = router({
         const query = input.installationsIds.map(id => `installationsIds[]=${id}`).join('&');
         return sendPleskRestRequest(`/v1/security-measures/checker?${query}`);
     }),
-    resolveSecurityMeasure: publicProcedure
+    resolveSecurityMeasure: protectedProcedure
         .input(z.object({
         installationsIds: z.array(z.number()),
         securityMeasures: z.array(z.string())
@@ -164,7 +164,7 @@ export const wpFeaturesRouter = router({
         .mutation(async ({ input }) => {
         return sendPleskRestRequest('/v1/security-measures/resolver', 'POST', input);
     }),
-    revertSecurityMeasure: publicProcedure
+    revertSecurityMeasure: protectedProcedure
         .input(z.object({
         installationsIds: z.array(z.number()),
         securityMeasures: z.array(z.string())
@@ -173,7 +173,7 @@ export const wpFeaturesRouter = router({
         return sendPleskRestRequest('/v1/security-measures/reverter', 'POST', input);
     }),
     // --- Backups ---
-    createBackup: publicProcedure
+    createBackup: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         description: z.string().optional(),
@@ -182,7 +182,7 @@ export const wpFeaturesRouter = router({
         .mutation(async ({ input }) => {
         return sendPleskRestRequest('/v1/features/backups/creator', 'POST', input);
     }),
-    restoreBackup: publicProcedure
+    restoreBackup: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         fileName: z.string(),
@@ -193,12 +193,12 @@ export const wpFeaturesRouter = router({
         .mutation(async ({ input }) => {
         return sendPleskRestRequest('/v1/features/backups/restorer', 'POST', input);
     }),
-    getBackups: publicProcedure
+    getBackups: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/backups`);
     }),
-    deleteBackup: publicProcedure
+    deleteBackup: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         fileName: z.string()

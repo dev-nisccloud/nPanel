@@ -4,9 +4,33 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { hostingSubscription, niscServicePlan } from "@npanel/db/schema/hosting";
+import { niscClientSubscription } from "@npanel/db/schema/products";
 import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, protectedProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
+const isAgencyUserRole = (role) => role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+async function ensureTeamReadAccess(params) {
+    const { teamId, userId, role } = params;
+    if (isAgencyUserRole(role))
+        return;
+    const [membership, ownerTeam] = await Promise.all([
+        db.query.teamMember.findFirst({
+            where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
+            columns: { id: true },
+        }),
+        db.query.team.findFirst({
+            where: and(eq(team.id, teamId), eq(team.createdById, userId)),
+            columns: { id: true },
+        }),
+    ]);
+    if (!membership && !ownerTeam) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have access to this team",
+        });
+    }
+}
 /**
  * Build XML request to fetch all subscriptions
  */
@@ -53,9 +77,15 @@ function buildSubscriptionGetByIdXml(subscriptionId) {
 }
 export const subscriptionsRouter = router({
     // Get all subscriptions
-    getAll: publicProcedure
+    getAll: protectedProcedure
         .input(z.object({}).optional().default({}))
-        .query(async () => {
+        .query(async ({ ctx }) => {
+        if (!isAgencyUserRole(ctx.session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can access all Plesk subscriptions",
+            });
+        }
         try {
             // Check if required environment variables are set
             if (!process.env.PLESK_XML_ENDPOINT) {
@@ -131,10 +161,41 @@ export const subscriptionsRouter = router({
         }
     }),
     // Get subscription by ID
-    getById: publicProcedure
-        .input(z.object({ id: z.number() }))
-        .query(async ({ input }) => {
-        const { id } = input;
+    getById: protectedProcedure
+        .input(z.object({
+        id: z.number(),
+        teamId: z.string().optional(),
+    }))
+        .query(async ({ input, ctx }) => {
+        const { id, teamId } = input;
+        const sessionUser = ctx.session.user;
+        const isAgencyUser = isAgencyUserRole(sessionUser.role);
+        if (!isAgencyUser) {
+            if (!teamId) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "teamId is required for non-agency users",
+                });
+            }
+            await ensureTeamReadAccess({
+                teamId,
+                userId: sessionUser.id,
+                role: sessionUser.role,
+            });
+            // Latest subscriptions model guard:
+            // non-agency users can only fetch a Plesk subscription ID that is linked
+            // to the provided team via nisc_client_subscription.pleskFilterId.
+            const linkedSubscription = await db.query.niscClientSubscription.findFirst({
+                where: and(eq(niscClientSubscription.teamId, teamId), eq(niscClientSubscription.pleskFilterId, String(id))),
+                columns: { id: true },
+            });
+            if (!linkedSubscription) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this subscription",
+                });
+            }
+        }
         try {
             // Check if required environment variables are set
             if (!process.env.PLESK_XML_ENDPOINT) {
@@ -228,6 +289,11 @@ export const subscriptionsRouter = router({
                 message: "You must be logged in",
             });
         }
+        await ensureTeamReadAccess({
+            teamId: input.teamId,
+            userId: session.user.id,
+            role: session.user.role,
+        });
         try {
             // Optimized: Query with filters at database level to reduce data transfer
             // Filter by hostingSubType if provided, otherwise show all hosting types

@@ -7,8 +7,8 @@ export declare const quotationStatusSchema: z.ZodEnum<{
     DRAFT: "DRAFT";
     SENT: "SENT";
     ACCEPTED: "ACCEPTED";
-    EXPIRED: "EXPIRED";
     DECLINED: "DECLINED";
+    EXPIRED: "EXPIRED";
     CANCELLED: "CANCELLED";
 }>;
 export type QuotationStatusType = z.infer<typeof quotationStatusSchema>;
@@ -62,8 +62,8 @@ export declare const quotationCreateInputSchema: z.ZodObject<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        EXPIRED: "EXPIRED";
         DECLINED: "DECLINED";
+        EXPIRED: "EXPIRED";
         CANCELLED: "CANCELLED";
     }>>;
     token: z.ZodOptional<z.ZodString>;
@@ -126,8 +126,8 @@ export declare const quotationUpdateInputSchema: z.ZodObject<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        EXPIRED: "EXPIRED";
         DECLINED: "DECLINED";
+        EXPIRED: "EXPIRED";
         CANCELLED: "CANCELLED";
     }>>;
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -154,8 +154,8 @@ export declare const quotationSummarySchema: z.ZodObject<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        EXPIRED: "EXPIRED";
         DECLINED: "DECLINED";
+        EXPIRED: "EXPIRED";
         CANCELLED: "CANCELLED";
     }>;
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -174,8 +174,8 @@ export declare const quotationDetailSchema: z.ZodObject<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        EXPIRED: "EXPIRED";
         DECLINED: "DECLINED";
+        EXPIRED: "EXPIRED";
         CANCELLED: "CANCELLED";
     }>;
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -228,8 +228,8 @@ export declare const quotationListFiltersSchema: z.ZodObject<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        EXPIRED: "EXPIRED";
         DECLINED: "DECLINED";
+        EXPIRED: "EXPIRED";
         CANCELLED: "CANCELLED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
@@ -247,8 +247,8 @@ export declare const quotationListResponseSchema: z.ZodObject<{
             DRAFT: "DRAFT";
             SENT: "SENT";
             ACCEPTED: "ACCEPTED";
-            EXPIRED: "EXPIRED";
             DECLINED: "DECLINED";
+            EXPIRED: "EXPIRED";
             CANCELLED: "CANCELLED";
         }>;
         amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;

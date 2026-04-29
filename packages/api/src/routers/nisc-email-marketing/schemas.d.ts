@@ -28,6 +28,13 @@ export declare const niscEmailDomainVerifyInputSchema: z.ZodObject<{
     id: z.ZodString;
 }, z.core.$strip>;
 export type NiscEmailDomainVerifyInput = z.infer<typeof niscEmailDomainVerifyInputSchema>;
+export declare const niscEmailDomainSendTestEmailInputSchema: z.ZodObject<{
+    domainId: z.ZodString;
+    to: z.ZodString;
+    cc: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+    bcc: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+}, z.core.$strip>;
+export type NiscEmailDomainSendTestEmailInput = z.infer<typeof niscEmailDomainSendTestEmailInputSchema>;
 export declare const niscEmailDomainListFiltersSchema: z.ZodObject<{
     teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodOptional<z.ZodEnum<{

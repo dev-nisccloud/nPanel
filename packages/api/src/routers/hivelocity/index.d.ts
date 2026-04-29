@@ -43,6 +43,173 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     /**
+     * Public (TEMP for development): Get product operating systems.
+     * Docs: GET /product/{productId}/operating-systems
+     *
+     * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
+     * while we finalize types. Switch to `protectedProcedure` before shipping.
+     */
+    getProductOperatingSystems: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            productId: number;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get product options/add-ons.
+     * Docs: GET /product/{productId}/options?groupBy=upgrade
+     *
+     * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
+     * while we finalize types. Switch to `protectedProcedure` before shipping.
+     */
+    getProductOptions: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            productId: number;
+            groupBy?: string | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Provision an instant compute device (recommended endpoint).
+     * Docs: POST /compute/
+     *
+     * NOTE: This creates billable resources in Hivelocity. Use only in test accounts.
+     */
+    provisionComputeDevice: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            productId: number;
+            locationName: string;
+            osName: string;
+            hostname: string;
+            period?: "hourly" | "monthly" | "quarterly" | "semi-annually" | "annually" | "biennial" | "triennial" | undefined;
+            publicSshKeyId?: number | undefined;
+            vlanId?: number | undefined;
+            script?: string | undefined;
+            customIPXEScriptURL?: string | undefined;
+            customIPXEScriptContents?: string | undefined;
+            forceDeviceId?: number | undefined;
+            ignitionId?: number | undefined;
+            bondingSupport?: boolean | undefined;
+            tags?: string[] | undefined;
+            optionIds?: number[] | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Provision an instant bare metal device (legacy endpoint).
+     * Docs: POST /bare-metal-devices/
+     */
+    provisionBareMetalDevice: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            productId: number;
+            locationName: string;
+            osName: string;
+            hostname: string;
+            period?: "hourly" | "monthly" | "quarterly" | "semi-annually" | "annually" | "biennial" | "triennial" | undefined;
+            publicSshKeyId?: number | undefined;
+            vlanId?: number | undefined;
+            script?: string | undefined;
+            customIPXEScriptURL?: string | undefined;
+            customIPXEScriptContents?: string | undefined;
+            forceDeviceId?: number | undefined;
+            ignitionId?: number | undefined;
+            bondingSupport?: boolean | undefined;
+            tags?: string[] | undefined;
+            optionIds?: number[] | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get order by id (used to poll provisioning status).
+     * Docs: GET /order/{orderId}
+     */
+    getOrderById: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            orderId: number;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get compute device by id.
+     * Docs: GET /compute/{deviceId}
+     */
+    getComputeDeviceById: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get all compute devices.
+     * Docs: GET /compute/
+     */
+    getComputeDevices: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get all devices (Device API).
+     * Docs: GET /device/
+     *
+     * Notes:
+     * - Hivelocity documentation shows `rack_id` as a filter.
+     * - In practice, Hivelocity also supports filtering by `orderId` (used in their quickstart docs),
+     *   so we expose it here for testing even if not present in the OpenAPI schema.
+     */
+    getDevices: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            rack_id?: number | undefined;
+            orderId?: number | undefined;
+        } | undefined;
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get initial password (first-login creds).
+     * Docs: GET /device/{deviceId}/initial-password
+     */
+    getDeviceInitialPassword: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
      * Private: Get all products.
      * Docs: GET /inventory/product
      */
@@ -84,7 +251,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "available" | "limited" | "unavailable";
+                    stock: "unavailable" | "available" | "limited";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -148,7 +315,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "available" | "limited" | "unavailable";
+                    stock: "unavailable" | "available" | "limited";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -212,7 +379,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "available" | "limited" | "unavailable";
+                    stock: "unavailable" | "available" | "limited";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -270,7 +437,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 [x: string]: unknown;
                 product_id: number;
                 product_name: string;
-                stock: "available" | "limited" | "unavailable";
+                stock: "unavailable" | "available" | "limited";
                 data_center: string;
                 location_option_id: number;
                 edge: boolean;
@@ -311,7 +478,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 [x: string]: unknown;
                 product_id: number;
                 product_name: string;
-                stock: "available" | "limited" | "unavailable";
+                stock: "unavailable" | "available" | "limited";
                 data_center: string;
                 location_option_id: number;
                 edge: boolean;

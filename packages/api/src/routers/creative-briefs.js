@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
-import { and, asc, eq } from "@npanel/db";
+import { and, asc, eq, inArray, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
-import { team } from "@npanel/db/schema/teams";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { creativeBrief, creativeBriefActivityLog, creativeBriefReferenceImage, } from "@npanel/db/schema/creative-briefs";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema (no shared types)
@@ -223,9 +223,9 @@ function transformBrief(brief) {
  * Get authenticated user - optimized to use session data
  * Only queries database to verify user exists if needed
  */
-async function getAuthenticatedUser(ctx) {
-    const user = ctx.session?.user;
-    if (!user?.id) {
+async function getAuthenticatedActor(ctx) {
+    const sessionUser = ctx.session?.user;
+    if (!sessionUser?.id) {
         throw new TRPCError({
             code: "UNAUTHORIZED",
             message: "You must be logged in",
@@ -238,16 +238,56 @@ async function getAuthenticatedUser(ctx) {
     // since the session is already authenticated by the auth middleware
     // Return session user id directly - no need to query database
     // The session is already validated by the auth middleware
-    return { id: user.id };
+    return { id: sessionUser.id, role: sessionUser.role ?? null };
+}
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
+async function isTeamMemberUser(teamId, userId) {
+    const [membership] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+        .limit(1);
+    return Boolean(membership);
+}
+async function getMemberTeamIds(userId) {
+    const rows = await db
+        .select({ teamId: teamMember.teamId })
+        .from(teamMember)
+        .where(eq(teamMember.userId, userId));
+    return rows.map((row) => row.teamId);
+}
+async function canReadBrief(brief, actorId, actorRole) {
+    if (isAgencyUserRole(actorRole))
+        return true;
+    if (brief.userId === actorId)
+        return true;
+    if (brief.teamId)
+        return isTeamMemberUser(brief.teamId, actorId);
+    return false;
+}
+function canMutateBrief(brief, actorId, actorRole) {
+    if (isAgencySuperAdminRole(actorRole))
+        return true;
+    return brief.userId === actorId;
 }
 export const creativeBriefsRouter = router({
     // Get all creative briefs for the authenticated user
     getAll: protectedProcedure
         .output(z.array(creativeBriefSchema))
         .query(async ({ ctx }) => {
-        const user = await getAuthenticatedUser(ctx);
+        const actor = await getAuthenticatedActor(ctx);
+        let whereClause;
+        if (!isAgencyUserRole(actor.role)) {
+            const memberTeamIds = await getMemberTeamIds(actor.id);
+            const scopes = [eq(creativeBrief.userId, actor.id)];
+            if (memberTeamIds.length > 0) {
+                scopes.push(inArray(creativeBrief.teamId, memberTeamIds));
+            }
+            whereClause = scopes.length === 1 ? scopes[0] : or(...scopes);
+        }
         const briefs = await db.query.creativeBrief.findMany({
-            where: eq(creativeBrief.userId, user.id),
+            where: whereClause ?? sql `true`,
             with: {
                 user: true,
                 team: true,
@@ -264,9 +304,9 @@ export const creativeBriefsRouter = router({
         .input(z.object({ id: z.string() }))
         .output(creativeBriefSchema)
         .query(async ({ ctx, input }) => {
-        const user = await getAuthenticatedUser(ctx);
+        const actor = await getAuthenticatedActor(ctx);
         const brief = await db.query.creativeBrief.findFirst({
-            where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
+            where: eq(creativeBrief.id, input.id),
             with: {
                 user: true,
                 team: true,
@@ -282,6 +322,12 @@ export const creativeBriefsRouter = router({
                 message: "Creative brief not found",
             });
         }
+        if (!(await canReadBrief(brief, actor.id, actor.role))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this creative brief",
+            });
+        }
         return transformBrief(brief);
     }),
     // Create a new creative brief
@@ -289,7 +335,7 @@ export const creativeBriefsRouter = router({
         .input(createCreativeBriefInputSchema)
         .output(creativeBriefSchema)
         .mutation(async ({ ctx, input }) => {
-        const user = await getAuthenticatedUser(ctx);
+        const actor = await getAuthenticatedActor(ctx);
         // Batch: Validate team and date range in parallel (if both are needed)
         // This reduces connection usage when both validations are needed
         const [teamRecord, dateRangeValid] = await Promise.all([
@@ -310,6 +356,15 @@ export const creativeBriefsRouter = router({
                 message: "Team not found",
             });
         }
+        if (input.teamId && !isAgencyUserRole(actor.role)) {
+            const hasMembership = await isTeamMemberUser(input.teamId, actor.id);
+            if (!hasMembership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+        }
         if (!dateRangeValid) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
@@ -323,7 +378,7 @@ export const creativeBriefsRouter = router({
             await tx.insert(creativeBrief).values({
                 id: briefId,
                 name: input.name,
-                userId: user.id,
+                userId: actor.id,
                 teamId: input.teamId ?? null,
                 status: "DRAFT",
                 background: input.background,
@@ -359,7 +414,7 @@ export const creativeBriefsRouter = router({
             await tx.insert(creativeBriefActivityLog).values({
                 id: crypto.randomUUID(),
                 creativeBriefId: briefId,
-                userId: user.id,
+                userId: actor.id,
                 action: "CREATE",
                 description: `Created creative brief "${input.name}"`,
                 comment: null,
@@ -393,12 +448,12 @@ export const creativeBriefsRouter = router({
         .input(updateCreativeBriefInputSchema)
         .output(creativeBriefSchema)
         .mutation(async ({ ctx, input }) => {
-        const user = await getAuthenticatedUser(ctx);
+        const actor = await getAuthenticatedActor(ctx);
         // Batch: Check brief existence, validate team, and date range
         // This reduces connection usage by parallelizing independent checks
         const [existingBrief, teamRecord] = await Promise.all([
             db.query.creativeBrief.findFirst({
-                where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
+                where: eq(creativeBrief.id, input.id),
             }),
             // Only query team if teamId is provided
             input.teamId
@@ -413,11 +468,26 @@ export const creativeBriefsRouter = router({
                 message: "Creative brief not found",
             });
         }
+        if (!canMutateBrief(existingBrief, actor.id, actor.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the brief owner can update it",
+            });
+        }
         if (input.teamId && !teamRecord) {
             throw new TRPCError({
                 code: "NOT_FOUND",
                 message: "Team not found",
             });
+        }
+        if (input.teamId && !isAgencyUserRole(actor.role)) {
+            const hasMembership = await isTeamMemberUser(input.teamId, actor.id);
+            if (!hasMembership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
         }
         // Validate date range (synchronous check, no DB query)
         const timelineStartDate = input.timelineStartDate ?? existingBrief.timelineStartDate;
@@ -471,7 +541,7 @@ export const creativeBriefsRouter = router({
             await tx.insert(creativeBriefActivityLog).values({
                 id: crypto.randomUUID(),
                 creativeBriefId: input.id,
-                userId: user.id,
+                userId: actor.id,
                 action: "UPDATE",
                 description: "Creative brief updated",
                 comment: null,
@@ -513,14 +583,20 @@ export const creativeBriefsRouter = router({
     }))
         .output(creativeBriefSchema)
         .mutation(async ({ ctx, input }) => {
-        const user = await getAuthenticatedUser(ctx);
+        const actor = await getAuthenticatedActor(ctx);
         const existingBrief = await db.query.creativeBrief.findFirst({
-            where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
+            where: eq(creativeBrief.id, input.id),
         });
         if (!existingBrief) {
             throw new TRPCError({
                 code: "NOT_FOUND",
                 message: "Creative brief not found",
+            });
+        }
+        if (!canMutateBrief(existingBrief, actor.id, actor.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the brief owner can update status",
             });
         }
         const updatedBrief = await db.transaction(async (tx) => {
@@ -529,13 +605,13 @@ export const creativeBriefsRouter = router({
                 updatedAt: new Date(),
             };
             if (input.status === "APPROVED") {
-                updateData.approvedBy = user.id;
+                updateData.approvedBy = actor.id;
                 updateData.approvedAt = new Date();
                 updateData.rejectedBy = null;
                 updateData.rejectedAt = null;
             }
             else if (input.status === "REJECTED") {
-                updateData.rejectedBy = user.id;
+                updateData.rejectedBy = actor.id;
                 updateData.rejectedAt = new Date();
                 updateData.approvedBy = null;
                 updateData.approvedAt = null;
@@ -544,7 +620,7 @@ export const creativeBriefsRouter = router({
             await tx.insert(creativeBriefActivityLog).values({
                 id: crypto.randomUUID(),
                 creativeBriefId: input.id,
-                userId: user.id,
+                userId: actor.id,
                 action: "STATUS_CHANGE",
                 description: `Status changed to ${input.status}${input.comment ? ": " + input.comment : ""}`,
                 comment: input.comment ?? null,
@@ -572,7 +648,13 @@ export const creativeBriefsRouter = router({
     listUsersForApprover: protectedProcedure
         .output(z.array(z.object({ id: z.string(), name: z.string(), email: z.string() })))
         .query(async ({ ctx }) => {
-        await getAuthenticatedUser(ctx);
+        const actor = await getAuthenticatedActor(ctx);
+        if (!isAgencyUserRole(actor.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can list approvers",
+            });
+        }
         const users = await db
             .select({ id: user.id, name: user.name, email: user.email })
             .from(user)
@@ -584,15 +666,21 @@ export const creativeBriefsRouter = router({
         .input(z.object({ id: z.string() }))
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
-        const user = await getAuthenticatedUser(ctx);
+        const actor = await getAuthenticatedActor(ctx);
         // Check if brief exists and user owns it
         const existingBrief = await db.query.creativeBrief.findFirst({
-            where: and(eq(creativeBrief.id, input.id), eq(creativeBrief.userId, user.id)),
+            where: eq(creativeBrief.id, input.id),
         });
         if (!existingBrief) {
             throw new TRPCError({
                 code: "NOT_FOUND",
                 message: "Creative brief not found",
+            });
+        }
+        if (!canMutateBrief(existingBrief, actor.id, actor.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the brief owner can delete it",
             });
         }
         // Delete brief (cascade will delete reference images and activity logs)

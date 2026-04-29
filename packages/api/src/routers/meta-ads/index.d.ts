@@ -79,6 +79,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     spendLimit: string | null;
                     amountSpent: string | null;
                     balance: string | null;
+                    instagramUserId: null;
                     updatedAt: Date;
                 }[];
                 meta: {
@@ -89,16 +90,19 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             } | {
                 success: boolean;
                 data: {
-                    id: string;
-                    accountId: string;
-                    accountName: string | null;
-                    currency: string | null;
-                    timezone: string | null;
-                    status: "ACTIVE" | "CLOSED" | "DISABLED" | "UNSETTLED" | "PENDING_REVIEW" | "IN_GRACE_PERIOD" | "PENDING_CLOSURE";
-                    spendLimit: string | null;
-                    amountSpent: string | null;
-                    balance: string | null;
                     updatedAt: string;
+                    id: string;
+                    integrationId: string;
+                    accountId: any;
+                    accountName: any;
+                    currency: any;
+                    timezone: any;
+                    status: "ACTIVE" | "CLOSED" | "DISABLED" | "UNSETTLED" | "PENDING_REVIEW" | "IN_GRACE_PERIOD" | "PENDING_CLOSURE";
+                    spendLimit: any;
+                    amountSpent: any;
+                    balance: any;
+                    instagramUserId: any;
+                    createdAt: Date;
                 }[];
                 meta: {
                     retrieved_at: string;
@@ -128,6 +132,21 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             meta: object;
         }>;
+        getConnectedInstagramAccounts: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                accountId: string;
+            };
+            output: {
+                success: boolean;
+                data: {
+                    id: string;
+                    username?: string;
+                    name?: string;
+                    profile_pic?: string;
+                }[];
+            };
+            meta: object;
+        }>;
     }>>;
     /**
      * Campaigns management endpoints
@@ -146,6 +165,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     since: string;
                     until: string;
                 } | undefined;
+                publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
                 success: boolean;
@@ -169,6 +189,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             input: {
                 accountId: string;
                 campaignId: string;
+                publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
                 success: boolean;
@@ -194,6 +215,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     since?: string | undefined;
                     until?: string | undefined;
                 } | undefined;
+                publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
                 data: {
@@ -205,6 +227,8 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     budget_remaining: string | null;
                     bid_amount: any;
                     targeting: any;
+                    publisher_platforms: any;
+                    instagram_positions: any;
                     start_time: any;
                     stop_time: any;
                     created_time: any;
@@ -246,6 +270,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
         getAdSetDetails: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 adSetId: string;
+                publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
                 data: {
@@ -257,6 +282,8 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     budget_remaining: any;
                     bid_amount: any;
                     targeting: any;
+                    publisher_platforms: any;
+                    instagram_positions: any;
                     start_time: any;
                     stop_time: any;
                     created_time: any;
@@ -372,6 +399,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     since?: string | undefined;
                     until?: string | undefined;
                 } | undefined;
+                publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
                 data: {
@@ -434,6 +462,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     since: string;
                     until: string;
                 };
+                publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
                 success: boolean;
@@ -450,10 +479,22 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     until: string;
                 };
                 breakdown: "region" | "gender" | "age" | "publisher_platform" | "device_platform" | "platform_position" | "hourly_stats_aggregated_by_audience_time_zone";
+                publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
                 success: boolean;
                 data: any[];
+                meta: {
+                    fallbackUsed: boolean;
+                    fallbackReason?: undefined;
+                };
+            } | {
+                success: boolean;
+                data: any[];
+                meta: {
+                    fallbackUsed: boolean;
+                    fallbackReason: string;
+                };
             };
             meta: object;
         }>;

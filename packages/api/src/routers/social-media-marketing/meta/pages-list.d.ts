@@ -16,10 +16,30 @@ export declare const metaPagesListRouter: import("@trpc/server").TRPCBuiltRouter
         };
         output: {
             success: boolean;
+            data: {
+                id: string;
+                name: string | null;
+                username: string | null;
+                picture: {
+                    data: {
+                        url: string;
+                    };
+                } | undefined;
+                category: string | null;
+                access_token: null;
+            }[];
+            meta: {
+                retrieved_at: string;
+                total_pages: number;
+                source: string;
+            };
+        } | {
+            success: boolean;
             data: any;
             meta: {
                 retrieved_at: string;
                 total_pages: any;
+                source?: undefined;
             };
         };
         meta: object;

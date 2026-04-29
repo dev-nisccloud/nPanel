@@ -45,7 +45,7 @@ export async function renderAgencyUserCreatedEmail({ userFirstname, email, passw
         loginLink,
     }));
 }
-export async function renderInvoiceDeliveryEmail({ customerName, invoiceNumber, issueDate, dueDate, totalAmount, currency, services, supportEmail, supportPhone, }) {
+export async function renderInvoiceDeliveryEmail({ customerName, invoiceNumber, issueDate, dueDate, totalAmount, currency, supportEmail, supportPhone, }) {
     return render(InvoiceDeliveryEmail({
         customerName,
         invoiceNumber,
@@ -53,7 +53,6 @@ export async function renderInvoiceDeliveryEmail({ customerName, invoiceNumber, 
         dueDate,
         totalAmount,
         currency,
-        services,
         supportEmail,
         supportPhone,
     }));

@@ -2,6 +2,15 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
 import { getHivelocityEnvStatus, hivelocityRequest } from "../../lib/hivelocity-client";
 import { hivelocityFacilitiesResponseSchema, normalizeHivelocityInventory, hivelocityProductByIdResponseSchema, } from "../../types/hivelocity";
+const HivelocityPeriodSchema = z.enum([
+    "hourly",
+    "monthly",
+    "quarterly",
+    "semi-annually",
+    "annually",
+    "biennial",
+    "triennial",
+]);
 const ProductsQuerySchema = z
     .object({
     location: z
@@ -66,6 +75,173 @@ export const hivelocityRouter = router({
         });
         const data = hivelocityFacilitiesResponseSchema.parse(raw);
         return { success: true, data };
+    }),
+    /**
+     * Public (TEMP for development): Get product operating systems.
+     * Docs: GET /product/{productId}/operating-systems
+     *
+     * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
+     * while we finalize types. Switch to `protectedProcedure` before shipping.
+     */
+    getProductOperatingSystems: protectedProcedure
+        .input(z.object({ productId: z.number().int().positive() }))
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest(`/product/${input.productId}/operating-systems`, {
+            requireApiKey: true,
+        });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Get product options/add-ons.
+     * Docs: GET /product/{productId}/options?groupBy=upgrade
+     *
+     * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
+     * while we finalize types. Switch to `protectedProcedure` before shipping.
+     */
+    getProductOptions: protectedProcedure
+        .input(z.object({
+        productId: z.number().int().positive(),
+        groupBy: z.string().optional().default("upgrade"),
+    }))
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest(`/product/${input.productId}/options`, {
+            query: { groupBy: input.groupBy },
+            requireApiKey: true,
+        });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Provision an instant compute device (recommended endpoint).
+     * Docs: POST /compute/
+     *
+     * NOTE: This creates billable resources in Hivelocity. Use only in test accounts.
+     */
+    provisionComputeDevice: protectedProcedure
+        .input(z.object({
+        productId: z.number().int().positive(),
+        locationName: z.string().min(1),
+        osName: z.string().min(1),
+        hostname: z.string().min(1),
+        period: HivelocityPeriodSchema.optional(),
+        publicSshKeyId: z.number().int().optional(),
+        vlanId: z.number().int().optional(),
+        script: z.string().optional(),
+        customIPXEScriptURL: z.string().url().optional(),
+        customIPXEScriptContents: z.string().optional(),
+        forceDeviceId: z.number().int().optional(),
+        ignitionId: z.number().int().optional(),
+        bondingSupport: z.boolean().optional(),
+        tags: z.array(z.string()).optional(),
+        /**
+         * Add-on option ids. This field is used by the Hivelocity store.
+         * Not explicitly present in the BareMetalDeviceCreate schema in the docs,
+         * but is required for full purchase configuration. Kept optional for now.
+         */
+        optionIds: z.array(z.number().int()).optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const raw = await hivelocityRequest("/compute/", {
+            method: "POST",
+            requireApiKey: true,
+            body: input,
+        });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Provision an instant bare metal device (legacy endpoint).
+     * Docs: POST /bare-metal-devices/
+     */
+    provisionBareMetalDevice: protectedProcedure
+        .input(z.object({
+        productId: z.number().int().positive(),
+        locationName: z.string().min(1),
+        osName: z.string().min(1),
+        hostname: z.string().min(1),
+        period: HivelocityPeriodSchema.optional(),
+        publicSshKeyId: z.number().int().optional(),
+        vlanId: z.number().int().optional(),
+        script: z.string().optional(),
+        customIPXEScriptURL: z.string().url().optional(),
+        customIPXEScriptContents: z.string().optional(),
+        forceDeviceId: z.number().int().optional(),
+        ignitionId: z.number().int().optional(),
+        bondingSupport: z.boolean().optional(),
+        tags: z.array(z.string()).optional(),
+        optionIds: z.array(z.number().int()).optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const raw = await hivelocityRequest("/bare-metal-devices/", {
+            method: "POST",
+            requireApiKey: true,
+            body: input,
+        });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Get order by id (used to poll provisioning status).
+     * Docs: GET /order/{orderId}
+     */
+    getOrderById: protectedProcedure
+        .input(z.object({ orderId: z.number().int().positive() }))
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest(`/order/${input.orderId}`, { requireApiKey: true });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Get compute device by id.
+     * Docs: GET /compute/{deviceId}
+     */
+    getComputeDeviceById: protectedProcedure
+        .input(z.object({ deviceId: z.number().int().positive() }))
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest(`/compute/${input.deviceId}`, { requireApiKey: true });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Get all compute devices.
+     * Docs: GET /compute/
+     */
+    getComputeDevices: protectedProcedure.query(async () => {
+        const raw = await hivelocityRequest("/compute/", { requireApiKey: true });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Get all devices (Device API).
+     * Docs: GET /device/
+     *
+     * Notes:
+     * - Hivelocity documentation shows `rack_id` as a filter.
+     * - In practice, Hivelocity also supports filtering by `orderId` (used in their quickstart docs),
+     *   so we expose it here for testing even if not present in the OpenAPI schema.
+     */
+    getDevices: protectedProcedure
+        .input(z
+        .object({
+        rack_id: z.number().int().optional(),
+        orderId: z.number().int().optional(),
+    })
+        .optional())
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest("/device/", {
+            query: {
+                rack_id: input?.rack_id,
+                orderId: input?.orderId,
+            },
+            requireApiKey: true,
+        });
+        return { success: true, data: raw };
+    }),
+    /**
+     * Public (TEMP for development): Get initial password (first-login creds).
+     * Docs: GET /device/{deviceId}/initial-password
+     */
+    getDeviceInitialPassword: protectedProcedure
+        .input(z.object({ deviceId: z.number().int().positive() }))
+        .query(async ({ input }) => {
+        const raw = await hivelocityRequest(`/device/${input.deviceId}/initial-password`, {
+            requireApiKey: true,
+        });
+        return { success: true, data: raw };
     }),
     /**
      * Private: Get all products.

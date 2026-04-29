@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 async function getWpUpdateSettings(installationId) {
     const endpoint = `/v1/installations/${installationId}/features/updates/settings`;
     const { data, isAuthError, isHostUnreachable, statusCode } = await sendPleskRestRequest(endpoint, 'GET');
@@ -29,13 +29,13 @@ async function updateWpUpdateSettings(installationId, settings) {
     return data;
 }
 export const wpUpdatesSettingsRouter = router({
-    get: publicProcedure
+    get: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
         const data = await getWpUpdateSettings(input.installationId);
         return { data };
     }),
-    update: publicProcedure
+    update: protectedProcedure
         .input(z.object({
         installationId: z.number(),
         settings: z.object({

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "@npanel/db";
+import { and, desc, eq, inArray } from "@npanel/db";
 import { db } from "@npanel/db";
 import { socialMediaIntegration, socialMediaPageToken, } from "@npanel/db/schema/social-media-marketing";
 /**
@@ -37,6 +37,45 @@ export async function getStoredMetaAccessToken() {
     }
     catch (error) {
         console.error('Error retrieving stored Meta credentials:', error);
+        return null;
+    }
+}
+/**
+ * Get stored Instagram access token (standalone integration)
+ * Returns the access token if available and not expired, or null
+ */
+export async function getStoredInstagramAccessToken() {
+    try {
+        const [integration] = await db
+            .select({
+            id: socialMediaIntegration.id,
+            accessToken: socialMediaIntegration.accessToken,
+            accessTokenExpiresAt: socialMediaIntegration.accessTokenExpiresAt,
+        })
+            .from(socialMediaIntegration)
+            .where(and(eq(socialMediaIntegration.platform, "INSTAGRAM"), eq(socialMediaIntegration.status, "ACTIVE")))
+            .orderBy(desc(socialMediaIntegration.createdAt))
+            .limit(1);
+        if (!integration || !integration.accessToken) {
+            return null;
+        }
+        // Check if token is expired
+        if (integration.accessTokenExpiresAt &&
+            new Date(integration.accessTokenExpiresAt) < new Date()) {
+            // Update status to expired
+            await db
+                .update(socialMediaIntegration)
+                .set({ status: "EXPIRED" })
+                .where(eq(socialMediaIntegration.id, integration.id));
+            return null;
+        }
+        return {
+            accessToken: integration.accessToken,
+            integrationId: integration.id,
+        };
+    }
+    catch (error) {
+        console.error('Error retrieving stored Instagram credentials:', error);
         return null;
     }
 }

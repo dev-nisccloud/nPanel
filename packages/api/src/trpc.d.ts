@@ -12,8 +12,9 @@ export declare const router: import("@trpc/server").TRPCRouterBuilder<{
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }>;
-export declare const publicProcedure: import("@trpc/server").TRPCProcedureBuilder<Context, object, object, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, false>;
+export declare const publicProcedure: import("@trpc/server").TRPCProcedureBuilder<Context, object, {}, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, false>;
 export declare const protectedProcedure: import("@trpc/server").TRPCProcedureBuilder<Context, object, {
+    ipAddress: string | null | undefined;
     session: {
         user: import("./context").SessionUser;
         session: {
@@ -27,5 +28,13 @@ export declare const protectedProcedure: import("@trpc/server").TRPCProcedureBui
             userAgent?: string | null | undefined | undefined;
         };
     };
+    apiKey: {
+        id: string;
+        permissions: string[];
+    } | undefined;
+    mfaRequired: boolean | undefined;
+    mfaVerified: boolean | undefined;
+    mfaSetupRequired: boolean | undefined;
     createCaller: ((ctx: Context) => unknown) | undefined;
+    apiKeyError: string | null | undefined;
 }, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, false>;

@@ -1,19 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "@npanel/db";
+import { and, desc, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { googleAdsIntegration } from "@npanel/db/schema/google-ads";
 import { refreshAccessToken } from "./google-ads-client";
 import { getGoogleAdsClientId, getGoogleAdsClientSecret, } from "./google-ads-credentials";
 import { GoogleAdsErrorHandler } from "./google-ads-error-handler";
-/**
- * Active Google Ads integration for the user, with access token refreshed when expired.
- */
-export async function getUserGoogleAdsIntegration(userId) {
-    const [integration] = await db
-        .select()
-        .from(googleAdsIntegration)
-        .where(and(eq(googleAdsIntegration.userId, userId), eq(googleAdsIntegration.status, "ACTIVE")))
-        .limit(1);
+async function ensureIntegrationIsUsable(integration) {
     if (!integration) {
         throw new TRPCError({
             code: "BAD_REQUEST",
@@ -50,4 +42,33 @@ export async function getUserGoogleAdsIntegration(userId) {
         }
     }
     return integration;
+}
+/**
+ * Active Google Ads integration for a specific user, with access token refreshed when expired.
+ */
+export async function getUserGoogleAdsIntegration(userId) {
+    const [integration] = await db
+        .select()
+        .from(googleAdsIntegration)
+        .where(and(eq(googleAdsIntegration.userId, userId), eq(googleAdsIntegration.status, "ACTIVE")))
+        .orderBy(desc(googleAdsIntegration.createdAt))
+        .limit(1);
+    return ensureIntegrationIsUsable(integration);
+}
+/**
+ * Session-aware integration lookup.
+ * Agency users share the latest active Google Ads integration across the agency.
+ */
+export async function getGoogleAdsIntegrationForSession(params) {
+    const isAgencyUser = (params.role ?? "").includes("AGENCY");
+    if (!isAgencyUser) {
+        return getUserGoogleAdsIntegration(params.userId);
+    }
+    const [integration] = await db
+        .select()
+        .from(googleAdsIntegration)
+        .where(eq(googleAdsIntegration.status, "ACTIVE"))
+        .orderBy(desc(googleAdsIntegration.createdAt))
+        .limit(1);
+    return ensureIntegrationIsUsable(integration);
 }

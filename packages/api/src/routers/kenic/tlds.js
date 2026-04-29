@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { getKenicTlds } from "../../lib/epp/kenic-tlds";
 /**
  * KENIC supported TLDs.
@@ -10,7 +10,7 @@ export const kenicTldsRouter = router({
      * List all TLDs supported by KENIC (e.g. .ke, .co.ke, .or.ke).
      * These are the only TLDs that can be checked/registered via the KENIC EPP integration.
      */
-    list: publicProcedure
+    list: protectedProcedure
         .input(z.object({}).optional().default({}))
         .query(() => {
         return {

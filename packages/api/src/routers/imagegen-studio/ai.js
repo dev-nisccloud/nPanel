@@ -7,6 +7,7 @@ import { imageGenAiGeneration, imageGenAiGenerationActivityLog, } from "@npanel/
 import { protectedProcedure, router } from "../../trpc";
 import { z } from "zod";
 import { generateImageSchema, removeBgSchema, generateImageResponseSchema, updateGenerationAfterUploadResponseSchema, removeBgResponseSchema, } from "./schemas";
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
 const replicate = new Replicate({
     auth: process.env.REPLICATE_API_TOKEN,
 });
@@ -185,6 +186,7 @@ export const imageGenAiRouter = router({
         .output(updateGenerationAfterUploadResponseSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
@@ -194,6 +196,9 @@ export const imageGenAiRouter = router({
         });
         if (!generation) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && generation.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the generation owner can modify it" });
         }
         await db
             .update(imageGenAiGeneration)

@@ -1,5 +1,5 @@
 /**
- * LinkedIn Standardized Data – public tRPC procedures.
+ * LinkedIn Standardized Data â€“ public tRPC procedures.
  *
  * These are intentionally PUBLIC (no session required) so they can be called
  * directly from Postman / curl to harvest the complete reference lists that
@@ -35,7 +35,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
     /**
      * GET_ALL /v2/industries
      *
-     * ~150 stable entries ("static V1" per LinkedIn docs). Run once → static map.
+     * ~150 stable entries ("static V1" per LinkedIn docs). Run once â†’ static map.
      * Response shape: { elements: [{ id, $URN, name: { localized: { en_US: string } } }], paging }
      */
     getIndustries: import("@trpc/server").TRPCQueryProcedure<{
@@ -50,7 +50,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
     /**
      * GET_ALL /v2/functions
      *
-     * Small list (~26 job functions, e.g. "Finance", "Engineering"). Run once → static map.
+     * Small list (~26 job functions, e.g. "Finance", "Engineering"). Run once â†’ static map.
      * Response shape: { elements: [{ id, $URN, name: { localized: { en_US: string } } }], paging }
      */
     getFunctions: import("@trpc/server").TRPCQueryProcedure<{
@@ -63,7 +63,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
         meta: object;
     }>;
     /**
-     * GET_ALL /v2/titles  (max 50 per page – paginate with start=0,50,100,…)
+     * GET_ALL /v2/titles  (max 50 per page â€“ paginate with start=0,50,100,â€¦)
      *
      * Thousands of entries. Too many to maintain manually; use BATCH_GET at display time instead.
      * This GET_ALL is provided for discovery / building a complete offline snapshot.
@@ -79,11 +79,11 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
         meta: object;
     }>;
     /**
-     * BATCH_GET /v2/titles?ids=id1&ids=id2&…
+     * BATCH_GET /v2/titles?ids=id1&ids=id2&â€¦
      *
      * Resolve specific title IDs to names at display time.
      * Pass the numeric IDs extracted from the campaign's targetingCriteria URNs.
-     * Response shape: { results: { "9": { id, name: { localized: { en_US } }, … } }, statuses, errors }
+     * Response shape: { results: { "9": { id, name: { localized: { en_US } }, â€¦ } }, statuses, errors }
      */
     getTitlesByIds: import("@trpc/server").TRPCQueryProcedure<{
         input: {
@@ -94,7 +94,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
         meta: object;
     }>;
     /**
-     * GET_ALL /v2/skills  (max 50 per page – paginate with start=0,50,100,…)
+     * GET_ALL /v2/skills  (max 50 per page â€“ paginate with start=0,50,100,â€¦)
      *
      * Thousands of entries. Use BATCH_GET (getSkillsByIds) at display time.
      * Response shape: { elements: [{ id, $URN, standardizedName, locale }], paging }
@@ -109,7 +109,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
         meta: object;
     }>;
     /**
-     * BATCH_GET /v2/skills?ids=id1&ids=id2&…
+     * BATCH_GET /v2/skills?ids=id1&ids=id2&â€¦
      *
      * Resolve specific skill IDs at display time.
      * Response shape: { results: { "5": { id, standardizedName, locale } }, statuses, errors }
@@ -125,7 +125,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
     /**
      * GET_ALL /v2/degrees  (paginated)
      *
-     * Manageable set. Run once → static map, or use BATCH_GET (getDegreesByIds) at display time.
+     * Manageable set. Run once â†’ static map, or use BATCH_GET (getDegreesByIds) at display time.
      * Response shape: { elements: [{ id, $URN, name: { localized: { en_US } }, alias, rollup }], paging }
      */
     getDegrees: import("@trpc/server").TRPCQueryProcedure<{
@@ -138,7 +138,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
         meta: object;
     }>;
     /**
-     * BATCH_GET /v2/degrees?ids=id1&ids=id2&…
+     * BATCH_GET /v2/degrees?ids=id1&ids=id2&â€¦
      */
     getDegreesByIds: import("@trpc/server").TRPCQueryProcedure<{
         input: {
@@ -164,7 +164,7 @@ export declare const linkedInAdsStandardizedDataRouter: import("@trpc/server").T
         meta: object;
     }>;
     /**
-     * BATCH_GET /v2/fieldsOfStudy?ids=id1&ids=id2&…
+     * BATCH_GET /v2/fieldsOfStudy?ids=id1&ids=id2&â€¦
      */
     getFieldsOfStudyByIds: import("@trpc/server").TRPCQueryProcedure<{
         input: {

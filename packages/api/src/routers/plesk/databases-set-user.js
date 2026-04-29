@@ -2,7 +2,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskXmlRequest } from '../../lib/plesk/xml-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 /**
  * Build XML to update database user (password, permissions, roles)
  * Based on Plesk XML-RPC API: set-db-user operation
@@ -76,7 +76,7 @@ function parseXmlError(xml) {
 }
 export const databasesSetUserRouter = router({
     // Update database user (password, permissions, roles)
-    update: publicProcedure
+    update: protectedProcedure
         .input(z.object({
         userId: z.number(),
         password: z.string().optional(),

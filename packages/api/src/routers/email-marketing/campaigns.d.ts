@@ -23,7 +23,7 @@ export declare const emailMarketingCampaignsRouter: import("@trpc/server").TRPCB
             name: string;
             subject: string;
             fromEmail: string;
-            status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+            status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
             recipientCount: number;
             userId: string;
             teamId: string | null;
@@ -57,7 +57,7 @@ export declare const emailMarketingCampaignsRouter: import("@trpc/server").TRPCB
             name: string;
             subject: string;
             fromEmail: string;
-            status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+            status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
             recipientCount: number;
             userId: string;
             teamId: string | null;
@@ -85,7 +85,7 @@ export declare const emailMarketingCampaignsRouter: import("@trpc/server").TRPCB
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED" | undefined;
+            status?: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -96,7 +96,7 @@ export declare const emailMarketingCampaignsRouter: import("@trpc/server").TRPCB
                 name: string;
                 subject: string;
                 fromEmail: string;
-                status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+                status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
                 recipientCount: number;
                 userId: string;
                 teamId: string | null;
@@ -128,7 +128,7 @@ export declare const emailMarketingCampaignsRouter: import("@trpc/server").TRPCB
             name: string;
             subject: string;
             fromEmail: string;
-            status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+            status: "DRAFT" | "SCHEDULED" | "CANCELLED" | "FAILED" | "COMPLETED";
             recipientCount: number;
             userId: string;
             teamId: string | null;

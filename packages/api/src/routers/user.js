@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { eq } from "@npanel/db";
+import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
 // Schema for notification preferences
@@ -17,15 +18,19 @@ const updateNotificationPreferencesInputSchema = z.object({
     notificationSoundVolume: z.number().min(0).max(100).optional(),
     browserNotificationPermission: z.enum(["default", "granted", "denied"]).optional(),
 });
+function getActorId(ctx) {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+    }
+    return userId;
+}
 export const userRouter = router({
     // Get current user's notification preferences
     getNotificationPreferences: protectedProcedure
         .output(notificationPreferencesSchema)
         .query(async ({ ctx }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-            throw new Error("Unauthorized");
-        }
+        const userId = getActorId(ctx);
         const [userRow] = await db
             .select({
             notificationSoundEnabled: user.notificationSoundEnabled,
@@ -38,7 +43,7 @@ export const userRouter = router({
             .where(eq(user.id, userId))
             .limit(1);
         if (!userRow) {
-            throw new Error("User not found");
+            throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
         }
         return {
             notificationSoundEnabled: userRow.notificationSoundEnabled ?? true,
@@ -53,10 +58,7 @@ export const userRouter = router({
         .input(updateNotificationPreferencesInputSchema)
         .output(notificationPreferencesSchema)
         .mutation(async ({ ctx, input }) => {
-        const userId = ctx.session?.user?.id;
-        if (!userId) {
-            throw new Error("Unauthorized");
-        }
+        const userId = getActorId(ctx);
         const [updatedUser] = await db
             .update(user)
             .set({
@@ -72,7 +74,7 @@ export const userRouter = router({
             notificationPreferencesUpdatedAt: user.notificationPreferencesUpdatedAt,
         });
         if (!updatedUser) {
-            throw new Error("User not found");
+            throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
         }
         return {
             notificationSoundEnabled: updatedUser.notificationSoundEnabled ?? true,

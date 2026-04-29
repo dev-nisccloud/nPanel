@@ -320,7 +320,7 @@ export declare const invoiceCreateInputSchema: z.ZodObject<{
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     tax: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     vat: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     discount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     currency: z.ZodDefault<z.ZodString>;
@@ -356,7 +356,7 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
         OVERDUE: "OVERDUE";
         WRITTEN_OFF: "WRITTEN_OFF";
     }>>;
-    token: z.ZodOptional<z.ZodString>;
+    token: z.ZodOptional<z.ZodOptional<z.ZodString>>;
     transactions: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodOptional<z.ZodString>;
         invoiceId: z.ZodString;
@@ -414,7 +414,7 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     tax: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     vat: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     discount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     currency: z.ZodDefault<z.ZodString>;
@@ -429,8 +429,8 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
     note: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     internalNote: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     metadata: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
-    createdBy: z.ZodString;
-    updatedBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    createdBy: z.ZodOptional<z.ZodString>;
+    updatedBy: z.ZodOptional<z.ZodNullable<z.ZodOptional<z.ZodString>>>;
     id: z.ZodString;
     lineItems: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodOptional<z.ZodString>;
@@ -490,7 +490,7 @@ export declare const invoiceDetailSchema: z.ZodObject<{
     customerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     tax: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     vat: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     discount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     creditedAmount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -764,7 +764,7 @@ export declare const submitInvoiceSchema: z.ZodObject<{
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     tax: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
     vat: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     discount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     currency: z.ZodDefault<z.ZodString>;

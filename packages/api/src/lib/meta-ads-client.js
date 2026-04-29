@@ -25,7 +25,7 @@ export class MetaAdsClient {
     constructor(config) {
         this.config = {
             accessToken: config.accessToken,
-            apiVersion: config.apiVersion || 'v24.0',
+            apiVersion: config.apiVersion || process.env.META_API_VERSION || 'v24.0',
             baseUrl: config.baseUrl || 'https://graph.facebook.com',
         };
     }
@@ -109,6 +109,7 @@ export class MetaAdsClient {
             'spend_cap',
             'amount_spent',
             'balance',
+            'instagram_user_id', // ID of the Instagram account linked to this ad account (if any)
         ];
         const fieldsToFetch = fields || defaultFields;
         return this.makeRequest('GET', '/me/adaccounts', {
@@ -412,5 +413,18 @@ export class MetaAdsClient {
      */
     async deleteAd(adId) {
         return this.makeRequest('DELETE', `/${adId}`);
+    }
+    /**
+     * Get Instagram accounts connected/authorized for use with an ad account
+     * GET /{ad-account-id}/connected_instagram_accounts
+     * Requires: ads_read scope
+     * Returns the list of Instagram User IDs that are authorized to run ads
+     * via this ad account (linked through a Facebook Page or Business Manager).
+     */
+    async getConnectedInstagramAccounts(accountId) {
+        const normalizedAccountId = this.normalizeAccountId(accountId);
+        return this.makeRequest('GET', `/${normalizedAccountId}/connected_instagram_accounts`, {
+            fields: 'id,username,name,profile_pic',
+        });
     }
 }

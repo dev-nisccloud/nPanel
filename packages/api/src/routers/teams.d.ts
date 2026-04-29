@@ -35,7 +35,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 email: string;
                 role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
                 expiresAt: Date;
                 team: {
                     id: string;
@@ -142,7 +142,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             email: string;
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-            status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             invitedById: string;
             expiresAt: Date;
             acceptedAt: Date | null;
@@ -189,7 +189,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             email: string;
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-            status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "PENDING" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             invitedById: string;
             expiresAt: Date;
             acceptedAt: Date | null;

@@ -26,13 +26,16 @@ export async function hivelocityRequest(path, options = {}) {
             message: "HIVELOCITY_API_KEY environment variable is not set",
         });
     }
+    const hasBody = options.body !== undefined;
     const resp = await fetch(buildUrl(path, options.query), {
         method: options.method ?? "GET",
         headers: {
             Accept: "application/json",
+            ...(hasBody ? { "Content-Type": "application/json" } : {}),
             ...(apiKey ? { "X-API-KEY": apiKey } : {}),
             ...options.headers,
         },
+        ...(hasBody ? { body: JSON.stringify(options.body) } : {}),
     });
     // Hivelocity responses are JSON; still guard for non-JSON error pages.
     const text = await resp.text();

@@ -11,10 +11,10 @@ export declare const stabilityAiRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: {
             prompt: string;
             negativePrompt?: string | undefined;
-            aspectRatio?: "21:9" | "16:9" | "3:2" | "5:4" | "1:1" | "4:5" | "2:3" | "9:16" | "9:21" | undefined;
+            aspectRatio?: "1:1" | "2:3" | "3:2" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9" | "9:21" | undefined;
             stylePreset?: "3d-model" | "analog-film" | "anime" | "cinematic" | "comic-book" | "digital-art" | "enhance" | "fantasy-art" | "isometric" | "line-art" | "low-poly" | "modeling-compound" | "neon-punk" | "origami" | "photographic" | "pixel-art" | "tile-texture" | undefined;
             seed?: number | undefined;
-            outputFormat?: "webp" | "jpeg" | "png" | undefined;
+            outputFormat?: "png" | "webp" | "jpeg" | undefined;
             model?: "core" | "ultra" | "sd3" | undefined;
             sd3Model?: "sd3.5-large" | "sd3.5-large-turbo" | "sd3.5-medium" | "sd3.5-flash" | undefined;
         };
@@ -32,7 +32,7 @@ export declare const stabilityAiRouter: import("@trpc/server").TRPCBuiltRouter<{
     removeBackground: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             image: string;
-            outputFormat?: "webp" | "jpeg" | "png" | undefined;
+            outputFormat?: "png" | "webp" | "jpeg" | undefined;
         };
         output: {
             image: string;

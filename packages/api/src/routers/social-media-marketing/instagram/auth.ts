@@ -12,6 +12,14 @@ import { request } from 'undici';
 import { randomUUID } from 'node:crypto';
 
 // ============================================================================
+// Env helpers
+// ============================================================================
+
+const getMetaApiVersion = () => {
+	return process.env.META_API_VERSION || 'v24.0';
+};
+
+// ============================================================================
 // Constants
 // ============================================================================
 
@@ -23,7 +31,7 @@ const isAgencyUserRole = (role: string | null | undefined) =>
 
 // Latest Instagram API with Instagram Login endpoints
 // Docs: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/
-const IG_AUTHORIZE_URL = 'https://www.instagram.com/oauth/authorize';
+const IG_AUTHORIZE_URL = `https://www.facebook.com/${getMetaApiVersion()}/dialog/oauth`;
 const IG_TOKEN_URL = 'https://api.instagram.com/oauth/access_token';
 const IG_GRAPH_URL = 'https://graph.instagram.com';
 
@@ -39,31 +47,27 @@ const DEFAULT_INSTAGRAM_SCOPES = [
 	'ads_management',
 ] as const;
 
-const getMetaApiVersion = () => {
-	return process.env.META_API_VERSION || 'v24.0';
-};
-
 // ============================================================================
 // Env helpers
 // ============================================================================
 
 const getInstagramAppId = () => {
-	const appId = process.env.INSTAGRAM_APP_ID;
+	const appId = process.env.META_APP_ID || process.env.FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID;
 	if (!appId) {
 		throw new TRPCError({
 			code: 'INTERNAL_SERVER_ERROR',
-			message: 'INSTAGRAM_APP_ID environment variable is not set',
+			message: 'META_APP_ID or FACEBOOK_APP_ID environment variable is not set',
 		});
 	}
 	return appId;
 };
 
 const getInstagramAppSecret = () => {
-	const appSecret = process.env.INSTAGRAM_APP_SECRET;
+	const appSecret = process.env.META_APP_SECRET || process.env.FACEBOOK_APP_SECRET || process.env.INSTAGRAM_APP_SECRET;
 	if (!appSecret) {
 		throw new TRPCError({
 			code: 'INTERNAL_SERVER_ERROR',
-			message: 'INSTAGRAM_APP_SECRET environment variable is not set',
+			message: 'META_APP_SECRET or FACEBOOK_APP_SECRET environment variable is not set',
 		});
 	}
 	return appSecret;
@@ -268,7 +272,8 @@ export const instagramAuthRouter = router({
 					`&redirect_uri=${encodeURIComponent(redirectUri)}` +
 					`&response_type=code` +
 					`&scope=${encodeURIComponent(scopes.join(','))}` +
-					`&state=${encodeURIComponent(state)}`;
+					`&state=${encodeURIComponent(state)}` +
+					`&instagram_login=true`;
 
 				return {
 					success: true,

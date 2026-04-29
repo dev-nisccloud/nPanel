@@ -53,6 +53,25 @@ export declare const agencyRole: import("drizzle-orm/pg-core").PgTableWithColumn
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        menus: import("drizzle-orm/pg-core").PgColumn<{
+            name: "menus";
+            tableName: "agency_role";
+            dataType: "json";
+            columnType: "PgJsonb";
+            data: string[];
+            driverParam: unknown;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            $type: string[];
+        }>;
         isSystem: import("drizzle-orm/pg-core").PgColumn<{
             name: "is_system";
             tableName: "agency_role";

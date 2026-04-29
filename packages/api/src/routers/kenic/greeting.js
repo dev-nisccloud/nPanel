@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { connectAndReceiveGreeting } from "../../lib/epp/epp-client";
 /**
  * KENIC EPP greeting router.
@@ -15,7 +15,7 @@ export const kenicGreetingRouter = router({
      * Use this to see actual capabilities and response structure for building
      * the rest of the EPP routes.
      */
-    getGreeting: publicProcedure
+    getGreeting: protectedProcedure
         .input(z.object({}).optional().default({}))
         .query(async () => {
         const host = process.env.KENIC_EPP_HOST ?? "registry.kenic.or.ke";

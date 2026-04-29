@@ -1,21 +1,22 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 export const agencyRole = pgTable("agency_role", {
     id: text("id").primaryKey(),
     name: text("name").notNull().unique(),
     description: text("description"),
+    menus: jsonb("menus").$type().default([]).notNull(),
     isSystem: boolean("is_system").default(false).notNull(),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
-}, (table) => [index("agency_role_name_idx").on(table.name)]);
+});
 export const agencyPermission = pgTable("agency_permission", {
     id: text("id").primaryKey(),
     key: text("key").notNull().unique(),
     description: text("description"),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
-}, (table) => [index("agency_permission_key_idx").on(table.key)]);
+});
 export const agencyRolePermission = pgTable("agency_role_permission", {
     id: text("id").primaryKey(),
     roleId: text("role_id")
@@ -27,8 +28,7 @@ export const agencyRolePermission = pgTable("agency_role_permission", {
     createdAt: timestamp("created_at").notNull(),
 }, (table) => [
     uniqueIndex("agency_role_permission_roleId_permissionId_unique").on(table.roleId, table.permissionId),
-    index("agency_role_permission_roleId_idx").on(table.roleId),
-    index("agency_role_permission_permissionId_idx").on(table.permissionId),
+    index("agency_role_permission_permission_id_lookup_idx").on(table.permissionId),
 ]);
 export const agencyRoleRelations = relations(agencyRole, ({ many }) => ({
     permissions: many(agencyRolePermission),

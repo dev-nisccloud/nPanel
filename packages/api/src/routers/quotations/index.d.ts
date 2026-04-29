@@ -7,7 +7,7 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
-            status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED" | undefined;
+            status?: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -15,7 +15,7 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             quotations: {
                 id: string;
-                status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
                 currency: string;
                 createdAt: Date;
                 updatedAt: Date;
@@ -35,7 +35,7 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             id: string;
-            status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             currency: string;
             createdAt: Date;
             updatedAt: Date;
@@ -104,7 +104,7 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
             template?: Record<string, unknown> | unknown[] | null | undefined;
             topBlock?: Record<string, unknown> | unknown[] | null | undefined;
             bottomBlock?: Record<string, unknown> | unknown[] | null | undefined;
-            status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED" | undefined;
+            status?: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED" | undefined;
             token?: string | undefined;
             lineItems?: {
                 id?: string | undefined;
@@ -135,7 +135,7 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             id: string;
-            status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             currency: string;
             createdAt: Date;
             updatedAt: Date;
@@ -213,7 +213,7 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
             customerName?: string | null | undefined;
             customerEmail?: string | null | undefined;
             token?: string | null | undefined;
-            status?: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED" | undefined;
+            status?: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED" | undefined;
             amount?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
@@ -227,7 +227,7 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             id: string;
-            status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             currency: string;
             createdAt: Date;
             updatedAt: Date;
@@ -280,12 +280,12 @@ export declare const quotationsRouter: import("@trpc/server").TRPCBuiltRouter<{
     updateStatus: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             id: string;
-            status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             note?: string | undefined;
         };
         output: {
             id: string;
-            status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED" | "CANCELLED";
             currency: string;
             createdAt: Date;
             updatedAt: Date;

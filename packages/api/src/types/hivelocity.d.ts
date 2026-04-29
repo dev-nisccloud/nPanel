@@ -52,9 +52,9 @@ export declare const hivelocityProductStockSchema: z.ZodObject<{
     product_id: z.ZodNumber;
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
+        unavailable: "unavailable";
         available: "available";
         limited: "limited";
-        unavailable: "unavailable";
     }>;
     data_center: z.ZodString;
     location_option_id: z.ZodNumber;
@@ -119,9 +119,9 @@ export declare const hivelocityProductByIdResponseSchema: z.ZodUnion<readonly [z
     product_id: z.ZodNumber;
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
+        unavailable: "unavailable";
         available: "available";
         limited: "limited";
-        unavailable: "unavailable";
     }>;
     data_center: z.ZodString;
     location_option_id: z.ZodNumber;
@@ -163,9 +163,9 @@ export declare const hivelocityProductByIdResponseSchema: z.ZodUnion<readonly [z
     product_id: z.ZodNumber;
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
+        unavailable: "unavailable";
         available: "available";
         limited: "limited";
-        unavailable: "unavailable";
     }>;
     data_center: z.ZodString;
     location_option_id: z.ZodNumber;

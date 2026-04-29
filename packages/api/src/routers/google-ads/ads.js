@@ -4,7 +4,7 @@ import { router, protectedProcedure } from '../../trpc';
 import { createGoogleAdsClient, getCustomerInstance, } from '../../lib/google-ads-client';
 import { getGoogleAdsClientId, getGoogleAdsClientSecret, getGoogleAdsDeveloperToken, } from '../../lib/google-ads-credentials';
 import { GoogleAdsErrorHandler } from '../../lib/google-ads-error-handler';
-import { getUserGoogleAdsIntegration } from '../../lib/google-ads-user-integration';
+import { getGoogleAdsExecutionContext } from './access';
 /**
  * Format date for Google Ads API (YYYYMMDD format)
  */
@@ -32,16 +32,7 @@ export const googleAdsAdsRouter = router({
     }))
         .query(async ({ input, ctx }) => {
         try {
-            const userId = ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: 'UNAUTHORIZED',
-                    message: 'User session not found',
-                });
-            }
-            const integration = await getUserGoogleAdsIntegration(userId);
-            // Remove dashes from customer ID for API call
-            const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
+            const { integration, customerIdWithoutDashes } = await getGoogleAdsExecutionContext(ctx, input.customerId);
             // Create Google Ads client
             const client = createGoogleAdsClient({
                 developerToken: getGoogleAdsDeveloperToken(),
@@ -297,15 +288,7 @@ export const googleAdsAdsRouter = router({
     }))
         .query(async ({ input, ctx }) => {
         try {
-            const userId = ctx.session?.user?.id;
-            if (!userId) {
-                throw new TRPCError({
-                    code: 'UNAUTHORIZED',
-                    message: 'User session not found',
-                });
-            }
-            const integration = await getUserGoogleAdsIntegration(userId);
-            const customerIdWithoutDashes = input.customerId.replace(/-/g, '');
+            const { integration, customerIdWithoutDashes } = await getGoogleAdsExecutionContext(ctx, input.customerId);
             const client = createGoogleAdsClient({
                 developerToken: getGoogleAdsDeveloperToken(),
                 clientId: getGoogleAdsClientId(),

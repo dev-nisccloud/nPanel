@@ -16,6 +16,7 @@ export declare const metaAdsCampaignsRouter: import("@trpc/server").TRPCBuiltRou
                 since: string;
                 until: string;
             } | undefined;
+            publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
             success: boolean;
@@ -42,6 +43,7 @@ export declare const metaAdsCampaignsRouter: import("@trpc/server").TRPCBuiltRou
         input: {
             accountId: string;
             campaignId: string;
+            publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
             success: boolean;

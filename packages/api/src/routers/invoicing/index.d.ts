@@ -8,15 +8,13 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    status: string;
-    token: string;
     teamId: string | null;
-    updatedBy: string | null;
-    metadata: unknown;
     customerId: string | null;
     customerName: string | null;
     customerEmail: string | null;
     invoiceNumber: string | null;
+    token: string;
+    status: string;
     amount: string | null;
     subtotal: string | null;
     tax: string | null;
@@ -41,7 +39,9 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     template: unknown;
     topBlock: unknown;
     bottomBlock: unknown;
+    metadata: unknown;
     createdBy: string;
+    updatedBy: string | null;
     kraInvoiceNumber: string | null;
     kraReceiptNumber: string | null;
     kraSignature: string | null;
@@ -52,13 +52,13 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     lineItems: {
         id: string;
         name: string | null;
-        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        metadata: unknown;
         discount: string | null;
+        metadata: unknown;
         invoiceId: string;
         position: number;
+        description: string | null;
         quantity: number | null;
         unit: string | null;
         price: string | null;
@@ -69,10 +69,10 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
         createdAt: Date;
         updatedAt: Date;
         status: string;
-        metadata: unknown;
         amount: string;
         currency: string;
         paidAt: Date | null;
+        metadata: unknown;
         invoiceId: string;
         reference: string | null;
         providerReference: string | null;
@@ -83,13 +83,13 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
         balanceAfter: string | null;
         activityLogs: {
             id: string;
-            description: string | null;
             createdAt: Date;
-            ipAddress: string | null;
-            userAgent: string | null;
+            metadata: unknown;
+            description: string | null;
             userId: string;
             action: string;
-            metadata: unknown;
+            ipAddress: string | null;
+            userAgent: string | null;
             invoiceTransactionId: string;
         }[];
     }[];
@@ -97,14 +97,14 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        status: string;
         teamId: string | null;
-        updatedBy: string | null;
-        metadata: unknown;
+        status: string;
         amount: string;
         currency: string;
         note: string | null;
+        metadata: unknown;
         createdBy: string;
+        updatedBy: string | null;
         invoiceId: string;
         creditNumber: string | null;
         reason: string | null;
@@ -112,26 +112,26 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
         appliedAt: Date | null;
         activityLogs: {
             id: string;
-            description: string | null;
             createdAt: Date;
-            ipAddress: string | null;
-            userAgent: string | null;
+            metadata: unknown;
+            description: string | null;
             userId: string;
             action: string;
-            metadata: unknown;
+            ipAddress: string | null;
+            userAgent: string | null;
             creditNoteId: string;
         }[];
     };
     activityLogs: {
         id: string;
-        description: string | null;
         createdAt: Date;
-        ipAddress: string | null;
-        userAgent: string | null;
-        userId: string;
-        action: string;
         metadata: unknown;
         invoiceId: string;
+        description: string | null;
+        userId: string;
+        action: string;
+        ipAddress: string | null;
+        userAgent: string | null;
     }[];
 }>;
 export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
@@ -484,7 +484,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             amount?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
-            taxPercentage?: number | null | undefined;
+            taxPercentage?: unknown;
             vat?: string | null | undefined;
             discount?: string | null | undefined;
             currency?: string | undefined;
@@ -621,7 +621,6 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
     }>;
     update: import("@trpc/server").TRPCMutationProcedure<{
         input: {
-            createdBy: string;
             id: string;
             fromDetails?: Record<string, unknown> | unknown[] | null | undefined;
             customerDetails?: Record<string, unknown> | unknown[] | null | undefined;
@@ -672,7 +671,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             amount?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
-            taxPercentage?: number | null | undefined;
+            taxPercentage?: unknown;
             vat?: string | null | undefined;
             discount?: string | null | undefined;
             currency?: string | undefined;
@@ -687,6 +686,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             note?: string | null | undefined;
             internalNote?: string | null | undefined;
             metadata?: Record<string, unknown> | unknown[] | null | undefined;
+            createdBy?: string | undefined;
             updatedBy?: string | null | undefined;
             lineItems?: {
                 id?: string | undefined;
@@ -1523,7 +1523,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             amount?: string | null | undefined;
             subtotal?: string | null | undefined;
             tax?: string | null | undefined;
-            taxPercentage?: number | null | undefined;
+            taxPercentage?: unknown;
             vat?: string | null | undefined;
             discount?: string | null | undefined;
             currency?: string | undefined;
@@ -1669,10 +1669,23 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
+    bulkDeleteInvoices: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            invoiceIds: string[];
+        };
+        output: {
+            success: boolean;
+            deletedCount: number;
+        };
+        meta: object;
+    }>;
     resendEmailReminder: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             invoiceId: string;
             pdfBase64: string;
+            to?: string | undefined;
+            cc?: string[] | undefined;
+            bcc?: string[] | undefined;
         };
         output: {
             id: string;

@@ -168,6 +168,29 @@ async function fetchTldSettingById(id) {
         },
     };
 }
+function getActor(ctx) {
+    const userId = ctx.session?.user?.id;
+    if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+    }
+    return { userId, role: ctx.session?.user?.role };
+}
+function isAgencyUserRole(role) {
+    return role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+}
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
+function ensureOwnerOrSuperAdmin(params) {
+    if (isAgencySuperAdminRole(params.actorRole))
+        return;
+    if (params.ownerUserId !== params.actorUserId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You do not have permission to modify this TLD setting",
+        });
+    }
+}
 function transformTldSetting(tldSetting) {
     return {
         id: tldSetting.id,
@@ -205,8 +228,8 @@ export const tldSettingsRouter = router({
         data: tldSettingResponseSchema,
     }))
         .mutation(async ({ ctx, input }) => {
-        const { session } = ctx;
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         try {
             // Validate margin fields based on margin type
             if (input.marginType === "PERCENTAGE" && !input.percentageMargin) {
@@ -235,10 +258,13 @@ export const tldSettingsRouter = router({
             }
             // Validate nameserver group if provided
             if (input.nameserverGroupId) {
+                const groupScope = isAgencySuperAdminRole(actor.role)
+                    ? eq(nameserverGroup.id, input.nameserverGroupId)
+                    : and(eq(nameserverGroup.id, input.nameserverGroupId), eq(nameserverGroup.userId, userId));
                 const [groupRow] = await db
                     .select({ id: nameserverGroup.id })
                     .from(nameserverGroup)
-                    .where(and(eq(nameserverGroup.id, input.nameserverGroupId), eq(nameserverGroup.userId, userId)))
+                    .where(groupScope)
                     .limit(1);
                 if (!groupRow) {
                     throw new TRPCError({
@@ -307,7 +333,8 @@ export const tldSettingsRouter = router({
         success: z.boolean(),
         data: tldSettingResponseSchema,
     }))
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        const actor = getActor(ctx);
         try {
             const tldSetting = await fetchTldSettingById(input.id);
             if (!tldSetting) {
@@ -315,6 +342,9 @@ export const tldSettingsRouter = router({
                     code: "NOT_FOUND",
                     message: "TLD setting not found",
                 });
+            }
+            if (!isAgencyUserRole(actor.role) && tldSetting.userId !== actor.userId) {
+                throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this TLD setting" });
             }
             return {
                 success: true,
@@ -339,12 +369,16 @@ export const tldSettingsRouter = router({
         success: z.boolean(),
         data: tldSettingResponseSchema.nullable(),
     }))
-        .query(async () => {
+        .query(async ({ ctx }) => {
+        const actor = getActor(ctx);
         try {
+            const defaultWhere = isAgencyUserRole(actor.role)
+                ? eq(tldSettings.isDefault, true)
+                : and(eq(tldSettings.isDefault, true), eq(tldSettings.userId, actor.userId));
             const [defaultRow] = await db
                 .select({ id: tldSettings.id })
                 .from(tldSettings)
-                .where(eq(tldSettings.isDefault, true))
+                .where(defaultWhere)
                 .limit(1);
             const defaultSetting = defaultRow ? await fetchTldSettingById(defaultRow.id) : null;
             return {
@@ -365,9 +399,13 @@ export const tldSettingsRouter = router({
     list: protectedProcedure
         .input(listTldSettingsSchema)
         .output(tldSettingListResponseSchema)
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        const actor = getActor(ctx);
         try {
             const conditions = [];
+            if (!isAgencyUserRole(actor.role)) {
+                conditions.push(eq(tldSettings.userId, actor.userId));
+            }
             if (input.search) {
                 conditions.push(ilike(tldSettings.name, `%${input.search}%`));
             }
@@ -438,11 +476,11 @@ export const tldSettingsRouter = router({
         const { session } = ctx;
         const userId = session.user.id;
         try {
-            // Check if TLD setting exists and belongs to user
+            // Check if TLD setting exists and actor can mutate it
             const [existingTld] = await db
                 .select()
                 .from(tldSettings)
-                .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+                .where(eq(tldSettings.id, input.id))
                 .limit(1);
             if (!existingTld) {
                 throw new TRPCError({
@@ -450,6 +488,11 @@ export const tldSettingsRouter = router({
                     message: "TLD setting not found",
                 });
             }
+            ensureOwnerOrSuperAdmin({
+                ownerUserId: existingTld.userId,
+                actorUserId: actor.userId,
+                actorRole: actor.role,
+            });
             // Validate margin fields based on margin type
             const marginType = input.marginType ?? existingTld.marginType;
             if (marginType === "PERCENTAGE" && !input.percentageMargin && !existingTld.percentageMargin) {
@@ -466,10 +509,13 @@ export const tldSettingsRouter = router({
             }
             // Validate nameserver group if provided
             if (input.nameserverGroupId) {
+                const groupScope = isAgencySuperAdminRole(actor.role)
+                    ? eq(nameserverGroup.id, input.nameserverGroupId)
+                    : and(eq(nameserverGroup.id, input.nameserverGroupId), eq(nameserverGroup.userId, userId));
                 const [groupRow] = await db
                     .select({ id: nameserverGroup.id })
                     .from(nameserverGroup)
-                    .where(and(eq(nameserverGroup.id, input.nameserverGroupId), eq(nameserverGroup.userId, userId)))
+                    .where(groupScope)
                     .limit(1);
                 if (!groupRow) {
                     throw new TRPCError({
@@ -517,7 +563,7 @@ export const tldSettingsRouter = router({
                 await tx
                     .update(tldSettings)
                     .set(updateData)
-                    .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)));
+                    .where(eq(tldSettings.id, input.id));
                 await tx.insert(tldSettingsActivityLog).values({
                     id: crypto.randomUUID(),
                     userId,
@@ -561,14 +607,14 @@ export const tldSettingsRouter = router({
         message: z.string(),
     }))
         .mutation(async ({ ctx, input }) => {
-        const { session } = ctx;
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         try {
-            // Check if TLD setting exists and belongs to user
+            // Check if TLD setting exists and actor can mutate it
             const [existingTld] = await db
                 .select()
                 .from(tldSettings)
-                .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+                .where(eq(tldSettings.id, input.id))
                 .limit(1);
             if (!existingTld) {
                 throw new TRPCError({
@@ -576,11 +622,16 @@ export const tldSettingsRouter = router({
                     message: "TLD setting not found",
                 });
             }
+            ensureOwnerOrSuperAdmin({
+                ownerUserId: existingTld.userId,
+                actorUserId: actor.userId,
+                actorRole: actor.role,
+            });
             const now = new Date();
             await db.transaction(async (tx) => {
                 await tx
                     .delete(tldSettings)
-                    .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)));
+                    .where(eq(tldSettings.id, input.id));
                 await tx.insert(tldSettingsActivityLog).values({
                     id: crypto.randomUUID(),
                     userId,
@@ -614,20 +665,22 @@ export const tldSettingsRouter = router({
         .input(getActivityLogsSchema)
         .output(activityLogsResponseSchema)
         .query(async ({ ctx, input }) => {
-        const { session } = ctx;
-        const userId = session.user.id;
+        const actor = getActor(ctx);
         try {
-            // Check if TLD setting exists and belongs to user
+            // Check if TLD setting exists and actor can read it
             const [existingTld] = await db
-                .select({ id: tldSettings.id })
+                .select({ id: tldSettings.id, userId: tldSettings.userId })
                 .from(tldSettings)
-                .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+                .where(eq(tldSettings.id, input.id))
                 .limit(1);
             if (!existingTld) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "TLD setting not found",
                 });
+            }
+            if (!isAgencyUserRole(actor.role) && existingTld.userId !== actor.userId) {
+                throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this TLD setting" });
             }
             const [logs, totalRes] = await Promise.all([
                 db
@@ -673,25 +726,32 @@ export const tldSettingsRouter = router({
         message: z.string(),
     }))
         .mutation(async ({ ctx, input }) => {
-        const { session } = ctx;
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         try {
-            // Check if all TLD settings exist and belong to user
+            // Check if all TLD settings exist and actor can mutate them
             const existingTlds = await db
-                .select({ id: tldSettings.id, name: tldSettings.name })
+                .select({ id: tldSettings.id, name: tldSettings.name, userId: tldSettings.userId })
                 .from(tldSettings)
-                .where(and(inArray(tldSettings.id, input.ids), eq(tldSettings.userId, userId)));
+                .where(inArray(tldSettings.id, input.ids));
             if (existingTlds.length !== input.ids.length) {
                 throw new TRPCError({
                     code: "NOT_FOUND",
                     message: "One or more TLD settings not found",
                 });
             }
+            for (const tld of existingTlds) {
+                ensureOwnerOrSuperAdmin({
+                    ownerUserId: tld.userId,
+                    actorUserId: actor.userId,
+                    actorRole: actor.role,
+                });
+            }
             const now = new Date();
             await db.transaction(async (tx) => {
                 await tx
                     .delete(tldSettings)
-                    .where(and(inArray(tldSettings.id, input.ids), eq(tldSettings.userId, userId)));
+                    .where(inArray(tldSettings.id, input.ids));
                 await tx.insert(tldSettingsActivityLog).values(existingTlds.map((tld) => ({
                     id: crypto.randomUUID(),
                     userId,
@@ -728,14 +788,14 @@ export const tldSettingsRouter = router({
         data: tldSettingResponseSchema,
     }))
         .mutation(async ({ ctx, input }) => {
-        const { session } = ctx;
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         try {
-            // Check if TLD setting exists and belongs to user
+            // Check if TLD setting exists and actor can mutate it
             const [existingTldSetting] = await db
-                .select({ id: tldSettings.id, name: tldSettings.name })
+                .select({ id: tldSettings.id, name: tldSettings.name, userId: tldSettings.userId })
                 .from(tldSettings)
-                .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)))
+                .where(eq(tldSettings.id, input.id))
                 .limit(1);
             if (!existingTldSetting) {
                 throw new TRPCError({
@@ -743,16 +803,23 @@ export const tldSettingsRouter = router({
                     message: "TLD setting not found",
                 });
             }
+            ensureOwnerOrSuperAdmin({
+                ownerUserId: existingTldSetting.userId,
+                actorUserId: actor.userId,
+                actorRole: actor.role,
+            });
             const now = new Date();
             await db.transaction(async (tx) => {
                 await tx
                     .update(tldSettings)
                     .set({ isDefault: false, updatedAt: now })
-                    .where(and(eq(tldSettings.userId, userId), eq(tldSettings.isDefault, true)));
+                    .where(isAgencySuperAdminRole(actor.role)
+                    ? eq(tldSettings.isDefault, true)
+                    : and(eq(tldSettings.userId, userId), eq(tldSettings.isDefault, true)));
                 await tx
                     .update(tldSettings)
                     .set({ isDefault: true, updatedAt: now })
-                    .where(and(eq(tldSettings.id, input.id), eq(tldSettings.userId, userId)));
+                    .where(eq(tldSettings.id, input.id));
                 await tx.insert(tldSettingsActivityLog).values({
                     id: crypto.randomUUID(),
                     userId,

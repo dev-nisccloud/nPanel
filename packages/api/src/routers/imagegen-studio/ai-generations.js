@@ -7,6 +7,8 @@ import { imageGenAiGeneration, imageGenAiGenerationActivityLog, } from "@npanel/
 import { protectedProcedure, router } from "../../trpc";
 import { getAiGenerationsSchema, deleteAiGenerationSchema, getAiGenerationsResponseSchema, imageGenAiGenerationSchema, } from "./schemas";
 import { getUserTeamIds, orUserOrTeamMember, personalScope } from "./team-scope";
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
 /**
  * Transform function to ensure clean data (no ORM types leak)
  */
@@ -46,6 +48,7 @@ export const imageGenAiGenerationsRouter = router({
         .output(getAiGenerationsResponseSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
@@ -53,10 +56,18 @@ export const imageGenAiGenerationsRouter = router({
         const userTeamIds = await getUserTeamIds(userId);
         let whereCond;
         if (teamId) {
-            if (!userTeamIds.includes(teamId)) {
-                return { data: [], nextPage: null };
+            if (isAgencyUserRole(userRole)) {
+                whereCond = eq(imageGenAiGeneration.teamId, teamId);
             }
-            whereCond = eq(imageGenAiGeneration.teamId, teamId);
+            else {
+                if (!userTeamIds.includes(teamId)) {
+                    return { data: [], nextPage: null };
+                }
+                whereCond = eq(imageGenAiGeneration.teamId, teamId);
+            }
+        }
+        else if (isAgencyUserRole(userRole)) {
+            whereCond = undefined;
         }
         else {
             whereCond = personalScope(imageGenAiGeneration.userId, imageGenAiGeneration.teamId, userId);
@@ -77,7 +88,7 @@ export const imageGenAiGenerationsRouter = router({
             updatedAt: imageGenAiGeneration.updatedAt,
         })
             .from(imageGenAiGeneration)
-            .where(whereCond)
+            .where(whereCond ?? undefined)
             .orderBy(desc(imageGenAiGeneration.createdAt))
             .limit(limit)
             .offset((page - 1) * limit);
@@ -91,6 +102,7 @@ export const imageGenAiGenerationsRouter = router({
         .output(z.object({ data: z.object({ id: z.string() }) }))
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
@@ -98,10 +110,13 @@ export const imageGenAiGenerationsRouter = router({
         const userAgent = undefined;
         const userTeamIds = await getUserTeamIds(userId);
         const existingGeneration = await db.query.imageGenAiGeneration.findFirst({
-            where: and(eq(imageGenAiGeneration.id, input.id), orUserOrTeamMember(imageGenAiGeneration.userId, imageGenAiGeneration.teamId, userId, userTeamIds)),
+            where: eq(imageGenAiGeneration.id, input.id),
         });
         if (!existingGeneration) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && existingGeneration.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the generation owner can delete it" });
         }
         await db.insert(imageGenAiGenerationActivityLog).values({
             id: randomUUID(),

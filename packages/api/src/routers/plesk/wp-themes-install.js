@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 async function installWpTheme(installationId, theme) {
     const endpoint = `/v1/installations/${installationId}/themes`;
     const { data, isAuthError, isHostUnreachable, statusCode } = await sendPleskRestRequest(endpoint, 'POST', theme);
@@ -16,7 +16,7 @@ async function installWpTheme(installationId, theme) {
     return data;
 }
 export const wpThemesInstallRouter = router({
-    install: publicProcedure
+    install: protectedProcedure
         .input(z.object({ installationId: z.number(), slug: z.string(), status: z.boolean().default(true) }))
         .mutation(async ({ input }) => {
         const data = await installWpTheme(input.installationId, { slug: input.slug, status: input.status });

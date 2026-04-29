@@ -102,6 +102,7 @@ const getAuthenticatedUser = async (session) => {
     return dbUser;
 };
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
 const getAccessibleTeamIds = async (userId) => {
     const memberships = await db
         .select({ teamId: teamMember.teamId })
@@ -109,7 +110,7 @@ const getAccessibleTeamIds = async (userId) => {
         .where(eq(teamMember.userId, userId));
     return memberships.map((membership) => membership.teamId);
 };
-const ensureTeamAccess = async (teamId, userId, role) => {
+const ensureTeamReadAccess = async (teamId, userId, role) => {
     if (isAgencyUser(role)) {
         return;
     }
@@ -123,6 +124,31 @@ const ensureTeamAccess = async (teamId, userId, role) => {
             code: "FORBIDDEN",
             message: "You do not have access to this team.",
         });
+    }
+};
+const ensureTeamMutationAccess = async (teamId, userId, role) => {
+    if (isAgencySuperAdmin(role)) {
+        return;
+    }
+    const [teamRow] = await db
+        .select({ createdById: team.createdById })
+        .from(team)
+        .where(eq(team.id, teamId))
+        .limit(1);
+    if (!teamRow) {
+        throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Team not found.",
+        });
+    }
+    if (isAgencyUser(role) && teamRow.createdById !== userId) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the team owner can modify billing settings.",
+        });
+    }
+    if (!isAgencyUser(role)) {
+        await ensureTeamReadAccess(teamId, userId, role);
     }
 };
 /** Drizzle relation is `many`; DB enforces one row per team via unique teamId. */
@@ -202,7 +228,7 @@ export const teamBillingRouter = router({
         .output(billingSettingsOutputSchema.nullable())
         .query(async ({ ctx, input }) => {
         const userRes = await getAuthenticatedUser(ctx.session);
-        await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
+        await ensureTeamReadAccess(input.teamId, userRes.id, userRes.role);
         const [settings] = await db
             .select()
             .from(teamBillingSettings)
@@ -218,7 +244,7 @@ export const teamBillingRouter = router({
         .output(billingSettingsOutputSchema)
         .mutation(async ({ ctx, input }) => {
         const userRes = await getAuthenticatedUser(ctx.session);
-        await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
+        await ensureTeamMutationAccess(input.teamId, userRes.id, userRes.role);
         const [existing] = await db
             .select()
             .from(teamBillingSettings)
@@ -303,7 +329,7 @@ export const teamBillingRouter = router({
         .output(z.array(billingSettingsActivityLogSchema))
         .query(async ({ ctx, input }) => {
         const userRes = await getAuthenticatedUser(ctx.session);
-        await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
+        await ensureTeamReadAccess(input.teamId, userRes.id, userRes.role);
         const [settings] = await db
             .select({ id: teamBillingSettings.id })
             .from(teamBillingSettings)
@@ -332,7 +358,7 @@ export const teamBillingRouter = router({
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
         const userRes = await getAuthenticatedUser(ctx.session);
-        await ensureTeamAccess(input.teamId, userRes.id, userRes.role);
+        await ensureTeamMutationAccess(input.teamId, userRes.id, userRes.role);
         const [settings] = await db
             .select({ id: teamBillingSettings.id })
             .from(teamBillingSettings)

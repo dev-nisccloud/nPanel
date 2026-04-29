@@ -4,12 +4,28 @@ import { z } from "zod";
 import { getSesSendQuotaSnapshot } from "../../lib/ses-quota";
 import { getSesClient, buildEasyDkimDnsRecords, } from "../../lib/ses-client";
 import { db, eq, inArray } from "@npanel/db";
-import { niscEmDomain, team } from "@npanel/db/schema";
+import { and } from "@npanel/db";
+import { niscEmDomain, team, teamMember } from "@npanel/db/schema";
 import { randomUUID } from "node:crypto";
+function isAgencyUserRole(role) {
+    return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+}
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
+function assertAgencyReadAccess(role) {
+    if (!isAgencyUserRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency users can access SES usage data",
+        });
+    }
+}
 export const niscEmailMarketingSesUsageRouter = router({
     quotaLive: protectedProcedure
         .input(z.object({}).default({}))
-        .query(async () => {
+        .query(async ({ ctx }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const quota = await getSesSendQuotaSnapshot();
         return {
             maxSendRate: quota.maxSendRate,
@@ -25,6 +41,7 @@ export const niscEmailMarketingSesUsageRouter = router({
     })
         .default({}))
         .query(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const ses = getSesClient();
         // SES classic API supports listing identities (domains + emails).
         // We only want domains here.
@@ -94,7 +111,8 @@ export const niscEmailMarketingSesUsageRouter = router({
     }),
     verifyDomainLive: protectedProcedure
         .input(z.object({ domainName: z.string().min(1) }))
-        .mutation(async ({ input }) => {
+        .mutation(async ({ ctx, input }) => {
+        assertAgencyReadAccess(ctx.session?.user?.role);
         const ses = getSesClient();
         const domainName = input.domainName.trim().toLowerCase();
         const attrs = await ses.getIdentityDkimAttributes({ Identities: [domainName] });
@@ -132,7 +150,7 @@ export const niscEmailMarketingSesUsageRouter = router({
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
         const role = ctx.session?.user?.role;
-        if (role !== "AGENCY_ADMIN" && role !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyUserRole(role)) {
             throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to connect domains" });
         }
         const domainName = input.domainName.trim().toLowerCase();
@@ -147,6 +165,19 @@ export const niscEmailMarketingSesUsageRouter = router({
             const [t] = await db.select({ id: team.id }).from(team).where(eq(team.id, teamId)).limit(1);
             if (!t)
                 throw new TRPCError({ code: "BAD_REQUEST", message: "Team not found" });
+            if (!isAgencySuperAdminRole(role)) {
+                const [ownerOrMember] = await db
+                    .select({ id: teamMember.id })
+                    .from(teamMember)
+                    .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+                    .limit(1);
+                if (!ownerOrMember) {
+                    throw new TRPCError({
+                        code: "FORBIDDEN",
+                        message: "You do not have access to this team",
+                    });
+                }
+            }
         }
         const dkimStatus = entry.DkimVerificationStatus ?? "NotStarted";
         const dkimTokens = entry.DkimTokens ?? [];
@@ -193,12 +224,21 @@ export const niscEmailMarketingSesUsageRouter = router({
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
         const role = ctx.session?.user?.role;
-        if (role !== "AGENCY_ADMIN" && role !== "AGENCY_SUPER_ADMIN") {
+        if (!isAgencyUserRole(role)) {
             throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to disconnect domains" });
         }
         const domainName = input.domainName.trim().toLowerCase();
+        const [domain] = await db.select().from(niscEmDomain).where(eq(niscEmDomain.domainName, domainName)).limit(1);
+        if (!domain)
+            return { ok: true };
+        if (!isAgencySuperAdminRole(role) && domain.userId !== userId) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the domain creator can disconnect it",
+            });
+        }
         // Remove from DB only (do NOT delete SES identity)
-        await db.delete(niscEmDomain).where(eq(niscEmDomain.domainName, domainName));
+        await db.delete(niscEmDomain).where(eq(niscEmDomain.id, domain.id));
         return { ok: true };
     }),
 });

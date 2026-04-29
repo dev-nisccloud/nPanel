@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, ilike, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscClientSubscription, niscProduct, niscProductAddOn, niscProductPlan, niscProductPlanUsage, } from "@npanel/db/schema/products";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { getCached, setCached, invalidateProductsCache, listKey, idKey, addonsKey, hostingUpsellKey, } from "../lib/products-cache";
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -314,6 +314,38 @@ function getSearchTermsForMarketplaceSlug(slug) {
         return terms;
     return [normalized.replace(/-/g, " ")];
 }
+function isAgencyUserRole(role) {
+    return role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+}
+function isAgencySuperAdminRole(role) {
+    return role === "AGENCY_SUPER_ADMIN";
+}
+function getAuthenticatedActor(ctx) {
+    const user = ctx.session?.user;
+    if (!user?.id) {
+        throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "You must be logged in",
+        });
+    }
+    return { userId: user.id, role: user.role ?? null };
+}
+function assertAgencyReadAccess(role) {
+    if (!isAgencyUserRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency users can access this resource",
+        });
+    }
+}
+function assertAgencySuperAdminMutationAccess(role) {
+    if (!isAgencySuperAdminRole(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency super admins can modify this resource",
+        });
+    }
+}
 // ============================================================================
 // ROUTER
 // ============================================================================
@@ -324,13 +356,8 @@ export const productsRouter = router({
         .input(getProductsInputSchema.optional())
         .output(z.array(productOutputSchema))
         .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const cacheInput = input ? { category: input.category, serviceType: input.serviceType, isActive: input.isActive } : undefined;
         const cached = await getCached(listKey(cacheInput));
         if (cached != null)
@@ -358,13 +385,8 @@ export const productsRouter = router({
     getById: protectedProcedure
         .input(getProductByIdInputSchema)
         .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const cached = await getCached(idKey(input.id, input.includePlans));
         if (cached != null)
             return cached;
@@ -405,13 +427,8 @@ export const productsRouter = router({
         plans: z.array(z.unknown()),
     })))
         .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const cached = await getCached(addonsKey(input.baseProductId));
         if (cached != null)
             return cached;
@@ -446,13 +463,8 @@ export const productsRouter = router({
         plans: z.array(z.unknown()),
     })))
         .query(async ({ ctx }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const cached = await getCached(hostingUpsellKey());
         if (cached != null)
             return cached;
@@ -477,7 +489,7 @@ export const productsRouter = router({
         return result;
     }),
     /** Get plans for pricing table from products named "web hosting" or "website hosting" (case-insensitive). Returns product-level feature list (table rows) and plans with per-feature values (enabled + valueOverride exactly as stored, no number conversion). */
-    getHostingPlansForPricing: protectedProcedure
+    getHostingPlansForPricing: publicProcedure
         .output(z.object({
         productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
         plans: z.array(z.object({
@@ -496,14 +508,7 @@ export const productsRouter = router({
             })),
         })),
     }))
-        .query(async ({ ctx }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view plans",
-            });
-        }
+        .query(async () => {
         const products = await db.query.niscProduct.findMany({
             where: and(eq(niscProduct.isActive, true), or(ilike(niscProduct.name, "%web hosting%"), ilike(niscProduct.name, "%website hosting%"))),
             orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
@@ -560,7 +565,7 @@ export const productsRouter = router({
         return { productFeatures, plans };
     }),
     /** Get plans for pricing table from products named "email hosting" (case-insensitive). Same shape as getHostingPlansForPricing. */
-    getEmailHostingPlansForPricing: protectedProcedure
+    getEmailHostingPlansForPricing: publicProcedure
         .output(z.object({
         productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
         plans: z.array(z.object({
@@ -579,14 +584,7 @@ export const productsRouter = router({
             })),
         })),
     }))
-        .query(async ({ ctx }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view plans",
-            });
-        }
+        .query(async () => {
         const products = await db.query.niscProduct.findMany({
             where: and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%email hosting%")),
             orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
@@ -640,8 +638,83 @@ export const productsRouter = router({
         }
         return { productFeatures, plans };
     }),
+    /**
+     * Plans for the Nisc Email Marketing customer app pricing table. Matches products named
+     * "Nisc Email Marketing" or "Email Marketing" (case-insensitive, substring). Same output shape
+     * as getHostingPlansForPricing.
+     */
+    getNiscEmailMarketingPlansForPricing: publicProcedure
+        .output(z.object({
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        plans: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            niscPrice: z.string().nullable(),
+            niscCurrency: z.string(),
+            billingCycle: z.string(),
+            isPopular: z.boolean(),
+            isRecommended: z.boolean(),
+            productId: z.string(),
+            productName: z.string(),
+            featureValues: z.array(z.object({
+                available: z.boolean(),
+                valueOverride: z.string().nullable(),
+            })),
+        })),
+    }))
+        .query(async () => {
+        const products = await db.query.niscProduct.findMany({
+            where: and(eq(niscProduct.isActive, true), or(ilike(niscProduct.name, "%nisc email marketing%"), ilike(niscProduct.name, "%email marketing%"))),
+            orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+            with: {
+                plans: {
+                    where: and(eq(niscProductPlan.isActive, true), eq(niscProductPlan.pricingModel, "FIXED")),
+                    orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
+                },
+            },
+        });
+        const seenKeys = new Set();
+        const productFeatures = [];
+        for (const p of products) {
+            const features = p.features ?? [];
+            for (const f of features) {
+                if (!seenKeys.has(f.key)) {
+                    seenKeys.add(f.key);
+                    productFeatures.push(f);
+                }
+            }
+        }
+        const plans = [];
+        for (const product of products) {
+            for (const plan of product.plans ?? []) {
+                const planFeats = plan.planFeatures ?? [];
+                const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                const featureValues = productFeatures.map((pf) => {
+                    const entry = planFeatsByKey.get(pf.key);
+                    const available = !!entry?.available;
+                    const valueOverride = entry?.valueOverride != null && entry.valueOverride !== ""
+                        ? String(entry.valueOverride)
+                        : null;
+                    return { available, valueOverride };
+                });
+                plans.push({
+                    id: plan.id,
+                    name: plan.name,
+                    niscPrice: plan.price ?? null,
+                    niscCurrency: plan.currency ?? "KES",
+                    billingCycle: plan.billingCycle ?? "MONTHLY",
+                    isPopular: plan.isPopular ?? false,
+                    isRecommended: plan.isRecommended ?? false,
+                    productId: product.id,
+                    productName: product.name,
+                    featureValues,
+                });
+            }
+        }
+        return { productFeatures, plans };
+    }),
     /** Get plans for pricing by marketplace slug. Searches products by name using slug-derived or predefined search terms (e.g. website-hosting → "website hosting", "web hosting"). Same output shape as getHostingPlansForPricing. */
-    getPlansForPricingBySlug: protectedProcedure
+    getPlansForPricingBySlug: publicProcedure
         .input(z.object({ slug: z.string().min(1) }))
         .output(z.object({
         productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
@@ -661,14 +734,7 @@ export const productsRouter = router({
             })),
         })),
     }))
-        .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view plans",
-            });
-        }
+        .query(async ({ input }) => {
         const slug = input.slug.trim().toLowerCase();
         const searchTerms = getSearchTermsForMarketplaceSlug(slug);
         const nameMatch = or(...searchTerms.map((term) => ilike(niscProduct.name, `%${term}%`)));
@@ -730,13 +796,8 @@ export const productsRouter = router({
         .input(createProductInputSchema)
         .output(productOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to create products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         const id = randomUUID();
         const [product] = await db
             .insert(niscProduct)
@@ -767,13 +828,8 @@ export const productsRouter = router({
         .input(updateProductInputSchema)
         .output(productOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to update products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         const existing = await db.query.niscProduct.findFirst({
             where: eq(niscProduct.id, input.id),
         });
@@ -817,13 +873,8 @@ export const productsRouter = router({
         .input(deleteProductInputSchema)
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to delete products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         const existing = await db.query.niscProduct.findFirst({
             where: eq(niscProduct.id, input.id),
         });
@@ -856,13 +907,8 @@ export const productsRouter = router({
         .input(z.object({ productId: z.string() }))
         .output(z.string().nullable())
         .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view products",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const rows = await db
             .select({ id: niscProductPlan.id })
             .from(niscProductPlan)
@@ -877,13 +923,8 @@ export const productsRouter = router({
         .input(getPlanByIdInputSchema)
         .output(planOutputSchema)
         .query(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to view plans",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const plan = await db.query.niscProductPlan.findFirst({
             where: eq(niscProductPlan.id, input.id),
         });
@@ -897,13 +938,8 @@ export const productsRouter = router({
         .input(createPlanInputSchema)
         .output(planOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to create plans",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         // Ensure product exists and fetch its feature master list
         const product = await db.query.niscProduct.findFirst({
             where: eq(niscProduct.id, input.productId),
@@ -964,13 +1000,8 @@ export const productsRouter = router({
         .input(updatePlanInputSchema)
         .output(planOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to update plans",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         const existing = await db.query.niscProductPlan.findFirst({
             where: eq(niscProductPlan.id, input.id),
             with: { product: true },
@@ -1069,13 +1100,8 @@ export const productsRouter = router({
         .input(deletePlanInputSchema)
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
-        const session = ctx.session;
-        if (!session?.user?.id) {
-            throw new TRPCError({
-                code: "UNAUTHORIZED",
-                message: "You must be logged in to delete plans",
-            });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         const existing = await db.query.niscProductPlan.findFirst({
             where: eq(niscProductPlan.id, input.id),
         });
@@ -1094,9 +1120,8 @@ export const productsRouter = router({
         .input(listPlanUsagesInputSchema.optional())
         .output(z.array(planUsageOutputSchema))
         .query(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
-            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const usageConditions = [];
         if (input?.productId) {
             usageConditions.push(eq(niscProductPlanUsage.productId, input.productId));
@@ -1122,9 +1147,8 @@ export const productsRouter = router({
         .input(z.object({ id: z.string() }))
         .output(planUsageOutputSchema)
         .query(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
-            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencyReadAccess(actor.role);
         const row = await db.query.niscProductPlanUsage.findFirst({
             where: eq(niscProductPlanUsage.id, input.id),
         });
@@ -1136,9 +1160,8 @@ export const productsRouter = router({
         .input(createPlanUsageInputSchema)
         .output(planUsageOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
-            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         const product = await db.query.niscProduct.findFirst({
             where: eq(niscProduct.id, input.productId),
         });
@@ -1176,9 +1199,8 @@ export const productsRouter = router({
         .input(updatePlanUsageInputSchema)
         .output(planUsageOutputSchema)
         .mutation(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
-            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         const existing = await db.query.niscProductPlanUsage.findFirst({
             where: eq(niscProductPlanUsage.id, input.id),
         });
@@ -1211,9 +1233,8 @@ export const productsRouter = router({
         .input(z.object({ id: z.string() }))
         .output(z.object({ success: z.boolean() }))
         .mutation(async ({ ctx, input }) => {
-        if (!ctx.session?.user?.id) {
-            throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
-        }
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
         await db
             .delete(niscProductPlanUsage)
             .where(eq(niscProductPlanUsage.id, input.id));

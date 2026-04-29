@@ -4,12 +4,23 @@ import { randomUUID } from "node:crypto";
 import Replicate from "replicate";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
+import { teamMember } from "@npanel/db/schema/teams";
 import { imageGeneratorGeneration, imageGeneratorGenerationActivityLog, imageGeneratorVariation, } from "@npanel/db/schema/image-generator";
 import { protectedProcedure, router } from "../../trpc";
 import { z } from "zod";
 import { generateImageSchema, startGenerationSchema, startGenerationResponseSchema, updateVariationAfterUploadSchema, getGenerationsSchema, deleteGenerationSchema, getGenerationsResponseSchema, imageGeneratorVariationSchema, imageGeneratorGenerationSchema, generationStatusSchema, variationStatusSchema, getGenerationByIdSchema, } from "./schemas";
 import { enqueueImageGeneration } from "../../lib/qstash/image-generator";
 import { getAiImageGeneratorCreditsForTeam } from "../../lib/image-generator-credits";
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
+async function isTeamMemberUser(teamId, userId) {
+    const [membership] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+        .limit(1);
+    return Boolean(membership);
+}
 const replicate = new Replicate({
     auth: process.env.REPLICATE_API_TOKEN,
 });
@@ -169,6 +180,7 @@ export const imageGeneratorRouter = router({
         .output(startGenerationResponseSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
@@ -185,6 +197,13 @@ export const imageGeneratorRouter = router({
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "Team is required for customer image generation.",
+                });
+            }
+            const hasMembership = await isTeamMemberUser(input.teamId, userId);
+            if (!hasMembership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team.",
                 });
             }
             const creditsResult = await getAiImageGeneratorCreditsForTeam(input.teamId);
@@ -472,6 +491,7 @@ export const imageGeneratorRouter = router({
         .input(updateVariationAfterUploadSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
@@ -482,9 +502,12 @@ export const imageGeneratorRouter = router({
                 imageGeneratorGeneration: true,
             },
         });
-        if (!variation ||
-            variation.imageGeneratorGeneration.userId !== userId) {
+        if (!variation) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Variation not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) &&
+            variation.imageGeneratorGeneration.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the generation owner can modify it" });
         }
         await db
             .update(imageGeneratorVariation)
@@ -505,15 +528,34 @@ export const imageGeneratorRouter = router({
         .output(getGenerationsResponseSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
-        const whereCond = input.teamId
-            ? and(eq(imageGeneratorGeneration.userId, userId), eq(imageGeneratorGeneration.teamId, input.teamId))
-            : eq(imageGeneratorGeneration.userId, userId);
+        let whereCond;
+        if (input.teamId) {
+            if (!isAgencyUserRole(userRole) && !(await isTeamMemberUser(input.teamId, userId))) {
+                return {
+                    data: [],
+                    pagination: {
+                        page: input.page,
+                        limit: input.limit,
+                        total: 0,
+                        totalPages: 0,
+                    },
+                };
+            }
+            whereCond = eq(imageGeneratorGeneration.teamId, input.teamId);
+        }
+        else if (isAgencyUserRole(userRole)) {
+            whereCond = undefined;
+        }
+        else {
+            whereCond = eq(imageGeneratorGeneration.userId, userId);
+        }
         const [generations, totalResult] = await Promise.all([
             db.query.imageGeneratorGeneration.findMany({
-                where: whereCond,
+                where: whereCond ?? undefined,
                 with: {
                     variations: {
                         orderBy: (v, { asc: ascFn }) => [ascFn(v.variationIndex)],
@@ -526,7 +568,7 @@ export const imageGeneratorRouter = router({
             db
                 .select({ total: count() })
                 .from(imageGeneratorGeneration)
-                .where(whereCond),
+                .where(whereCond ?? undefined),
         ]);
         const total = Number(totalResult[0]?.total ?? 0);
         // Transform DB rows to clean API response
@@ -546,11 +588,12 @@ export const imageGeneratorRouter = router({
         .output(imageGeneratorGenerationSchema)
         .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         const generation = await db.query.imageGeneratorGeneration.findFirst({
-            where: and(eq(imageGeneratorGeneration.id, input.id), eq(imageGeneratorGeneration.userId, userId)),
+            where: eq(imageGeneratorGeneration.id, input.id),
             with: {
                 variations: {
                     orderBy: (v, { asc: ascFn }) => [ascFn(v.variationIndex)],
@@ -563,6 +606,14 @@ export const imageGeneratorRouter = router({
                 message: "Generation not found",
             });
         }
+        if (!isAgencyUserRole(userRole) &&
+            generation.userId !== userId &&
+            !(generation.teamId && (await isTeamMemberUser(generation.teamId, userId)))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this generation",
+            });
+        }
         return transformGeneration(generation);
     }),
     // Delete generation
@@ -570,15 +621,19 @@ export const imageGeneratorRouter = router({
         .input(deleteGenerationSchema)
         .mutation(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
         if (!userId) {
             throw new TRPCError({ code: "UNAUTHORIZED" });
         }
         // Verify ownership
         const generation = await db.query.imageGeneratorGeneration.findFirst({
-            where: and(eq(imageGeneratorGeneration.id, input.id), eq(imageGeneratorGeneration.userId, userId)),
+            where: eq(imageGeneratorGeneration.id, input.id),
         });
         if (!generation) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Generation not found" });
+        }
+        if (!isAgencySuperAdminRole(userRole) && generation.userId !== userId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Only the generation owner can delete it" });
         }
         await db.insert(imageGeneratorGenerationActivityLog).values({
             id: randomUUID(),

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { request, Agent } from 'undici';
-import { publicProcedure, router } from '../../trpc';
+import { protectedProcedure, router } from '../../trpc';
 const PLESK_REST_ENDPOINT_V2 = process.env.PLESK_REST_ENDPOINT_V2 ??
     (process.env.PLESK_REST_ENDPOINT
         ? process.env.PLESK_REST_ENDPOINT.replace('/api/modules/wp-toolkit', '') + '/api/v2'
@@ -78,7 +78,7 @@ async function sendPleskV2Request(endpoint, method = 'GET', body) {
 }
 export const wpInstallRouter = router({
     // Install WordPress via CLI endpoint
-    install: publicProcedure
+    install: protectedProcedure
         .input(z.object({
         domainName: z.string().min(1, "Domain name is required"),
         username: z.string().min(1, "Username is required"),

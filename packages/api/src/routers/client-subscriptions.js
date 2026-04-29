@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, gte, ilike, inArray, lte, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
-import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { niscClientSubscription, niscClientSubscriptionActivityLog, niscClientSubscriptionRenewal, niscCommissionEntry, niscProduct, niscProductPlan, } from "@npanel/db/schema/products";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
@@ -37,6 +36,7 @@ const hostingTypeSchema = z.enum([
     "DEDICATED_HOSTING",
 ]);
 const renewalTypeSchema = z.enum(["FIXED_BILLING", "DOMAIN", "HOSTING"]);
+const adAccountPlatformSchema = z.enum(["META_ADS", "GOOGLE_ADS", "LINKEDIN_ADS", "INSTAGRAM_ADS"]);
 const commissionEntryStatusSchema = z.enum([
     "DRAFT",
     "INVOICED",
@@ -221,6 +221,47 @@ const updateCommissionEntryInputSchema = z.object({
     invoiceId: z.string().optional(),
     notes: z.string().optional(),
 });
+const mediaBuyingProductOutputSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    plans: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        pricingModel: pricingModelSchema,
+        billingCycle: billingCycleSchema.nullable(),
+        price: z.string().nullable(),
+        currency: z.string().nullable(),
+        agreedCommissionRate: z.number().nullable(),
+        agreedCommissionBase: z.string().nullable(),
+    })),
+});
+const adAccountLinkLookupInputSchema = z.object({
+    platform: adAccountPlatformSchema,
+    accountId: z.string().min(1),
+});
+const adAccountLinkLookupOutputSchema = z.object({
+    hasLinkedSubscription: z.boolean(),
+    subscriptionId: z.string().nullable(),
+    teamId: z.string().nullable(),
+    teamName: z.string().nullable(),
+});
+const linkedAdAccountsForTeamInputSchema = z.object({
+    teamSlug: z.string().min(1),
+    platform: adAccountPlatformSchema,
+});
+const linkedAdAccountItemSchema = z.object({
+    accountId: z.string(),
+    accountName: z.string().nullable(),
+});
+const createMediaBuyingSubscriptionInputSchema = z.object({
+    teamId: z.string().min(1),
+    productPlanId: z.string().min(1),
+    platform: adAccountPlatformSchema,
+    accountId: z.string().min(1),
+    accountName: z.string().optional(),
+    adServingFee: z.string().min(1),
+    adServingFeeCurrency: z.enum(["USD", "EUR", "KES"]),
+});
 // --- Output schemas ----------------------------------------------------------
 const subscriptionOutputSchema = z.object({
     id: z.string(),
@@ -369,6 +410,44 @@ async function isTeamMember(teamId, userId) {
         .limit(1);
     return !!m;
 }
+const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
+async function getMemberTeamIds(userId) {
+    const memberships = await db
+        .select({ teamId: teamMember.teamId })
+        .from(teamMember)
+        .where(eq(teamMember.userId, userId));
+    return memberships.map((m) => m.teamId);
+}
+async function buildSubscriptionReadScope(userId, role) {
+    if (isAgencyUserRole(role))
+        return undefined;
+    const memberTeamIds = await getMemberTeamIds(userId);
+    const clauses = [eq(niscClientSubscription.userId, userId)];
+    if (memberTeamIds.length > 0) {
+        clauses.push(inArray(niscClientSubscription.teamId, memberTeamIds));
+    }
+    return clauses.length === 1 ? clauses[0] : or(...clauses);
+}
+async function canReadSubscription(subscription, userId, role) {
+    if (isAgencyUserRole(role))
+        return true;
+    if (subscription.userId === userId)
+        return true;
+    if (subscription.teamId)
+        return isTeamMember(subscription.teamId, userId);
+    return false;
+}
+async function canAssignTeamSubscription(params) {
+    if (isAgencyUserRole(params.role))
+        return true;
+    return isTeamMember(params.teamId, params.userId);
+}
+function canMutateSubscription(subscription, userId, role) {
+    if (isAgencySuperAdminRole(role))
+        return true;
+    return subscription.userId === userId || subscription.recordedBy === userId;
+}
 // ============================================================================
 // ROUTER
 // ============================================================================
@@ -387,6 +466,9 @@ export const clientSubscriptionsRouter = router({
             });
         }
         const filters = buildListSubscriptionFilters(input);
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+        if (readScope)
+            filters.push(readScope);
         const subs = await db
             .select()
             .from(niscClientSubscription)
@@ -432,8 +514,14 @@ export const clientSubscriptionsRouter = router({
                 return [];
             productIdFilter = ids;
         }
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+        const whereParts = [];
+        if (productIdFilter)
+            whereParts.push(inArray(niscClientSubscription.productId, productIdFilter));
+        if (readScope)
+            whereParts.push(readScope);
         const subs = await db.query.niscClientSubscription.findMany({
-            where: productIdFilter ? inArray(niscClientSubscription.productId, productIdFilter) : undefined,
+            where: whereParts.length ? and(...whereParts) : undefined,
             orderBy: (s, { desc: d }) => [d(s.createdAt)],
             limit: input?.limit ?? 100,
             offset: input?.offset ?? 0,
@@ -499,7 +587,7 @@ export const clientSubscriptionsRouter = router({
                 message: "Team not found",
             });
         }
-        if (!(await isTeamMember(teamId, session.user.id))) {
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have access to this team",
@@ -524,25 +612,12 @@ export const clientSubscriptionsRouter = router({
                 primaryDomain: true,
                 serviceRefs: true,
                 pleskFilterId: true,
-                hostingSubscriptionId: true,
             },
             with: {
                 product: { columns: { name: true } },
                 productPlan: { columns: { name: true } },
             },
         });
-        const hostingSubIds = [...new Set(subs.map((s) => s.hostingSubscriptionId).filter(Boolean))];
-        const hostingPleskMap = new Map();
-        if (hostingSubIds.length > 0) {
-            const hsList = await db
-                .select({ id: hostingSubscription.id, pleskFilterId: hostingSubscription.pleskFilterId })
-                .from(hostingSubscription)
-                .where(inArray(hostingSubscription.id, hostingSubIds));
-            for (const hs of hsList) {
-                if (hs.pleskFilterId)
-                    hostingPleskMap.set(hs.id, hs.pleskFilterId);
-            }
-        }
         return subs.map((sub) => {
             let pleskId = null;
             const refs = sub.serviceRefs;
@@ -551,8 +626,6 @@ export const clientSubscriptionsRouter = router({
             }
             if (!pleskId && sub.pleskFilterId)
                 pleskId = sub.pleskFilterId;
-            if (!pleskId && sub.hostingSubscriptionId)
-                pleskId = hostingPleskMap.get(sub.hostingSubscriptionId) ?? null;
             return {
                 id: sub.id,
                 pleskSubscriptionId: pleskId,
@@ -595,7 +668,7 @@ export const clientSubscriptionsRouter = router({
                 message: "Team not found",
             });
         }
-        if (!(await isTeamMember(teamId, session.user.id))) {
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have access to this team",
@@ -620,25 +693,12 @@ export const clientSubscriptionsRouter = router({
                 primaryDomain: true,
                 serviceRefs: true,
                 pleskFilterId: true,
-                hostingSubscriptionId: true,
             },
             with: {
                 product: { columns: { name: true } },
                 productPlan: { columns: { name: true } },
             },
         });
-        const hostingSubIds = [...new Set(subs.map((s) => s.hostingSubscriptionId).filter(Boolean))];
-        const hostingPleskMap = new Map();
-        if (hostingSubIds.length > 0) {
-            const hsList = await db
-                .select({ id: hostingSubscription.id, pleskFilterId: hostingSubscription.pleskFilterId })
-                .from(hostingSubscription)
-                .where(inArray(hostingSubscription.id, hostingSubIds));
-            for (const hs of hsList) {
-                if (hs.pleskFilterId)
-                    hostingPleskMap.set(hs.id, hs.pleskFilterId);
-            }
-        }
         return subs.map((sub) => {
             let pleskId = null;
             const refs = sub.serviceRefs;
@@ -647,8 +707,91 @@ export const clientSubscriptionsRouter = router({
             }
             if (!pleskId && sub.pleskFilterId)
                 pleskId = sub.pleskFilterId;
-            if (!pleskId && sub.hostingSubscriptionId)
-                pleskId = hostingPleskMap.get(sub.hostingSubscriptionId) ?? null;
+            return {
+                id: sub.id,
+                pleskSubscriptionId: pleskId,
+                subscriptionName: sub.name ?? null,
+                status: sub.status,
+                productName: sub.product.name,
+                productPlanName: sub.productPlan?.name ?? null,
+                subscriptionDate: sub.subscriptionDate,
+                expiryDate: sub.expiryDate,
+                primaryDomain: sub.primaryDomain,
+            };
+        });
+    }),
+    /**
+     * List Nisc Email Marketing subscriptions for a team (customer view). Matches products whose name
+     * contains "nisc email marketing" or "email marketing" (case-insensitive), same criteria as
+     * products.getNiscEmailMarketingPlansForPricing. Caller must be a member of the team.
+     */
+    listForTeamNiscEmailMarketing: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(z.array(z.object({
+        id: z.string(),
+        pleskSubscriptionId: z.string().nullable(),
+        subscriptionName: z.string().nullable(),
+        status: subscriptionStatusSchema,
+        productName: z.string(),
+        productPlanName: z.string().nullable(),
+        subscriptionDate: z.date().nullable(),
+        expiryDate: z.date().nullable(),
+        primaryDomain: z.string().nullable(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view subscriptions",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const emProducts = await db
+            .select({ id: niscProduct.id })
+            .from(niscProduct)
+            .where(and(eq(niscProduct.isActive, true), or(ilike(niscProduct.name, "%nisc email marketing%"), ilike(niscProduct.name, "%email marketing%"))));
+        const productIds = emProducts.map((p) => p.id);
+        if (productIds.length === 0)
+            return [];
+        const subs = await db.query.niscClientSubscription.findMany({
+            where: and(eq(niscClientSubscription.teamId, teamId), inArray(niscClientSubscription.productId, productIds)),
+            orderBy: (s, { desc: d }) => [d(s.createdAt)],
+            columns: {
+                id: true,
+                name: true,
+                status: true,
+                subscriptionDate: true,
+                expiryDate: true,
+                primaryDomain: true,
+                serviceRefs: true,
+                pleskFilterId: true,
+            },
+            with: {
+                product: { columns: { name: true } },
+                productPlan: { columns: { name: true } },
+            },
+        });
+        return subs.map((sub) => {
+            let pleskId = null;
+            const refs = sub.serviceRefs;
+            if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+                pleskId = String(refs.pleskSubscriptionId);
+            }
+            if (!pleskId && sub.pleskFilterId)
+                pleskId = sub.pleskFilterId;
             return {
                 id: sub.id,
                 pleskSubscriptionId: pleskId,
@@ -691,7 +834,7 @@ export const clientSubscriptionsRouter = router({
                 message: "Team not found",
             });
         }
-        if (!(await isTeamMember(teamId, session.user.id))) {
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have access to this team",
@@ -770,7 +913,7 @@ export const clientSubscriptionsRouter = router({
                 message: "Team not found",
             });
         }
-        if (!(await isTeamMember(teamId, session.user.id))) {
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You do not have access to this team",
@@ -833,6 +976,13 @@ export const clientSubscriptionsRouter = router({
                 message: "Subscription not found",
             });
         }
+        const canRead = await canReadSubscription(sub, session.user.id, session.user.role);
+        if (!canRead) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this subscription",
+            });
+        }
         if (input.teamSlug) {
             const slugTeamId = await getTeamIdBySlug(input.teamSlug);
             if (!slugTeamId) {
@@ -841,7 +991,7 @@ export const clientSubscriptionsRouter = router({
                     message: "Team not found",
                 });
             }
-            if (!(await isTeamMember(slugTeamId, session.user.id))) {
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(slugTeamId, session.user.id))) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "You do not have access to this team",
@@ -911,6 +1061,15 @@ export const clientSubscriptionsRouter = router({
             .from(niscClientSubscription)
             .where(eq(niscClientSubscription.openProviderId, input.openProviderId))
             .limit(1);
+        if (sub) {
+            const canRead = await canReadSubscription(sub, session.user.id, session.user.role);
+            if (!canRead) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this subscription",
+                });
+            }
+        }
         return sub ? mapSubscription(sub) : null;
     }),
     /** Return OpenProvider domain IDs that already have a subscription (for batch check on list). */
@@ -927,10 +1086,14 @@ export const clientSubscriptionsRouter = router({
         }
         if (input.openProviderIds.length === 0)
             return [];
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+        const whereParts = [inArray(niscClientSubscription.openProviderId, input.openProviderIds)];
+        if (readScope)
+            whereParts.push(readScope);
         const subs = await db
             .select({ openProviderId: niscClientSubscription.openProviderId })
             .from(niscClientSubscription)
-            .where(inArray(niscClientSubscription.openProviderId, input.openProviderIds));
+            .where(and(...whereParts));
         return subs
             .map((s) => s.openProviderId)
             .filter((id) => id != null);
@@ -948,10 +1111,11 @@ export const clientSubscriptionsRouter = router({
             });
         }
         const idStr = String(input.pleskSubscriptionId);
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
         const [sub] = await db
             .select({ id: niscClientSubscription.id })
             .from(niscClientSubscription)
-            .where(sql `(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${idStr}`)
+            .where(and(sql `(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${idStr}`, readScope ?? sql `true`))
             .limit(1);
         return { hasLinked: !!sub };
     }),
@@ -970,10 +1134,11 @@ export const clientSubscriptionsRouter = router({
         if (input.pleskSubscriptionIds.length === 0)
             return [];
         const idStrs = [...new Set(input.pleskSubscriptionIds.map((id) => String(id)))];
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
         const subs = await db
             .select({ serviceRefs: niscClientSubscription.serviceRefs })
             .from(niscClientSubscription)
-            .where(or(...idStrs.map((id) => sql `(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${id}`)));
+            .where(and(or(...idStrs.map((id) => sql `(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${id}`)), readScope ?? sql `true`));
         const found = new Set();
         for (const sub of subs) {
             const refs = sub.serviceRefs;
@@ -982,6 +1147,270 @@ export const clientSubscriptionsRouter = router({
             }
         }
         return idStrs.filter((id) => found.has(id));
+    }),
+    /** Get active media buying product and its active plans for subscription creation. */
+    getMediaBuyingProductForSubscription: protectedProcedure
+        .output(mediaBuyingProductOutputSchema.nullable())
+        .query(async () => {
+        const product = await db.query.niscProduct.findFirst({
+            where: and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%media buying%")),
+            with: {
+                plans: {
+                    where: eq(niscProductPlan.isActive, true),
+                    orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
+                },
+            },
+        });
+        if (!product)
+            return null;
+        return {
+            id: product.id,
+            name: product.name,
+            plans: (product.plans ?? []).map((plan) => ({
+                id: plan.id,
+                name: plan.name,
+                pricingModel: plan.pricingModel,
+                billingCycle: plan.billingCycle ?? null,
+                price: plan.price ?? null,
+                currency: plan.currency ?? null,
+                agreedCommissionRate: plan.commissionRate != null ? Number(plan.commissionRate) : null,
+                agreedCommissionBase: plan.commissionBase ?? null,
+            })),
+        };
+    }),
+    /** Check whether an ad account already has a linked media buying subscription. */
+    getLinkedMediaBuyingSubscriptionByAdAccount: protectedProcedure
+        .input(adAccountLinkLookupInputSchema)
+        .output(adAccountLinkLookupOutputSchema)
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view linked subscriptions",
+            });
+        }
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+        const [row] = await db
+            .select({
+            id: niscClientSubscription.id,
+            teamId: niscClientSubscription.teamId,
+            teamName: team.name,
+        })
+            .from(niscClientSubscription)
+            .leftJoin(team, eq(team.id, niscClientSubscription.teamId))
+            .where(and(sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`, sql `(${niscClientSubscription.serviceRefs}->>'adAccountId') = ${input.accountId}`, readScope ?? sql `true`))
+            .limit(1);
+        return {
+            hasLinkedSubscription: !!row,
+            subscriptionId: row?.id ?? null,
+            teamId: row?.teamId ?? null,
+            teamName: row?.teamName ?? null,
+        };
+    }),
+    /** Create a team-linked media buying subscription for a specific ad account. */
+    createMediaBuyingSubscription: protectedProcedure
+        .input(createMediaBuyingSubscriptionInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to create subscriptions",
+            });
+        }
+        const hasTeamAccess = await canAssignTeamSubscription({
+            teamId: input.teamId,
+            userId: session.user.id,
+            role: session.user.role,
+        });
+        if (!hasTeamAccess) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const [selectedPlan] = await db
+            .select({
+            id: niscProductPlan.id,
+            productId: niscProductPlan.productId,
+            pricingModel: niscProductPlan.pricingModel,
+            billingCycle: niscProductPlan.billingCycle,
+            price: niscProductPlan.price,
+            currency: niscProductPlan.currency,
+            commissionRate: niscProductPlan.commissionRate,
+            commissionBase: niscProductPlan.commissionBase,
+            productName: niscProduct.name,
+        })
+            .from(niscProductPlan)
+            .innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
+            .where(and(eq(niscProductPlan.id, input.productPlanId), eq(niscProductPlan.isActive, true), eq(niscProduct.isActive, true), ilike(niscProduct.name, "%media buying%")))
+            .limit(1);
+        if (!selectedPlan) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Invalid media buying plan selected",
+            });
+        }
+        const [existing] = await db
+            .select({ id: niscClientSubscription.id })
+            .from(niscClientSubscription)
+            .where(and(sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`, sql `(${niscClientSubscription.serviceRefs}->>'adAccountId') = ${input.accountId}`))
+            .limit(1);
+        if (existing) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This ad account is already linked to a subscription",
+            });
+        }
+        const now = new Date();
+        const subId = crypto.randomUUID();
+        const pricingModel = selectedPlan.pricingModel;
+        const [created] = await db
+            .insert(niscClientSubscription)
+            .values({
+            id: subId,
+            name: input.accountName?.trim() || `${selectedPlan.productName} - ${input.accountId}`,
+            teamId: input.teamId,
+            productId: selectedPlan.productId,
+            productPlanId: selectedPlan.id,
+            recordedBy: session.user.id,
+            subscribedBy: session.user.id,
+            status: "ACTIVE",
+            subscriptionDate: now,
+            billingCycle: pricingModel === "FIXED" ? selectedPlan.billingCycle ?? "MONTHLY" : null,
+            autoRenew: false,
+            pricingModel,
+            agreedPrice: pricingModel === "FIXED" ? selectedPlan.price ?? null : null,
+            agreedCurrency: selectedPlan.currency ?? "KES",
+            agreedCommissionRate: pricingModel === "COMMISSION" && selectedPlan.commissionRate != null
+                ? String(selectedPlan.commissionRate)
+                : null,
+            agreedCommissionBase: pricingModel === "COMMISSION" ? selectedPlan.commissionBase ?? null : null,
+            serviceRefs: {
+                adPlatform: input.platform,
+                adAccountId: input.accountId,
+                adAccountName: input.accountName?.trim() || null,
+            },
+            metadata: {
+                adServingFee: input.adServingFee,
+                adServingFeeCurrency: input.adServingFeeCurrency,
+            },
+        })
+            .returning();
+        if (!created) {
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to create media buying subscription",
+            });
+        }
+        await db.insert(niscClientSubscriptionActivityLog).values({
+            id: crypto.randomUUID(),
+            subscriptionId: created.id,
+            userId: session.user.id,
+            action: "CREATE_MEDIA_BUYING_SUBSCRIPTION",
+            description: `Created media buying subscription for ${input.platform} account ${input.accountId}`,
+            metadata: {
+                platform: input.platform,
+                accountId: input.accountId,
+                productPlanId: input.productPlanId,
+                adServingFee: input.adServingFee,
+                adServingFeeCurrency: input.adServingFeeCurrency,
+            },
+            ipAddress: null,
+            userAgent: null,
+        });
+        return mapSubscription(created);
+    }),
+    /** Return ad account IDs linked to media buying subscriptions for a team/platform. */
+    listLinkedAdAccountsForTeam: protectedProcedure
+        .input(linkedAdAccountsForTeamInputSchema)
+        .output(z.array(z.string()))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view linked ad accounts",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const rows = await db
+            .select({ serviceRefs: niscClientSubscription.serviceRefs })
+            .from(niscClientSubscription)
+            .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+            .where(and(eq(niscClientSubscription.teamId, teamId), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`));
+        const ids = new Set();
+        for (const row of rows) {
+            const refs = row.serviceRefs;
+            const accountId = refs?.adAccountId;
+            if (typeof accountId === "string" && accountId.trim().length > 0) {
+                ids.add(accountId);
+            }
+        }
+        return [...ids];
+    }),
+    /** Return linked ad accounts (id + name) from media buying subscriptions for a team/platform. */
+    listLinkedAdAccountsForTeamDetailed: protectedProcedure
+        .input(linkedAdAccountsForTeamInputSchema)
+        .output(z.array(linkedAdAccountItemSchema))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view linked ad accounts",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const rows = await db
+            .select({
+            serviceRefs: niscClientSubscription.serviceRefs,
+            name: niscClientSubscription.name,
+        })
+            .from(niscClientSubscription)
+            .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+            .where(and(eq(niscClientSubscription.teamId, teamId), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`));
+        const byId = new Map();
+        for (const row of rows) {
+            const refs = row.serviceRefs;
+            const accountId = refs?.adAccountId;
+            if (typeof accountId !== "string" || accountId.trim().length === 0)
+                continue;
+            const accountNameRaw = refs?.adAccountName;
+            const accountName = typeof accountNameRaw === "string" && accountNameRaw.trim().length > 0
+                ? accountNameRaw.trim()
+                : row.name ?? null;
+            if (!byId.has(accountId)) {
+                byId.set(accountId, { accountId, accountName });
+            }
+        }
+        return [...byId.values()];
     }),
     /** Create a new subscription */
     create: protectedProcedure
@@ -994,6 +1423,29 @@ export const clientSubscriptionsRouter = router({
                 code: "UNAUTHORIZED",
                 message: "You must be logged in to create subscriptions",
             });
+        }
+        if (!isAgencySuperAdminRole(session.user.role)) {
+            if (input.userId && input.userId !== session.user.id) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only AGENCY_SUPER_ADMIN can create subscriptions for another user",
+                });
+            }
+            if (input.recordedBy && input.recordedBy !== session.user.id) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only AGENCY_SUPER_ADMIN can set recordedBy to another user",
+                });
+            }
+        }
+        if (input.teamId && !isAgencyUserRole(session.user.role)) {
+            const member = await isTeamMember(input.teamId, session.user.id);
+            if (!member) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
         }
         const [product] = await db
             .select({ id: niscProduct.id })
@@ -1105,6 +1557,12 @@ export const clientSubscriptionsRouter = router({
         if (!existing) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
         }
+        if (!canMutateSubscription(existing, session.user.id, session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the owner can update this subscription",
+            });
+        }
         const { id, ...rest } = input;
         const patch = {};
         if (rest.status !== undefined)
@@ -1195,6 +1653,12 @@ export const clientSubscriptionsRouter = router({
         if (!existing) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
         }
+        if (!canMutateSubscription(existing, session.user.id, session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the owner can cancel this subscription",
+            });
+        }
         if (existing.status === "CANCELLED") {
             throw new TRPCError({
                 code: "BAD_REQUEST",
@@ -1253,6 +1717,12 @@ export const clientSubscriptionsRouter = router({
         });
         if (!sub) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        }
+        if (!canMutateSubscription(sub, session.user.id, session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the owner can send renewal emails for this subscription",
+            });
         }
         const productName = sub.product.name;
         const planName = sub.productPlan?.name ?? null;
@@ -1331,6 +1801,12 @@ export const clientSubscriptionsRouter = router({
         if (!existing) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
         }
+        if (!canMutateSubscription(existing, session.user.id, session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the owner can renew this subscription",
+            });
+        }
         const renewalId = crypto.randomUUID();
         const updatedSub = await db.transaction(async (tx) => {
             await tx.insert(niscClientSubscriptionRenewal).values({
@@ -1408,6 +1884,12 @@ export const clientSubscriptionsRouter = router({
         if (!sub) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
         }
+        if (!canMutateSubscription(sub, session.user.id, session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the owner can record commission entries for this subscription",
+            });
+        }
         if (sub.pricingModel !== "COMMISSION") {
             throw new TRPCError({
                 code: "BAD_REQUEST",
@@ -1478,6 +1960,9 @@ export const clientSubscriptionsRouter = router({
             parts.push(gte(niscCommissionEntry.period, input.periodFrom));
         if (input?.periodTo)
             parts.push(lte(niscCommissionEntry.period, input.periodTo));
+        if (!isAgencyUserRole(session.user.role)) {
+            parts.push(eq(niscCommissionEntry.createdBy, session.user.id));
+        }
         const entries = await db
             .select()
             .from(niscCommissionEntry)
@@ -1504,6 +1989,12 @@ export const clientSubscriptionsRouter = router({
             .limit(1);
         if (!existing) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Commission entry not found" });
+        }
+        if (!isAgencySuperAdminRole(session.user.role) && existing.createdBy !== session.user.id) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only the owner can update this commission entry",
+            });
         }
         const validTransitions = {
             DRAFT: ["INVOICED", "WAIVED"],
@@ -1558,6 +2049,20 @@ export const clientSubscriptionsRouter = router({
         const domainParts = [
             or(ilike(niscProduct.serviceType, "%domain%"), ilike(niscProduct.name, "%domain%")),
         ];
+        if (!isAgencyUserRole(session.user.role)) {
+            if (input.userId != null && input.userId !== session.user.id) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You can only list your own domain subscriptions",
+                });
+            }
+            if (input.teamId != null && !(await isTeamMember(input.teamId, session.user.id))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+        }
         if (input.userId != null)
             domainParts.push(eq(niscClientSubscription.userId, input.userId));
         if (input.teamId != null)
