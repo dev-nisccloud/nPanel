@@ -5,6 +5,11 @@ import {
 	hivelocityFacilitiesResponseSchema,
 	normalizeHivelocityInventory,
 	hivelocityProductByIdResponseSchema,
+	hivelocityDeviceDumpSchema,
+	hivelocityVpsSchema,
+	type HivelocityDeviceDump,
+	type HivelocityVps,
+	type HivelocityAnyResource,
 } from "../../types/hivelocity";
 
 const HivelocityPeriodSchema = z.enum([
@@ -553,5 +558,568 @@ export const hivelocityRouter = router({
 			const data = hivelocityProductByIdResponseSchema.parse(raw);
 			return { success: true, data };
 		}),
+
+	// ---------------------------------------------------------------------------
+	// Account Resource Procedures
+	// These call the *account-scoped* APIs to list devices already provisioned
+	// in the authenticated Hivelocity account (not the public inventory catalogue).
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * Get all bare-metal / VDS devices in the account (paginated + filtered).
+	 *
+	 * Docs: GET /device/
+	 * Schema: Device-dump
+	 *
+	 * Supports:
+	 * - Free-text search (hostname, IP, customName, productName, tags)
+	 * - Facility filter (facilityCode)
+	 * - Power-status filter ("on" | "off" | "all")
+	 * - Cursor-based pagination
+	 */
+	getMyDevices: protectedProcedure
+		.input(
+			z.object({
+				search: z.string().trim().optional(),
+				facilityCode: z.string().trim().optional(),
+				powerStatus: z.enum(["on", "off", "all"]).default("all").optional(),
+				limit: z.number().int().min(1).max(200).default(50).optional(),
+				cursor: z.number().int().min(0).default(0).optional(),
+			}).optional(),
+		)
+		.query(async ({ input }) => {
+			const limit = input?.limit ?? 50;
+			const cursor = input?.cursor ?? 0;
+			const search = input?.search?.toLowerCase() ?? "";
+			const facilityCode = input?.facilityCode?.trim() ?? "";
+			const powerStatusFilter = input?.powerStatus ?? "all";
+
+			const raw = await hivelocityRequest<unknown>("/device/", { requireApiKey: true });
+
+			// Parse row-by-row so one bad record never kills the whole list.
+			const rawArray = Array.isArray(raw) ? raw : [];
+			let devices = rawArray
+				.map((item) => hivelocityDeviceDumpSchema.safeParse(item))
+				.filter((r): r is { success: true; data: HivelocityDeviceDump } => r.success)
+				.map((r) => r.data);
+
+			// Facility filter (location is now an object, extract titles/codes)
+			if (facilityCode) {
+				devices = devices.filter((d) => {
+					const loc = d.location as any;
+					const code = loc?.facility || loc?.facilityCode || loc?.code || "";
+					const title = loc?.facility_title || loc?.city || "";
+					return (
+						code.toLowerCase() === facilityCode.toLowerCase() ||
+						title.toLowerCase().includes(facilityCode.toLowerCase())
+					);
+				});
+			}
+
+			// Power status filter (powerStatus is now an object)
+			if (powerStatusFilter !== "all") {
+				devices = devices.filter((d) => {
+					const ps = (d.powerStatus as any)?.status || d.powerStatus;
+					return String(ps || "unknown").toLowerCase() === powerStatusFilter;
+				});
+			}
+
+			// Search filter — match against updated field names (name, deviceType)
+			if (search.length > 0) {
+				devices = devices.filter((d) => {
+					const loc = d.location as any;
+					const haystack = [
+						d.hostname,
+						d.primaryIp,
+						d.name,
+						d.deviceType ?? "",
+						loc?.facility || loc?.facilityCode || loc?.code || "",
+						loc?.facility_title || loc?.city || "",
+						String(d.deviceId || ""),
+						...(d.tags ?? []),
+					]
+						.filter(Boolean)
+						.join(" ")
+						.toLowerCase();
+					return haystack.includes(search);
+				});
+			}
+
+			const total = devices.length;
+			const items = devices.slice(cursor, cursor + limit);
+			const nextCursor = cursor + limit < total ? cursor + limit : null;
+
+			return { success: true, data: { items, total, nextCursor } };
+		}),
+
+	/**
+	 * Get all VPS instances in the account (paginated + filtered).
+	 *
+	 * Docs: GET /vps/
+	 * Schema: VPS
+	 *
+	 * Note: This is a completely separate endpoint from /device/ with its own
+	 * schema — VPS instances are NOT returned by /device/.
+	 *
+	 * Supports:
+	 * - Free-text search (hostname, primaryIp, osName, id)
+	 * - Facility filter (facilityCode)
+	 * - Cursor-based pagination
+	 */
+	getMyVpsInstances: protectedProcedure
+		.input(
+			z.object({
+				search: z.string().trim().optional(),
+				facilityCode: z.string().trim().optional(),
+				limit: z.number().int().min(1).max(200).default(50).optional(),
+				cursor: z.number().int().min(0).default(0).optional(),
+			}).optional(),
+		)
+		.query(async ({ input }) => {
+			const limit = input?.limit ?? 50;
+			const cursor = input?.cursor ?? 0;
+			const search = input?.search?.toLowerCase() ?? "";
+			const facilityCode = input?.facilityCode?.trim() ?? "";
+
+			const raw = await hivelocityRequest<unknown>("/vps/", { requireApiKey: true });
+
+			const rawArray = Array.isArray(raw) ? raw : [];
+			let instances = rawArray
+				.map((item) => hivelocityVpsSchema.safeParse(item))
+				.filter((r): r is { success: true; data: HivelocityVps } => r.success)
+				.map((r) => r.data);
+
+			// Facility filter
+			if (facilityCode) {
+				instances = instances.filter(
+					(v) => v.facilityCode?.toLowerCase() === facilityCode.toLowerCase(),
+				);
+			}
+
+			// Search filter
+			if (search.length > 0) {
+				instances = instances.filter((v) => {
+					const haystack = [
+						v.hostname,
+						v.primaryIp ?? "",
+						v.osName ?? "",
+						v.facilityCode ?? "",
+						v.id,
+					]
+						.filter(Boolean)
+						.join(" ")
+						.toLowerCase();
+					return haystack.includes(search);
+				});
+			}
+
+			const total = instances.length;
+			const items = instances.slice(cursor, cursor + limit);
+			const nextCursor = cursor + limit < total ? cursor + limit : null;
+
+			return { success: true, data: { items, total, nextCursor } };
+		}),
+
+	/**
+	 * Get ALL account resources in a single unified call (dedicated + VPS + VDS).
+	 *
+	 * Implementation:
+	 * - Fetches /device/ and /vps/ in parallel (Promise.all).
+	 * - Enriches each record with a `resourceType` discriminant:
+	 *   - "vps"  → came from /vps/
+	 *   - "vds"  → came from /device/ AND productName contains "VDS" (case-insensitive)
+	 *   - "dedicated" → all other /device/ records
+	 *
+	 * Supports:
+	 * - type: "dedicated" | "vps" | "vds" | "all"
+	 * - Free-text search
+	 * - Facility filter
+	 * - Cursor-based pagination over the merged + sorted result
+	 */
+	getMyAllResources: protectedProcedure
+		.input(
+			z.object({
+				type: z.enum(["dedicated", "vps", "vds", "all"]).default("all").optional(),
+				search: z.string().trim().optional(),
+				facilityCode: z.string().trim().optional(),
+				limit: z.number().int().min(1).max(200).default(50).optional(),
+				cursor: z.number().int().min(0).default(0).optional(),
+			}).optional(),
+		)
+		.query(async ({ input }) => {
+			const limit = input?.limit ?? 50;
+			const cursor = input?.cursor ?? 0;
+			const search = input?.search?.toLowerCase() ?? "";
+			const facilityCode = input?.facilityCode?.trim() ?? "";
+			const typeFilter = input?.type ?? "all";
+
+			// Parallel fetch — VPS instances live in a completely separate namespace.
+			const [rawDevices, rawVps] = await Promise.all([
+				hivelocityRequest<unknown>("/device/", { requireApiKey: true }),
+				hivelocityRequest<unknown>("/vps/", { requireApiKey: true }),
+			]);
+
+			// --- Classify device records ---
+			const deviceArray = Array.isArray(rawDevices) ? rawDevices : [];
+			const deviceResources: HivelocityAnyResource[] = deviceArray
+				.map((item) => hivelocityDeviceDumpSchema.safeParse(item))
+				.filter((r): r is { success: true; data: HivelocityDeviceDump } => r.success)
+				.map((r) => {
+					const device = r.data;
+					const typeStr = (device.deviceType ?? "").toUpperCase();
+					const groupStr = (device.deviceTypeGroup ?? "").toUpperCase();
+					
+					let resourceType: "dedicated" | "vds" | "vps" = "dedicated";
+					if (typeStr.includes("VPS") || groupStr.includes("VPS")) {
+						resourceType = "vps";
+					} else if (typeStr.includes("VDS") || device.tags.some(t => t.toUpperCase() === "VDS")) {
+						resourceType = "vds";
+					}
+
+					return {
+						...device,
+						resourceType,
+					};
+				});
+
+			// --- Classify VPS records ---
+			const vpsArray = Array.isArray(rawVps) ? rawVps : [];
+			const vpsResources: HivelocityAnyResource[] = vpsArray
+				.map((item) => hivelocityVpsSchema.safeParse(item))
+				.filter((r): r is { success: true; data: HivelocityVps } => r.success)
+				.map((r) => ({ ...r.data, resourceType: "vps" as const }));
+
+			// --- Merge ---
+			let all: HivelocityAnyResource[] = [
+				...deviceResources,
+				...vpsResources,
+			];
+
+			// Type filter
+			if (typeFilter !== "all") {
+				all = all.filter((r) => r.resourceType === typeFilter);
+			}
+
+			// Facility filter
+			if (facilityCode) {
+				all = all.filter((r) => {
+					if (r.resourceType === "vps" && !("location" in r)) {
+						return (r.facilityCode ?? "").toLowerCase() === facilityCode.toLowerCase();
+					}
+					const loc = (r as any).location as any;
+					const code = loc?.facility || loc?.facilityCode || loc?.code || (r as any).facilityCode || "";
+					const title = loc?.facility_title || loc?.city || "";
+					return (
+						code.toLowerCase() === facilityCode.toLowerCase() ||
+						title.toLowerCase().includes(facilityCode.toLowerCase())
+					);
+				});
+			}
+
+			// Search filter
+			if (search.length > 0) {
+				all = all.filter((r) => {
+					const common = [
+						r.hostname,
+						r.primaryIp ?? "",
+						r.resourceType,
+					];
+
+					if (r.resourceType === "vps" && !("location" in r)) {
+						common.push((r as HivelocityVps).osName ?? "");
+						common.push((r as HivelocityVps).facilityCode ?? "");
+						common.push(r.id);
+					} else {
+						const d = r as HivelocityDeviceDump;
+						const loc = d.location as any;
+						common.push(d.name);
+						common.push(d.deviceType ?? "");
+						common.push(loc?.facility || loc?.facilityCode || loc?.code || "");
+						common.push(loc?.facility_title || loc?.city || "");
+						common.push(String(d.deviceId || ""));
+						common.push(...(d.tags ?? []));
+					}
+
+					return common
+						.filter(Boolean)
+						.join(" ")
+						.toLowerCase()
+						.includes(search);
+				});
+			}
+
+			const total = all.length;
+			const items = all.slice(cursor, cursor + limit);
+			const nextCursor = cursor + limit < total ? cursor + limit : null;
+
+			// Summary counts (after type + facility + search filters, before pagination)
+			const counts = {
+				dedicated: all.filter((r) => r.resourceType === "dedicated").length,
+				vds: all.filter((r) => r.resourceType === "vds").length,
+				vps: all.filter((r) => r.resourceType === "vps").length,
+				total,
+			};
+
+			return { success: true, data: { items, total, nextCursor, counts } };
+		}),
+
+	/**
+	 * Private: Get device details (standard /device/{id}).
+	 */
+	getDeviceDetails: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			try {
+				const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}`, { requireApiKey: true });
+				const parsed = hivelocityDeviceDumpSchema.safeParse(raw);
+				if (!parsed.success) {
+					console.error("Hivelocity device schema mismatch:", parsed.error);
+					// Return raw data as fallback if schema fails but we have an object
+					return { success: true, data: (raw && typeof raw === 'object') ? raw : null };
+				}
+				return { success: true, data: parsed.data };
+			} catch (err) {
+				console.error("Hivelocity getDeviceDetails error:", err);
+				return { success: true, data: null };
+			}
+		}),
+
+	/**
+	 * Private: Get VPS-specific details (/vps/{id}).
+	 */
+	getVpsDetails: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			try {
+				const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}`, { requireApiKey: true });
+				const parsed = hivelocityVpsSchema.safeParse(raw);
+				if (!parsed.success) {
+					console.error("Hivelocity VPS schema mismatch:", parsed.error);
+					return { success: true, data: (raw && typeof raw === 'object') ? raw : null };
+				}
+				return { success: true, data: parsed.data };
+			} catch (err) {
+				// VPS endpoint often 404s for non-Cloud devices that are still tagged as VPS
+				return { success: true, data: null };
+			}
+		}),
+
+	/**
+	 * Private: Get VPS event log.
+	 */
+	getVpsEvents: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/events`, { requireApiKey: true });
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get VPS metrics charts (Base64).
+	 */
+	getVpsMetrics: protectedProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int(),
+				metricType: z.enum(["CPU_USAGE", "MEMORY_USAGE", "DISK_RW", "NETWORK_USAGE"]),
+			}),
+		)
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/metrics`, {
+				query: { metricType: input.metricType },
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get VPS volumes.
+	 */
+	getVpsVolumes: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>("/vps/volume", {
+				query: { deviceId: input.deviceId },
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Power on, off, or reboot a device.
+	 */
+	devicePowerAction: protectedProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int(),
+				action: z.enum(["on", "off", "reboot", "boot", "shutdown"]),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			// Map on/off to boot/shutdown if needed, or just pass as is if API supports both.
+			// The OpenAPI says boot/reboot/shutdown.
+			let apiAction = input.action;
+			if (apiAction === "on") apiAction = "boot";
+			if (apiAction === "off") apiAction = "shutdown";
+
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/power`, {
+				method: "POST",
+				query: { action: apiAction },
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get device power status (ON/OFF).
+	 */
+	getDevicePowerStatus: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/power`, { requireApiKey: true });
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get device switch ports and IP assignments.
+	 */
+	getDevicePorts: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/ports`, { requireApiKey: true });
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get initial SSH credentials (user, password, port).
+	 */
+	getDeviceInitialCreds: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/initial-creds`, { requireApiKey: true });
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get initial SSH password.
+	 */
+	getDeviceInitialPassword: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/initial-password`, { requireApiKey: true });
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Check if facility supports IPMI whitelist.
+	 */
+	getIpmiWhitelistSupported: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/ipmi/whitelist-supported`, { requireApiKey: true });
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Initiate an OS reload.
+	 */
+	reloadDevice: protectedProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int(),
+				operatingSystemId: z.number().int().optional(),
+				publicSshKeyIds: z.array(z.number().int()).optional(),
+				script: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const { deviceId, ...body } = input;
+			const raw = await hivelocityRequest<unknown>(`/device/${deviceId}/reload`, {
+				method: "POST",
+				body,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Update device metadata (name, hostname).
+	 */
+	updateDevice: protectedProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int(),
+				name: z.string().optional(),
+				hostname: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const { deviceId, ...body } = input;
+			const raw = await hivelocityRequest<unknown>(`/device/${deviceId}`, {
+				method: "PUT",
+				body,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Reset VPS root password.
+	 */
+	vpsResetPassword: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.mutation(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/reset-password`, {
+				method: "PUT",
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Attach ISO to VPS.
+	 */
+	vpsAttachIso: protectedProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int(),
+				isoId: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/attachiso`, {
+				method: "POST",
+				body: { isoId: input.isoId },
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Detach ISO from VPS.
+	 */
+	vpsDetachIso: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.mutation(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/detachiso`, {
+				method: "POST",
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get one-time browser console URL for VPS.
+	 */
+	vpsGetConsoleUrl: protectedProcedure
+		.input(z.object({ deviceId: z.number().int() }))
+		.mutation(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/console`, {
+				method: "POST",
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
 });
+
 

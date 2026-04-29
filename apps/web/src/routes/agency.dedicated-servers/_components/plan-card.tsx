@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StockBadge } from "./stock-badge";
+import { DeploymentTimeBadge } from "../../_components/deployment-time-badge";
 import { formatMoney, formatMoneyUsd } from "./money";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -74,7 +75,10 @@ export function PlanCard({
 					<CardTitle className="text-base font-semibold line-clamp-2 flex-1">{plan.product_name}</CardTitle>
 					<div className="flex flex-col items-end gap-2">
 						{plan.product_new && <Badge variant="secondary">New</Badge>}
-						<StockBadge stock={plan.stock} />
+						<div className="flex items-center gap-2">
+							<DeploymentTimeBadge type="dedicated" />
+							<StockBadge stock={plan.stock} />
+						</div>
 					</div>
 				</div>
 				<div className="mt-3 flex items-center justify-between gap-3">
