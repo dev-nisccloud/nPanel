@@ -11,7 +11,8 @@ import {
   History, 
   Disc,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  Terminal as TerminalIcon
 } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ import { VpsAccess } from "./vps-access";
 import { VpsMetrics } from "./vps-metrics";
 import { VpsHistory } from "./vps-history";
 import { VpsRescue } from "./vps-rescue";
+import { VpsTerminal } from "./vps-terminal";
 
 interface VpsDetailPageProps {
   deviceId: string;
@@ -112,10 +114,13 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
     { value: "network", icon: Network, title: "Network", subtitle: "Routing" },
     { value: "storage", icon: HardDrive, title: "Storage", subtitle: "Volumes" },
     { value: "access", icon: Key, title: "Access", subtitle: "Security" },
+    { value: "terminal", icon: TerminalIcon, title: "Terminal", subtitle: "SSH Access" },
     { value: "metrics", icon: Activity, title: "Metrics", subtitle: "Performance" },
     { value: "history", icon: History, title: "History", subtitle: "Events" },
     { value: "rescue", icon: Disc, title: "Rescue", subtitle: "Tools" },
   ];
+
+  const [activeTab, setActiveTab] = React.useState("overview");
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -166,7 +171,7 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
 
         {/* Tabs */}
         <div className="mt-8">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0">
               <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
                 {tabTriggers.map((tab) => (
@@ -193,6 +198,9 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
               <TabsContent value="overview">
                 <VpsOverview deviceData={deviceData} vpsData={vpsData} />
               </TabsContent>
+              <TabsContent value="terminal" forceMount className="data-[state=inactive]:hidden">
+                <VpsTerminal deviceData={deviceData} />
+              </TabsContent>
               <TabsContent value="network">
                 <VpsNetwork deviceData={deviceData} vpsData={vpsData} />
               </TabsContent>
@@ -200,7 +208,7 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
                 <VpsStorage deviceId={id} />
               </TabsContent>
               <TabsContent value="access">
-                <VpsAccess deviceData={deviceData} />
+                <VpsAccess deviceData={deviceData} onTabChange={setActiveTab} />
               </TabsContent>
               <TabsContent value="metrics">
                 <VpsMetrics deviceId={id} />
