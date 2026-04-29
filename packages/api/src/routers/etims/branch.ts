@@ -1,123 +1,99 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
-import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
+import { getEtimsContext } from "../../lib/etims-config";
+
+const isAgencyUser = (r: string | null | undefined) =>
+    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
+const isSuperAdmin = (r: string | null | undefined) => r === "AGENCY_SUPER_ADMIN";
+
+function assertRead(role: string | null | undefined) {
+    if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS branch data." });
+}
+function assertWrite(role: string | null | undefined) {
+    if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS branch data." });
+}
 
 export const etimsBranchRouter = router({
     /**
-     * Register customer information for a branch
+     * Retrieve the list of registered branches for this taxpayer.
+     * POST /selectBhfList
      */
-    saveCustomer: protectedProcedure
-        .input(z.object({
-            tin: z.string(),
-            bhfId: z.string(),
-            accessToken: z.string().optional(),
-            cmcKey: z.string().optional(),
-            customer: z.object({
-                custNo: z.string(),
-                custTin: z.string().regex(/^[A-Z]\d{9}[A-Z]$/, "Invalid TIN format"),
-                custNm: z.string(),
-                adrs: z.string().nullable(),
-                telNo: z.string().nullable(),
-                email: z.string().email().nullable(),
-                faxNo: z.string().nullable(),
-                useYn: z.enum(["Y", "N"]).default("Y"),
-                remark: z.string().nullable(),
-                regrNm: z.string().default("Admin"),
-                regrId: z.string().default("Admin"),
-                modrNm: z.string().default("Admin"),
-                modrId: z.string().default("Admin")
-            })
-        }))
-        .mutation(async ({ input }) => {
-            const config = {
-                baseUrl: process.env.ETIMS_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1",
-                tokenUrl: process.env.ETIMS_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate",
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            const client = new ETimsClient(config);
-
+    getBranchList: protectedProcedure
+        .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
+        .query(async ({ ctx, input }) => {
+            assertRead(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
             try {
-                const result = await client.branchSendCustomerInfo(
-                    {
-                        tin: input.tin,
-                        bhfId: input.bhfId,
-                        cmcKey: input.cmcKey,
-                        accessToken: input.accessToken
-                    },
-                    input.customer
-                );
-
-                return {
-                    success: true,
-                    data: result,
-                };
-            } catch (error: any) {
-                console.error("[eTIMS Save Customer Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to save eTIMS customer info",
-                });
+                const result = await client.selectBhfList(oscu, input.lastReqDt);
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (e as Error).message || "Failed to retrieve branch list" });
             }
         }),
 
     /**
-     * Create/update branch user account
+     * Register or update a customer record for a branch.
+     * POST /saveBhfCustomer
+     */
+    saveCustomer: protectedProcedure
+        .input(z.object({
+            customer: z.object({
+                custNo: z.string().min(1),
+                custTin: z.string().min(1),
+                custNm: z.string().min(1),
+                adrs: z.string().nullable().optional(),
+                telNo: z.string().nullable().optional(),
+                email: z.string().email().nullable().optional(),
+                faxNo: z.string().nullable().optional(),
+                useYn: z.enum(["Y", "N"]).default("Y"),
+                remark: z.string().nullable().optional(),
+                regrId: z.string().default("Admin"),
+                regrNm: z.string().default("Admin"),
+                modrId: z.string().default("Admin"),
+                modrNm: z.string().default("Admin"),
+            }),
+        }))
+        .mutation(async ({ ctx, input }) => {
+            assertWrite(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
+            try {
+                const result = await client.saveBhfCustomer(oscu, input.customer as Record<string, unknown>);
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (e as Error).message || "Failed to save branch customer" });
+            }
+        }),
+
+    /**
+     * Create or update a branch user account.
+     * POST /saveBhfUser
      */
     saveBranchUser: protectedProcedure
         .input(z.object({
-            tin: z.string(),
-            bhfId: z.string(),
-            accessToken: z.string().optional(),
-            cmcKey: z.string().optional(),
             user: z.object({
                 userId: z.string().min(1),
                 userNm: z.string().min(1),
                 pwd: z.string().min(1),
-                adrs: z.string().nullable(),
-                cntc: z.string().nullable(),
-                authCd: z.string().nullable(),
-                remark: z.string().nullable(),
+                adrs: z.string().nullable().optional(),
+                cntc: z.string().nullable().optional(),
+                authCd: z.string().nullable().optional(),
+                remark: z.string().nullable().optional(),
                 useYn: z.enum(["Y", "N"]).default("Y"),
-                regrNm: z.string(),
-                regrId: z.string(),
-                modrNm: z.string(),
-                modrId: z.string()
-            })
+                regrId: z.string().min(1),
+                regrNm: z.string().min(1),
+                modrId: z.string().min(1),
+                modrNm: z.string().min(1),
+            }),
         }))
-        .mutation(async ({ input }) => {
-            const config = {
-                baseUrl: process.env.ETIMS_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1",
-                tokenUrl: process.env.ETIMS_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate",
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            const client = new ETimsClient(config);
-
+        .mutation(async ({ ctx, input }) => {
+            assertWrite(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
             try {
-                const result = await client.branchUserAccount(
-                    {
-                        tin: input.tin,
-                        bhfId: input.bhfId,
-                        cmcKey: input.cmcKey,
-                        accessToken: input.accessToken
-                    },
-                    input.user
-                );
-
-                return {
-                    success: true,
-                    data: result,
-                };
-            } catch (error: any) {
-                console.error("[eTIMS Save Branch User Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to save eTIMS branch user",
-                });
+                const result = await client.saveBhfUser(oscu, input.user as Record<string, unknown>);
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (e as Error).message || "Failed to save branch user" });
             }
         }),
 });

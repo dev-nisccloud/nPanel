@@ -33,11 +33,7 @@ export default function ETimsSettingsPage() {
         }
     });
 
-    const tokenMutation = trpc.etims.auth.generateToken.useMutation({
-        onError: (error) => {
-            toast.error(`Token Generation Failed: ${error.message}`);
-        }
-    });
+    // Note: token management is now handled internally by the server — no frontend exposure.
 
     const [formData, setFormData] = React.useState({
         kraPin: "",

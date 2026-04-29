@@ -1,92 +1,19 @@
-import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
-import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
 
-const isAgencyUserRole = (role: string | null | undefined) =>
+const isAgencyUser = (role: string | null | undefined) =>
     ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
-
-const isAgencySuperAdminRole = (role: string | null | undefined) =>
-    role === "AGENCY_SUPER_ADMIN";
 
 export const etimsAuthRouter = router({
     /**
-     * Generate OAuth 2.0 access token from KRA eTIMS
-     */
-    generateToken: protectedProcedure
-        .input(z.object({
-            grantType: z.literal("client_credentials").default("client_credentials"),
-        }))
-        .mutation(async ({ ctx }) => {
-            const role = ctx.session?.user?.role;
-            if (!isAgencySuperAdminRole(role)) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "Only agency super admins can generate eTIMS tokens.",
-                });
-            }
-
-            // 1. Fetch global eTIMS Configuration
-            const [config] = await db
-                .select()
-                .from(eTimsConfiguration)
-                .limit(1);
-
-            if (!config) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "eTIMS Configuration not found. Please initialize the device first.",
-                });
-            }
-
-            // 2. Prepare Client Config (Secrets from Env, Branch/PIN from DB)
-            const clientConfig = {
-                baseUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-                tokenUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "System configuration error: eTIMS Consumer Key/Secret missing.",
-                });
-            }
-
-            const client = new ETimsClient(clientConfig);
-
-            try {
-                // 3. Generate Token
-                // The client.generateToken() method usually constructs the auth header from consumer key/secret
-                const tokenData = await client.generateToken();
-
-                return {
-                    success: true,
-                    data: tokenData,
-                };
-            } catch (error: any) {
-                console.error("[eTIMS Auth Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to generate eTIMS access token",
-                });
-            }
-        }),
-
-    /**
-     * Get current eTIMS configuration status
+     * Get current eTIMS configuration status.
+     * Used by the frontend to know if the device is initialized.
      */
     getConfiguration: protectedProcedure
         .query(async ({ ctx }) => {
-            const role = ctx.session?.user?.role;
-            if (!isAgencyUserRole(role)) {
+            if (!isAgencyUser(ctx.session?.user?.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "Only agency users can view eTIMS configuration.",
@@ -99,10 +26,7 @@ export const etimsAuthRouter = router({
                 .limit(1);
 
             if (!config) {
-                return {
-                    isInitialized: false,
-                    config: null
-                };
+                return { isInitialized: false, config: null };
             }
 
             return {
@@ -112,8 +36,8 @@ export const etimsAuthRouter = router({
                     branchId: config.branchId,
                     deviceSerialNumber: config.deviceSerialNumber,
                     isSandbox: config.isSandbox,
-                    updatedAt: config.updatedAt
-                }
+                    updatedAt: config.updatedAt,
+                },
             };
         }),
 });

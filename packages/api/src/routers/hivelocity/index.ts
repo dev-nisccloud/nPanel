@@ -784,16 +784,43 @@ export const hivelocityRouter = router({
 
 			// --- Classify VPS records ---
 			const vpsArray = Array.isArray(rawVps) ? rawVps : [];
-			const vpsResources: HivelocityAnyResource[] = vpsArray
-				.map((item) => hivelocityVpsSchema.safeParse(item))
-				.filter((r): r is { success: true; data: HivelocityVps } => r.success)
-				.map((r) => ({ ...r.data, resourceType: "vps" as const }));
+			const vpsMap = new Map<number, HivelocityVps>();
+			vpsArray.forEach((v) => {
+				const parsed = hivelocityVpsSchema.safeParse(v);
+				if (parsed.success) {
+					const deviceId = (parsed.data as any).deviceId || (parsed.data as any).id;
+					if (deviceId) vpsMap.set(Number(deviceId), parsed.data);
+				}
+			});
 
 			// --- Merge ---
-			let all: HivelocityAnyResource[] = [
-				...deviceResources,
-				...vpsResources,
-			];
+			const mergedResources: HivelocityAnyResource[] = [];
+			const seenDeviceIds = new Set<number>();
+
+			deviceResources.forEach((dev: any) => {
+				const deviceId = dev.deviceId;
+				if (deviceId) seenDeviceIds.add(deviceId);
+
+				if (dev.resourceType === "vps" && deviceId && vpsMap.has(deviceId)) {
+					const vpsData = vpsMap.get(deviceId)!;
+					mergedResources.push({
+						...vpsData,
+						...dev, // Prefer device data for core metadata (billing, location) but keep VPS tech specs
+						resourceType: "vps" as const,
+					});
+				} else {
+					mergedResources.push(dev);
+				}
+			});
+
+			// Add VPS instances that didn't appear in the /device/ list
+			vpsMap.forEach((vps, deviceId) => {
+				if (!seenDeviceIds.has(deviceId)) {
+					mergedResources.push({ ...vps, resourceType: "vps" as const });
+				}
+			});
+
+			let all = mergedResources;
 
 			// Type filter
 			if (typeFilter !== "all") {

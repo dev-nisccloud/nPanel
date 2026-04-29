@@ -72,6 +72,7 @@ function VpsDetailSkeleton() {
 
 export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
   const id = parseInt(deviceId, 10);
+  const [activeTab, setActiveTab] = React.useState("overview");
   
   const deviceQuery = trpc.hivelocity.getDeviceDetails.useQuery({ deviceId: id });
   const vpsQuery = trpc.hivelocity.getVpsDetails.useQuery({ deviceId: id });
@@ -119,8 +120,6 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
     { value: "history", icon: History, title: "History", subtitle: "Events" },
     { value: "rescue", icon: Disc, title: "Rescue", subtitle: "Tools" },
   ];
-
-  const [activeTab, setActiveTab] = React.useState("overview");
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
