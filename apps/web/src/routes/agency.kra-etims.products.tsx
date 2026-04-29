@@ -40,7 +40,7 @@ export default function ETimsProductsPage() {
     const utils = trpc.useUtils();
 
     const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
-    const { data: branchesData } = trpc.etims.data.getBranchList.useQuery({ lastReqDt: "20230101000000" });
+    const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
 
     const branches = React.useMemo(() => {
         const root: any = branchesData;
@@ -57,9 +57,8 @@ export default function ETimsProductsPage() {
         else if (branches.length) setSelectedBhfId(branches[0].bhfId);
     }, [selectedBhfId, etimsConfig, branches]);
 
-    const { data: items, isLoading, refetch } = trpc.etims.items.getItemInfo.useQuery({
-        lastReqDt: "20230101000000", // This ideally should be managed to fetch incremental updates? Or just fetch all?
-        bhfId: selectedBhfId ?? undefined,
+    const { data: items, isLoading, refetch } = trpc.etims.items.getItemList.useQuery({
+        lastReqDt: "20230101000000",
     });
 
     const itemList = React.useMemo(() => {

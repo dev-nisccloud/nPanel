@@ -1,152 +1,111 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
-import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import { db } from "@npanel/db";
-import { eTimsConfiguration } from "@npanel/db/schema/etims";
+import { getEtimsContext } from "../../lib/etims-config";
 
-const isAgencyUserRole = (role: string | null | undefined) =>
-    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencyUser = (r: string | null | undefined) =>
+    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
+const isSuperAdmin = (r: string | null | undefined) => r === "AGENCY_SUPER_ADMIN";
 
-const isAgencySuperAdminRole = (role: string | null | undefined) =>
-    role === "AGENCY_SUPER_ADMIN";
-
-function assertAgencyReadAccess(role: string | null | undefined) {
-    if (!isAgencyUserRole(role)) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only agency users can access eTIMS purchase data.",
-        });
-    }
+function assertRead(role: string | null | undefined) {
+    if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS purchase data." });
+}
+function assertWrite(role: string | null | undefined) {
+    if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can submit eTIMS purchases." });
 }
 
-function assertAgencyMutationAccess(role: string | null | undefined) {
-    if (!isAgencySuperAdminRole(role)) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only agency super admins can modify eTIMS purchase data.",
-        });
-    }
-}
+const purchaseItemSchema = z.object({
+    itemSeq: z.number().int().min(1),
+    itemCd: z.string().max(20),
+    itemClsCd: z.string().max(10),
+    itemNm: z.string().max(200),
+    bcd: z.string().max(20).nullable().optional(),
+    spplrItemClsCd: z.string().max(10).nullable().optional(),
+    spplrItemCd: z.string().max(20).nullable().optional(),
+    spplrItemNm: z.string().max(200).nullable().optional(),
+    pkgUnitCd: z.string().max(5),
+    pkg: z.number(),
+    qtyUnitCd: z.string().max(5),
+    qty: z.number(),
+    prc: z.number(),
+    splyAmt: z.number(),
+    dcRt: z.number(),
+    dcAmt: z.number(),
+    taxblAmt: z.number(),
+    taxTyCd: z.string().max(5),
+    taxAmt: z.number(),
+    totAmt: z.number(),
+    itemExprDt: z.string().nullable().optional(),
+});
+
+const purchaseSchema = z.object({
+    spplrTin: z.string().nullable().optional(),
+    invcNo: z.number().int().min(0),
+    orgInvcNo: z.number().int().min(0),
+    spplrBhfId: z.string().nullable().optional(),
+    spplrNm: z.string().max(60).nullable().optional(),
+    spplrInvcNo: z.number().nullable().optional(),
+    regTyCd: z.string().max(5),
+    pchsTyCd: z.string().max(5),
+    rcptTyCd: z.string().max(5),
+    pmtTyCd: z.string().max(5),
+    pchsSttsCd: z.string().max(5),
+    cfmDt: z.string().nullable().optional(),
+    pchsDt: z.string().nullable().optional(),
+    wrhsDt: z.string().nullable().optional(),
+    cnclReqDt: z.string().nullable().optional(),
+    cnclDt: z.string().nullable().optional(),
+    rfdDt: z.string().nullable().optional(),
+    totItemCnt: z.number().int().min(0),
+    taxblAmtA: z.number(), taxblAmtB: z.number(), taxblAmtC: z.number(), taxblAmtD: z.number(), taxblAmtE: z.number(),
+    taxRtA: z.number(), taxRtB: z.number(), taxRtC: z.number(), taxRtD: z.number(), taxRtE: z.number(),
+    taxAmtA: z.number(), taxAmtB: z.number(), taxAmtC: z.number(), taxAmtD: z.number(), taxAmtE: z.number(),
+    totTaxblAmt: z.number(),
+    totTaxAmt: z.number(),
+    totAmt: z.number(),
+    remark: z.string().max(400).nullable().optional(),
+    regrId: z.string().max(20),
+    regrNm: z.string().max(60),
+    modrId: z.string().max(20),
+    modrNm: z.string().max(60),
+    itemList: z.array(purchaseItemSchema).min(1),
+});
 
 export const etimsPurchasesRouter = router({
     /**
-     * Retrieve purchase transactions made from suppliers
+     * Retrieve purchase transactions from KRA.
+     * POST /selectTrnsPurchaseSalesList
      */
     getPurchaseTransactions: protectedProcedure
-        .input(z.object({
-            lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
-            bhfId: z.string().optional(),
-        }))
+        .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
-            assertAgencyReadAccess(ctx.session?.user?.role);
-            const [config] = await db
-                .select()
-                .from(eTimsConfiguration)
-                .limit(1);
-
-            if (!config || !config.cmcKey) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "eTIMS Configuration not found or device not initialized.",
-                });
-            }
-
-            const clientConfig = {
-                baseUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-                tokenUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            const client = new ETimsClient(clientConfig);
-
+            assertRead(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
             try {
-                const result = await client.getPurchaseTransactionInfo(
-                    {
-                        tin: config.kraPin,
-                        bhfId: input.bhfId ?? config.branchId,
-                        cmcKey: config.cmcKey,
-                        accessToken: undefined
-                    },
-                    input.lastReqDt
-                );
-
-                return {
-                    success: true,
-                    data: result,
-                };
-            } catch (error: any) {
-                console.warn("[eTIMS Get Purchase Transactions Error]", error?.message ?? error);
-                return {
-                    success: false,
-                    data: null,
-                    errorMessage: error?.message || "Failed to retrieve eTIMS purchase transactions",
-                };
+                const result = await client.selectTrnsPurchaseSalesList(oscu, input.lastReqDt);
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                const msg = (e as Error).message;
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to retrieve purchase transactions" });
             }
         }),
 
     /**
-     * Confirm purchase transactions for stock adjustment
+     * Submit a purchase transaction to KRA.
+     * POST /insertTrnsPurchase
      */
     sendPurchaseTransaction: protectedProcedure
-        .input(z.object({
-            purchase: z.any(),
-            bhfId: z.string().optional(),
-        }))
+        .input(z.object({ purchase: purchaseSchema }))
         .mutation(async ({ ctx, input }) => {
-            assertAgencyMutationAccess(ctx.session?.user?.role);
-            const [config] = await db
-                .select()
-                .from(eTimsConfiguration)
-                .limit(1);
-
-            if (!config || !config.cmcKey) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "eTIMS Configuration not found or device not initialized.",
-                });
-            }
-
-            const clientConfig = {
-                baseUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-                tokenUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            const client = new ETimsClient(clientConfig);
-
+            assertWrite(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
             try {
-                const result = await client.sendPurchaseTransactionInfo(
-                    {
-                        tin: config.kraPin,
-                        bhfId: input.bhfId ?? config.branchId,
-                        cmcKey: config.cmcKey,
-                        accessToken: undefined
-                    },
-                    input.purchase
-                );
-
-                return {
-                    success: true,
-                    data: result,
-                };
-            } catch (error: any) {
-                console.warn("[eTIMS Send Purchase Transaction Error]", error?.message ?? error);
-                return {
-                    success: false,
-                    data: null,
-                    errorMessage: error?.message || "Failed to send eTIMS purchase transaction",
-                };
+                const result = await client.insertTrnsPurchase(oscu, input.purchase as Record<string, unknown>);
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                const msg = (e as Error).message;
+                console.warn("[eTIMS] sendPurchaseTransaction failed:", msg);
+                return { success: false, data: null, errorMessage: msg || "Failed to send purchase transaction" };
             }
         }),
 });

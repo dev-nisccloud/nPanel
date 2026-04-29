@@ -1,92 +1,21 @@
 import { request } from 'undici';
+import { getRedisClient } from './redis';
 
-export interface ETimsConfig {
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
+
+export interface EtimsClientConfig {
     baseUrl: string;
     tokenUrl: string;
     consumerKey: string;
     consumerSecret: string;
 }
 
-export interface ETimsHeaders {
+export interface EtimsOscuHeaders {
     tin: string;
     bhfId: string;
-    cmcKey?: string;
-    accessToken?: string;
-}
-
-export interface SalesItem {
-    itemSeq: number;
-    itemCd: string;
-    itemClsCd: string;
-    itemNm: string;
-    bcd: string | null;
-    pkgUnitCd: string;
-    pkg: number;
-    qtyUnitCd: string;
-    qty: number;
-    prc: number;
-    splyAmt: number;
-    dcRt: number;
-    dcAmt: number;
-    taxTyCd: string; // A, B, C, D, E
-    taxblAmt: number;
-    taxAmt: number;
-    totAmt: number;
-}
-
-export interface SalesTransaction {
-    invcNo: number;
-    orgInvcNo: number;
-    custTin: string | null;
-    custNm: string | null;
-    salesTyCd: string;
-    rcptTyCd: string;
-    pmtTyCd: string;
-    salesSttsCd: string;
-    cfmDt: string;
-    salesDt: string;
-    stockRlsDt?: string;
-    cnclReqDt?: number | string;
-    cnclDt?: number | string;
-    rfdDt?: string;
-    rfdRsnCd?: string;
-    totItemCnt: number;
-    taxblAmtA: number;
-    taxblAmtB: number;
-    taxblAmtC: number;
-    taxblAmtD: number;
-    taxblAmtE: number;
-    taxRtA: number;
-    taxRtB: number;
-    taxRtC: number;
-    taxRtD: number;
-    taxRtE: number;
-    taxAmtA: number;
-    taxAmtB: number;
-    taxAmtC: number;
-    taxAmtD: number;
-    taxAmtE: number;
-    totTaxblAmt: number;
-    totTaxAmt: number;
-    totAmt: number;
-    prchrAcptcYn: 'Y' | 'N';
-    remark: string | null;
-    regrId: string;
-    regrNm: string;
-    modrId: string;
-    modrNm: string;
-    receipt: {
-        custTin: string | null;
-        custMblNo: string | null;
-        rptNo: number;
-        rcptPbctDt: string;
-        trdeNm: string;
-        adrs: string;
-        topMsg: string;
-        btmMsg: string;
-        prchrAcptcYn: 'Y' | 'N';
-    };
-    itemList: SalesItem[];
+    cmcKey: string;
 }
 
 export interface AuthResponse {
@@ -95,311 +24,431 @@ export interface AuthResponse {
     expires_in: string;
 }
 
-export class ETimsClient {
-    private config: ETimsConfig;
-    private cachedAccessToken: string | null = null;
-    private cachedAccessTokenExpiresAtMs: number | null = null;
+// ─────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────
 
-    constructor(config: ETimsConfig) {
+/**
+ * All valid KRA OSCU API endpoints per the official specification.
+ * Keys are human-friendly names; values are the exact URL paths.
+ */
+const ENDPOINTS = {
+    // Initialization
+    selectInitOsdcInfo: '/selectInitOsdcInfo',
+    // Code Lists
+    selectCodeList: '/selectCodeList',
+    // Notices
+    selectNoticeList: '/selectNoticeList',
+    // Customer
+    selectCustomer: '/selectCustomer',
+    // Branches
+    selectBhfList: '/selectBhfList',
+    saveBhfCustomer: '/saveBhfCustomer',
+    saveBhfUser: '/saveBhfUser',
+    saveBhfInsurance: '/saveBhfInsurance',
+    // Items
+    selectItemClsList: '/selectItemClsList',
+    selectItemList: '/selectItemList',
+    saveItem: '/saveItem',
+    saveItemComposition: '/saveItemComposition',
+    // Imported Items
+    selectImportItemList: '/selectImportItemList',
+    updateImportItem: '/updateImportItem',
+    // Sales
+    saveTrnsSalesOsdc: '/saveTrnsSalesOsdc',
+    // Purchases
+    selectTrnsPurchaseSalesList: '/selectTrnsPurchaseSalesList',
+    insertTrnsPurchase: '/insertTrnsPurchase',
+    // Stock
+    selectStockMoveList: '/selectStockMoveList',
+    insertStockIO: '/insertStockIO',
+    saveStockMaster: '/saveStockMaster',
+} as const;
+
+type EndpointKey = keyof typeof ENDPOINTS;
+
+const REDIS_TOKEN_KEY = 'etims:oauth_token';
+const TOKEN_BUFFER_SECS = 60; // Refresh 60s before actual expiry
+
+// ─────────────────────────────────────────────
+// EtimsOscuClient
+// ─────────────────────────────────────────────
+
+export class EtimsOscuClient {
+    private config: EtimsClientConfig;
+
+    // In-process cache (fallback when Redis is unavailable)
+    private memToken: string | null = null;
+    private memTokenExpiresAt: number | null = null;
+
+    constructor(config: EtimsClientConfig) {
         this.config = config;
     }
 
-    /**
-     * Generate OAuth 2.0 access token
-     */
-    async generateToken(): Promise<AuthResponse> {
-        const auth = Buffer.from(`${this.config.consumerKey}:${this.config.consumerSecret}`).toString('base64');
+    // ───────────────────────
+    // Token Management
+    // ───────────────────────
 
-        const res = await request(`${this.config.tokenUrl}?grant_type=client_credentials`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Basic ${auth}`,
+    /**
+     * Get a valid OAuth access token, using Redis as the primary cache
+     * and an in-memory fallback. Never fetches more than once per TTL.
+     */
+    async getToken(forceRefresh = false): Promise<string> {
+        if (!forceRefresh) {
+            // 1. Try Redis first
+            const redis = getRedisClient();
+            if (redis) {
+                try {
+                    const cached = await redis.get<{ token: string; expiresAt: number }>(REDIS_TOKEN_KEY);
+                    if (cached && Date.now() < cached.expiresAt * 1000) {
+                        return cached.token;
+                    }
+                } catch {
+                    // Redis failure → fall through to in-memory
+                }
             }
+
+            // 2. Try in-memory cache
+            if (this.memToken && this.memTokenExpiresAt && Date.now() < this.memTokenExpiresAt * 1000) {
+                return this.memToken;
+            }
+        }
+
+        // 3. Fetch fresh token
+        const tokenData = await this.fetchToken();
+        const expiresIn = parseInt(tokenData.expires_in ?? '3600', 10);
+        const expiresAt = Math.floor(Date.now() / 1000) + expiresIn - TOKEN_BUFFER_SECS;
+
+        // Persist in-memory
+        this.memToken = tokenData.access_token;
+        this.memTokenExpiresAt = expiresAt;
+
+        // Persist to Redis (best-effort)
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                await redis.set(
+                    REDIS_TOKEN_KEY,
+                    { token: tokenData.access_token, expiresAt },
+                    { ex: expiresIn - TOKEN_BUFFER_SECS }
+                );
+            } catch {
+                // Redis write failure is non-fatal; we still have the in-memory cache
+            }
+        }
+
+        return tokenData.access_token;
+    }
+
+    async clearToken(): Promise<void> {
+        this.memToken = null;
+        this.memTokenExpiresAt = null;
+        const redis = getRedisClient();
+        if (redis) {
+            try { await redis.del(REDIS_TOKEN_KEY); } catch { /* non-fatal */ }
+        }
+    }
+
+    private async fetchToken(): Promise<AuthResponse> {
+        const { consumerKey, consumerSecret, tokenUrl } = this.config;
+        if (!consumerKey || !consumerSecret) {
+            throw new Error('eTIMS Consumer Key and Secret are not configured.');
+        }
+
+        const authHeader = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+        const url = `${tokenUrl.trim().replace(/\/+$/, '')}?grant_type=client_credentials`;
+
+        const res = await request(url, {
+            method: 'GET',
+            headers: { Authorization: `Basic ${authHeader}` },
         });
 
-        const responseText = await res.body.text();
+        const text = await res.body.text();
+
         if (res.statusCode !== 200) {
-            throw new Error(`eTIMS Auth Error: ${res.statusCode} - ${responseText}`);
+            throw new Error(`eTIMS token request failed (${res.statusCode}): ${text}`);
         }
 
+        let data: AuthResponse;
         try {
-            return JSON.parse(responseText);
-        } catch (e) {
-            throw new Error(`eTIMS Auth Error: Invalid JSON response: ${responseText}`);
-        }
-    }
-
-    private async getValidAccessToken(): Promise<string> {
-        const now = Date.now();
-        if (this.cachedAccessToken && this.cachedAccessTokenExpiresAtMs && now < this.cachedAccessTokenExpiresAtMs) {
-            return this.cachedAccessToken;
+            data = JSON.parse(text);
+        } catch {
+            throw new Error(`eTIMS token response is not valid JSON: ${text}`);
         }
 
-        const token = await this.generateToken();
-        const expiresInSec = Number(token.expires_in);
-        // Refresh a bit early to avoid edge-of-expiry failures.
-        const skewMs = 30_000;
-        const ttlMs = Number.isFinite(expiresInSec) ? Math.max(0, expiresInSec * 1000 - skewMs) : 0;
+        if (!data.access_token) {
+            throw new Error(`eTIMS token response missing access_token: ${text}`);
+        }
 
-        this.cachedAccessToken = token.access_token;
-        this.cachedAccessTokenExpiresAtMs = now + ttlMs;
-
-        return token.access_token;
+        return data;
     }
 
-    private maskBearer(bearer: string | undefined) {
-        if (!bearer) return "";
-        if (bearer.length <= 16) return "***";
-        return `${bearer.slice(0, 6)}***${bearer.slice(-6)}`;
+    // ───────────────────────
+    // HTTP Core
+    // ───────────────────────
+
+    private buildUrl(endpointKey: EndpointKey): string {
+        const path = ENDPOINTS[endpointKey];
+        return `${this.config.baseUrl.trim().replace(/\/+$/, '')}${path}`;
     }
 
-    private omitNullishDeep<T>(value: T): T {
-        // KRA sandbox is strict: remove null/undefined fields from payloads.
+    /**
+     * Build request headers.
+     * Initialization only needs Authorization.
+     * All other endpoints also need tin + bhfId + cmcKey.
+     */
+    private async buildHeaders(
+        endpointKey: EndpointKey,
+        oscu?: EtimsOscuHeaders
+    ): Promise<Record<string, string>> {
+        const token = await this.getToken();
+        const base: Record<string, string> = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        };
+
+        if (endpointKey === 'selectInitOsdcInfo') {
+            // Only auth header for initialization
+            return base;
+        }
+
+        if (!oscu) throw new Error(`OSCU headers (tin/bhfId/cmcKey) required for endpoint: ${endpointKey}`);
+
+        return {
+            ...base,
+            'tin': oscu.tin,
+            'bhfId': oscu.bhfId,
+            'cmcKey': oscu.cmcKey,
+        };
+    }
+
+    /**
+     * Omit null/undefined values from the payload recursively.
+     * KRA sandbox rejects requests with null fields in many cases.
+     */
+    private omitNullish<T>(value: T): T {
         if (value === null || value === undefined) return value;
-
-        if (Array.isArray(value)) {
-            return value.map((v) => this.omitNullishDeep(v)) as any;
-        }
-
-        if (typeof value === "object") {
-            const out: any = {};
-            for (const [k, v] of Object.entries(value as any)) {
+        if (Array.isArray(value)) return value.map((v) => this.omitNullish(v)) as unknown as T;
+        if (typeof value === 'object') {
+            const out: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
                 if (v === null || v === undefined) continue;
-                out[k] = this.omitNullishDeep(v);
+                out[k] = this.omitNullish(v);
             }
-            return out;
+            return out as T;
         }
-
         return value;
     }
 
-    private async request<T>(method: 'GET' | 'POST', endpoint: string, headers: ETimsHeaders, body?: any): Promise<T> {
-        const url = `${this.config.baseUrl}${endpoint}`;
+    private async post<T>(
+        endpointKey: EndpointKey,
+        body: Record<string, unknown>,
+        oscu?: EtimsOscuHeaders
+    ): Promise<T> {
+        const url = this.buildUrl(endpointKey);
+        const headers = await this.buildHeaders(endpointKey, oscu);
+        const payload = this.omitNullish(body);
 
-        const accessToken = headers.accessToken ?? (await this.getValidAccessToken());
-        const headersObj = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'apigee_app_id': this.config.consumerKey,
-            'tin': headers.tin,
-            'bhfId': headers.bhfId,
-            ...(headers.cmcKey ? { 'cmcKey': headers.cmcKey } : {}),
+        const doRequest = async (): Promise<{ statusCode: number; text: string }> => {
+            const res = await request(url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+            });
+            return { statusCode: res.statusCode, text: await res.body.text() };
         };
 
-        console.log(`[eTIMS] ${method} ${url}`);
-        const headersForLog = {
-            ...headersObj,
-            Authorization: `Bearer ${this.maskBearer(accessToken)}`,
-            apigee_app_id: this.config.consumerKey ? `${this.config.consumerKey.slice(0, 6)}***${this.config.consumerKey.slice(-6)}` : "",
-            ...(headers.cmcKey ? { cmcKey: `${headers.cmcKey.slice(0, 6)}***${headers.cmcKey.slice(-6)}` } : {}),
-        };
-        console.log(`[eTIMS] Headers:`, JSON.stringify(headersForLog, null, 2));
+        let { statusCode, text } = await doRequest();
 
-        const sanitizedBody = body ? this.omitNullishDeep(body) : undefined;
-        if (sanitizedBody) console.log(`[eTIMS] Body:`, JSON.stringify(sanitizedBody, null, 2));
-
-        const res = await request(url, {
-            method,
-            headers: headersObj,
-            body: sanitizedBody ? JSON.stringify(sanitizedBody) : undefined,
-        });
-
-        const responseText = await res.body.text();
-        let data: any;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            throw new Error(`eTIMS API Error (${endpoint}): ${res.statusCode} - Invalid JSON response: ${responseText}`);
+        // Auto-retry once on 401 (expired token)
+        if (statusCode === 401) {
+            await this.clearToken();
+            await this.getToken(true);
+            // Rebuild headers with new token
+            const freshHeaders = await this.buildHeaders(endpointKey, oscu);
+            const retryRes = await request(url, {
+                method: 'POST',
+                headers: freshHeaders,
+                body: JSON.stringify(payload),
+            });
+            statusCode = retryRes.statusCode;
+            text = await retryRes.body.text();
         }
 
-        if (res.statusCode !== 200) {
-            throw new Error(`eTIMS API Error (${endpoint}): ${res.statusCode} - ${JSON.stringify(data)}`);
+        let data: Record<string, unknown>;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            throw new Error(`eTIMS API (${endpointKey}): invalid JSON response (${statusCode}): ${text}`);
+        }
+
+        if (statusCode !== 200) {
+            const msg = (data as { resultMsg?: string }).resultMsg
+                ?? (data as { errorMessage?: string }).errorMessage
+                ?? text;
+            throw new Error(`eTIMS API (${endpointKey}) HTTP ${statusCode}: ${msg}`);
+        }
+
+        // Validate KRA business result code
+        const resultCd = (data as { resultCd?: string }).resultCd;
+        const resultMsg = (data as { resultMsg?: string }).resultMsg ?? 'Unknown eTIMS error';
+
+        if (resultCd && resultCd !== '000' && resultCd !== '001') {
+            throw new Error(`eTIMS API (${endpointKey}) resultCd=${resultCd}: ${resultMsg}`);
         }
 
         return data as T;
     }
 
-    async initializeDevice(tin: string, bhfId: string, dvcSrlNo: string, accessToken?: string) {
-        return this.request<any>(
-            'POST',
-            '/initialize',
-            {
-                tin,
-                bhfId,
-                accessToken
-            },
-            {
-                tin,
-                bhfId,
-                dvcSrlNo,
-            }
-        );
+    // ───────────────────────
+    // Initialization
+    // ───────────────────────
+
+    async selectInitOsdcInfo(payload: {
+        tin: string;
+        bhfId: string;
+        dvcSrlNo: string;
+    }) {
+        // No OSCU headers for init — only Authorization
+        return this.post('selectInitOsdcInfo', payload as Record<string, unknown>);
     }
 
-    async selectCodeList(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectCodeList', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Code Lists
+    // ───────────────────────
+
+    async selectCodeList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectCodeList', { lastReqDt }, oscu);
     }
 
-    async selectItemClass(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectItemClass', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    async selectNoticeList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectNoticeList', { lastReqDt }, oscu);
     }
 
-    async selectBhfList(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectBhfList', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Customer
+    // ───────────────────────
+
+    /** Look up a single customer by their KRA TIN */
+    async selectCustomer(oscu: EtimsOscuHeaders, custmTin: string) {
+        return this.post('selectCustomer', { custmTin }, oscu);
     }
 
-    async saveItem(headers: ETimsHeaders, item: any) {
-        // KRA OSCU docs: tin + bhfId must be present in the request body AND headers.
-        // KRA's sandbox uses the body fields to look up the TestSession for API logging;
-        // if they are absent getTestSessionApiLog() returns null → 400 NPE.
-        return this.request<any>('POST', '/saveItem', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...item,
-        });
+    // ───────────────────────
+    // Branches
+    // ───────────────────────
+
+    async selectBhfList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectBhfList', { lastReqDt }, oscu);
     }
 
-    async selectItemInfo(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/itemInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    async saveBhfCustomer(oscu: EtimsOscuHeaders, customerData: Record<string, unknown>) {
+        return this.post('saveBhfCustomer', customerData, oscu);
     }
 
-    async saveItemComposition(headers: ETimsHeaders, composition: any) {
-        // Same rule: tin + bhfId required in body for KRA session tracking.
-        return this.request<any>('POST', '/saveItemComposition', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...composition,
-        });
+    async saveBhfUser(oscu: EtimsOscuHeaders, userData: Record<string, unknown>) {
+        return this.post('saveBhfUser', userData, oscu);
     }
 
-    async selectImportedItemInfo(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/importedItemInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Items
+    // ───────────────────────
+
+    async selectItemClsList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectItemClsList', { lastReqDt }, oscu);
     }
 
-    async saveImportedItemConvertedInfo(headers: ETimsHeaders, conversion: any) {
-        return this.request<any>('POST', '/importedItemConvertedInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...conversion,
-        });
+    async selectItemList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectItemList', { lastReqDt }, oscu);
     }
 
-    async sendSalesTransaction(headers: ETimsHeaders, transaction: SalesTransaction) {
-        // KRA requires tin + bhfId in the body for session tracking (same as all write endpoints).
-        return this.request<any>('POST', '/sendSalesTransaction', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
+    async saveItem(oscu: EtimsOscuHeaders, item: Record<string, unknown>) {
+        // tin + bhfId must also be in the request body for KRA session tracking
+        return this.post('saveItem', { tin: oscu.tin, bhfId: oscu.bhfId, ...item }, oscu);
+    }
+
+    async saveItemComposition(oscu: EtimsOscuHeaders, composition: Record<string, unknown>) {
+        return this.post('saveItemComposition', { tin: oscu.tin, bhfId: oscu.bhfId, ...composition }, oscu);
+    }
+
+    // ───────────────────────
+    // Imported Items
+    // ───────────────────────
+
+    async selectImportItemList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectImportItemList', { lastReqDt }, oscu);
+    }
+
+    async updateImportItem(oscu: EtimsOscuHeaders, item: Record<string, unknown>) {
+        return this.post('updateImportItem', item, oscu);
+    }
+
+    // ───────────────────────
+    // Sales
+    // ───────────────────────
+
+    async saveTrnsSalesOsdc(oscu: EtimsOscuHeaders, transaction: Record<string, unknown>) {
+        return this.post('saveTrnsSalesOsdc', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
             ...transaction,
-        });
+        }, oscu);
     }
 
-    async selectSalesTransactions(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectSalesTransactions', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Purchases
+    // ───────────────────────
+
+    async selectTrnsPurchaseSalesList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectTrnsPurchaseSalesList', { lastReqDt }, oscu);
     }
 
-    async selectInvoiceDetail(headers: ETimsHeaders, invcNo: string) {
-        return this.request<any>('POST', '/selectInvoiceDetail', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            invcNo,
-        });
+    async insertTrnsPurchase(oscu: EtimsOscuHeaders, purchase: Record<string, unknown>) {
+        return this.post('insertTrnsPurchase', purchase, oscu);
     }
 
-    async getPurchaseTransactionInfo(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/getPurchaseTransactionInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Stock
+    // ───────────────────────
+
+    async selectStockMoveList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectStockMoveList', { lastReqDt }, oscu);
     }
 
-    async sendPurchaseTransactionInfo(headers: ETimsHeaders, purchaseInfo: any) {
-        return this.request<any>('POST', '/sendPurchaseTransactionInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...purchaseInfo,
-        });
+    async insertStockIO(oscu: EtimsOscuHeaders, stockData: Record<string, unknown>) {
+        return this.post('insertStockIO', stockData, oscu);
     }
 
-    async selectStockMoveList(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectStockMoveLists', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    async saveStockMaster(oscu: EtimsOscuHeaders, stockMaster: Record<string, unknown>) {
+        return this.post('saveStockMaster', stockMaster, oscu);
     }
+}
 
-    async insertStockIO(headers: ETimsHeaders, stockData: any) {
-        return this.request<any>('POST', '/insert/stockIO', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...stockData,
-        });
-    }
+// ─────────────────────────────────────────────
+// Module-level Singleton
+// ─────────────────────────────────────────────
 
-    async saveStockMaster(headers: ETimsHeaders, stockMaster: any) {
-        return this.request<any>('POST', '/save/stockMaster', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...stockMaster,
-        });
-    }
+let _singleton: EtimsOscuClient | null = null;
 
-    async selectCustomerPinInfo(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/customerPinInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+/**
+ * Get (or create) the module-level eTIMS client singleton.
+ * All routers must use this instead of `new EtimsOscuClient(...)` to share the token cache.
+ */
+export function getEtimsClient(config: EtimsClientConfig): EtimsOscuClient {
+    if (!_singleton) {
+        _singleton = new EtimsOscuClient(config);
+    } else {
+        // Update the config in case env vars changed (e.g. sandbox → prod switch)
+        // We do this by assigning the new config; the token cache is only invalidated
+        // if the tokenUrl changed (different env), since the old token won't be valid.
+        const prevUrl = (_singleton as unknown as { config: EtimsClientConfig }).config.tokenUrl;
+        if (prevUrl !== config.tokenUrl) {
+            // Environment changed — kill the old singleton and the cached token
+            _singleton.clearToken().catch(() => undefined);
+            _singleton = new EtimsOscuClient(config);
+        }
     }
-
-    async selectTaxpayerInfo(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectTaxpayerInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
-    }
-
-    async selectNoticeList(headers: ETimsHeaders, lastReqDt: string) {
-        return this.request<any>('POST', '/selectNoticeList', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
-    }
-
-    async branchSendCustomerInfo(headers: ETimsHeaders, customerInfo: any) {
-        // KRA docs: /saveBhfCustomer
-        return this.request<any>('POST', '/saveBhfCustomer', headers, customerInfo);
-    }
-
-    async branchUserAccount(headers: ETimsHeaders, userInfo: any) {
-        // KRA docs: /saveBhfUser
-        return this.request<any>('POST', '/saveBhfUser', headers, userInfo);
-    }
+    return _singleton;
 }

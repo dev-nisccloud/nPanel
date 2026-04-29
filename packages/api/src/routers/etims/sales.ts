@@ -1,232 +1,120 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
-import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import { db } from "@npanel/db";
-import { eTimsConfiguration } from "@npanel/db/schema/etims";
+import { getEtimsContext } from "../../lib/etims-config";
 
-const isAgencyUserRole = (role: string | null | undefined) =>
-    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+const isAgencyUser = (r: string | null | undefined) =>
+    ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
+const isSuperAdmin = (r: string | null | undefined) => r === "AGENCY_SUPER_ADMIN";
 
-const isAgencySuperAdminRole = (role: string | null | undefined) =>
-    role === "AGENCY_SUPER_ADMIN";
-
-function assertAgencyReadAccess(role: string | null | undefined) {
-    if (!isAgencyUserRole(role)) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only agency users can access eTIMS sales data.",
-        });
-    }
+function assertRead(role: string | null | undefined) {
+    if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS sales data." });
+}
+function assertWrite(role: string | null | undefined) {
+    if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can submit eTIMS sales." });
 }
 
-function assertAgencyMutationAccess(role: string | null | undefined) {
-    if (!isAgencySuperAdminRole(role)) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only agency super admins can modify eTIMS sales data.",
-        });
-    }
-}
+// ── Zod schema matching KRA saveTrnsSalesOsdc spec ──────────────────────────
+const salesItemSchema = z.object({
+    itemSeq: z.number().int().min(1),
+    itemCd: z.string().max(20),
+    itemClsCd: z.string().max(10).nullable().optional(),
+    itemNm: z.string().max(200),
+    bcd: z.string().max(20).nullable().optional(),
+    pkgUnitCd: z.string().max(5),
+    pkg: z.number(),
+    qtyUnitCd: z.string().max(5),
+    qty: z.number(),
+    prc: z.number(),
+    splyAmt: z.number(),
+    dcRt: z.number(),
+    dcAmt: z.number(),
+    isrccCd: z.string().max(10).nullable().optional(),
+    isrccNm: z.string().max(100).nullable().optional(),
+    isrcRt: z.number().nullable().optional(),
+    isrcAmt: z.number().nullable().optional(),
+    taxTyCd: z.enum(["A", "B", "C", "D", "E"]),
+    taxblAmt: z.number(),
+    taxAmt: z.number(),
+    totAmt: z.number(),
+});
+
+const salesTransactionSchema = z.object({
+    trdInvcNo: z.union([z.string().max(50), z.number()]),
+    invcNo: z.number().int().min(0),
+    orgInvcNo: z.number().int().min(0),
+    custTin: z.string().nullable().optional(),
+    custNm: z.string().max(60).nullable().optional(),
+    rcptTyCd: z.string().max(5),
+    pmtTyCd: z.string().max(5).nullable().optional(),
+    salesSttsCd: z.string().max(5),
+    cfmDt: z.string().regex(/^\d{14}$/),
+    salesDt: z.string().regex(/^\d{8}$/),
+    stockRlsDt: z.string().nullable().optional(),
+    cnclReqDt: z.string().nullable().optional(),
+    cnclDt: z.string().nullable().optional(),
+    rfdDt: z.string().nullable().optional(),
+    rfdRsnCd: z.string().max(5).nullable().optional(),
+    totItemCnt: z.number().int().min(1),
+    taxblAmtA: z.number(), taxblAmtB: z.number(), taxblAmtC: z.number(), taxblAmtD: z.number(), taxblAmtE: z.number(),
+    taxRtA: z.number(), taxRtB: z.number(), taxRtC: z.number(), taxRtD: z.number(), taxRtE: z.number(),
+    taxAmtA: z.number(), taxAmtB: z.number(), taxAmtC: z.number(), taxAmtD: z.number(), taxAmtE: z.number(),
+    totTaxblAmt: z.number(),
+    totTaxAmt: z.number(),
+    totAmt: z.number(),
+    prchrAcptcYn: z.enum(["Y", "N"]),
+    remark: z.string().max(400).nullable().optional(),
+    regrId: z.string().max(20),
+    regrNm: z.string().max(60),
+    modrId: z.string().max(20),
+    modrNm: z.string().max(60),
+    receipt: z.object({
+        custTin: z.string().nullable().optional(),
+        custMblNo: z.string().max(20).nullable().optional(),
+        rcptPbctDt: z.string().regex(/^\d{14}$/),
+        trdeNm: z.string().max(20).nullable().optional(),
+        adrs: z.string().max(200).nullable().optional(),
+        topMsg: z.string().max(20).nullable().optional(),
+        btmMsg: z.string().max(20).nullable().optional(),
+        prchrAcptcYn: z.enum(["Y", "N"]),
+    }),
+    itemList: z.array(salesItemSchema).min(1),
+});
 
 export const etimsSalesRouter = router({
     /**
-     * Submit sales transaction and generate tax invoice
+     * Submit a sales transaction to KRA and generate a tax invoice.
+     * POST /saveTrnsSalesOsdc
      */
     sendSalesTransaction: protectedProcedure
-        .input(z.object({
-            transaction: z.any() // Using any for large complex object, ideally should be strictly typed
-        }))
+        .input(z.object({ transaction: salesTransactionSchema }))
         .mutation(async ({ ctx, input }) => {
-            assertAgencyMutationAccess(ctx.session?.user?.role);
-            const [config] = await db
-                .select()
-                .from(eTimsConfiguration)
-                .limit(1);
-
-            if (!config || !config.cmcKey) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "eTIMS Configuration not found or device not initialized.",
-                });
-            }
-
-            const clientConfig = {
-                baseUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-                tokenUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "System configuration error: eTIMS Consumer Key/Secret missing.",
-                });
-            }
-
-            const client = new ETimsClient(clientConfig);
-
+            assertWrite(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
             try {
-                const result = await client.sendSalesTransaction(
-                    {
-                        tin: config.kraPin,
-                        bhfId: config.branchId,
-                        cmcKey: config.cmcKey,
-                    },
-                    input.transaction
-                );
-
-                return {
-                    success: true,
-                    data: result,
-                };
-            } catch (error: any) {
-                console.warn("[eTIMS Send Sales Transaction Error]", error?.message ?? error);
-                return {
-                    success: false,
-                    data: null,
-                    errorMessage: error?.message || "Failed to send eTIMS sales transaction",
-                };
+                const result = await client.saveTrnsSalesOsdc(oscu, input.transaction as Record<string, unknown>);
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                const msg = (e as Error).message ?? "";
+                console.warn("[eTIMS] sendSalesTransaction failed:", msg);
+                return { success: false, data: null, errorMessage: msg || "Failed to send sales transaction" };
             }
         }),
 
     /**
-     * Retrieve sales transaction history
+     * Retrieve sales transaction history.
+     * POST /selectTrnsPurchaseSalesList
      */
     getSalesTransactions: protectedProcedure
-        .input(z.object({
-            lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
-            bhfId: z.string().optional(),
-        }))
+        .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
-            assertAgencyReadAccess(ctx.session?.user?.role);
-            const [config] = await db
-                .select()
-                .from(eTimsConfiguration)
-                .limit(1);
-
-            if (!config || !config.cmcKey) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "eTIMS Configuration not found or device not initialized.",
-                });
-            }
-
-            const clientConfig = {
-                baseUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-                tokenUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "System configuration error: eTIMS Consumer Key/Secret missing.",
-                });
-            }
-
-            const client = new ETimsClient(clientConfig);
-
+            assertRead(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
             try {
-                const token = await client.generateToken();
-
-                const result = await client.selectSalesTransactions(
-                    {
-                        tin: config.kraPin,
-                        bhfId: input.bhfId ?? config.branchId,
-                        cmcKey: config.cmcKey,
-                        accessToken: token.access_token
-                    },
-                    input.lastReqDt
-                );
-
-                return {
-                    success: true,
-                    data: result,
-                };
-            } catch (error: any) {
-                console.error("[eTIMS Get Sales Transactions Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to retrieve eTIMS sales transactions",
-                });
-            }
-        }),
-
-    /**
-     * Get detailed invoice information by invoice number
-     */
-    getInvoiceDetail: protectedProcedure
-        .input(z.object({
-            invcNo: z.string(),
-        }))
-        .query(async ({ ctx, input }) => {
-            assertAgencyReadAccess(ctx.session?.user?.role);
-            const [config] = await db
-                .select()
-                .from(eTimsConfiguration)
-                .limit(1);
-
-            if (!config || !config.cmcKey) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "eTIMS Configuration not found or device not initialized.",
-                });
-            }
-
-            const clientConfig = {
-                baseUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-                tokenUrl: config.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
-
-            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "System configuration error: eTIMS Consumer Key/Secret missing.",
-                });
-            }
-
-            const client = new ETimsClient(clientConfig);
-
-            try {
-                const token = await client.generateToken();
-
-                const result = await client.selectInvoiceDetail(
-                    {
-                        tin: config.kraPin,
-                        bhfId: config.branchId,
-                        cmcKey: config.cmcKey,
-                        accessToken: token.access_token
-                    },
-                    input.invcNo
-                );
-
-                return {
-                    success: true,
-                    data: result,
-                };
-            } catch (error: any) {
-                console.error("[eTIMS Get Invoice Detail Error]", error);
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error.message || "Failed to retrieve eTIMS invoice details",
-                });
+                const result = await client.selectTrnsPurchaseSalesList(oscu, input.lastReqDt);
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (e as Error).message || "Failed to retrieve sales transactions" });
             }
         }),
 });

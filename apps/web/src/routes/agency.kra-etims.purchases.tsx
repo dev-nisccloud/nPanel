@@ -38,7 +38,7 @@ export default function ETimsPurchasesPage() {
     const [purchasePayload, setPurchasePayload] = React.useState<string>("");
 
     const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
-    const { data: branchesData } = trpc.etims.data.getBranchList.useQuery({ lastReqDt: "20230101000000" });
+    const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
 
     const branches = React.useMemo(() => {
         const root: any = branchesData;
@@ -57,7 +57,6 @@ export default function ETimsPurchasesPage() {
 
     const { data: purchasesData, isLoading, refetch } = trpc.etims.purchases.getPurchaseTransactions.useQuery({
         lastReqDt: "20230101000000",
-        bhfId: selectedBhfId ?? undefined,
     });
 
     const sendPurchase = trpc.etims.purchases.sendPurchaseTransaction.useMutation({
@@ -211,7 +210,7 @@ export default function ETimsPurchasesPage() {
                                     }
                                     try {
                                         const parsed = JSON.parse(purchasePayload);
-                                        sendPurchase.mutate({ purchase: parsed, bhfId: selectedBhfId ?? undefined });
+                                        sendPurchase.mutate({ purchase: parsed });
                                     } catch {
                                         toast.error("Invalid JSON. Please fix and try again.");
                                     }

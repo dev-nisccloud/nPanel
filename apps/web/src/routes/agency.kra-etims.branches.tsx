@@ -32,7 +32,7 @@ import { ETimsInitializationGuard } from "@/components/etims/etims-initializatio
 export default function ETimsBranchesPage() {
     const utils = trpc.useUtils();
 
-    const { data: branches, isLoading, refetch } = trpc.etims.data.getBranchList.useQuery({
+    const { data: branches, isLoading, refetch } = trpc.etims.branch.getBranchList.useQuery({
         lastReqDt: "20230101000000",
     });
 

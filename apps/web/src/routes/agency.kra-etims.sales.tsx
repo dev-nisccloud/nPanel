@@ -50,10 +50,9 @@ export default function ETimsSalesPage() {
     const utils = trpc.useUtils();
 
     const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
-    const { data: branchesData } = trpc.etims.data.getBranchList.useQuery({ lastReqDt: "20230101000000" });
-    const { data: itemsData } = trpc.etims.items.getItemInfo.useQuery({
+    const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
+    const { data: itemsData } = trpc.etims.items.getItemList.useQuery({
         lastReqDt: "20230101000000",
-        bhfId: selectedBhfId ?? undefined,
     });
 
     const branches = React.useMemo(() => {
@@ -216,7 +215,6 @@ export default function ETimsSalesPage() {
     // Fetch eTIMS signed invoices from KRA
     const { data: salesData, isLoading, refetch } = trpc.etims.sales.getSalesTransactions.useQuery({
         lastReqDt: "20230101000000",
-        bhfId: selectedBhfId ?? undefined,
     });
 
     const sendSale = trpc.etims.sales.sendSalesTransaction.useMutation({

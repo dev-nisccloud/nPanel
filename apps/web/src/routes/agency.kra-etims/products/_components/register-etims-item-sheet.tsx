@@ -172,7 +172,7 @@ export function RegisterETimsItemSheet({
     },
   });
 
-  const { data: itemsData } = trpc.etims.items.getItemInfo.useQuery(
+  const { data: itemsData } = trpc.etims.items.getItemList.useQuery(
     { lastReqDt: "20230101000000" },
     { enabled: open, staleTime: 30_000 },
   );

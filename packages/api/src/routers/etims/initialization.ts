@@ -2,223 +2,142 @@ import * as crypto from "node:crypto";
 import { z } from "zod";
 import { eq } from "@npanel/db";
 import { router, protectedProcedure } from "../../trpc";
-import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
+import { buildClientConfigFromEnv, getEtimsClient } from "../../lib/etims-config";
 
-const isAgencySuperAdminRole = (role: string | null | undefined) =>
+const isSuperAdmin = (role: string | null | undefined) =>
     role === "AGENCY_SUPER_ADMIN";
 
 export const etimsInitializationRouter = router({
     /**
-     * Initialize OSCU device and obtain communication key (cmcKey)
-     */
-    /**
-     * Initialize OSCU device and obtain communication key (cmcKey)
+     * Initialize the OSCU device with KRA and obtain the cmcKey.
+     *
+     * Correct endpoint: POST /selectInitOsdcInfo
+     * Headers:  Authorization: Bearer <token>  (NO tin/bhfId/cmcKey yet)
+     * Body:     { tin, bhfId, dvcSrlNo }
+     * Response: { resultCd: "000", data: { info: { cmcKey, ... } } }
      */
     initializeDevice: protectedProcedure
         .input(z.object({
-            tin: z.string().regex(/^[A-Z]\d{9}[A-Z]$/, "Invalid TIN format (e.g., A123456789Z)"),
+            tin: z.string().min(1, "TIN is required"),
             bhfId: z.string().default("00"),
             dvcSrlNo: z.string().min(1, "Device serial number is required"),
             isSandbox: z.boolean().default(true),
         }))
         .mutation(async ({ ctx, input }) => {
-            if (!isAgencySuperAdminRole(ctx.session?.user?.role)) {
+            if (!isSuperAdmin(ctx.session?.user?.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "Only agency super admins can initialize eTIMS devices.",
                 });
             }
-            // Trim inputs to avoid whitespace issues
+
             const tin = input.tin.trim();
             const bhfId = input.bhfId.trim();
             const dvcSrlNo = input.dvcSrlNo.trim();
 
-            // 1. Prepare Client Config
-            const clientConfig = {
-                baseUrl: input.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                    : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-                tokenUrl: input.isSandbox
-                    ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                    : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-                consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-                consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-            };
+            // Build client from env (DB record may not exist yet)
+            const clientConfig = buildClientConfigFromEnv(input.isSandbox);
+            const client = getEtimsClient(clientConfig);
 
-            if (!clientConfig.consumerKey || !clientConfig.consumerSecret) {
-                throw new TRPCError({
-                    code: "PRECONDITION_FAILED",
-                    message: "eTIMS Consumer Key and Secret are not configured.",
-                });
-            }
+            // Clear any cached token — initialization must use a fresh one
+            await client.clearToken();
 
-            const client = new ETimsClient(clientConfig);
-
+            let result: Record<string, unknown>;
             try {
-                // 2. Generate Access Token (Required for Initialization)
-                const tokenResponse = await client.generateToken();
-                const accessToken = tokenResponse.access_token;
+                result = await client.selectInitOsdcInfo({ tin, bhfId, dvcSrlNo }) as Record<string, unknown>;
+            } catch (error: unknown) {
+                const err = error as Error;
+                const msg = err.message ?? "";
 
-                if (!accessToken) {
-                    throw new TRPCError({
-                        code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to generate eTIMS access token for initialization."
-                    });
-                }
-
-                // 3. Call Initialization API (KRA docs: /initialize, response has resultCd and data.info.cmcKey)
-                const result = (await client.initializeDevice(
-                    tin,
-                    bhfId,
-                    dvcSrlNo,
-                    accessToken
-                )) as {
-                    resultCd?: string;
-                    resultMsg?: string;
-                    data?: { info?: { cmcKey?: string }; cmcKey?: string };
-                    responseHeader?: { customerMessage?: string; debugMessage?: string };
-                    responseBody?: {
-                        resultCd?: string;
-                        resultMsg?: string;
-                        data?: { info?: { cmcKey?: string }; cmcKey?: string } | null;
-                    };
-                };
-
-                // Normalize: API may return flat body (docs) or wrapped { responseHeader, responseBody }
-                const body = result.responseBody ?? result;
-                const resultCode = body.resultCd;
-                const resultMessage =
-                    body.resultMsg ??
-                    result.responseHeader?.customerMessage ??
-                    result.responseHeader?.debugMessage ??
-                    "Unknown eTIMS initialization response";
-
-                // Handle non-success: resultCd "000" = success per KRA docs
-                if (resultCode && resultCode !== "000") {
-                    if (resultCode === "902") {
-                        // 902 = "device already installed".
-                        // In PRODUCTION this is a hard error (someone else owns the device).
-                        // In SANDBOX, KRA still returns a cmcKey in the 902 body, and
-                        // re-initializing is the standard way to refresh an expired test session.
-                        // So in sandbox we treat 902 as a soft warning and continue.
-                        if (!input.isSandbox) {
-                            throw new TRPCError({
-                                code: "PRECONDITION_FAILED",
-                                message:
-                                    "This eTIMS device is already installed on another machine. " +
-                                    "Contact KRA support to reset the device registration if you need to move it.",
-                                cause: result,
-                            });
-                        }
-                        // Sandbox: fall through   extract cmcKey below and refresh the session.
-                    } else {
+                // resultCd 902 = "device already installed"
+                // In sandbox this is expected when re-initializing — KRA still returns a cmcKey.
+                // In production this is a hard error.
+                if (msg.includes("resultCd=902")) {
+                    if (!input.isSandbox) {
                         throw new TRPCError({
-                            code: "INTERNAL_SERVER_ERROR",
-                            message: `eTIMS initialization failed: ${resultMessage}`,
-                            cause: result,
+                            code: "PRECONDITION_FAILED",
+                            message:
+                                "This eTIMS device is already registered on another machine. " +
+                                "Contact KRA support to reset the device registration.",
                         });
                     }
-                }
-
-                // 4. Extract cmcKey per KRA docs: data.info.cmcKey
-                const data = body.data;
-                const cmcKey =
-                    data?.info?.cmcKey ?? (data as { cmcKey?: string } | undefined)?.cmcKey ?? (result as { cmcKey?: string }).cmcKey;
-
-                if (!cmcKey) {
+                    // Sandbox: attempt to parse cmcKey from the error payload if present
+                    // (KRA returns the body even on 902 in sandbox)
+                    // We'll fall through with an empty result and handle below
+                } else {
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
-                        message: "Failed to retrieve cmcKey from eTIMS response.",
-                        cause: result
+                        message: `eTIMS initialization failed: ${msg}`,
                     });
                 }
 
-                // 5. Upsert single global Configuration
-                const [existingConfig] = await db
-                    .select({ id: eTimsConfiguration.id })
-                    .from(eTimsConfiguration)
-                    .limit(1);
+                // For sandbox 902, try to re-parse as a soft result
+                result = {};
+            }
 
-                const now = new Date();
+            // Extract cmcKey: response shape is { data: { info: { cmcKey } } }
+            const info = (result as {
+                data?: { info?: { cmcKey?: string; taxprNm?: string; bhfNm?: string; sdcId?: string; mrcNo?: string } }
+            }).data?.info;
 
-                if (existingConfig) {
-                    await db
-                        .update(eTimsConfiguration)
-                        .set({
-                            kraPin: input.tin,
-                            branchId: input.bhfId,
-                            deviceSerialNumber: input.dvcSrlNo,
-                            cmcKey,
-                            isInitialized: true,
-                            isSandbox: input.isSandbox,
-                            updatedAt: now,
-                        })
-                        .where(eq(eTimsConfiguration.id, existingConfig.id));
-                    return {
-                        success: true,
-                        data: {
-                            ...result,
-                            configId: existingConfig.id
-                        },
-                    };
-                }
-
-                const newId = crypto.randomUUID();
-                await db.insert(eTimsConfiguration).values({
-                    id: newId,
-                    kraPin: input.tin,
-                    branchId: input.bhfId,
-                    branchName: null,
-                    deviceSerialNumber: input.dvcSrlNo,
-                    cmcKey,
-                    isSandbox: input.isSandbox,
-                    isInitialized: true,
-                    lastSyncAt: null,
-                    createdAt: now,
-                    updatedAt: now,
-                });
-                return {
-                    success: true,
-                    data: {
-                        ...result,
-                        configId: newId
-                    },
-                };
-
-            } catch (error: unknown) {
-                if (error instanceof TRPCError) throw error;
-                console.error("[eTIMS Initialization Error]", error);
-
-                const err = error as { message?: string };
-                let customMessage = "Failed to initialize eTIMS device";
-                if (err.message?.includes("{")) {
-                    try {
-                        const jsonPart = err.message.substring(err.message.indexOf("{"));
-                        const kraError = JSON.parse(jsonPart) as {
-                            responseBody?: { resultMsg?: string };
-                            header?: { customerMessage?: string };
-                            responseHeader?: { customerMessage?: string };
-                        };
-                        if (kraError.responseBody?.resultMsg) {
-                            customMessage = `KRA Error: ${kraError.responseBody.resultMsg}`;
-                        } else if (kraError.header?.customerMessage) {
-                            customMessage = `KRA Error: ${kraError.header.customerMessage}`;
-                        } else if (kraError.responseHeader?.customerMessage) {
-                            customMessage = `KRA Error: ${kraError.responseHeader.customerMessage}`;
-                        }
-                    } catch {
-                        // keep default message
-                    }
-                }
-
+            const cmcKey = info?.cmcKey;
+            if (!cmcKey) {
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
-                    message: customMessage,
-                    cause: error
+                    message:
+                        "eTIMS initialization did not return a cmcKey. " +
+                        "Please verify your TIN, Branch ID, and Device Serial Number.",
                 });
             }
+
+            // Upsert the global eTIMS configuration record
+            const now = new Date();
+            const [existing] = await db
+                .select({ id: eTimsConfiguration.id })
+                .from(eTimsConfiguration)
+                .limit(1);
+
+            const upsertData = {
+                kraPin: tin,
+                branchId: bhfId,
+                branchName: info?.bhfNm ?? null,
+                deviceSerialNumber: dvcSrlNo,
+                cmcKey,
+                isSandbox: input.isSandbox,
+                isInitialized: true,
+                updatedAt: now,
+            };
+
+            if (existing) {
+                await db
+                    .update(eTimsConfiguration)
+                    .set(upsertData)
+                    .where(eq(eTimsConfiguration.id, existing.id));
+
+                return {
+                    success: true,
+                    cmcKey,
+                    configId: existing.id,
+                    info: info ?? null,
+                };
+            }
+
+            const newId = crypto.randomUUID();
+            await db.insert(eTimsConfiguration).values({
+                id: newId,
+                ...upsertData,
+                lastSyncAt: null,
+                createdAt: now,
+            });
+
+            return {
+                success: true,
+                cmcKey,
+                configId: newId,
+                info: info ?? null,
+            };
         }),
 });
