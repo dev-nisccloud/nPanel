@@ -28,6 +28,8 @@ import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator
 import { handleResendWebhook } from "./api/webhooks/resend";
 import { handleSnsWebhook } from "./api/webhooks/sns";
 import { handleMyIp } from "./api/my-ip";
+import { apiKeyAuth } from "./middleware/auth-middleware";
+import { handleExternalImageGeneration } from "./api/ai/image-generator";
 
 const app = new Hono();
 
@@ -79,6 +81,9 @@ app.get("/api/plesk/health-check", handlePleskHealthCheck);
 app.get("/api/plesk/test-connection", handleTestPleskConnection);
 app.get("/api/kenic/test-connection", handleTestKenicConnection);
 app.get("/api/my-ip", handleMyIp);
+
+// External AI APIs
+app.post("/api/ai/image-generator", apiKeyAuth, handleExternalImageGeneration);
 
 // Webhooks
 app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);
