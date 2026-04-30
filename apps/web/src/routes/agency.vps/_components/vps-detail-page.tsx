@@ -204,7 +204,7 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
                 <VpsNetwork deviceData={deviceData} vpsData={vpsData} />
               </TabsContent>
               <TabsContent value="storage">
-                <VpsStorage deviceId={id} />
+                <VpsStorage deviceId={id} facilityCode={(deviceData?.location as any)?.facility} />
               </TabsContent>
               <TabsContent value="access">
                 <VpsAccess deviceData={deviceData} onTabChange={setActiveTab} />

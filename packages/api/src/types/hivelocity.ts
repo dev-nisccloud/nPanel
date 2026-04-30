@@ -325,6 +325,73 @@ export type HivelocityVps = z.infer<typeof hivelocityVpsSchema>;
 export const hivelocityVpsListResponseSchema = z.array(hivelocityVpsSchema);
 
 // ---------------------------------------------------------------------------
+// Storage & Snapshot Resources
+// ---------------------------------------------------------------------------
+
+export const hivelocityVpsSnapshotScheduleSchema = z.object({
+	snapshotScheduleId: z.string().optional(),
+	volumeId: z.string(),
+	intervalType: z.enum(["HOURLY", "DAILY", "WEEKLY", "MONTHLY"]),
+	timezone: z.string(),
+	hour: z.number().int().min(0).max(23).optional(),
+	minute: z.number().int().min(0).max(59).optional(),
+	day: z.number().int().min(1).max(28).optional(),
+	weekday: z.number().int().min(1).max(7).optional(),
+	maxSnapshots: z.number().int().positive(),
+}).passthrough();
+
+export type HivelocityVpsSnapshotSchedule = z.infer<typeof hivelocityVpsSnapshotScheduleSchema>;
+
+export const hivelocityVpsSnapshotScheduleCreateSchema = hivelocityVpsSnapshotScheduleSchema.omit({
+	snapshotScheduleId: true,
+}).extend({
+	facilityCode: z.string(),
+	clientId: z.number().int().optional(),
+});
+
+export const hivelocityVpsVolumeSchema = z.object({
+	volumeId: z.string(),
+	deviceId: z.number().int(),
+	facilityCode: z.string(),
+	size: z.number().int(), // in bytes
+	type: z.enum(["ROOT", "DATADISK"]),
+	createdAt: z.string().optional(),
+}).passthrough();
+
+export type HivelocityVpsVolume = z.infer<typeof hivelocityVpsVolumeSchema>;
+
+export const hivelocityVpsVolumeCreateSchema = z.object({
+	deviceId: z.number().int(),
+	size: z.number().int(), // in GiB (50, 100, 200, 500)
+});
+
+export const hivelocityVpsVolumeUpdateSchema = z.object({
+	deviceId: z.number().int().optional(),
+	size: z.number().int(), // in GiB
+});
+
+export const hivelocityVpsVolumeDeleteSchema = z.object({
+	deviceId: z.number().int().optional(),
+});
+
+export const hivelocityVpsSnapshotRestoreSchema = z.object({
+	facilityCode: z.string(),
+	clientId: z.number().int().optional(),
+});
+
+export const hivelocityNetworkTaskSchema = z.object({
+	taskId: z.string(),
+	clientId: z.number().int().optional(),
+	deviceId: z.number().int().optional(),
+	result: z.string().nullable().optional(), // Success|Pending|Failed
+	metaData: z.string().optional(),
+	taskCreated: z.unknown().optional(),
+	taskUpdated: z.unknown().optional(),
+}).passthrough();
+
+export type HivelocityNetworkTask = z.infer<typeof hivelocityNetworkTaskSchema>;
+
+// ---------------------------------------------------------------------------
 // Unified resource type used by getMyAllResources
 // ---------------------------------------------------------------------------
 

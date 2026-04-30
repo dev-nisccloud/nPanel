@@ -7,6 +7,8 @@ import {
 	hivelocityProductByIdResponseSchema,
 	hivelocityDeviceDumpSchema,
 	hivelocityVpsSchema,
+	hivelocityVpsSnapshotScheduleCreateSchema,
+	hivelocityVpsVolumeCreateSchema,
 	type HivelocityDeviceDump,
 	type HivelocityVps,
 	type HivelocityAnyResource,
@@ -279,6 +281,53 @@ export const hivelocityRouter = router({
 		.input(z.object({ deviceId: z.number().int().positive() }))
 		.query(async ({ input }) => {
 			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/initial-password`, {
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Public (TEMP for development): Get device IP assignments.
+	 * Docs: GET /device/{deviceId}/ips
+	 */
+	getDeviceIps: protectedProcedure
+		.input(z.object({ deviceId: z.number().int().positive() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/ips`, { requireApiKey: true });
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Public (TEMP for development): Get all device services.
+	 * Docs: GET /device/{deviceId}/services
+	 */
+	getDeviceServices: protectedProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int().positive(),
+				group_by: z.string().default("flat").optional(),
+				type_code: z.string().default("all").optional(),
+			})
+		)
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/services`, {
+				query: {
+					group_by: input.group_by,
+					type_code: input.type_code,
+				},
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Public (TEMP for development): Get available upgrade options for a VPS product.
+	 * Docs: GET /vps/{deviceId}/available-product-upgrades
+	 */
+	getVpsUpgrades: protectedProcedure
+		.input(z.object({ deviceId: z.number().int().positive() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/available-product-upgrades`, {
 				requireApiKey: true,
 			});
 			return { success: true, data: raw };
@@ -949,11 +998,16 @@ export const hivelocityRouter = router({
 			z.object({
 				deviceId: z.number().int(),
 				metricType: z.enum(["CPU_USAGE", "MEMORY_USAGE", "DISK_RW", "NETWORK_USAGE"]),
+				startTime: z.number().int().optional(),
+				endTime: z.number().int().optional(),
+				imageWidth: z.number().int().optional(),
+				imageHeight: z.number().int().optional(),
 			}),
 		)
 		.query(async ({ input }) => {
-			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/metrics`, {
-				query: { metricType: input.metricType },
+			const { deviceId, ...query } = input;
+			const raw = await hivelocityRequest<unknown>(`/vps/${deviceId}/metrics`, {
+				query,
 				requireApiKey: true,
 			});
 			return { success: true, data: raw };
@@ -1048,6 +1102,191 @@ export const hivelocityRouter = router({
 		}),
 
 	/**
+	 * Private: Get all VPS Snapshot Schedules for a device/facility.
+	 */
+	getVpsSnapshotSchedules: protectedProcedure
+		.input(z.object({ 
+			deviceId: z.number().int().optional(),
+			facilityCode: z.string().optional(),
+			clientId: z.number().int().optional()
+		}))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>("/vps/snapshotSchedule", {
+				query: input,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Create a VPS Snapshot Schedule.
+	 */
+	createVpsSnapshotSchedule: protectedProcedure
+		.input(hivelocityVpsSnapshotScheduleCreateSchema)
+		.mutation(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>("/vps/snapshotSchedule", {
+				method: "POST",
+				body: input,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Create a new VPS Volume.
+	 */
+	createVpsVolume: protectedProcedure
+		.input(hivelocityVpsVolumeCreateSchema)
+		.mutation(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>("/vps/volume", {
+				method: "POST",
+				body: input,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Resize a VPS Volume.
+	 */
+	resizeVpsVolume: protectedProcedure
+		.input(z.object({ 
+			volumeId: z.string(), 
+			size: z.number().int(),
+			deviceId: z.number().int().optional()
+		}))
+		.mutation(async ({ input }) => {
+			const { volumeId, ...body } = input;
+			const raw = await hivelocityRequest<unknown>(`/vps/volume/${volumeId}`, {
+				method: "PUT",
+				body,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Delete a VPS Volume.
+	 */
+	deleteVpsVolume: protectedProcedure
+		.input(z.object({ 
+			volumeId: z.string(),
+			deviceId: z.number().int().optional()
+		}))
+		.mutation(async ({ input }) => {
+			const { volumeId, ...body } = input;
+			const raw = await hivelocityRequest<unknown>(`/vps/volume/${volumeId}`, {
+				method: "DELETE",
+				body,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get a volume's list of upgradable sizes.
+	 */
+	getVpsVolumeAvailableSizes: protectedProcedure
+		.input(z.object({ volumeId: z.string() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/vps/volume/${input.volumeId}/available-sizes`, {
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Restore a VPS Volume Snapshot.
+	 */
+	restoreVpsSnapshot: protectedProcedure
+		.input(z.object({ 
+			snapshotId: z.string(),
+			facilityCode: z.string(),
+			clientId: z.number().int().optional()
+		}))
+		.mutation(async ({ input }) => {
+			const { snapshotId, ...body } = input;
+			const raw = await hivelocityRequest<unknown>(`/vps/snapshot/${snapshotId}`, {
+				method: "POST",
+				body,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Delete a VPS Volume Snapshot.
+	 */
+	deleteVpsSnapshot: protectedProcedure
+		.input(z.object({ 
+			snapshotId: z.string(),
+			facilityCode: z.string().optional(),
+			clientId: z.number().int().optional()
+		}))
+		.mutation(async ({ input }) => {
+			const { snapshotId, ...query } = input;
+			const raw = await hivelocityRequest<unknown>(`/vps/snapshot/${snapshotId}`, {
+				method: "DELETE",
+				query,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get all VPS Volume Snapshots available.
+	 */
+	getVpsSnapshots: protectedProcedure
+		.input(z.object({ 
+			facilityCode: z.string(),
+			clientId: z.number().int().optional()
+		}))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>("/vps/snapshot", {
+				query: input,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Create a manual VPS Volume Snapshot.
+	 */
+	createVpsSnapshot: protectedProcedure
+		.input(z.object({
+			volumeId: z.string(),
+			name: z.string(),
+			facilityCode: z.string(),
+			clientId: z.number().int().optional()
+		}))
+		.mutation(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>("/vps/snapshot", {
+				method: "POST",
+				body: input,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Delete a VPS Snapshot Schedule.
+	 */
+	deleteVpsSnapshotSchedule: protectedProcedure
+		.input(z.object({ 
+			snapshotScheduleId: z.string(),
+			facilityCode: z.string()
+		}))
+		.mutation(async ({ input }) => {
+			const { snapshotScheduleId, ...query } = input;
+			const raw = await hivelocityRequest<unknown>(`/vps/snapshotSchedule/${snapshotScheduleId}`, {
+				method: "DELETE",
+				query,
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
 	 * Private: Initiate an OS reload.
 	 */
 	reloadDevice: protectedProcedure
@@ -1091,13 +1330,31 @@ export const hivelocityRouter = router({
 		}),
 
 	/**
-	 * Private: Reset VPS root password.
+	 * Private: Request token to reset root password for VPS.
 	 */
-	vpsResetPassword: protectedProcedure
+	vpsRequestResetPasswordToken: protectedProcedure
 		.input(z.object({ deviceId: z.number().int() }))
 		.mutation(async ({ input }) => {
 			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/reset-password`, {
+				method: "POST",
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Reset VPS root password (requires token and device to be powered off).
+	 */
+	vpsResetRootPassword: protectedProcedure
+		.input(z.object({ 
+			deviceId: z.number().int(),
+			token: z.string().min(1)
+		}))
+		.mutation(async ({ input }) => {
+			const { deviceId, token } = input;
+			const raw = await hivelocityRequest<unknown>(`/vps/${deviceId}/reset-password`, {
 				method: "PUT",
+				body: { token },
 				requireApiKey: true,
 			});
 			return { success: true, data: raw };
