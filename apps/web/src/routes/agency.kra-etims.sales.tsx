@@ -46,6 +46,8 @@ export default function ETimsSalesPage() {
     const [isSendOpen, setIsSendOpen] = React.useState(false);
     const [salePayload, setSalePayload] = React.useState<string>("");
     const [ensureStock, setEnsureStock] = React.useState(false);
+    const [custTinSearch, setCustTinSearch] = React.useState("");
+    const [lookupTin, setLookupTin] = React.useState<string | null>(null);
 
     const utils = trpc.useUtils();
 
@@ -54,6 +56,17 @@ export default function ETimsSalesPage() {
     const { data: itemsData } = trpc.etims.items.getItemList.useQuery({
         lastReqDt: "20230101000000",
     });
+
+    const { data: customerLookupData, isFetching: isSearchingCustomer } = trpc.etims.data.lookupCustomer.useQuery(
+        { custmTin: lookupTin ?? "" },
+        { enabled: !!lookupTin, retry: false }
+    );
+
+    const verifiedCustomer: any = React.useMemo(() => {
+        const root: any = customerLookupData;
+        const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
+        return payload?.data ?? payload;
+    }, [customerLookupData]);
 
     const branches = React.useMemo(() => {
         const root: any = branchesData;
@@ -133,8 +146,10 @@ export default function ETimsSalesPage() {
         const totTaxblAmt = taxblAmt;
         const totTaxAmt = taxAmt;
 
+        const invcNo = Math.floor(Math.random() * 900000) + 100000;
         return {
-            invcNo: Math.floor(Math.random() * 900000) + 100000,
+            trdInvcNo: `TINV${invcNo}`,
+            invcNo,
             orgInvcNo: 0,
             custTin: "A016495079I",
             custNm: "FINEY OTIENO AKWOYO",
@@ -269,7 +284,63 @@ export default function ETimsSalesPage() {
                         </SheetDescription>
                     </SheetHeader>
 
-                    <div className="mt-6 space-y-3">
+                    <div className="mt-6 space-y-6">
+                        <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                                <Search className="h-3.5 w-3.5" />
+                                CUSTOMER SEARCH
+                            </div>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Enter Customer TIN (e.g. A0123...)"
+                                    value={custTinSearch}
+                                    onChange={(e) => setCustTinSearch(e.target.value)}
+                                    className="h-9 text-xs font-mono uppercase"
+                                />
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setLookupTin(custTinSearch.toUpperCase())}
+                                    disabled={isSearchingCustomer || !custTinSearch}
+                                    className="h-9"
+                                >
+                                    {isSearchingCustomer ? <RefreshCw className="h-3 w-3 animate-spin" /> : "Verify"}
+                                </Button>
+                            </div>
+                            {verifiedCustomer?.custmNm && (
+                                <div className="flex items-center justify-between p-2 rounded-lg bg-background border animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-7 w-7 rounded-md bg-green-100 text-green-700 flex items-center justify-center">
+                                            <CheckCircle2 className="h-4 w-4" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-bold truncate max-w-[200px]">{verifiedCustomer.custmNm}</span>
+                                            <span className="text-[10px] text-muted-foreground font-mono">{verifiedCustomer.custmTin}</span>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        size="xs"
+                                        className="h-7 text-[10px] px-3"
+                                        onClick={() => {
+                                            try {
+                                                const parsed = JSON.parse(salePayload);
+                                                parsed.custTin = verifiedCustomer.custmTin;
+                                                parsed.custNm = verifiedCustomer.custmNm;
+                                                if (parsed.receipt) {
+                                                    parsed.receipt.custTin = verifiedCustomer.custmTin;
+                                                }
+                                                setSalePayload(JSON.stringify(parsed, null, 2));
+                                                toast.success("Customer data applied to payload");
+                                            } catch {
+                                                toast.error("Cannot apply: Invalid JSON in payload editor");
+                                            }
+                                        }}
+                                    >
+                                        Apply to Sale
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                         <Textarea
                             value={salePayload}
                             onChange={(e) => setSalePayload(e.target.value)}

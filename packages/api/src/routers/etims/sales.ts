@@ -45,6 +45,7 @@ const salesTransactionSchema = z.object({
     orgInvcNo: z.number().int().min(0),
     custTin: z.string().nullable().optional(),
     custNm: z.string().max(60).nullable().optional(),
+    salesTyCd: z.string().max(5),
     rcptTyCd: z.string().max(5),
     pmtTyCd: z.string().max(5).nullable().optional(),
     salesSttsCd: z.string().max(5),

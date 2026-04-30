@@ -84,9 +84,9 @@ export function ComboboxDropdown<T extends ComboboxItem>({
 
   const Component = (
     <Command loop className="rounded-xl overflow-hidden" shouldFilter={false}>
-      <div 
-        className="border-b px-3" 
-        onPointerDown={(e) => e.stopPropagation()} 
+      <div
+        className="border-b px-3"
+        onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <CommandInput
@@ -102,7 +102,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
         <CommandEmpty className="py-6 text-center text-xs text-muted-foreground">
           {emptyResults ?? "No item found"}
         </CommandEmpty>
-        
+
         <CommandGroup>
           {items
             .filter((item) => item.label.toLowerCase().includes(inputValue.toLowerCase()))
