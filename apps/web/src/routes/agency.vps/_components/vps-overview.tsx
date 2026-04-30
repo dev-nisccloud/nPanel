@@ -168,7 +168,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">Label / Identifier</Label>
+                  <Label className="text-[10px] text-muted-foreground uppercase font-bold">Label / Identifier</Label>
                   {isEditing ? (
                     <Input 
                       value={editName} 
@@ -188,7 +188,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">Network Hostname (FQDN)</Label>
+                  <Label className="text-[10px] text-muted-foreground uppercase font-bold">Network hostname (FQDN)</Label>
                   {isEditing ? (
                     <div className="space-y-2">
                       <Input 
@@ -203,7 +203,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 group min-h-[2.5rem] p-3 rounded-lg bg-muted/20 border border-border/40">
-                      <p className="text-sm font-mono font-medium truncate text-primary">{deviceData.hostname || "—"}</p>
+                      <p className="text-sm font-medium truncate text-primary">{deviceData.hostname || "—"}</p>
                       {deviceData.hostname && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto opacity-0 group-hover:opacity-100 transition-all" onClick={() => copyToClipboard(deviceData.hostname, "Hostname")}>
                           <Copy className="h-3 w-3" />
@@ -215,10 +215,10 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
               </div>
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">Primary Interface IP</Label>
+                  <Label className="text-[10px] text-muted-foreground uppercase font-bold">Primary interface IP</Label>
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
                     <div className="h-2 w-2 rounded-full bg-primary" />
-                    <p className="text-sm font-mono font-bold text-primary">{deviceData.primaryIp || "Allocation Pending"}</p>
+                    <p className="text-sm font-bold text-primary">{deviceData.primaryIp || "Allocation Pending"}</p>
                     {deviceData.primaryIp && (
                       <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto hover:bg-primary/10" onClick={() => copyToClipboard(deviceData.primaryIp, "IP address")}>
                         <Copy className="h-3 w-3 text-primary" />
@@ -228,17 +228,17 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">Location</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">Location</Label>
                     <div className="flex items-center gap-2 p-2 rounded-md bg-muted/20">
                       <MapPin className="h-3.5 w-3.5 text-primary/60" />
                       <p className="text-xs font-bold truncate">{locationLabel}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">Registry ID</Label>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">Registry ID</Label>
                     <div className="flex items-center gap-2 p-2 rounded-md bg-muted/20">
                       <Fingerprint className="h-3.5 w-3.5 text-primary/60" />
-                      <p className="text-xs font-mono font-bold">{deviceData.deviceId}</p>
+                      <p className="text-xs font-bold">{deviceData.deviceId}</p>
                     </div>
                   </div>
                 </div>
@@ -282,10 +282,10 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/10 border relative group overflow-hidden">
                <div className={`absolute left-0 top-0 bottom-0 w-1 ${powerStatus === 'ON' ? 'bg-green-500' : 'bg-red-500'}`} />
               <div className="flex flex-col gap-0.5">
-                <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">Real-time Status</span>
+                <span className="text-[9px] text-muted-foreground uppercase font-bold">Real-time status</span>
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm font-black tracking-tighter ${powerStatus === 'ON' ? 'text-green-600' : 'text-red-600'}`}>
-                    INSTANCE {powerStatus === 'ON' ? 'RUNNING' : 'STOPPED'}
+                  <span className={`text-sm font-bold ${powerStatus === 'ON' ? 'text-green-600' : 'text-red-600'}`}>
+                    Instance {powerStatus === 'ON' ? 'running' : 'stopped'}
                   </span>
                 </div>
               </div>
@@ -310,7 +310,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 <div className="p-1.5 rounded-lg bg-green-100 text-green-600 group-hover:scale-110 transition-transform">
                    <Power className="h-4 w-4" />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider">Cold Boot</span>
+                <span className="text-xs font-bold uppercase">Cold boot</span>
               </Button>
               <Button 
                 variant="outline" 
@@ -321,7 +321,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 <div className="p-1.5 rounded-lg bg-red-100 text-red-600 group-hover:scale-110 transition-transform">
                    <Power className="h-4 w-4" />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider">Safe Shutdown</span>
+                <span className="text-xs font-bold uppercase">Safe shutdown</span>
               </Button>
               <Button 
                 variant="outline" 
@@ -332,7 +332,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 <div className="p-1.5 rounded-lg bg-amber-100 text-amber-600 group-hover:rotate-180 transition-transform duration-500">
                    <RefreshCw className="h-4 w-4" />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider">Reboot</span>
+                <span className="text-xs font-bold uppercase">Reboot</span>
               </Button>
             </div>
           </CardContent>
@@ -376,8 +376,8 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-3">
-                            <h4 className="text-sm font-black uppercase tracking-tight text-foreground/90">{service.productName}</h4>
-                            <Badge variant="outline" className={`text-[9px] font-black h-4 px-2 tracking-widest ${badgeColors}`}>
+                            <h4 className="text-sm font-bold uppercase text-foreground/90">{service.productName}</h4>
+                            <Badge variant="outline" className={`text-[9px] font-bold h-4 px-2 ${badgeColors}`}>
                               {status}
                             </Badge>
                           </div>
@@ -390,17 +390,17 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                           </div>
                         </div>
                         <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 px-5 text-right min-w-[120px]">
-                           <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-0.5">Recurring</p>
-                           <p className="text-xl font-black tracking-tighter text-primary">
+                           <p className="text-[10px] text-muted-foreground uppercase font-bold mb-0.5">Recurring</p>
+                           <p className="text-xl font-bold text-primary">
                              {formatMoney(finalDisplayPrice, displayCurrency)}
                            </p>
                            <div className="flex flex-col items-end gap-0.5 mt-1">
                               {showOriginalUsd && (
                                 <>
-                                  <p className="text-[9px] font-medium text-emerald-600 uppercase tracking-tighter">
+                                  <p className="text-[9px] font-medium text-emerald-600 uppercase">
                                     Original: {formatMoneyUsd(baseUsd)} • {formatMoney(pricing.toKes(baseUsd) || 0, "KES")}
                                   </p>
-                                  <p className="text-[9px] font-medium text-orange-600 uppercase tracking-tighter">
+                                  <p className="text-[9px] font-medium text-orange-600 uppercase">
                                     Margin: {formatMoneyUsd(marginResult.marginAmount)} • {formatMoney(pricing.toKes(marginResult.marginAmount) || 0, "KES")}
                                   </p>
                                 </>
@@ -413,7 +413,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                       </div>
 
                       <div className="space-y-3 pt-2">
-                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Provisioned Options</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold">Provisioned options</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {/* Inject Location manually as a provisioned context item if requested */}
                           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/20 group/opt hover:border-primary/20 transition-colors">
@@ -421,8 +421,8 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                               <MapPin className="h-3.5 w-3.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[9px] text-muted-foreground uppercase font-bold truncate tracking-tight">Provisioning Location</p>
-                              <p className="text-xs font-black truncate text-foreground/80">{locationLabel}</p>
+                              <p className="text-[9px] text-muted-foreground uppercase font-bold truncate">Provisioning location</p>
+                              <p className="text-xs font-bold truncate text-foreground/80">{locationLabel}</p>
                             </div>
                           </div>
 
@@ -442,8 +442,8 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                                 })()}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-[9px] text-muted-foreground uppercase font-bold truncate tracking-tight">{opt.upgradeName}</p>
-                                <p className="text-xs font-black truncate text-foreground/80">{opt.name}</p>
+                                <p className="text-[9px] text-muted-foreground uppercase font-bold truncate">{opt.upgradeName}</p>
+                                <p className="text-xs font-bold truncate text-foreground/80">{opt.name}</p>
                               </div>
                             </div>
                           ))}
@@ -456,7 +456,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
             ) : (
               <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
                 <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-10" />
-                <p className="text-sm font-bold uppercase tracking-widest opacity-40">No records in registry</p>
+                <p className="text-sm font-bold uppercase opacity-40">No records in registry</p>
               </div>
             )}
           </CardContent>
@@ -481,8 +481,8 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
               <Table>
                 <TableHeader className="bg-muted/10">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-[9px] font-black uppercase tracking-widest pl-6">Product Plan</TableHead>
-                    <TableHead className="text-[9px] font-black uppercase tracking-widest">
+                    <TableHead className="text-[9px] font-bold uppercase pl-6">Product plan</TableHead>
+                    <TableHead className="text-[9px] font-bold uppercase">
                       <div className="flex items-center gap-1.5">
                         <Cpu className="h-3 w-3" />
                         Resources
@@ -494,7 +494,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                         Cost
                       </div>
                     </TableHead>
-                    <TableHead className="text-[9px] font-black uppercase tracking-widest text-right pr-6">Action</TableHead>
+                    <TableHead className="text-[9px] font-bold uppercase text-right pr-6">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -507,7 +507,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                     return (
                       <TableRow key={idx} className="hover:bg-primary/5 transition-colors group cursor-pointer">
                         <TableCell className="pl-6 py-4">
-                           <span className="text-xs font-black uppercase">{upgrade.name}</span>
+                           <span className="text-xs font-bold uppercase">{upgrade.name}</span>
                         </TableCell>
                         <TableCell className="py-4">
                            <div className="flex items-center gap-3">
@@ -548,16 +548,16 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                         </TableCell>
                         <TableCell className="py-4">
                            <div className="flex flex-col">
-                             <span className="text-sm font-black text-primary">
+                             <span className="text-sm font-bold text-primary">
                                {formatMoney(finalDisplayPrice, displayCurrency)}
                                <span className="text-[10px] text-muted-foreground uppercase ml-1">/mo</span>
                              </span>
                              {showOriginalUsd && (
                                <div className="flex flex-col gap-0">
-                                 <span className="text-[9px] font-medium text-emerald-600 uppercase tracking-tighter">
+                                 <span className="text-[9px] font-medium text-emerald-600 uppercase">
                                    Orig: {formatMoneyUsd(baseUsd)} • {formatMoney(pricing.toKes(baseUsd) || 0, "KES")}
                                  </span>
-                                 <span className="text-[9px] font-medium text-orange-600 uppercase tracking-tighter">
+                                 <span className="text-[9px] font-medium text-orange-600 uppercase">
                                    Marg: {formatMoneyUsd(marginResult.marginAmount)} • {formatMoney(pricing.toKes(marginResult.marginAmount) || 0, "KES")}
                                  </span>
                                </div>

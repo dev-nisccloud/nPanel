@@ -44,11 +44,11 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
           <Table>
             <TableHeader className="bg-muted/10">
               <TableRow className="hover:bg-transparent border-b-border/40">
-                <TableHead className="pl-6 py-4 text-[10px] font-bold uppercase tracking-wider">Type / Description</TableHead>
-                <TableHead className="py-4 text-[10px] font-bold uppercase tracking-wider">IP Address / Subnet</TableHead>
-                <TableHead className="py-4 text-[10px] font-bold uppercase tracking-wider">Gateway / Broadcast</TableHead>
-                <TableHead className="py-4 text-[10px] font-bold uppercase tracking-wider">DNS Resolvers</TableHead>
-                <TableHead className="pr-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider">Status</TableHead>
+                <TableHead className="pl-6 py-4 text-[10px] font-bold uppercase">Type / description</TableHead>
+                <TableHead className="py-4 text-[10px] font-bold uppercase">IP address / subnet</TableHead>
+                <TableHead className="py-4 text-[10px] font-bold uppercase">Gateway / broadcast</TableHead>
+                <TableHead className="py-4 text-[10px] font-bold uppercase">DNS resolvers</TableHead>
+                <TableHead className="pr-6 py-4 text-right text-[10px] font-bold uppercase">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -59,7 +59,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                       <div className="flex flex-col gap-0.5">
                         <span className="font-bold text-sm text-foreground/90">{ip.description || "Additional Assignment"}</span>
                         <div className="flex items-center gap-2">
-                           <Badge variant="outline" className={`text-[9px] h-4 px-1.5 font-bold uppercase tracking-tighter ${ip.version === 4 ? "text-blue-600 border-blue-200" : "text-purple-600 border-purple-200"}`}>
+                           <Badge variant="outline" className={`text-[9px] h-4 px-1.5 font-bold uppercase ${ip.version === 4 ? "text-blue-600 border-blue-200" : "text-purple-600 border-purple-200"}`}>
                             IPv{ip.version}
                            </Badge>
                            <span className="text-[10px] text-muted-foreground font-medium">{ip.facilityCode}</span>
@@ -68,7 +68,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                     </TableCell>
                     <TableCell className="py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="font-mono text-xs font-bold text-primary">{ip.subnet}</span>
+                        <span className="text-xs font-bold text-primary">{ip.subnet}</span>
                         {ip.usableIps?.length > 0 && (
                           <div className="flex items-center gap-1">
                              <CheckCircle2 className="h-3 w-3 text-green-500" />
@@ -81,11 +81,11 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                       <div className="flex flex-col gap-1">
                          <div className="flex items-center gap-1.5 text-xs">
                             <span className="text-muted-foreground w-12 font-medium">GW:</span>
-                            <span className="font-mono text-[11px]">{ip.gatewayIp || "—"}</span>
+                            <span className="text-[11px]">{ip.gatewayIp || "—"}</span>
                          </div>
                          <div className="flex items-center gap-1.5 text-xs">
                             <span className="text-muted-foreground w-12 font-medium">BC:</span>
-                            <span className="font-mono text-[11px]">{ip.broadcastIp || "—"}</span>
+                            <span className="text-[11px]">{ip.broadcastIp || "—"}</span>
                          </div>
                       </div>
                     </TableCell>
@@ -93,7 +93,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                        <div className="flex flex-col gap-1">
                         {ip.dnsResolvers?.length > 0 ? (
                           ip.dnsResolvers.map((dns: string, i: number) => (
-                            <span key={i} className="font-mono text-[10px] text-muted-foreground">{dns}</span>
+                            <span key={i} className="text-[10px] text-muted-foreground">{dns}</span>
                           ))
                         ) : (
                           <span className="text-muted-foreground text-xs italic opacity-40">System Default</span>
@@ -124,9 +124,9 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
           <CardHeader className="bg-muted/30 pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="h-5 w-5 text-primary" />
-              Traffic Utilization
+              Traffic utilization
             </CardTitle>
-            <CardDescription>Real-time bandwidth monitoring (Snapshot)</CardDescription>
+            <CardDescription>Real-time bandwidth monitoring (snapshot)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
              <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/10">
@@ -135,12 +135,12 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                       <ArrowUpRight className="h-5 w-5" />
                    </div>
                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Egress (Out)</p>
-                      <p className="text-2xl font-black tabular-nums tracking-tighter">0.00 <span className="text-xs font-medium text-muted-foreground">Mbps</span></p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Egress (out)</p>
+                      <p className="text-2xl font-bold tabular-nums">0.00 <span className="text-xs font-medium text-muted-foreground">Mbps</span></p>
                    </div>
                 </div>
                 <div className="text-right">
-                   <p className="text-[10px] text-muted-foreground mb-1 uppercase font-bold">Port Speed</p>
+                   <p className="text-[10px] text-muted-foreground mb-1 uppercase font-bold">Port speed</p>
                    <p className="text-sm font-bold">1 Gbps</p>
                 </div>
              </div>
@@ -151,8 +151,8 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                       <ArrowDownLeft className="h-5 w-5" />
                    </div>
                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Ingress (In)</p>
-                      <p className="text-2xl font-black tabular-nums tracking-tighter">0.00 <span className="text-xs font-medium text-muted-foreground">Mbps</span></p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Ingress (in)</p>
+                      <p className="text-2xl font-bold tabular-nums">0.00 <span className="text-xs font-medium text-muted-foreground">Mbps</span></p>
                    </div>
                 </div>
                 <div className="text-right">
@@ -167,7 +167,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
           <CardHeader className="bg-muted/30 pb-4">
             <CardTitle className="flex items-center gap-2 text-base">
               <Wifi className="h-5 w-5 text-primary" />
-              Network Fabric
+              Network fabric
             </CardTitle>
             <CardDescription>Underlying infrastructure details</CardDescription>
           </CardHeader>
@@ -176,7 +176,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                 <div className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-muted/20 transition-colors">
                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
                       <Globe className="h-4 w-4 text-primary/60" />
-                      Facility Backbone
+                      Facility backbone
                    </span>
                    <span className="font-bold text-xs">{deviceData.location?.facility || "TPA2"}</span>
                 </div>
@@ -185,14 +185,14 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                       <Fingerprint className="h-4 w-4 text-primary/60" />
                       Device MAC
                    </span>
-                   <span className="font-mono font-bold text-[10px] uppercase">{vpsData?.nics?.[0]?.macAddress || "—"}</span>
+                   <span className="font-bold text-[10px] uppercase">{vpsData?.nics?.[0]?.macAddress || "—"}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-muted/20 transition-colors">
                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
                       <Shield className="h-4 w-4 text-primary/60" />
                       Automation
                    </span>
-                   <Badge variant={deviceData?.networkAutomation?.enabled ? "default" : "secondary"} className="h-5 text-[9px] font-black uppercase">
+                   <Badge variant={deviceData?.networkAutomation?.enabled ? "default" : "secondary"} className="h-5 text-[9px] font-bold uppercase">
                       {deviceData?.networkAutomation?.enabled ? "Active" : "Legacy"}
                    </Badge>
                 </div>

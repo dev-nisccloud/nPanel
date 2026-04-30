@@ -237,7 +237,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                   </DialogHeader>
                   <div className="grid gap-6 py-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Select Capacity</Label>
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Select capacity</Label>
                       <Select value={volumeSize} onValueChange={setVolumeSize}>
                         <SelectTrigger className="h-11 font-bold text-sm">
                           <SelectValue placeholder="Select size" />
@@ -252,7 +252,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                     </div>
                     <Alert variant="warning" className="bg-amber-500/5 border-amber-500/20 py-3">
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      <AlertDescription className="text-[10px] font-medium text-amber-700 leading-relaxed uppercase tracking-tighter">
+                      <AlertDescription className="text-[10px] font-medium text-amber-700 leading-relaxed opacity-80">
                         Volumes are billed monthly regardless of the instance billing cycle. Data is persistent across reboots.
                       </AlertDescription>
                     </Alert>
@@ -285,7 +285,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
             </DialogHeader>
             <div className="grid gap-6 py-4">
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Select Target Volume</Label>
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Select target volume</Label>
                 <Select 
                   value={selectedVolume?.volumeId} 
                   onValueChange={(v) => setSelectedVolume(volumes.find(vol => vol.volumeId === v))}
@@ -303,7 +303,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Snapshot Name (Optional)</Label>
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Snapshot name (optional)</Label>
                 <Input 
                   placeholder="e.g. Pre-Update-Backup" 
                   value={snapshotName}
@@ -332,12 +332,12 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
             <DialogHeader>
               <DialogTitle>Expand Volume Capacity</DialogTitle>
               <DialogDescription>
-                Select a new capacity for volume <span className="font-mono text-primary">{selectedVolume?.volumeId?.split('-')[0]}</span>. Capacity can only be increased.
+                Select a new capacity for volume <span className="text-primary">{selectedVolume?.volumeId?.split('-')[0]}</span>. Capacity can only be increased.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-6 py-4">
               <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Select New Size</Label>
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Select new size</Label>
                 <AvailableSizesSelect 
                   volumeId={selectedVolume?.volumeId} 
                   onSelect={(size) => setVolumeSize(String(size))} 
@@ -345,7 +345,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
               </div>
               <Alert className="bg-primary/5 border-primary/20">
                 <Info className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-[10px] font-medium leading-relaxed uppercase tracking-tighter">
+                <AlertDescription className="text-[10px] font-medium leading-relaxed opacity-80">
                   Resizing may take several minutes. You may need to expand the partition within your OS after the task completes.
                 </AlertDescription>
               </Alert>
@@ -368,11 +368,11 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
           <Table>
             <TableHeader className="bg-muted/10">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-widest pl-6">Disk Identity</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-center">Type</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-center">Capacity</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-center">Lifecycle</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-right pr-6">Action</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase pl-6">Disk identity</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-center">Type</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-center">Capacity</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-center">Lifecycle</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-right pr-6">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -398,17 +398,17 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                   <TableRow key={vol.volumeId} className="group hover:bg-primary/5 transition-colors">
                     <TableCell className="pl-6 py-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-black uppercase text-foreground/80">{vol.volumeId.split('-')[0]}...</span>
-                        <span className="text-[9px] font-mono text-muted-foreground opacity-60 uppercase">{vol.volumeId}</span>
+                        <span className="text-[10px] font-bold uppercase text-foreground/80">{vol.volumeId.split('-')[0]}...</span>
+                        <span className="text-[9px] text-muted-foreground opacity-60 uppercase">{vol.volumeId}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className={`text-[9px] font-black h-5 px-2 tracking-widest ${vol.type === 'ROOT' ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-muted border-border text-muted-foreground'}`}>
+                      <Badge variant="outline" className={`text-[9px] font-bold h-5 px-2 ${vol.type === 'ROOT' ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-muted border-border text-muted-foreground'}`}>
                         {vol.type}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="text-xs font-black text-primary/80">{formatBytes(vol.size)}</span>
+                      <span className="text-xs font-bold text-primary/80">{formatBytes(vol.size)}</span>
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="text-[10px] font-medium text-muted-foreground">
@@ -475,7 +475,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                 <div className="grid gap-6 py-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Target Volume</Label>
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Target volume</Label>
                       <Select 
                         value={scheduleData.volumeId} 
                         onValueChange={(v) => setScheduleData(prev => ({ ...prev, volumeId: v }))}
@@ -493,7 +493,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Interval</Label>
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Interval</Label>
                       <Select 
                         value={scheduleData.intervalType} 
                         onValueChange={(v: any) => setScheduleData(prev => ({ ...prev, intervalType: v }))}
@@ -513,7 +513,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Retention Limit</Label>
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Retention limit</Label>
                       <Input 
                         type="number" 
                         min="1" 
@@ -525,7 +525,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                       <p className="text-[9px] text-muted-foreground italic">Snapshots to keep (max 20)</p>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Timezone</Label>
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Timezone</Label>
                       <Select 
                         value={scheduleData.timezone} 
                         onValueChange={(v) => setScheduleData(prev => ({ ...prev, timezone: v }))}
@@ -546,7 +546,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                   {scheduleData.intervalType !== "HOURLY" && (
                     <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1">
                       <div className="space-y-2">
-                        <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Hour (0-23)</Label>
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Hour (0-23)</Label>
                         <Input 
                           type="number" 
                           min="0" max="23"
@@ -556,7 +556,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Minute (0-59)</Label>
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Minute (0-59)</Label>
                         <Input 
                           type="number" 
                           min="0" max="59"
@@ -570,7 +570,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
 
                   {scheduleData.intervalType === "WEEKLY" && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Day of Week</Label>
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Day of week</Label>
                       <Select 
                         value={String(scheduleData.weekday)} 
                         onValueChange={(v) => setScheduleData(prev => ({ ...prev, weekday: parseInt(v, 10) }))}
@@ -593,7 +593,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
 
                   {scheduleData.intervalType === "MONTHLY" && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-                      <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Day of Month (1-28)</Label>
+                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Day of month (1-28)</Label>
                       <Input 
                         type="number" 
                         min="1" max="28"
@@ -643,8 +643,8 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-black uppercase tracking-tight">{schedule.intervalType} Policy</h4>
-                        <Badge variant="outline" className="text-[9px] font-black h-4 px-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">ACTIVE</Badge>
+                        <h4 className="text-sm font-bold uppercase">{schedule.intervalType} policy</h4>
+                        <Badge variant="outline" className="text-[9px] font-bold h-4 px-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">ACTIVE</Badge>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground font-medium">
                         <span className="flex items-center gap-1">
@@ -665,8 +665,8 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                   
                   <div className="flex items-center gap-4">
                     <div className="bg-muted/30 border border-border/60 rounded-lg p-3 px-4 min-w-[140px]">
-                      <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest mb-1">Execution Window</p>
-                      <p className="text-xs font-black">
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Execution window</p>
+                      <p className="text-xs font-bold">
                         {schedule.intervalType === 'HOURLY' ? (
                           "Top of every hour"
                         ) : (
@@ -714,11 +714,11 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
           <Table>
             <TableHeader className="bg-muted/10">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-[9px] font-black uppercase tracking-widest pl-6">Snapshot Name</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-center">Status</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-center">Size</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-center">Created At</TableHead>
-                <TableHead className="text-[9px] font-black uppercase tracking-widest text-right pr-6">Action</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase pl-6">Snapshot name</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-center">Status</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-center">Size</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-center">Created at</TableHead>
+                <TableHead className="text-[9px] font-bold uppercase text-right pr-6">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -736,7 +736,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-16">
                     <History className="h-10 w-10 mx-auto mb-4 opacity-10" />
-                    <p className="text-sm font-bold uppercase tracking-widest opacity-40">No recovery points</p>
+                    <p className="text-sm font-bold uppercase opacity-40">No recovery points</p>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -744,17 +744,17 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                   <TableRow key={snap.snapshotId} className="group hover:bg-primary/5 transition-colors">
                     <TableCell className="pl-6 py-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-black uppercase text-foreground/80">{snap.name || "Untitled Snapshot"}</span>
-                        <span className="text-[9px] font-mono text-muted-foreground opacity-60 uppercase">{snap.snapshotId}</span>
+                        <span className="text-[10px] font-bold uppercase text-foreground/80">{snap.name || "Untitled snapshot"}</span>
+                        <span className="text-[9px] text-muted-foreground opacity-60 uppercase">{snap.snapshotId}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className={`text-[9px] font-black h-5 px-2 tracking-widest ${snap.state === 'available' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'}`}>
+                      <Badge variant="outline" className={`text-[9px] font-bold h-5 px-2 ${snap.state === 'available' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'}`}>
                         {snap.state?.toUpperCase() || "PENDING"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="text-xs font-black text-muted-foreground/80">{formatBytes(snap.size)}</span>
+                      <span className="text-xs font-bold text-muted-foreground/80">{formatBytes(snap.size)}</span>
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="text-[10px] font-medium text-muted-foreground">
