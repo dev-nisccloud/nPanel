@@ -77,10 +77,10 @@ export function VpsMetrics({ deviceId }: VpsMetricsProps) {
             <Activity className="h-6 w-6 text-primary" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-lg font-black uppercase tracking-tight">Cloud Telemetry</h3>
+            <h3 className="text-lg font-bold uppercase">Cloud telemetry</h3>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-black tracking-widest bg-emerald-500/5 text-emerald-600 border-emerald-500/20">LIVE FEED</Badge>
-              <p className="text-[10px] font-bold text-muted-foreground tracking-tight">Real-time performance metrics from hypervisor</p>
+              <Badge variant="outline" className="h-5 px-1.5 text-[9px] font-bold bg-emerald-500/5 text-emerald-600 border-emerald-500/20">LIVE FEED</Badge>
+              <p className="text-[10px] font-bold text-muted-foreground">Real-time performance metrics from hypervisor</p>
             </div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export function VpsMetrics({ deviceId }: VpsMetricsProps) {
           <div className="flex items-center gap-2 bg-background border rounded-lg px-3 h-10">
             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="border-0 bg-transparent focus:ring-0 p-0 h-auto text-[10px] font-black uppercase tracking-widest w-[100px]">
+              <SelectTrigger className="border-0 bg-transparent focus:ring-0 p-0 h-auto text-[10px] font-bold uppercase w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -105,7 +105,7 @@ export function VpsMetrics({ deviceId }: VpsMetricsProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            className="h-10 px-4 gap-2 font-black text-[10px] uppercase tracking-widest" 
+            className="h-10 px-4 gap-2 font-bold text-[10px] uppercase" 
             onClick={handleRefresh}
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -198,7 +198,7 @@ function MetricChartCard({
     <Card className="bg-[#f5f5f5] dark:bg-zinc-950/80 border-border/40 shadow-sm overflow-hidden group hover:border-primary/20 transition-all duration-300">
       <CardHeader className="pb-4 border-none">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-xs font-black uppercase tracking-widest">
+          <CardTitle className="flex items-center gap-3 text-xs font-bold uppercase">
             <div className={`h-8 w-8 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
               <Icon className={`h-4 w-4 ${iconColor}`} />
             </div>
@@ -226,10 +226,10 @@ function MetricChartCard({
                 <AlertCircle className="h-6 w-6 text-destructive" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-black uppercase tracking-tight text-destructive">Data Collection Error</p>
+                <p className="text-xs font-bold uppercase text-destructive">Data collection error</p>
                 <p className="text-[10px] text-muted-foreground font-medium max-w-[200px]">Unable to retrieve telemetry from hypervisor.</p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => refetch()} className="h-8 font-black text-[9px] uppercase tracking-widest">
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="h-8 font-bold text-[9px] uppercase">
                 Reconnect Feed
               </Button>
             </div>
@@ -237,7 +237,7 @@ function MetricChartCard({
             <div className="flex flex-col items-center justify-center text-center p-8 space-y-3 opacity-40">
               <Calendar className="h-10 w-10 text-muted-foreground mb-1" />
               <div className="space-y-1">
-                <p className="text-xs font-black uppercase tracking-tight">No Temporal Data</p>
+                <p className="text-xs font-bold uppercase">No temporal data</p>
                 <p className="text-[10px] font-medium">No performance samples found for this range.</p>
               </div>
             </div>
