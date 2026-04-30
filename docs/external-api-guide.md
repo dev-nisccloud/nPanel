@@ -89,4 +89,4 @@ To use this API in Postman:
 - **500 Internal Server Error**: The AI model encountered an error or timed out.
 
 > [!IMPORTANT]
-> The generation process usually takes **10-30 seconds**. Ensure your client timeout is set to at least 60 seconds. This API currently uses the **Google Imagen 4 Ultra** model for state-of-the-art results.
+> The generation process usually takes **10-30 seconds**. Ensure your client timeout is set to at least 60 seconds. This API currently uses the **Nano Banana Pro** model for state-of-the-art results.

@@ -90,8 +90,8 @@ export async function handleExternalImageGeneration(c: Context) {
     outputFormat: input.outputFormat,
     resolution: input.resolution,
     variationsCount: 1,
-    modelId: "google/imagen-4-ultra",
-    modelName: "Imagen 4 Ultra",
+    modelId: "google/nano-banana-pro",
+    modelName: "Nano Banana Pro",
     status: "PROCESSING",
     createdAt: now,
     updatedAt: now,
@@ -108,15 +108,20 @@ export async function handleExternalImageGeneration(c: Context) {
   });
 
   try {
+    // Proxy images through wsrv.nl to bypass hotlink protection for Replicate
+    const proxiedImageUrls = input.referenceImageUrls.map(url => 
+      url.includes("ashut.com") ? `https://wsrv.nl/?url=${encodeURIComponent(url)}` : url
+    );
+
     // Create and wait for prediction
     let prediction = await replicateClient.predictions.create({
-      model: "google/imagen-4-ultra",
+      model: "google/nano-banana-pro",
       input: {
         prompt: input.prompt,
-        resolution: convertResolution(input.resolution),
-        image_input: input.referenceImageUrls,
+        image_input: proxiedImageUrls.length > 0 ? proxiedImageUrls : undefined,
         aspect_ratio: convertAspectRatio(input.aspectRatio),
         output_format: convertOutputFormat(input.outputFormat),
+        resolution: convertResolution(input.resolution),
         safety_filter_level: "block_only_high",
       },
     });
