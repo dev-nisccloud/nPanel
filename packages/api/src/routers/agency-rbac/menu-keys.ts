@@ -70,6 +70,7 @@ export const agencyMenuKeys = [
 	"/agency/kra-etims/sales",
 	"/agency/kra-etims/purchases",
 	"/agency/kra-etims/products",
+	"/agency/kra-etims/customers",
 	"/agency/kra-etims/branches",
 	"/agency/kra-etims/settings",
 

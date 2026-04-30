@@ -320,16 +320,18 @@ export function RegisterETimsItemSheet({
                 <FormItem>
                   <FormLabel>Item classification code (HS)</FormLabel>
                   <FormControl>
-                    <ComboboxDropdown
-                      placeholder="Select classification code"
-                      searchPlaceholder="Search by code or name..."
-                      items={effectiveItemClassOptions}
-                      selectedItem={effectiveItemClassOptions.find((x) => x.id === field.value)}
-                      onSelect={(item) => field.onChange(item.id)}
-                      emptyResults="No classifications found"
-                      disabled={effectiveItemClassOptions.length === 0}
-                      className="w-full"
-                    />
+                    <div onPointerDown={(e) => e.stopPropagation()}>
+                      <ComboboxDropdown
+                        placeholder="Select classification code"
+                        searchPlaceholder="Search by code or name..."
+                        items={effectiveItemClassOptions}
+                        selectedItem={effectiveItemClassOptions.find((x) => x.id === field.value)}
+                        onSelect={(item) => field.onChange(item.id)}
+                        emptyResults="No classifications found"
+                        disabled={effectiveItemClassOptions.length === 0}
+                        className="w-full"
+                      />
+                    </div>
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
                     {itemClassFetchFailed
