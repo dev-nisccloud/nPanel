@@ -141,6 +141,9 @@ jobs:
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY }}
             DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
+            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT }}
+            REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL }}
+            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
 
       - name: Health check
         continue-on-error: true
@@ -330,6 +333,9 @@ jobs:
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PRODUCTION }}
             DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY_PRODUCTION || secrets.DIGITAX_API_KEY }}
             DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL_PRODUCTION || secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
+            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION || secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT }}
+            REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL_PRODUCTION || secrets.REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL }}
+            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN_PRODUCTION || secrets.REPLICATE_API_TOKEN }}
 
   deploy-web-production:
     name: Deploy Web to Production
