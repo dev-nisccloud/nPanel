@@ -10,6 +10,13 @@ export type ZeepoModelEntry = {
   description: string;
   category: "text" | "image" | "video" | "audio" | "background-remover";
   default?: boolean;
+  capabilities?: {
+    images?: boolean;
+    audio?: boolean;
+    video?: boolean;
+    thinking?: boolean;
+    audio_generation?: boolean;
+  };
 };
 
 // Map to Tersa's expected format
@@ -24,6 +31,13 @@ type TersaAdaptedModel = {
     getCost: () => number;
   }[];
   priceIndicator?: "lowest" | "low" | "high" | "highest";
+  capabilities?: {
+    images?: boolean;
+    audio?: boolean;
+    video?: boolean;
+    thinking?: boolean;
+    audio_generation?: boolean;
+  };
 };
 
 interface ModelsContextType {
@@ -61,6 +75,7 @@ const adaptToTersaFormat = (models: ZeepoModelEntry[]): Record<string, TersaAdap
         },
       ],
       priceIndicator: "low",
+      capabilities: model.capabilities,
     };
   }
   return result;

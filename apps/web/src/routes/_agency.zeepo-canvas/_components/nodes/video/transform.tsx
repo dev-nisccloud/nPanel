@@ -2,6 +2,7 @@ import { getIncomers, useReactFlow } from "@xyflow/react";
 import {
   ClockIcon,
   DownloadIcon,
+  InfoIcon,
   PlayIcon,
   RotateCcwIcon,
 } from "lucide-react";
@@ -12,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useZeepoGeneration } from "@/routes/_agency.zeepo-canvas/_hooks/use-zeepo-generation";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { download } from "@/routes/_agency.zeepo-canvas/_lib/download";
@@ -52,7 +60,7 @@ export const VideoTransform = ({
   const { updateNodeData, getNodes, getEdges } = useReactFlow();
   const { videoModels } = useGateway();
   const modelId = data.model ?? getDefaultModel(videoModels);
-
+  const selectedModel = videoModels[modelId];
 
   const { generate, isGenerating } = useZeepoGeneration({
     nodeId: id,
@@ -91,6 +99,15 @@ export const VideoTransform = ({
     const inputs: any = {};
     if (images.length) {
       inputs.image = images[0].url; // Usually replicate expects 'image_url' or 'image'
+    }
+
+    // Handle audio generation flag mapping
+    if (data.generateAudio) {
+      if (modelId.startsWith("prunaai/p-video")) {
+        inputs.save_audio = true;
+      } else {
+        inputs.generate_audio = true;
+      }
     }
 
     await generate(modelId, [data.instructions ?? "", ...textPrompts].join("\n"), inputs);
@@ -198,9 +215,37 @@ export const VideoTransform = ({
         />
       ) : null}
       <div className="flex flex-col border-t bg-muted/30 p-3">
-        <label className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-          Prompt / Instructions
-        </label>
+        <div className="mb-2 flex items-center justify-between">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+            Prompt / Instructions
+          </label>
+          
+          {selectedModel?.capabilities?.audio_generation && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={data.generateAudio ?? false}
+                      id={`audio-${id}`}
+                      onCheckedChange={(checked) => updateNodeData(id, { generateAudio: !!checked })}
+                    />
+                    <label 
+                      className="cursor-pointer text-[10px] font-medium text-muted-foreground"
+                      htmlFor={`audio-${id}`}
+                    >
+                      Generate Audio
+                    </label>
+                    <InfoIcon className="text-muted-foreground/50" size={10} />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">takes more credit if they need an audio in the video too</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         <Textarea
           className="min-h-[80px] shrink-0 resize-none rounded-md border bg-background! px-3 py-2 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-primary"
           onChange={handleInstructionsChange}

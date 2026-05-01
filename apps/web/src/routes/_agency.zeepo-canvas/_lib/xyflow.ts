@@ -51,9 +51,26 @@ export const getAudioFromAudioNodes = (nodes: Node[]) => {
   return [...sourceAudio, ...generatedAudio];
 };
 
-export const isValidSourceTarget = (source: Node, _target: Node) => {
+export const isValidSourceTarget = (source: Node, target: Node, models?: Record<string, any>) => {
   if (source.type === "video" || source.type === "drop") {
     return false;
+  }
+
+  // Capability checks for Text nodes
+  if (target.type === "text" && models) {
+    const targetModelId = target.data.model as string;
+    const model = models[targetModelId];
+
+    if (model) {
+      // If source is image, check if model supports images
+      if (source.type === "image" && !model.capabilities?.images) {
+        return false;
+      }
+      // If source is audio, check if model supports audio
+      if (source.type === "audio" && !model.capabilities?.audio) {
+        return false;
+      }
+    }
   }
 
   return true;
