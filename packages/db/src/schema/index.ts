@@ -35,4 +35,5 @@ export * from "./meta-ads";
 export * from "./cron-workflow-runs";
 export * from "./api-logs";
 export * from "./ip-records";
+export * from "./zeepo-canvas";
 export {};

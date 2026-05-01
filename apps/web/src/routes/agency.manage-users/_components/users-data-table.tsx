@@ -64,7 +64,7 @@ export function UsersDataTable({ data: initialData }: UsersDataTableProps) {
   const handleAddUser = (user: Omit<z.infer<typeof userSchema>, "id" | "createdAt" | "lastLoginAt">) => {
     const newUser = {
       ...user,
-      id: crypto.randomUUID(),
+      id: crypto.randomUUID?.() ?? Math.random().toString(36).substring(2),
       createdAt: new Date(),
       updatedAt: new Date(),
       lastLoginAt: null,

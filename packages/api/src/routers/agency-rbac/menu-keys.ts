@@ -50,9 +50,10 @@ export const agencyMenuKeys = [
 
 	"/agency/creative-assets",
 
-	"/agency/gen-ai/image-gen-studio",
-	"/agency/gen-ai/image-generator",
-	"/agency/gen-ai/background-remover",
+	// "/agency/gen-ai/image-gen-studio",
+	"/agency/zeepo-canvas",
+	// "/agency/gen-ai/image-generator",
+	// "/agency/gen-ai/background-remover",
 
 	"/agency/nisc-services",
 	"/agency/nisc-service-orders",
