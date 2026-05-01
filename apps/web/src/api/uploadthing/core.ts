@@ -135,6 +135,32 @@ export const ourFileRouter = {
       return { uploadedBy: metadata.userId };
     }),
 
+  // Zeepo Canvas Media upload (supports images, audio and videos for AI nodes)
+  zeepoCanvasMedia: f({
+    image: { maxFileSize: "32MB", maxFileCount: 5 },
+    video: { maxFileSize: "500MB", maxFileCount: 1 },
+    audio: { maxFileSize: "64MB", maxFileCount: 1 },
+    pdf: { maxFileSize: "32MB", maxFileCount: 1 },
+    text: { maxFileSize: "8MB", maxFileCount: 1 },
+  })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({
+        headers: req.headers,
+      });
+
+      if (!session?.user) {
+        throw new Error("Unauthorized");
+      }
+
+      return {
+        userId: session.user.id,
+      };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Zeepo Canvas media upload complete for userId:", metadata.userId);
+      return { uploadedBy: metadata.userId };
+    }),
+
   // Email Builder image upload (single image, optimized for email builder library)
   emailBuilderImage: f({ image: { maxFileSize: "16MB", maxFileCount: 1 } })
     .middleware(async ({ req }) => {

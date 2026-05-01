@@ -101,6 +101,7 @@ import { cronWorkflowRunRouter } from "./cron-workflow-run";
 import { apiKeysRouter } from "./api-keys";
 import { digitaxRouter } from "./digitax";
 import { ipRecordsRouter } from "./ip-records";
+import { zeepoCanvasRouter } from "./zeepo-canvas";
 
 
 export const appRouter = router({
@@ -287,5 +288,7 @@ export const appRouter = router({
 	digitax: digitaxRouter,
 	// IP Records
 	ipRecords: ipRecordsRouter,
+	// Zeepo Canvas
+	zeepoCanvas: zeepoCanvasRouter,
 });
 export type AppRouter = typeof appRouter;

@@ -17,7 +17,7 @@ export function downloadFile(file: string, type: string) {
   const anchorElement = document.createElement("a");
 
   anchorElement.href = file;
-  anchorElement.download = `${crypto.randomUUID()}.${type}`;
+  anchorElement.download = `${crypto.randomUUID?.() ?? Math.random().toString(36).substring(2)}.${type}`;
   document.body.appendChild(anchorElement);
   anchorElement.click();
   anchorElement.remove();

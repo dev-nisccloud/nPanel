@@ -90,6 +90,21 @@ export const ourFileRouter: FileRouter = {
     .onUploadComplete(async ({ metadata }) => {
       return { uploadedBy: metadata.userId };
     }),
+
+  // Zeepo Canvas Media upload
+  zeepoCanvasMedia: f({
+    image: { maxFileSize: "32MB", maxFileCount: 1 },
+    video: { maxFileSize: "1GB", maxFileCount: 1 },
+    audio: { maxFileSize: "32MB", maxFileCount: 1 },
+  })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({ headers: req.headers });
+      if (!session?.user) throw new Error("Unauthorized");
+      return { userId: session.user.id };
+    })
+    .onUploadComplete(async ({ metadata }) => {
+      return { uploadedBy: metadata.userId };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

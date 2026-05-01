@@ -15,6 +15,8 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     DIGITAX_API_URL: z.string().url().default("https://api.digitax.tech/ke/v2"),
     DIGITAX_API_KEY: z.string().min(1),
+    QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: z.string().url(),
+    REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL: z.string().url(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

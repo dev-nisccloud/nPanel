@@ -328,20 +328,25 @@ export const agencysidebarItems: NavGroup[] = [
     label: "Gen AI Tools",
     items: [
       {
-        title: "Visual Studio",
-        url: "/agency/gen-ai/image-gen-studio",
+        title: "Zeepo AI Canvas",
+        url: "/agency/zeepo-canvas",
         icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
-      {
-        title: "Image Generator",
-        url: "/agency/gen-ai/image-generator",
-        icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-      {
-        title: "Background Remover",
-        url: "/agency/gen-ai/background-remover",
-        icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
+      // {
+      //   title: "Visual Studio",
+      //   url: "/agency/gen-ai/image-gen-studio",
+      //   icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
+      // {
+      //   title: "Image Generator",
+      //   url: "/agency/gen-ai/image-generator",
+      //   icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
+      // {
+      //   title: "Background Remover",
+      //   url: "/agency/gen-ai/background-remover",
+      //   icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
       // {
       //   title: "AI Image Editor",
       //   url: "/agency/gen-ai/ai-image-editor",
