@@ -40,10 +40,12 @@ import {
 } from "./ui/context-menu";
 
 import { useInteraction } from "@/routes/_agency.zeepo-canvas/_providers/interaction";
+import { useGateway } from "@/routes/_agency.zeepo-canvas/_providers/models";
 import { isValidSourceTarget } from "@/routes/_agency.zeepo-canvas/_lib/xyflow";
 
 export const Canvas = ({ children, canvasId, initialData, ...props }: ReactFlowProps & { canvasId: string, initialData: any }) => {
   const { mode, setIsDirty } = useInteraction();
+  const { models: textModels } = useGateway();
   const {
     onConnect,
     onEdgesChange,
@@ -232,7 +234,7 @@ export const Canvas = ({ children, canvasId, initialData, ...props }: ReactFlowP
           return false;
         }
 
-        const valid = isValidSourceTarget(source, target);
+        const valid = isValidSourceTarget(source, target, textModels);
 
         if (!valid) {
           return false;

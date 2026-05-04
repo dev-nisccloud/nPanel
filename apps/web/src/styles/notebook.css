@@ -36,9 +36,9 @@ value: notebook
   --sidebar-accent-foreground: oklch(0.4015 0.0436 37.9587);
   --sidebar-border: oklch(0.8078 0 0);
   --sidebar-ring: oklch(0.7058 0 0);
-  --font-sans: Architects Daughter, sans-serif;
+    --font-sans: "DM Sans", Roboto, sans-serif;
   --font-serif: "Times New Roman", Times, serif;
-  --font-mono: "Courier New", Courier, monospace;
+  
   --radius: 0.625rem;
   --shadow-2xs: 1px 4px 5px 0px hsl(0 0% 0% / 0.01);
   --shadow-xs: 1px 4px 5px 0px hsl(0 0% 0% / 0.01);
@@ -85,9 +85,9 @@ value: notebook
   --sidebar-accent-foreground: oklch(0.3211 0 0);
   --sidebar-border: oklch(0.4276 0 0);
   --sidebar-ring: oklch(0.8078 0 0);
-  --font-sans: Architects Daughter, sans-serif;
+    --font-sans: "DM Sans", Roboto, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: "Fira Code", "Courier New", monospace;
+  
   --radius: 0.625rem;
   --shadow-2xs: 1px 4px 5px 0px hsl(0 0% 0% / 0.01);
   --shadow-xs: 1px 4px 5px 0px hsl(0 0% 0% / 0.01);
@@ -133,8 +133,8 @@ value: notebook
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+    --font-sans: "DM Sans", Roboto, sans-serif;
+  
   --font-serif: var(--font-serif);
 
   --radius-sm: calc(var(--radius) - 4px);

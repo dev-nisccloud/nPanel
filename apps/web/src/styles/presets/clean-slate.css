@@ -36,9 +36,9 @@ value: clean-slate
   --sidebar-accent-foreground: oklch(0.3729 0.0306 259.7328);
   --sidebar-border: oklch(0.8717 0.0093 258.3382);
   --sidebar-ring: oklch(0.5854 0.2041 277.1173);
-  --font-sans: Roboto, sans-serif;
+    --font-sans: "DM Sans", Roboto, sans-serif;
   --font-serif: Merriweather, serif;
-  --font-mono: JetBrains Mono, monospace;
+  
   --radius: 0.5rem;
   --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
@@ -85,9 +85,9 @@ value: clean-slate
   --sidebar-accent-foreground: oklch(0.8717 0.0093 258.3382);
   --sidebar-border: oklch(0.4461 0.0263 256.8018);
   --sidebar-ring: oklch(0.6801 0.1583 276.9349);
-  --font-sans: Roboto, sans-serif;
+    --font-sans: "DM Sans", Roboto, sans-serif;
   --font-serif: Merriweather, serif;
-  --font-mono: JetBrains Mono, monospace;
+  
   --radius: 0.5rem;
   --shadow-2xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0px 4px 8px -1px hsl(0 0% 0% / 0.05);
@@ -133,8 +133,8 @@ value: clean-slate
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+    --font-sans: "DM Sans", Roboto, sans-serif;
+  
   --font-serif: var(--font-serif);
 
   --radius-sm: calc(var(--radius) - 4px);
