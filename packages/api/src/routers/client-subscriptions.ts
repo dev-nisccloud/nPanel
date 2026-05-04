@@ -1317,6 +1317,62 @@ export const clientSubscriptionsRouter = router({
             return idStrs.filter((id) => found.has(id));
         }),
 
+    /** Check if a Hivelocity device id already has a linked NiscClientSubscription (serviceRefs.hivelocityDeviceId). */
+    getHasLinkedSubscriptionByHivelocityDeviceId: protectedProcedure
+        .input(z.object({ hivelocityDeviceId: z.union([z.string(), z.number()]) }))
+        .output(z.object({ hasLinked: z.boolean(), subscriptionId: z.string().nullable() }))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            const idStr = String(input.hivelocityDeviceId);
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            const [sub] = await db
+                .select({ id: niscClientSubscription.id })
+                .from(niscClientSubscription)
+                .where(
+                    and(
+                        sql`(${niscClientSubscription.serviceRefs}->>'hivelocityDeviceId') = ${idStr}`,
+                        readScope ?? sql`true`,
+                    ),
+                )
+                .limit(1);
+            return { hasLinked: !!sub, subscriptionId: sub?.id ?? null };
+        }),
+
+    /** Return Hivelocity device ids that already have a linked NiscClientSubscription (for batch check on list views). */
+    getHivelocityDeviceIdsWithLinkedSubscription: protectedProcedure
+        .input(z.object({ hivelocityDeviceIds: z.array(z.union([z.string(), z.number()])) }))
+        .output(z.array(z.string()))
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+            if (input.hivelocityDeviceIds.length === 0) return [];
+            const idStrs = [...new Set(input.hivelocityDeviceIds.map((id) => String(id)))];
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            const subs = await db
+                .select({ serviceRefs: niscClientSubscription.serviceRefs })
+                .from(niscClientSubscription)
+                .where(and(or(...idStrs.map((id) => sql`(${niscClientSubscription.serviceRefs}->>'hivelocityDeviceId') = ${id}`)), readScope ?? sql`true`));
+            const found = new Set<string>();
+            for (const sub of subs) {
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                if (refs && typeof refs.hivelocityDeviceId === "string") {
+                    found.add(refs.hivelocityDeviceId);
+                }
+            }
+            return idStrs.filter((id) => found.has(id));
+        }),
+
     /** Get active media buying product and its active plans for subscription creation. */
     getMediaBuyingProductForSubscription: protectedProcedure
         .output(mediaBuyingProductOutputSchema.nullable())

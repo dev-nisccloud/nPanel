@@ -24,7 +24,9 @@ import {
   ArrowUpCircle,
   Package,
   Layers,
-  CalendarDays
+  CalendarDays,
+  Link as LinkIcon,
+  Plus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +41,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
 import { formatMoney, formatMoneyUsd } from "./money";
+import { CreateSubscriptionForHivelocityDialog } from "./create-subscription-for-hivelocity-dialog";
+import { Link } from "react-router";
 
 interface VpsOverviewProps {
   deviceData: any;
@@ -61,14 +65,25 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
   // New Queries
   const servicesQuery = trpc.hivelocity.getDeviceServices.useQuery({ deviceId: deviceData.deviceId });
   const upgradesQuery = trpc.hivelocity.getVpsUpgrades.useQuery({ deviceId: deviceData.deviceId });
+  const subscriptionLinkQuery = trpc.clientSubscriptions.getHasLinkedSubscriptionByHivelocityDeviceId.useQuery({ 
+    hivelocityDeviceId: deviceData.deviceId 
+  });
+
+  const [linkDialogOpen, setLinkDialogOpen] = React.useState(false);
 
   const powerStatusQuery = trpc.hivelocity.getDevicePowerStatus.useQuery(
     { deviceId: deviceData.deviceId },
     { 
-      initialData: { success: true, data: { powerStatus: deviceData.powerStatus } },
-      refetchInterval: 10000 // Refetch every 10 seconds
+      initialData: { success: true, data: { powerStatus: deviceData.powerStatus, pendingAction: null } },
+      refetchInterval: (query) => {
+        const hasPending = (query.state.data?.data as any)?.pendingAction;
+        return hasPending ? 5000 : 20000;
+      }
     }
   );
+
+  const pendingAction = (powerStatusQuery.data?.data as any)?.pendingAction;
+  const isPowerProcessing = !!pendingAction;
 
   const powerStatusRaw = (powerStatusQuery.data?.data as any)?.powerStatus || deviceData.powerStatus;
   const powerStatus = typeof powerStatusRaw === 'object' ? powerStatusRaw.status : powerStatusRaw;
@@ -89,7 +104,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
       toast.success(`Power action '${variables.action}' triggered successfully`);
       utils.hivelocity.getDeviceDetails.invalidate({ deviceId: deviceData.deviceId });
       utils.hivelocity.getDevicePowerStatus.invalidate({ deviceId: deviceData.deviceId });
-      setTimeout(() => powerStatusQuery.refetch(), 2000);
+      setTimeout(() => powerStatusQuery.refetch(), 1000);
     },
     onError: (err) => {
       toast.error(`Failed to trigger power action: ${err.message}`);
@@ -287,6 +302,18 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                   <span className={`text-sm font-bold ${powerStatus === 'ON' ? 'text-green-600' : 'text-red-600'}`}>
                     Instance {powerStatus === 'ON' ? 'running' : 'stopped'}
                   </span>
+                  {isPowerProcessing && (
+                    <Badge variant="outline" className="animate-pulse bg-primary/10 text-primary border-primary/20 text-[10px] font-bold h-5 px-2">
+                       <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                       {(() => {
+                         const a = pendingAction.action.toLowerCase();
+                         if (a === 'on' || a === 'boot') return 'Powering device on...';
+                         if (a === 'off' || a === 'shutdown') return 'Powering device off...';
+                         if (a === 'reboot') return 'Rebooting device...';
+                         return `${a.toUpperCase()}...`;
+                       })()}
+                    </Badge>
+                  )}
                 </div>
               </div>
               <Button 
@@ -305,7 +332,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 variant="outline" 
                 className={`w-full justify-start gap-3 h-11 border-border/40 hover:bg-green-50/50 hover:text-green-700 hover:border-green-200 transition-all group ${powerStatus === 'ON' ? 'opacity-50 grayscale' : ''}`}
                 onClick={() => powerMutation.mutate({ deviceId: deviceData.deviceId, action: "on" })}
-                disabled={powerMutation.isPending || powerStatus === 'ON'}
+                disabled={powerMutation.isPending || isPowerProcessing || powerStatus === 'ON'}
               >
                 <div className="p-1.5 rounded-lg bg-green-100 text-green-600 group-hover:scale-110 transition-transform">
                    <Power className="h-4 w-4" />
@@ -316,7 +343,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 variant="outline" 
                 className={`w-full justify-start gap-3 h-11 border-border/40 hover:bg-red-50/50 hover:text-red-700 hover:border-red-200 transition-all group ${powerStatus === 'OFF' ? 'opacity-50 grayscale' : ''}`}
                 onClick={() => powerMutation.mutate({ deviceId: deviceData.deviceId, action: "off" })}
-                disabled={powerMutation.isPending || powerStatus === 'OFF'}
+                disabled={powerMutation.isPending || isPowerProcessing || powerStatus === 'OFF'}
               >
                 <div className="p-1.5 rounded-lg bg-red-100 text-red-600 group-hover:scale-110 transition-transform">
                    <Power className="h-4 w-4" />
@@ -327,7 +354,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 variant="outline" 
                 className="w-full justify-start gap-3 h-11 border-border/40 hover:bg-amber-50/50 hover:text-amber-700 hover:border-amber-200 transition-all group"
                 onClick={() => powerMutation.mutate({ deviceId: deviceData.deviceId, action: "reboot" })}
-                disabled={powerMutation.isPending}
+                disabled={powerMutation.isPending || isPowerProcessing}
               >
                 <div className="p-1.5 rounded-lg bg-amber-100 text-amber-600 group-hover:rotate-180 transition-transform duration-500">
                    <RefreshCw className="h-4 w-4" />
@@ -340,6 +367,71 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Customer Subscription Link */}
+        <Card className="border-border/40 shadow-sm overflow-hidden flex flex-col xl:col-span-2">
+          <CardHeader className="bg-muted/30 pb-4 flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <LinkIcon className="h-5 w-5 text-primary" />
+                Customer Subscription Link
+              </CardTitle>
+              <CardDescription>Associate this hardware with a client-facing subscription</CardDescription>
+            </div>
+            {subscriptionLinkQuery.data?.hasLinked ? (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1 px-3">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
+                Linked to Subscription
+              </Badge>
+            ) : (
+              <Button 
+                size="sm" 
+                className="h-8 gap-2 bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-wider px-4"
+                onClick={() => setLinkDialogOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Link to Subscription
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="pt-6">
+            {subscriptionLinkQuery.isLoading ? (
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : subscriptionLinkQuery.data?.hasLinked ? (
+              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/10 border border-dashed border-primary/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-primary/10 text-primary">
+                    <Package className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">Linked Subscription</p>
+                    <p className="text-xs text-muted-foreground">ID: {subscriptionLinkQuery.data.subscriptionId}</p>
+                  </div>
+                </div>
+                <Link to={`/agency/subscriptions/${subscriptionLinkQuery.data.subscriptionId}`}>
+                  <Button variant="outline" size="sm" className="h-8 gap-2 text-[10px] uppercase font-bold">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Subscription
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                <div className="p-3 rounded-full bg-muted/20 text-muted-foreground/40">
+                  <LinkIcon className="h-6 w-6" />
+                </div>
+                <div className="max-w-md">
+                  <p className="text-sm font-bold text-foreground/80">No customer subscription linked</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Linking this VPS to a customer subscription allows you to automate billing, track revenue, and manage the lifecycle within nPanel.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Active Subscriptions */}
         <Card className="border-border/40 shadow-sm overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/30 pb-4">
@@ -584,6 +676,35 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
           </CardContent>
         </Card>
       </div>
+      
+      <CreateSubscriptionSection 
+        deviceId={deviceData.deviceId}
+        deviceName={deviceData.name || deviceData.hostname}
+        isOpen={linkDialogOpen}
+        onOpenChange={setLinkDialogOpen}
+      />
     </div>
+  );
+}
+
+function CreateSubscriptionSection({ 
+  deviceId, 
+  deviceName, 
+  isOpen, 
+  onOpenChange 
+}: { 
+  deviceId: string | number; 
+  deviceName: string; 
+  isOpen: boolean; 
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <CreateSubscriptionForHivelocityDialog
+      open={isOpen}
+      onOpenChange={onOpenChange}
+      deviceId={deviceId}
+      deviceName={deviceName}
+      serviceType="vps"
+    />
   );
 }
