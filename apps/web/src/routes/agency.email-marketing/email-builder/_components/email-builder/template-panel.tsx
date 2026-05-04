@@ -155,6 +155,7 @@ interface TemplatePanelProps {
     initialData?: {
         id: string;
         json: string;
+        aiStatus?: string;
     };
 }
 
@@ -169,11 +170,17 @@ export function TemplatePanel({ initialData }: TemplatePanelProps) {
 
     const isMobile = selectedScreenSize === 'mobile';
 
-    // Initialize document from DB only once
+    // Initialize document from DB
     const isInitialized = useRef(false);
 
     useEffect(() => {
-        if (!isInitialized.current && initialData?.json) {
+        if (!initialData?.json) return;
+
+        const isAiActive = initialData.aiStatus === "PROCESSING" || initialData.aiStatus === "HYDRATING";
+        
+        // Always sync if AI is active (real-time updates) 
+        // OR sync once on initial load if not already initialized
+        if (isAiActive || !isInitialized.current) {
             try {
                 const parsed = JSON.parse(initialData.json);
                 resetDocument(parsed);
@@ -182,7 +189,7 @@ export function TemplatePanel({ initialData }: TemplatePanelProps) {
                 console.error("Failed to parse initial JSON", e);
             }
         }
-    }, [initialData?.json]);
+    }, [initialData?.json, initialData?.aiStatus]);
 
     // Auto-save logic
     const debouncedSave = useMemo(

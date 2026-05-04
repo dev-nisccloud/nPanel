@@ -19,6 +19,8 @@ import { handlePublishLinkedInContent } from "./api/workers/publish-linkedin-con
 import { handleNiscEmDispatch } from "./api/workers/nisc-em-dispatch";
 import { handleZeepoCanvas } from "./api/workers/zeepo-canvas";
 import { handleZeepoCanvasWebhook } from "./api/webhooks/zeepo-canvas";
+import { handleEmailBuilderAi } from "./api/workers/email-builder-ai";
+import { handleEmailBuilderAiWebhook } from "./api/webhooks/replicate-email-builder-ai";
 
 import { handleHealth } from "./api/health";
 import { handleManifest } from "./api/manifest";
@@ -93,6 +95,7 @@ app.on(["POST"], "/api/webhooks/replicate", handleReplicateWebhook);
 app.on(["POST"], "/api/webhooks/zeepo-canvas", handleZeepoCanvasWebhook);
 app.on(["POST"], "/api/webhooks/resend", handleResendWebhook);
 app.on(["POST"], "/api/webhooks/sns", handleSnsWebhook);
+app.on(["POST"], "/api/webhooks/replicate/email-builder-ai", handleEmailBuilderAiWebhook);
 
 app.get("/", (c) => {
   return c.text("OK");
@@ -115,6 +118,7 @@ app.on(["POST"], "/api/workers/nisc-em-dispatch*", handleNiscEmDispatch);
 app.on(["POST"], "/api/workers/publish-content*", handlePublishContent);
 app.on(["POST"], "/api/workers/publish-linkedin-content*", handlePublishLinkedInContent);
 app.on(["POST"], "/api/workers/zeepo-canvas*", handleZeepoCanvas);
+app.on(["POST"], "/api/workers/email-builder-ai*", handleEmailBuilderAi);
 
 export default {
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,

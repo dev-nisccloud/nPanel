@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { z } from 'zod';
+import { Sparkles } from 'lucide-react';
 import { Avatar, AvatarPropsSchema } from '@usewaypoint/block-avatar';
 import { Button, ButtonPropsSchema } from '@usewaypoint/block-button';
 import { Divider, DividerPropsSchema } from '@usewaypoint/block-divider';
@@ -13,7 +14,6 @@ import {
     buildBlockConfigurationDictionary,
     buildBlockConfigurationSchema,
 } from '@usewaypoint/document-core';
-import { getFontFamily } from './helpers/fontFamily';
 
 import { EditorBlockWrapper } from './components';
 import { ContainerEditor, ColumnsContainerEditor, EmailLayoutEditor } from './blocks';
@@ -25,181 +25,276 @@ import {
     useEditorDocument
 } from './context';
 
-// --- Helpers ---
-
-function useResolveBlockStyle(data: any) {
-    const resolved = { ...data };
-
-    if (data?.style?.fontFamily) {
-        resolved.style = {
-            ...data.style,
-            fontFamily: getFontFamily(data.style.fontFamily),
-        };
-    }
-
-    if (data?.props?.fontFamily) {
-        resolved.props = {
-            ...data.props,
-            fontFamily: getFontFamily(data.props.fontFamily),
-        };
-    }
-
-    return resolved;
+// ---------------------------------------------------------------------------
+// Helper: resolve the image URL from native schema (data.props.url)
+// or legacy flat schema (data.url) — used in Image block renderers only
+// ---------------------------------------------------------------------------
+function resolveImageUrl(data: any): string {
+    return data?.props?.url ?? data?.url ?? '';
 }
 
-// --- Dictionary ---
+// ---------------------------------------------------------------------------
+// Helper: resolve text content from native schema (data.props.text)
+// or legacy flat schema (data.text)
+// ---------------------------------------------------------------------------
+function resolveText(data: any): string {
+    return data?.props?.text ?? data?.text ?? '';
+}
+
+// ---------------------------------------------------------------------------
+// EDITOR DICTIONARY
+// ---------------------------------------------------------------------------
 
 const EDITOR_DICTIONARY = buildBlockConfigurationDictionary({
     Avatar: {
-        schema: AvatarPropsSchema,
-        Component: (props) => (
+        schema: z.any(),
+        // Avatar uses native { props, style } — pass through directly
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <Avatar {...useResolveBlockStyle(props)} />
+                <Avatar {...data} />
             </EditorBlockWrapper>
         ),
     },
     Button: {
-        schema: ButtonPropsSchema,
-        Component: (props) => (
+        schema: z.any(),
+        // Button uses native { props: { text, url, buttonBackgroundColor, buttonTextColor }, style }
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <Button {...useResolveBlockStyle(props)} />
+                <Button {...data} />
             </EditorBlockWrapper>
         ),
     },
     Container: {
-        schema: z.object({}).passthrough(), // Simplified
-        Component: (props) => (
+        schema: z.any(),
+        // Container: data = { props: { childrenIds }, style: { backgroundColor, padding, borderRadius } }
+        // ContainerEditor destructures { style, props } — pass through without unwrapping
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <ContainerEditor {...useResolveBlockStyle(props)} />
+                <ContainerEditor {...data} />
             </EditorBlockWrapper>
         ),
     },
     ColumnsContainer: {
-        schema: z.object({}).passthrough(), // Simplified
-        Component: (props) => (
+        schema: z.any(),
+        // ColumnsContainer: data = { props: { columns }, style: { padding } }
+        // ColumnsContainerEditor destructures { style, props } — pass through
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <ColumnsContainerEditor {...useResolveBlockStyle(props)} />
+                <ColumnsContainerEditor {...data} />
             </EditorBlockWrapper>
         ),
     },
     Heading: {
-        schema: HeadingPropsSchema,
-        Component: (props) => (
+        schema: z.any(),
+        // Heading uses native { props: { text, level }, style: { color, textAlign, fontWeight, padding } }
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <Heading {...useResolveBlockStyle(props)} />
+                <Heading {...data} />
             </EditorBlockWrapper>
         ),
     },
     Html: {
-        schema: HtmlPropsSchema,
-        Component: (props) => (
+        schema: z.any(),
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <Html {...useResolveBlockStyle(props)} />
+                <Html {...data} />
             </EditorBlockWrapper>
         ),
     },
     Image: {
-        schema: ImagePropsSchema,
-        Component: (data) => {
-            const resolved = useResolveBlockStyle({
-                ...data,
-                props: {
-                    ...data.props,
-                    url: data.props?.url || 'https://placehold.co/600x400@2x/F8F8F8/CCC?text=Your%20image',
-                },
-            });
+        schema: z.any(),
+        Component: (data: any) => {
+            const url = resolveImageUrl(data);
+            const isPlaceholder = url === '__IMAGE_PLACEHOLDER__';
+
+            if (isPlaceholder) {
+                return (
+                    <EditorBlockWrapper blockId={useCurrentBlockId()}>
+                        <div className="w-full aspect-[3/2] bg-gray-50 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg overflow-hidden relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/5 to-transparent -translate-x-full animate-shimmer" />
+                            <div className="flex flex-col items-center gap-3 relative z-10">
+                                <div className="relative">
+                                    <Sparkles className="size-8 text-blue-200 animate-pulse" />
+                                    <div className="absolute -top-1 -right-1 size-3 bg-blue-500 rounded-full border-2 border-white animate-bounce" />
+                                </div>
+                                <div className="flex flex-col items-center">
+                                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest animate-pulse">
+                                        AI Generating
+                                    </span>
+                                    <span className="text-[9px] text-gray-400 font-medium">
+                                        Custom visual in progress...
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </EditorBlockWrapper>
+                );
+            }
+
+            // Native schema: { props: { url, alt, width, height }, style: { textAlign, padding } }
             return (
                 <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                    <Image {...resolved} />
+                    <Image {...data} />
                 </EditorBlockWrapper>
             );
         },
     },
     Text: {
         schema: TextPropsSchema,
-        Component: (props) => (
-            <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <Text {...useResolveBlockStyle(props)} />
-            </EditorBlockWrapper>
-        ),
+        Component: (data: any) => {
+            // Text uses native { props: { text }, style: { color, fontSize, textAlign, padding } }
+            const text = resolveText(data);
+            const style = data?.style ?? {};
+            const hasHtml = /<[a-z][\s\S]*>/i.test(text || '');
+
+            if (hasHtml) {
+                return (
+                    <EditorBlockWrapper blockId={useCurrentBlockId()}>
+                        <div
+                            style={{
+                                color: style.color,
+                                fontSize: style.fontSize,
+                                fontWeight: style.fontWeight,
+                                textAlign: style.textAlign,
+                                lineHeight: '1.5',
+                                paddingTop: style.padding?.top,
+                                paddingRight: style.padding?.right,
+                                paddingBottom: style.padding?.bottom,
+                                paddingLeft: style.padding?.left,
+                            }}
+                            dangerouslySetInnerHTML={{ __html: text }}
+                        />
+                    </EditorBlockWrapper>
+                );
+            }
+
+            return (
+                <EditorBlockWrapper blockId={useCurrentBlockId()}>
+                    <Text {...data} />
+                </EditorBlockWrapper>
+            );
+        },
     },
     EmailLayout: {
-        schema: z.object({}).passthrough(), // Simplified
+        schema: z.any(),
         Component: (p) => <EmailLayoutEditor {...p} />,
     },
     Spacer: {
-        schema: SpacerPropsSchema,
-        Component: (props) => (
+        schema: z.any(),
+        // Spacer uses native { props: { height } }
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <Spacer {...useResolveBlockStyle(props)} />
+                <Spacer {...data} />
             </EditorBlockWrapper>
         ),
     },
     Divider: {
-        schema: DividerPropsSchema,
-        Component: (props) => (
+        schema: z.any(),
+        // Divider uses native { props: { lineHeight, lineColor }, style: { padding } }
+        Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
-                <Divider {...useResolveBlockStyle(props)} />
+                <Divider {...data} />
             </EditorBlockWrapper>
         ),
     },
 });
 
+// ---------------------------------------------------------------------------
+// READ-ONLY DICTIONARY (Preview & HTML tabs)
+// ---------------------------------------------------------------------------
+
 const READ_ONLY_DICTIONARY = buildBlockConfigurationDictionary({
     Avatar: {
-        schema: AvatarPropsSchema,
-        Component: (props) => <Avatar {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <Avatar {...data} />,
     },
     Button: {
-        schema: ButtonPropsSchema,
-        Component: (props) => <Button {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <Button {...data} />,
     },
     Container: {
-        schema: z.object({}).passthrough(),
-        Component: (props) => <ContainerEditor {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <ContainerEditor {...data} />,
     },
     ColumnsContainer: {
-        schema: z.object({}).passthrough(),
-        Component: (props) => <ColumnsContainerEditor {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <ColumnsContainerEditor {...data} />,
     },
     Heading: {
-        schema: HeadingPropsSchema,
-        Component: (props) => <Heading {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <Heading {...data} />,
     },
     Html: {
-        schema: HtmlPropsSchema,
-        Component: (props) => <Html {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <Html {...data} />,
     },
     Image: {
-        schema: ImagePropsSchema,
-        Component: (data) => {
-            const resolved = useResolveBlockStyle({
-                ...data,
-                props: {
-                    ...data.props,
-                    url: data.props?.url || 'https://placehold.co/600x400@2x/F8F8F8/CCC?text=Your%20image',
-                },
-            });
-            return <Image {...resolved} />;
+        schema: z.any(),
+        Component: (data: any) => {
+            const url = resolveImageUrl(data);
+            const isPlaceholder = url === '__IMAGE_PLACEHOLDER__';
+
+            if (isPlaceholder) {
+                return (
+                    <div className="w-full aspect-[3/2] bg-gray-50 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/5 to-transparent -translate-x-full animate-shimmer" />
+                        <div className="flex flex-col items-center gap-2 relative z-10 text-blue-400">
+                            <Sparkles className="size-6 animate-pulse" />
+                            <span className="text-[10px] font-bold uppercase tracking-tight">AI Image Loading...</span>
+                        </div>
+                    </div>
+                );
+            }
+
+            return <Image {...data} />;
         },
     },
     Text: {
         schema: TextPropsSchema,
-        Component: (props) => <Text {...useResolveBlockStyle(props)} />,
+        Component: (data: any) => {
+            const text = resolveText(data);
+            const style = data?.style ?? {};
+            const hasHtml = /<[a-z][\s\S]*>/i.test(text || '');
+
+            if (hasHtml) {
+                return (
+                    <div
+                        style={{
+                            color: style.color,
+                            fontSize: style.fontSize,
+                            fontWeight: style.fontWeight,
+                            textAlign: style.textAlign,
+                            lineHeight: '1.5',
+                            paddingTop: style.padding?.top,
+                            paddingRight: style.padding?.right,
+                            paddingBottom: style.padding?.bottom,
+                            paddingLeft: style.padding?.left,
+                        }}
+                        dangerouslySetInnerHTML={{ __html: text }}
+                    />
+                );
+            }
+
+            return <Text {...data} />;
+        },
     },
     EmailLayout: {
-        schema: z.object({}).passthrough(),
+        schema: z.any(),
         Component: (p) => <EmailLayoutEditor {...p} />,
     },
     Spacer: {
-        schema: SpacerPropsSchema,
-        Component: (props) => <Spacer {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <Spacer {...data} />,
     },
     Divider: {
-        schema: DividerPropsSchema,
-        Component: (props) => <Divider {...useResolveBlockStyle(props)} />,
+        schema: z.any(),
+        Component: (data) => <Divider {...data} />,
     },
 });
+
+// ---------------------------------------------------------------------------
+// Exported components
+// ---------------------------------------------------------------------------
 
 const CoreEditorBlock = buildBlockComponent(EDITOR_DICTIONARY);
 const CoreReadOnlyBlock = buildBlockComponent(READ_ONLY_DICTIONARY);
@@ -208,7 +303,7 @@ export default function EditorBlock({ id }: { id: string }) {
     const document = useEditorDocument();
     const block = document[id];
     if (!block) {
-        return <div className="text-red-500">Block not found: {id}</div>;
+        return <div className="text-red-500 text-xs p-1">Block not found: {id}</div>;
     }
     return (
         <EditorBlockContext.Provider value={id}>
@@ -217,7 +312,15 @@ export default function EditorBlock({ id }: { id: string }) {
     );
 }
 
-export function StandardReader({ document, rootBlockId, useRawValue = false }: { document: any; rootBlockId: string; useRawValue?: boolean }) {
+export function StandardReader({
+    document,
+    rootBlockId,
+    useRawValue = false,
+}: {
+    document: any;
+    rootBlockId: string;
+    useRawValue?: boolean;
+}) {
     const block = document[rootBlockId];
     if (!block) return null;
 
