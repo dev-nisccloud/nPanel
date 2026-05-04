@@ -36,9 +36,8 @@ value: mono
   --sidebar-accent-foreground: oklch(0.2046 0 0);
   --sidebar-border: oklch(0.9219 0 0);
   --sidebar-ring: oklch(0.7090 0 0);
-  --font-sans: Geist Mono, monospace;
-  --font-serif: Geist Mono, monospace;
-  --font-mono: Geist Mono, monospace;
+    --font-sans: "DM Sans", Roboto, sans-serif;
+  
   --radius: 0rem;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 0% / 0.00);
@@ -85,9 +84,8 @@ value: mono
   --sidebar-accent-foreground: oklch(0.9851 0 0);
   --sidebar-border: oklch(1.0000 0 0);
   --sidebar-ring: oklch(0.4386 0 0);
-  --font-sans: Geist Mono, monospace;
-  --font-serif: Geist Mono, monospace;
-  --font-mono: Geist Mono, monospace;
+    --font-sans: "DM Sans", Roboto, sans-serif;
+  
   --radius: 0rem;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 0% / 0.00);
@@ -133,8 +131,8 @@ value: mono
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+    --font-sans: "DM Sans", Roboto, sans-serif;
+  
   --font-serif: var(--font-serif);
 
   --radius-sm: calc(var(--radius) - 4px);

@@ -36,9 +36,9 @@ value: amethyst-haze
   --sidebar-accent-foreground: oklch(0.3394 0.0441 1.7583);
   --sidebar-border: oklch(0.8719 0.0198 302.1690);
   --sidebar-ring: oklch(0.6104 0.0767 299.7335);
-  --font-sans: Geist, sans-serif;
+    --font-sans: "DM Sans", Roboto, sans-serif;
   --font-serif: "Lora", Georgia, serif;
-  --font-mono: "Fira Code", "Courier New", monospace;
+  
   --radius: 0.5rem;
   --shadow-2xs: 1px 2px 5px 1px hsl(0 0% 0% / 0.03);
   --shadow-xs: 1px 2px 5px 1px hsl(0 0% 0% / 0.03);
@@ -85,9 +85,9 @@ value: amethyst-haze
   --sidebar-accent-foreground: oklch(0.8391 0.0692 2.6681);
   --sidebar-border: oklch(0.2847 0.0346 291.2726);
   --sidebar-ring: oklch(0.7058 0.0777 302.0489);
-  --font-sans: Geist, sans-serif;
+    --font-sans: "DM Sans", Roboto, sans-serif;
   --font-serif: "Lora", Georgia, serif;
-  --font-mono: "Fira Code", "Courier New", monospace;
+  
   --radius: 0.5rem;
   --shadow-2xs: 1px 2px 5px 1px hsl(0 0% 0% / 0.03);
   --shadow-xs: 1px 2px 5px 1px hsl(0 0% 0% / 0.03);
@@ -133,8 +133,8 @@ value: amethyst-haze
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+    --font-sans: "DM Sans", Roboto, sans-serif;
+  
   --font-serif: var(--font-serif);
 
   --radius-sm: calc(var(--radius) - 4px);
