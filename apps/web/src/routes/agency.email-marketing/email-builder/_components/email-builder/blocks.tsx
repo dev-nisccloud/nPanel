@@ -61,8 +61,11 @@ export function EditorChildrenIds({ childrenIds, onChange }: { childrenIds: stri
 
 // --- ContainerEditor ---
 
-export function ContainerEditor({ style, props }: any) {
-    const childrenIds = props?.childrenIds ?? [];
+export function ContainerEditor({ style, props, data }: any) {
+    // Native schema: props.childrenIds, style.{ backgroundColor, padding, borderRadius }
+    // Fallback: data.childrenIds (old flat format) or data.props.childrenIds
+    const effectiveProps = props ?? data?.props ?? {};
+    const childrenIds = effectiveProps.childrenIds ?? data?.childrenIds ?? [];
     const document = useEditorDocument();
     const currentBlockId = useCurrentBlockId();
 
@@ -94,6 +97,7 @@ export function ColumnsContainerEditor({ style, props }: any) {
     const currentBlockId = useCurrentBlockId();
     const document = useEditorDocument();
 
+    // Native schema: props.columns = [{ childrenIds: [] }, ...]
     const { columns, ...restProps } = props ?? {};
     const columnsValue = columns ?? [{ childrenIds: [] }, { childrenIds: [] }, { childrenIds: [] }];
 
@@ -134,7 +138,18 @@ export function ColumnsContainerEditor({ style, props }: any) {
 import { getFontFamily } from './helpers/fontFamily';
 
 export function EmailLayoutEditor(data: any) {
-    const { backdropColor, canvasColor, textColor, fontFamily, childrenIds, borderRadius, borderColor } = data?.props || data || {};
+    // EmailLayout is stored flat in data (no props/style wrapper)
+    // data = { backdropColor, canvasColor, textColor, fontFamily, borderRadius, borderColor, childrenIds }
+    const {
+        backdropColor,
+        canvasColor,
+        textColor,
+        fontFamily,
+        borderRadius,
+        borderColor,
+        childrenIds = [],
+    } = data ?? {};
+
     const { useRawValue } = useContext(RenderContext);
     const document = useEditorDocument();
     const currentBlockId = useCurrentBlockId();
@@ -145,7 +160,7 @@ export function EmailLayoutEditor(data: any) {
             style={{
                 backgroundColor: backdropColor || '#F5F5F5',
                 color: textColor || '#262626',
-                fontFamily: getFontFamily(fontFamily),
+                fontFamily: getFontFamily(fontFamily) ?? fontFamily,
                 fontSize: '16px',
                 padding: '32px 0',
                 width: '100%',

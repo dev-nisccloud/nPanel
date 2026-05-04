@@ -28,6 +28,12 @@ export const emailBuilderDesign = pgTable(
     json: text("json").notNull(),
     thumbnailUrl: text("thumbnail_url"),
     isPublic: boolean("is_public").default(false).notNull(),
+
+    // AI Generation Fields
+    isAiGenerated: boolean("is_ai_generated").default(false).notNull(),
+    aiStatus: text("ai_status").default("IDLE").notNull(), // IDLE, PROCESSING, COMPLETED, FAILED
+    aiContext: jsonb("ai_context"),
+
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
   },

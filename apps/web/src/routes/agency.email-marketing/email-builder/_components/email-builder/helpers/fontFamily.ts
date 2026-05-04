@@ -145,9 +145,11 @@ export const FONT_FAMILY_NAMES = [
 ] as const;
 
 export function getFontFamily(fontFamily: string | null | undefined) {
-    const f = fontFamily || 'MODERN_SANS';
-    const font = FONT_FAMILIES.find((font) => font.key === f);
-    if (!font) return 'sans-serif';
+    if (!fontFamily) return FONT_FAMILIES[0].value;
+    
+    const font = FONT_FAMILIES.find((font) => font.key === fontFamily);
+    if (font) return font.value;
 
-    return font.value;
+    // If it's not a key, it might be a raw value (like Claude produces)
+    return fontFamily;
 }

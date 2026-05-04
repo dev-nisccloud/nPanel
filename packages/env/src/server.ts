@@ -17,6 +17,8 @@ export const env = createEnv({
     DIGITAX_API_KEY: z.string().min(1),
     QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: z.string().url(),
     REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL: z.string().url(),
+    QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url(),
+    REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

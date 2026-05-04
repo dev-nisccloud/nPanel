@@ -101,4 +101,16 @@ export interface ZeepoCanvasJobPayload {
 export interface ZeepoCanvasJobResult {
 	messageId: string;
 }
+/**
+ * QStash job payload for Email Builder AI generation (immediate, no schedule)
+ */
+export interface EmailBuilderAiJobPayload {
+	designId: string;
+}
 
+/**
+ * QStash job result for Email Builder AI generation
+ */
+export interface EmailBuilderAiJobResult {
+	messageId: string;
+}

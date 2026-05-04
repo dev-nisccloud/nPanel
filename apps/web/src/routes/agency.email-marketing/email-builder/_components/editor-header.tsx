@@ -13,12 +13,14 @@ import { useUpdateEmailBuilderDesign } from "../_api/use-update-email-builder-de
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Sparkles } from "lucide-react";
+import { AiGenerateDialog } from "./email-builder/ai-generate-dialog";
 
 interface EditorHeaderProps {
     design: {
         id: string;
         name: string;
-        // other props...
+        aiStatus?: string;
     };
 }
 
@@ -113,7 +115,20 @@ export const EditorHeader = ({ design }: EditorHeaderProps) => {
                 </div>
 
                 {/* Save Status */}
-                <div className="ml-auto flex items-center">
+                <div className="ml-auto flex items-center gap-x-4">
+                    <AiGenerateButton designId={design.id} />
+                    
+                    <Separator orientation="vertical" className="h-6" />
+
+                    {design.aiStatus === "HYDRATING" && (
+                        <div className="flex items-center gap-x-2 px-3 py-1 bg-amber-50 border border-amber-100 rounded-full animate-pulse">
+                            <Spinner size={14} className="text-amber-600" />
+                            <span className="text-[11px] font-bold text-amber-700 uppercase tracking-tight">
+                                AI Hydrating Images...
+                            </span>
+                        </div>
+                    )}
+
                     {isGlobalPending ? (
                         <div className="flex items-center gap-x-2">
                             <Spinner size={16} />
@@ -141,3 +156,22 @@ export const EditorHeader = ({ design }: EditorHeaderProps) => {
         </div>
     );
 };
+
+function AiGenerateButton({ designId }: { designId: string }) {
+    const [open, setOpen] = React.useState(false);
+
+    return (
+        <>
+            <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 hover:border-blue-300 transition-all"
+                onClick={() => setOpen(true)}
+            >
+                <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+                <span className="text-blue-700 font-medium">AI Generate</span>
+            </Button>
+            <AiGenerateDialog designId={designId} open={open} onOpenChange={setOpen} />
+        </>
+    );
+}

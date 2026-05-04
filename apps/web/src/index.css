@@ -1,2 +1,14 @@
 @import "@npanel/ui/globals.css";
 @import "./styles/twitter.css";
+
+@layer utilities {
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
