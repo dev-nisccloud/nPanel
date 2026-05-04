@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Server, Search, RefreshCw, AlertCircle } from "lucide-react";
+import { Server, Search, RefreshCw, AlertCircle, Plus } from "lucide-react";
 
 import { trpc } from "@/utils/trpc";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { CreateSubscriptionForHivelocityDialog } from "../agency.vps/_components/create-subscription-for-hivelocity-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -201,6 +208,13 @@ export function HivelocityServersTable({ type }: HivelocityServersTableProps) {
 	const items = query.data?.data?.items ?? [];
 	const handleSearch = () => setSearch(searchDraft.trim());
 
+	const handleRowClick = (resourceId: string | number) => {
+		const path = type === "vps" ? `/agency/vps/${resourceId}` : 
+					 type === "vds" ? `/agency/vds/${resourceId}` : 
+					 `/agency/dedicated-servers/${resourceId}`;
+		navigate(path);
+	};
+
 	if (query.isLoading) return <ServersTableSkeleton />;
 	if (query.isError) return <ServersTableError onRetry={() => query.refetch()} />;
 
@@ -270,97 +284,22 @@ export function HivelocityServersTable({ type }: HivelocityServersTableProps) {
 							<TableHead>Location</TableHead>
 							<TableHead>Billing</TableHead>
 							<TableHead>Created</TableHead>
+							<TableHead className="pr-6 text-right">Subscription</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{items.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={6} className="py-0">
+								<TableCell colSpan={7} className="py-0">
 									<ServersTableEmpty type={type} />
 								</TableCell>
 							</TableRow>
 						) : (
-							items.map((resource: any) => {
-								const isVps = resource.resourceType === "vps";
-								
-								// Location handling
-								let locationLabel = "—";
-								const loc = resource.location as any;
-								if (loc?.facility_title || loc?.facility) {
-									locationLabel = loc.facility_title && loc.facility 
-										? `${loc.facility_title} (${loc.facility})`
-										: loc.facility_title || loc.facility || "—";
-								} else if (isVps) {
-									locationLabel = resource.facilityCode || "—";
-								}
-
-								// Billing info
-								const billing = resource.billingInfo as any;
-								const priceLabel = billing?.price != null 
-									? `$${billing.price}` 
-									: resource.nextBillingValue != null 
-										? `$${resource.nextBillingValue}` 
-										: "—";
-								const periodLabel = billing?.period || "—";
-
-								const resourceId = resource.deviceId ?? resource.id;
-								const handleRowClick = () => {
-									const path = type === "vps" ? `/agency/vps/${resourceId}` : 
-												 type === "vds" ? `/agency/vds/${resourceId}` : 
-												 `/agency/dedicated-servers/${resourceId}`;
-									navigate(path);
-								};
-
-								return (
-									<TableRow
-										key={resourceId}
-										className="transition-colors hover:bg-muted/50 cursor-pointer"
-										onClick={handleRowClick}
-									>
-										<TableCell className="pl-6 font-medium">
-											<div className="flex flex-col gap-0.5 py-1">
-												<Link 
-													to={type === "vps" ? `/agency/vps/${resourceId}` : 
-														type === "vds" ? `/agency/vds/${resourceId}` : 
-														`/agency/dedicated-servers/${resourceId}`}
-													className="text-primary hover:underline break-words"
-													onClick={(e) => e.stopPropagation()}
-												>
-													{resource.name || resource.hostname}
-												</Link>
-												{resource.hostname && resource.hostname !== resource.name && (
-													<span className="text-xs font-normal text-muted-foreground break-all">
-														{resource.hostname}
-													</span>
-												)}
-											</div>
-										</TableCell>
-										<TableCell>
-											<div className="flex flex-col gap-1">
-												{getStatusBadge(isVps ? resource.status : resource.powerStatus)}
-												{resource.status && resource.status !== "active" && !isVps && (
-													getStatusBadge(resource.status)
-												)}
-											</div>
-										</TableCell>
-										<TableCell className="font-mono text-xs text-muted-foreground">
-											{resource.primaryIp || "—"}
-										</TableCell>
-										<TableCell className="text-sm">
-											{locationLabel}
-										</TableCell>
-										<TableCell className="text-sm">
-											<div className="flex flex-col">
-												<span className="font-medium">{priceLabel}</span>
-												<span className="text-xs text-muted-foreground capitalize">{periodLabel}</span>
-											</div>
-										</TableCell>
-										<TableCell className="text-sm text-muted-foreground">
-											{resource.createdDate || "—"}
-										</TableCell>
-									</TableRow>
-								);
-							})
+							<ServersTableRows 
+								items={items} 
+								type={type} 
+								onRowClick={handleRowClick} 
+							/>
 						)}
 					</TableBody>
 				</Table>
@@ -375,3 +314,146 @@ export function HivelocityServersTable({ type }: HivelocityServersTableProps) {
 	);
 }
 
+// ---------------------------------------------------------------------------
+// Rows Component (with Subscription Linking)
+// ---------------------------------------------------------------------------
+
+function ServersTableRows({ 
+	items, 
+	type, 
+	onRowClick 
+}: { 
+	items: any[], 
+	type: HivelocityServerType, 
+	onRowClick: (id: string | number) => void 
+}) {
+	const [linkDevice, setLinkDevice] = React.useState<{ id: string | number; name: string } | null>(null);
+	
+	const deviceIds = React.useMemo(() => items.map(it => it.deviceId ?? it.id), [items]);
+	const { data: linkedIds = [] } = trpc.clientSubscriptions.getHivelocityDeviceIdsWithLinkedSubscription.useQuery(
+		{ hivelocityDeviceIds: deviceIds },
+		{ enabled: deviceIds.length > 0 }
+	);
+	const linkedSet = React.useMemo(() => new Set(linkedIds.map(String)), [linkedIds]);
+
+	return (
+		<>
+			{items.map((resource: any) => {
+				const isVps = resource.resourceType === "vps";
+				const resourceId = resource.deviceId ?? resource.id;
+				const isLinked = linkedSet.has(String(resourceId));
+
+				// Location handling
+				let locationLabel = "—";
+				const loc = resource.location as any;
+				if (loc?.facility_title || loc?.facility) {
+					locationLabel = loc.facility_title && loc.facility 
+						? `${loc.facility_title} (${loc.facility})`
+						: loc.facility_title || loc.facility || "—";
+				} else if (isVps) {
+					locationLabel = resource.facilityCode || "—";
+				}
+
+				// Billing info
+				const billing = resource.billingInfo as any;
+				const priceLabel = billing?.price != null 
+					? `$${billing.price}` 
+					: resource.nextBillingValue != null 
+						? `$${resource.nextBillingValue}` 
+						: "—";
+				const periodLabel = billing?.period || "—";
+
+				return (
+					<TableRow
+						key={resourceId}
+						className="transition-colors hover:bg-muted/50 cursor-pointer"
+						onClick={() => onRowClick(resourceId)}
+					>
+						<TableCell className="pl-6 font-medium">
+							<div className="flex flex-col gap-0.5 py-1">
+								<Link 
+									to={type === "vps" ? `/agency/vps/${resourceId}` : 
+										type === "vds" ? `/agency/vds/${resourceId}` : 
+										`/agency/dedicated-servers/${resourceId}`}
+									className="text-primary hover:underline break-words"
+									onClick={(e) => e.stopPropagation()}
+								>
+									{resource.name || resource.hostname}
+								</Link>
+								{resource.hostname && resource.hostname !== resource.name && (
+									<span className="text-xs font-normal text-muted-foreground break-all">
+										{resource.hostname}
+									</span>
+								)}
+							</div>
+						</TableCell>
+						<TableCell>
+							<div className="flex flex-col gap-1">
+								{getStatusBadge(isVps ? resource.status : resource.powerStatus)}
+								{resource.status && resource.status !== "active" && !isVps && (
+									getStatusBadge(resource.status)
+								)}
+							</div>
+						</TableCell>
+						<TableCell className="font-mono text-xs text-muted-foreground">
+							{resource.primaryIp || "—"}
+						</TableCell>
+						<TableCell className="text-sm">
+							{locationLabel}
+						</TableCell>
+						<TableCell className="text-sm">
+							<div className="flex flex-col">
+								<span className="font-medium">{priceLabel}</span>
+								<span className="text-xs text-muted-foreground capitalize">{periodLabel}</span>
+							</div>
+						</TableCell>
+						<TableCell className="text-sm text-muted-foreground">
+							{resource.createdDate || "—"}
+						</TableCell>
+						<TableCell className="pr-6 text-right" onClick={(e) => e.stopPropagation()}>
+							<TooltipProvider>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<span className="inline-block">
+											{isLinked ? (
+												<Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1 px-3">
+													<div className="h-1.5 w-1.5 rounded-full bg-green-600" />
+													Linked
+												</Badge>
+											) : (
+												<Button
+													size="sm"
+													variant="ghost"
+													className="h-8 text-primary gap-1.5"
+													onClick={() => setLinkDevice({ id: resourceId, name: resource.name || resource.hostname })}
+												>
+													<Plus className="h-3.5 w-3.5" />
+													Link
+												</Button>
+											)}
+										</span>
+									</TooltipTrigger>
+									<TooltipContent side="left">
+										{isLinked 
+											? "This device is already linked to a subscription." 
+											: "Link this device to a customer subscription for billing."}
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+						</TableCell>
+					</TableRow>
+				);
+			})}
+
+			{linkDevice && (
+				<CreateSubscriptionForHivelocityDialog
+					open={!!linkDevice}
+					onOpenChange={(open) => !open && setLinkDevice(null)}
+					deviceId={linkDevice.id}
+					deviceName={linkDevice.name}
+					serviceType={type}
+				/>
+			)}
+		</>
+	);
+}

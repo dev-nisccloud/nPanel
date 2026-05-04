@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../../trpc";
 import { getHivelocityEnvStatus, hivelocityRequest } from "../../lib/hivelocity-client";
+import { getRedisClient } from "../../lib/redis";
 import {
 	hivelocityFacilitiesResponseSchema,
 	normalizeHivelocityInventory,
@@ -23,6 +24,8 @@ const HivelocityPeriodSchema = z.enum([
 	"biennial",
 	"triennial",
 ]);
+
+const VPS_POWER_ACTION_KEY = (deviceId: number) => `vps:power-action:${deviceId}`;
 
 const ProductsQuerySchema = z
 	.object({
@@ -1026,9 +1029,6 @@ export const hivelocityRouter = router({
 			return { success: true, data: raw };
 		}),
 
-	/**
-	 * Private: Power on, off, or reboot a device.
-	 */
 	devicePowerAction: protectedProcedure
 		.input(
 			z.object({
@@ -1043,11 +1043,31 @@ export const hivelocityRouter = router({
 			if (apiAction === "on") apiAction = "boot";
 			if (apiAction === "off") apiAction = "shutdown";
 
-			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/power`, {
+			const raw = await hivelocityRequest<any>(`/device/${input.deviceId}/power`, {
 				method: "POST",
 				query: { action: apiAction },
 				requireApiKey: true,
 			});
+
+			// If successful, store pending state in Redis
+			if (raw && (raw.success !== false)) {
+				const redis = getRedisClient();
+				if (redis) {
+					let targetStatus = "ON";
+					if (apiAction === "shutdown" || apiAction === "off") targetStatus = "OFF";
+					
+					await redis.setex(
+						VPS_POWER_ACTION_KEY(input.deviceId),
+						600, // 10 minutes TTL
+						JSON.stringify({
+							targetStatus,
+							action: input.action,
+							timestamp: Date.now()
+						})
+					).catch(e => console.error("Redis set pending action error:", e));
+				}
+			}
+
 			return { success: true, data: raw };
 		}),
 
@@ -1057,8 +1077,35 @@ export const hivelocityRouter = router({
 	getDevicePowerStatus: protectedProcedure
 		.input(z.object({ deviceId: z.number().int() }))
 		.query(async ({ input }) => {
-			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/power`, { requireApiKey: true });
-			return { success: true, data: raw };
+			const raw = await hivelocityRequest<any>(`/device/${input.deviceId}/power`, { requireApiKey: true });
+			
+			// Check Redis for pending action
+			const redis = getRedisClient();
+			let pendingAction = null;
+			
+			if (redis) {
+				const key = VPS_POWER_ACTION_KEY(input.deviceId);
+				const cached = await redis.get<any>(key).catch(() => null);
+				
+				if (cached) {
+					try {
+						const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
+						const rawStatus = raw?.powerStatus || raw?.status || (typeof raw === 'string' ? raw : null);
+						const currentStatus = typeof rawStatus === 'object' ? rawStatus.status : rawStatus;
+
+						if (currentStatus === data.targetStatus) {
+							// Status reconciled, clear Redis
+							await redis.del(key).catch(() => null);
+						} else {
+							pendingAction = data;
+						}
+					} catch (e) {
+						console.error("Error parsing pending action:", e);
+					}
+				}
+			}
+
+			return { success: true, data: { ...raw, pendingAction } };
 		}),
 
 	/**
