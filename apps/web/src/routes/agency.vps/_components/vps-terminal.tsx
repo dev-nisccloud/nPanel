@@ -18,6 +18,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import "xterm/css/xterm.css";
 
 import { env } from "@npanel/env/web";
+import { trpc } from "@/utils/trpc";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,11 +44,24 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
   const resizeObserverRef = React.useRef<ResizeObserver | null>(null);
 
   const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
+  const { mutateAsync: getWsTicket } = trpc.hivelocity.getWsTicket.useMutation();
 
-  const connect = (usePassword?: string) => {
+  const connect = async (usePassword?: string) => {
     if (connState === "connected" || connState === "connecting") return;
     
     setConnState("connecting");
+
+    // Fetch auth ticket first
+    let ticket = "";
+    try {
+      const res = await getWsTicket();
+      ticket = res.ticket;
+    } catch (err) {
+      console.error("Failed to get WS ticket:", err);
+      toast.error("Authentication failed. Please check your login session.");
+      setConnState("disconnected");
+      return;
+    }
 
     // Build WS URL
     let wsUrl = "";
@@ -70,7 +84,7 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
           deviceId: deviceData.deviceId || deviceData.id,
           hostIp: deviceData.primaryIp,
           password: usePassword || undefined,
-          cookie: document.cookie
+          ticket: ticket
         })
       );
     };

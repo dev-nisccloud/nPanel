@@ -1451,6 +1451,17 @@ export const hivelocityRouter = router({
 			});
 			return { success: true, data: raw };
 		}),
+
+	/**
+	 * Private: Get a short-lived ticket for authenticating cross-origin WebSockets.
+	 */
+	getWsTicket: protectedProcedure.mutation(async ({ ctx }) => {
+		const redis = getRedisClient();
+		if (!redis) throw new Error("Redis required for WS tickets");
+		const ticket = crypto.randomUUID();
+		await redis.setex(`ws-ticket:${ticket}`, 60, ctx.session.user.id);
+		return { ticket };
+	}),
 });
 
 
