@@ -42,6 +42,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
 import { formatMoney, formatMoneyUsd } from "./money";
 import { CreateSubscriptionForHivelocityDialog } from "./create-subscription-for-hivelocity-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { Link } from "react-router";
 
 interface VpsOverviewProps {
@@ -70,6 +71,11 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
   });
 
   const [linkDialogOpen, setLinkDialogOpen] = React.useState(false);
+
+  const [BootDialog, confirmBoot] = useConfirm("Power on instance?", "This will start up your VPS instance. Are you sure you want to proceed?");
+  const [ShutdownDialog, confirmShutdown] = useConfirm("Safe shutdown?", "This will initiate a graceful shutdown of your VPS instance. Are you sure you want to proceed?");
+  const [RebootDialog, confirmReboot] = useConfirm("Reboot instance?", "This will perform a safe reboot of your VPS instance. Any unsaved data in memory will be lost. Are you sure you want to proceed?");
+  const [UpdateIdentityDialog, confirmUpdateIdentity] = useConfirm("Update instance identity?", "This will change the label and hostname of your VPS instance. Are you sure you want to proceed?");
 
   const powerStatusQuery = trpc.hivelocity.getDevicePowerStatus.useQuery(
     { deviceId: deviceData.deviceId },
@@ -121,7 +127,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
     return re.test(hn);
   };
 
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
     const nameChanged = editName.trim() !== (deviceData.name || "");
     const hostnameChanged = editHostname.trim() !== (deviceData.hostname || "");
 
@@ -134,6 +140,9 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
       toast.error("Invalid hostname format. Expected FQDN (e.g., server.example.com)");
       return;
     }
+
+    const ok = await confirmUpdateIdentity();
+    if (!ok) return;
 
     updateMutation.mutate({ 
       deviceId: deviceData.deviceId, 
@@ -150,6 +159,10 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
 
   return (
     <div className="space-y-6">
+      <BootDialog />
+      <ShutdownDialog />
+      <RebootDialog />
+      <UpdateIdentityDialog />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* General Information */}
         <Card className="lg:col-span-2 border-border/40 shadow-sm overflow-hidden">
@@ -331,7 +344,10 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
               <Button 
                 variant="outline" 
                 className={`w-full justify-start gap-3 h-11 border-border/40 hover:bg-green-50/50 hover:text-green-700 hover:border-green-200 transition-all group ${powerStatus === 'ON' ? 'opacity-50 grayscale' : ''}`}
-                onClick={() => powerMutation.mutate({ deviceId: deviceData.deviceId, action: "on" })}
+                onClick={async () => {
+                  const ok = await confirmBoot();
+                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "on" });
+                }}
                 disabled={powerMutation.isPending || isPowerProcessing || powerStatus === 'ON'}
               >
                 <div className="p-1.5 rounded-lg bg-green-100 text-green-600 group-hover:scale-110 transition-transform">
@@ -342,7 +358,10 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
               <Button 
                 variant="outline" 
                 className={`w-full justify-start gap-3 h-11 border-border/40 hover:bg-red-50/50 hover:text-red-700 hover:border-red-200 transition-all group ${powerStatus === 'OFF' ? 'opacity-50 grayscale' : ''}`}
-                onClick={() => powerMutation.mutate({ deviceId: deviceData.deviceId, action: "off" })}
+                onClick={async () => {
+                  const ok = await confirmShutdown();
+                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "off" });
+                }}
                 disabled={powerMutation.isPending || isPowerProcessing || powerStatus === 'OFF'}
               >
                 <div className="p-1.5 rounded-lg bg-red-100 text-red-600 group-hover:scale-110 transition-transform">
@@ -353,7 +372,10 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
               <Button 
                 variant="outline" 
                 className="w-full justify-start gap-3 h-11 border-border/40 hover:bg-amber-50/50 hover:text-amber-700 hover:border-amber-200 transition-all group"
-                onClick={() => powerMutation.mutate({ deviceId: deviceData.deviceId, action: "reboot" })}
+                onClick={async () => {
+                  const ok = await confirmReboot();
+                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "reboot" });
+                }}
                 disabled={powerMutation.isPending || isPowerProcessing}
               >
                 <div className="p-1.5 rounded-lg bg-amber-100 text-amber-600 group-hover:rotate-180 transition-transform duration-500">
