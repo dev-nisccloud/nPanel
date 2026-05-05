@@ -233,19 +233,29 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Hosting, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
-        title: "Dedicated Servers",
+        title: "Cloud Servers",
         url: "/agency/dedicated-servers",
         icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-      {
-        title: "VPS & VDS",
-        url: "/agency/vps",
-        icon: (props: any) => React.createElement(Icons.VPS, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
+          { title: "Dedicated Servers", url: "/agency/dedicated-servers", },
           { title: "VPS Hosting", url: "/agency/vps", },
           { title: "VDS Hosting", url: "/agency/vds", },
         ],
       },
+      // {
+      //   title: "Dedicated Servers",
+      //   url: "/agency/dedicated-servers",
+      //   icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
+      // {
+      //   title: "VPS & VDS",
+      //   url: "/agency/vps",
+      //   icon: (props: any) => React.createElement(Icons.VPS, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "VPS Hosting", url: "/agency/vps", },
+      //     { title: "VDS Hosting", url: "/agency/vds", },
+      //   ],
+      // },
       {
         title: "WordPress",
         url: "/agency/wordpress",
