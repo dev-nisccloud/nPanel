@@ -8,6 +8,10 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createRouteHandler } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing";
+import { createBunWebSocket } from "hono/bun";
+import { handleVpsSshUpgrade } from "./api/ws/vps-ssh";
+
+const { upgradeWebSocket, websocket } = createBunWebSocket();
 
 import { registerAuthCustomRoutes } from "./auth-custom-routes";
 import { handleImageGenerator } from "./api/workers/image-generator";
@@ -97,6 +101,9 @@ app.on(["POST"], "/api/webhooks/resend", handleResendWebhook);
 app.on(["POST"], "/api/webhooks/sns", handleSnsWebhook);
 app.on(["POST"], "/api/webhooks/replicate/email-builder-ai", handleEmailBuilderAiWebhook);
 
+// WebSockets
+app.get("/api/ws/vps-ssh", upgradeWebSocket(handleVpsSshUpgrade));
+
 app.get("/", (c) => {
   return c.text("OK");
 });
@@ -124,6 +131,7 @@ export default {
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
   hostname: process.env.HOSTNAME || "0.0.0.0",
   fetch: app.fetch,
+  websocket,
   idleTimeout: 255,
   requestTimeout: 60000,
 };
