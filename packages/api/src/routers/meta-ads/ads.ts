@@ -227,6 +227,7 @@ export const metaAdsAdsRouter = router({
 				});
 
 				return {
+					success: true,
 					data: adsWithInsights,
 					paging: response.paging,
 				};
@@ -295,6 +296,7 @@ export const metaAdsAdsRouter = router({
 				]);
 
 				return {
+					success: true,
 					data: {
 						id: ad.id,
 						name: ad.name || `Ad ${ad.id}`,
@@ -536,6 +538,7 @@ export const metaAdsAdsRouter = router({
 				});
 
 				return {
+					success: true,
 					data: adsWithInsights,
 					paging: response.paging,
 				};

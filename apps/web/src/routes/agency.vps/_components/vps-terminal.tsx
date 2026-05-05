@@ -37,13 +37,42 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
   const [connState, setConnState] = React.useState<ConnectionState>("disconnected");
   const [password, setPassword] = React.useState("");
   
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const terminalRef = React.useRef<HTMLDivElement>(null);
   const termInstance = React.useRef<Terminal | null>(null);
   const fitAddonRef = React.useRef<FitAddon | null>(null);
   const wsRef = React.useRef<WebSocket | null>(null);
   const resizeObserverRef = React.useRef<ResizeObserver | null>(null);
 
-  const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
+  const toggleFullscreen = async () => {
+    try {
+      if (!isFullscreen) {
+        if (containerRef.current?.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else {
+          setIsFullscreen(true); // fallback
+        }
+      } else {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        } else {
+          setIsFullscreen(false); // fallback
+        }
+      }
+    } catch (err) {
+      console.error("Fullscreen toggle failed:", err);
+      setIsFullscreen(!isFullscreen);
+    }
+  };
+
+  // Sync state if user presses Esc to exit fullscreen natively
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
   const { mutateAsync: getWsTicket } = trpc.hivelocity.getWsTicket.useMutation();
 
   const connect = async (usePassword?: string) => {
@@ -125,13 +154,22 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
     };
   };
 
-  const disconnect = () => {
+  const disconnect = async () => {
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
     setConnState("disconnected");
     cleanupTerminal();
+
+    // Auto-exit fullscreen if we terminate the session
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.error("Failed to exit fullscreen on disconnect", err);
+      }
+    }
   };
 
   const initTerminal = () => {
@@ -214,7 +252,10 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
 
 
   return (
-    <div className={`space-y-6 ${isFullscreen ? "fixed inset-0 z-[100] bg-background p-6" : ""}`}>
+    <div 
+      ref={containerRef}
+      className={`space-y-6 ${isFullscreen ? "fixed inset-0 z-[9999] bg-background p-4 flex flex-col w-full h-full" : ""}`}
+    >
       {connState === "disconnected" && (
         <Card className="border-dashed border-2 flex flex-col items-center justify-center py-12 text-center">
           <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 text-primary">
@@ -232,6 +273,18 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
             <TerminalIcon className="h-4 w-4" />
             Launch Secure Console
           </Button>
+
+          {isFullscreen && (
+            <Button
+              variant="outline"
+              className="mt-4 gap-2"
+              onClick={toggleFullscreen}
+            >
+              <Minimize2 className="h-4 w-4" />
+              Exit Full Screen
+            </Button>
+          )}
+
           <div className="mt-6 flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <ShieldCheck className="h-3 w-3 text-green-500" />
@@ -279,7 +332,7 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
       )}
 
       {(connState === "connected" || connState === "connecting") && (
-        <Card className={`overflow-hidden border-2 border-zinc-800 bg-[#09090b] ${isFullscreen ? "h-full flex flex-col" : ""}`}>
+        <Card className={`overflow-hidden border-2 border-zinc-800 bg-[#09090b] flex flex-col ${isFullscreen ? "flex-1 h-full border-0 rounded-none" : ""}`}>
           <CardHeader className="border-b border-zinc-800 bg-zinc-900/50 py-3 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

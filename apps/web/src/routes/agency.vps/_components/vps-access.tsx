@@ -117,19 +117,34 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20">
                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Password</span>
                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold">
-                        {showPassword ? (creds.password || "Unavailable") : "••••••••••••"} 
-                        {!creds.password && !credsQuery.isLoading && <span className="text-[9px] font-bold text-muted-foreground ml-2 uppercase opacity-60">(Expired)</span>}
+                      <span className="text-sm font-bold font-mono tracking-tight">
+                        {showPassword 
+                          ? (creds.password || "Unavailable") 
+                          : (creds.password ? "•".repeat(creds.password.length) : "••••••••••••")} 
+                        {!creds.password && !credsQuery.isLoading && <span className="text-[9px] font-sans font-bold text-muted-foreground ml-2 uppercase opacity-60 tracking-normal">(Expired)</span>}
                       </span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7" 
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={!creds.password}
-                      >
-                         {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </Button>
+                      <div className="flex items-center">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={() => copyToClipboard(creds.password || "", "Password")}
+                          disabled={!creds.password}
+                          title="Copy password"
+                        >
+                          <Copy className="h-3.5 w-3.5 opacity-60" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7" 
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          disabled={!creds.password}
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                           {showPassword ? <EyeOff className="h-3.5 w-3.5 opacity-60" /> : <Eye className="h-3.5 w-3.5 opacity-60" />}
+                        </Button>
+                      </div>
                    </div>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20">

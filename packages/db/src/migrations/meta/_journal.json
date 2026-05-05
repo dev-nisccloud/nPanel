@@ -162,6 +162,20 @@
       "when": 1777885903542,
       "tag": "0022_neat_thunderbird",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1777985054144,
+      "tag": "0023_lethal_crystal",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1777986511357,
+      "tag": "0024_optimal_paper_doll",
+      "breakpoints": true
     }
   ]
 }

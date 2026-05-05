@@ -4,6 +4,10 @@ import { router, protectedProcedure } from '../../trpc';
 import { MetaAdsClient } from '../../lib/meta-ads-client';
 import { getStoredMetaAccessToken } from '../../lib/meta-credentials';
 import { handleMetaAdsOAuthError } from './error-handler';
+import { db, desc, eq, and } from '@npanel/db';
+import { metaAdsCampaignAnalysis } from '@npanel/db/schema';
+import { randomUUID } from 'node:crypto';
+import { enqueueMetaAdsAnalysis } from '../../lib/qstash/meta-ads-analysis';
 
 /**
  * Get user's Meta integration with valid tokens
@@ -191,5 +195,120 @@ export const metaAdsInsightsRouter = router({
                     message: error instanceof Error ? error.message : 'Failed to fetch breakdowns',
                 });
             }
+        }),
+
+    /**
+     * Trigger a new AI campaign analysis
+     */
+    triggerAiAnalysis: protectedProcedure
+        .input(
+            z.object({
+                campaignId: z.string().min(1, 'Campaign ID is required'),
+                internalCampaignId: z.string().optional(),
+                data: z.any(),
+            })
+        )
+        .mutation(async ({ ctx, input }) => {
+            const userId = ctx.session.user.id;
+
+            // 1. Check if there's already a processing analysis for this campaign
+            const existing = await db.query.metaAdsCampaignAnalysis.findFirst({
+                where: and(
+                    eq(metaAdsCampaignAnalysis.campaignId, input.campaignId),
+                    eq(metaAdsCampaignAnalysis.status, 'PROCESSING')
+                ),
+            });
+
+            if (existing) {
+                return { success: true, analysisId: existing.id, status: 'PROCESSING' };
+            }
+
+            // 2. Create a new analysis record
+            const analysisId = randomUUID();
+            await db.insert(metaAdsCampaignAnalysis).values({
+                id: analysisId,
+                campaignId: input.campaignId,
+                internalCampaignId: input.internalCampaignId,
+                userId,
+                status: 'PROCESSING',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            // 3. Enqueue the background job via QStash
+            try {
+                await enqueueMetaAdsAnalysis(analysisId, input.data);
+
+                return { success: true, analysisId, status: 'PROCESSING' };
+            } catch (error) {
+                console.error('[MetaAdsInsights] Failed to enqueue analysis job:', error);
+                
+                // Update status to FAILED if we can't enqueue
+                await db
+                    .update(metaAdsCampaignAnalysis)
+                    .set({ 
+                        status: 'FAILED', 
+                        errorMessage: 'Failed to enqueue background job',
+                        updatedAt: new Date() 
+                    })
+                    .where(eq(metaAdsCampaignAnalysis.id, analysisId));
+
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'Failed to start analysis background job',
+                });
+            }
+        }),
+
+    /**
+     * Get the status of a specific analysis
+     */
+    getAnalysisStatus: protectedProcedure
+        .input(z.object({ analysisId: z.string() }))
+        .query(async ({ input }) => {
+            const analysis = await db.query.metaAdsCampaignAnalysis.findFirst({
+                where: eq(metaAdsCampaignAnalysis.id, input.analysisId),
+            });
+
+            if (!analysis) {
+                throw new TRPCError({
+                    code: 'NOT_FOUND',
+                    message: 'Analysis not found',
+                });
+            }
+
+            return {
+                status: analysis.status,
+                analysis: analysis.analysis,
+                errorMessage: analysis.errorMessage,
+            };
+        }),
+
+    /**
+     * List all analyses for a campaign
+     */
+    listAnalyses: protectedProcedure
+        .input(z.object({ campaignId: z.string() }))
+        .query(async ({ input }) => {
+            const analyses = await db.query.metaAdsCampaignAnalysis.findMany({
+                where: eq(metaAdsCampaignAnalysis.campaignId, input.campaignId),
+                orderBy: [desc(metaAdsCampaignAnalysis.createdAt)],
+            });
+
+            return analyses;
+        }),
+
+    /**
+     * Get the latest completed analysis for a campaign
+     */
+    getLatestAnalysis: protectedProcedure
+        .input(z.object({ campaignId: z.string() }))
+        .query(async ({ input }) => {
+            const analysis = await db.query.metaAdsCampaignAnalysis.findFirst({
+                where: eq(metaAdsCampaignAnalysis.campaignId, input.campaignId),
+                orderBy: [desc(metaAdsCampaignAnalysis.createdAt)],
+            });
+
+            return analysis || null;
         }),
 });
