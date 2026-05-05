@@ -78,23 +78,21 @@ export function PlanCard({
 	return (
 		<Card className="group transition-all hover:shadow-md hover:border-primary/50 h-full flex flex-col">
 			<CardHeader className="pb-3">
-				<div className="flex items-start justify-between gap-3">
-					<CardTitle className="text-base font-semibold line-clamp-2 flex-1">
-						<div className="flex items-center gap-2 min-w-0">
-							{(() => {
-								const brand = getCpuBrand(plan.product_name);
-								if (!brand) return null;
-								return (
-									<img
-										src={brand === "intel" ? "/intel.svg" : "/amd.svg"}
-										alt={brand === "intel" ? "Intel" : "AMD"}
-										className="h-12 w-12 shrink-0"
-									/>
-								);
-							})()}
-							<span className="min-w-0 line-clamp-2">{plan.product_name}</span>
-						</div>
-					</CardTitle>
+				{/* Top row: Logo and Badges */}
+				<div className="flex items-start justify-between gap-3 mb-1">
+					<div className="shrink-0">
+						{(() => {
+							const brand = getCpuBrand(plan.product_name);
+							if (!brand) return null;
+							return (
+								<img
+									src={brand === "intel" ? "/intel.svg" : "/amd.svg"}
+									alt={brand === "intel" ? "Intel" : "AMD"}
+									className="h-12 w-12 object-contain"
+								/>
+							);
+						})()}
+					</div>
 					<div className="flex flex-col items-end gap-2">
 						{plan.product_new && <Badge variant="secondary">New</Badge>}
 						<div className="flex items-center gap-2">
@@ -103,6 +101,11 @@ export function PlanCard({
 						</div>
 					</div>
 				</div>
+
+				{/* Title row */}
+				<CardTitle className="text-base font-semibold line-clamp-2" title={plan.product_name}>
+					{plan.product_name}
+				</CardTitle>
 
 				<div className="mt-3 flex items-center justify-between gap-3">
 					<div className="min-w-0">
@@ -130,66 +133,63 @@ export function PlanCard({
 
 			<CardContent className="pt-0 flex-1 flex flex-col gap-4">
 				<div className="grid grid-cols-1 gap-3">
+					{/* Product info */}
 					<div className="rounded-lg border bg-muted/20 p-3">
-						<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Processor info</p>
-						{(() => {
-							const info = getProcessorSummary(plan.processor_info);
-							if (!info) return <p className="text-sm font-semibold mt-1"> </p>;
-							return (
-								<div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
-									<div className="flex items-center gap-1 min-w-0">
-										<span className="text-muted-foreground shrink-0">Cores:</span>
-										<span className="font-semibold">{info.cores ?? " "}</span>
-									</div>
-									<div className="flex items-center gap-1 min-w-0">
-										<span className="text-muted-foreground shrink-0">Threads:</span>
-										<span className="font-semibold">{info.threads ?? " "}</span>
-									</div>
-									<div className="flex items-center gap-1 min-w-0">
-										<span className="text-muted-foreground shrink-0">Sockets:</span>
-										<span className="font-semibold">{info.sockets ?? " "}</span>
-									</div>
-									<div className="flex items-center gap-1 min-w-0">
-										<span className="text-muted-foreground shrink-0">vCPUs:</span>
-										<span className="font-semibold">{info.vcpus ?? " "}</span>
-									</div>
+						<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Product info</p>
+						<div className="flex flex-col gap-3 text-sm">
+							{/* Bandwidth */}
+							<div className="flex items-start gap-2">
+								<Network className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+								<div className="min-w-0">
+									<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Bandwidth</p>
+									<p className="font-semibold line-clamp-2 text-primary">{plan.product_bandwidth || " "}</p>
 								</div>
-							);
-						})()}
-					</div>
+							</div>
 
-					<div className="flex items-start gap-2">
-						<Network className="h-4 w-4 mt-0.5 text-muted-foreground" />
-						<div className="min-w-0">
-							<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Bandwidth</p>
-							<p className="text-sm font-semibold line-clamp-2">{plan.product_bandwidth || " "}</p>
-						</div>
-					</div>
+							{/* CPU */}
+							<div className="flex items-start gap-2">
+								<Cpu className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+								<div className="min-w-0">
+									<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPU</p>
+									<p className="font-semibold line-clamp-2 text-primary">{plan.product_cpu || " "}</p>
+									{stripHtmlToText(plan.product_cpu_cores) ? (
+										<p className="text-xs text-muted-foreground mt-0.5">{stripHtmlToText(plan.product_cpu_cores)}</p>
+									) : null}
+								</div>
+							</div>
 
-					<div className="flex items-start gap-2">
-						<Cpu className="h-4 w-4 mt-0.5 text-muted-foreground" />
-						<div className="min-w-0">
-							<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPU</p>
-							<p className="text-sm font-semibold line-clamp-2">{plan.product_cpu || " "}</p>
-							{stripHtmlToText(plan.product_cpu_cores) ? (
-								<p className="text-xs text-muted-foreground mt-0.5">{stripHtmlToText(plan.product_cpu_cores)}</p>
-							) : null}
-						</div>
-					</div>
+							{/* vCPU's */}
+							{(() => {
+								const info = getProcessorSummary(plan.processor_info);
+								if (!info?.vcpus) return null;
+								return (
+									<div className="flex items-start gap-2">
+										<Cpu className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+										<div className="min-w-0">
+											<p className="text-xs font-medium text-muted-foreground tracking-wide"><span className="lowercase">v</span>CPU's</p>
+											<p className="font-semibold line-clamp-2 text-primary">{info.vcpus}</p>
+										</div>
+									</div>
+								);
+							})()}
 
-					<div className="flex items-start gap-2">
-						<MemoryStick className="h-4 w-4 mt-0.5 text-muted-foreground" />
-						<div className="min-w-0">
-							<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Memory</p>
-							<p className="text-sm font-semibold line-clamp-2">{plan.product_memory || " "}</p>
-						</div>
-					</div>
+							{/* Memory */}
+							<div className="flex items-start gap-2">
+								<MemoryStick className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+								<div className="min-w-0">
+									<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Memory</p>
+									<p className="font-semibold line-clamp-2 text-primary">{plan.product_memory || " "}</p>
+								</div>
+							</div>
 
-					<div className="flex items-start gap-2">
-						<HardDrive className="h-4 w-4 mt-0.5 text-muted-foreground" />
-						<div className="min-w-0">
-							<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Drives</p>
-							<p className="text-sm font-semibold line-clamp-2">{getDriveDescription(plan)}</p>
+							{/* Drives */}
+							<div className="flex items-start gap-2">
+								<HardDrive className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+								<div className="min-w-0">
+									<p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Drives</p>
+									<p className="font-semibold line-clamp-2 text-primary">{getDriveDescription(plan)}</p>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>

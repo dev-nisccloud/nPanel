@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { inventoryToDedicatedPlans } from "./agency.dedicated-servers/schema";
 import { PlanCard } from "./agency.dedicated-servers/_components/plan-card";
 import { PlanCardSkeleton } from "./agency.dedicated-servers/_components/plan-card-skeleton";
+import { PlanFilter, type DedicatedFilter, DEFAULT_FILTER, applyDedicatedFilter } from "./agency.dedicated-servers/_components/plan-filter";
 import { HivelocityPricingMarginCard } from "./_components/hivelocity-pricing-margin-card";
 import { HivelocityServersTable } from "./_components/hivelocity-servers-table";
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
@@ -33,6 +34,7 @@ export default function DedicatedServersPage() {
 	const [buyNowOpen, setBuyNowOpen] = React.useState(false);
 	const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
 	const [dialogIntent, setDialogIntent] = React.useState<"buy_now" | "add_to_cart">("buy_now");
+	const [filter, setFilter] = React.useState<DedicatedFilter>(DEFAULT_FILTER);
 
 	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined);
 
@@ -95,6 +97,21 @@ export default function DedicatedServersPage() {
 			};
 		});
 	}, [plans, pricing, displayCurrency, showOriginalUsd]);
+
+	const displayPriceMap = React.useMemo(() => {
+		const map = new Map<number, number>();
+		for (const p of displayPlans) {
+			map.set(p.product_id, p.product_monthly_price ?? 0);
+		}
+		return map;
+	}, [displayPlans]);
+
+	const filteredPlans = React.useMemo(
+		() => applyDedicatedFilter(displayPlans as any, filter, displayPriceMap),
+		[displayPlans, filter, displayPriceMap],
+	);
+
+	const activeFilterCount = [filter.cpuBrand !== "all", filter.memory !== "all", filter.cores !== "all"].filter(Boolean).length;
 
 	const facilityOptions = React.useMemo(() => {
 		const list = facilitiesQuery.data?.data ?? [];
@@ -248,6 +265,20 @@ export default function DedicatedServersPage() {
 						</div>
 
 						<TabsContent value="plans" className="mt-0 data-[state=inactive]:hidden" forceMount>
+							{/* Client-side filter bar */}
+							{!plansQuery.isLoading && !plansQuery.error && plans.length > 0 && (
+								<div className="mb-5">
+									<PlanFilter
+										plans={plans}
+										filter={filter}
+										onFilterChange={setFilter}
+										displayCurrency={displayCurrency}
+										displayPrices={displayPriceMap}
+										totalCount={displayPlans.length}
+										filteredCount={filteredPlans.length}
+									/>
+								</div>
+							)}
 							{plansQuery.isLoading ? (
 								<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
 									<p className="text-muted-foreground">Loading plans...</p>
@@ -258,6 +289,11 @@ export default function DedicatedServersPage() {
 										Failed to load plans: {plansQuery.error.message}
 									</p>
 								</div>
+							) : filteredPlans.length === 0 && activeFilterCount > 0 ? (
+								<div className="flex flex-col items-center justify-center h-64 border border-dashed rounded-lg gap-3">
+									<p className="text-muted-foreground">No plans match your filters.</p>
+									<Button variant="outline" size="sm" onClick={() => setFilter(DEFAULT_FILTER)}>Clear filters</Button>
+								</div>
 							) : plans.length === 0 ? (
 								<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
 									<p className="text-muted-foreground">No dedicated server plans found.</p>
@@ -265,7 +301,7 @@ export default function DedicatedServersPage() {
 							) : (
 								<div className="space-y-6">
 									<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-										{displayPlans.map((p) => (
+										{filteredPlans.map((p) => (
 											<PlanCard
 												key={`${p.data_center}-${p.product_id}-${p.location_option_id}`}
 												plan={p}
