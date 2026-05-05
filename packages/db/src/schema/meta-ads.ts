@@ -282,6 +282,8 @@ export const metaAdsAdSetActivityLog = pgTable(
   ],
 );
 
+// --- MetaAdsAdActivityLog ----------------------------------------------------
+
 export const metaAdsAdActivityLog = pgTable(
   "meta_ads_ad_activity_log",
   {
@@ -304,6 +306,32 @@ export const metaAdsAdActivityLog = pgTable(
     index("meta_ads_ad_activity_adId_idx").on(table.adId),
     index("meta_ads_ad_activity_action_idx").on(table.action),
     index("meta_ads_ad_activity_createdAt_idx").on(table.createdAt),
+  ],
+);
+
+// --- MetaAdsCampaignAnalysis -------------------------------------------------
+
+export const metaAdsCampaignAnalysis = pgTable(
+  "meta_ads_campaign_analysis",
+  {
+    id: text("id").primaryKey(),
+    campaignId: text("campaign_id").notNull(), // Meta Campaign ID
+    internalCampaignId: text("internal_campaign_id"),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    status: text("status").default("PROCESSING").notNull(), // PROCESSING, COMPLETED, FAILED
+    analysis: text("analysis"),
+    errorMessage: text("error_message"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("meta_ads_campaign_analysis_campaignId_idx").on(table.campaignId),
+    index("meta_ads_campaign_analysis_userId_idx").on(table.userId),
+    index("meta_ads_campaign_analysis_status_idx").on(table.status),
   ],
 );
 
@@ -332,6 +360,7 @@ export const metaAdsCampaignRelations = relations(
     ads: many(metaAdsAd),
     insights: many(metaAdsInsight),
     activityLogs: many(metaAdsCampaignActivityLog),
+    analyses: many(metaAdsCampaignAnalysis),
   }),
 );
 
@@ -437,6 +466,20 @@ export const metaAdsAdActivityLogRelations = relations(
     ad: one(metaAdsAd, {
       fields: [metaAdsAdActivityLog.adId],
       references: [metaAdsAd.id],
+    }),
+  }),
+);
+
+export const metaAdsCampaignAnalysisRelations = relations(
+  metaAdsCampaignAnalysis,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [metaAdsCampaignAnalysis.userId],
+      references: [user.id],
+    }),
+    campaign: one(metaAdsCampaign, {
+      fields: [metaAdsCampaignAnalysis.internalCampaignId],
+      references: [metaAdsCampaign.id],
     }),
   }),
 );

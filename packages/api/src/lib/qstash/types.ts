@@ -114,3 +114,18 @@ export interface EmailBuilderAiJobPayload {
 export interface EmailBuilderAiJobResult {
 	messageId: string;
 }
+
+/**
+ * QStash job payload for Meta Ads analysis (immediate, no schedule)
+ */
+export interface MetaAdsAnalysisJobPayload {
+	analysisId: string;
+	data: any;
+}
+
+/**
+ * QStash job result for Meta Ads analysis
+ */
+export interface MetaAdsAnalysisJobResult {
+	messageId: string;
+}

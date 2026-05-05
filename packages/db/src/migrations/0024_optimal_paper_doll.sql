@@ -1,0 +1,1 @@
+ALTER TABLE "meta_ads_campaign_analysis" DROP CONSTRAINT "meta_ads_campaign_analysis_internal_campaign_id_meta_ads_campaign_id_fk";

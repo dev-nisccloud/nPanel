@@ -19,6 +19,8 @@ export const env = createEnv({
     REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL: z.string().url(),
     QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url(),
     REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url(),
+    QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),
+    REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL: z.string().url(),
     REPLICATE_API_TOKEN: z.string().min(1),
   },
   runtimeEnv: process.env,

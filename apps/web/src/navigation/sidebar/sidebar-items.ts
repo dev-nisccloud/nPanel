@@ -285,7 +285,7 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Campaigns, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Facebook Ads", url: "/agency/ad-campaigns/meta-ads", },
-          { title: "Instagram Ads", url: "/agency/ad-campaigns/instagram-ads", },
+          // { title: "Instagram Ads", url: "/agency/ad-campaigns/instagram-ads", },
           { title: "Google Ads", url: "/agency/ad-campaigns/google-ads", },
           { title: "LinkedIn Ads", url: "/agency/ad-campaigns/linkedin-ads", },
         ],

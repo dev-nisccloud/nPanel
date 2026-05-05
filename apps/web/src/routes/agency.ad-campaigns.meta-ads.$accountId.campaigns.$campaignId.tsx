@@ -59,6 +59,8 @@ import {
     ReferenceLine,
 } from "recharts";
 import { DownloadReportButton } from "./agency.ad-campaigns/meta-ads/$accountId/_components/report/download-button";
+import { Sparkles } from "lucide-react";
+import { AiAnalysisModal } from "../components/meta-ads/ai-analysis-modal";
 
 // ---------------------------------------------------------------------------
 // Helper Functions (from dialog)
@@ -520,7 +522,7 @@ function TopPlacementsChart({ breakdown, config }: { breakdown: any, config: Cha
     }, [breakdown]);
 
     return (
-        <ChartContainer config={config} className="h-full w-full">
+        <ChartContainer config={config} className="h-[350px] w-full">
             <BarChart
                 accessibilityLayer
                 data={chartData}
@@ -645,7 +647,7 @@ function ValueLineRegionChart({ breakdown, config }: { breakdown: any, config: C
     if (chartData.length === 0) return null;
 
     return (
-        <ChartContainer config={config} className="h-full w-full">
+        <ChartContainer config={config} className="h-[300px] w-full">
             <BarChart
                 accessibilityLayer
                 data={chartData}
@@ -1515,7 +1517,7 @@ export default function CampaignDetailsPage() {
 	const accountId = params?.accountId as string;
 	const campaignId = params?.campaignId as string;
 	const isCampaignQueryEnabled = !!accountId && !!campaignId;
-	const publisherPlatform = (searchParams.get("platform") || "facebook") as any;
+
 
 
     // Fetch campaign details
@@ -1526,7 +1528,7 @@ export default function CampaignDetailsPage() {
         error: campaignError,
         refetch: refetchCampaign,
     } = trpc.metaAds.campaigns.getCampaignDetails.useQuery(
-        { accountId, campaignId, publisherPlatform },
+        { accountId, campaignId },
         {
             enabled: isCampaignQueryEnabled,
             refetchOnWindowFocus: false,
@@ -1578,7 +1580,7 @@ export default function CampaignDetailsPage() {
         isFetching: isFetchingAdSets,
         refetch: refetchAdSets,
     } = trpc.metaAds.adSets.listAdSets.useQuery(
-        { campaignId, timeRange, publisherPlatform },
+        { campaignId, timeRange },
         {
             enabled: !!campaignId && !!campaign,
             refetchOnWindowFocus: false,
@@ -1589,47 +1591,174 @@ export default function CampaignDetailsPage() {
 
     // Fetch insights
     const { data: dailyPerformance, isLoading: isLoadingDaily, isFetching: isFetchingDaily, refetch: refetchDaily } = trpc.metaAds.insights.getDailyPerformance.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
 
     const { data: genderBreakdown, isLoading: isLoadingGender, isFetching: isFetchingGender, refetch: refetchGender } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'gender', publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'gender' },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: platformBreakdown, isLoading: isLoadingPlatform, isFetching: isFetchingPlatform, refetch: refetchPlatform } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'publisher_platform', publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'publisher_platform' },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: deviceBreakdown, isLoading: isLoadingDevice, isFetching: isFetchingDevice, refetch: refetchDevice } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'device_platform', publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'device_platform' },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: regionBreakdown, isLoading: isLoadingRegion, isFetching: isFetchingRegion, refetch: refetchRegion } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'region', publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'region' },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: placementBreakdown, isLoading: isLoadingPlacement, isFetching: isFetchingPlacement, refetch: refetchPlacement } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'platform_position', publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'platform_position' },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: ageBreakdown, isLoading: isLoadingAge, isFetching: isFetchingAge, refetch: refetchAge } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'age', publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'age' },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const { data: hourlyPerformance, isLoading: isLoadingHourly, isFetching: isFetchingHourly, refetch: refetchHourly } = trpc.metaAds.insights.getBreakdowns.useQuery(
-        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'hourly_stats_aggregated_by_audience_time_zone', publisherPlatform },
+        { entityId: campaignId, level: 'campaign', timeRange, breakdown: 'hourly_stats_aggregated_by_audience_time_zone' },
         { enabled: !!campaignId && !!campaign, refetchOnWindowFocus: false, staleTime: 0, refetchOnMount: 'always' }
     );
 
     const isRefreshing = isFetchingCampaign || isFetchingAccount || isFetchingAdSets || isFetchingDaily || isFetchingGender || isFetchingPlatform || isFetchingDevice || isFetchingRegion || isFetchingPlacement || isFetchingAge || isFetchingHourly;
+
+    const [isAnalysisModalOpen, setIsAnalysisModalOpen] = React.useState(false);
+    const [activeAnalysisId, setActiveAnalysisId] = React.useState<string | null>(null);
+
+    // Latest analysis query
+    const { data: latestAnalysis, refetch: refetchLatestAnalysis } = trpc.metaAds.insights.getLatestAnalysis.useQuery(
+        { campaignId },
+        { enabled: !!campaignId }
+    );
+
+    // Analysis history query
+    const { data: analyses, refetch: refetchAnalyses } = trpc.metaAds.insights.listAnalyses.useQuery(
+        { campaignId },
+        { enabled: !!campaignId }
+    );
+
+    // Polling for status if we have an active analysis
+    const { data: analysisStatus } = trpc.metaAds.insights.getAnalysisStatus.useQuery(
+        { analysisId: activeAnalysisId! },
+        { 
+            enabled: !!activeAnalysisId,
+            refetchInterval: (query) => {
+                const data = query.state.data;
+                if (data?.status === 'PROCESSING') return 3000;
+                return false;
+            },
+            onSuccess: (data) => {
+                if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                    refetchLatestAnalysis();
+                    refetchAnalyses();
+                }
+            }
+        }
+    );
+
+    const triggerAnalysis = trpc.metaAds.insights.triggerAiAnalysis.useMutation({
+        onSuccess: (data) => {
+            setActiveAnalysisId(data.analysisId);
+            setIsAnalysisModalOpen(true);
+        },
+        onError: (err) => {
+            toast.error("Failed to start AI analysis: " + err.message);
+        }
+    });
+
+    const handleRunAnalysis = () => {
+        // Validation: Ensure all queries are successful before running analysis
+        const queries = [
+            { name: 'Campaign', res: campaignData },
+            { name: 'Ad Sets', res: adSetsData },
+            { name: 'Daily Performance', res: dailyPerformance },
+            { name: 'Gender Breakdown', res: genderBreakdown },
+            { name: 'Age Breakdown', res: ageBreakdown },
+            { name: 'Platform Breakdown', res: platformBreakdown },
+            { name: 'Device Breakdown', res: deviceBreakdown },
+            { name: 'Region Breakdown', res: regionBreakdown },
+            { name: 'Placement Breakdown', res: placementBreakdown },
+            { name: 'Hourly Performance', res: hourlyPerformance },
+            { name: 'Ads Data', res: adsData }
+        ];
+
+        const failedQueries = queries.filter(q => !q.res?.success);
+        if (failedQueries.length > 0) {
+            toast.error(`Cannot analyze: Missing or failed data for ${failedQueries.map(q => q.name).join(', ')}`);
+            return;
+        }
+
+        // Collect all data for the prompt
+        const payload = {
+            campaignSummary: {
+                name: campaign?.campaign_name || campaign?.name,
+                objective: campaign?.objective,
+                status: campaign?.status,
+                budget: campaign?.daily_budget || campaign?.lifetime_budget,
+                budgetType: campaign?.daily_budget ? 'Daily' : 'Lifetime',
+                startTime: campaign?.start_time,
+                stopTime: campaign?.stop_time,
+            },
+            topLevelMetrics: {
+                spend: campaign?.spend,
+                impressions: campaign?.impressions,
+                reach: campaign?.reach,
+                clicks: campaign?.clicks,
+                ctr: campaign?.ctr,
+                cpc: campaign?.cpc,
+                cpm: campaign?.cpm,
+                cpp: campaign?.cpp,
+                roas: campaign?.purchase_roas,
+            },
+            dailyPerformance: dailyPerformance?.data,
+            breakdowns: {
+                gender: genderBreakdown?.data,
+                age: ageBreakdown?.data,
+                platform: platformBreakdown?.data,
+                device: deviceBreakdown?.data,
+                region: regionBreakdown?.data,
+                placement: placementBreakdown?.data,
+                hourly: hourlyPerformance?.data,
+            },
+            adSets: adSets.map(as => ({
+                name: as.ad_set_name,
+                status: as.status,
+                budget: as.daily_budget || as.lifetime_budget,
+                spend: as.spend,
+                impressions: as.impressions,
+                clicks: as.clicks,
+                ctr: as.ctr,
+                cpc: as.cpc,
+                targeting: as.targeting,
+            })),
+            ads: adsData?.data?.map(ad => ({
+                name: ad.ad_name,
+                status: ad.status,
+                spend: ad.spend,
+                impressions: ad.impressions,
+                clicks: ad.clicks,
+                ctr: ad.ctr,
+                cpc: ad.cpc,
+            })),
+        };
+
+        triggerAnalysis.mutate({
+            campaignId,
+            internalCampaignId: campaign?.id,
+            data: payload,
+        });
+    };
 
     const handleRefresh = async () => {
         await utils.metaAds.invalidate();
@@ -1644,7 +1773,7 @@ export default function CampaignDetailsPage() {
         isLoading: isLoadingAds,
         isFetching: isFetchingAds,
     } = trpc.metaAds.ads.listCampaignAds.useQuery(
-        { accountId, campaignId, timeRange, publisherPlatform },
+        { accountId, campaignId, timeRange },
         {
             enabled: !!campaignId && !!campaign,
             refetchOnWindowFocus: false,
@@ -1863,6 +1992,20 @@ export default function CampaignDetailsPage() {
                             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                             Refresh
                         </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setIsAnalysisModalOpen(true)}
+                            disabled={triggerAnalysis.isPending || (activeAnalysisId && analysisStatus?.status === 'PROCESSING')}
+                            className="rounded-full h-8 gap-2 bg-primary hover:bg-primary/90 text-white border-none shadow-sm"
+                        >
+                            {triggerAnalysis.isPending || (activeAnalysisId && analysisStatus?.status === 'PROCESSING') ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Sparkles className="h-4 w-4" />
+                            )}
+                            {analyses && analyses.length > 0 ? "View AI Analysis" : "AI Analysis"}
+                        </Button>
                         {campaign.insights && (
                             <DownloadReportButton
                                 campaign={campaign}
@@ -1880,37 +2023,6 @@ export default function CampaignDetailsPage() {
                     </div>
                 </div>
 
-				{/* Platform Tabs */}
-				<div className="flex items-center justify-between pb-2">
-					<Tabs
-						value={searchParams.get("platform") || "facebook"}
-						onValueChange={(value) => {
-							const newParams = new URLSearchParams(searchParams);
-							if (value === "facebook") {
-								newParams.delete("platform");
-							} else {
-								newParams.set("platform", value);
-							}
-							setSearchParams(newParams);
-						}}
-						className="w-full sm:w-auto"
-					>
-						<TabsList className="bg-muted/50 border border-muted/60 p-1 h-9">
-							<TabsTrigger
-								value="facebook"
-								className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-							>
-								Facebook
-							</TabsTrigger>
-							<TabsTrigger
-								value="instagram"
-								className="px-6 text-xs font-bold data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-							>
-								Instagram
-							</TabsTrigger>
-						</TabsList>
-					</Tabs>
-				</div>
 
                 {/* SECTION 1: OVERVIEW (Info, Metrics, Ad Sets) */}
                 <div className="space-y-6">
@@ -2488,7 +2600,9 @@ export default function CampaignDetailsPage() {
                                         ))}
                                     </div>
                                 ) : ageBreakdown?.data && ageBreakdown.data.length > 0 ? (
-                                    <ValueLineRegionChart breakdown={ageBreakdown} config={breakdownChartConfig} />
+                                    <div className="h-[400px]">
+                                        <ValueLineRegionChart breakdown={ageBreakdown} config={breakdownChartConfig} />
+                                    </div>
                                 ) : (
                                     <div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
                                         <Users className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
@@ -2512,7 +2626,9 @@ export default function CampaignDetailsPage() {
                                         ))}
                                     </div>
                                 ) : regionBreakdown?.data && regionBreakdown.data.length > 0 ? (
-                                    <ValueLineRegionChart breakdown={regionBreakdown} config={breakdownChartConfig} />
+                                    <div className="h-[400px]">
+                                        <ValueLineRegionChart breakdown={regionBreakdown} config={breakdownChartConfig} />
+                                    </div>
                                 ) : (
                                     <div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
                                         <MapPin className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
@@ -2530,7 +2646,9 @@ export default function CampaignDetailsPage() {
                             </CardHeader>
                             <CardContent className="min-h-[400px]">
                                 {engagementActionsData ? (
-                                    <ValueLineRegionChart breakdown={engagementActionsData} config={breakdownChartConfig} />
+                                    <div className="h-[400px]">
+                                        <ValueLineRegionChart breakdown={engagementActionsData} config={breakdownChartConfig} />
+                                    </div>
                                 ) : (
                                     <div className="h-[300px] flex flex-col items-center justify-center text-center border border-dashed rounded-lg bg-muted/20">
                                         <MousePointer2 className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
@@ -2542,6 +2660,19 @@ export default function CampaignDetailsPage() {
                     </div>
                 </div>
             </div>
+
+            <AiAnalysisModal
+                isOpen={isAnalysisModalOpen}
+                onClose={() => {
+                    setIsAnalysisModalOpen(false);
+                    setActiveAnalysisId(null);
+                }}
+                analysis={analysisStatus?.analysis || latestAnalysis?.analysis || null}
+                status={(analysisStatus?.status as any) || (latestAnalysis?.status as any) || 'IDLE'}
+                onRefresh={handleRunAnalysis}
+                campaignName={campaign?.name || campaign?.campaign_name || ""}
+                analyses={analyses}
+            />
         </div>
     );
 }
