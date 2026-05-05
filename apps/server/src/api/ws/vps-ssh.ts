@@ -28,7 +28,14 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
           if (payload.ticket) {
             const redis = getRedisClient();
             if (redis) {
-              userId = await redis.get(`ws-ticket:${payload.ticket}`);
+              // Retry loop for potential Redis replication delay across regions
+              for (let i = 0; i < 6; i++) {
+                userId = await redis.get(`ws-ticket:${payload.ticket}`);
+                if (userId) break;
+                // Wait 150ms before retrying (max ~900ms)
+                await new Promise(r => setTimeout(r, 150));
+              }
+
               if (userId) {
                 // Invalidate the ticket immediately after use
                 await redis.del(`ws-ticket:${payload.ticket}`);
