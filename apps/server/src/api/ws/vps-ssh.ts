@@ -14,7 +14,13 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
   let sshStream: any = null;
   let deviceIdStr: string | null = null;
   
-  // We can't do async inside upgradeWebSocket definition directly, so we handle authentication inside the onMessage 'init' event.
+  // Helper to ensure the WS message is sent before the connection is forcefully closed by Bun
+  const closeWithError = (ws: any, code: string, message: string) => {
+    ws.send(JSON.stringify({ type: "error", code, message }));
+    setTimeout(() => {
+      try { ws.close(); } catch (e) {}
+    }, 200);
+  };
   
   return {
     onMessage: async (event, ws) => {
@@ -44,15 +50,13 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
           }
 
           if (!userId) {
-            ws.send(JSON.stringify({ type: "error", code: "UNAUTHORIZED", message: "Unauthorized" }));
-            ws.close();
+            closeWithError(ws, "UNAUTHORIZED", "Unauthorized");
             return;
           }
 
           deviceIdStr = payload.deviceId;
           if (!deviceIdStr) {
-            ws.send(JSON.stringify({ type: "error", code: "INVALID_INPUT", message: "Missing deviceId" }));
-            ws.close();
+            closeWithError(ws, "INVALID_INPUT", "Missing deviceId");
             return;
           }
 
@@ -68,14 +72,12 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
               if (credsRes && credsRes.password) {
                 sshPassword = credsRes.password;
               } else {
-                ws.send(JSON.stringify({ type: "error", code: "NO_INITIAL_CREDENTIALS", message: "No initial password found. Please provide it manually." }));
-                ws.close();
+                closeWithError(ws, "NO_INITIAL_CREDENTIALS", "No initial password found. Please provide it manually.");
                 return;
               }
             } catch (err) {
               console.error("Failed to fetch initial password:", err);
-              ws.send(JSON.stringify({ type: "error", code: "AUTH_FAILED", message: "Failed to fetch initial password" }));
-              ws.close();
+              closeWithError(ws, "AUTH_FAILED", "Failed to fetch initial password");
               return;
             }
           }
@@ -91,14 +93,12 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
               hostIp = deviceDetails?.primaryIp;
               
               if (!hostIp) {
-                ws.send(JSON.stringify({ type: "error", code: "INVALID_INPUT", message: "Could not determine host IP" }));
-                ws.close();
+                closeWithError(ws, "INVALID_INPUT", "Could not determine host IP");
                 return;
               }
             } catch (err) {
                console.error("Failed to fetch device details:", err);
-               ws.send(JSON.stringify({ type: "error", code: "INVALID_INPUT", message: "Failed to fetch device details" }));
-               ws.close();
+               closeWithError(ws, "INVALID_INPUT", "Failed to fetch device details");
                return;
             }
           }
@@ -110,8 +110,7 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
             sshClient!.shell({ term: 'xterm-256color' }, (err, stream) => {
               if (err) {
                 console.error("SSH Shell error:", err);
-                ws.send(JSON.stringify({ type: "error", code: "SHELL_ERROR", message: "Failed to start SSH shell" }));
-                ws.close();
+                closeWithError(ws, "SHELL_ERROR", "Failed to start SSH shell");
                 return;
               }
               
@@ -130,11 +129,10 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
             console.error("SSH Connection Error:", err);
             // Detect auth failure
             if (err.level === "client-authentication") {
-              ws.send(JSON.stringify({ type: "error", code: "AUTH_FAILED", message: "Authentication failed. Password might have been changed." }));
+              closeWithError(ws, "AUTH_FAILED", "Authentication failed. Password might have been changed.");
             } else {
-              ws.send(JSON.stringify({ type: "error", code: "CONNECTION_ERROR", message: err.message || "Failed to connect to SSH" }));
+              closeWithError(ws, "CONNECTION_ERROR", err.message || "Failed to connect to SSH");
             }
-            ws.close();
           });
 
           // Connect
@@ -148,8 +146,7 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
             });
           } catch (e: any) {
             console.error("SSH Connect exception:", e);
-            ws.send(JSON.stringify({ type: "error", code: "CONNECTION_ERROR", message: e.message || "Failed to connect" }));
-            ws.close();
+            closeWithError(ws, "CONNECTION_ERROR", e.message || "Failed to connect");
           }
 
         } else if (payload.type === "data" && sshStream) {
