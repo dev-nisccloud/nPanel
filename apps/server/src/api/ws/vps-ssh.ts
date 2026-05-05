@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { Client } from "ssh2";
 import { auth } from "@npanel/auth";
 import { hivelocityRequest } from "@npanel/api/lib/hivelocity-client";
+import { getRedisClient } from "@npanel/api/lib/redis";
 import type { WSEvents } from "hono/ws";
 
 // A map to store SSH clients associated with a WebSocket connection
@@ -22,13 +23,20 @@ export function handleVpsSshUpgrade(c: Context): WSEvents {
         const payload = JSON.parse(data);
 
         if (payload.type === "init") {
-          // 1. Authenticate user
-          let authHeaders = new Headers(c.req.raw.headers);
-          if (payload.cookie) {
-            authHeaders.set("cookie", payload.cookie);
+          // 1. Authenticate user using the ticket
+          let userId: string | null = null;
+          if (payload.ticket) {
+            const redis = getRedisClient();
+            if (redis) {
+              userId = await redis.get(`ws-ticket:${payload.ticket}`);
+              if (userId) {
+                // Invalidate the ticket immediately after use
+                await redis.del(`ws-ticket:${payload.ticket}`);
+              }
+            }
           }
-          const session = await auth.api.getSession({ headers: authHeaders });
-          if (!session || !session.user) {
+
+          if (!userId) {
             ws.send(JSON.stringify({ type: "error", code: "UNAUTHORIZED", message: "Unauthorized" }));
             ws.close();
             return;
