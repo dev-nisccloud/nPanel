@@ -89,7 +89,8 @@ export function AiAnalysisModal({
     }}>
       <DialogContent className="sm:max-w-[850px] w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl bg-background text-foreground border-none rounded-3xl">
         <DialogHeader className="p-6 flex-shrink-0 border-b flex flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          {/* Left side */}
+          <div className="flex items-center gap-3 min-w-0">
             {view === "detail" && selectedAnalysis && (
               <Button
                 variant="ghost"
@@ -98,19 +99,19 @@ export function AiAnalysisModal({
                   setSelectedAnalysis(null);
                   setView("list");
                 }}
-                className="rounded-full -ml-2"
+                className="rounded-full -ml-2 flex-shrink-0"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             )}
-            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
+            <div className="p-2 rounded-xl bg-primary/10 border border-primary/20 flex-shrink-0">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0">
               <DialogTitle className="text-xl font-bold">
                 {view === "list" ? "Past Conversations" : "AI Campaign Analysis"}
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground text-sm">
+              <DialogDescription className="text-muted-foreground text-sm truncate">
                 {view === "list"
                   ? `Previous conversations for ${campaignName}`
                   : `Strategic insights for ${campaignName}`
@@ -118,33 +119,34 @@ export function AiAnalysisModal({
               </DialogDescription>
             </div>
           </div>
-              {onRefresh && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedAnalysis(null);
-                    setView("detail");
-                    onRefresh();
-                  }}
-                  disabled={status === "PROCESSING"}
-                  className="rounded-full h-9 gap-2 bg-primary text-white hover:bg-primary/90"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Run New Analysis
-                </Button>
-              )}
-              {view === "detail" && analyses.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setView("list")}
-                  className="rounded-full h-9 gap-2"
-                >
-                  <History className="w-4 h-4" />
-                  History
-                </Button>
-              )}
+          {/* Right side */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {onRefresh && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelectedAnalysis(null);
+                  setView("detail");
+                  onRefresh();
+                }}
+                disabled={status === "PROCESSING"}
+                className="rounded-full h-9 gap-2 bg-primary text-white hover:bg-primary/90"
+              >
+                <Sparkles className="w-4 h-4" />
+                Run New Analysis
+              </Button>
+            )}
+            {view === "detail" && analyses.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setView("list")}
+                className="rounded-full h-9 gap-2"
+              >
+                <History className="w-4 h-4" />
+                History
+              </Button>
+            )}
           </div>
         </DialogHeader>
 
