@@ -118,34 +118,33 @@ export function AiAnalysisModal({
               </DialogDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {onRefresh && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  setSelectedAnalysis(null);
-                  setView("detail");
-                  onRefresh();
-                }}
-                disabled={status === "PROCESSING"}
-                className="rounded-full h-9 gap-2 bg-primary text-white hover:bg-primary/90"
-              >
-                <Sparkles className="w-4 h-4" />
-                Run New Analysis
-              </Button>
-            )}
-            {view === "detail" && analyses.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setView("list")}
-                className="rounded-full h-9 gap-2"
-              >
-                <History className="w-4 h-4" />
-                History
-              </Button>
-            )}
+              {onRefresh && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedAnalysis(null);
+                    setView("detail");
+                    onRefresh();
+                  }}
+                  disabled={status === "PROCESSING"}
+                  className="rounded-full h-9 gap-2 bg-primary text-white hover:bg-primary/90"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Run New Analysis
+                </Button>
+              )}
+              {view === "detail" && analyses.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setView("list")}
+                  className="rounded-full h-9 gap-2"
+                >
+                  <History className="w-4 h-4" />
+                  History
+                </Button>
+              )}
           </div>
         </DialogHeader>
 
@@ -245,27 +244,126 @@ export function AiAnalysisModal({
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          h1: ({ node, ...props }) => <h1 className="text-2xl font-bold text-foreground mt-8 mb-4 border-b pb-2" {...props} />,
-                          h2: ({ node, ...props }) => <h2 className="text-xl font-bold text-foreground mt-8 mb-4" {...props} />,
-                          h3: ({ node, ...props }) => <h3 className="text-lg font-bold text-foreground mt-6 mb-3" {...props} />,
-                          p: ({ node, ...props }) => <p className="leading-relaxed mb-4 text-foreground/80" {...props} />,
-                          ul: ({ node, ...props }) => <ul className="list-disc pl-6 mb-6 space-y-2 text-foreground/80" {...props} />,
-                          ol: ({ node, ...props }) => <ol className="list-decimal pl-6 mb-6 space-y-2 text-foreground/80" {...props} />,
-                          li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-                          strong: ({ node, ...props }) => <strong className="font-bold text-primary" {...props} />,
-                          blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-primary/30 pl-4 italic my-6 text-muted-foreground" {...props} />,
-                          code: ({ node, ...props }) => <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props} />,
-                          hr: ({ node, ...props }) => <hr className="my-8 border-muted" {...props} />,
+                          // ── Headings ──────────────────────────────────────
+                          h1: ({ node, ...props }) => (
+                            <h1 className="text-2xl font-bold text-foreground mt-8 mb-4 pb-2 border-b border-muted" {...props} />
+                          ),
+                          h2: ({ node, ...props }) => (
+                            <h2 className="text-xl font-bold text-foreground mt-8 mb-3" {...props} />
+                          ),
+                          h3: ({ node, ...props }) => (
+                            <h3 className="text-base font-bold text-foreground mt-6 mb-2" {...props} />
+                          ),
+                          h4: ({ node, ...props }) => (
+                            <h4 className="text-sm font-bold text-foreground/90 mt-4 mb-2 uppercase tracking-wide" {...props} />
+                          ),
+                          h5: ({ node, ...props }) => (
+                            <h5 className="text-sm font-semibold text-foreground/80 mt-4 mb-1" {...props} />
+                          ),
+                          h6: ({ node, ...props }) => (
+                            <h6 className="text-xs font-semibold text-muted-foreground mt-4 mb-1 uppercase" {...props} />
+                          ),
+                          // ── Body text ─────────────────────────────────────
+                          p: ({ node, ...props }) => (
+                            <p className="leading-7 mb-4 text-foreground/80" {...props} />
+                          ),
+                          em: ({ node, ...props }) => (
+                            <em className="italic text-foreground/70" {...props} />
+                          ),
+                          strong: ({ node, ...props }) => (
+                            <strong className="font-bold text-primary" {...props} />
+                          ),
+                          del: ({ node, ...props }) => (
+                            <del className="line-through text-muted-foreground" {...props} />
+                          ),
+                          // ── Lists ─────────────────────────────────────────
+                          ul: ({ node, ...props }) => (
+                            <ul className="list-disc pl-6 mb-5 space-y-1.5 text-foreground/80" {...props} />
+                          ),
+                          ol: ({ node, ...props }) => (
+                            <ol className="list-decimal pl-6 mb-5 space-y-1.5 text-foreground/80" {...props} />
+                          ),
+                          li: ({ node, children, ...props }) => (
+                            <li className="leading-relaxed" {...props}>
+                              {children}
+                            </li>
+                          ),
+                          // ── Blockquote ────────────────────────────────────
+                          blockquote: ({ node, ...props }) => (
+                            <blockquote
+                              className="border-l-4 border-primary/40 pl-4 py-1 my-5 bg-primary/5 rounded-r-lg italic text-foreground/70"
+                              {...props}
+                            />
+                          ),
+                          // ── Code ──────────────────────────────────────────
+                          code: ({ node, className, children, ...props }: any) => {
+                            const isBlock = className?.includes('language-');
+                            return isBlock ? (
+                              <code
+                                className={`block text-sm font-mono ${className ?? ''}`}
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            ) : (
+                              <code
+                                className="bg-muted text-foreground px-1.5 py-0.5 rounded text-[0.85em] font-mono"
+                                {...props}
+                              >
+                                {children}
+                              </code>
+                            );
+                          },
+                          pre: ({ node, ...props }) => (
+                            <pre
+                              className="bg-muted/60 border border-muted rounded-xl p-4 my-5 overflow-x-auto text-sm font-mono leading-relaxed"
+                              {...props}
+                            />
+                          ),
+                          // ── Divider ───────────────────────────────────────
+                          hr: ({ node, ...props }) => (
+                            <hr className="my-8 border-muted" {...props} />
+                          ),
+                          // ── Links ─────────────────────────────────────────
+                          a: ({ node, ...props }) => (
+                            <a
+                              className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              {...props}
+                            />
+                          ),
+                          // ── Images ────────────────────────────────────────
+                          img: ({ node, ...props }) => (
+                            <img
+                              className="max-w-full h-auto rounded-xl my-4 border border-muted"
+                              {...props}
+                            />
+                          ),
+                          // ── Tables ────────────────────────────────────────
                           table: ({ node, ...props }) => (
-                            <div className="overflow-x-auto my-6 rounded-xl border border-muted">
+                            <div className="overflow-x-auto my-6 rounded-xl border border-muted shadow-sm">
                               <table className="w-full text-sm text-left border-collapse" {...props} />
                             </div>
                           ),
-                          thead: ({ node, ...props }) => <thead className="bg-muted/50 text-foreground font-semibold" {...props} />,
-                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-muted" {...props} />,
-                          tr: ({ node, ...props }) => <tr className="hover:bg-muted/30 transition-colors" {...props} />,
-                          th: ({ node, ...props }) => <th className="px-4 py-3 border-b border-muted" {...props} />,
-                          td: ({ node, ...props }) => <td className="px-4 py-3 text-foreground/70" {...props} />,
+                          thead: ({ node, ...props }) => (
+                            <thead className="bg-muted/60 text-foreground font-semibold" {...props} />
+                          ),
+                          tbody: ({ node, ...props }) => (
+                            <tbody className="divide-y divide-muted/60" {...props} />
+                          ),
+                          tfoot: ({ node, ...props }) => (
+                            <tfoot className="bg-muted/30 font-semibold text-foreground/80" {...props} />
+                          ),
+                          tr: ({ node, ...props }) => (
+                            <tr className="hover:bg-muted/20 transition-colors" {...props} />
+                          ),
+                          th: ({ node, ...props }) => (
+                            <th className="px-4 py-3 text-left font-semibold text-foreground border-b border-muted whitespace-nowrap" {...props} />
+                          ),
+                          td: ({ node, ...props }) => (
+                            <td className="px-4 py-2.5 text-foreground/75 align-top" {...props} />
+                          ),
                         }}
                       >
                         {currentAnalysis}

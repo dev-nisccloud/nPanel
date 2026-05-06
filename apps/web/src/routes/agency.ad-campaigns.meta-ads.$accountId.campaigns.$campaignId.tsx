@@ -1701,6 +1701,13 @@ export default function CampaignDetailsPage() {
 
         // Collect all data for the prompt
         const payload = {
+            adAccount: {
+                id: account?.id || accountId,
+                name: account?.name,
+                currency: account?.currency || 'USD',
+                timezone: account?.timezone_name,
+                businessName: account?.business_name,
+            },
             campaignSummary: {
                 name: campaign?.campaign_name || campaign?.name,
                 objective: campaign?.objective,
