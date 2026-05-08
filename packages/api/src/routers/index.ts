@@ -102,6 +102,14 @@ import { apiKeysRouter } from "./api-keys";
 import { digitaxRouter } from "./digitax";
 import { ipRecordsRouter } from "./ip-records";
 import { zeepoCanvasRouter } from "./zeepo-canvas";
+import { jetbackupDashboardRouter } from "./jetbackup/dashboard";
+import { jetbackupAccountsRouter } from "./jetbackup/accounts";
+import { jetbackupJobsRouter } from "./jetbackup/jobs";
+import { jetbackupDestinationsRouter } from "./jetbackup/destinations";
+import { jetbackupQueuesRouter } from "./jetbackup/queues";
+import { jetbackupBackupsRouter } from "./jetbackup/backups";
+import { jetbackupAlertsRouter } from "./jetbackup/alerts";
+import { jetbackupLogsRouter } from "./jetbackup/logs";
 
 
 export const appRouter = router({
@@ -290,5 +298,16 @@ export const appRouter = router({
 	ipRecords: ipRecordsRouter,
 	// Zeepo Canvas
 	zeepoCanvas: zeepoCanvasRouter,
+	// JetBackup 5 Integration
+	jetbackup: router({
+		dashboard: jetbackupDashboardRouter,
+		accounts: jetbackupAccountsRouter,
+		jobs: jetbackupJobsRouter,
+		destinations: jetbackupDestinationsRouter,
+		queues: jetbackupQueuesRouter,
+		backups: jetbackupBackupsRouter,
+		alerts: jetbackupAlertsRouter,
+		logs: jetbackupLogsRouter,
+	}),
 });
 export type AppRouter = typeof appRouter;

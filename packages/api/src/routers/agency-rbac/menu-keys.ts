@@ -20,6 +20,8 @@ export const agencyMenuKeys = [
 	"/agency/vps",
 	"/agency/vds",
 	"/agency/wordpress",
+	"/agency/backup-restore",
+	"/agency/backup-restore/jetbackup5",
 
 	"/agency/social-media-marketing",
 	"/agency/social-media-marketing/facebook",

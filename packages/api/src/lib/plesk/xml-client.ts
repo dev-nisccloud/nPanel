@@ -5,13 +5,9 @@ const Sentry = {
   captureException: (..._args: any[]) => { },
 };
 
-const PLESK_XML_ENDPOINT =
-  process.env.PLESK_XML_ENDPOINT ??
-  'https://your-plesk-host:8443/enterprise/control/agent.php';
 // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
 // const PLESK_XML_USERNAME = process.env.PLESK_XML_USERNAME ?? 'admin';
 // const PLESK_XML_PASSWORD = process.env.PLESK_XML_PASSWORD ?? 'your-password';
-const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY; // Required - secret key authentication only
 
 // Connection pool for better performance
 const pleskAgent = new Agent({
@@ -69,6 +65,11 @@ function isAuthError(error: Error, statusCode?: number): boolean {
 export async function sendPleskXmlRequest(
   xmlPayload: string
 ): Promise<PleskXmlResult> {
+  const PLESK_XML_ENDPOINT =
+    process.env.PLESK_XML_ENDPOINT ??
+    'https://your-plesk-host:8443/enterprise/control/agent.php';
+  const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY;
+
   console.log('Starting Plesk XML request...');
   console.log('PLESK_XML_ENDPOINT:', PLESK_XML_ENDPOINT);
   console.log('Has SECRET_KEY:', !!PLESK_SECRET_KEY);
