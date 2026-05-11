@@ -111,7 +111,7 @@ export function EditDnsRecordSheet({ open, onOpenChange, siteId, domainName, rec
                 port: undefined,   // Not typically returned by default plesk get
             });
         }
-    }, [open, record, form]);
+    }, [open, record, domainName, form]);
 
     const onSubmit = async (data: z.infer<typeof FormSchema>) => {
         if (!record || !record.id) {

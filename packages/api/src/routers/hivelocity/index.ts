@@ -1,6 +1,14 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../../trpc";
 import { getHivelocityEnvStatus, hivelocityRequest } from "../../lib/hivelocity-client";
+import {
+	assertUserCanReadTeamCloud,
+	collectHivelocityDeviceIdsForTeam,
+	getTeamIdBySlugForHivelocity,
+	maybeAssertTeamHivelocityDeviceAccess,
+	teamHivelocityAccessSchema,
+} from "./team-hivelocity-access";
 import { getRedisClient } from "../../lib/redis";
 import {
 	hivelocityFacilitiesResponseSchema,
@@ -69,6 +77,148 @@ function buildCacheKey(input: z.infer<typeof DedicatedPlansQuerySchema> | undefi
 		include_custom: input?.include_custom ?? false,
 		bonding_support: input?.bonding_support ?? null,
 	});
+}
+
+/** Merged /device + /vps account resources (before list filters). */
+async function fetchMergedHivelocityResources(): Promise<HivelocityAnyResource[]> {
+	const [rawDevices, rawVps] = await Promise.all([
+		hivelocityRequest<unknown>("/device/", { requireApiKey: true }),
+		hivelocityRequest<unknown>("/vps/", { requireApiKey: true }),
+	]);
+
+	const deviceArray = Array.isArray(rawDevices) ? rawDevices : [];
+	const deviceResources: HivelocityAnyResource[] = deviceArray
+		.map((item) => hivelocityDeviceDumpSchema.safeParse(item))
+		.filter((r): r is { success: true; data: HivelocityDeviceDump } => r.success)
+		.map((r) => {
+			const device = r.data;
+			const typeStr = (device.deviceType ?? "").toUpperCase();
+			const groupStr = (device.deviceTypeGroup ?? "").toUpperCase();
+
+			let resourceType: "dedicated" | "vds" | "vps" = "dedicated";
+			if (typeStr.includes("VPS") || groupStr.includes("VPS")) {
+				resourceType = "vps";
+			} else if (typeStr.includes("VDS") || device.tags.some((t) => t.toUpperCase() === "VDS")) {
+				resourceType = "vds";
+			}
+
+			return {
+				...device,
+				resourceType,
+			};
+		});
+
+	const vpsArray = Array.isArray(rawVps) ? rawVps : [];
+	const vpsMap = new Map<number, HivelocityVps>();
+	vpsArray.forEach((v) => {
+		const parsed = hivelocityVpsSchema.safeParse(v);
+		if (parsed.success) {
+			const deviceId = (parsed.data as any).deviceId || (parsed.data as any).id;
+			if (deviceId) vpsMap.set(Number(deviceId), parsed.data);
+		}
+	});
+
+	const mergedResources: HivelocityAnyResource[] = [];
+	const seenDeviceIds = new Set<number>();
+
+	deviceResources.forEach((dev: any) => {
+		const deviceId = dev.deviceId;
+		if (deviceId) seenDeviceIds.add(deviceId);
+
+		if (dev.resourceType === "vps" && deviceId && vpsMap.has(deviceId)) {
+			const vpsData = vpsMap.get(deviceId)!;
+			mergedResources.push({
+				...vpsData,
+				...dev,
+				resourceType: "vps" as const,
+			});
+		} else {
+			mergedResources.push(dev);
+		}
+	});
+
+	vpsMap.forEach((vps, deviceId) => {
+		if (!seenDeviceIds.has(deviceId)) {
+			mergedResources.push({ ...vps, resourceType: "vps" as const });
+		}
+	});
+
+	return mergedResources;
+}
+
+function resourceRowDeviceId(r: HivelocityAnyResource): number | null {
+	const id = Number((r as any).deviceId ?? (r as any).id);
+	return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function applyHivelocityResourceListFilters(
+	mergedResources: HivelocityAnyResource[],
+	typeFilter: "dedicated" | "vps" | "vds" | "all",
+	search: string,
+	facilityCode: string,
+): HivelocityAnyResource[] {
+	let all = mergedResources;
+
+	if (typeFilter !== "all") {
+		all = all.filter((r) => r.resourceType === typeFilter);
+	}
+
+	if (facilityCode) {
+		all = all.filter((r) => {
+			if (r.resourceType === "vps" && !("location" in r)) {
+				return (r.facilityCode ?? "").toLowerCase() === facilityCode.toLowerCase();
+			}
+			const loc = (r as any).location as any;
+			const code = loc?.facility || loc?.facilityCode || loc?.code || (r as any).facilityCode || "";
+			const title = loc?.facility_title || loc?.city || "";
+			return (
+				code.toLowerCase() === facilityCode.toLowerCase() ||
+				title.toLowerCase().includes(facilityCode.toLowerCase())
+			);
+		});
+	}
+
+	if (search.length > 0) {
+		all = all.filter((r) => {
+			const common = [r.hostname, r.primaryIp ?? "", r.resourceType];
+
+			if (r.resourceType === "vps" && !("location" in r)) {
+				common.push((r as HivelocityVps).osName ?? "");
+				common.push((r as HivelocityVps).facilityCode ?? "");
+				common.push(r.id);
+			} else {
+				const d = r as HivelocityDeviceDump;
+				const loc = d.location as any;
+				common.push(d.name);
+				common.push(d.deviceType ?? "");
+				common.push(loc?.facility || loc?.facilityCode || loc?.code || "");
+				common.push(loc?.facility_title || loc?.city || "");
+				common.push(String(d.deviceId || ""));
+				common.push(...(d.tags ?? []));
+			}
+
+			return common
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase()
+				.includes(search);
+		});
+	}
+
+	return all;
+}
+
+function paginateHivelocityResourceList(all: HivelocityAnyResource[], limit: number, cursor: number) {
+	const total = all.length;
+	const items = all.slice(cursor, cursor + limit);
+	const nextCursor = cursor + limit < total ? cursor + limit : null;
+	const counts = {
+		dedicated: all.filter((r) => r.resourceType === "dedicated").length,
+		vds: all.filter((r) => r.resourceType === "vds").length,
+		vps: all.filter((r) => r.resourceType === "vps").length,
+		total,
+	};
+	return { items, total, nextCursor, counts };
 }
 
 export const hivelocityRouter = router({
@@ -232,8 +382,9 @@ export const hivelocityRouter = router({
 	 * Docs: GET /compute/{deviceId}
 	 */
 	getComputeDeviceById: protectedProcedure
-		.input(z.object({ deviceId: z.number().int().positive() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int().positive() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/compute/${input.deviceId}`, { requireApiKey: true });
 			return { success: true, data: raw };
 		}),
@@ -277,25 +428,13 @@ export const hivelocityRouter = router({
 		}),
 
 	/**
-	 * Public (TEMP for development): Get initial password (first-login creds).
-	 * Docs: GET /device/{deviceId}/initial-password
-	 */
-	getDeviceInitialPassword: protectedProcedure
-		.input(z.object({ deviceId: z.number().int().positive() }))
-		.query(async ({ input }) => {
-			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/initial-password`, {
-				requireApiKey: true,
-			});
-			return { success: true, data: raw };
-		}),
-
-	/**
 	 * Public (TEMP for development): Get device IP assignments.
 	 * Docs: GET /device/{deviceId}/ips
 	 */
 	getDeviceIps: protectedProcedure
-		.input(z.object({ deviceId: z.number().int().positive() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int().positive() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/ips`, { requireApiKey: true });
 			return { success: true, data: raw };
 		}),
@@ -306,13 +445,16 @@ export const hivelocityRouter = router({
 	 */
 	getDeviceServices: protectedProcedure
 		.input(
-			z.object({
-				deviceId: z.number().int().positive(),
-				group_by: z.string().default("flat").optional(),
-				type_code: z.string().default("all").optional(),
-			})
+			z
+				.object({
+					deviceId: z.number().int().positive(),
+					group_by: z.string().default("flat").optional(),
+					type_code: z.string().default("all").optional(),
+				})
+				.and(teamHivelocityAccessSchema),
 		)
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/services`, {
 				query: {
 					group_by: input.group_by,
@@ -328,8 +470,9 @@ export const hivelocityRouter = router({
 	 * Docs: GET /vps/{deviceId}/available-product-upgrades
 	 */
 	getVpsUpgrades: protectedProcedure
-		.input(z.object({ deviceId: z.number().int().positive() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int().positive() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/available-product-upgrades`, {
 				requireApiKey: true,
 			});
@@ -805,139 +948,52 @@ export const hivelocityRouter = router({
 			const facilityCode = input?.facilityCode?.trim() ?? "";
 			const typeFilter = input?.type ?? "all";
 
-			// Parallel fetch — VPS instances live in a completely separate namespace.
-			const [rawDevices, rawVps] = await Promise.all([
-				hivelocityRequest<unknown>("/device/", { requireApiKey: true }),
-				hivelocityRequest<unknown>("/vps/", { requireApiKey: true }),
-			]);
+			const mergedResources = await fetchMergedHivelocityResources();
+			const all = applyHivelocityResourceListFilters(mergedResources, typeFilter, search, facilityCode);
+			const { items, total, nextCursor, counts } = paginateHivelocityResourceList(all, limit, cursor);
 
-			// --- Classify device records ---
-			const deviceArray = Array.isArray(rawDevices) ? rawDevices : [];
-			const deviceResources: HivelocityAnyResource[] = deviceArray
-				.map((item) => hivelocityDeviceDumpSchema.safeParse(item))
-				.filter((r): r is { success: true; data: HivelocityDeviceDump } => r.success)
-				.map((r) => {
-					const device = r.data;
-					const typeStr = (device.deviceType ?? "").toUpperCase();
-					const groupStr = (device.deviceTypeGroup ?? "").toUpperCase();
-					
-					let resourceType: "dedicated" | "vds" | "vps" = "dedicated";
-					if (typeStr.includes("VPS") || groupStr.includes("VPS")) {
-						resourceType = "vps";
-					} else if (typeStr.includes("VDS") || device.tags.some(t => t.toUpperCase() === "VDS")) {
-						resourceType = "vds";
-					}
+			return { success: true, data: { items, total, nextCursor, counts } };
+		}),
 
-					return {
-						...device,
-						resourceType,
-					};
-				});
-
-			// --- Classify VPS records ---
-			const vpsArray = Array.isArray(rawVps) ? rawVps : [];
-			const vpsMap = new Map<number, HivelocityVps>();
-			vpsArray.forEach((v) => {
-				const parsed = hivelocityVpsSchema.safeParse(v);
-				if (parsed.success) {
-					const deviceId = (parsed.data as any).deviceId || (parsed.data as any).id;
-					if (deviceId) vpsMap.set(Number(deviceId), parsed.data);
-				}
-			});
-
-			// --- Merge ---
-			const mergedResources: HivelocityAnyResource[] = [];
-			const seenDeviceIds = new Set<number>();
-
-			deviceResources.forEach((dev: any) => {
-				const deviceId = dev.deviceId;
-				if (deviceId) seenDeviceIds.add(deviceId);
-
-				if (dev.resourceType === "vps" && deviceId && vpsMap.has(deviceId)) {
-					const vpsData = vpsMap.get(deviceId)!;
-					mergedResources.push({
-						...vpsData,
-						...dev, // Prefer device data for core metadata (billing, location) but keep VPS tech specs
-						resourceType: "vps" as const,
-					});
-				} else {
-					mergedResources.push(dev);
-				}
-			});
-
-			// Add VPS instances that didn't appear in the /device/ list
-			vpsMap.forEach((vps, deviceId) => {
-				if (!seenDeviceIds.has(deviceId)) {
-					mergedResources.push({ ...vps, resourceType: "vps" as const });
-				}
-			});
-
-			let all = mergedResources;
-
-			// Type filter
-			if (typeFilter !== "all") {
-				all = all.filter((r) => r.resourceType === typeFilter);
+	/**
+	 * Team-scoped server list: only Hivelocity devices linked to the team's NiscClientSubscription
+	 * (serviceRefs.hivelocityDeviceId) for products named VPS hosting, VDS hosting, or Dedicated servers hosting (case-insensitive).
+	 */
+	getTeamMyResources: protectedProcedure
+		.input(
+			z.object({
+				teamSlug: z.string().min(1),
+				type: z.enum(["dedicated", "vps", "vds"]),
+				search: z.string().trim().optional(),
+				facilityCode: z.string().trim().optional(),
+				limit: z.number().int().min(1).max(200).default(50).optional(),
+				cursor: z.number().int().min(0).default(0).optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
 			}
+			const limit = input.limit ?? 50;
+			const cursor = input.cursor ?? 0;
+			const search = input.search?.toLowerCase() ?? "";
+			const facilityCode = input.facilityCode?.trim() ?? "";
 
-			// Facility filter
-			if (facilityCode) {
-				all = all.filter((r) => {
-					if (r.resourceType === "vps" && !("location" in r)) {
-						return (r.facilityCode ?? "").toLowerCase() === facilityCode.toLowerCase();
-					}
-					const loc = (r as any).location as any;
-					const code = loc?.facility || loc?.facilityCode || loc?.code || (r as any).facilityCode || "";
-					const title = loc?.facility_title || loc?.city || "";
-					return (
-						code.toLowerCase() === facilityCode.toLowerCase() ||
-						title.toLowerCase().includes(facilityCode.toLowerCase())
-					);
-				});
+			const teamId = await getTeamIdBySlugForHivelocity(input.teamSlug);
+			if (!teamId) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
 			}
+			await assertUserCanReadTeamCloud(teamId, session.user.id, session.user.role);
 
-			// Search filter
-			if (search.length > 0) {
-				all = all.filter((r) => {
-					const common = [
-						r.hostname,
-						r.primaryIp ?? "",
-						r.resourceType,
-					];
-
-					if (r.resourceType === "vps" && !("location" in r)) {
-						common.push((r as HivelocityVps).osName ?? "");
-						common.push((r as HivelocityVps).facilityCode ?? "");
-						common.push(r.id);
-					} else {
-						const d = r as HivelocityDeviceDump;
-						const loc = d.location as any;
-						common.push(d.name);
-						common.push(d.deviceType ?? "");
-						common.push(loc?.facility || loc?.facilityCode || loc?.code || "");
-						common.push(loc?.facility_title || loc?.city || "");
-						common.push(String(d.deviceId || ""));
-						common.push(...(d.tags ?? []));
-					}
-
-					return common
-						.filter(Boolean)
-						.join(" ")
-						.toLowerCase()
-						.includes(search);
-				});
-			}
-
-			const total = all.length;
-			const items = all.slice(cursor, cursor + limit);
-			const nextCursor = cursor + limit < total ? cursor + limit : null;
-
-			// Summary counts (after type + facility + search filters, before pagination)
-			const counts = {
-				dedicated: all.filter((r) => r.resourceType === "dedicated").length,
-				vds: all.filter((r) => r.resourceType === "vds").length,
-				vps: all.filter((r) => r.resourceType === "vps").length,
-				total,
-			};
+			const allowed = await collectHivelocityDeviceIdsForTeam(teamId, input.type);
+			const merged = await fetchMergedHivelocityResources();
+			const scoped = merged.filter((r) => {
+				const id = resourceRowDeviceId(r);
+				return id != null && allowed.has(id) && r.resourceType === input.type;
+			});
+			const all = applyHivelocityResourceListFilters(scoped, input.type, search, facilityCode);
+			const { items, total, nextCursor, counts } = paginateHivelocityResourceList(all, limit, cursor);
 
 			return { success: true, data: { items, total, nextCursor, counts } };
 		}),
@@ -946,8 +1002,9 @@ export const hivelocityRouter = router({
 	 * Private: Get device details (standard /device/{id}).
 	 */
 	getDeviceDetails: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			try {
 				const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}`, { requireApiKey: true });
 				const parsed = hivelocityDeviceDumpSchema.safeParse(raw);
@@ -967,8 +1024,9 @@ export const hivelocityRouter = router({
 	 * Private: Get VPS-specific details (/vps/{id}).
 	 */
 	getVpsDetails: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			try {
 				const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}`, { requireApiKey: true });
 				const parsed = hivelocityVpsSchema.safeParse(raw);
@@ -987,8 +1045,9 @@ export const hivelocityRouter = router({
 	 * Private: Get VPS event log.
 	 */
 	getVpsEvents: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/events`, { requireApiKey: true });
 			return { success: true, data: raw };
 		}),
@@ -998,17 +1057,20 @@ export const hivelocityRouter = router({
 	 */
 	getVpsMetrics: protectedProcedure
 		.input(
-			z.object({
-				deviceId: z.number().int(),
-				metricType: z.enum(["CPU_USAGE", "MEMORY_USAGE", "DISK_RW", "NETWORK_USAGE"]),
-				startTime: z.number().int().optional(),
-				endTime: z.number().int().optional(),
-				imageWidth: z.number().int().optional(),
-				imageHeight: z.number().int().optional(),
-			}),
+			z
+				.object({
+					deviceId: z.number().int(),
+					metricType: z.enum(["CPU_USAGE", "MEMORY_USAGE", "DISK_RW", "NETWORK_USAGE"]),
+					startTime: z.number().int().optional(),
+					endTime: z.number().int().optional(),
+					imageWidth: z.number().int().optional(),
+					imageHeight: z.number().int().optional(),
+				})
+				.and(teamHivelocityAccessSchema),
 		)
-		.query(async ({ input }) => {
-			const { deviceId, ...query } = input;
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { deviceId, teamSlug: _ts, teamResourceCategory: _trc, ...query } = input;
 			const raw = await hivelocityRequest<unknown>(`/vps/${deviceId}/metrics`, {
 				query,
 				requireApiKey: true,
@@ -1020,8 +1082,9 @@ export const hivelocityRouter = router({
 	 * Private: Get VPS volumes.
 	 */
 	getVpsVolumes: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>("/vps/volume", {
 				query: { deviceId: input.deviceId },
 				requireApiKey: true,
@@ -1031,12 +1094,15 @@ export const hivelocityRouter = router({
 
 	devicePowerAction: protectedProcedure
 		.input(
-			z.object({
-				deviceId: z.number().int(),
-				action: z.enum(["on", "off", "reboot", "boot", "shutdown"]),
-			}),
+			z
+				.object({
+					deviceId: z.number().int(),
+					action: z.enum(["on", "off", "reboot", "boot", "shutdown"]),
+				})
+				.and(teamHivelocityAccessSchema),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			// Map on/off to boot/shutdown if needed, or just pass as is if API supports both.
 			// The OpenAPI says boot/reboot/shutdown.
 			let apiAction = input.action;
@@ -1075,8 +1141,9 @@ export const hivelocityRouter = router({
 	 * Private: Get device power status (ON/OFF).
 	 */
 	getDevicePowerStatus: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<any>(`/device/${input.deviceId}/power`, { requireApiKey: true });
 			
 			// Check Redis for pending action
@@ -1112,8 +1179,9 @@ export const hivelocityRouter = router({
 	 * Private: Get device switch ports and IP assignments.
 	 */
 	getDevicePorts: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/ports`, { requireApiKey: true });
 			return { success: true, data: raw };
 		}),
@@ -1122,8 +1190,9 @@ export const hivelocityRouter = router({
 	 * Private: Get initial SSH credentials (user, password, port).
 	 */
 	getDeviceInitialCreds: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/initial-creds`, { requireApiKey: true });
 			return { success: true, data: raw };
 		}),
@@ -1132,8 +1201,9 @@ export const hivelocityRouter = router({
 	 * Private: Get initial SSH password.
 	 */
 	getDeviceInitialPassword: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/initial-password`, { requireApiKey: true });
 			return { success: true, data: raw };
 		}),
@@ -1142,8 +1212,9 @@ export const hivelocityRouter = router({
 	 * Private: Check if facility supports IPMI whitelist.
 	 */
 	getIpmiWhitelistSupported: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.query(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/ipmi/whitelist-supported`, { requireApiKey: true });
 			return { success: true, data: raw };
 		}),
@@ -1152,14 +1223,20 @@ export const hivelocityRouter = router({
 	 * Private: Get all VPS Snapshot Schedules for a device/facility.
 	 */
 	getVpsSnapshotSchedules: protectedProcedure
-		.input(z.object({ 
-			deviceId: z.number().int().optional(),
-			facilityCode: z.string().optional(),
-			clientId: z.number().int().optional()
-		}))
-		.query(async ({ input }) => {
+		.input(
+			z
+				.object({
+					deviceId: z.number().int().optional(),
+					facilityCode: z.string().optional(),
+					clientId: z.number().int().optional(),
+				})
+				.and(teamHivelocityAccessSchema),
+		)
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { teamSlug: _ts, teamResourceCategory: _trc, ...query } = input;
 			const raw = await hivelocityRequest<unknown>("/vps/snapshotSchedule", {
-				query: input,
+				query,
 				requireApiKey: true,
 			});
 			return { success: true, data: raw };
@@ -1169,11 +1246,17 @@ export const hivelocityRouter = router({
 	 * Private: Create a VPS Snapshot Schedule.
 	 */
 	createVpsSnapshotSchedule: protectedProcedure
-		.input(hivelocityVpsSnapshotScheduleCreateSchema)
-		.mutation(async ({ input }) => {
+		.input(
+			hivelocityVpsSnapshotScheduleCreateSchema
+				.extend({ deviceId: z.number().int().optional() })
+				.and(teamHivelocityAccessSchema),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { teamSlug: _ts, teamResourceCategory: _trc, deviceId: _deviceId, ...body } = input;
 			const raw = await hivelocityRequest<unknown>("/vps/snapshotSchedule", {
 				method: "POST",
-				body: input,
+				body,
 				requireApiKey: true,
 			});
 			return { success: true, data: raw };
@@ -1183,11 +1266,13 @@ export const hivelocityRouter = router({
 	 * Private: Create a new VPS Volume.
 	 */
 	createVpsVolume: protectedProcedure
-		.input(hivelocityVpsVolumeCreateSchema)
-		.mutation(async ({ input }) => {
+		.input(hivelocityVpsVolumeCreateSchema.and(teamHivelocityAccessSchema))
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { teamSlug: _ts, teamResourceCategory: _trc, ...body } = input;
 			const raw = await hivelocityRequest<unknown>("/vps/volume", {
 				method: "POST",
-				body: input,
+				body,
 				requireApiKey: true,
 			});
 			return { success: true, data: raw };
@@ -1197,13 +1282,18 @@ export const hivelocityRouter = router({
 	 * Private: Resize a VPS Volume.
 	 */
 	resizeVpsVolume: protectedProcedure
-		.input(z.object({ 
-			volumeId: z.string(), 
-			size: z.number().int(),
-			deviceId: z.number().int().optional()
-		}))
-		.mutation(async ({ input }) => {
-			const { volumeId, ...body } = input;
+		.input(
+			z
+				.object({
+					volumeId: z.string(),
+					size: z.number().int(),
+					deviceId: z.number().int().optional(),
+				})
+				.and(teamHivelocityAccessSchema),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { volumeId, teamSlug: _ts, teamResourceCategory: _trc, ...body } = input;
 			const raw = await hivelocityRequest<unknown>(`/vps/volume/${volumeId}`, {
 				method: "PUT",
 				body,
@@ -1216,12 +1306,17 @@ export const hivelocityRouter = router({
 	 * Private: Delete a VPS Volume.
 	 */
 	deleteVpsVolume: protectedProcedure
-		.input(z.object({ 
-			volumeId: z.string(),
-			deviceId: z.number().int().optional()
-		}))
-		.mutation(async ({ input }) => {
-			const { volumeId, ...body } = input;
+		.input(
+			z
+				.object({
+					volumeId: z.string(),
+					deviceId: z.number().int().optional(),
+				})
+				.and(teamHivelocityAccessSchema),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { volumeId, teamSlug: _ts, teamResourceCategory: _trc, ...body } = input;
 			const raw = await hivelocityRequest<unknown>(`/vps/volume/${volumeId}`, {
 				method: "DELETE",
 				body,
@@ -1338,15 +1433,18 @@ export const hivelocityRouter = router({
 	 */
 	reloadDevice: protectedProcedure
 		.input(
-			z.object({
-				deviceId: z.number().int(),
-				operatingSystemId: z.number().int().optional(),
-				publicSshKeyIds: z.array(z.number().int()).optional(),
-				script: z.string().optional(),
-			}),
+			z
+				.object({
+					deviceId: z.number().int(),
+					operatingSystemId: z.number().int().optional(),
+					publicSshKeyIds: z.array(z.number().int()).optional(),
+					script: z.string().optional(),
+				})
+				.and(teamHivelocityAccessSchema),
 		)
-		.mutation(async ({ input }) => {
-			const { deviceId, ...body } = input;
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { deviceId, teamSlug: _ts, teamResourceCategory: _trc, ...body } = input;
 			const raw = await hivelocityRequest<unknown>(`/device/${deviceId}/reload`, {
 				method: "POST",
 				body,
@@ -1360,14 +1458,17 @@ export const hivelocityRouter = router({
 	 */
 	updateDevice: protectedProcedure
 		.input(
-			z.object({
-				deviceId: z.number().int(),
-				name: z.string().optional(),
-				hostname: z.string().optional(),
-			}),
+			z
+				.object({
+					deviceId: z.number().int(),
+					name: z.string().optional(),
+					hostname: z.string().optional(),
+				})
+				.and(teamHivelocityAccessSchema),
 		)
-		.mutation(async ({ input }) => {
-			const { deviceId, ...body } = input;
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const { deviceId, teamSlug: _ts, teamResourceCategory: _trc, ...body } = input;
 			const raw = await hivelocityRequest<unknown>(`/device/${deviceId}`, {
 				method: "PUT",
 				body,
@@ -1380,8 +1481,9 @@ export const hivelocityRouter = router({
 	 * Private: Request token to reset root password for VPS.
 	 */
 	vpsRequestResetPasswordToken: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.mutation(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/reset-password`, {
 				method: "POST",
 				requireApiKey: true,
@@ -1393,11 +1495,16 @@ export const hivelocityRouter = router({
 	 * Private: Reset VPS root password (requires token and device to be powered off).
 	 */
 	vpsResetRootPassword: protectedProcedure
-		.input(z.object({ 
-			deviceId: z.number().int(),
-			token: z.string().min(1)
-		}))
-		.mutation(async ({ input }) => {
+		.input(
+			z
+				.object({
+					deviceId: z.number().int(),
+					token: z.string().min(1),
+				})
+				.and(teamHivelocityAccessSchema),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const { deviceId, token } = input;
 			const raw = await hivelocityRequest<unknown>(`/vps/${deviceId}/reset-password`, {
 				method: "PUT",
@@ -1412,12 +1519,15 @@ export const hivelocityRouter = router({
 	 */
 	vpsAttachIso: protectedProcedure
 		.input(
-			z.object({
-				deviceId: z.number().int(),
-				isoId: z.string(),
-			}),
+			z
+				.object({
+					deviceId: z.number().int(),
+					isoId: z.string(),
+				})
+				.and(teamHivelocityAccessSchema),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/attachiso`, {
 				method: "POST",
 				body: { isoId: input.isoId },
@@ -1430,8 +1540,9 @@ export const hivelocityRouter = router({
 	 * Private: Detach ISO from VPS.
 	 */
 	vpsDetachIso: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.mutation(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/detachiso`, {
 				method: "POST",
 				requireApiKey: true,
@@ -1443,8 +1554,9 @@ export const hivelocityRouter = router({
 	 * Private: Get one-time browser console URL for VPS.
 	 */
 	vpsGetConsoleUrl: protectedProcedure
-		.input(z.object({ deviceId: z.number().int() }))
-		.mutation(async ({ input }) => {
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
 			const raw = await hivelocityRequest<unknown>(`/vps/${input.deviceId}/console`, {
 				method: "POST",
 				requireApiKey: true,

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 import {
   Alert,
   AlertDescription,
@@ -18,6 +19,7 @@ interface VpsRescueProps {
 }
 
 export function VpsRescue({ deviceId }: VpsRescueProps) {
+  const teamTrpc = useHivelocityTeamTrpcInput();
   const attachMutation = trpc.hivelocity.vpsAttachIso.useMutation({
     onSuccess: () => toast.success("ISO attachment triggered successfully"),
     onError: (err) => toast.error(`Failed to attach ISO: ${err.message}`)
@@ -70,7 +72,7 @@ export function VpsRescue({ deviceId }: VpsRescueProps) {
                         size="sm" 
                         variant="outline" 
                         className="h-8"
-                        onClick={() => attachMutation.mutate({ deviceId, isoId: iso.id })}
+                        onClick={() => attachMutation.mutate({ deviceId, isoId: iso.id, ...teamTrpc })}
                         disabled={attachMutation.isPending}
                       >
                          <Upload className="h-3 w-3 mr-1" />
@@ -105,7 +107,7 @@ export function VpsRescue({ deviceId }: VpsRescueProps) {
                className="gap-2"
                onClick={() => {
                  if (confirm("Are you ABSOLUTELY sure you want to wipe this server and reinstall the OS? All data will be lost.")) {
-                   reloadMutation.mutate({ deviceId });
+                   reloadMutation.mutate({ deviceId, ...teamTrpc });
                  }
                }}
                disabled={reloadMutation.isPending}
@@ -135,7 +137,7 @@ export function VpsRescue({ deviceId }: VpsRescueProps) {
              variant="outline" 
              size="sm" 
              className="gap-2 text-muted-foreground"
-             onClick={() => detachMutation.mutate({ deviceId })}
+             onClick={() => detachMutation.mutate({ deviceId, ...teamTrpc })}
              disabled={detachMutation.isPending}
            >
               <XCircle className="h-4 w-4" />

@@ -1,135 +1,74 @@
 "use client";
 
-import { Pricing } from "@/components/pricing";
+import * as React from "react";
+import { useParams } from "react-router";
+import { PricingTableWrapper } from "@/components/pricing-table-wrapper";
+import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
 import { trpc } from "@/utils/trpc";
 
-interface PricingPlan {
-  name: string;
-  price: string;
-  yearlyPrice: string;
-  period: string;
-  features: string[];
-  description: string;
-  buttonText: string;
-  href: string;
-  isPopular: boolean;
-}
-
-/**
- * Calculate yearly price from monthly price with 20% discount
- */
-function calculateYearlyPrice(monthlyPrice: number): string {
-  return Math.round(monthlyPrice * 12 * 0.8).toString();
-}
-
-/**
- * Derive pricing from billing cycle
- */
-function derivePricing(niscPrice: string | null | undefined, billingCycle: string): {
-  monthlyPrice: string;
-  yearlyPrice: string;
-} {
-  if (!niscPrice) {
-    return { monthlyPrice: "0", yearlyPrice: "0" };
-  }
-
-  const price = parseFloat(niscPrice);
-  if (isNaN(price)) {
-    return { monthlyPrice: "0", yearlyPrice: "0" };
-  }
-
-  // If billing cycle is MONTHLY, use price as-is for monthly
-  if (billingCycle === "MONTHLY") {
-    return {
-      monthlyPrice: Math.round(price).toString(),
-      yearlyPrice: calculateYearlyPrice(price),
-    };
-  }
-
-  // If billing cycle is YEARLY, calculate monthly from yearly
-  if (billingCycle === "YEARLY") {
-    const monthly = Math.round(price / 12);
-    return {
-      monthlyPrice: monthly.toString(),
-      yearlyPrice: Math.round(price).toString(),
-    };
-  }
-
-  // For other cycles, use as monthly and calculate yearly
-  return {
-    monthlyPrice: Math.round(price).toString(),
-    yearlyPrice: calculateYearlyPrice(price),
-  };
-}
+/** Matches marketplace creatives-design checkout subType. */
+const CREATIVE_ASSETS_BUY_SUBTYPE = "CREATIVES" as const;
 
 export function CreativeAssetsPricing() {
-  const { data: plans, isLoading } = trpc.hostingPlans.getAll.useQuery({
-    planType: "VISUAL_CREATIVE",
-    isActive: true,
-  });
+  const params = useParams();
+  const slug = typeof params?.slug === "string" ? params.slug : "";
+  const { data: teamData } = trpc.teams.getTeamIdBySlug.useQuery({ slug }, { enabled: !!slug });
 
-  if (isLoading) {
-    return (
-      <div className="h-[800px] overflow-y-auto rounded-lg flex items-center justify-center">
-        <div className="text-muted-foreground">Loading pricing plans...</div>
-      </div>
-    );
-  }
+  const [buyNowOpen, setBuyNowOpen] = React.useState(false);
+  const [selectedPlan, setSelectedPlan] = React.useState<ServicePlanDetails | null>(null);
 
-  const visualCreativePlans = plans || [];
+  const { data: pricingData, isLoading } = trpc.products.getCreativesDesignPlansForPricing.useQuery();
 
-  if (visualCreativePlans.length === 0) {
-    return (
-      <div className="h-[800px] overflow-y-auto rounded-lg flex items-center justify-center">
-        <div className="text-muted-foreground">No creative assets plans available</div>
-      </div>
-    );
-  }
+  const handleBuyNow = React.useCallback(
+    (plan: {
+      id: string;
+      name: string;
+      niscPrice?: string | null;
+      niscCurrency?: string;
+      billingCycle?: string;
+      productId?: string;
+      selectedBillingCycle?: "MONTHLY" | "YEARLY";
+      selectedPrice?: number;
+    }) => {
+      const billingCycle = plan.selectedBillingCycle || plan.billingCycle || "MONTHLY";
+      const price = plan.selectedPrice ?? parseFloat(plan.niscPrice || "0");
 
-  // Transform plans to pricing format
-  const pricingPlans: PricingPlan[] = visualCreativePlans
-    .map((plan) => {
-      const { monthlyPrice, yearlyPrice } = derivePricing(
-        plan.niscPrice,
-        plan.billingCycle
-      );
-
-      const planNameLower = plan.name.toLowerCase();
-      // Determine button text: "Contact Us" if plan name contains "unlimited" or "ultimate", otherwise "Get Started"
-      const buttonText =
-        planNameLower.includes("unlimited") || planNameLower.includes("ultimate")
-          ? "Contact Us"
-          : "Get Started";
-
-      return {
-        name: plan.name.toUpperCase(),
-        price: monthlyPrice,
-        yearlyPrice: yearlyPrice,
-        period: "per month",
-        features: plan.features || [],
-        description: plan.description || "",
-        buttonText,
-        href: "", // Empty for now as per requirements
-        isPopular: plan.isPopular || false,
+      const planDetails: ServicePlanDetails = {
+        planId: plan.id,
+        planName: plan.name,
+        planType: "HOSTING",
+        subType: CREATIVE_ASSETS_BUY_SUBTYPE,
+        price,
+        currency: plan.niscCurrency || "KES",
+        billingCycle: billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY",
+        productId: plan.productId,
       };
-    })
-    // Sort by monthly price from lowest to highest
-    .sort((a, b) => {
-      const priceA = parseFloat(a.price) || 0;
-      const priceB = parseFloat(b.price) || 0;
-      return priceA - priceB;
-    });
+
+      setSelectedPlan(planDetails);
+      setBuyNowOpen(true);
+    },
+    [],
+  );
 
   return (
-    <div className="h-[800px] overflow-y-auto rounded-lg">
-      <Pricing
-        plans={pricingPlans}
-        title="Simple, Transparent Pricing"
-        description="Choose the plan that works for you."
+    <>
+      <PricingTableWrapper
+        plans={pricingData?.plans ?? []}
+        productFeatures={pricingData?.productFeatures}
+        isLoading={isLoading}
         currency="KES"
+        locale="en-KE"
+        onBuyNow={handleBuyNow}
       />
-    </div>
+      {selectedPlan && (
+        <BuyNowDialog
+          open={buyNowOpen}
+          onOpenChange={setBuyNowOpen}
+          plan={selectedPlan}
+          requireDomainStep={false}
+          teamId={teamData?.id}
+        />
+      )}
+    </>
   );
 }
-
-

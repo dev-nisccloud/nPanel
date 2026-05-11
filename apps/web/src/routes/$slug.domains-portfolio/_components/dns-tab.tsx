@@ -36,7 +36,7 @@ export function DnsTab({ domain, onHostingClick }: DnsTabProps) {
   }
 
   if (hasHosting && subscriptionId) {
-    return <DnsTable siteId={Number(subscriptionId)} />;
+    return <DnsTable siteId={Number(subscriptionId)} domainName={domain.domain} />;
   }
 
   // No hosting found - Show CTA

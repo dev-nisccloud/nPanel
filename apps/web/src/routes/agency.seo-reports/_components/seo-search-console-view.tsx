@@ -34,6 +34,7 @@ import {
     Info,
 } from "lucide-react";
 import type { SeoSite } from "./schemas";
+import { CreateSeoSubscriptionDialog } from "./create-seo-subscription-dialog";
 import {
     Table,
     TableBody,
@@ -219,7 +220,10 @@ export function SeoSearchConsoleView({ sites }: SeoSearchConsoleViewProps) {
                     </Select>
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                    {selectedSiteId ? (
+                        <CreateSeoSubscriptionDialog scope="SEARCH_CONSOLE" siteUrl={selectedSiteId} />
+                    ) : null}
                     <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" size="sm" className="h-10 w-full md:w-auto justify-start shadow-sm border-muted/60 font-medium whitespace-nowrap">

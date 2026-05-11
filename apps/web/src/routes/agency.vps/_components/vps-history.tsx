@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 import { format } from "date-fns";
 
 interface VpsHistoryProps {
@@ -15,7 +16,8 @@ interface VpsHistoryProps {
 }
 
 export function VpsHistory({ deviceId }: VpsHistoryProps) {
-  const eventsQuery = trpc.hivelocity.getVpsEvents.useQuery({ deviceId });
+  const teamTrpc = useHivelocityTeamTrpcInput();
+  const eventsQuery = trpc.hivelocity.getVpsEvents.useQuery({ deviceId, ...teamTrpc });
   const [search, setSearch] = React.useState("");
 
   const isLoading = eventsQuery.isLoading;

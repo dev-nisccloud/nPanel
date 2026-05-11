@@ -88,8 +88,12 @@ const resolvedTrustedOrigins = (() => {
   return undefined;
 })();
 
-const frontendBaseUrl = () =>
-  process.env.APP_URL || process.env.CORS_ORIGIN || env.CORS_ORIGIN || "http://localhost:3002";
+const frontendBaseUrl = () => {
+  const raw =
+    process.env.APP_URL || process.env.CORS_ORIGIN || env.CORS_ORIGIN || "http://localhost:3002";
+  // Avoid `//auth/...` when env has a trailing slash (e.g. http://host:5173/)
+  return raw.replace(/\/+$/, "");
+};
 
 export const auth = betterAuth<BetterAuthOptions>({
   database: drizzleAdapter(db, {

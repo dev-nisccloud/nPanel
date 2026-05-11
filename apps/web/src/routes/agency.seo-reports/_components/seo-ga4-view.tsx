@@ -57,6 +57,8 @@ import {
     Cell,
 } from "recharts";
 
+import { CreateSeoSubscriptionDialog } from "./create-seo-subscription-dialog";
+
 /** GA4 property from listGa4Properties (independent of GSC). */
 type Ga4Property = { propertyId: string; displayName: string; defaultUrl: string | null };
 
@@ -214,7 +216,17 @@ export function SeoGa4View() {
                     </Select>
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                    {selectedPropertyId ? (
+                        <CreateSeoSubscriptionDialog
+                            scope="GA4"
+                            propertyId={selectedPropertyId}
+                            propertyDisplayName={
+                                ga4Properties.find((p: Ga4Property) => p.propertyId === selectedPropertyId)?.displayName ??
+                                null
+                            }
+                        />
+                    ) : null}
                     <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" size="sm" className="h-10 w-full md:w-auto justify-start shadow-sm border-muted/60 font-medium whitespace-nowrap">

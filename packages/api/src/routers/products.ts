@@ -802,6 +802,227 @@ export const productsRouter = router({
             return { productFeatures, plans };
         }),
 
+    /** Plans for SEO customer pricing table. Matches products whose name contains "seo" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    getSeoPlansForPricing: publicProcedure
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                plans: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        niscPrice: z.string().nullable(),
+                        niscCurrency: z.string(),
+                        billingCycle: z.string(),
+                        isPopular: z.boolean(),
+                        isRecommended: z.boolean(),
+                        productId: z.string(),
+                        productName: z.string(),
+                        featureValues: z.array(
+                            z.object({
+                                available: z.boolean(),
+                                valueOverride: z.string().nullable(),
+                            })
+                        ),
+                    })
+                ),
+            })
+        )
+        .query(async () => {
+            const products = await db.query.niscProduct.findMany({
+                where: and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%seo%")),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
+                    plans: {
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "FIXED"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [
+                            a(plan.sortOrder),
+                            a(plan.createdAt),
+                        ],
+                    },
+                },
+            });
+
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push(f);
+                    }
+                }
+            }
+
+            const plans: Array<{
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+            }> = [];
+
+            for (const product of products) {
+                for (const plan of (product as any).plans ?? []) {
+                    const planFeats =
+                        (plan.planFeatures as Array<{
+                            key: string;
+                            available: boolean;
+                            valueOverride?: string | null;
+                        }>) ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+                    plans.push({
+                        id: plan.id,
+                        name: plan.name,
+                        niscPrice: plan.price ?? null,
+                        niscCurrency: plan.currency ?? "KES",
+                        billingCycle: plan.billingCycle ?? "MONTHLY",
+                        isPopular: plan.isPopular ?? false,
+                        isRecommended: plan.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+            }
+
+            return { productFeatures, plans };
+        }),
+
+    /**
+     * Creative / design customer pricing (e.g. Creative Assets empty state). Matches products whose name
+     * contains "creatives design", "creative_design", or "creatives_design" (case-insensitive).
+     * Same output shape as getHostingPlansForPricing.
+     */
+    getCreativesDesignPlansForPricing: publicProcedure
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                plans: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        niscPrice: z.string().nullable(),
+                        niscCurrency: z.string(),
+                        billingCycle: z.string(),
+                        isPopular: z.boolean(),
+                        isRecommended: z.boolean(),
+                        productId: z.string(),
+                        productName: z.string(),
+                        featureValues: z.array(
+                            z.object({
+                                available: z.boolean(),
+                                valueOverride: z.string().nullable(),
+                            })
+                        ),
+                    })
+                ),
+            })
+        )
+        .query(async () => {
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    or(
+                        ilike(niscProduct.name, "%creatives design%"),
+                        ilike(niscProduct.name, "%creative_design%"),
+                        ilike(niscProduct.name, "%creatives_design%"),
+                    ),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
+                    plans: {
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "FIXED"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [
+                            a(plan.sortOrder),
+                            a(plan.createdAt),
+                        ],
+                    },
+                },
+            });
+
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push(f);
+                    }
+                }
+            }
+
+            const plans: Array<{
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+            }> = [];
+
+            for (const product of products) {
+                for (const plan of (product as any).plans ?? []) {
+                    const planFeats =
+                        (plan.planFeatures as Array<{
+                            key: string;
+                            available: boolean;
+                            valueOverride?: string | null;
+                        }>) ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+                    plans.push({
+                        id: plan.id,
+                        name: plan.name,
+                        niscPrice: plan.price ?? null,
+                        niscCurrency: plan.currency ?? "KES",
+                        billingCycle: plan.billingCycle ?? "MONTHLY",
+                        isPopular: plan.isPopular ?? false,
+                        isRecommended: plan.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+            }
+
+            return { productFeatures, plans };
+        }),
+
     /**
      * Plans for the Nisc Email Marketing customer app pricing table. Matches products named
      * "Nisc Email Marketing" or "Email Marketing" (case-insensitive, substring). Same output shape

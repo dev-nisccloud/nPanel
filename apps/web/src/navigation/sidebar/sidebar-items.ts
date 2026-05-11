@@ -74,6 +74,16 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/emails",
         icon: (props: any) => React.createElement(Icons.Mail, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
+      {
+        title: "Cloud Servers",
+        url: "/dashboard/dedicated-servers",
+        icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Dedicated Servers", url: "/dashboard/dedicated-servers", },
+          { title: "VPS Hosting", url: "/dashboard/vps", },
+          { title: "VDS Hosting", url: "/dashboard/vds", },
+        ],
+      },
       // {
       //   title: "Files",
       //   url: "/dashboard/files",
@@ -128,6 +138,9 @@ export const sidebarItems: NavGroup[] = [
         title: "SEO",
         url: "/dashboard/seo",
         icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "SEO Reports", url: "/dashboard/seo-reports", },
+        ],
       },
       {
         title: "Creatives & Design",
@@ -141,19 +154,9 @@ export const sidebarItems: NavGroup[] = [
     label: "Gen AI Tools",
     items: [
       {
-        title: "Visual Studio",
-        url: "/dashboard/gen-ai/image-gen-studio",
+        title: "Zeepo AI Canvas",
+        url: "/dashboard/zeepo-canvas",
         icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-      {
-        title: "Image Generator",
-        url: "/dashboard/gen-ai/image-generator",
-        icon: (props: any) => React.createElement(Icons.AIImage, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
-      {
-        title: "Background Remover",
-        url: "/dashboard/gen-ai/background-remover",
-        icon: (props: any) => React.createElement(Icons.BackgroundRemover, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],
   },
@@ -261,6 +264,14 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/wordpress",
         icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
+      // {
+      //   title: "Backups & Restore",
+      //   url: "/agency/backup-restore",
+      //   icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      //   subItems: [
+      //     { title: "JetBackup 5", url: "/agency/backup-restore/jetbackup5", },
+      //   ],
+      // },
     ],
   },
   {

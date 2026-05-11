@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,10 +61,12 @@ interface VpsStorageProps {
 
 export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
   const utils = trpc.useUtils();
+  const teamTrpc = useHivelocityTeamTrpcInput();
+  const isTeamScoped = "teamSlug" in teamTrpc;
 
   // Queries
-  const volumesQuery = trpc.hivelocity.getVpsVolumes.useQuery({ deviceId });
-  const schedulesQuery = trpc.hivelocity.getVpsSnapshotSchedules.useQuery({ deviceId });
+  const volumesQuery = trpc.hivelocity.getVpsVolumes.useQuery({ deviceId, ...teamTrpc });
+  const schedulesQuery = trpc.hivelocity.getVpsSnapshotSchedules.useQuery({ deviceId, ...teamTrpc });
   const snapshotsQuery = trpc.hivelocity.getVpsSnapshots.useQuery(
     { facilityCode: facilityCode || "" },
     { enabled: !!facilityCode }
@@ -73,7 +76,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
   const createVolumeMutation = trpc.hivelocity.createVpsVolume.useMutation({
     onSuccess: () => {
       toast.success("Volume creation task initiated");
-      utils.hivelocity.getVpsVolumes.invalidate({ deviceId });
+      utils.hivelocity.getVpsVolumes.invalidate({ deviceId, ...teamTrpc });
       setIsCreateVolumeOpen(false);
     },
     onError: (err) => toast.error(`Failed to create volume: ${err.message}`)
@@ -82,7 +85,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
   const resizeVolumeMutation = trpc.hivelocity.resizeVpsVolume.useMutation({
     onSuccess: () => {
       toast.success("Volume resize task initiated");
-      utils.hivelocity.getVpsVolumes.invalidate({ deviceId });
+      utils.hivelocity.getVpsVolumes.invalidate({ deviceId, ...teamTrpc });
       setIsResizeVolumeOpen(false);
     },
     onError: (err) => toast.error(`Failed to resize volume: ${err.message}`)
@@ -91,7 +94,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
   const deleteVolumeMutation = trpc.hivelocity.deleteVpsVolume.useMutation({
     onSuccess: () => {
       toast.success("Volume deletion task initiated");
-      utils.hivelocity.getVpsVolumes.invalidate({ deviceId });
+      utils.hivelocity.getVpsVolumes.invalidate({ deviceId, ...teamTrpc });
     },
     onError: (err) => toast.error(`Failed to delete volume: ${err.message}`)
   });
@@ -99,7 +102,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
   const createScheduleMutation = trpc.hivelocity.createVpsSnapshotSchedule.useMutation({
     onSuccess: () => {
       toast.success("Snapshot schedule created successfully");
-      utils.hivelocity.getVpsSnapshotSchedules.invalidate({ deviceId });
+      utils.hivelocity.getVpsSnapshotSchedules.invalidate({ deviceId, ...teamTrpc });
       setIsCreateScheduleOpen(false);
     },
     onError: (err) => toast.error(`Failed to create schedule: ${err.message}`)
@@ -108,7 +111,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
   const deleteScheduleMutation = trpc.hivelocity.deleteVpsSnapshotSchedule.useMutation({
     onSuccess: () => {
       toast.success("Snapshot policy removed");
-      utils.hivelocity.getVpsSnapshotSchedules.invalidate({ deviceId });
+      utils.hivelocity.getVpsSnapshotSchedules.invalidate({ deviceId, ...teamTrpc });
     },
     onError: (err) => toast.error(`Failed to remove policy: ${err.message}`)
   });
@@ -169,7 +172,8 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
   const handleCreateVolume = () => {
     createVolumeMutation.mutate({
       deviceId,
-      size: parseInt(volumeSize, 10)
+      size: parseInt(volumeSize, 10),
+      ...teamTrpc,
     });
   };
 
@@ -194,7 +198,9 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
     }
     createScheduleMutation.mutate({
       ...scheduleData,
-      facilityCode
+      facilityCode,
+      ...teamTrpc,
+      ...(isTeamScoped ? { deviceId } : {}),
     });
   };
 
@@ -353,7 +359,14 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
             <DialogFooter>
               <Button variant="ghost" onClick={() => setIsResizeVolumeOpen(false)} className="font-bold text-[10px] uppercase tracking-wider">Cancel</Button>
               <Button 
-                onClick={() => resizeVolumeMutation.mutate({ volumeId: selectedVolume.volumeId, size: parseInt(volumeSize, 10), deviceId })}
+                onClick={() =>
+                  resizeVolumeMutation.mutate({
+                    volumeId: selectedVolume.volumeId,
+                    size: parseInt(volumeSize, 10),
+                    deviceId,
+                    ...teamTrpc,
+                  })
+                }
                 disabled={resizeVolumeMutation.isPending || !volumeSize}
                 className="font-bold text-[10px] uppercase tracking-wider px-8"
               >
@@ -429,7 +442,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={() => deleteVolumeMutation.mutate({ volumeId: vol.volumeId, deviceId })}
+                            onClick={() => deleteVolumeMutation.mutate({ volumeId: vol.volumeId, deviceId, ...teamTrpc })}
                             disabled={vol.type === 'ROOT'}
                             className="gap-2 font-bold text-[10px] uppercase py-2 text-destructive focus:text-destructive"
                           >

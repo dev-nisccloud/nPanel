@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle, XCircle, HardDrive, Wifi, Cpu, Database as DatabaseIcon, Globe, ExternalLink, Copy, Eye, EyeOff, Edit, Mail } from "lucide-react";
+import { CheckCircle, XCircle, HardDrive, Wifi, Cpu, Database as DatabaseIcon, Globe, ExternalLink, Copy, Eye, EyeOff, Mail } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 
@@ -18,6 +18,12 @@ import {
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageSpeedInsightsCard } from "./pagespeed-insights-card";
+import {
+  finitePositiveCap,
+  formatPleskBytesLimit,
+  formatPleskCountLimit,
+  usagePercent,
+} from "@/lib/plesk-limits-display";
 
 interface HostingOverviewProps {
   hostingData: z.infer<typeof hostingDetailSchema>;
@@ -26,6 +32,7 @@ interface HostingOverviewProps {
 export function HostingOverview({ hostingData }: HostingOverviewProps) {
 
   const formatBytes = (bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes < 0) return "—";
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
@@ -45,30 +52,6 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
   const getLimitValue = (name: string) => {
     const limit = hostingData.limits?.limit?.find((l: any) => l.name === name);
     return limit?.value;
-  };
-
-  const getDiskUsagePercentage = () => {
-    const used = hostingData.gen_info?.["real_size"] ?? 0;
-    const limit = getLimitValue("disk_space") || 1;
-    return Math.round((used / limit) * 100);
-  };
-
-  const getTrafficUsagePercentage = () => {
-    const used = hostingData.stat?.traffic ?? 0;
-    const limit = getLimitValue("max_traffic") || 1;
-    return Math.round((used / limit) * 100);
-  };
-
-  const getMailboxUsagePercentage = () => {
-    const used = hostingData.stat?.box ?? 0;
-    const limit = getLimitValue("max_box") || 1;
-    return Math.round((used / limit) * 100);
-  };
-
-  const getDatabaseUsagePercentage = () => {
-    const used = hostingData.stat?.db ?? 0;
-    const limit = getLimitValue("max_db") || 1;
-    return Math.round((used / limit) * 100);
   };
 
   // Copy to clipboard helper
@@ -200,34 +183,11 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
         {/* FTP Account Card */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <HardDrive className="h-5 w-5" />
-                  FTP Account
-                </CardTitle>
-                <CardDescription>FTP connection details</CardDescription>
-              </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => {
-                        // TODO: Implement edit FTP password functionality
-                        toast.info("Edit FTP password functionality");
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span className="sr-only">Edit FTP password</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Edit your FTP account password</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <HardDrive className="h-5 w-5" />
+              FTP Account
+            </CardTitle>
+            <CardDescription>FTP connection details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* FTP IP (Hostname) */}
@@ -348,21 +308,27 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             {/* Disk Space */}
             {(() => {
               const used = hostingData.gen_info?.["real_size"] ?? 0;
-              const hardLimit = getLimitValue("disk_space") || 1;
-              const softLimit = getLimitValue("disk_space_soft");
-              const percentage = Math.min(Math.round((used / hardLimit) * 100), 100);
-              const softPercentage = softLimit && softLimit > 0 ? Math.round((softLimit / hardLimit) * 100) : null;
+              const rawHard = getLimitValue("disk_space");
+              const hardCap = finitePositiveCap(rawHard);
+              const softCap = finitePositiveCap(getLimitValue("disk_space_soft"));
+              const percentage = usagePercent(used, hardCap);
               const radius = 30;
               const circumference = 2 * Math.PI * radius;
-              const offset = circumference - (percentage / 100) * circumference;
+              const pctForRing = percentage ?? 0;
+              const offset = circumference - (pctForRing / 100) * circumference;
 
               // Determine color based on usage vs soft/hard limits
               let circleColor = "rgb(34 197 94)"; // Green
               let bgColor = "rgb(220 252 231)"; // Light green
               let iconColor = "text-green-600";
 
-              if (softLimit && softLimit > 0 && used >= softLimit) {
-                if (percentage >= 95) {
+              if (
+                hardCap !== null &&
+                softCap !== null &&
+                softCap > 0 &&
+                used >= softCap
+              ) {
+                if (percentage !== null && percentage >= 95) {
                   circleColor = "rgb(239 68 68)"; // Red
                   bgColor = "rgb(254 226 226)"; // Light red
                   iconColor = "text-destructive";
@@ -403,10 +369,15 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground mb-0.5">Disk Space</p>
-                    <p className="text-sm font-semibold">{formatBytes(used)} / {formatBytes(hardLimit)}</p>
+                    <p className="text-sm font-semibold">
+                      {formatBytes(used)} / {formatPleskBytesLimit(rawHard, formatBytes)}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {percentage}% used
-                      {softLimit && softLimit > 0 && used >= softLimit && (
+                      {percentage !== null ? `${percentage}% used` : "Unlimited quota"}
+                      {hardCap !== null &&
+                        softCap !== null &&
+                        softCap > 0 &&
+                        used >= softCap && (
                         <span className="ml-1 text-yellow-600">(Warning threshold reached)</span>
                       )}
                     </p>
@@ -418,20 +389,27 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             {/* Traffic */}
             {(() => {
               const used = hostingData.stat?.traffic ?? 0;
-              const hardLimit = getLimitValue("max_traffic") || 1;
-              const softLimit = getLimitValue("max_traffic_soft");
-              const percentage = Math.min(Math.round((used / hardLimit) * 100), 100);
+              const rawHard = getLimitValue("max_traffic");
+              const hardCap = finitePositiveCap(rawHard);
+              const softCap = finitePositiveCap(getLimitValue("max_traffic_soft"));
+              const percentage = usagePercent(used, hardCap);
               const radius = 30;
               const circumference = 2 * Math.PI * radius;
-              const offset = circumference - (percentage / 100) * circumference;
+              const pctForRing = percentage ?? 0;
+              const offset = circumference - (pctForRing / 100) * circumference;
 
               // Determine color based on usage vs soft/hard limits
               let circleColor = "rgb(34 197 94)"; // Green
               let bgColor = "rgb(220 252 231)"; // Light green
               let iconColor = "text-green-600";
 
-              if (softLimit && softLimit > 0 && used >= softLimit) {
-                if (percentage >= 95) {
+              if (
+                hardCap !== null &&
+                softCap !== null &&
+                softCap > 0 &&
+                used >= softCap
+              ) {
+                if (percentage !== null && percentage >= 95) {
                   circleColor = "rgb(239 68 68)"; // Red
                   bgColor = "rgb(254 226 226)"; // Light red
                   iconColor = "text-destructive";
@@ -472,10 +450,15 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground mb-0.5">Monthly Traffic</p>
-                    <p className="text-sm font-semibold">{formatTraffic(used)} / {formatTraffic(hardLimit)}</p>
+                    <p className="text-sm font-semibold">
+                      {formatTraffic(used)} / {formatPleskBytesLimit(rawHard, formatTraffic)}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {percentage}% used
-                      {softLimit && softLimit > 0 && used >= softLimit && (
+                      {percentage !== null ? `${percentage}% used` : "Unlimited quota"}
+                      {hardCap !== null &&
+                        softCap !== null &&
+                        softCap > 0 &&
+                        used >= softCap && (
                         <span className="ml-1 text-yellow-600">(Warning threshold reached)</span>
                       )}
                     </p>
@@ -487,12 +470,14 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             {/* Mailboxes */}
             {(() => {
               const used = hostingData.stat?.box ?? 0;
-              const limit = getLimitValue("max_box") || 1;
-              const percentage = Math.min(Math.round((used / limit) * 100), 100);
+              const rawLimit = getLimitValue("max_box");
+              const cap = finitePositiveCap(rawLimit);
+              const percentage = usagePercent(used, cap);
               const radius = 30;
               const circumference = 2 * Math.PI * radius;
-              const offset = circumference - (percentage / 100) * circumference;
-              const isHighUsage = percentage >= 80;
+              const pctForRing = percentage ?? 0;
+              const offset = circumference - (pctForRing / 100) * circumference;
+              const isHighUsage = percentage !== null && percentage >= 80;
 
               return (
                 <div className="flex items-center gap-4">
@@ -524,8 +509,12 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground mb-0.5">Mailboxes</p>
-                    <p className="text-sm font-semibold">{used} / {limit}</p>
-                    <p className="text-xs text-muted-foreground">{percentage}% used</p>
+                    <p className="text-sm font-semibold">
+                      {used} / {formatPleskCountLimit(rawLimit)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {percentage !== null ? `${percentage}% used` : "Unlimited quota"}
+                    </p>
                   </div>
                 </div>
               );
@@ -534,12 +523,14 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             {/* Databases */}
             {(() => {
               const used = hostingData.stat?.db ?? 0;
-              const limit = getLimitValue("max_db") || 1;
-              const percentage = Math.min(Math.round((used / limit) * 100), 100);
+              const rawLimit = getLimitValue("max_db");
+              const cap = finitePositiveCap(rawLimit);
+              const percentage = usagePercent(used, cap);
               const radius = 30;
               const circumference = 2 * Math.PI * radius;
-              const offset = circumference - (percentage / 100) * circumference;
-              const isHighUsage = percentage >= 80;
+              const pctForRing = percentage ?? 0;
+              const offset = circumference - (pctForRing / 100) * circumference;
+              const isHighUsage = percentage !== null && percentage >= 80;
 
               return (
                 <div className="flex items-center gap-4">
@@ -571,8 +562,12 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground mb-0.5">Databases</p>
-                    <p className="text-sm font-semibold">{used} / {limit}</p>
-                    <p className="text-xs text-muted-foreground">{percentage}% used</p>
+                    <p className="text-sm font-semibold">
+                      {used} / {formatPleskCountLimit(rawLimit)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {percentage !== null ? `${percentage}% used` : "Unlimited quota"}
+                    </p>
                   </div>
                 </div>
               );
@@ -593,31 +588,33 @@ export function HostingOverview({ hostingData }: HostingOverviewProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Max Sites</p>
-                <p className="text-lg font-semibold">{getLimitValue("max_site") || 0}</p>
+                <p className="text-lg font-semibold">{formatPleskCountLimit(getLimitValue("max_site"))}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Max Subdomains</p>
-                <p className="text-lg font-semibold">{getLimitValue("max_subdom") || 0}</p>
+                <p className="text-lg font-semibold">{formatPleskCountLimit(getLimitValue("max_subdom"))}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Max Domain Aliases</p>
-                <p className="text-lg font-semibold">{getLimitValue("max_dom_aliases") || 0}</p>
+                <p className="text-lg font-semibold">{formatPleskCountLimit(getLimitValue("max_dom_aliases"))}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Max FTP Users</p>
-                <p className="text-lg font-semibold">{getLimitValue("max_subftp_users") || 0}</p>
+                <p className="text-lg font-semibold">{formatPleskCountLimit(getLimitValue("max_subftp_users"))}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Max Web Users</p>
-                <p className="text-lg font-semibold">{getLimitValue("max_wu") || 0}</p>
+                <p className="text-lg font-semibold">{formatPleskCountLimit(getLimitValue("max_wu"))}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Max Mail Lists</p>
-                <p className="text-lg font-semibold">{getLimitValue("max_maillists") || 0}</p>
+                <p className="text-lg font-semibold">{formatPleskCountLimit(getLimitValue("max_maillists"))}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Mailbox Quota</p>
-                <p className="text-lg font-semibold">{formatBytes(getLimitValue("mbox_quota") || 0)}</p>
+                <p className="text-lg font-semibold">
+                  {formatPleskBytesLimit(getLimitValue("mbox_quota"), formatBytes)}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Overuse Policy</p>

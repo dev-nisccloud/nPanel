@@ -33,7 +33,13 @@ import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
 import { HostingCardsList } from "./hosting-cards";
 import { HostingPricing } from "./hosting-pricing";
+import type { CustomerHostingListItem } from "./schema";
 import { useTeamEmailSubscriptions } from "./use-team-email-subscriptions";
+
+/** Canonical segment for `/emails/:id` — matches API resolution (Plesk id when known). */
+function emailHostingDetailId(sub: Pick<CustomerHostingListItem, "id" | "pleskSubscriptionId">) {
+  return sub.pleskSubscriptionId ?? sub.id;
+}
 
 // Skeleton component for loading state
 function HostingTableSkeleton() {
@@ -163,8 +169,8 @@ export function HostingDataTable() {
   //   getRowId: (row) => row.id.toString() 
   // });
 
-  const handleViewDetails = (subscription: { id: string }) => {
-    window.location.href = `/${teamSlug}/emails/${subscription.id}`;
+  const handleViewDetails = (subscription: Pick<CustomerHostingListItem, "id" | "pleskSubscriptionId">) => {
+    window.location.href = `/${teamSlug}/emails/${emailHostingDetailId(subscription)}`;
   };
 
   // Show loading state
@@ -205,7 +211,7 @@ export function HostingDataTable() {
               <TableRow key={subscription.id}>
                 <TableCell className="pl-6">
                   <Link
-                    to={`/${teamSlug}/emails/${subscription.id}`}
+                    to={`/${teamSlug}/emails/${emailHostingDetailId(subscription)}`}
                     className="font-medium text-primary hover:underline"
                   >
                     {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
@@ -242,7 +248,15 @@ export function HostingDataTable() {
       <HostingCardsList
         data={filteredData}
         onViewDetails={(sub) => {
-          const payload = typeof sub === "string" ? { id: sub } : typeof sub === "number" ? { id: String(sub) } : { id: String((sub as { id: string }).id) };
+          const payload =
+            typeof sub === "string"
+              ? { id: sub, pleskSubscriptionId: null }
+              : typeof sub === "number"
+                ? { id: String(sub), pleskSubscriptionId: null }
+                : {
+                    id: String((sub as CustomerHostingListItem).id),
+                    pleskSubscriptionId: (sub as CustomerHostingListItem).pleskSubscriptionId ?? null,
+                  };
           handleViewDetails(payload);
         }}
         cols={3}
