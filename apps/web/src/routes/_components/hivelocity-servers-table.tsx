@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Server, Search, RefreshCw, AlertCircle, Plus } from "lucide-react";
+import { skipToken } from "@tanstack/react-query";
 
 import { trpc } from "@/utils/trpc";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,10 @@ export type HivelocityServerType = "dedicated" | "vps" | "vds";
 interface HivelocityServersTableProps {
 	/** Which device type to display — drives which tRPC procedure is called. */
 	type: HivelocityServerType;
+	/** URL prefix for server detail links (no trailing slash). Default `/agency` for agency UI. */
+	resourceBasePath?: string;
+	/** Customer team routes: list only devices linked via the team's Nisc subscriptions for this product class. */
+	teamSlug?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -166,30 +171,62 @@ function ServersTableError({ onRetry }: { onRetry: () => void }) {
 // Empty state
 // ---------------------------------------------------------------------------
 
-function ServersTableEmpty({ type }: { type: HivelocityServerType }) {
+function emptyStateDescription(type: HivelocityServerType, teamScoped: boolean | undefined): string {
+	if (teamScoped) {
+		if (type === "vps") {
+			return "No VPS instances are linked to your organization yet. Purchase VPS hosting to manage them here, or change your search or filters.";
+		}
+		if (type === "vds") {
+			return "No VDS servers are linked to your organization yet. Purchase VDS hosting to manage them here, or change your search or filters.";
+		}
+		return "No dedicated servers are linked to your organization yet. Purchase dedicated servers hosting to manage them here, or change your search or filters.";
+	}
+	if (type === "vps") {
+		return "No VPS instances are provisioned in this Hivelocity account, or none match your search or filters.";
+	}
+	if (type === "vds") {
+		return "No VDS servers are provisioned in this Hivelocity account, or none match your search or filters.";
+	}
+	return "No dedicated servers are provisioned in this Hivelocity account, or none match your search or filters.";
+}
+
+function ServersTableEmpty({ type, teamScoped }: { type: HivelocityServerType; teamScoped?: boolean }) {
 	const label =
 		type === "vps" ? "VPS instances" : type === "vds" ? "VDS servers" : "dedicated servers";
+	const description = emptyStateDescription(type, teamScoped);
 	return (
 		<div className="flex flex-col items-center justify-center py-16 text-center">
 			<Server className="mb-4 h-10 w-10 text-muted-foreground" />
-			<h3 className="mb-1 text-base font-semibold">No {label} found</h3>
-			<p className="text-sm text-muted-foreground max-w-xs">
-				No {label} are provisioned in this Hivelocity account, or none match the current search
-				and filter.
+			<h3 className="mb-2 text-base font-semibold">No {label} found</h3>
+			<p
+				className="text-sm text-muted-foreground max-w-md w-full mx-auto px-4 text-center line-clamp-3 text-balance break-words"
+				title={description}
+			>
+				{description}
 			</p>
 		</div>
 	);
 }
 
 // ---------------------------------------------------------------------------
-// Unified Table (uses getMyAllResources)
+// Unified Table (account-wide getMyAllResources vs team-scoped getTeamMyResources)
 // ---------------------------------------------------------------------------
 
-export function HivelocityServersTable({ type }: HivelocityServersTableProps) {
+function normalizeResourceBasePath(base: string | undefined): string {
+		const b = (base ?? "/agency").replace(/\/$/, "");
+		return b || "/agency";
+}
+
+export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: HivelocityServersTableProps) {
 	const navigate = useNavigate();
+	const base = normalizeResourceBasePath(resourceBasePath);
 	const [searchDraft, setSearchDraft] = React.useState("");
 	const [search, setSearch] = React.useState("");
 	const [facilityCode, setFacilityCode] = React.useState("");
+
+	const teamSlugTrim = teamSlug?.trim() ?? "";
+	const isTeamScoped = teamSlugTrim.length > 0;
+	const hideSubscriptionColumn = isTeamScoped;
 
 	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined);
 	const facilityOptions = React.useMemo(() => {
@@ -197,21 +234,46 @@ export function HivelocityServersTable({ type }: HivelocityServersTableProps) {
 		return [...list].sort((a, b) => a.title.localeCompare(b.title));
 	}, [facilitiesQuery.data]);
 
-	const query = trpc.hivelocity.getMyAllResources.useQuery({
-		search: search || undefined,
-		facilityCode: facilityCode || undefined,
-		type: type === "dedicated" || type === "vds" || type === "vps" ? type : "all",
-		limit: 100,
-		cursor: 0,
-	});
+	const listInput = React.useMemo(
+		() => ({
+			search: search || undefined,
+			facilityCode: facilityCode || undefined,
+			limit: 100,
+			cursor: 0,
+		}),
+		[search, facilityCode],
+	);
+
+	const accountQuery = trpc.hivelocity.getMyAllResources.useQuery(
+		{
+			...listInput,
+			type: type === "dedicated" || type === "vds" || type === "vps" ? type : "all",
+		},
+		{ enabled: !isTeamScoped },
+	);
+
+	const teamQuery = trpc.hivelocity.getTeamMyResources.useQuery(
+		isTeamScoped
+			? {
+					teamSlug: teamSlugTrim,
+					type: type === "dedicated" || type === "vds" || type === "vps" ? type : "vps",
+					...listInput,
+				}
+			: skipToken,
+	);
+
+	const query = isTeamScoped ? teamQuery : accountQuery;
 
 	const items = query.data?.data?.items ?? [];
 	const handleSearch = () => setSearch(searchDraft.trim());
 
 	const handleRowClick = (resourceId: string | number) => {
-		const path = type === "vps" ? `/agency/vps/${resourceId}` : 
-					 type === "vds" ? `/agency/vds/${resourceId}` : 
-					 `/agency/dedicated-servers/${resourceId}`;
+		const path =
+			type === "vps"
+				? `${base}/vps/${resourceId}`
+				: type === "vds"
+					? `${base}/vds/${resourceId}`
+					: `${base}/dedicated-servers/${resourceId}`;
 		navigate(path);
 	};
 
@@ -284,21 +346,25 @@ export function HivelocityServersTable({ type }: HivelocityServersTableProps) {
 							<TableHead>Location</TableHead>
 							<TableHead>Billing</TableHead>
 							<TableHead>Created</TableHead>
-							<TableHead className="pr-6 text-right">Subscription</TableHead>
+							{!hideSubscriptionColumn ? (
+								<TableHead className="pr-6 text-right">Subscription</TableHead>
+							) : null}
 						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{items.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={7} className="py-0">
-									<ServersTableEmpty type={type} />
+								<TableCell colSpan={hideSubscriptionColumn ? 6 : 7} className="py-0">
+									<ServersTableEmpty type={type} teamScoped={isTeamScoped} />
 								</TableCell>
 							</TableRow>
 						) : (
-							<ServersTableRows 
-								items={items} 
-								type={type} 
-								onRowClick={handleRowClick} 
+							<ServersTableRows
+								items={items}
+								type={type}
+								resourceBasePath={base}
+								onRowClick={handleRowClick}
+								hideSubscriptionColumn={hideSubscriptionColumn}
 							/>
 						)}
 					</TableBody>
@@ -318,21 +384,25 @@ export function HivelocityServersTable({ type }: HivelocityServersTableProps) {
 // Rows Component (with Subscription Linking)
 // ---------------------------------------------------------------------------
 
-function ServersTableRows({ 
-	items, 
-	type, 
-	onRowClick 
-}: { 
-	items: any[], 
-	type: HivelocityServerType, 
-	onRowClick: (id: string | number) => void 
+function ServersTableRows({
+	items,
+	type,
+	resourceBasePath,
+	onRowClick,
+	hideSubscriptionColumn,
+}: {
+	items: any[];
+	type: HivelocityServerType;
+	resourceBasePath: string;
+	onRowClick: (id: string | number) => void;
+	hideSubscriptionColumn?: boolean;
 }) {
 	const [linkDevice, setLinkDevice] = React.useState<{ id: string | number; name: string } | null>(null);
-	
-	const deviceIds = React.useMemo(() => items.map(it => it.deviceId ?? it.id), [items]);
+
+	const deviceIds = React.useMemo(() => items.map((it) => it.deviceId ?? it.id), [items]);
 	const { data: linkedIds = [] } = trpc.clientSubscriptions.getHivelocityDeviceIdsWithLinkedSubscription.useQuery(
 		{ hivelocityDeviceIds: deviceIds },
-		{ enabled: deviceIds.length > 0 }
+		{ enabled: !hideSubscriptionColumn && deviceIds.length > 0 },
 	);
 	const linkedSet = React.useMemo(() => new Set(linkedIds.map(String)), [linkedIds]);
 
@@ -371,10 +441,14 @@ function ServersTableRows({
 					>
 						<TableCell className="pl-6 font-medium">
 							<div className="flex flex-col gap-0.5 py-1">
-								<Link 
-									to={type === "vps" ? `/agency/vps/${resourceId}` : 
-										type === "vds" ? `/agency/vds/${resourceId}` : 
-										`/agency/dedicated-servers/${resourceId}`}
+								<Link
+									to={
+										type === "vps"
+											? `${resourceBasePath}/vps/${resourceId}`
+											: type === "vds"
+												? `${resourceBasePath}/vds/${resourceId}`
+												: `${resourceBasePath}/dedicated-servers/${resourceId}`
+									}
 									className="text-primary hover:underline break-words"
 									onClick={(e) => e.stopPropagation()}
 								>
@@ -410,42 +484,46 @@ function ServersTableRows({
 						<TableCell className="text-sm text-muted-foreground">
 							{resource.createdDate || "—"}
 						</TableCell>
-						<TableCell className="pr-6 text-right" onClick={(e) => e.stopPropagation()}>
-							<TooltipProvider>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<span className="inline-block">
-											{isLinked ? (
-												<Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1 px-3">
-													<div className="h-1.5 w-1.5 rounded-full bg-green-600" />
-													Linked
-												</Badge>
-											) : (
-												<Button
-													size="sm"
-													variant="ghost"
-													className="h-8 text-primary gap-1.5"
-													onClick={() => setLinkDevice({ id: resourceId, name: resource.name || resource.hostname })}
-												>
-													<Plus className="h-3.5 w-3.5" />
-													Link
-												</Button>
-											)}
-										</span>
-									</TooltipTrigger>
-									<TooltipContent side="left">
-										{isLinked 
-											? "This device is already linked to a subscription." 
-											: "Link this device to a customer subscription for billing."}
-									</TooltipContent>
-								</Tooltip>
-							</TooltipProvider>
-						</TableCell>
+						{!hideSubscriptionColumn ? (
+							<TableCell className="pr-6 text-right" onClick={(e) => e.stopPropagation()}>
+								<TooltipProvider>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<span className="inline-block">
+												{isLinked ? (
+													<Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1 px-3">
+														<div className="h-1.5 w-1.5 rounded-full bg-green-600" />
+														Linked
+													</Badge>
+												) : (
+													<Button
+														size="sm"
+														variant="ghost"
+														className="h-8 text-primary gap-1.5"
+														onClick={() =>
+															setLinkDevice({ id: resourceId, name: resource.name || resource.hostname })
+														}
+													>
+														<Plus className="h-3.5 w-3.5" />
+														Link
+													</Button>
+												)}
+											</span>
+										</TooltipTrigger>
+										<TooltipContent side="left">
+											{isLinked
+												? "This device is already linked to a subscription."
+												: "Link this device to a customer subscription for billing."}
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							</TableCell>
+						) : null}
 					</TableRow>
 				);
 			})}
 
-			{linkDevice && (
+			{linkDevice && !hideSubscriptionColumn && (
 				<CreateSubscriptionForHivelocityDialog
 					open={!!linkDevice}
 					onOpenChange={(open) => !open && setLinkDevice(null)}

@@ -16,6 +16,8 @@ export const seoAutomatedReportInputSchema = z.object({
   ga4PropertyId: z.string().optional(),
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid start date format (YYYY-MM-DD)"),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format (YYYY-MM-DD)"),
+  /** When set, only Search Console / GA4 resources linked to an active SEO subscription for this team are allowed. */
+  teamSlug: z.string().min(1).optional(),
 });
 
 /** GA4-only report input (no GSC site linking). */
@@ -23,6 +25,7 @@ export const seoGa4ReportInputSchema = z.object({
   ga4PropertyId: z.string().min(1, "GA4 property ID is required"),
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid start date format (YYYY-MM-DD)"),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format (YYYY-MM-DD)"),
+  teamSlug: z.string().min(1).optional(),
 });
 
 /** GA4 property for independent listing (no domain matching). */
@@ -40,6 +43,12 @@ export const seoManageableSiteSchema = z.object({
   ga4DisplayName: z.string().nullable().optional(),
 });
 export type SeoManageableSite = z.infer<typeof seoManageableSiteSchema>;
+
+/** Optional team scope for listing / reporting (customer team context). */
+export const seoTeamScopeInputSchema = z.object({
+  teamSlug: z.string().min(1).optional(),
+});
+export type SeoTeamScopeInput = z.infer<typeof seoTeamScopeInputSchema>;
 
 export const seoTimeSeriesDataSchema = z.object({
   date: z.string(),

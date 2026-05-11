@@ -118,7 +118,12 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Path</p>
-              <p className="text-base text-primary flex-1">{wpData.path || "Not Available"}</p>
+              <p
+                className="text-base text-primary flex-1 min-w-0 break-all line-clamp-3"
+                title={wpData.path || undefined}
+              >
+                {wpData.path || "Not Available"}
+              </p>
             </div>
           </CardContent>
         </Card>

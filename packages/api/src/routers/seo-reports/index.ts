@@ -4,6 +4,7 @@ import { and, count, desc, eq, ilike, or, type SQL } from "@npanel/db";
 import { z } from "zod";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
+import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
 import { seoReport, seoReportActivityLog } from "@npanel/db/schema/seo-reports";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
@@ -21,6 +22,7 @@ import {
   seoGa4ReportInputSchema,
   seoGa4PropertySchema,
   seoManageableSiteSchema,
+  seoTeamScopeInputSchema,
 } from "./schemas";
 import type { SeoReportDetail } from "./schemas";
 
@@ -99,17 +101,166 @@ function getPreviousPeriod(from: string, to: string) {
   };
 }
 
-// Utility to normalize URLs for matching (strip protocol, trailing slash, www)
+/** Normalize GSC site URLs / web origins for subscription matching (protocol, www, sc-domain:, trailing slash). */
 function normalizeUrl(url: string | null): string {
-  if (!url) return '';
-  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').toLowerCase();
+  if (!url) return "";
+  const s = url.trim().toLowerCase();
+  if (s.startsWith("sc-domain:")) {
+    return s.replace(/^sc-domain:/, "").replace(/\/$/, "");
+  }
+  return s.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+}
+
+type SeoSubscriptionServiceRefs = {
+  seoScope?: string;
+  searchConsoleSiteUrl?: string;
+  ga4PropertyId?: string;
+};
+
+type TeamSeoSubscriptionResources = {
+  gscKeys: ReadonlySet<string>;
+  ga4PropertyIds: ReadonlySet<string>;
+};
+
+async function teamIdFromSlug(slug: string): Promise<string | null> {
+  const [row] = await db.select({ id: team.id }).from(team).where(eq(team.slug, slug)).limit(1);
+  return row?.id ?? null;
+}
+
+async function userMayAccessTeamForSeoReports(userId: string, role: string, teamId: string): Promise<boolean> {
+  if (isAgencyUser(role)) return true;
+  const [m] = await db
+    .select({ id: teamMember.id })
+    .from(teamMember)
+    .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+    .limit(1);
+  if (m) return true;
+  const owned = await db.query.team.findFirst({
+    where: and(eq(team.id, teamId), eq(team.createdById, userId)),
+    columns: { id: true },
+  });
+  return !!owned;
+}
+
+async function loadActiveTeamSeoSubscriptionResources(teamId: string): Promise<TeamSeoSubscriptionResources> {
+  const rows = await db
+    .select({ serviceRefs: niscClientSubscription.serviceRefs })
+    .from(niscClientSubscription)
+    .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+    .where(
+      and(
+        eq(niscClientSubscription.teamId, teamId),
+        eq(niscClientSubscription.status, "ACTIVE"),
+        ilike(niscProduct.name, "%seo%"),
+      ),
+    );
+
+  const gscKeys = new Set<string>();
+  const ga4PropertyIds = new Set<string>();
+
+  for (const row of rows) {
+    const refs = row.serviceRefs as SeoSubscriptionServiceRefs | null;
+    if (!refs?.seoScope) continue;
+    if (refs.seoScope === "SEARCH_CONSOLE") {
+      const url = typeof refs.searchConsoleSiteUrl === "string" ? refs.searchConsoleSiteUrl.trim() : "";
+      if (url) gscKeys.add(normalizeUrl(url));
+    }
+    if (refs.seoScope === "GA4") {
+      const pid = typeof refs.ga4PropertyId === "string" ? refs.ga4PropertyId.trim() : "";
+      if (pid) ga4PropertyIds.add(pid);
+    }
+  }
+
+  return { gscKeys, ga4PropertyIds };
+}
+
+type SeoTeamScope =
+  | { mode: "open" }
+  | { mode: "team"; teamId: string; resources: TeamSeoSubscriptionResources };
+
+async function resolveSeoTeamScopeAccess(opts: {
+  user: { id: string; role: string };
+  teamSlug: string | undefined;
+}): Promise<SeoTeamScope> {
+  const { user, teamSlug } = opts;
+
+  if (!teamSlug) {
+    if (!isAgencyUser(user.role)) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Team context is required to access SEO report data.",
+      });
+    }
+    return { mode: "open" };
+  }
+
+  const teamId = await teamIdFromSlug(teamSlug);
+  if (!teamId) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+  }
+  if (!(await userMayAccessTeamForSeoReports(user.id, user.role, teamId))) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team." });
+  }
+
+  const resources = await loadActiveTeamSeoSubscriptionResources(teamId);
+  return { mode: "team", teamId, resources };
+}
+
+function assertTeamHasGscSubscription(scope: SeoTeamScope, siteId: string) {
+  if (scope.mode === "open") return;
+  const key = normalizeUrl(siteId);
+  if (!scope.resources.gscKeys.has(key)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This Search Console property is not covered by an active SEO subscription for your team.",
+    });
+  }
+}
+
+function assertTeamHasGa4Subscription(scope: SeoTeamScope, ga4PropertyId: string) {
+  if (scope.mode === "open") return;
+  const pid = ga4PropertyId.trim();
+  if (!scope.resources.ga4PropertyIds.has(pid)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This GA4 property is not covered by an active SEO subscription for your team.",
+    });
+  }
+}
+
+function filterManageableSitesForTeam(
+  mapped: Array<{
+    siteUrl: string;
+    permissionLevel: string | null;
+    ga4PropertyId: string | null;
+    ga4DisplayName: string | null;
+  }>,
+  resources: TeamSeoSubscriptionResources,
+) {
+  const { gscKeys, ga4PropertyIds } = resources;
+  return mapped
+    .filter((row) => gscKeys.has(normalizeUrl(row.siteUrl)))
+    .map((row) => {
+      const pid = row.ga4PropertyId;
+      if (pid && !ga4PropertyIds.has(pid)) {
+        return { ...row, ga4PropertyId: null, ga4DisplayName: null };
+      }
+      return row;
+    });
 }
 
 export const seoReportsRouter = router({
   getAutomatedReport: protectedProcedure
     .input(seoAutomatedReportInputSchema)
     .output(seoAutomatedReportResponseSchema)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+      const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input.teamSlug });
+      assertTeamHasGscSubscription(scope, input.siteId);
+      if (input.ga4PropertyId?.trim()) {
+        assertTeamHasGa4Subscription(scope, input.ga4PropertyId);
+      }
+
       try {
         const gsc = new GoogleSearchConsoleClient();
         const ga4 = new GoogleAnalyticsClient();
@@ -472,6 +623,7 @@ export const seoReportsRouter = router({
           sitemaps: mappedSitemaps,
         };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         console.error('Failed to fetch automated SEO report:', error);
 
         // Help debug Google Auth issues in production
@@ -487,8 +639,21 @@ export const seoReportsRouter = router({
     }),
 
   listManageableSites: protectedProcedure
+    .input(seoTeamScopeInputSchema.optional())
     .output(z.array(seoManageableSiteSchema))
-    .query(async () => {
+    .query(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+      const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input?.teamSlug });
+
+      const applyTeamFilter = (
+        mapped: Array<{
+          siteUrl: string;
+          permissionLevel: string | null;
+          ga4PropertyId: string | null;
+          ga4DisplayName: string | null;
+        }>,
+      ) => (scope.mode === "open" ? mapped : filterManageableSitesForTeam(mapped, scope.resources));
+
       try {
         const gsc = new GoogleSearchConsoleClient();
         const ga4 = new GoogleAnalyticsClient();
@@ -500,7 +665,7 @@ export const seoReportsRouter = router({
         ]);
 
         // Match GA4 properties to GSC sites via URL
-        return gscSites.map(s => {
+        const mapped = gscSites.map(s => {
           const normalizedSiteUrl = normalizeUrl(s.siteUrl || "");
 
           // Find a matching GA4 property where the default stream URL matches the GSC site URL
@@ -517,6 +682,8 @@ export const seoReportsRouter = router({
           };
         });
 
+        return applyTeamFilter(mapped);
+
       } catch (error) {
         console.error('Failed to list manageable sites:', error);
 
@@ -526,12 +693,13 @@ export const seoReportsRouter = router({
           if (error instanceof Error && error.message.includes('GA4')) {
             const gsc = new GoogleSearchConsoleClient();
             const sites = await gsc.listSites();
-            return sites.map(s => ({
+            const mapped = sites.map(s => ({
               siteUrl: s.siteUrl || "",
               permissionLevel: s.permissionLevel || null,
               ga4PropertyId: null,
               ga4DisplayName: null
             }));
+            return applyTeamFilter(mapped);
           }
         } catch (e) {
           // ignore
@@ -550,17 +718,29 @@ export const seoReportsRouter = router({
 
   /** List GA4 properties independently (no GSC domain matching). User selects which property to view. */
   listGa4Properties: protectedProcedure
+    .input(seoTeamScopeInputSchema.optional())
     .output(z.array(seoGa4PropertySchema))
-    .query(async () => {
+    .query(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+      const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input?.teamSlug });
+
       try {
         const ga4 = new GoogleAnalyticsClient();
         const properties = await ga4.listAccessibleProperties();
-        return properties.map((p) => ({
+        const mapped = properties.map((p) => ({
           propertyId: p.propertyId,
           displayName: p.displayName,
           defaultUrl: p.defaultUrl ?? null,
         }));
+
+        if (scope.mode === "open") {
+          return mapped;
+        }
+
+        const allowed = scope.resources.ga4PropertyIds;
+        return mapped.filter((p) => allowed.has(p.propertyId.trim()));
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         console.error("Failed to list GA4 properties:", error);
         if (
           error instanceof Error &&
@@ -582,7 +762,11 @@ export const seoReportsRouter = router({
   getGa4Report: protectedProcedure
     .input(seoGa4ReportInputSchema)
     .output(seoAutomatedReportResponseSchema)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      const user = await getAuthenticatedUser(ctx);
+      const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input.teamSlug });
+      assertTeamHasGa4Subscription(scope, input.ga4PropertyId);
+
       try {
         const ga4 = new GoogleAnalyticsClient();
         const prevPeriod = getPreviousPeriod(input.from, input.to);
@@ -739,6 +923,7 @@ export const seoReportsRouter = router({
           sitemaps: [],
         };
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         console.error("Failed to fetch GA4 report:", error);
         if (
           error instanceof Error &&

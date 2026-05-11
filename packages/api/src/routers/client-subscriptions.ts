@@ -311,6 +311,55 @@ const createMediaBuyingSubscriptionInputSchema = z.object({
     adServingFeeCurrency: z.enum(["USD", "EUR", "KES"]),
 });
 
+/** Search Console vs GA4 are separate subscription links (agency SEO Reports tabs). */
+const seoLinkLookupInputSchema = z.discriminatedUnion("scope", [
+    z.object({
+        scope: z.literal("SEARCH_CONSOLE"),
+        searchConsoleSiteUrl: z.string().min(1),
+    }),
+    z.object({
+        scope: z.literal("GA4"),
+        ga4PropertyId: z.string().min(1),
+    }),
+]);
+
+const createSeoSubscriptionInputSchema = z.discriminatedUnion("scope", [
+    z.object({
+        scope: z.literal("SEARCH_CONSOLE"),
+        teamId: z.string().min(1),
+        productPlanId: z.string().min(1),
+        searchConsoleSiteUrl: z.string().min(1),
+        managementFee: z.string().min(1),
+        managementFeeCurrency: z.enum(["USD", "EUR", "KES"]),
+    }),
+    z.object({
+        scope: z.literal("GA4"),
+        teamId: z.string().min(1),
+        productPlanId: z.string().min(1),
+        ga4PropertyId: z.string().min(1),
+        ga4DisplayName: z.string().optional(),
+        managementFee: z.string().min(1),
+        managementFeeCurrency: z.enum(["USD", "EUR", "KES"]),
+    }),
+]);
+
+const seoProductForSubscriptionOutputSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    plans: z.array(
+        z.object({
+            id: z.string(),
+            name: z.string(),
+            pricingModel: pricingModelSchema,
+            billingCycle: billingCycleSchema.nullable(),
+            price: z.string().nullable(),
+            currency: z.string().nullable(),
+            agreedCommissionRate: z.number().nullable(),
+            agreedCommissionBase: z.string().nullable(),
+        }),
+    ),
+});
+
 // --- Output schemas ----------------------------------------------------------
 
 const subscriptionOutputSchema = z.object({
@@ -1579,6 +1628,252 @@ export const clientSubscriptionsRouter = router({
                     productPlanId: input.productPlanId,
                     adServingFee: input.adServingFee,
                     adServingFeeCurrency: input.adServingFeeCurrency,
+                },
+                ipAddress: null,
+                userAgent: null,
+            });
+
+            return mapSubscription(created);
+        }),
+
+    /** Active SEO product + plans (Search Console / GA4 subscriptions share this product; scope is stored in serviceRefs). */
+    getSeoProductForSubscription: protectedProcedure
+        .output(seoProductForSubscriptionOutputSchema.nullable())
+        .query(async () => {
+            const product = await db.query.niscProduct.findFirst({
+                where: and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%seo%")),
+                with: {
+                    plans: {
+                        where: eq(niscProductPlan.isActive, true),
+                        orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
+                    },
+                },
+            });
+
+            if (!product) return null;
+
+            return {
+                id: product.id,
+                name: product.name,
+                plans: (product.plans ?? []).map((plan) => ({
+                    id: plan.id,
+                    name: plan.name,
+                    pricingModel: plan.pricingModel as "FIXED" | "COMMISSION",
+                    billingCycle: (plan.billingCycle as z.infer<typeof billingCycleSchema> | null) ?? null,
+                    price: plan.price ?? null,
+                    currency: plan.currency ?? null,
+                    agreedCommissionRate:
+                        plan.commissionRate != null ? Number(plan.commissionRate) : null,
+                    agreedCommissionBase: plan.commissionBase ?? null,
+                })),
+            };
+        }),
+
+    /** Whether this Search Console site or GA4 property already has an SEO subscription row. */
+    getLinkedSeoSubscriptionByResource: protectedProcedure
+        .input(seoLinkLookupInputSchema)
+        .output(adAccountLinkLookupOutputSchema)
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view linked subscriptions",
+                });
+            }
+
+            const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+            const scopeClause =
+                input.scope === "SEARCH_CONSOLE"
+                    ? and(
+                          sql`(${niscClientSubscription.serviceRefs}->>'seoScope') = 'SEARCH_CONSOLE'`,
+                          sql`(${niscClientSubscription.serviceRefs}->>'searchConsoleSiteUrl') = ${input.searchConsoleSiteUrl}`,
+                      )
+                    : and(
+                          sql`(${niscClientSubscription.serviceRefs}->>'seoScope') = 'GA4'`,
+                          sql`(${niscClientSubscription.serviceRefs}->>'ga4PropertyId') = ${input.ga4PropertyId}`,
+                      );
+
+            const [row] = await db
+                .select({
+                    id: niscClientSubscription.id,
+                    teamId: niscClientSubscription.teamId,
+                    teamName: team.name,
+                })
+                .from(niscClientSubscription)
+                .leftJoin(team, eq(team.id, niscClientSubscription.teamId))
+                .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+                .where(and(ilike(niscProduct.name, "%seo%"), scopeClause, readScope ?? sql`true`))
+                .limit(1);
+
+            return {
+                hasLinkedSubscription: !!row,
+                subscriptionId: row?.id ?? null,
+                teamId: row?.teamId ?? null,
+                teamName: row?.teamName ?? null,
+            };
+        }),
+
+    /** Create a team SEO subscription for Search Console (site URL) or GA4 (property id) — one subscription per tab integration. */
+    createSeoSubscription: protectedProcedure
+        .input(createSeoSubscriptionInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to create subscriptions",
+                });
+            }
+
+            const hasTeamAccess = await canAssignTeamSubscription({
+                teamId: input.teamId,
+                userId: session.user.id,
+                role: session.user.role,
+            });
+            if (!hasTeamAccess) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const [selectedPlan] = await db
+                .select({
+                    id: niscProductPlan.id,
+                    productId: niscProductPlan.productId,
+                    pricingModel: niscProductPlan.pricingModel,
+                    billingCycle: niscProductPlan.billingCycle,
+                    price: niscProductPlan.price,
+                    currency: niscProductPlan.currency,
+                    commissionRate: niscProductPlan.commissionRate,
+                    commissionBase: niscProductPlan.commissionBase,
+                    productName: niscProduct.name,
+                })
+                .from(niscProductPlan)
+                .innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
+                .where(
+                    and(
+                        eq(niscProductPlan.id, input.productPlanId),
+                        eq(niscProductPlan.isActive, true),
+                        eq(niscProduct.isActive, true),
+                        ilike(niscProduct.name, "%seo%"),
+                    ),
+                )
+                .limit(1);
+
+            if (!selectedPlan) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Invalid SEO plan selected",
+                });
+            }
+
+            const dupClause =
+                input.scope === "SEARCH_CONSOLE"
+                    ? and(
+                          sql`(${niscClientSubscription.serviceRefs}->>'seoScope') = 'SEARCH_CONSOLE'`,
+                          sql`(${niscClientSubscription.serviceRefs}->>'searchConsoleSiteUrl') = ${input.searchConsoleSiteUrl}`,
+                      )
+                    : and(
+                          sql`(${niscClientSubscription.serviceRefs}->>'seoScope') = 'GA4'`,
+                          sql`(${niscClientSubscription.serviceRefs}->>'ga4PropertyId') = ${input.ga4PropertyId}`,
+                      );
+
+            const [existing] = await db
+                .select({ id: niscClientSubscription.id })
+                .from(niscClientSubscription)
+                .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+                .where(and(ilike(niscProduct.name, "%seo%"), dupClause))
+                .limit(1);
+            if (existing) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message:
+                        input.scope === "SEARCH_CONSOLE"
+                            ? "This Search Console site is already linked to a subscription"
+                            : "This GA4 property is already linked to a subscription",
+                });
+            }
+
+            const serviceRefs =
+                input.scope === "SEARCH_CONSOLE"
+                    ? {
+                          seoScope: "SEARCH_CONSOLE" as const,
+                          searchConsoleSiteUrl: input.searchConsoleSiteUrl,
+                      }
+                    : {
+                          seoScope: "GA4" as const,
+                          ga4PropertyId: input.ga4PropertyId,
+                          ga4DisplayName: input.ga4DisplayName?.trim() || null,
+                      };
+
+            const subName =
+                input.scope === "SEARCH_CONSOLE"
+                    ? `SEO (Search Console) — ${input.searchConsoleSiteUrl}`
+                    : `SEO (GA4) — ${input.ga4DisplayName?.trim() || input.ga4PropertyId}`;
+
+            const now = new Date();
+            const subId = crypto.randomUUID();
+            const pricingModel = selectedPlan.pricingModel as "FIXED" | "COMMISSION";
+
+            const [created] = await db
+                .insert(niscClientSubscription)
+                .values({
+                    id: subId,
+                    name: subName,
+                    teamId: input.teamId,
+                    productId: selectedPlan.productId,
+                    productPlanId: selectedPlan.id,
+                    recordedBy: session.user.id,
+                    subscribedBy: session.user.id,
+                    status: "ACTIVE",
+                    subscriptionDate: now,
+                    billingCycle: pricingModel === "FIXED" ? selectedPlan.billingCycle ?? "MONTHLY" : null,
+                    autoRenew: false,
+                    pricingModel,
+                    agreedPrice: pricingModel === "FIXED" ? selectedPlan.price ?? null : null,
+                    agreedCurrency: selectedPlan.currency ?? "KES",
+                    agreedCommissionRate:
+                        pricingModel === "COMMISSION" && selectedPlan.commissionRate != null
+                            ? String(selectedPlan.commissionRate)
+                            : null,
+                    agreedCommissionBase:
+                        pricingModel === "COMMISSION" ? selectedPlan.commissionBase ?? null : null,
+                    serviceRefs,
+                    metadata: {
+                        managementFee: input.managementFee,
+                        managementFeeCurrency: input.managementFeeCurrency,
+                        seoScope: input.scope,
+                    },
+                })
+                .returning();
+
+            if (!created) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to create SEO subscription",
+                });
+            }
+
+            await db.insert(niscClientSubscriptionActivityLog).values({
+                id: crypto.randomUUID(),
+                subscriptionId: created.id,
+                userId: session.user.id,
+                action: "CREATE_SEO_SUBSCRIPTION",
+                description:
+                    input.scope === "SEARCH_CONSOLE"
+                        ? `Created SEO (Search Console) subscription for ${input.searchConsoleSiteUrl}`
+                        : `Created SEO (GA4) subscription for ${input.ga4PropertyId}`,
+                metadata: {
+                    scope: input.scope,
+                    productPlanId: input.productPlanId,
+                    managementFee: input.managementFee,
+                    managementFeeCurrency: input.managementFeeCurrency,
+                    ...(input.scope === "SEARCH_CONSOLE"
+                        ? { searchConsoleSiteUrl: input.searchConsoleSiteUrl }
+                        : { ga4PropertyId: input.ga4PropertyId }),
                 },
                 ipAddress: null,
                 userAgent: null,

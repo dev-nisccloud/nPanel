@@ -158,6 +158,7 @@ export function useWordPressDetailBatched(installationId: string) {
       retry: (failureCount, error: any) => {
         // Don't retry on authentication errors
         if (error?.data?.code === "UNAUTHORIZED") return false;
+        if (error?.data?.code === "FORBIDDEN") return false;
         // Don't retry on service unavailable errors
         if (error?.data?.code === "SERVICE_UNAVAILABLE") return false;
         // Don't retry on rate limit errors
@@ -181,6 +182,12 @@ export function useWordPressDetailBatched(installationId: string) {
       // Show user-friendly error messages
       if (error?.data?.code === "UNAUTHORIZED") {
         toast.error("Authentication failed. Please check your Plesk credentials.");
+      } else if (error?.data?.code === "FORBIDDEN") {
+        toast.error(
+          error?.message?.includes?.("WP Toolkit")
+            ? error.message
+            : "You do not have access to this WordPress installation, or WP Toolkit blocked the server request.",
+        );
       } else if (error?.data?.code === "SERVICE_UNAVAILABLE") {
         toast.error("Plesk server is currently unavailable. Please try again later.");
       } else if (error?.data?.code === "TOO_MANY_REQUESTS") {

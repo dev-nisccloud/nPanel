@@ -2,7 +2,18 @@
 
 import * as React from "react";
 import { Link } from "react-router";
-import { HelpCircle, Check, CheckCircle2, XCircle, ExternalLink, Server, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  HelpCircle,
+  Check,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
+  Server,
+  ShieldCheck,
+  Trash2,
+  Globe,
+  BarChart3,
+} from "lucide-react";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import { Label } from "@/components/ui/label";
 import {
@@ -74,9 +85,11 @@ interface BuyNowDialogProps {
   intent?: "buy_now" | "add_to_cart";
   /** Start non-Hivelocity flows directly on the payment step. */
   startAtPayment?: boolean;
+  /** Team SEO Reports path for SEO onboarding (e.g. `/${slug}/seo-reports`). Shown when `plan.subType === "SEO"`. */
+  seoReportsHref?: string;
 }
 
-type Step = "domain" | "hivelocity_config" | "review" | "payment" | "success" | "error";
+type Step = "seo_connect" | "domain" | "hivelocity_config" | "review" | "payment" | "success" | "error";
 
 /** Validate domain format: hostname with at least one dot, valid chars, TLD 2+ chars */
 function isValidDomain(value: string): boolean {
@@ -157,17 +170,23 @@ export function BuyNowDialog({
   buyDomainHref,
   intent = "buy_now",
   startAtPayment = false,
+  seoReportsHref,
 }: BuyNowDialogProps) {
   const isHivelocityPlan = Boolean(plan?.hivelocity);
-  const showDomainStep = !!requireDomainStep && !!teamId;
-  const shouldStartAtPayment = startAtPayment && !showDomainStep && !isHivelocityPlan && intent === "buy_now";
-  const initialStep: Step = showDomainStep
-    ? "domain"
-    : isHivelocityPlan
-      ? "hivelocity_config"
-      : shouldStartAtPayment
-        ? "payment"
-        : "review";
+  const isSeoPlan = plan?.subType === "SEO";
+  const showSeoConnectStep = Boolean(isSeoPlan);
+  const showDomainStep = !!requireDomainStep && !!teamId && !showSeoConnectStep;
+  const shouldStartAtPayment =
+    startAtPayment && !showDomainStep && !isHivelocityPlan && !showSeoConnectStep && intent === "buy_now";
+  const initialStep: Step = showSeoConnectStep
+    ? "seo_connect"
+    : showDomainStep
+      ? "domain"
+      : isHivelocityPlan
+        ? "hivelocity_config"
+        : shouldStartAtPayment
+          ? "payment"
+          : "review";
 
   const { addHivelocity } = useCartStore();
 
@@ -530,13 +549,15 @@ export function BuyNowDialog({
   // Reset state when dialog opens/closes
   React.useEffect(() => {
     if (open && plan) {
-      const first: Step = showDomainStep
-        ? "domain"
-        : plan.hivelocity
-          ? "hivelocity_config"
-          : shouldStartAtPayment
-            ? "payment"
-            : "review";
+      const first: Step = showSeoConnectStep
+        ? "seo_connect"
+        : showDomainStep
+          ? "domain"
+          : plan.hivelocity
+            ? "hivelocity_config"
+            : shouldStartAtPayment
+              ? "payment"
+              : "review";
       setCurrentStep(first);
       setManualDomain("");
       setSelectedDomainId(null);
@@ -574,7 +595,7 @@ export function BuyNowDialog({
       const ref = `${planShort}${timestamp}`.substring(0, 12);
       setAccountReference(ref);
     }
-  }, [open, plan, showDomainStep, shouldStartAtPayment]);
+  }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep]);
 
   // Helper function to get user-friendly error messages
   const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
@@ -853,7 +874,9 @@ export function BuyNowDialog({
   };
 
   const handleNext = () => {
-    if (currentStep === "domain") {
+    if (currentStep === "seo_connect") {
+      setCurrentStep("review");
+    } else if (currentStep === "domain") {
       setCurrentStep("review");
     } else if (currentStep === "hivelocity_config") {
       setCurrentStep("review");
@@ -909,6 +932,8 @@ export function BuyNowDialog({
       } else {
         setCurrentStep("review");
       }
+    } else if (currentStep === "review" && showSeoConnectStep) {
+      setCurrentStep("seo_connect");
     } else if (currentStep === "review" && showDomainStep) {
       setCurrentStep("domain");
     } else if (currentStep === "review" && isHivelocityPlan) {
@@ -922,6 +947,55 @@ export function BuyNowDialog({
 
   const renderStep = () => {
     switch (currentStep) {
+      case "seo_connect":
+        return (
+          <div className="space-y-4">
+            <div className="text-center py-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Connect Search Console &amp; GA4
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                After payment, you&apos;ll link properties in SEO Reports—no add-ons in this checkout.
+              </p>
+            </div>
+
+            <ol className="list-decimal list-inside space-y-3 text-sm text-foreground">
+              <li className="pl-1">
+                <span className="font-medium">Pay for this plan</span> on the next screens (review, then M-Pesa).
+              </li>
+              <li className="pl-1">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <Globe className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  Search Console
+                </span>
+                <p className="mt-1 text-muted-foreground pl-0 sm:pl-6">
+                  Open SEO Reports → Search Console tab and create/link a subscription for each site you want
+                  monitored.
+                </p>
+              </li>
+              <li className="pl-1">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <BarChart3 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  Google Analytics 4
+                </span>
+                <p className="mt-1 text-muted-foreground pl-0 sm:pl-6">
+                  Open SEO Reports → Google Analytics 4 tab and link each GA4 property you want reporting for.
+                </p>
+              </li>
+            </ol>
+
+            {seoReportsHref ? (
+              <p className="text-sm text-muted-foreground rounded-lg border bg-muted/30 px-3 py-2">
+                Tip: bookmark{" "}
+                <Link to={seoReportsHref} className="font-medium text-primary hover:underline">
+                  your team&apos;s SEO Reports
+                </Link>{" "}
+                for after checkout.
+              </p>
+            ) : null}
+          </div>
+        );
+
       case "domain":
         return (
           <div className="space-y-4">
@@ -1863,6 +1937,8 @@ export function BuyNowDialog({
             {intent === "add_to_cart" ? "Add to cart" : "Buy"} {plan.planName}
           </DialogTitle>
           <DialogDescription className="min-w-0 w-full max-w-full">
+            {currentStep === "seo_connect" &&
+              "How you will connect Google Search Console and GA4 to nPanel after subscribing"}
             {currentStep === "domain" && "Choose or enter the domain to use with this plan"}
             {currentStep === "hivelocity_config" && "Select OS and required server details"}
             {currentStep === "review" &&
@@ -1872,7 +1948,19 @@ export function BuyNowDialog({
             {currentStep === "error" && "Payment Failed"}
           </DialogDescription>
 
-          {plan.hivelocity ? (
+          {showSeoConnectStep ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <StepPill
+                active={currentStep === "seo_connect"}
+                done={currentStep !== "seo_connect" && currentStep !== "error"}
+                label="Connect"
+              />
+              <StepPill active={currentStep === "review"} done={currentStep === "payment" || currentStep === "success"} label="Review" />
+              {intent !== "add_to_cart" ? (
+                <StepPill active={currentStep === "payment"} done={currentStep === "success"} label="Pay" />
+              ) : null}
+            </div>
+          ) : plan.hivelocity ? (
             <div className="mt-4 flex flex-wrap gap-2">
               <StepPill active={currentStep === "hivelocity_config"} done={currentStep !== "hivelocity_config" && currentStep !== "error"} label="Configure" />
               <StepPill active={currentStep === "review"} done={currentStep === "payment" || currentStep === "success"} label="Review" />
@@ -1893,6 +1981,16 @@ export function BuyNowDialog({
         </div>
 
         <DialogFooter className="gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t">
+          {currentStep === "seo_connect" && (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-primary">
+                Cancel
+              </Button>
+              <Button onClick={handleNext} className="bg-primary text-primary-foreground">
+                Next: Review
+              </Button>
+            </>
+          )}
           {currentStep === "domain" && (
             <>
               <Button
@@ -1938,6 +2036,11 @@ export function BuyNowDialog({
               >
                 Cancel
               </Button>
+              {showSeoConnectStep && (
+                <Button variant="outline" onClick={() => setCurrentStep("seo_connect")}>
+                  Back
+                </Button>
+              )}
               {showDomainStep && (
                 <Button variant="outline" onClick={() => setCurrentStep("domain")}>
                   Back

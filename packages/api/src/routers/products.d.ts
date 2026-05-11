@@ -148,6 +148,58 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
+    /** Plans for SEO customer pricing table. Product name contains "seo" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    getSeoPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            productFeatures: {
+                key: string;
+                label: string;
+            }[];
+            plans: {
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: {
+                    available: boolean;
+                    valueOverride: string | null;
+                }[];
+            }[];
+        };
+        meta: object;
+    }>;
+    /** Creative / design pricing; product name matches creatives design, creative_design, or creatives_design (case-insensitive). Same shape as getHostingPlansForPricing. */
+    getCreativesDesignPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            productFeatures: {
+                key: string;
+                label: string;
+            }[];
+            plans: {
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: {
+                    available: boolean;
+                    valueOverride: string | null;
+                }[];
+            }[];
+        };
+        meta: object;
+    }>;
     /**
      * Plans for the Nisc Email Marketing customer app pricing table. Matches products named
      * "Nisc Email Marketing" or "Email Marketing" (case-insensitive, substring). Same output shape

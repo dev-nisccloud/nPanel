@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -15,7 +16,11 @@ interface VpsNetworkProps {
 }
 
 export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
-  const ipsQuery = trpc.hivelocity.getDeviceIps.useQuery({ deviceId: deviceData.deviceId });
+  const teamTrpc = useHivelocityTeamTrpcInput();
+  const ipsQuery = trpc.hivelocity.getDeviceIps.useQuery({
+    deviceId: deviceData.deviceId,
+    ...teamTrpc,
+  });
   const assignments = (ipsQuery.data?.data as any[]) || [];
 
   if (ipsQuery.isLoading) {

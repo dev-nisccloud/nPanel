@@ -27,6 +27,17 @@ function setCachedData(key: string, data: any): void {
   cache.set(key, { data, timestamp: Date.now() });
 }
 
+/** Best-effort parse of Google common JSON error shape `{ error: { message } }`. */
+async function readGoogleApiErrorMessage(response: Response): Promise<string | undefined> {
+  try {
+    const body = (await response.json()) as { error?: { message?: string } };
+    const msg = body?.error?.message;
+    return typeof msg === "string" && msg.trim() ? msg.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Call Google PageSpeed Insights API
  */
@@ -53,27 +64,32 @@ async function callPageSpeedAPI(url: string, strategy: 'mobile' | 'desktop'): Pr
     });
 
     if (!response.ok) {
+      const googleMessage = await readGoogleApiErrorMessage(response);
       if (response.status === 400) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'Invalid URL or request parameters',
+          message:
+            googleMessage ??
+            'PageSpeed Insights returned 400. Check GOOGLE_PAGESPEED_API_KEY (valid, unrestricted or server/IP allowed), URL reachability, and API parameters.',
         });
       }
       if (response.status === 401 || response.status === 403) {
         throw new TRPCError({
           code: 'UNAUTHORIZED',
-          message: 'Invalid API key or authentication failed',
+          message: googleMessage ?? 'Invalid API key or authentication failed',
         });
       }
       if (response.status === 429) {
         throw new TRPCError({
           code: 'TOO_MANY_REQUESTS',
-          message: 'Rate limit exceeded. Please try again later.',
+          message: googleMessage ?? 'Rate limit exceeded. Please try again later.',
         });
       }
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
-        message: `PageSpeed Insights API error: ${response.status} ${response.statusText}`,
+        message:
+          googleMessage ??
+          `PageSpeed Insights API error: ${response.status} ${response.statusText}`,
       });
     }
 

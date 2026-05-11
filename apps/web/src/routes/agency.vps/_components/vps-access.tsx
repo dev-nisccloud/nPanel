@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -41,12 +42,16 @@ interface VpsAccessProps {
 }
 
 export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
+  const teamTrpc = useHivelocityTeamTrpcInput();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = React.useState(false);
   const [resetStep, setResetStep] = React.useState<'idle' | 'requesting' | 'token-sent' | 'finalizing'>('idle');
   const [resetToken, setResetToken] = React.useState("");
 
-  const credsQuery = trpc.hivelocity.getDeviceInitialCreds.useQuery({ deviceId: deviceData.deviceId });
+  const credsQuery = trpc.hivelocity.getDeviceInitialCreds.useQuery({
+    deviceId: deviceData.deviceId,
+    ...teamTrpc,
+  });
   const creds = (credsQuery.data?.data as any) || {};
 
   const requestTokenMutation = trpc.hivelocity.vpsRequestResetPasswordToken.useMutation({
@@ -74,14 +79,15 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
 
   const handleStartReset = () => {
     setResetStep('requesting');
-    requestTokenMutation.mutate({ deviceId: deviceData.deviceId });
+    requestTokenMutation.mutate({ deviceId: deviceData.deviceId, ...teamTrpc });
   };
 
   const handleFinalizeReset = () => {
     if (!resetToken.trim()) return;
-    finalizeResetMutation.mutate({ 
+    finalizeResetMutation.mutate({
       deviceId: deviceData.deviceId,
-      token: resetToken.trim()
+      token: resetToken.trim(),
+      ...teamTrpc,
     });
   };
 

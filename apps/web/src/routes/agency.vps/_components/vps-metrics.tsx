@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { trpc } from "@/utils/trpc";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 import {
   Select,
   SelectContent,
@@ -36,6 +37,7 @@ interface VpsMetricsProps {
 export function VpsMetrics({ deviceId }: VpsMetricsProps) {
   const [timeRange, setTimeRange] = React.useState("24h");
   const utils = trpc.useUtils();
+  const teamTrpc = useHivelocityTeamTrpcInput();
 
   const metricTypes = [
     { key: "CPU_USAGE", label: "CPU Compute Load", icon: Cpu, color: "text-blue-500", bgColor: "bg-blue-500/10" },
@@ -60,7 +62,7 @@ export function VpsMetrics({ deviceId }: VpsMetricsProps) {
   };
 
   const handleRefresh = async () => {
-    const promise = utils.hivelocity.getVpsMetrics.invalidate({ deviceId });
+    const promise = utils.hivelocity.getVpsMetrics.invalidate({ deviceId, ...teamTrpc });
     toast.promise(promise, {
       loading: "Synchronizing telemetry...",
       success: "Performance data synchronized",
@@ -119,16 +121,17 @@ export function VpsMetrics({ deviceId }: VpsMetricsProps) {
         {metricTypes.map((metric) => {
           const { start, end } = getTimestamps(timeRange);
           return (
-            <MetricChartCard 
-              key={metric.key} 
-              deviceId={deviceId} 
-              metricType={metric.key} 
-              label={metric.label} 
-              Icon={metric.icon} 
+            <MetricChartCard
+              key={metric.key}
+              deviceId={deviceId}
+              metricType={metric.key}
+              label={metric.label}
+              Icon={metric.icon}
               iconColor={metric.color}
               iconBg={metric.bgColor}
               startTime={start}
               endTime={end}
+              teamTrpc={teamTrpc}
             />
           );
         })}
@@ -138,17 +141,18 @@ export function VpsMetrics({ deviceId }: VpsMetricsProps) {
   );
 }
 
-function MetricChartCard({ 
-  deviceId, 
-  metricType, 
-  label, 
-  Icon, 
+function MetricChartCard({
+  deviceId,
+  metricType,
+  label,
+  Icon,
   iconColor,
   iconBg,
   startTime,
-  endTime 
-}: { 
-  deviceId: number; 
+  endTime,
+  teamTrpc,
+}: {
+  deviceId: number;
   metricType: "CPU_USAGE" | "MEMORY_USAGE" | "DISK_RW" | "NETWORK_USAGE";
   label: string;
   Icon: any;
@@ -156,6 +160,7 @@ function MetricChartCard({
   iconBg: string;
   startTime: number;
   endTime: number;
+  teamTrpc: ReturnType<typeof useHivelocityTeamTrpcInput>;
 }) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
@@ -178,18 +183,22 @@ function MetricChartCard({
     return () => observer.disconnect();
   }, []);
 
-  const { data, isLoading, isError, refetch } = trpc.hivelocity.getVpsMetrics.useQuery({ 
-    deviceId, 
-    metricType,
-    startTime,
-    endTime,
-    imageWidth: dimensions.width > 0 ? dimensions.width : undefined,
-    imageHeight: dimensions.height > 0 ? dimensions.height : undefined,
-  }, {
-    enabled: dimensions.width > 0, // Wait for measurement
-    refetchOnWindowFocus: false,
-    staleTime: 60000 // Cache for 1 minute
-  });
+  const { data, isLoading, isError, refetch } = trpc.hivelocity.getVpsMetrics.useQuery(
+    {
+      deviceId,
+      metricType,
+      startTime,
+      endTime,
+      imageWidth: dimensions.width > 0 ? dimensions.width : undefined,
+      imageHeight: dimensions.height > 0 ? dimensions.height : undefined,
+      ...teamTrpc,
+    },
+    {
+      enabled: dimensions.width > 0, // Wait for measurement
+      refetchOnWindowFocus: false,
+      staleTime: 60000, // Cache for 1 minute
+    },
+  );
 
   const chartData = data?.data as any;
   const base64Chart = chartData?.imageData;

@@ -38,9 +38,18 @@ import { VpsMetrics } from "./vps-metrics";
 import { VpsHistory } from "./vps-history";
 import { VpsRescue } from "./vps-rescue";
 import { VpsTerminal } from "./vps-terminal";
+import {
+	TeamHivelocityAccessProvider,
+	type TeamHivelocityAccess,
+} from "./team-hivelocity-access-context";
 
 interface VpsDetailPageProps {
   deviceId: string;
+  /** Back link target (VPS/VDS list). Default agency list. */
+  vpsListPath?: string;
+  subscriptionsPathPrefix?: string;
+  /** When set, all Hivelocity calls are scoped to this team's subscription-linked devices. */
+  teamHivelocityAccess?: TeamHivelocityAccess | null;
 }
 
 function VpsDetailSkeleton() {
@@ -70,12 +79,25 @@ function VpsDetailSkeleton() {
   );
 }
 
-export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
+export function VpsDetailPage({
+  deviceId,
+  vpsListPath = "/agency/vps",
+  subscriptionsPathPrefix = "/agency/subscriptions",
+  teamHivelocityAccess = null,
+}: VpsDetailPageProps) {
   const id = parseInt(deviceId, 10);
   const [activeTab, setActiveTab] = React.useState("overview");
-  
-  const deviceQuery = trpc.hivelocity.getDeviceDetails.useQuery({ deviceId: id });
-  const vpsQuery = trpc.hivelocity.getVpsDetails.useQuery({ deviceId: id });
+
+  const teamInput =
+    teamHivelocityAccess != null
+      ? {
+          teamSlug: teamHivelocityAccess.teamSlug,
+          teamResourceCategory: teamHivelocityAccess.teamResourceCategory,
+        }
+      : {};
+
+  const deviceQuery = trpc.hivelocity.getDeviceDetails.useQuery({ deviceId: id, ...teamInput });
+  const vpsQuery = trpc.hivelocity.getVpsDetails.useQuery({ deviceId: id, ...teamInput });
 
   const isLoading = deviceQuery.isLoading || vpsQuery.isLoading;
   const isError = deviceQuery.isError || vpsQuery.isError;
@@ -122,12 +144,13 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
   ];
 
   return (
+    <TeamHivelocityAccessProvider value={teamHivelocityAccess ?? null}>
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <div className="w-full max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/agency/vps">
+            <Link to={vpsListPath}>
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -143,28 +166,30 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
 
           <div className="flex items-center gap-2">
             {getStatusBadge(deviceData.status)}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                  onClick={() => {
-                    const promise = Promise.all([deviceQuery.refetch(), vpsQuery.refetch()]);
-                    toast.promise(promise, {
-                      loading: 'Refreshing device data...',
-                      success: 'Data refreshed successfully',
-                      error: 'Failed to refresh data',
-                    });
-                  }}
-                >
-                  Refresh Data
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">Deprovision</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {teamHivelocityAccess == null ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Page actions">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const promise = Promise.all([deviceQuery.refetch(), vpsQuery.refetch()]);
+                      toast.promise(promise, {
+                        loading: "Refreshing device data...",
+                        success: "Data refreshed successfully",
+                        error: "Failed to refresh data",
+                      });
+                    }}
+                  >
+                    Refresh Data
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive">Deprovision</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
         </div>
 
@@ -195,7 +220,11 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
 
             <div className="mt-10">
               <TabsContent value="overview">
-                <VpsOverview deviceData={deviceData} vpsData={vpsData} />
+                <VpsOverview
+                  deviceData={deviceData}
+                  vpsData={vpsData}
+                  subscriptionsPathPrefix={subscriptionsPathPrefix}
+                />
               </TabsContent>
               <TabsContent value="terminal" forceMount className="data-[state=inactive]:hidden">
                 <VpsTerminal deviceData={deviceData} />
@@ -223,5 +252,6 @@ export function VpsDetailPage({ deviceId }: VpsDetailPageProps) {
         </div>
       </div>
     </div>
+    </TeamHivelocityAccessProvider>
   );
 }

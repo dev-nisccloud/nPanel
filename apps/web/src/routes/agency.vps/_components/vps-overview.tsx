@@ -44,15 +44,19 @@ import { formatMoney, formatMoneyUsd } from "./money";
 import { CreateSubscriptionForHivelocityDialog } from "./create-subscription-for-hivelocity-dialog";
 import { useConfirm } from "@/hooks/use-confirm";
 import { Link } from "react-router";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 
 interface VpsOverviewProps {
   deviceData: any;
   vpsData: any;
+  /** Prefix for subscription detail links, e.g. `/agency/subscriptions` or `/{teamSlug}/subscriptions`. */
+  subscriptionsPathPrefix?: string;
 }
 
-export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
+export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/agency/subscriptions" }: VpsOverviewProps) {
   const utils = trpc.useUtils();
-  
+  const teamTrpc = useHivelocityTeamTrpcInput();
+
   // Pricing & Localization
   const pricing = useHivelocityPricing("VPS");
   const displayCurrency = pricing.usdToKesRate ? "KES" : "USD";
@@ -64,8 +68,14 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
   const [editHostname, setEditHostname] = React.useState(deviceData.hostname || "");
 
   // New Queries
-  const servicesQuery = trpc.hivelocity.getDeviceServices.useQuery({ deviceId: deviceData.deviceId });
-  const upgradesQuery = trpc.hivelocity.getVpsUpgrades.useQuery({ deviceId: deviceData.deviceId });
+  const servicesQuery = trpc.hivelocity.getDeviceServices.useQuery({
+    deviceId: deviceData.deviceId,
+    ...teamTrpc,
+  });
+  const upgradesQuery = trpc.hivelocity.getVpsUpgrades.useQuery({
+    deviceId: deviceData.deviceId,
+    ...teamTrpc,
+  });
   const subscriptionLinkQuery = trpc.clientSubscriptions.getHasLinkedSubscriptionByHivelocityDeviceId.useQuery({ 
     hivelocityDeviceId: deviceData.deviceId 
   });
@@ -78,7 +88,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
   const [UpdateIdentityDialog, confirmUpdateIdentity] = useConfirm("Update instance identity?", "This will change the label and hostname of your VPS instance. Are you sure you want to proceed?");
 
   const powerStatusQuery = trpc.hivelocity.getDevicePowerStatus.useQuery(
-    { deviceId: deviceData.deviceId },
+    { deviceId: deviceData.deviceId, ...teamTrpc },
     { 
       initialData: { success: true, data: { powerStatus: deviceData.powerStatus, pendingAction: null } },
       refetchInterval: (query) => {
@@ -98,7 +108,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
     onSuccess: () => {
       toast.success("Device updated successfully");
       setIsEditing(false);
-      utils.hivelocity.getDeviceDetails.invalidate({ deviceId: deviceData.deviceId });
+      utils.hivelocity.getDeviceDetails.invalidate({ deviceId: deviceData.deviceId, ...teamTrpc });
     },
     onError: (err) => {
       toast.error(`Failed to update device: ${err.message}`);
@@ -108,8 +118,8 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
   const powerMutation = trpc.hivelocity.devicePowerAction.useMutation({
     onSuccess: (_, variables) => {
       toast.success(`Power action '${variables.action}' triggered successfully`);
-      utils.hivelocity.getDeviceDetails.invalidate({ deviceId: deviceData.deviceId });
-      utils.hivelocity.getDevicePowerStatus.invalidate({ deviceId: deviceData.deviceId });
+      utils.hivelocity.getDeviceDetails.invalidate({ deviceId: deviceData.deviceId, ...teamTrpc });
+      utils.hivelocity.getDevicePowerStatus.invalidate({ deviceId: deviceData.deviceId, ...teamTrpc });
       setTimeout(() => powerStatusQuery.refetch(), 1000);
     },
     onError: (err) => {
@@ -144,10 +154,11 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
     const ok = await confirmUpdateIdentity();
     if (!ok) return;
 
-    updateMutation.mutate({ 
-      deviceId: deviceData.deviceId, 
-      name: editName.trim(), 
-      hostname: editHostname.trim() 
+    updateMutation.mutate({
+      deviceId: deviceData.deviceId,
+      name: editName.trim(),
+      hostname: editHostname.trim(),
+      ...teamTrpc,
     });
   };
 
@@ -346,7 +357,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 className={`w-full justify-start gap-3 h-11 border-border/40 hover:bg-green-50/50 hover:text-green-700 hover:border-green-200 transition-all group ${powerStatus === 'ON' ? 'opacity-50 grayscale' : ''}`}
                 onClick={async () => {
                   const ok = await confirmBoot();
-                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "on" });
+                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "on", ...teamTrpc });
                 }}
                 disabled={powerMutation.isPending || isPowerProcessing || powerStatus === 'ON'}
               >
@@ -360,7 +371,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 className={`w-full justify-start gap-3 h-11 border-border/40 hover:bg-red-50/50 hover:text-red-700 hover:border-red-200 transition-all group ${powerStatus === 'OFF' ? 'opacity-50 grayscale' : ''}`}
                 onClick={async () => {
                   const ok = await confirmShutdown();
-                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "off" });
+                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "off", ...teamTrpc });
                 }}
                 disabled={powerMutation.isPending || isPowerProcessing || powerStatus === 'OFF'}
               >
@@ -374,7 +385,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                 className="w-full justify-start gap-3 h-11 border-border/40 hover:bg-amber-50/50 hover:text-amber-700 hover:border-amber-200 transition-all group"
                 onClick={async () => {
                   const ok = await confirmReboot();
-                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "reboot" });
+                  if (ok) powerMutation.mutate({ deviceId: deviceData.deviceId, action: "reboot", ...teamTrpc });
                 }}
                 disabled={powerMutation.isPending || isPowerProcessing}
               >
@@ -431,7 +442,7 @@ export function VpsOverview({ deviceData, vpsData }: VpsOverviewProps) {
                     <p className="text-xs text-muted-foreground">ID: {subscriptionLinkQuery.data.subscriptionId}</p>
                   </div>
                 </div>
-                <Link to={`/agency/subscriptions/${subscriptionLinkQuery.data.subscriptionId}`}>
+                <Link to={`${subscriptionsPathPrefix}/${subscriptionLinkQuery.data.subscriptionId}`}>
                   <Button variant="outline" size="sm" className="h-8 gap-2 text-[10px] uppercase font-bold">
                     <ExternalLink className="h-3.5 w-3.5" />
                     View Subscription

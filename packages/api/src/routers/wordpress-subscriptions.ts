@@ -3,7 +3,12 @@ import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { and, eq, or } from "@npanel/db";
 import { db } from "@npanel/db";
-import { hostingPlan, wordPressInstance, wordPressInstanceActivityLog } from "@npanel/db/schema/hosting";
+import {
+	hostingPlan,
+	hostingSubscription,
+	wordPressInstance,
+	wordPressInstanceActivityLog,
+} from "@npanel/db/schema/hosting";
 import { niscClientSubscription } from "@npanel/db/schema/products";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import * as crypto from "node:crypto";
@@ -133,6 +138,127 @@ async function ensureTeamMutationAccess(params: {
 	}
 }
 
+function normalizeHost(raw: string): string {
+	let h = raw.trim().toLowerCase();
+	h = h.replace(/^https?:\/\//, "");
+	const slash = h.indexOf("/");
+	if (slash !== -1) h = h.slice(0, slash);
+	const colon = h.indexOf(":");
+	if (colon !== -1) h = h.slice(0, colon);
+	return h;
+}
+
+function installationHostFromPayload(installation: unknown): string {
+	if (!installation || typeof installation !== "object") return "";
+	const inst = installation as Record<string, unknown>;
+	const dom = inst.domain;
+	if (dom && typeof dom === "object") {
+		const name = (dom as Record<string, unknown>).name;
+		if (typeof name === "string" && name.trim()) return normalizeHost(name);
+	}
+	const url = inst.url;
+	if (typeof url === "string" && url.trim()) {
+		try {
+			const u = new URL(url.includes("://") ? url : `https://${url}`);
+			return normalizeHost(u.hostname);
+		} catch {
+			return normalizeHost(url);
+		}
+	}
+	return "";
+}
+
+function fqdnLooksLikeDomain(s: string): boolean {
+	return /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i.test(s.trim());
+}
+
+/** Exact primary domain / panel name match, or WP host is a subdomain under that account domain */
+function installationMatchesHostingDomains(
+	installationHost: string,
+	primaryDomain: string | null | undefined,
+	extraNames: (string | null | undefined)[],
+): boolean {
+	if (!installationHost) return false;
+	const bases = [primaryDomain, ...extraNames]
+		.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+		.map((x) => normalizeHost(x))
+		.filter(Boolean);
+	for (const base of bases) {
+		if (!base) continue;
+		if (installationHost === base) return true;
+		if (installationHost.endsWith(`.${base}`)) return true;
+	}
+	return false;
+}
+
+async function fetchWpToolkitInstallation(installationId: number): Promise<unknown> {
+	const { sendPleskRestRequest } = await import("../lib/plesk/rest-client");
+
+	if (!process.env.PLESK_REST_ENDPOINT) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: "Server configuration error: PLESK_REST_ENDPOINT environment variable is not set",
+		});
+	}
+
+	const endpoint = `/v1/installations/${installationId}`;
+	const { data, isAuthError, isHostUnreachable, statusCode } =
+		await sendPleskRestRequest(endpoint, "GET");
+
+	if (isHostUnreachable) {
+		throw new TRPCError({
+			code: "SERVICE_UNAVAILABLE",
+			message: "Plesk host is unreachable",
+		});
+	}
+
+	if (isAuthError) {
+		throw new TRPCError({
+			code: statusCode === 403 ? "FORBIDDEN" : "UNAUTHORIZED",
+			message:
+				statusCode === 403
+					? "WP Toolkit rejected this request (HTTP 403). Check that the API key allows WP Toolkit REST access, extension permissions, and IP restrictions."
+					: "Invalid or missing Plesk API credentials for WP Toolkit",
+		});
+	}
+
+	if (statusCode === 404) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `WordPress installation with ID ${installationId} not found`,
+		});
+	}
+
+	if (statusCode < 200 || statusCode >= 300 || !data) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: `WP Toolkit API returned status ${statusCode}: ${JSON.stringify(data)}`,
+		});
+	}
+
+	return data;
+}
+
+async function teamIdForClientSubscriptionWpInstallation(params: {
+	userId: string;
+	installationId: number;
+}): Promise<string | null> {
+	const rows = await db
+		.select({ teamId: niscClientSubscription.teamId })
+		.from(niscClientSubscription)
+		.innerJoin(team, eq(team.id, niscClientSubscription.teamId))
+		.leftJoin(teamMember, eq(teamMember.teamId, niscClientSubscription.teamId))
+		.where(
+			and(
+				eq(niscClientSubscription.wpInstallationId, params.installationId),
+				or(eq(teamMember.userId, params.userId), eq(team.createdById, params.userId)),
+			),
+		)
+		.limit(1);
+	const tid = rows[0]?.teamId;
+	return typeof tid === "string" ? tid : null;
+}
+
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
@@ -145,157 +271,127 @@ export const wordpressSubscriptionsRouter = router({
 		.query(async ({ ctx, input }) => {
 			const actor = getActor(ctx);
 
-			// Fetch WordPress installation and subscription link in parallel
-			const [installationResult, subscriptionResult] = await Promise.allSettled([
-				// Fetch from WP Toolkit
-				(async () => {
-					const { sendPleskRestRequest } = await import('../lib/plesk/rest-client');
-					
-					if (!process.env.PLESK_REST_ENDPOINT) {
-						throw new TRPCError({
-							code: "INTERNAL_SERVER_ERROR",
-							message: "Server configuration error: PLESK_REST_ENDPOINT environment variable is not set",
-						});
-					}
+			const wpLinkRow = await db.query.wordPressInstance.findFirst({
+				where: eq(wordPressInstance.installationId, input.installationId),
+				columns: {
+					id: true,
+					teamId: true,
+					installationId: true,
+					hostingSubscriptionId: true,
+					createdAt: true,
+					updatedAt: true,
+				},
+			});
 
-					const endpoint = `/v1/installations/${input.installationId}`;
-					const { data, isAuthError, isHostUnreachable, statusCode } =
-						await sendPleskRestRequest(endpoint, 'GET');
-
-					if (isHostUnreachable) {
-						throw new TRPCError({
-							code: "SERVICE_UNAVAILABLE",
-							message: "Plesk host is unreachable",
-						});
+			const subscription = wpLinkRow
+				? {
+						id: wpLinkRow.id,
+						teamId: wpLinkRow.teamId,
+						installationId: wpLinkRow.installationId,
+						hostingSubscriptionId: wpLinkRow.hostingSubscriptionId,
+						createdAt: wpLinkRow.createdAt,
+						updatedAt: wpLinkRow.updatedAt,
 					}
+				: null;
 
-					if (isAuthError) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid Plesk credentials",
-						});
-					}
+			let customerAuthorized = isAgencyUserRole(actor.role);
 
-					if (statusCode === 404) {
-						throw new TRPCError({
-							code: "NOT_FOUND",
-							message: `WordPress installation with ID ${input.installationId} not found`,
-						});
-					}
+			if (!customerAuthorized && subscription?.teamId) {
+				await ensureTeamReadAccess({
+					teamId: subscription.teamId,
+					userId: actor.userId,
+					role: actor.role,
+				});
+				customerAuthorized = true;
+			}
 
-					if (statusCode < 200 || statusCode >= 300 || !data) {
-						throw new TRPCError({
-							code: "INTERNAL_SERVER_ERROR",
-							message: `WP Toolkit API returned status ${statusCode}: ${JSON.stringify(data)}`,
-						});
-					}
-
-					return data;
-				})().catch((error) => {
-					// Re-throw TRPCErrors as-is, wrap other errors
-					if (error instanceof TRPCError) {
-						throw error;
-					}
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: error instanceof Error ? error.message : "Failed to fetch WordPress installation",
+			if (!customerAuthorized) {
+				const teamFromWpId = await teamIdForClientSubscriptionWpInstallation({
+					userId: actor.userId,
+					installationId: input.installationId,
+				});
+				if (teamFromWpId) {
+					await ensureTeamReadAccess({
+						teamId: teamFromWpId,
+						userId: actor.userId,
+						role: actor.role,
 					});
-				}),
-				// Fetch subscription link from database
-				db.query.wordPressInstance
-					.findFirst({
-						where: eq(wordPressInstance.installationId, input.installationId),
-						columns: {
-							id: true,
-							teamId: true,
-							installationId: true,
-							hostingSubscriptionId: true,
-							createdAt: true,
-							updatedAt: true,
-						},
-					})
-					.then((sub) => {
-						if (!sub) return null;
-						return {
-							id: sub.id,
-							teamId: sub.teamId,
-							installationId: sub.installationId,
-							hostingSubscriptionId: sub.hostingSubscriptionId,
-							createdAt: sub.createdAt,
-							updatedAt: sub.updatedAt,
-						};
-					})
-					.catch(() => null),
-			]);
-
-			// Handle installation result
-			if (installationResult.status === 'rejected') {
-				const error = installationResult.reason;
-				// Re-throw TRPCErrors as-is
-				if (error instanceof TRPCError) {
-					throw error;
+					customerAuthorized = true;
 				}
-				// Wrap other errors
+			}
+
+			let installation: unknown;
+			try {
+				installation = await fetchWpToolkitInstallation(input.installationId);
+			} catch (e) {
+				if (e instanceof TRPCError) throw e;
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: error instanceof Error ? error.message : "Failed to fetch WordPress installation",
+					message: e instanceof Error ? e.message : "Failed to fetch WordPress installation",
 				});
 			}
 
-			const installation = installationResult.value;
-			const subscription = subscriptionResult.status === 'fulfilled' 
-				? subscriptionResult.value 
-				: null;
-
-			// If installation is null or undefined, throw NOT_FOUND error
 			if (!installation) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: `WordPress installation with ID ${input.installationId} not found`,
 				});
 			}
-			if (!isAgencyUserRole(actor.role)) {
-				if (subscription?.teamId) {
-					await ensureTeamReadAccess({
-						teamId: subscription.teamId,
-						userId: actor.userId,
-						role: actor.role,
-					});
-				} else {
-					// Customer fallback: allow access when WP installation domain belongs to a hosting
-					// subscription domain that the current user can access through their team(s).
-					const installationDomain = String(installation?.domain?.name ?? "").trim().toLowerCase();
-					if (!installationDomain) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "You do not have access to this WordPress installation",
-						});
-					}
 
-					const accessibleHostingDomains = await db
-						.select({ primaryDomain: niscClientSubscription.primaryDomain })
-						.from(niscClientSubscription)
-						.innerJoin(team, eq(team.id, niscClientSubscription.teamId))
-						.leftJoin(teamMember, eq(teamMember.teamId, niscClientSubscription.teamId))
-						.where(
-							or(
-								eq(teamMember.userId, actor.userId),
-								eq(team.createdById, actor.userId),
-							),
+			if (!customerAuthorized) {
+				const installationHost = installationHostFromPayload(installation);
+				if (!installationHost) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this WordPress installation",
+					});
+				}
+
+				const accessiblePanelHosting = await db
+					.select({
+						primaryDomain: hostingSubscription.primaryDomain,
+						pleskName: hostingSubscription.pleskName,
+					})
+					.from(hostingSubscription)
+					.innerJoin(team, eq(team.id, hostingSubscription.teamId))
+					.leftJoin(teamMember, eq(teamMember.teamId, hostingSubscription.teamId))
+					.where(
+						or(eq(teamMember.userId, actor.userId), eq(team.createdById, actor.userId)),
+					);
+
+				const accessibleNisc = await db
+					.select({
+						primaryDomain: niscClientSubscription.primaryDomain,
+						name: niscClientSubscription.name,
+					})
+					.from(niscClientSubscription)
+					.innerJoin(team, eq(team.id, niscClientSubscription.teamId))
+					.leftJoin(teamMember, eq(teamMember.teamId, niscClientSubscription.teamId))
+					.where(
+						or(eq(teamMember.userId, actor.userId), eq(team.createdById, actor.userId)),
+					);
+
+				let hasDomainAccess = accessiblePanelHosting.some((row) =>
+					installationMatchesHostingDomains(installationHost, row.primaryDomain, [row.pleskName]),
+				);
+
+				if (!hasDomainAccess) {
+					hasDomainAccess = accessibleNisc.some((row) => {
+						const nameFqdns =
+							typeof row.name === "string" && fqdnLooksLikeDomain(row.name) ? [row.name] : [];
+						return installationMatchesHostingDomains(
+							installationHost,
+							row.primaryDomain,
+							nameFqdns,
 						);
-
-					const hasDomainAccess = accessibleHostingDomains.some((row) => {
-						const baseDomain = String(row.primaryDomain ?? "").trim().toLowerCase();
-						if (!baseDomain) return false;
-						return installationDomain === baseDomain || installationDomain.endsWith(`.${baseDomain}`);
 					});
+				}
 
-					if (!hasDomainAccess) {
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message: "You do not have access to this WordPress installation",
-						});
-					}
+				if (!hasDomainAccess) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this WordPress installation",
+					});
 				}
 			}
 
