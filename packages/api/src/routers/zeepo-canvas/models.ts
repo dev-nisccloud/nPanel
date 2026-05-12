@@ -19,7 +19,7 @@ export type ZeepoModel = {
 };
 
 // Static model registry. In the future, this could be fetched dynamically from Replicate or a database.
-const MODELS: ZeepoModel[] = [
+export const MODELS: ZeepoModel[] = [
   // --- Cutting Edge Text Models ---
   {
     id: "google/gemini-3.1-pro",

@@ -12,6 +12,7 @@ import {
 } from "./schemas";
 // Ensure this file exists in packages/api/src/lib/qstash/zeepo-canvas.ts next.
 import { enqueueZeepoCanvasGeneration } from "../../lib/qstash/zeepo-canvas";
+import { redactReplicateHostedUrlsDeep } from "../../lib/replicate-hosted-url";
 
 export const zeepoCanvasGenerateRouter = router({
   start: protectedProcedure
@@ -112,7 +113,11 @@ export const zeepoCanvasGenerateRouter = router({
         });
       }
 
-      return { data: generation as any };
+      const safe = {
+        ...(generation as Record<string, unknown>),
+        outputs: redactReplicateHostedUrlsDeep((generation as { outputs?: unknown }).outputs),
+      };
+      return { data: safe as any };
     }),
 
   getGenerationsByNode: protectedProcedure
@@ -131,6 +136,10 @@ export const zeepoCanvasGenerateRouter = router({
         orderBy: [desc(zeepoCanvasGeneration.createdAt)],
       });
 
-      return { data: generations as any[] };
+      const sanitized = (generations as { outputs?: unknown }[]).map((row) => ({
+        ...row,
+        outputs: redactReplicateHostedUrlsDeep(row.outputs),
+      }));
+      return { data: sanitized as any[] };
     }),
 });
