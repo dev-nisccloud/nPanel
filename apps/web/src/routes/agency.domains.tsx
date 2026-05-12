@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import { OpenProviderTldsTable } from "./agency.domains/_components/openprovider-tlds-table";
+import { AiDomainSearch } from "./agency.domains/_components/ai-domain-search";
 import { DomainSearch } from "./agency.domains/_components/domain-search";
 import { TldSettings } from "./agency.domains/_components/tld-settings";
 import { trpc } from "@/utils/trpc";
@@ -28,6 +29,7 @@ export default function DomainsPage() {
         <div className="flex justify-center mb-6">
           <TabsList className="inline-flex w-auto">
             <TabsTrigger value="domain-search">Domain Search</TabsTrigger>
+            <TabsTrigger value="ai-domain-search">AI Domain Search</TabsTrigger>
             {/* <TabsTrigger value="openprovider-tlds">Openprovider TLDs</TabsTrigger> */}
             {/* <TabsTrigger value="supported-domains">Supported Domains</TabsTrigger> */}
             <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -36,6 +38,10 @@ export default function DomainsPage() {
 
         <TabsContent value="domain-search" className="mt-6 data-[state=inactive]:hidden" forceMount>
           <DomainSearch />
+        </TabsContent>
+
+        <TabsContent value="ai-domain-search" className="mt-6 data-[state=inactive]:hidden" forceMount>
+          <AiDomainSearch />
         </TabsContent>
 
         {/* <TabsContent value="openprovider-tlds" className="mt-6">
@@ -48,7 +54,7 @@ export default function DomainsPage() {
           </div>
         </TabsContent> */}
 
-        <TabsContent value="settings" className="mt-6">
+        <TabsContent value="settings" className="mt-6 data-[state=inactive]:hidden" forceMount>
           <TldSettings />
         </TabsContent>
       </Tabs>

@@ -46,6 +46,7 @@ import { kenicRouter } from "./kenic";
 import { domainTransferRouter } from "./domain-transfer";
 import { nameserverGroupsRouter } from "./nameserver-groups";
 import { tldSettingsRouter } from "./tld-settings";
+import { aiDomainSearchRouter } from "./ai-domain-search";
 import { domainsRouter as niscDomainsRouter } from "./domains";
 import { currencyConversionRouter } from "./currency-conversion";
 import { teamsRouter } from "./teams";
@@ -186,6 +187,8 @@ export const appRouter = router({
 	nameserverGroups: nameserverGroupsRouter,
 	// TLD Settings management
 	tldSettings: tldSettingsRouter,
+	// AI domain name ideas (authenticated — Replicate / Claude Haiku)
+	aiDomainSearch: aiDomainSearchRouter,
 	// Domains Management (Nisc)
 	domains: niscDomainsRouter,
 	// Currency Conversion

@@ -131,27 +131,42 @@ export function useDomainSearch(
 
   /**
    * Starts a search if valid.
+   * @param overrideRaw optional raw string (e.g. from AI suggestions); when set, used instead of `domainName` and syncs `domainName` on success.
    * - started=false: invalid/empty input
    * - changed=false: same query as last submitted (no new fetch cycle expected)
    */
-  const triggerSearch = React.useCallback((): { started: boolean; changed: boolean } => {
-    const raw = domainName.trim();
-    if (!raw) return { started: false, changed: false };
-    setError(null);
-    const sanitized = sanitizeDomainName(raw);
-    if (!isValidSearchQuery(sanitized)) {
-      setError("Enter a valid search query to find your domain.");
-      return { started: false, changed: false };
-    }
-    const nextSearchQuery = toSingleLabelName(sanitized);
-    const isSameQuery = nextSearchQuery === searchQueryName && raw === rawSearchQueryForResults;
-    if (isSameQuery) {
-      return { started: true, changed: false };
-    }
-    setSearchQueryName(nextSearchQuery);
-    setRawSearchQueryForResults(raw);
-    return { started: true, changed: true };
-  }, [domainName, sanitizeDomainName, isValidSearchQuery, toSingleLabelName, searchQueryName, rawSearchQueryForResults]);
+  const triggerSearch = React.useCallback(
+    (overrideRaw?: string): { started: boolean; changed: boolean } => {
+      const source = overrideRaw !== undefined ? overrideRaw : domainName;
+      const raw = source.trim();
+      if (!raw) return { started: false, changed: false };
+      setError(null);
+      const sanitized = sanitizeDomainName(raw);
+      if (!isValidSearchQuery(sanitized)) {
+        setError("Enter a valid search query to find your domain.");
+        return { started: false, changed: false };
+      }
+      const nextSearchQuery = toSingleLabelName(sanitized);
+      const isSameQuery = nextSearchQuery === searchQueryName && raw === rawSearchQueryForResults;
+      if (isSameQuery) {
+        return { started: true, changed: false };
+      }
+      if (overrideRaw !== undefined) {
+        setDomainName(raw);
+      }
+      setSearchQueryName(nextSearchQuery);
+      setRawSearchQueryForResults(raw);
+      return { started: true, changed: true };
+    },
+    [
+      domainName,
+      sanitizeDomainName,
+      isValidSearchQuery,
+      toSingleLabelName,
+      searchQueryName,
+      rawSearchQueryForResults,
+    ]
+  );
 
   const handleAddToCart = React.useCallback(
     (result: DomainSearchResult) => {
