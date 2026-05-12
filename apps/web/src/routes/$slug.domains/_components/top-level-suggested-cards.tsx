@@ -14,6 +14,7 @@ import { trpc } from "@/utils/trpc";
 import { useCurrency } from "./currency-context";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { getCustomerRetailDisplayPrice } from "./customer-domain-display-price";
 
 const formatPrice = (price?: number, currency?: string) => {
 	if (price == null || price === undefined) return "N/A";
@@ -76,7 +77,9 @@ export function TopLevelSuggestedCards({
 	onLoadingChange,
 }: TopLevelSuggestedCardsProps) {
 	const currencyContext = useCurrency();
-	const { getPricingInfo, calculatePricesBatch } = useDomainPricing(currencyContext);
+	const { getPricingInfo, calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } =
+		useDomainPricing(currencyContext);
+	const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 	const { convertPricesBatch } = currencyContext;
 	const TARGET_CURRENCY = "KES";
 	const name = React.useMemo(() => searchQuery.trim().toLowerCase().replace(/\s+/g, ""), [searchQuery]);
@@ -280,6 +283,7 @@ export function TopLevelSuggestedCards({
 			name={name}
 			byDomain={byDomain}
 			getPricingInfo={getPricingInfo}
+			retailPricingReady={retailPricingReady}
 			isDomainInCart={isDomainInCart}
 			onAddToCart={onAddToCart}
 			onRemoveFromCart={onRemoveFromCart}
@@ -299,6 +303,7 @@ function TopLevelCardsInner({
 	name,
 	byDomain,
 	getPricingInfo,
+	retailPricingReady,
 	isDomainInCart,
 	onAddToCart,
 	onRemoveFromCart,
@@ -314,6 +319,7 @@ function TopLevelCardsInner({
 	name: string;
 	byDomain: Map<string, DomainSearchResult>;
 	getPricingInfo: (domain: string, original: number, currency: string) => { finalPrice: number; marginAmount: number; marginType: string | null; marginValue: string | null; currency: string };
+	retailPricingReady: boolean;
 	isDomainInCart: (domain: string) => boolean;
 	onAddToCart: (r: DomainSearchResult) => void;
 	onRemoveFromCart: (domain: string) => void;
@@ -340,8 +346,8 @@ function TopLevelCardsInner({
 				tld="co.ke"
 				domain={kenicCoKe.domain}
 				available
-				displayPrice={createCalc.finalPrice}
-				currency={currency}
+				displayPrice={retailPricingReady ? createCalc.finalPrice : undefined}
+				currency={retailPricingReady ? currency : undefined}
 				displayResult={displayResult}
 				isDomainInCart={isDomainInCart}
 				onAddToCart={onAddToCart}
@@ -371,8 +377,8 @@ function TopLevelCardsInner({
 				tld="ke"
 				domain={kenicKe.domain}
 				available
-				displayPrice={createCalc.finalPrice}
-				currency={currency}
+				displayPrice={retailPricingReady ? createCalc.finalPrice : undefined}
+				currency={retailPricingReady ? currency : undefined}
 				displayResult={displayResult}
 				isDomainInCart={isDomainInCart}
 				onAddToCart={onAddToCart}
@@ -391,6 +397,7 @@ function TopLevelCardsInner({
 					searchName={name}
 					bundleInfo={bundleInfo}
 					bundleTotalKes={bundleTotalKes}
+					retailPricingReady={retailPricingReady}
 					formatPrice={formatPrice}
 					isDomainInCart={isDomainInCart}
 					onAddToCart={onAddToCart}
@@ -408,27 +415,17 @@ function TopLevelCardsInner({
 		const r = byDomain.get(domain);
 		const show = tld === "com" && showCom;
 		if (!show || !r || r.status !== "free") continue;
-		const calc = r.price?.calculated as {
-			convertedPrice?: number;
-			convertedOriginalPrice?: number;
-			displayCurrency?: string;
-			finalPrice: number;
-			originalPrice?: number;
-			currency: string;
-			marginType?: string | null;
-			marginValue?: string | null;
-			marginAmount?: number;
-		} | undefined;
-		const displayPrice = calc?.convertedPrice ?? calc?.finalPrice ?? r.price?.reseller?.price ?? 0;
-		const currency = calc?.displayCurrency ?? calc?.currency ?? r.price?.reseller?.currency ?? "USD";
+		const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(r);
+		const showPrice =
+			retailPricingReady && displayPrice != null && displayCurrency != null && !Number.isNaN(displayPrice);
 		cards.push(
 			<SingleTldCard
 				key={tld}
 				tld={tld}
 				domain={domain}
 				available
-				displayPrice={displayPrice}
-				currency={currency}
+				displayPrice={showPrice ? displayPrice : undefined}
+				currency={showPrice ? displayCurrency : undefined}
 				displayResult={r}
 				isDomainInCart={isDomainInCart}
 				onAddToCart={onAddToCart}
@@ -458,8 +455,8 @@ function SingleTldCard({
 	tld: string;
 	domain: string;
 	available: boolean;
-	displayPrice: number;
-	currency: string;
+	displayPrice?: number;
+	currency?: string;
 	displayResult: DomainSearchResult;
 	isDomainInCart: (d: string) => boolean;
 	onAddToCart: (r: DomainSearchResult) => void;
@@ -470,6 +467,11 @@ function SingleTldCard({
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
 	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
 	const isInCart = isDomainInCart(domain);
+	const priceReady =
+		available &&
+		displayPrice != null &&
+		!Number.isNaN(displayPrice) &&
+		Boolean(currency);
 	return (
 		<>
 			<div className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
@@ -480,9 +482,9 @@ function SingleTldCard({
 				</Badge>
 				</div>
 				<div className="font-bold text-base text-primary mb-1 truncate" title={domain}>{domain}</div>
-				{available && (
+				{priceReady && (
 					<div className="space-y-0.5 mb-2">
-						<div className="text-base font-bold text-foreground">{formatPriceProp(displayPrice, currency)}</div>
+						<div className="text-base font-bold text-foreground">{formatPriceProp(displayPrice!, currency!)}</div>
 					</div>
 				)}
 				{available && TLD_WHY_CHOOSE[tld] ? (
@@ -501,8 +503,8 @@ function SingleTldCard({
 				<div className="mt-auto flex items-center justify-center gap-2">
 					{available ? (
 						<>
-							<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId}>Buy Now</Button>
-							<Button size="sm" variant={isInCart ? "destructive" : "outline"} onClick={(e) => { e?.preventDefault(); isInCart ? onRemoveFromCart(domain) : onAddToCart(displayResult); }} className="h-8 w-8 p-0" title={isInCart ? "Remove from cart" : "Add to cart"}>
+							<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId || !priceReady}>Buy Now</Button>
+							<Button size="sm" variant={isInCart ? "destructive" : "outline"} onClick={(e) => { e?.preventDefault(); if (isInCart) onRemoveFromCart(domain); else if (priceReady) onAddToCart(displayResult); }} className="h-8 w-8 p-0" disabled={!priceReady && !isInCart} title={isInCart ? "Remove from cart" : "Add to cart"}>
 								{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
 							</Button>
 						</>
@@ -524,6 +526,7 @@ function BundleCard({
 	searchName,
 	bundleInfo,
 	bundleTotalKes,
+	retailPricingReady,
 	formatPrice,
 	isDomainInCart,
 	onAddToCart,
@@ -535,6 +538,7 @@ function BundleCard({
 	searchName: string;
 	bundleInfo: { items: { tld: string; domain: string; basePrice: number; currency: string }[] };
 	bundleTotalKes: number | null;
+	retailPricingReady: boolean;
 	formatPrice: (price?: number, currency?: string) => string;
 	isDomainInCart: (d: string) => boolean;
 	onAddToCart: (r: DomainSearchResult) => void;
@@ -549,6 +553,7 @@ function BundleCard({
 	}, [bundleInfo.items]);
 
 	const handleAddBundle = () => {
+		if (!retailPricingReady) return;
 		for (const item of bundleInfo.items) {
 			if (item.tld === "co.ke" && kenicCoKe) {
 				const currency = kenicCoKe.currency ?? "KES";
@@ -604,7 +609,7 @@ function BundleCard({
 				) : null}
 			</div>
 			<div className="text-base font-bold text-foreground mb-2 line-clamp-2 break-words">
-				{bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "?"}
+				{retailPricingReady && bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "—"}
 			</div>
 			{TLD_WHY_CHOOSE.bundle ? (
 				<div>
@@ -623,7 +628,7 @@ function BundleCard({
 				<Button size="sm" variant="default" onClick={() => { /* Get deal ? logic left blank for now */ }} className="text-xs h-8 px-3">
 					Get deal
 				</Button>
-				<Button size="sm" variant="outline" onClick={handleAddBundle} className="text-xs h-8 px-3" disabled={anyInCart}>
+				<Button size="sm" variant="outline" onClick={handleAddBundle} className="text-xs h-8 px-3" disabled={anyInCart || !retailPricingReady}>
 					{anyInCart ? "In cart" : "Add bundle to cart"}
 				</Button>
 			</div>

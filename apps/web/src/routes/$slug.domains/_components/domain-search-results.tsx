@@ -105,6 +105,22 @@ export function DomainSearchResults({
     setSelectedCategoryId(DEFAULT_CATEGORY_ID);
   }, [searchQuery]);
 
+  // When ExactMatchSection or TopLevelSuggestedCards unmount (e.g. user removes "." from "example.com" -> "example"),
+  // clear their loading flags so the search button spinner stops (they never get to call onLoadingChange(false)).
+  React.useEffect(() => {
+    const hasDot = rawSearchQuery.trim().includes(".");
+    const hasSearchName = searchQuery.trim().length > 0;
+    setLoadingSources((prev) => {
+      const removeExact = !hasDot && prev.has("exact");
+      const removeTopSuggested = !hasSearchName && prev.has("top-suggested");
+      if (!removeExact && !removeTopSuggested) return prev;
+      const next = new Set(prev);
+      if (removeExact) next.delete("exact");
+      if (removeTopSuggested) next.delete("top-suggested");
+      return next;
+    });
+  }, [rawSearchQuery, searchQuery]);
+
   // Track visited tabs whenever the selected tab changes
   React.useEffect(() => {
     if (!selectedCategoryId) return;
@@ -126,13 +142,16 @@ export function DomainSearchResults({
       {rawSearchQuery.trim().length > 0 && (
         <section className="mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-4">
-            <ExactMatchSection
-              rawSearchQuery={rawSearchQuery.trim()}
-              isDomainInCart={isDomainInCart}
-              onAddToCart={onAddToCart}
-              onRemoveFromCart={onRemoveFromCart}
-              onLoadingChange={(loading) => reportLoading("exact", loading)}
-            />
+            {/* Only mount ExactMatchSection when rawSearchQuery contains a dot — avoids mounting hooks for bare names. */}
+            {rawSearchQuery.trim().includes(".") && (
+              <ExactMatchSection
+                rawSearchQuery={rawSearchQuery.trim()}
+                isDomainInCart={isDomainInCart}
+                onAddToCart={onAddToCart}
+                onRemoveFromCart={onRemoveFromCart}
+                onLoadingChange={(loading) => reportLoading("exact", loading)}
+              />
+            )}
             {searchQuery.trim().length > 0 && (
               <TopLevelSuggestedCards
                 searchQuery={searchQuery.trim()}

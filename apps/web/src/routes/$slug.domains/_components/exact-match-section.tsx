@@ -14,6 +14,7 @@ import { trpc } from "@/utils/trpc";
 import { useCurrency } from "./currency-context";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { getCustomerRetailDisplayPrice } from "./customer-domain-display-price";
 import { Check } from "lucide-react";
 
 const formatPrice = (price?: number, currency?: string) => {
@@ -76,7 +77,8 @@ export function ExactMatchSection({
 	onLoadingChange,
 }: ExactMatchSectionProps) {
 	const currencyContext = useCurrency();
-	const { getPricingInfo } = useDomainPricing(currencyContext);
+	const { getPricingInfo, hasDefaultSetting, isLoadingTldSettings } = useDomainPricing(currencyContext);
+	const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
 	const normalizedRaw = React.useMemo(() => {
 		let s = rawSearchQuery.trim().toLowerCase();
@@ -103,6 +105,7 @@ export function ExactMatchSection({
 	);
 
 	const pricingHook = useDomainPricing(currencyContext);
+	const { calculatePricesBatch } = pricingHook;
 	const [openProviderResult, setOpenProviderResult] = React.useState<DomainSearchResult | null>(null);
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
 	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
@@ -146,9 +149,10 @@ export function ExactMatchSection({
 		);
 	}, [fullDomain, isKenic, parsed?.name, parsed?.tld]);
 
-	// OpenProvider: clear when domain changes; start pricing batch as soon as raw data exists (before paint)
-	React.useLayoutEffect(() => {
-		if (!openProviderRaw || !pricingHook?.calculatePricesBatch) {
+	// OpenProvider: clear when domain changes; start pricing batch when raw data exists (after paint).
+	// Use stable `calculatePricesBatch` in deps — the full `pricingHook` object is a new reference every render.
+	React.useEffect(() => {
+		if (!openProviderRaw || !calculatePricesBatch) {
 			setOpenProviderResult(null);
 			return;
 		}
@@ -164,10 +168,9 @@ export function ExactMatchSection({
 			reason: openProviderRaw.reason,
 			price: openProviderRaw.price,
 		};
-		pricingHook
-			.calculatePricesBatch([raw])
+		calculatePricesBatch([raw])
 			.then(([priced]) => {
-				if (!cancelled) setOpenProviderResult(priced);
+				if (!cancelled && priced) setOpenProviderResult(priced);
 			})
 			.catch(() => {
 				if (!cancelled) setOpenProviderResult(raw);
@@ -175,14 +178,14 @@ export function ExactMatchSection({
 		return () => {
 			cancelled = true;
 		};
-	}, [openProviderRaw, pricingHook, fullDomain]);
+	}, [openProviderRaw, calculatePricesBatch, fullDomain]);
 
 	const onLoadingChangeRef = React.useRef(onLoadingChange);
 	onLoadingChangeRef.current = onLoadingChange;
 	const kenicLoading = isKenic && kenicMutation.isPending;
 	const openProviderLoading = !isKenic && openProviderQuery.isLoading;
 	const anyLoading = kenicLoading || openProviderLoading;
-	React.useLayoutEffect(() => {
+	React.useEffect(() => {
 		onLoadingChangeRef.current?.(anyLoading);
 	}, [anyLoading]);
 
@@ -235,7 +238,7 @@ export function ExactMatchSection({
 					<div className="font-bold text-base text-primary mb-1 truncate" title={kenicCard.domain}>
 						{kenicCard.domain}
 					</div>
-					{kenicCard.available && (
+					{kenicCard.available && retailPricingReady && (
 						<div className="space-y-0.5 mb-2">
 							<div className="text-base font-bold text-foreground">{formatPrice(createFinal, currency)}</div>
 						</div>
@@ -260,7 +263,7 @@ export function ExactMatchSection({
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{kenicCard.available ? (
 							<>
-								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId}>
+								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId || !retailPricingReady}>
 									Buy Now
 								</Button>
 								<Button
@@ -269,9 +272,10 @@ export function ExactMatchSection({
 									onClick={(e) => {
 										e?.preventDefault();
 										if (isInCart) onRemoveFromCart(kenicCard.domain);
-										else onAddToCart(displayResult);
+										else if (retailPricingReady) onAddToCart(displayResult);
 									}}
 									className="h-8 w-8 p-0"
+									disabled={!retailPricingReady && !isInCart}
 									title={isInCart ? "Remove from cart" : "Add to cart"}
 								>
 									{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
@@ -290,21 +294,11 @@ export function ExactMatchSection({
 
 	if (!isKenicPath && openProviderResult) {
 		const r = openProviderResult;
-		const calculated = r.price?.calculated as {
-			originalPrice?: number;
-			convertedOriginalPrice?: number;
-			marginAmount?: number;
-			finalPrice: number;
-			currency: string;
-			marginType?: string | null;
-			marginValue?: string | null;
-			convertedPrice?: number;
-			displayCurrency?: string;
-		} | undefined;
-		const displayPrice = calculated
-			? (calculated.convertedPrice ?? calculated.finalPrice)
-			: r.price?.reseller?.price;
-		const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? r.price?.reseller?.currency ?? "USD";
+		const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(r);
+		const priceReady =
+			displayPrice != null &&
+			displayCurrency != null &&
+			!Number.isNaN(displayPrice);
 		const isAvailable = r.status === "free";
 		const isInCart = isDomainInCart(r.domain);
 		const tld = r.domain.includes(".") ? r.domain.split(".").slice(-1)[0] ?? "" : "";
@@ -327,7 +321,7 @@ export function ExactMatchSection({
 					<div className="font-bold text-base text-primary mb-1 truncate" title={r.domain}>
 						{r.domain}
 					</div>
-					{isAvailable && r.price && (
+					{isAvailable && priceReady && (
 						<div className="space-y-0.5 mb-2">
 							<div className="text-base font-bold text-foreground">{formatPrice(displayPrice, displayCurrency)}</div>
 						</div>
@@ -352,7 +346,7 @@ export function ExactMatchSection({
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{isAvailable ? (
 							<>
-								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: r })} className="text-xs h-8 px-3" disabled={!domainsProductId}>
+								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: r })} className="text-xs h-8 px-3" disabled={!domainsProductId || !priceReady}>
 									Buy Now
 								</Button>
 								<Button
@@ -361,9 +355,10 @@ export function ExactMatchSection({
 									onClick={(e) => {
 										e?.preventDefault();
 										if (isInCart) onRemoveFromCart(r.domain);
-										else onAddToCart(r);
+										else if (priceReady) onAddToCart(r);
 									}}
 									className="h-8 w-8 p-0"
+									disabled={!priceReady && !isInCart}
 									title={isInCart ? "Remove from cart" : "Add to cart"}
 								>
 									{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}

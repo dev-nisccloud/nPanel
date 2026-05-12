@@ -20,9 +20,9 @@ export interface DomainResultRowProps {
 	domain: string;
 	/** Whether the domain is available for registration. */
 	isAvailable: boolean;
-	/** Final price to show (after markup and conversion) ? bold, primary. */
-	displayPrice: number;
-	displayCurrency: string;
+	/** Final price (after markup + FX). Omitted until retail pricing is ready (customer storefront). */
+	displayPrice?: number;
+	displayCurrency?: string;
 	/** Reason/description from API ? shown in left column. */
 	reason?: string | null;
 	/** For cart and Buy Now. */
@@ -50,16 +50,23 @@ export function DomainResultRow({
 }: DomainResultRowProps) {
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
 	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
-	const handleBuyNow = React.useCallback(() => {
-		if (domainsProductId) openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult });
-	}, [domainsProductId, openForProduct, displayResult]);
 	const isInCart = isDomainInCart(domain);
+	const priceReady =
+		isAvailable &&
+		displayPrice != null &&
+		!Number.isNaN(displayPrice) &&
+		Boolean(displayCurrency);
+
+	const handleBuyNow = React.useCallback(() => {
+		if (domainsProductId && priceReady)
+			openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult });
+	}, [domainsProductId, openForProduct, displayResult, priceReady]);
 
 	const handleCart = (e?: React.MouseEvent) => {
 		e?.preventDefault();
 		e?.stopPropagation();
 		if (isInCart) onRemoveFromCart(domain);
-		else if (isAvailable) onAddToCart(displayResult);
+		else if (isAvailable && priceReady) onAddToCart(displayResult);
 	};
 
 	return (
@@ -89,12 +96,14 @@ export function DomainResultRow({
 				</div>
 				{/* Right: price /1st yr, Buy Now, cart */}
 				<div className="flex items-center gap-3 shrink-0">
-					<div className="text-right">
-						<span className="font-bold text-sm text-primary">
-							{formatPrice(displayPrice, displayCurrency)}
-						</span>
-						<span className="text-sm text-foreground"> /1st yr</span>
-					</div>
+					{priceReady && (
+						<div className="text-right">
+							<span className="font-bold text-sm text-primary">
+								{formatPrice(displayPrice!, displayCurrency!)}
+							</span>
+							<span className="text-sm text-foreground"> /1st yr</span>
+						</div>
+					)}
 					{isAvailable ? (
 						<div className="flex items-center gap-1.5">
 							<Button
@@ -102,7 +111,7 @@ export function DomainResultRow({
 								variant="default"
 								onClick={(e) => { e?.preventDefault(); handleBuyNow(); }}
 								className="text-xs h-8 px-3"
-								disabled={!domainsProductId}
+								disabled={!domainsProductId || !priceReady}
 							>
 								Buy Now
 							</Button>
@@ -111,6 +120,7 @@ export function DomainResultRow({
 								variant={isInCart ? "destructive" : "outline"}
 								onClick={handleCart}
 								className="h-8 w-8 p-0"
+								disabled={!priceReady && !isInCart}
 								title={isInCart ? "Remove from cart" : "Add to cart"}
 							>
 								{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}

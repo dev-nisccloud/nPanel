@@ -7,6 +7,7 @@ import { useIntersectionObserver } from "usehooks-ts";
 import { getSectionTitle } from "./domain-section-titles";
 import { useSectionDomainCheck } from "./use-section-domain-check";
 import { DomainResultRow, DomainResultList } from "./domain-result-row";
+import { getCustomerRetailDisplayPrice } from "./customer-domain-display-price";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import type { DomainPricingHook } from "@/hooks/use-domain-search";
 
@@ -34,16 +35,7 @@ function sectionResultToRowProps(
 	onAddToCart: (r: DomainSearchResult) => void,
 	onRemoveFromCart: (domain: string) => void
 ) {
-	const calculated = result.price?.calculated as {
-		convertedPrice?: number;
-		convertedOriginalPrice?: number;
-		displayCurrency?: string;
-		finalPrice?: number;
-		originalPrice?: number;
-		currency?: string;
-	} | undefined;
-	const displayPrice = calculated?.convertedPrice ?? calculated?.finalPrice ?? result.price?.reseller?.price ?? 0;
-	const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? result.price?.reseller?.currency ?? "USD";
+	const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(result);
 	return {
 		domain: result.domain,
 		isAvailable: result.status === "free",

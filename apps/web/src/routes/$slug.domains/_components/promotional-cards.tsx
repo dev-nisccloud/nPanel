@@ -32,6 +32,7 @@ import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { trpc } from "@/utils/trpc";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { useCurrency } from "./currency-context";
+import { getCustomerRetailDisplayPrice } from "./customer-domain-display-price";
 
 interface PromotionalCardsProps {
   searchQuery: string;
@@ -123,6 +124,8 @@ function SearchTldCard({
   const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
+  const { calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } = pricingHook;
+  const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
   const domain = `${queryTldParsed.name}.${queryTldParsed.extension}`;
   const isInCart = isDomainInCart(domain);
 
@@ -144,7 +147,7 @@ function SearchTldCard({
   const pricingKeyRef = React.useRef<string>('');
 
   React.useEffect(() => {
-    if (!rawResult || !pricingHook) {
+    if (!rawResult || !calculatePricesBatch) {
       setPricedResult(null);
       pricedResultRef.current = null;
       return;
@@ -152,31 +155,30 @@ function SearchTldCard({
     const key = `${rawResult.domain}-${rawResult.status}-${rawResult.price?.reseller?.price ?? 0}`;
     if (pricingKeyRef.current === key && pricedResultRef.current) return;
     pricingKeyRef.current = key;
-    const timer = setTimeout(() => {
-      pricingHook.calculatePricesBatch([rawResult]).then(([priced]) => {
-        pricedResultRef.current = priced;
-        setPricedResult(priced);
-      }).catch(() => setPricedResult(rawResult));
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [rawResult, pricingHook]);
+    calculatePricesBatch([rawResult]).then(([priced]) => {
+      pricedResultRef.current = priced;
+      setPricedResult(priced);
+    }).catch(() => setPricedResult(rawResult));
+  }, [rawResult, calculatePricesBatch]);
 
   const displayResult = pricedResult || rawResult;
-  const calculated = displayResult?.price?.calculated;
-  const displayPrice = calculated
-    ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
-    : displayResult?.price?.reseller?.price;
-  const displayCurrency = calculated
-    ? ((calculated as any).displayCurrency ?? calculated.currency)
-    : displayResult?.price?.reseller?.currency || 'KES';
   const isAvailable = rawResult != null;
+  const retail = displayResult && rawResult ? getCustomerRetailDisplayPrice(displayResult) : { displayPrice: undefined as number | undefined, displayCurrency: undefined as string | undefined };
+  const displayPrice = retail.displayPrice;
+  const displayCurrency = retail.displayCurrency;
+  const priceReady =
+    retailPricingReady &&
+    isAvailable &&
+    displayPrice != null &&
+    displayCurrency != null &&
+    !Number.isNaN(displayPrice);
 
   const handleCartAction = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
     if (!displayResult?.domain) return;
     if (isInCart) onRemoveFromCart(domain);
-    else onAddToCart(displayResult);
+    else if (priceReady) onAddToCart(displayResult);
   };
 
   if (isLoadingTld) {
@@ -207,10 +209,10 @@ function SearchTldCard({
             {domain}
           </h3>
 
-          {isAvailable && (
+          {isAvailable && priceReady && (
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-card-foreground">
-                {formatPrice(displayPrice, displayCurrency)}/1st yr
+                {formatPrice(displayPrice!, displayCurrency!)}/1st yr
               </span>
             </div>
           )}
@@ -254,7 +256,7 @@ function SearchTldCard({
                   if (domainsProductId && displayResult) openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult });
                 }}
                 className="px-4"
-                disabled={!domainsProductId}
+                disabled={!domainsProductId || !priceReady}
               >
                 Buy Now
               </Button>
@@ -263,6 +265,7 @@ function SearchTldCard({
                 variant={isInCart ? "destructive" : "outline"}
                 onClick={handleCartAction}
                 className="h-9 w-9 p-0"
+                disabled={!priceReady && !isInCart}
                 title={isInCart ? "Remove from cart" : "Add to cart"}
               >
                 {isInCart ? (
@@ -299,6 +302,8 @@ function BundleCard({
 }) {
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
+  const { calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } = pricingHook;
+  const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
   // searchQuery is already sanitized when passed from PromotionalCards
   const bundleTlds = ['com', 'co.ke', 'info', 'online'];
@@ -379,7 +384,7 @@ function BundleCard({
       return;
     }
 
-    if (!pricingHook) {
+    if (!calculatePricesBatch) {
       setPricedBundleResults(bundleResults);
       pricedBundleResultsRef.current = bundleResults;
       return;
@@ -397,7 +402,7 @@ function BundleCard({
     
     // OPTIMIZATION: Use setTimeout to defer non-critical calculations and batch them
     const timer = setTimeout(() => {
-      pricingHook.calculatePricesBatch(bundleResults).then((priced) => {
+      calculatePricesBatch(bundleResults).then((priced) => {
         pricedBundleResultsRef.current = priced;
         setPricedBundleResults(priced);
       }).catch((error) => {
@@ -408,20 +413,18 @@ function BundleCard({
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [bundleResults, pricingHook]);
+  }, [bundleResults, calculatePricesBatch]);
 
-  // Calculate total bundle price in KES (ensure all prices are in KES)
-  const bundleTotal = React.useMemo(() => {
-    return pricedBundleResults.reduce((sum, result) => {
-      const calculated = result.price?.calculated;
-      // Use convertedPrice if available (should be in KES), otherwise use finalPrice
-      const price = calculated
-        ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
-        : result.price?.reseller?.price || 0;
-      // All prices should already be in KES after pricing hook conversion
-      return sum + price;
-    }, 0);
-  }, [pricedBundleResults]);
+  const bundleCustomerTotal = React.useMemo(() => {
+    if (!retailPricingReady || pricedBundleResults.length === 0) return null;
+    let sum = 0;
+    for (const r of pricedBundleResults) {
+      const { displayPrice } = getCustomerRetailDisplayPrice(r);
+      if (displayPrice == null || Number.isNaN(displayPrice)) return null;
+      sum += displayPrice;
+    }
+    return sum;
+  }, [pricedBundleResults, retailPricingReady]);
 
   const allInCart = bundleDomains.every(domain => isDomainInCart(domain));
   const anyInCart = bundleDomains.some(domain => isDomainInCart(domain));
@@ -432,7 +435,7 @@ function BundleCard({
     try {
       if (allInCart) {
         bundleDomains.forEach(domain => onRemoveFromCart(domain));
-      } else {
+      } else if (bundleCustomerTotal != null) {
         pricedBundleResults.forEach(result => {
           if (result && result.domain && !isDomainInCart(result.domain)) {
             onAddToCart(result);
@@ -477,7 +480,7 @@ function BundleCard({
           
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-card-foreground">
-              {formatPrice(bundleTotal, 'KES')}/1st yr
+              {bundleCustomerTotal != null ? formatPrice(bundleCustomerTotal, 'KES') : '—'}/1st yr
             </span>
           </div>
         </div>
@@ -507,6 +510,7 @@ function BundleCard({
             variant={allInCart ? "destructive" : "outline"}
             onClick={handleCartAction}
             className="h-9 w-9 p-0"
+            disabled={!allInCart && bundleCustomerTotal == null}
             title={allInCart ? "Remove from cart" : "Add to cart"}
           >
             {allInCart ? (
