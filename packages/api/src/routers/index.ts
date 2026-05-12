@@ -103,6 +103,7 @@ import { apiKeysRouter } from "./api-keys";
 import { digitaxRouter } from "./digitax";
 import { ipRecordsRouter } from "./ip-records";
 import { zeepoCanvasRouter } from "./zeepo-canvas";
+import { zeepoAgentRouter } from "./zeepo-agent";
 import { jetbackupDashboardRouter } from "./jetbackup/dashboard";
 import { jetbackupAccountsRouter } from "./jetbackup/accounts";
 import { jetbackupJobsRouter } from "./jetbackup/jobs";
@@ -301,6 +302,8 @@ export const appRouter = router({
 	ipRecords: ipRecordsRouter,
 	// Zeepo Canvas
 	zeepoCanvas: zeepoCanvasRouter,
+	// Zeepo AI Agent (chat + Replicate jobs)
+	zeepoAgent: zeepoAgentRouter,
 	// JetBackup 5 Integration
 	jetbackup: router({
 		dashboard: jetbackupDashboardRouter,

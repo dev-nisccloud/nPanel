@@ -54,6 +54,7 @@ export const agencyMenuKeys = [
 
 	// "/agency/gen-ai/image-gen-studio",
 	"/agency/zeepo-canvas",
+	"/agency/zeepo-ai-agent",
 	// "/agency/gen-ai/image-generator",
 	// "/agency/gen-ai/background-remover",
 

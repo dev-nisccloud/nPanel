@@ -176,6 +176,13 @@
       "when": 1777986511357,
       "tag": "0024_optimal_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1778567406120,
+      "tag": "0025_hesitant_champions",
+      "breakpoints": true
     }
   ]
 }

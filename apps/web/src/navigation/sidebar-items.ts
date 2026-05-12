@@ -323,6 +323,11 @@ export const agencysidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
+        title: "Zeepo AI Agent",
+        url: "/agency/zeepo-ai-agent",
+        icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
         title: "Visual Studio",
         url: "/agency/gen-ai/image-gen-studio",
         icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
