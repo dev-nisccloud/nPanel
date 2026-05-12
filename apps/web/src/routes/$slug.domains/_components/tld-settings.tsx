@@ -1,14 +1,25 @@
 "use client";
 
 import React from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
 import { NameserverGroupsCards } from "./nameserver-groups-cards";
 import { TldSettingsCards } from "./tld-settings-cards";
 
+type SettingsSubTab = "tld-settings" | "nameservers";
+
+/**
+ * Keep each sub-panel mounted after first visit (display toggled), matching agency Domains → Settings:
+ * switching away and back does not remount or refetch unless the query cache invalidates.
+ */
 export function TldSettings() {
-  const [activeTab, setActiveTab] = React.useState("tld-settings");
+  const [activeTab, setActiveTab] = React.useState<SettingsSubTab>("tld-settings");
+  const visitedRef = React.useRef<Set<SettingsSubTab>>(new Set(["tld-settings"]));
+
+  const selectTab = React.useCallback((tab: SettingsSubTab) => {
+    visitedRef.current.add(tab);
+    setActiveTab(tab);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -29,7 +40,7 @@ export function TldSettings() {
           <Button
             variant={activeTab === "tld-settings" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setActiveTab("tld-settings")}
+            onClick={() => selectTab("tld-settings")}
             className="flex items-center gap-2"
           >
             <Icons.Database className="h-4 w-4" />
@@ -38,7 +49,7 @@ export function TldSettings() {
           <Button
             variant={activeTab === "nameservers" ? "default" : "ghost"}
             size="sm"
-            onClick={() => setActiveTab("nameservers")}
+            onClick={() => selectTab("nameservers")}
             className="flex items-center gap-2"
           >
             <Icons.Security className="h-4 w-4" />
@@ -46,9 +57,23 @@ export function TldSettings() {
           </Button>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === "tld-settings" && <TldSettingsCards />}
-        {activeTab === "nameservers" && <NameserverGroupsCards />}
+        {/* Tab panels: mount after first visit; keep mounted when switching (hidden via display). */}
+        <div className="mt-0">
+          <div
+            role="tabpanel"
+            aria-hidden={activeTab !== "tld-settings"}
+            style={{ display: activeTab === "tld-settings" ? "block" : "none" }}
+          >
+            {visitedRef.current.has("tld-settings") ? <TldSettingsCards /> : null}
+          </div>
+          <div
+            role="tabpanel"
+            aria-hidden={activeTab !== "nameservers"}
+            style={{ display: activeTab === "nameservers" ? "block" : "none" }}
+          >
+            {visitedRef.current.has("nameservers") ? <NameserverGroupsCards /> : null}
+          </div>
+        </div>
       </div>
     </div>
   );

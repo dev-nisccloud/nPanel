@@ -110,7 +110,8 @@ export function KenyanTldCards({
 	onLoadingChange,
 }: KenyanTldCardsProps) {
 	const currencyContext = useCurrency();
-	const { getPricingInfo } = useDomainPricing(currencyContext);
+	const { getPricingInfo, hasDefaultSetting, isLoadingTldSettings } = useDomainPricing(currencyContext);
+	const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
 
 	const sanitized = React.useMemo(() => {
 		const t = searchQuery.trim().toLowerCase().replace(/\s+/g, "");
@@ -263,8 +264,8 @@ export function KenyanTldCards({
 							key={item.domain}
 							domain={item.domain}
 							isAvailable={item.available}
-							displayPrice={priced.createFinal}
-							displayCurrency={currency}
+							displayPrice={item.available && retailPricingReady ? priced.createFinal : undefined}
+							displayCurrency={item.available && retailPricingReady ? currency : undefined}
 							reason={item.reason ?? undefined}
 							displayResult={displayResult}
 							isDomainInCart={isDomainInCart}
