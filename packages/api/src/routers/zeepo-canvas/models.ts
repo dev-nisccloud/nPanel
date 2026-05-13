@@ -15,6 +15,8 @@ export type ZeepoModel = {
     video?: boolean;
     thinking?: boolean;
     audio_generation?: boolean;
+    /** Optimised for graphic design: logos, business cards, flyers, banners, UI mockups */
+    design?: boolean;
   };
 };
 
@@ -189,9 +191,9 @@ export const MODELS: ZeepoModel[] = [
     label: "Nano Banana Pro",
     uiname: "Google / Nano Banana Pro",
     provider: "Google",
-    description: "Professional grade fast generation with high fidelity.",
+    description: "Design-specialist image model — ideal for logos, business cards, flyers, banners, and professional graphic design with high fidelity.",
     category: "image",
-    capabilities: { images: true },
+    capabilities: { images: true, design: true },
   },
   {
     id: "xai/grok-imagine-image",

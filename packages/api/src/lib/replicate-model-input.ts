@@ -50,6 +50,13 @@ const MINIMAX_SPEECH_IDS = new Set<string>([
 	"minimax/speech-02-hd",
 ]);
 
+/** Nano Banana model family — uses image_input[] instead of reference_image_url. */
+const NANO_BANANA_IDS = new Set<string>([
+	"google/nano-banana-pro",
+	"google/nano-banana-2",
+	"google/nano-banana",
+]);
+
 export function buildReplicateInput(params: {
 	modelId: string;
 	prompt: string | null | undefined;
@@ -95,6 +102,34 @@ export function buildReplicateInput(params: {
 			speaker: speaker ?? "Aiden",
 			language: pickString(userInputs.language) ?? "auto",
 		};
+	}
+
+	// Nano Banana family uses image_input: string[] instead of reference_image_url.
+	if (NANO_BANANA_IDS.has(baseId)) {
+		// Collect reference image URL from either the canonical field or a pre-built array.
+		const refUrl = pickString(userInputs.reference_image_url);
+		const existingArr = Array.isArray(userInputs.image_input)
+			? (userInputs.image_input as unknown[]).filter((v): v is string => typeof v === "string")
+			: [];
+		const imageInput = refUrl && !existingArr.includes(refUrl)
+			? [...existingArr, refUrl]
+			: existingArr;
+
+		// Build clean input, mapping our generic fields to nano-banana's schema.
+		const out: Record<string, unknown> = {};
+		out.prompt = promptText || "";
+		if (userInputs.aspect_ratio) out.aspect_ratio = userInputs.aspect_ratio;
+		if (userInputs.output_format) out.output_format = userInputs.output_format;
+		if (userInputs.negative_prompt) out.negative_prompt = userInputs.negative_prompt;
+		if (userInputs.seed != null) out.seed = userInputs.seed;
+		// nano-banana-pro specific
+		out.image_input = imageInput;
+		out.safety_filter_level =
+			pickString(userInputs.safety_filter_level) ?? "block_only_high";
+		out.allow_fallback_model =
+			pickBoolean(userInputs.allow_fallback_model) ?? false;
+		if (userInputs.resolution) out.resolution = userInputs.resolution;
+		return out;
 	}
 
 	const out: Record<string, unknown> = { ...userInputs };

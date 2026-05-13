@@ -14,7 +14,7 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import { team as teamTable } from "@npanel/db/schema/teams";
 import { env } from "@npanel/env/server";
 import { protectedProcedure, router } from "../../trpc";
-import { sendMessageSchema } from "./schemas";
+import { generateSessionTitleSchema, imageEditSchema, sendMessageSchema } from "./schemas";
 import { insertAndEnqueueAgentGeneration } from "./generate";
 import {
 	getZeepoAgentOrchestrationModel,
@@ -25,6 +25,7 @@ import {
 import { getZeepoAgentSkillById } from "./skills-catalog";
 import {
 	checkDomainAvailabilityArgsSchema,
+	createDocumentArgsSchema,
 	listModelsArgsSchema,
 	runMediaGenerationArgsSchema,
 	webSearchArgsSchema,
@@ -38,12 +39,15 @@ import { callBraveLlmContext } from "../../lib/brave-search";
 import {
 	buildAgentIdentityPrompt,
 	buildRecentGenerationsBlock,
+	buildSessionAssetsBlock,
 	buildSessionContextBlock,
 	buildSkillSystemBlock,
 	type AgentSessionContext,
 	type RecentGenerationSummary,
+	type SessionAttachment,
 } from "./prompts";
 import {
+	collectTextOutput,
 	type AgentOrchestrationMessage,
 	type AgentToolCall,
 	runOrchestrationTurnWithRepair,
@@ -51,17 +55,55 @@ import {
 } from "./replicate-agent-orchestration";
 import { isReplicateHostedMediaUrl } from "../../lib/replicate-hosted-url";
 
+/**
+ * When the orchestration JSON is truncated or malformed, try to salvage just
+ * the assistant_text value via regex so we never display raw JSON to users.
+ * Falls back to a safe placeholder the user can act on.
+ */
+function tryExtractAssistantTextFromRaw(raw: string): string {
+	// Match the assistant_text string value, handling escaped characters.
+	const match = raw.match(/"assistant_text"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+	if (match?.[1]) {
+		return match[1]
+			.replace(/\\n/g, "\n")
+			.replace(/\\t/g, "\t")
+			.replace(/\\"/g, '"')
+			.replace(/\\\\/g, "\\")
+			.trim();
+	}
+	// Nothing salvageable — return a safe fallback the user can act on.
+	return "I ran into an issue generating a response. Please try again.";
+}
+
 function mapRowToAgentMessage(m: {
 	role: string;
 	content: string | null;
 	toolCalls: unknown;
 	toolCallId: string | null;
+	metadata?: unknown;
 }): AgentOrchestrationMessage {
+	let content = m.content ?? "";
+	// Append attachment context so the orchestration model can reference uploaded images.
+	const meta = m.metadata as Record<string, unknown> | null | undefined;
+	const attachments = meta?.attachments as Array<{ url: string; name: string; mimeType: string }> | undefined;
+	if (attachments?.length && m.role === "user") {
+		const attachLines = attachments
+			.map(
+				(a, i) =>
+					`[ATTACHED_FILE_${i + 1}: "${a.name}" | type: ${a.mimeType} | url: ${a.url} — use this URL as reference_image_url when creating or referencing this asset]`,
+			)
+			.join("\n");
+		content = `${content}\n\n${attachLines}`;
+	}
 	return {
 		role: m.role as AgentOrchestrationMessage["role"],
-		content: m.content ?? "",
+		content,
 		...(m.toolCalls ? { toolCalls: m.toolCalls } : {}),
 		...(m.toolCallId ? { toolCallId: m.toolCallId } : {}),
+		// Surface first image URL for models that support a dedicated image vision input.
+		...(attachments?.find((a) => a.mimeType.startsWith("image/"))
+			? { imageUrl: attachments.find((a) => a.mimeType.startsWith("image/"))!.url }
+			: {}),
 	};
 }
 
@@ -148,18 +190,21 @@ async function fetchSessionContext(params: {
 	};
 }
 
+/** Keep in sync with ZeepoCapabilityKey in model-helpers.ts */
+const KNOWN_CAPABILITY_KEYS: ZeepoCapabilityKey[] = [
+	"images",
+	"audio",
+	"video",
+	"thinking",
+	"audio_generation",
+	"design",
+];
+
 function safeCapsArray(input: unknown): ZeepoCapabilityKey[] | undefined {
 	if (!Array.isArray(input)) return undefined;
-	const allowed: ZeepoCapabilityKey[] = [
-		"images",
-		"audio",
-		"video",
-		"thinking",
-		"audio_generation",
-	];
 	const out: ZeepoCapabilityKey[] = [];
 	for (const v of input) {
-		if (typeof v === "string" && allowed.includes(v as ZeepoCapabilityKey)) {
+		if (typeof v === "string" && KNOWN_CAPABILITY_KEYS.includes(v as ZeepoCapabilityKey)) {
 			out.push(v as ZeepoCapabilityKey);
 		}
 	}
@@ -207,7 +252,10 @@ export const zeepoAgentChatRouter = router({
 				sessionId: input.sessionId,
 				role: "user",
 				content: input.content,
-				metadata: skillForTurn ? { skillId: skillForTurn.id } : null,
+				metadata: {
+					...(skillForTurn ? { skillId: skillForTurn.id } : {}),
+					...(input.attachments?.length ? { attachments: input.attachments } : {}),
+				} as Record<string, unknown> || null,
 				createdAt: now,
 			});
 
@@ -225,9 +273,18 @@ export const zeepoAgentChatRouter = router({
 				userAgent: ctx.req.header("user-agent") ?? null,
 			});
 
+			// Include metadata so mapRowToAgentMessage can embed attachment context for the model.
 			const rows = await db.query.zeepoAgentMessage.findMany({
 				where: eq(zeepoAgentMessage.sessionId, input.sessionId),
 				orderBy: [asc(zeepoAgentMessage.createdAt)],
+				columns: {
+					id: true,
+					role: true,
+					content: true,
+					toolCalls: true,
+					toolCallId: true,
+					metadata: true,
+				},
 			});
 
 			const sessionCtx = await fetchSessionContext({
@@ -245,10 +302,25 @@ export const zeepoAgentChatRouter = router({
 			const recentGens = await fetchRecentGenerationSummaries(input.sessionId);
 			const recentBlock = buildRecentGenerationsBlock(recentGens);
 
+			// Collect every uploaded attachment across all messages so the model always has a
+			// full asset index regardless of how many turns have passed since the upload.
+			const sessionUploads: SessionAttachment[] = [];
+			for (const row of rows) {
+				const meta = row.metadata as Record<string, unknown> | null | undefined;
+				const atts = meta?.attachments as
+					| Array<{ url: string; name: string; mimeType: string }>
+					| undefined;
+				if (atts?.length) {
+					atts.forEach((a) => sessionUploads.push(a));
+				}
+			}
+			const assetsBlock = buildSessionAssetsBlock(sessionUploads, recentGens);
+
 			const systemMessages: AgentOrchestrationMessage[] = [
 				{ role: "system", content: buildAgentIdentityPrompt() },
 				{ role: "system", content: buildSessionContextBlock(sessionCtx) },
 				...(recentBlock ? [{ role: "system" as const, content: recentBlock }] : []),
+				...(assetsBlock ? [{ role: "system" as const, content: assetsBlock }] : []),
 				...(skillForTurn
 					? [
 							{
@@ -279,8 +351,10 @@ export const zeepoAgentChatRouter = router({
 			while (iteration < maxIterations) {
 				iteration++;
 
-				// Larger budget early & on tool-using turns (deliverables can be long), smaller late.
-				const maxTokens = iteration === 1 ? 6000 : iteration <= 3 ? 4000 : 2500;
+				// Large budget — create_document and web_search grounding can easily push past
+				// 10 000 tokens in JSON form. Keeping it high avoids truncated JSON that
+				// falls back to displaying the raw orchestration response in the UI.
+				const maxTokens = iteration === 1 ? 16000 : iteration <= 3 ? 12000 : 6000;
 
 				let parseResult;
 				let rawAttempts: string[] = [];
@@ -308,8 +382,12 @@ export const zeepoAgentChatRouter = router({
 
 				const assistantText = parseResult.ok
 					? parseResult.assistant_text
-					: parseResult.raw.slice(0, 24_000);
+					: tryExtractAssistantTextFromRaw(parseResult.raw);
 				const toolCalls: AgentToolCall[] = parseResult.ok ? parseResult.tool_calls : [];
+				const clarifyingQuestions =
+					parseResult.ok && parseResult.clarifying_questions?.length
+						? parseResult.clarifying_questions
+						: undefined;
 
 				const syntheticToolCalls =
 					toolCalls.length > 0
@@ -336,6 +414,7 @@ export const zeepoAgentChatRouter = router({
 						parseOk: parseResult.ok,
 						repairUsed,
 						rawAttempts: rawAttempts.length,
+						...(clarifyingQuestions ? { clarifyingQuestions } : {}),
 					},
 					createdAt: new Date(),
 				});
@@ -350,7 +429,8 @@ export const zeepoAgentChatRouter = router({
 
 				lastContent = assistantText || "";
 
-				if (!toolCalls.length) break;
+				// Stop iterating if the agent has no tool calls or is waiting for answers.
+				if (!toolCalls.length || clarifyingQuestions?.length) break;
 
 				// Loop-guard: if the agent issues the same tool call twice in a row, stop.
 				const sigs = toolCalls.map(toolCallSignature);
@@ -381,7 +461,51 @@ export const zeepoAgentChatRouter = router({
 					const rawArgs = (tc.arguments ?? {}) as Record<string, unknown>;
 					let resultPayload: unknown;
 
-					if (tc.name === "check_domain_availability") {
+					if (tc.name === "create_document") {
+						const parsedArgs = createDocumentArgsSchema.safeParse(rawArgs);
+						if (!parsedArgs.success) {
+							resultPayload = {
+								error: `create_document received invalid arguments: ${parsedArgs.error.message}`,
+							};
+						} else {
+							try {
+								const docId = randomUUID();
+								const now = new Date();
+								await db.insert(zeepoAgentGeneration).values({
+									id: docId,
+									sessionId: input.sessionId,
+									messageId: null,
+									userId,
+									teamId: session.teamId ?? null,
+									modelCategory: "document",
+									modelId: "zeepo/document",
+									status: "COMPLETED",
+									prompt: parsedArgs.data.title,
+									inputs: {},
+									outputs: {
+										document: {
+											title: parsedArgs.data.title,
+											content: parsedArgs.data.content,
+										},
+									},
+									errorMessage: null,
+									qstashMessageId: null,
+									createdAt: now,
+									updatedAt: now,
+									completedAt: now,
+								});
+								resultPayload = {
+									_tool: "create_document",
+									status: "CREATED",
+									title: parsedArgs.data.title,
+								};
+							} catch (e: any) {
+								resultPayload = {
+									error: `Document creation failed: ${e?.message ?? "Unknown error"}`,
+								};
+							}
+						}
+					} else if (tc.name === "check_domain_availability") {
 						const parsedArgs =
 							checkDomainAvailabilityArgsSchema.safeParse(rawArgs);
 						if (!parsedArgs.success) {
@@ -495,7 +619,7 @@ export const zeepoAgentChatRouter = router({
 						}
 					} else {
 						resultPayload = {
-							error: `Unknown tool "${tc.name}". Available: check_domain_availability, web_search, list_models, run_media_generation.`,
+							error: `Unknown tool "${tc.name}". Available: create_document, check_domain_availability, web_search, list_models, run_media_generation.`,
 						};
 					}
 
@@ -535,9 +659,199 @@ export const zeepoAgentChatRouter = router({
 				},
 			});
 
-			return {
-				data: sessionOut,
-				lastAssistantPreview: lastContent.slice(0, 200),
+		return {
+			data: sessionOut,
+			lastAssistantPreview: lastContent.slice(0, 200),
+		};
+	}),
+
+	/**
+	 * Generate a short title for a session based on its first 3 user messages.
+	 * No-ops if the title is already set (not "New chat" / not null).
+	 * Runs a lightweight direct Replicate call — does not go through the full
+	 * orchestration pipeline.
+	 */
+	generateTitle: protectedProcedure
+		.input(generateSessionTitleSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+			const session = await db.query.zeepoAgentSession.findFirst({
+				where: eq(zeepoAgentSession.id, input.sessionId),
+			});
+			if (!session || session.userId !== userId)
+				throw new TRPCError({ code: "NOT_FOUND" });
+
+			// Guard: only generate when the title is still the default placeholder.
+			const current = (session.title ?? "").trim();
+			if (current && current !== "New chat")
+				return { title: current };
+
+			// Fetch the first 3 user messages for context directly from the DB.
+			const allMsgs = await db.query.zeepoAgentMessage.findMany({
+				where: eq(zeepoAgentMessage.sessionId, input.sessionId),
+				orderBy: [asc(zeepoAgentMessage.createdAt)],
+			});
+			const firstThree = allMsgs
+				.filter((m) => m.role === "user")
+				.slice(0, 3)
+				.map((m) => (typeof m.content === "string" ? m.content : "").slice(0, 200));
+
+			if (firstThree.length < 3) return { title: current || "New chat" };
+
+			// Helper: derive a reasonable title from the first user message without AI.
+			const heuristicTitle = (msgs: string[]): string => {
+				const src = msgs[0] ?? "";
+				// Strip attachment markers, URLs, and collapse whitespace.
+				const cleaned = src
+					.replace(/\[ATTACHED_FILE[^\]]*\]/gi, "")
+					.replace(/https?:\/\/\S+/g, "")
+					.replace(/\s+/g, " ")
+					.trim();
+				// Take first 6 words, capitalise first word.
+				const words = cleaned.split(" ").filter(Boolean).slice(0, 6);
+				if (!words.length) return "New chat";
+				words[0] = words[0]!.charAt(0).toUpperCase() + words[0]!.slice(1);
+				return words.join(" ").replace(/[.!?,;:]+$/, "");
 			};
+
+			let newTitle = "";
+
+			// Attempt AI-generated title; fall back to heuristic on any failure.
+			try {
+				const orchModel = getZeepoAgentOrchestrationModel();
+				const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+
+				const replicateInput: Record<string, unknown> = orchModel.id.startsWith(
+					"anthropic/",
+				)
+					? {
+							system_prompt:
+								"You write short chat titles. Output ONLY the title — 4 to 6 words, sentence case, no punctuation, no quotes.",
+							prompt: `Based on these user messages, write a short chat title:\n${firstThree.map((t, i) => `${i + 1}. ${t}`).join("\n")}`,
+							max_tokens: 32,
+						}
+					: {
+							prompt: `Write a 4–6 word chat title (no punctuation, no quotes) for:\n${firstThree.map((t, i) => `${i + 1}. ${t}`).join("\n")}`,
+							max_tokens: 32,
+						};
+
+				const output = await replicate.run(
+					orchModel.id as `${string}/${string}`,
+					{ input: replicateInput },
+				);
+				const raw = await collectTextOutput(output);
+				newTitle = raw
+					.trim()
+					.replace(/^["'`]+|["'`]+$/g, "")
+					.replace(/\.$/, "")
+					.slice(0, 100);
+			} catch {
+				// AI call failed — use heuristic title derived from message content.
+			}
+
+			if (!newTitle || newTitle.toLowerCase() === "new chat") {
+				newTitle = heuristicTitle(firstThree);
+			}
+
+			if (!newTitle || newTitle === "New chat") return { title: "New chat" };
+
+			await db
+				.update(zeepoAgentSession)
+				.set({ title: newTitle, updatedAt: new Date() })
+				.where(eq(zeepoAgentSession.id, input.sessionId));
+
+			return { title: newTitle };
+		}),
+
+	/**
+	 * Synchronous AI image edit — no background job, result returned directly.
+	 *
+	 * Model selection:
+	 *   - maskDataUrl present  → flux-fill-dev  (inpainting: edit the brushed region)
+	 *   - maskDataUrl absent   → flux-kontext-dev (instruction: edit by text description)
+	 */
+	editImage: protectedProcedure
+		.input(imageEditSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+			// Validate the session belongs to this user (auth gate only — no DB write).
+			const session = await db.query.zeepoAgentSession.findFirst({
+				where: eq(zeepoAgentSession.id, input.sessionId),
+				columns: { id: true, userId: true },
+			});
+			if (!session || session.userId !== userId)
+				throw new TRPCError({ code: "NOT_FOUND" });
+
+			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+
+			// 60-second hard timeout — both models complete well within this window.
+			const withTimeout = <T>(p: Promise<T>): Promise<T> =>
+				Promise.race([
+					p,
+					new Promise<never>((_, rej) =>
+						setTimeout(() => rej(new Error("Image edit timed out after 60 s")), 60_000),
+					),
+				]);
+
+			let output: unknown;
+
+			if (input.maskDataUrl) {
+				// ── Inpainting mode: user painted a mask region ──────────────────
+				// flux-fill-dev: white mask = edit, black = preserve
+				output = await withTimeout(
+					replicate.run("black-forest-labs/flux-fill-dev", {
+						input: {
+							image: input.imageUrl,
+							mask: input.maskDataUrl,
+							prompt: input.prompt,
+							num_inference_steps: 28,
+							guidance: 30,
+							output_format: "png",
+						},
+					}),
+				);
+			} else {
+				// ── Instruction mode: edit by description, no mask ────────────────
+				// flux-kontext-dev: in-context editing, preserves everything not mentioned
+				output = await withTimeout(
+					replicate.run("black-forest-labs/flux-kontext-dev", {
+						input: {
+							input_image: input.imageUrl,
+							prompt: input.prompt,
+							output_format: "png",
+						},
+					}),
+				);
+			}
+
+			// Extract the output URL from whatever shape the SDK returns.
+			const resultUrl = extractReplicateImageUrl(output);
+			if (!resultUrl)
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Model returned no image.",
+				});
+
+			return { imageUrl: resultUrl };
 		}),
 });
+
+/**
+ * Robustly extract the first image URL from Replicate run() output.
+ * Handles: string URL, string[], FileOutput[], and FileOutput (newer SDK).
+ */
+function extractReplicateImageUrl(output: unknown): string | null {
+	const items: unknown[] = Array.isArray(output) ? output : [output];
+	for (const item of items) {
+		if (!item) continue;
+		if (typeof item === "string" && item.startsWith("http")) return item;
+		// FileOutput.toString() or String(fileOutput) returns the CDN URL.
+		const s = String(item);
+		if (s.startsWith("http")) return s;
+	}
+	return null;
+}

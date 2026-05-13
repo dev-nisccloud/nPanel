@@ -9,6 +9,19 @@
 export type BraveSearchDepth = "quick" | "standard" | "deep";
 export type BraveSearchFreshness = "pd" | "pw" | "pm" | "py";
 
+/**
+ * Exhaustive set of country codes accepted by Brave's LLM Context API.
+ * Any code outside this list will be silently dropped from the request to avoid 422s.
+ * Regions not in this list (e.g. Kenya, most of Africa) should instead be embedded
+ * directly in the query string (e.g. "luxury cars Nairobi Kenya market 2026").
+ */
+const BRAVE_SUPPORTED_COUNTRIES = new Set([
+	"AR", "AU", "AT", "BE", "BR", "CA", "CL", "DK", "FI", "FR",
+	"DE", "GR", "HK", "IN", "ID", "IT", "JP", "KR", "MY", "MX",
+	"NL", "NZ", "NO", "CN", "PL", "PT", "PH", "RU", "SA", "ZA",
+	"ES", "SE", "CH", "TW", "TR", "GB", "US",
+]);
+
 interface BraveGroundingEntry {
 	url: string;
 	title: string;
@@ -76,6 +89,13 @@ export async function callBraveLlmContext(
 	const { apiKey, query, depth = "standard", freshness, country } = params;
 	const cfg = DEPTH_CONFIG[depth];
 
+	// Only include country when Brave supports it; unsupported regions (e.g. most of Africa)
+	// cause a 422 — include geography in the query string instead.
+	const safeCountry =
+		country && BRAVE_SUPPORTED_COUNTRIES.has(country.toUpperCase())
+			? country.toUpperCase()
+			: undefined;
+
 	const body: Record<string, unknown> = {
 		q: query,
 		count: cfg.count,
@@ -84,7 +104,7 @@ export async function callBraveLlmContext(
 		maximum_number_of_snippets: cfg.maximum_number_of_snippets,
 		context_threshold_mode: "balanced",
 		...(freshness ? { freshness } : {}),
-		...(country ? { country } : {}),
+		...(safeCountry ? { country: safeCountry } : {}),
 	};
 
 	const res = await fetch("https://api.search.brave.com/res/v1/llm/context", {

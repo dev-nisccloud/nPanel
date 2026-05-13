@@ -6,6 +6,7 @@ const capabilityKeySchema = z.enum([
 	"video",
 	"thinking",
 	"audio_generation",
+	"design",
 ]);
 
 export const listModelsArgsSchema = z.object({
@@ -33,6 +34,8 @@ const imageInputsSchema = sharedInputsSchema.extend({
 	aspect_ratio: z.enum(["1:1", "3:2", "16:9", "9:16", "4:3", "3:4"]).optional(),
 	reference_image_url: z.string().url().optional(),
 	output_format: z.enum(["png", "jpg", "webp"]).optional(),
+	/** Set to "png" when generating design assets (logos, cards) to preserve transparency */
+	output_quality: z.number().int().min(50).max(100).optional(),
 });
 
 const videoInputsSchema = sharedInputsSchema.extend({
@@ -105,6 +108,11 @@ export const webSearchArgsSchema = z.object({
 	country: z.string().length(2).toLowerCase().optional(),
 });
 
+export const createDocumentArgsSchema = z.object({
+	title: z.string().min(1).max(200),
+	content: z.string().min(1).max(80000),
+});
+
 export const checkDomainAvailabilityArgsSchema = z.object({
 	name: z
 		.string()
@@ -125,10 +133,21 @@ export type ListModelsArgs = z.infer<typeof listModelsArgsSchema>;
 export type RunMediaGenerationArgs = z.infer<typeof runMediaGenerationArgsSchema>;
 export type WebSearchArgs = z.infer<typeof webSearchArgsSchema>;
 export type CheckDomainAvailabilityArgs = z.infer<typeof checkDomainAvailabilityArgsSchema>;
+export type CreateDocumentArgs = z.infer<typeof createDocumentArgsSchema>;
 
 export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them through the "tool_calls" array):
 
-1) check_domain_availability  ← NISC CLOUD INTERNAL TOOL
+1) create_document
+   Purpose: produce a richly formatted, standalone markdown document — for strategies, detailed plans, proposals, full analyses, comprehensive breakdowns, reports, or any deliverable that benefits from structure and length beyond a chat reply.
+   Arguments:
+     - title  : string (1–200 chars) — concise document title (e.g. "Brand Strategy for Diamond Coffee Co.").
+     - content: string — the complete markdown body. Use ## headings, bullet lists, tables, **bold** for emphasis. Write the FULL document — no placeholders, no "continued below", no truncation.
+   Returns: { status: "CREATED", title } — internal only; never show a document id to the user.
+   When to call: (1) the user explicitly asks for a "breakdown", "detailed plan", "strategy doc", "report", "proposal", "full analysis", or "put this in a doc"; (2) the response requires 3+ distinct sections and would be unwieldy as a plain chat reply; (3) the user says "save this" or "I want the full version".
+   When NOT to call: conversational replies, short answers, quick lists, follow-up clarifications, or anything that reads naturally as a chat bubble. Err toward NOT calling — only invoke when the document format genuinely adds value.
+   After calling: write a SHORT chat reply (2–4 sentences) telling the user what the document covers and directing them to open it in the Generations section. Do NOT reproduce the full document content in the chat reply.
+
+2) check_domain_availability  ← NISC CLOUD INTERNAL TOOL
    Purpose: check whether domain names are available for registration through Nisc Cloud's own infrastructure (OpenProvider for gTLDs, KENIC EPP for .ke TLDs). ALWAYS use this when the user asks about domain availability, domain registration, or domain name ideas — never guess and never recommend external registrars.
    Arguments:
      - name       : string — the SLD (second-level domain) WITHOUT any extension or dots (e.g. "diamond-coffee" not "diamond-coffee.com").
@@ -139,16 +158,16 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
 2) web_search
    Purpose: retrieve real-time grounding context from the live web via Brave Search. Call this BEFORE answering questions that involve specific real-world entities, current data, or regional context.
    Arguments:
-     - query   : string (1–400 chars) — the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026").
+     - query   : string (1–400 chars) — the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026"). ALWAYS embed geography directly in the query for non-major-market regions (Africa, Middle East, South/Southeast Asia except IN, ID, MY, PH) — e.g. "luxury car imports Nairobi Kenya 2026" not just "luxury cars".
      - depth?  : "quick" | "standard" | "deep" — "quick" for single facts, "standard" (default) for most queries, "deep" for complex research.
      - freshness? : "pd" (24 h) | "pw" (7 days) | "pm" (31 days) | "py" (1 year) — omit for all-time.
-     - country? : 2-letter country code to bias results (e.g. "ke" for Kenya).
+     - country? : 2-letter ISO code. ONLY use for: AR AU AT BE BR CA CL DK FI FR DE GR HK IN ID IT JP KR MY MX NL NZ NO CN PL PT PH RU SA ZA ES SE CH TW TR GB US. For all other countries (e.g. Kenya, Nigeria, most of Africa) omit this field entirely and embed the country/city in the query string instead.
    Returns: extracted page snippets ready for LLM consumption. Cite sources inline in your reply (e.g. "According to [hostname]…").
    When to call: (1) user mentions a specific business, person, place, product, or event; (2) question involves prices, availability, opening hours, statistics, or news; (3) you need local/regional context (e.g. "Nairobi businesses", "Kenyan market", "this quarter"); (4) user asks you to "research", "find out", "check", or verify something about the real world; (5) **domain or brand naming** where the user names a **country, city, or foreign market** you are not highly confident about — search for how businesses there typically name and which extensions they pair with, then apply that to your SLD ideas and extension list before you call check_domain_availability.
    When NOT to call: general knowledge you are confident about, pure creative tasks where you have all context, or Nisc Cloud topics already in your system prompt. Do NOT call web_search for domain availability — use check_domain_availability instead.
    Call web_search BEFORE claiming facts about real-world entities — do not guess then search.
 
-3) list_models
+4) list_models
    Purpose: discover the *exact* Replicate model ids available in the Zeepo catalog for a category, filtered by capabilities.
    Arguments:
      - category? : "text" | "image" | "video" | "audio" | "background-remover"
@@ -156,12 +175,12 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Returns: an array of { id, category, provider, label, description, is_default, capabilities }.
    Use this tool BEFORE you ever pass a non-default "model_id" to run_media_generation.
 
-4) run_media_generation
+5) run_media_generation
    Purpose: queue a media generation job. Results stream back to the UI asynchronously.
    Arguments:
      - category : "text" | "image" | "video" | "audio" | "background-remover"
      - prompt : string (concrete, detailed; 1–800 words)
      - model_id? : string — MUST be an id you saw in a list_models result for the same category. Omit to use the default for the category.
-     - requires? : capability keys the chosen model MUST satisfy (e.g. ["audio_generation"] for video with audio). The server validates this.
+     - requires? : capability keys the chosen model MUST satisfy (e.g. ["audio_generation"] for video with audio; ["design"] to force the design-specialist model for logos, cards, flyers). The server validates this.
      - inputs? : optional category-specific knobs (image: {aspect_ratio, reference_image_url, output_format, negative_prompt, seed}; video: {aspect_ratio, duration_seconds, reference_image_url, with_audio, negative_prompt, seed}; audio: {voice, duration_seconds, negative_prompt, seed}; text: {max_tokens, negative_prompt, seed}; background-remover: {image: <url>}). Unknown keys are rejected.
    Returns: { generationId, status: "QUEUED", modelId, category } (for your context only — never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now — you'll see it in Generations when ready.").`;
