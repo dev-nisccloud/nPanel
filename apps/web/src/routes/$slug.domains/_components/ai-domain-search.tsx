@@ -1,23 +1,291 @@
 "use client";
 
 import * as React from "react";
-import { AlertCircle, Sparkles } from "lucide-react";
+import { AlertCircle, Search, ShoppingCart, Sparkles, XCircle } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { CurrencyProvider } from "./currency-context";
+import { useCurrency } from "./currency-context";
 import { DomainSearchResults } from "./domain-search-results";
 import { useDomainSearch } from "./use-domain-search";
+import { useDomainPricing } from "@/hooks/use-domain-pricing";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
+import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 const MIN_DESCRIPTION_LENGTH = 40;
 
 type NameSuggestion =
   RouterOutputs["aiDomainSearch"]["generateNameIdeas"]["suggestions"][number];
+
+type AvailabilityEntry = NameSuggestion["availability"][number];
+
+// ---------- helpers ----------
+
+const KES_FMT = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+function formatKes(amount: number) {
+  return `KSh ${KES_FMT.format(amount)}`;
+}
+
+/**
+ * Build a DomainSearchResult for a gTLD entry whose price was already retail-calculated
+ * server-side (margin + FX applied by agentCheckDomainAvailability → toRetailPrice).
+ */
+function buildGtldResult(entry: AvailabilityEntry): DomainSearchResult | undefined {
+  if (!entry.available || !entry.price) return undefined;
+  return {
+    domain: entry.domain,
+    status: "free",
+    price: {
+      product: { price: entry.price.amount, currency: entry.price.currency },
+      reseller: { price: entry.price.amount, currency: entry.price.currency },
+      calculated: {
+        originalPrice: entry.price.amount,
+        marginAmount: 0,
+        finalPrice: entry.price.amount,
+        currency: entry.price.currency,
+        marginType: null,
+        marginValue: null,
+      },
+    },
+  };
+}
+
+// ---------- TLD row ----------
+
+interface TldAvailabilityRowProps {
+  entry: AvailabilityEntry;
+  /** Base create price returned by KENIC EPP withFee check (absent until loaded). */
+  kenicBaseFee: number | undefined;
+  isLoadingKenicFees: boolean;
+  getPricingInfo: (domain: string, price: number, currency: string) => {
+    finalPrice: number;
+    marginAmount: number;
+    marginType: string | null;
+    marginValue: string | null;
+    currency: string;
+  };
+  isLoadingTldSettings: boolean;
+  hasDefaultSetting: boolean;
+  isDomainInCart: (domain: string) => boolean;
+  onAddToCart: (r: DomainSearchResult) => void;
+  onRemoveFromCart: (domain: string) => void;
+}
+
+function TldAvailabilityRow({
+  entry,
+  kenicBaseFee,
+  isLoadingKenicFees,
+  getPricingInfo,
+  isLoadingTldSettings,
+  hasDefaultSetting,
+  isDomainInCart,
+  onAddToCart,
+  onRemoveFromCart,
+}: TldAvailabilityRowProps) {
+  const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(
+    undefined,
+    { enabled: true }
+  );
+
+  const isKenic = entry.via === "kenic";
+  const isInCart = isDomainInCart(entry.domain);
+
+  const { displayPriceText, displayResult, priceReady } = React.useMemo(() => {
+    if (!entry.available) {
+      return { displayPriceText: undefined, displayResult: undefined, priceReady: false };
+    }
+
+    if (isKenic) {
+      // KENIC: apply margin only (no FX conversion), price comes from EPP withFee check
+      if (kenicBaseFee == null || isLoadingKenicFees || isLoadingTldSettings || !hasDefaultSetting) {
+        return { displayPriceText: undefined, displayResult: undefined, priceReady: false };
+      }
+      const pricing = getPricingInfo(entry.domain, kenicBaseFee, "KES");
+      const result: DomainSearchResult = {
+        domain: entry.domain,
+        status: "free",
+        price: {
+          product: { price: pricing.finalPrice, currency: "KES" },
+          reseller: { price: pricing.finalPrice, currency: "KES" },
+          calculated: {
+            originalPrice: kenicBaseFee,
+            marginAmount: pricing.marginAmount,
+            finalPrice: pricing.finalPrice,
+            currency: "KES",
+            marginType: pricing.marginType,
+            marginValue: pricing.marginValue,
+          },
+        },
+      };
+      return {
+        displayPriceText: `${formatKes(pricing.finalPrice)}/yr`,
+        displayResult: result,
+        priceReady: true,
+      };
+    } else {
+      // gTLD: price already retail (margin + FX applied server-side)
+      const result = buildGtldResult(entry);
+      if (!result || !entry.price) {
+        return { displayPriceText: undefined, displayResult: undefined, priceReady: false };
+      }
+      return {
+        displayPriceText: `${entry.price.formatted}/yr`,
+        displayResult: result,
+        priceReady: true,
+      };
+    }
+  }, [
+    entry,
+    isKenic,
+    kenicBaseFee,
+    isLoadingKenicFees,
+    isLoadingTldSettings,
+    hasDefaultSetting,
+    getPricingInfo,
+  ]);
+
+  const handleBuyNow = () => {
+    if (domainsProductId && displayResult) {
+      openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult });
+    }
+  };
+
+  const handleCart = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    if (isInCart) {
+      onRemoveFromCart(entry.domain);
+    } else if (priceReady && displayResult) {
+      onAddToCart(displayResult);
+    }
+  };
+
+  return (
+    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-border/40 last:border-0 last:pb-0 first:pt-0">
+      {/* Left: domain name + price */}
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <p className="text-sm font-bold text-primary leading-tight break-all">
+          {entry.domain}
+        </p>
+        {entry.available && priceReady && displayPriceText && (
+          <p className="text-xs text-muted-foreground">{displayPriceText}</p>
+        )}
+        {entry.available && isKenic && !isLoadingKenicFees && kenicBaseFee == null && (
+          <p className="text-xs text-muted-foreground italic">Pricing on request</p>
+        )}
+        {entry.available && isKenic && isLoadingKenicFees && (
+          <p className="text-xs text-muted-foreground">Loading pricing…</p>
+        )}
+      </div>
+
+      {/* Right: badge (top) + action buttons (below) */}
+      <div className="shrink-0 flex flex-col items-end gap-1.5">
+        {/* Availability badge */}
+        {entry.available ? (
+          <Badge className="text-[10px] px-1.5 py-0 h-4 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-0">
+            Available
+          </Badge>
+        ) : entry.status === "reserved" ? (
+          <Badge className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-0">
+            Reserved
+          </Badge>
+        ) : entry.status === "unknown" ? (
+          <span className="text-[10px] text-muted-foreground/50">—</span>
+        ) : (
+          <Badge className="text-[10px] px-1.5 py-0 h-4 bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200 dark:border-red-800">
+            Taken
+          </Badge>
+        )}
+
+        {/* Buy Now + Cart — only when available and price is ready */}
+        {entry.available && priceReady && displayResult && (
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="default"
+              className="h-6 text-[10px] px-2 py-0"
+              disabled={!domainsProductId}
+              onClick={handleBuyNow}
+            >
+              Buy Now
+            </Button>
+            <Button
+              size="sm"
+              variant={isInCart ? "destructive" : "outline"}
+              className="h-6 w-6 p-0"
+              disabled={!priceReady && !isInCart}
+              title={isInCart ? "Remove from cart" : "Add to cart"}
+              onClick={handleCart}
+            >
+              {isInCart ? (
+                <XCircle className="h-3 w-3" />
+              ) : (
+                <ShoppingCart className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------- skeletons ----------
+
+const TLD_ROW_SKELETON = (
+  <div className="flex items-start justify-between gap-3 py-2.5 border-b border-border/40 last:border-0">
+    <div className="flex-1 space-y-1">
+      <Skeleton className="h-3.5 w-32" />
+      <Skeleton className="h-3 w-20" />
+    </div>
+    <div className="flex flex-col items-end gap-1.5 shrink-0">
+      <Skeleton className="h-4 w-14 rounded-full" />
+      <div className="flex gap-1">
+        <Skeleton className="h-6 w-14 rounded" />
+        <Skeleton className="h-6 w-6 rounded" />
+      </div>
+    </div>
+  </div>
+);
+
+const CARD_SKELETON = (
+  <Card className="border border-border/80 shadow-sm h-full flex flex-col">
+    <CardContent className="p-5 flex flex-col flex-1 gap-4">
+      <div className="space-y-2">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-7 w-48" />
+      </div>
+      <div className="space-y-2 pt-2 border-t border-border/60">
+        <Skeleton className="h-3 w-32" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+      </div>
+      <div className="space-y-1 pt-2 border-t border-border/60">
+        <Skeleton className="h-3 w-28 mb-2" />
+        {Array.from({ length: 5 }, (_, i) => (
+          <React.Fragment key={i}>{TLD_ROW_SKELETON}</React.Fragment>
+        ))}
+      </div>
+      <div className="mt-auto pt-4 border-t border-border/60 flex justify-end">
+        <Skeleton className="h-9 w-40 rounded-md" />
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// ---------- main components ----------
 
 export function AiDomainSearch() {
   return (
@@ -31,22 +299,77 @@ function AiDomainSearchInner() {
   const [description, setDescription] = React.useState("");
   const [suggestions, setSuggestions] = React.useState<NameSuggestion[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
+  const [kenicFeeMap, setKenicFeeMap] = React.useState<Map<string, number>>(new Map());
+  const [isLoadingKenicFees, setIsLoadingKenicFees] = React.useState(false);
 
   const domainSearch = useDomainSearch();
+  const currencyContext = useCurrency();
+  const { getPricingInfo, hasDefaultSetting, isLoadingTldSettings } =
+    useDomainPricing(currencyContext);
+
+  const kenicCheckMutation = trpc.kenic.domainCheck.check.useMutation();
 
   const generateIdeas = trpc.aiDomainSearch.generateNameIdeas.useMutation({
     onMutate: () => {
       setSuggestions([]);
+      setKenicFeeMap(new Map());
+      setIsLoadingKenicFees(false);
     },
     onSuccess: (data) => {
       setSuggestions(data.suggestions);
+
+      // Batch-fetch KENIC fees for all available KENIC domains at once
+      const availableKenicDomains = data.suggestions.flatMap((s) =>
+        s.availability
+          .filter((e) => e.via === "kenic" && e.available)
+          .map((e) => e.domain)
+      );
+
+      if (availableKenicDomains.length > 0) {
+        setIsLoadingKenicFees(true);
+        kenicCheckMutation.mutate(
+          { domains: availableKenicDomains, withFee: true, currency: "KES", periodYears: 1 },
+          {
+            onSuccess: (result) => {
+              const normalized =
+                "normalized" in result ? (result.normalized as Array<{ domain: string; createFee?: { amount: number } }> | null) : null;
+              if (normalized && Array.isArray(normalized)) {
+                const map = new Map<string, number>();
+                for (const item of normalized) {
+                  if (item.createFee?.amount != null) {
+                    map.set(item.domain, item.createFee.amount);
+                  }
+                }
+                setKenicFeeMap(map);
+              }
+              setIsLoadingKenicFees(false);
+            },
+            onError: () => {
+              setIsLoadingKenicFees(false);
+            },
+          }
+        );
+      }
     },
   });
+
+  // Sort suggestions: fewest missing TLDs first → most missing last.
+  // 0 missing (all available) → 1st, 1 missing → 2nd, 2 missing → 3rd, etc.
+  // Secondary tie-break: more total TLDs checked = higher priority (more data shown).
+  const sortedSuggestions = React.useMemo(
+    () =>
+      [...suggestions].sort((a, b) => {
+        const aMissing = a.availability.filter((e) => !e.available).length;
+        const bMissing = b.availability.filter((e) => !e.available).length;
+        if (aMissing !== bMissing) return aMissing - bMissing;
+        return b.availability.length - a.availability.length;
+      }),
+    [suggestions]
+  );
 
   const trimmedDescription = description.trim();
   const canGenerate =
     trimmedDescription.length >= MIN_DESCRIPTION_LENGTH && !generateIdeas.isPending;
-
   const showDomainSearchBlock = Boolean(domainSearch.searchQueryName);
 
   const handleSearchDomainFromRow = (domainLabel: string) => {
@@ -63,14 +386,15 @@ function AiDomainSearchInner() {
 
   return (
     <div className="space-y-6">
+      {/* Input card */}
       <Card className="border-0 shadow-lg">
         <CardContent className="p-6">
           <div className="space-y-4">
             <div className="text-center space-y-1">
               <h2 className="text-base font-semibold tracking-tight">AI Domain Search</h2>
               <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-                Describe your business in detail. We will suggest brand names and registrable domain labels
-                you can check below.
+                Describe your business in detail. We will suggest brand names, check domain
+                availability across multiple extensions, and show live pricing.
               </p>
             </div>
 
@@ -90,7 +414,7 @@ function AiDomainSearchInner() {
 
             <div className="max-w-2xl mx-auto space-y-3">
               <Textarea
-                placeholder="Enter a detailed description of your business: what you offer, who you serve, your tone and values, location or market, and any words or themes you want reflected in your domain."
+                placeholder="Describe your business in detail: offer, audience, tone, and where you operate (city/country). Mention language, B2B vs B2C, competitors to avoid, and any words or themes you want — the AI uses these signals for locally credible names and TLD guidance."
                 className="min-h-[12rem] resize-y text-base leading-relaxed"
                 aria-label="Business description for AI domain search"
                 value={description}
@@ -111,12 +435,12 @@ function AiDomainSearchInner() {
                   {generateIdeas.isPending ? (
                     <>
                       <Spinner variant="ellipsis" className="h-4 w-4 mr-2" />
-                      Generating ideas...
+                      Generating &amp; checking availability...
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Search
+                      Generate &amp; Check Domains
                     </>
                   )}
                 </Button>
@@ -126,88 +450,96 @@ function AiDomainSearchInner() {
         </CardContent>
       </Card>
 
-      {(generateIdeas.isPending || suggestions.length > 0) && (
+      {/* Results grid */}
+      {(generateIdeas.isPending || sortedSuggestions.length > 0) && (
         <div className="max-w-7xl mx-auto w-full space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Sparkles className="h-4 w-4 text-muted-foreground" aria-hidden />
-            <h3 className="text-sm font-semibold tracking-tight">AI-generated name ideas</h3>
+            <h3 className="text-sm font-semibold tracking-tight">
+              AI-generated name ideas
+            </h3>
           </div>
+
           {generateIdeas.isPending ? (
             <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 list-none p-0 m-0">
               {Array.from({ length: 6 }, (_, i) => (
                 <li key={i} className="min-w-0">
-                  <Card className="border border-border/80 shadow-sm h-full flex flex-col">
-                    <CardContent className="p-5 flex flex-col flex-1 gap-4">
-                      <div className="space-y-2">
-                        <Skeleton className="h-3 w-28" />
-                        <Skeleton className="h-7 w-full max-w-[14rem]" />
-                      </div>
-                      <div className="space-y-2 pt-2 border-t border-border/60">
-                        <Skeleton className="h-3 w-36" />
-                        <Skeleton className="h-3 w-full" />
-                        <Skeleton className="h-3 w-full" />
-                        <Skeleton className="h-3 w-4/5" />
-                      </div>
-                      <div className="space-y-2 pt-2 border-t border-border/60">
-                        <Skeleton className="h-3 w-24" />
-                        <Skeleton className="h-7 w-full max-w-[12rem]" />
-                      </div>
-                      <div className="mt-auto pt-4 border-t border-border/60 flex justify-end">
-                        <Skeleton className="h-9 w-32 rounded-md" />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {CARD_SKELETON}
                 </li>
               ))}
             </ul>
           ) : (
             <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 list-none p-0 m-0">
-              {suggestions.map((row, index) => (
+              {sortedSuggestions.map((row, index) => (
                 <li key={`${index}-${row.domainName}`} className="min-w-0">
                   <Card className="border border-border/80 shadow-sm h-full flex flex-col">
                     <CardContent className="p-5 flex flex-col flex-1 gap-0">
                       <div className="space-y-4 flex-1">
+
+                        {/* Business name */}
                         <div className="space-y-1.5">
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            AI business name
+                            Business name
                           </p>
                           <p className="text-lg font-semibold tracking-tight text-primary leading-snug">
                             {row.businessName}
                           </p>
                         </div>
+
+                        {/* Why it works */}
                         <div className="space-y-1.5 pt-1 border-t border-border/60">
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            AI business description
+                            Why it works
                           </p>
                           <p className="text-sm text-muted-foreground leading-relaxed">
                             {row.businessDescription}
                           </p>
                         </div>
-                        <div className="space-y-1.5 pt-1 border-t border-border/60">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            AI domain name
+
+                        {/* Domain availability rows */}
+                        <div className="space-y-0 pt-1 border-t border-border/60">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">
+                            Domain availability
                           </p>
-                          <p className="text-lg font-semibold tracking-tight text-primary leading-snug break-words">
-                            {row.domainName}
-                          </p>
+                          {row.availability.map((entry) => (
+                            <TldAvailabilityRow
+                              key={entry.tld}
+                              entry={entry}
+                              kenicBaseFee={kenicFeeMap.get(entry.domain)}
+                              isLoadingKenicFees={isLoadingKenicFees}
+                              getPricingInfo={getPricingInfo}
+                              isLoadingTldSettings={isLoadingTldSettings}
+                              hasDefaultSetting={hasDefaultSetting}
+                              isDomainInCart={domainSearch.isDomainInCart}
+                              onAddToCart={domainSearch.handleAddToCart}
+                              onRemoveFromCart={domainSearch.handleRemoveFromCart}
+                            />
+                          ))}
                         </div>
+
                       </div>
+
+                      {/* Footer: explore more TLDs */}
                       <div className="mt-4 pt-4 border-t border-border/60 flex justify-end shrink-0">
                         <Button
                           type="button"
+                          variant="outline"
                           size="sm"
-                          className="shrink-0"
-                          title="Open Domain Search to check availability and pricing for this domain"
+                          className="shrink-0 gap-1.5"
+                          title="Open Domain Search panel to explore more TLDs"
                           disabled={isSearching}
                           onClick={() => handleSearchDomainFromRow(row.domainName)}
                         >
                           {isSearching ? (
                             <>
-                              <Spinner variant="ellipsis" className="h-4 w-4 mr-2" />
+                              <Spinner variant="ellipsis" className="h-3.5 w-3.5" />
                               Searching...
                             </>
                           ) : (
-                            "Search domain"
+                            <>
+                              <Search className="h-3.5 w-3.5" />
+                              More TLDs &amp; Register
+                            </>
                           )}
                         </Button>
                       </div>
@@ -220,6 +552,7 @@ function AiDomainSearchInner() {
         </div>
       )}
 
+      {/* Deep-search panel (triggered by "More TLDs & Register") */}
       {showDomainSearchBlock && (
         <div className="max-w-7xl mx-auto w-full">
           <DomainSearchResults

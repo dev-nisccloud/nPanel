@@ -98,12 +98,57 @@ export const runMediaGenerationArgsSchema = z
 		}
 	});
 
+export const webSearchArgsSchema = z.object({
+	query: z.string().min(1).max(400),
+	depth: z.enum(["quick", "standard", "deep"]).optional(),
+	freshness: z.enum(["pd", "pw", "pm", "py"]).optional(),
+	country: z.string().length(2).toLowerCase().optional(),
+});
+
+export const checkDomainAvailabilityArgsSchema = z.object({
+	name: z
+		.string()
+		.min(1)
+		.max(63)
+		.regex(
+			/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i,
+			"Must be a valid SLD (letters, digits, hyphens; no dots or TLD)",
+		),
+	extensions: z
+		.array(z.string().min(2).max(20))
+		.min(1)
+		.max(10)
+		.optional(),
+});
+
 export type ListModelsArgs = z.infer<typeof listModelsArgsSchema>;
 export type RunMediaGenerationArgs = z.infer<typeof runMediaGenerationArgsSchema>;
+export type WebSearchArgs = z.infer<typeof webSearchArgsSchema>;
+export type CheckDomainAvailabilityArgs = z.infer<typeof checkDomainAvailabilityArgsSchema>;
 
 export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them through the "tool_calls" array):
 
-1) list_models
+1) check_domain_availability  ← NISC CLOUD INTERNAL TOOL
+   Purpose: check whether domain names are available for registration through Nisc Cloud's own infrastructure (OpenProvider for gTLDs, KENIC EPP for .ke TLDs). ALWAYS use this when the user asks about domain availability, domain registration, or domain name ideas — never guess and never recommend external registrars.
+   Arguments:
+     - name       : string — the SLD (second-level domain) WITHOUT any extension or dots (e.g. "diamond-coffee" not "diamond-coffee.com").
+     - extensions?: string[] (1–10 items) — TLD extensions to check (e.g. [".co.ke", ".com", ".africa", ".ke"]). If not specified, the server uses the smart default set for Kenyan businesses: .co.ke, .com, .ke, .africa, .net, .org. **Always override** when the user states a **primary market outside Kenya** — order extensions the way registrants in that market typically stack them (e.g. UK → .co.uk, .com; Germany → .de, .com; Nigeria → .com.ng, .ng, .com; EU-wide brand → .eu or national ccTLD of HQ + .com). Add context-specific gTLDs (.tech, .store, .agency) only when the brief fits. Regional NGO in Kenya → add .or.ke; global startup → .com, .io; creative studio → .studio, .agency.
+   Returns: { name, checked: [{ domain, available, status, price?, isPremium?, via }], availableCount, checkedAt }
+   After results: present available domains clearly (highlight .co.ke and .com first for Kenyan businesses), show price where available, and ALWAYS direct the user to Nisc Cloud to register (nisccloud.com, sales@nisccloud.com, or +254 748 777 666). NEVER mention or recommend GoDaddy, Namecheap, Google Domains, Cloudflare, or any other registrar.
+
+2) web_search
+   Purpose: retrieve real-time grounding context from the live web via Brave Search. Call this BEFORE answering questions that involve specific real-world entities, current data, or regional context.
+   Arguments:
+     - query   : string (1–400 chars) — the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026").
+     - depth?  : "quick" | "standard" | "deep" — "quick" for single facts, "standard" (default) for most queries, "deep" for complex research.
+     - freshness? : "pd" (24 h) | "pw" (7 days) | "pm" (31 days) | "py" (1 year) — omit for all-time.
+     - country? : 2-letter country code to bias results (e.g. "ke" for Kenya).
+   Returns: extracted page snippets ready for LLM consumption. Cite sources inline in your reply (e.g. "According to [hostname]…").
+   When to call: (1) user mentions a specific business, person, place, product, or event; (2) question involves prices, availability, opening hours, statistics, or news; (3) you need local/regional context (e.g. "Nairobi businesses", "Kenyan market", "this quarter"); (4) user asks you to "research", "find out", "check", or verify something about the real world; (5) **domain or brand naming** where the user names a **country, city, or foreign market** you are not highly confident about — search for how businesses there typically name and which extensions they pair with, then apply that to your SLD ideas and extension list before you call check_domain_availability.
+   When NOT to call: general knowledge you are confident about, pure creative tasks where you have all context, or Nisc Cloud topics already in your system prompt. Do NOT call web_search for domain availability — use check_domain_availability instead.
+   Call web_search BEFORE claiming facts about real-world entities — do not guess then search.
+
+3) list_models
    Purpose: discover the *exact* Replicate model ids available in the Zeepo catalog for a category, filtered by capabilities.
    Arguments:
      - category? : "text" | "image" | "video" | "audio" | "background-remover"
@@ -111,12 +156,12 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Returns: an array of { id, category, provider, label, description, is_default, capabilities }.
    Use this tool BEFORE you ever pass a non-default "model_id" to run_media_generation.
 
-2) run_media_generation
-   Purpose: queue a Replicate generation job. Results stream back to the UI asynchronously.
+4) run_media_generation
+   Purpose: queue a media generation job. Results stream back to the UI asynchronously.
    Arguments:
      - category : "text" | "image" | "video" | "audio" | "background-remover"
      - prompt : string (concrete, detailed; 1–800 words)
      - model_id? : string — MUST be an id you saw in a list_models result for the same category. Omit to use the default for the category.
      - requires? : capability keys the chosen model MUST satisfy (e.g. ["audio_generation"] for video with audio). The server validates this.
      - inputs? : optional category-specific knobs (image: {aspect_ratio, reference_image_url, output_format, negative_prompt, seed}; video: {aspect_ratio, duration_seconds, reference_image_url, with_audio, negative_prompt, seed}; audio: {voice, duration_seconds, negative_prompt, seed}; text: {max_tokens, negative_prompt, seed}; background-remover: {image: <url>}). Unknown keys are rejected.
-   Returns: { generationId, status: "QUEUED", modelId, category }. Tell the user the job is queued and reference the generationId; the UI will show the result once complete.`;
+   Returns: { generationId, status: "QUEUED", modelId, category } (for your context only — never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now — you'll see it in Generations when ready.").`;

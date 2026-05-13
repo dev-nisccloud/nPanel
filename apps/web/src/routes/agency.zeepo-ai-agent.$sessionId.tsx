@@ -108,6 +108,75 @@ function firstMediaUrl(outputs: unknown): string | null {
   return null;
 }
 
+const UUID_SEGMENT = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+
+/** Strip job / generation UUIDs from assistant copy (defense in depth vs model drift). */
+function sanitizeZeepoAgentAssistantDisplayMarkdown(content: string): string {
+  let s = content;
+  s = s.replace(new RegExp(String.raw`\(\s*ID\s*:\s*${UUID_SEGMENT}\s*\)`, "g"), "");
+  s = s.replace(new RegExp(String.raw`\(\s*id\s*:\s*${UUID_SEGMENT}\s*\)`, "g"), "");
+  s = s.replace(
+    new RegExp(
+      String.raw`\b(?:generation\s*(?:id|ID)|job\s*(?:id|ID))\s*[:#]?\s*${UUID_SEGMENT}\b`,
+      "g",
+    ),
+    "",
+  );
+  s = s.replace(new RegExp(String.raw`[,;]?\s*\bID\s*:\s*${UUID_SEGMENT}\b`, "g"), "");
+  s = s.replace(/  +/g, " ");
+  s = s.replace(/\s+\./g, ".").replace(/\s+,/g, ",");
+  s = s.replace(/\(\s*\)/g, "");
+  return s.trim();
+}
+
+/**
+ * Successful run_media_generation tool rows are persisted for the model but not shown
+ * — the Generations strip is the user-facing surface.
+ */
+function shouldHideZeepoAgentToolMessageForUi(content: string | null | undefined): boolean {
+  if (content == null || content.trim() === "") return false;
+
+  // Successful run_media_generation result — shown in Generations strip instead.
+  try {
+    const o = JSON.parse(content) as Record<string, unknown>;
+    if (o && typeof o === "object" && !Array.isArray(o) && !("error" in o)) {
+      const keys = Object.keys(o);
+      if (
+        keys.length === 4 &&
+        o.status === "QUEUED" &&
+        typeof o.generationId === "string" &&
+        typeof o.modelId === "string" &&
+        typeof o.category === "string"
+      ) {
+        return true;
+      }
+    }
+  } catch {
+    // Not JSON — check plain-text markers below.
+  }
+
+  // Successful web_search grounding — raw context for the model, not for users.
+  const trimmed = content.trimStart();
+  if (trimmed.startsWith("WEB SEARCH")) return true;
+
+  // check_domain_availability result — model synthesises it into a reply; raw JSON not shown.
+  try {
+    const o = JSON.parse(content) as Record<string, unknown>;
+    if (
+      o &&
+      typeof o === "object" &&
+      !Array.isArray(o) &&
+      (o as Record<string, unknown>)._tool === "check_domain_availability"
+    ) {
+      return true;
+    }
+  } catch {
+    // Not JSON.
+  }
+
+  return false;
+}
+
 function formatChatBubbleTime(value: Date | string | undefined | null): string {
   if (value == null) return "";
   const d = typeof value === "string" ? new Date(value) : value;
@@ -432,6 +501,7 @@ export default function ZeepoAiAgentSessionPage() {
 
             if (m.role === "assistant") {
               const ts = formatChatBubbleTime(m.createdAt);
+              const displayContent = sanitizeZeepoAgentAssistantDisplayMarkdown(m.content || "");
               return (
                 <div key={m.id} className="flex justify-start gap-2">
                   <div className="mb-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
@@ -444,7 +514,7 @@ export default function ZeepoAiAgentSessionPage() {
                         "text-foreground",
                       )}
                     >
-                      <AiMarkdownRenderer content={m.content || ""} />
+                      <AiMarkdownRenderer content={displayContent} />
                     </div>
                     {ts ? (
                       <time
@@ -460,6 +530,9 @@ export default function ZeepoAiAgentSessionPage() {
             }
 
             if (m.role === "tool") {
+              if (shouldHideZeepoAgentToolMessageForUi(m.content)) {
+                return null;
+              }
               const ts = formatChatBubbleTime(m.createdAt);
               return (
                 <div key={m.id} className="flex justify-center px-1">
@@ -517,8 +590,8 @@ export default function ZeepoAiAgentSessionPage() {
               <Alert variant="destructive" className="mb-2 py-2">
                 <AlertCircle className="size-4" />
                 <AlertTitle className="text-sm">Could not refresh</AlertTitle>
-                <AlertDescription className="flex flex-wrap items-center gap-2 text-xs">
-                  <span>{genErrorMessage}</span>
+                <AlertDescription className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
+                  <span className="min-w-0 max-w-full break-words">{genErrorMessage}</span>
                   <Button
                     type="button"
                     variant="outline"
@@ -575,13 +648,18 @@ export default function ZeepoAiAgentSessionPage() {
                       return (
                         <div
                           key={g.id}
-                          className="flex h-[7rem] w-[7rem] shrink-0 flex-col items-center justify-center rounded-xl border border-destructive/30 bg-destructive/5 p-2 text-center"
+                          className="flex h-[7rem] w-[7rem] min-w-0 shrink-0 flex-col overflow-hidden rounded-xl border border-destructive/30 bg-destructive/5 p-1.5"
                           title={g.errorMessage ?? "Failed"}
                         >
-                          <AlertCircle className="mb-1 size-5 shrink-0 text-destructive" aria-hidden />
-                          <span className="line-clamp-5 text-[10px] leading-tight text-destructive">
-                            {g.errorMessage || "Failed"}
-                          </span>
+                          <AlertCircle
+                            className="mb-0.5 size-4 shrink-0 self-center text-destructive"
+                            aria-hidden
+                          />
+                          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+                            <p className="break-words text-left text-[10px] leading-snug text-destructive [overflow-wrap:anywhere]">
+                              {g.errorMessage || "Failed"}
+                            </p>
+                          </div>
                         </div>
                       );
                     }

@@ -3,6 +3,7 @@ import { Context } from "hono";
 import { db, eq } from "@npanel/db";
 import { zeepoAgentGeneration } from "@npanel/db/schema";
 import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
+import { buildReplicateInput } from "@npanel/api/lib/replicate-model-input";
 import Replicate from "replicate";
 import { verifySignature } from "../../lib/qstash-verify";
 
@@ -73,16 +74,11 @@ export async function handleZeepoAgent(c: Context) {
 	}
 
 	try {
-		const baseInput: Record<string, unknown> = {
-			...(typeof generation.inputs === "object" && generation.inputs !== null
-				? (generation.inputs as Record<string, unknown>)
-				: {}),
-		};
-
-		baseInput.prompt =
-			generation.prompt && generation.prompt.trim() !== ""
-				? generation.prompt
-				: "";
+		const baseInput = buildReplicateInput({
+			modelId: generation.modelId as string,
+			prompt: generation.prompt,
+			inputs: generation.inputs,
+		});
 
 		const modelParts = (generation.modelId as string).split(":");
 		const isVersioned = modelParts.length > 1;

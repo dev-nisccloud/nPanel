@@ -186,7 +186,8 @@ export const ORCHESTRATION_JSON_INSTRUCTION = `Your reply MUST be a single valid
   ]
 }
 If no tool is needed this turn, return "tool_calls": [].
-Do NOT include any other top-level keys. Do NOT prepend "Sure" or "Here is".`;
+Do NOT include any other top-level keys. Do NOT prepend "Sure" or "Here is".
+In assistant_text, never expose technical ids: no generationId, no UUIDs, no "(ID: …)" or "job id" strings — the product UI already tracks jobs.`;
 
 const REPAIR_INSTRUCTION = `Your previous reply could not be parsed as the required JSON object. Re-emit ONLY a single valid JSON object matching the schema above. Do not apologize. Do not include any text outside the JSON.`;
 
