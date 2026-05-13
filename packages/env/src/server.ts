@@ -22,6 +22,8 @@ export const env = createEnv({
     REPLICATE_ZEEPO_AGENT_WEBHOOK_URL: z.string().url().optional(),
     /** Zeepo AI Agent: optional Replicate text model id from `MODELS` (category text) for chat orchestration */
     ZEEPO_AGENT_CHAT_MODEL_ID: z.string().min(1).optional(),
+    /** Brave Search LLM Context API key — enables web_search tool in Zeepo Agent */
+    BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
     QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url(),
     REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url(),
     QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),

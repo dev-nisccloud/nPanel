@@ -348,11 +348,11 @@ export const agencysidebarItems: NavGroup[] = [
     id: 3,
     label: "Gen AI Tools",
     items: [
-      {
-        title: "Zeepo AI Canvas",
-        url: "/agency/zeepo-canvas",
-        icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      },
+      // {
+      //   title: "Zeepo AI Canvas",
+      //   url: "/agency/zeepo-canvas",
+      //   icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
       {
         title: "Zeepo AI Agent",
         url: "/agency/zeepo-ai-agent",

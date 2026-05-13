@@ -3,6 +3,7 @@ import { Context } from "hono";
 import { db, eq } from "@npanel/db";
 import { zeepoCanvasGeneration } from "@npanel/db/schema";
 import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
+import { buildReplicateInput } from "@npanel/api/lib/replicate-model-input";
 import Replicate from "replicate";
 import { verifySignature } from "../../lib/qstash-verify";
 
@@ -73,15 +74,12 @@ export async function handleZeepoCanvas(c: Context) {
 	}
 
 	try {
-		// Construct Replicate inputs based on the model category
-		const baseInput: any = {
-			...(typeof generation.inputs === 'object' && generation.inputs !== null ? (generation.inputs as any) : {})
-		};
-
-		// Ensure prompt is always present as many models require it
-		baseInput.prompt = (generation.prompt && generation.prompt.trim() !== "") 
-			? generation.prompt 
-			: "";
+		// Model-aware input mapping (e.g. minimax/qwen TTS need `text`, not `prompt`).
+		const baseInput = buildReplicateInput({
+			modelId: generation.modelId as string,
+			prompt: generation.prompt,
+			inputs: generation.inputs,
+		});
 
 		// Handle model identifiers with version hashes (e.g., "owner/name:hash")
 		const modelParts = (generation.modelId as string).split(":");

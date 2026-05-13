@@ -24,9 +24,17 @@ import {
 } from "./model-helpers";
 import { getZeepoAgentSkillById } from "./skills-catalog";
 import {
+	checkDomainAvailabilityArgsSchema,
 	listModelsArgsSchema,
 	runMediaGenerationArgsSchema,
+	webSearchArgsSchema,
 } from "./agent-tools";
+import {
+	agentCheckDomainAvailability,
+	DEFAULT_DOMAIN_EXTENSIONS,
+	DEFAULT_DISPLAY_CURRENCY,
+} from "../../lib/agent-internal-tools";
+import { callBraveLlmContext } from "../../lib/brave-search";
 import {
 	buildAgentIdentityPrompt,
 	buildRecentGenerationsBlock,
@@ -373,7 +381,62 @@ export const zeepoAgentChatRouter = router({
 					const rawArgs = (tc.arguments ?? {}) as Record<string, unknown>;
 					let resultPayload: unknown;
 
-					if (tc.name === "list_models") {
+					if (tc.name === "check_domain_availability") {
+						const parsedArgs =
+							checkDomainAvailabilityArgsSchema.safeParse(rawArgs);
+						if (!parsedArgs.success) {
+							resultPayload = {
+								error: `check_domain_availability received invalid arguments: ${parsedArgs.error.message}`,
+							};
+						} else {
+							try {
+								resultPayload = await agentCheckDomainAvailability({
+									name: parsedArgs.data.name,
+									extensions:
+										parsedArgs.data.extensions ??
+										DEFAULT_DOMAIN_EXTENSIONS,
+									targetCurrency:
+										sessionCtx.team.baseCurrency ??
+										DEFAULT_DISPLAY_CURRENCY,
+								});
+							} catch (e: any) {
+								resultPayload = {
+									error: `Domain check failed: ${e?.message ?? "Unknown error"}`,
+								};
+							}
+						}
+					} else if (tc.name === "web_search") {
+						const braveKey = env.BRAVE_SEARCH_API_KEY;
+						if (!braveKey) {
+							resultPayload = {
+								error: "Web search is not available (BRAVE_SEARCH_API_KEY not configured). Proceed without web context or let the user know you cannot search the web right now.",
+							};
+						} else {
+							const parsedArgs = webSearchArgsSchema.safeParse(rawArgs);
+							if (!parsedArgs.success) {
+								resultPayload = {
+									error: `web_search received invalid arguments: ${parsedArgs.error.message}`,
+								};
+							} else {
+								try {
+									const grounding = await callBraveLlmContext({
+										apiKey: braveKey,
+										query: parsedArgs.data.query,
+										depth: parsedArgs.data.depth,
+										freshness: parsedArgs.data.freshness,
+										country: parsedArgs.data.country,
+									});
+									// Return the grounding text directly so it reads naturally in the
+									// message history and the UI can detect it by prefix.
+									resultPayload = grounding;
+								} catch (e: any) {
+									resultPayload = {
+										error: `web_search failed: ${e?.message ?? "Unknown error"}. Proceed with your existing knowledge and note the limitation.`,
+									};
+								}
+							}
+						}
+					} else if (tc.name === "list_models") {
 						const parsedArgs = listModelsArgsSchema.safeParse(rawArgs);
 						if (!parsedArgs.success) {
 							resultPayload = {
@@ -432,7 +495,7 @@ export const zeepoAgentChatRouter = router({
 						}
 					} else {
 						resultPayload = {
-							error: `Unknown tool "${tc.name}". Available: list_models, run_media_generation.`,
+							error: `Unknown tool "${tc.name}". Available: check_domain_availability, web_search, list_models, run_media_generation.`,
 						};
 					}
 
