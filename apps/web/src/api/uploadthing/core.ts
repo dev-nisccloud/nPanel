@@ -161,6 +161,26 @@ export const ourFileRouter = {
       return { uploadedBy: metadata.userId };
     }),
 
+  // Zeepo Agent chat attachments (images users attach to messages / answer questions with)
+  zeepoAgentAttachment: f({ image: { maxFileSize: "16MB", maxFileCount: 4 } })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({
+        headers: req.headers,
+      });
+
+      if (!session?.user) {
+        throw new Error("Unauthorized");
+      }
+
+      return {
+        userId: session.user.id,
+      };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log("Zeepo agent attachment uploaded for userId:", metadata.userId);
+      return { uploadedBy: metadata.userId };
+    }),
+
   // Email Builder image upload (single image, optimized for email builder library)
   emailBuilderImage: f({ image: { maxFileSize: "16MB", maxFileCount: 1 } })
     .middleware(async ({ req }) => {

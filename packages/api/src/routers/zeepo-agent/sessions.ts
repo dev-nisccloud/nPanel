@@ -12,6 +12,7 @@ import {
 	deleteSessionSchema,
 	getSessionSchema,
 	listSessionsSchema,
+	updateSessionTitleSchema,
 } from "./schemas";
 
 export const zeepoAgentSessionsRouter = router({
@@ -113,6 +114,28 @@ export const zeepoAgentSessionsRouter = router({
 			}
 
 			return { data: session };
+		}),
+
+	updateTitle: protectedProcedure
+		.input(updateSessionTitleSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+			const session = await db.query.zeepoAgentSession.findFirst({
+				where: and(
+					eq(zeepoAgentSession.id, input.id),
+					eq(zeepoAgentSession.userId, userId),
+				),
+			});
+			if (!session) throw new TRPCError({ code: "NOT_FOUND" });
+
+			await db
+				.update(zeepoAgentSession)
+				.set({ title: input.title, updatedAt: new Date() })
+				.where(eq(zeepoAgentSession.id, input.id));
+
+			return { success: true as const, title: input.title };
 		}),
 
 	delete: protectedProcedure

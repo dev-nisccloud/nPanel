@@ -2,6 +2,15 @@ import Replicate from "replicate";
 import { z } from "zod";
 import type { ZeepoModel } from "../zeepo-canvas/models";
 
+export const clarifyingQuestionSchema = z.object({
+	question: z.string(),
+	options: z.array(z.string()).min(1),
+	/** When true, the UI shows an "Upload file" chip alongside the regular options. */
+	allow_upload: z.boolean().optional(),
+});
+
+export type ClarifyingQuestion = z.infer<typeof clarifyingQuestionSchema>;
+
 const orchestrationResponseSchema = z.object({
 	assistant_text: z.string(),
 	tool_calls: z
@@ -12,6 +21,7 @@ const orchestrationResponseSchema = z.object({
 			}),
 		)
 		.default([]),
+	clarifying_questions: z.array(clarifyingQuestionSchema).optional(),
 });
 
 export type AgentOrchestrationMessage = {
@@ -19,6 +29,8 @@ export type AgentOrchestrationMessage = {
 	content: string;
 	toolCalls?: unknown;
 	toolCallId?: string | null;
+	/** First image URL from user-attached files — passed to vision-capable models. */
+	imageUrl?: string;
 };
 
 export type AgentToolCall = {
@@ -53,12 +65,14 @@ function buildReplicateLlmInput(
 	systemBlock: string,
 	userBlock: string,
 	maxTokens: number,
+	imageUrl?: string,
 ): Record<string, unknown> {
 	if (model.id.startsWith("anthropic/")) {
 		return {
 			system_prompt: systemBlock,
 			prompt: userBlock,
 			max_tokens: maxTokens,
+			...(imageUrl ? { image: imageUrl } : {}),
 		};
 	}
 	return {
@@ -109,6 +123,7 @@ export type ParsedOrchestrationResult =
 			ok: true;
 			assistant_text: string;
 			tool_calls: AgentToolCall[];
+			clarifying_questions?: ClarifyingQuestion[];
 	  }
 	| {
 			ok: false;
@@ -132,6 +147,9 @@ export function parseOrchestrationResponse(raw: string): ParsedOrchestrationResu
 						name: t.name,
 						arguments: (t.arguments ?? {}) as Record<string, unknown>,
 					})),
+					...(safe.data.clarifying_questions?.length
+						? { clarifying_questions: safe.data.clarifying_questions }
+						: {}),
 				};
 			}
 		} catch {
@@ -177,17 +195,29 @@ export function serializeAgentTurnPrompt(
 
 export const ORCHESTRATION_JSON_INSTRUCTION = `Your reply MUST be a single valid JSON object — no markdown, no fences, no commentary before or after. Use this exact shape:
 {
-  "assistant_text": "string — markdown response shown to the user; may be an empty string only when tool_calls is non-empty",
+  "assistant_text": "string — the markdown reply shown to the user. Empty string only when tool_calls is non-empty AND the tool result will explain everything on its own.",
   "tool_calls": [
     {
-      "name": "list_models" | "run_media_generation",
-      "arguments": { /* tool-specific object */ }
+      "name": "create_document" | "check_domain_availability" | "web_search" | "list_models" | "run_media_generation",
+      "arguments": { /* tool-specific object as documented */ }
+    }
+  ],
+  "clarifying_questions": [
+    {
+      "question": "string — a single, specific question",
+      "options": ["Option A", "Option B", "Option C"],
+      "allow_upload": false
     }
   ]
 }
-If no tool is needed this turn, return "tool_calls": [].
-Do NOT include any other top-level keys. Do NOT prepend "Sure" or "Here is".
-In assistant_text, never expose technical ids: no generationId, no UUIDs, no "(ID: …)" or "job id" strings — the product UI already tracks jobs.`;
+Rules:
+- "tool_calls": [] when no tool is needed this turn.
+- "clarifying_questions" is OPTIONAL. Include it ONLY when you genuinely need 1–3 short, specific answers before you can produce a good result — and ONLY when there are no tool_calls in the same reply. Each entry is one question with 2–5 concise option labels (do NOT include "Other" — the UI adds it automatically). Never produce clarifying_questions AND tool_calls in the same reply.
+- Set "allow_upload": true on a question when the answer could be an image/file the user provides (e.g. "Do you have a logo?"). The UI will show an "Upload file" chip. The user's uploaded URL is then available as an attachment in the next message.
+- IMPORTANT: when calling create_document, the full markdown content goes inside arguments.content — write the COMPLETE document there; do not truncate.
+- Do NOT include clarifying_questions on follow-up turns after the user already answered — proceed with what you have.
+- Do NOT include any other top-level keys. Do NOT prepend "Sure" or "Here is".
+- In assistant_text, never expose technical ids: no generationId, no UUIDs, no "(ID: …)" or "job id" strings — the product UI already tracks jobs.`;
 
 const REPAIR_INSTRUCTION = `Your previous reply could not be parsed as the required JSON object. Re-emit ONLY a single valid JSON object matching the schema above. Do not apologize. Do not include any text outside the JSON.`;
 
@@ -198,9 +228,10 @@ async function callReplicateOnce(params: {
 	userBlock: string;
 	maxTokens: number;
 	maxMs: number;
+	imageUrl?: string;
 }): Promise<string> {
-	const { replicate, model, systemBlock, userBlock, maxTokens, maxMs } = params;
-	const input = buildReplicateLlmInput(model, systemBlock, userBlock, maxTokens);
+	const { replicate, model, systemBlock, userBlock, maxTokens, maxMs, imageUrl } = params;
+	const input = buildReplicateLlmInput(model, systemBlock, userBlock, maxTokens, imageUrl);
 	const timeout = new Promise<never>((_, reject) =>
 		setTimeout(() => reject(new Error(`timed out after ${maxMs / 1000}s`)), maxMs),
 	);
@@ -227,6 +258,10 @@ export async function runOrchestrationTurnWithRepair(params: {
 		messages,
 		ORCHESTRATION_JSON_INSTRUCTION,
 	);
+	// Use the most recent user message's image URL for vision-capable models.
+	const latestImageUrl = [...messages]
+		.reverse()
+		.find((m) => m.role === "user" && m.imageUrl)?.imageUrl;
 
 	const rawAttempts: string[] = [];
 	const first = await callReplicateOnce({
@@ -236,6 +271,7 @@ export async function runOrchestrationTurnWithRepair(params: {
 		userBlock,
 		maxTokens,
 		maxMs,
+		imageUrl: latestImageUrl,
 	});
 	rawAttempts.push(first);
 	const firstParsed = parseOrchestrationResponse(first);

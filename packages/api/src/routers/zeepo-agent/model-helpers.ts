@@ -10,7 +10,8 @@ export type ZeepoCapabilityKey =
 	| "audio"
 	| "video"
 	| "thinking"
-	| "audio_generation";
+	| "audio_generation"
+	| "design";
 
 export type ZeepoCategory = ZeepoModel["category"];
 
@@ -20,6 +21,7 @@ const ALL_CAPS: ZeepoCapabilityKey[] = [
 	"video",
 	"thinking",
 	"audio_generation",
+	"design",
 ];
 
 export function modelHasCapabilities(

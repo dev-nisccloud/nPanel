@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { authClient } from "@/lib/auth-client";
-import { Link, Navigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 import {
   ArrowLeftIcon,
+  ArrowRight,
   SendIcon,
   AlertCircle,
   RefreshCw,
@@ -23,9 +24,43 @@ import {
   Download,
   Headphones,
   ImageIcon,
+  FileText,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Paperclip,
+  Upload,
+  Undo2,
+  Paintbrush,
+  Wand2,
+  Trash2,
+  Minus,
+  Redo2,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { pdf } from "@react-pdf/renderer";
+import { ZeepoDocumentPdf } from "@/components/zeepo/document-pdf";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { uploadFiles } from "@/hooks/use-uploadthing";
+import { formatDistanceToNow } from "date-fns";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { TRPCClientError } from "@trpc/client";
 import { isReplicateHostedMediaUrl } from "@npanel/api/lib/replicate-hosted-url";
 import {
@@ -51,6 +86,22 @@ function extractOutputPreview(outputs: unknown): string | null {
 }
 
 type GenerationMediaKind = "image" | "video" | "audio";
+
+type ClarifyingQuestion = { question: string; options: string[]; allow_upload?: boolean };
+type Attachment = { url: string; name: string; mimeType: string };
+
+type QuestionFlowState = {
+  triggerMessageId: string;
+  currentIndex: number;
+  answers: string[];
+  customText: string;
+  showCustom: boolean;
+  uploadAttachments: Attachment[];
+  /** Set while the upload is in flight */
+  isUploadingForStep: boolean;
+  /** Uploaded but not yet confirmed by the user — shows a preview card */
+  pendingUploadForStep?: Attachment;
+};
 
 function guessMediaKind(url: string, modelCategory: string): GenerationMediaKind {
   const lower = url.toLowerCase().split("?")[0] ?? url;
@@ -108,11 +159,37 @@ function firstMediaUrl(outputs: unknown): string | null {
   return null;
 }
 
+function extractDocument(outputs: unknown): { title: string; content: string } | null {
+  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+  const doc = (outputs as Record<string, unknown>).document;
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return null;
+  const d = doc as Record<string, unknown>;
+  const title = typeof d.title === "string" ? d.title : "Document";
+  const content = typeof d.content === "string" ? d.content : null;
+  if (!content) return null;
+  return { title, content };
+}
+
 const UUID_SEGMENT = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
 /** Strip job / generation UUIDs from assistant copy (defense in depth vs model drift). */
 function sanitizeZeepoAgentAssistantDisplayMarkdown(content: string): string {
   let s = content;
+
+  // If the stored content is raw orchestration JSON (e.g. from a failed parse that
+  // slipped through), extract just the assistant_text value so users never see JSON.
+  const trimmed = s.trimStart();
+  if (trimmed.startsWith("{") && /"assistant_text"\s*:/.test(trimmed)) {
+    const match = trimmed.match(/"assistant_text"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+    if (match?.[1]) {
+      s = match[1]
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\")
+        .trim();
+    }
+  }
   s = s.replace(new RegExp(String.raw`\(\s*ID\s*:\s*${UUID_SEGMENT}\s*\)`, "g"), "");
   s = s.replace(new RegExp(String.raw`\(\s*id\s*:\s*${UUID_SEGMENT}\s*\)`, "g"), "");
   s = s.replace(
@@ -123,10 +200,38 @@ function sanitizeZeepoAgentAssistantDisplayMarkdown(content: string): string {
     "",
   );
   s = s.replace(new RegExp(String.raw`[,;]?\s*\bID\s*:\s*${UUID_SEGMENT}\b`, "g"), "");
+
+  // Convert bare file/CDN URLs into masked markdown links so users never see raw URLs.
+  // Match URLs that are NOT already inside a markdown link ([text](url)).
+  s = s.replace(
+    /(?<!\]\()https?:\/\/(?:utfs\.io|uploadthing\.com|utweb\.utfs\.io)[^\s)\]"'>]+/g,
+    (url) => {
+      // Derive a friendly label from the path's last segment or generic fallback.
+      const seg = url.split("/").pop()?.split("?")[0] ?? "";
+      const isImage = /\.(jpe?g|png|webp|gif|svg)$/i.test(seg);
+      const label = isImage ? "View image" : seg || "View file";
+      return `[${label}](${url})`;
+    },
+  );
+  // Also mask bare ATTACHMENT markers that the model might echo in its text.
+  s = s.replace(/\[ATTACHMENT_\d+[^\]]*\]/g, "");
+
   s = s.replace(/  +/g, " ");
   s = s.replace(/\s+\./g, ".").replace(/\s+,/g, ",");
   s = s.replace(/\(\s*\)/g, "");
   return s.trim();
+}
+
+/**
+ * Strips or prettifies internal markers from user-bubble content so raw technical text
+ * never leaks to the display. Specifically handles the compiled question-answer format.
+ */
+function sanitizeUserMessageForDisplay(content: string): string {
+  // Replace [Uploaded: filename] markers with a nice italic label.
+  return content.replace(
+    /\[Uploaded:\s*([^\]]+)\]/g,
+    (_match, name: string) => `*📎 ${name.trim()}*`,
+  );
 }
 
 /**
@@ -159,16 +264,19 @@ function shouldHideZeepoAgentToolMessageForUi(content: string | null | undefined
   const trimmed = content.trimStart();
   if (trimmed.startsWith("WEB SEARCH")) return true;
 
-  // check_domain_availability result — model synthesises it into a reply; raw JSON not shown.
+  // Internal tool results the model synthesises into a reply — hide raw JSON.
   try {
     const o = JSON.parse(content) as Record<string, unknown>;
-    if (
-      o &&
-      typeof o === "object" &&
-      !Array.isArray(o) &&
-      (o as Record<string, unknown>)._tool === "check_domain_availability"
-    ) {
-      return true;
+    if (o && typeof o === "object" && !Array.isArray(o)) {
+      const tool = (o as Record<string, unknown>)._tool as string | undefined;
+      if (
+        tool === "check_domain_availability" ||
+        tool === "create_document"
+      ) {
+        return true;
+      }
+      // create_document success without _tool marker (status: "CREATED")
+      if (o.status === "CREATED" && typeof o.title === "string") return true;
     }
   } catch {
     // Not JSON.
@@ -222,17 +330,46 @@ type ZeepoAgentSkillRow = {
 
 export default function ZeepoAiAgentSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
+  const navigate = useNavigate();
   const { data: authSession, isPending: authPending } = authClient.useSession();
   const [draft, setDraft] = React.useState("");
   const [skillsOpen, setSkillsOpen] = React.useState(false);
   const [selectedSkill, setSelectedSkill] = React.useState<ZeepoAgentSkillRow | null>(null);
-  const [mediaPreview, setMediaPreview] = React.useState<{
-    url: string;
-    kind: GenerationMediaKind;
-    generationId: string;
-  } | null>(null);
+  type ActivePanel =
+    | { type: "media"; url: string; kind: GenerationMediaKind; generationId: string }
+    | { type: "document"; title: string; content: string }
+    | null;
+  const [activePanel, setActivePanel] = React.useState<ActivePanel>(null);
+  const [docCopied, setDocCopied] = React.useState(false);
+
+  // ── Image-edit panel state ──────────────────────────────────────────────
+  /** The image currently shown in the panel (may differ from activePanel.url after edits). */
+  const [panelImageUrl, setPanelImageUrl] = React.useState("");
+  /** Stack of previous image URLs for undo. */
+  const [panelImageHistory, setPanelImageHistory] = React.useState<string[]>([]);
+  /** Stack of URLs that were undone — cleared whenever a new edit is applied. */
+  const [panelRedoStack, setPanelRedoStack] = React.useState<string[]>([]);
+  const [editPrompt, setEditPrompt] = React.useState("");
+  /** When true, the canvas brush overlay is active (inpainting mode). */
+  const [editBrushMode, setEditBrushMode] = React.useState(false);
+  const [brushSize, setBrushSize] = React.useState(28);
+  const [hasDrawing, setHasDrawing] = React.useState(false);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const panelImgRef = React.useRef<HTMLImageElement>(null);
+  const isDrawingOnCanvas = React.useRef(false);
+  const [questionFlow, setQuestionFlow] = React.useState<QuestionFlowState | null>(null);
+  const [dismissedQuestionIds, setDismissedQuestionIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
+  const [pendingAttachments, setPendingAttachments] = React.useState<Attachment[]>([]);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [chatHistoryOpen, setChatHistoryOpen] = React.useState(false);
+  const [isSwitchingChat, setIsSwitchingChat] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  /** Used only inside the question flow for per-question uploads */
+  const questionFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const sessionQuery = trpc.zeepoAgent.sessions.get.useQuery(
     { id: sessionId! },
@@ -253,6 +390,58 @@ export default function ZeepoAiAgentSessionPage() {
       },
     },
   );
+
+  // Loaded lazily when the chat history dropdown opens.
+  const chatHistoryQuery = trpc.zeepoAgent.sessions.list.useQuery(
+    { page: 1, limit: 50 },
+    { enabled: chatHistoryOpen && Boolean(authSession?.user), staleTime: 30_000 },
+  );
+
+  const generateTitle = trpc.zeepoAgent.chat.generateTitle.useMutation({
+    onSuccess: (result) => {
+      if (!sessionId || !result.title) return;
+      utils.zeepoAgent.sessions.get.setData({ id: sessionId }, (prev) =>
+        prev?.data
+          ? { ...prev, data: { ...prev.data, title: result.title } }
+          : prev,
+      );
+      void utils.zeepoAgent.sessions.list.invalidate();
+    },
+    onError: () => {
+      // Silently fail — title stays "New chat", no toast needed for background task.
+      titleGenFired.current = false; // allow a retry next time the user sends a message
+    },
+  });
+
+  const createSession = trpc.zeepoAgent.sessions.create.useMutation();
+
+  const handleNewChat = async () => {
+    try {
+      const res = await createSession.mutateAsync({});
+      void utils.zeepoAgent.sessions.list.invalidate();
+      const id = res.data?.id;
+      if (id) navigate(`/agency/zeepo-ai-agent/${id}`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to create chat");
+    }
+  };
+
+  const editImage = trpc.zeepoAgent.chat.editImage.useMutation({
+    onSuccess: (result) => {
+      if (!result.imageUrl) return;
+      setPanelImageHistory((h) => [panelImageUrl, ...h]);
+      setPanelRedoStack([]); // new edit clears redo history
+      setPanelImageUrl(result.imageUrl);
+      setEditPrompt("");
+      setHasDrawing(false);
+      // Clear canvas after successful edit.
+      const ctx = canvasRef.current?.getContext("2d");
+      if (ctx && canvasRef.current) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    },
+    onError: (e) => toast.error(e.message || "Image edit failed"),
+  });
 
   const skillsQuery = trpc.zeepoAgent.skills.list.useQuery(undefined, {
     enabled: Boolean(authSession?.user),
@@ -321,6 +510,17 @@ export default function ZeepoAiAgentSessionPage() {
       }
       void utils.zeepoAgent.sessions.get.invalidate({ id: sessionId! });
       void utils.zeepoAgent.generate.listBySession.invalidate({ sessionId: sessionId! });
+
+      // Auto-generate title after the 3rd user message if still "New chat".
+      if (!sessionId) return;
+      const currentTitle = (result?.data?.title ?? "").trim();
+      if (currentTitle && currentTitle !== "New chat") return;
+      const userCount = (result?.data?.messages ?? []).filter(
+        (m: { role?: string }) => m.role === "user",
+      ).length;
+      if (userCount >= 3) {
+        generateTitle.mutate({ sessionId });
+      }
     },
   });
 
@@ -331,10 +531,170 @@ export default function ZeepoAiAgentSessionPage() {
   const showAssistantThinking =
     send.isPending || (sessionQuery.isFetching && hasOptimisticUserBubble);
 
+  // True once the agent has emitted at least one assistant message in the current pending turn
+  // (i.e. intermediate messages from tool iterations are already visible).
+  const hasIntermediateReplies = React.useMemo(() => {
+    if (!send.isPending) return false;
+    const msgs = sessionQuery.data?.data?.messages ?? [];
+    const lastUserIdx = [...msgs].reverse().findIndex(
+      (m: { role?: string }) => m.role === "user",
+    );
+    if (lastUserIdx < 0) return false;
+    const afterUser = msgs.slice(msgs.length - lastUserIdx);
+    return afterUser.some((m: { role?: string }) => m.role === "assistant");
+  }, [send.isPending, sessionQuery.data?.data?.messages]);
+
+  // Detect pending clarifying questions: last assistant message with questions,
+  // no user message after it, and not dismissed by the user.
+  const pendingQuestionsInfo = React.useMemo<{
+    messageId: string;
+    questions: ClarifyingQuestion[];
+  } | null>(() => {
+    const msgs = sessionQuery.data?.data?.messages ?? [];
+    let lastAsstWithQIdx = -1;
+    for (let i = 0; i < msgs.length; i++) {
+      const m = msgs[i] as { role: string; id: string; metadata?: unknown };
+      if (m.role === "assistant") {
+        const meta = m.metadata as Record<string, unknown> | null | undefined;
+        const qs = meta?.clarifyingQuestions;
+        if (Array.isArray(qs) && qs.length > 0) lastAsstWithQIdx = i;
+      }
+    }
+    if (lastAsstWithQIdx < 0) return null;
+    // Answered: a user message exists after the question message.
+    for (let i = lastAsstWithQIdx + 1; i < msgs.length; i++) {
+      if ((msgs[i] as { role: string }).role === "user") return null;
+    }
+    const m = msgs[lastAsstWithQIdx] as { id: string; metadata?: unknown };
+    if (dismissedQuestionIds.has(m.id)) return null;
+    const meta = m.metadata as Record<string, unknown>;
+    return {
+      messageId: m.id,
+      questions: meta.clarifyingQuestions as ClarifyingQuestion[],
+    };
+  }, [sessionQuery.data?.data?.messages, dismissedQuestionIds]);
+
+  // Sync questionFlow state when a new trigger message appears.
+  React.useEffect(() => {
+    if (!pendingQuestionsInfo) {
+      setQuestionFlow(null);
+      return;
+    }
+    setQuestionFlow((prev) => {
+      if (prev?.triggerMessageId === pendingQuestionsInfo.messageId) return prev;
+      return {
+        triggerMessageId: pendingQuestionsInfo.messageId,
+        currentIndex: 0,
+        answers: [],
+        customText: "",
+        showCustom: false,
+        uploadAttachments: [],
+        isUploadingForStep: false,
+        pendingUploadForStep: undefined,
+      };
+    });
+  }, [pendingQuestionsInfo?.messageId]);
+
+  function compileQuestionAnswers(questions: ClarifyingQuestion[], answers: string[]): string {
+    return questions
+      .map((q, i) => `${i + 1}. ${q.question}\n   → ${answers[i] ?? "(no answer)"}`)
+      .join("\n\n");
+  }
+
+  function advanceQuestion(answer: string, uploadedAttachment?: Attachment) {
+    if (!questionFlow || !pendingQuestionsInfo) return;
+    // Update the answer at the current index (supports re-answering revisited steps).
+    const newAnswers = [...questionFlow.answers];
+    newAnswers[questionFlow.currentIndex] = answer;
+    // Track any upload attachment for this step so it's sent with the final answers.
+    const newUploadAttachments = [...(questionFlow.uploadAttachments ?? [])];
+    if (uploadedAttachment) newUploadAttachments.push(uploadedAttachment);
+    const nextIndex = questionFlow.currentIndex + 1;
+    const isLast = nextIndex >= pendingQuestionsInfo.questions.length;
+    if (isLast) {
+      const compiled = compileQuestionAnswers(pendingQuestionsInfo.questions, newAnswers);
+      setQuestionFlow(null);
+      setDraft("");
+      queueMicrotask(() => {
+        send.mutate({
+          sessionId: sessionId!,
+          content: compiled,
+          ...(newUploadAttachments.length ? { attachments: newUploadAttachments } : {}),
+        });
+      });
+      return;
+    }
+    // Restore custom-text state if the next question already has a non-option answer.
+    const nextAnswer = newAnswers[nextIndex];
+    const nextQ = pendingQuestionsInfo.questions[nextIndex];
+    const nextIsCustom =
+      nextAnswer !== undefined && nextQ !== undefined && !nextQ.options.includes(nextAnswer);
+    setQuestionFlow({
+      ...questionFlow,
+      currentIndex: nextIndex,
+      answers: newAnswers,
+      uploadAttachments: newUploadAttachments,
+      customText: nextIsCustom ? nextAnswer : "",
+      showCustom: nextIsCustom,
+      isUploadingForStep: false,
+      pendingUploadForStep: undefined,
+    });
+  }
+
+  /** Navigate to any already-visited or already-answered step. */
+  function goToQuestion(targetIndex: number) {
+    if (!questionFlow || !pendingQuestionsInfo) return;
+    if (targetIndex < 0 || targetIndex >= pendingQuestionsInfo.questions.length) return;
+    const existingAnswer = questionFlow.answers[targetIndex];
+    const targetQ = pendingQuestionsInfo.questions[targetIndex];
+    const isCustom =
+      existingAnswer !== undefined &&
+      targetQ !== undefined &&
+      !targetQ.options.includes(existingAnswer);
+    setQuestionFlow({
+      ...questionFlow,
+      currentIndex: targetIndex,
+      customText: isCustom ? existingAnswer : "",
+      showCustom: isCustom,
+    });
+  }
+
+  function handleQuestionOptionSelect(opt: string) {
+    if (opt === "__other__") {
+      setQuestionFlow((prev) => (prev ? { ...prev, showCustom: true, customText: "" } : prev));
+      return;
+    }
+    advanceQuestion(opt);
+  }
+
+  async function handleFileSelect(files: FileList | null, onUploaded?: (a: Attachment) => void) {
+    if (!files?.length) return;
+    setIsUploading(true);
+    try {
+      const results = await uploadFiles("zeepoAgentAttachment", { files: Array.from(files) });
+      const uploaded: Attachment[] = results.map((r, i) => ({
+        url: r.url,
+        name: files[i]?.name ?? r.name ?? "attachment",
+        mimeType: files[i]?.type ?? "image/*",
+      }));
+      if (onUploaded) {
+        uploaded.forEach(onUploaded);
+      } else {
+        setPendingAttachments((prev) => [...prev, ...uploaded].slice(0, 4));
+      }
+    } catch (err) {
+      toast.error("Upload failed. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   const sendCurrentDraft = React.useCallback(() => {
     const t = draft.trim();
     if (!t || showAssistantThinking || !sessionId) return;
+    const attachmentsToSend = pendingAttachments.length ? [...pendingAttachments] : undefined;
     setDraft("");
+    setPendingAttachments([]);
     // Let React commit the cleared controlled textarea before the mutation disables it / runs onMutate,
     // otherwise the field can briefly keep showing the sent prompt.
     queueMicrotask(() => {
@@ -342,13 +702,91 @@ export default function ZeepoAiAgentSessionPage() {
         sessionId,
         content: t,
         ...(selectedSkill ? { skillId: selectedSkill.id } : {}),
+        ...(attachmentsToSend ? { attachments: attachmentsToSend } : {}),
       });
     });
-  }, [draft, send, sessionId, selectedSkill, showAssistantThinking]);
+  }, [draft, pendingAttachments, send, sessionId, selectedSkill, showAssistantThinking]);
+
+  // While a send mutation is in-flight the agent iterates multiple turns, each writing new
+  // On page load: if the session already has ≥3 user messages but still carries the
+  // default title, kick off title generation immediately in the background.
+  // titleGenFired prevents duplicate calls across re-renders.
+  const titleGenFired = React.useRef(false);
+  const generateTitleRef = React.useRef(generateTitle.mutate);
+  generateTitleRef.current = generateTitle.mutate;
+
+  React.useEffect(() => {
+    if (titleGenFired.current) return;
+    if (!sessionId) return;
+    const session = sessionQuery.data?.data;
+    if (!session) return;
+    const currentTitle = (session.title ?? "").trim();
+    if (currentTitle && currentTitle !== "New chat") return;
+    const userCount = (session.messages ?? []).filter(
+      (m: { role?: string }) => m.role === "user",
+    ).length;
+    if (userCount < 3) return;
+    titleGenFired.current = true;
+    generateTitleRef.current({ sessionId });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionQuery.data?.data?.title, sessionQuery.data?.data?.messages?.length, sessionId]);
+
+  // assistant + tool messages to the DB. Poll the session every 2 s so those intermediate
+  // bubbles appear progressively instead of all at once when the mutation finally resolves.
+  React.useEffect(() => {
+    if (!send.isPending || !sessionId) return;
+    const id = setInterval(() => {
+      void utils.zeepoAgent.sessions.get.refetch({ id: sessionId });
+      void utils.zeepoAgent.generate.listBySession.refetch({ sessionId });
+    }, 2000);
+    return () => clearInterval(id);
+  }, [send.isPending, sessionId, utils]);
+
+  // Once the route param changes the new session has loaded — clear the switching flag
+  // and reset the title-generation guard so it can fire for the new session.
+  React.useEffect(() => {
+    setIsSwitchingChat(false);
+    titleGenFired.current = false;
+  }, [sessionId]);
 
   React.useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [sessionQuery.data?.data?.messages?.length, showAssistantThinking]);
+
+  // Reset image-edit state whenever we open a new image in the panel.
+  React.useEffect(() => {
+    if (activePanel?.type === "media" && activePanel.kind === "image") {
+      setPanelImageUrl(activePanel.url);
+      setPanelImageHistory([]);
+      setPanelRedoStack([]);
+      setEditPrompt("");
+      setEditBrushMode(false);
+      setHasDrawing(false);
+    }
+  // Depend on the image URL specifically so it fires when a different image is opened.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePanel?.type === "media" ? (activePanel as { type: "media"; url: string }).url : ""]);
+
+  // Sync canvas dimensions to the rendered image whenever brush mode activates or image changes.
+  React.useEffect(() => {
+    if (!editBrushMode) return;
+    const sync = () => {
+      const img = panelImgRef.current;
+      const canvas = canvasRef.current;
+      if (!img || !canvas) return;
+      canvas.width = img.clientWidth;
+      canvas.height = img.clientHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setHasDrawing(false);
+    };
+    const raf = requestAnimationFrame(sync);
+    window.addEventListener("resize", sync);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", sync);
+    };
+  }, [editBrushMode, panelImageUrl]);
 
   if (authPending) {
     return (
@@ -376,17 +814,15 @@ export default function ZeepoAiAgentSessionPage() {
 
   if (sessionLoading) {
     return (
-      <div className="flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] max-w-3xl mx-auto w-full flex-col px-4 py-4 md:px-6">
-        <div className="mb-3 flex items-center gap-3 border-b pb-3">
-          <Button variant="ghost" size="icon" asChild>
+      <div className="flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] max-w-3xl mx-auto w-full flex-col px-4 py-2 md:px-6">
+        <div className="mb-2 flex items-center gap-0.5">
+          <Button variant="ghost" size="icon" className="size-8 shrink-0" asChild>
             <Link to="/agency/zeepo-ai-agent" aria-label="Back">
               <ArrowLeftIcon className="size-4" />
             </Link>
           </Button>
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-6 w-48 max-w-[70%]" />
-            <Skeleton className="h-3 w-32" />
-          </div>
+          <Skeleton className="h-7 flex-1 rounded-md" />
+          <div className="size-8 shrink-0" />
         </div>
         <div className="min-h-0 flex-1 rounded-md border bg-muted/15 p-3">
           <ChatLoadingSkeleton />
@@ -442,17 +878,259 @@ export default function ZeepoAiAgentSessionPage() {
   const genError = genQuery.isError;
   const genErrorMessage = genQuery.error?.message ?? "Could not load generations.";
 
+  // ── Canvas drawing handlers ──────────────────────────────────────────────
+  const getCanvasPos = (e: React.MouseEvent<HTMLCanvasElement>) => ({
+    x: e.nativeEvent.offsetX,
+    y: e.nativeEvent.offsetY,
+  });
+
+  /**
+   * Resolve the theme's --primary colour to a canvas-compatible rgba() string.
+   * We let the browser resolve hsl(var(--primary)) via a hidden DOM element,
+   * then blend the result toward white for a lighter brush tint.
+   * Result is cached in a ref so we only hit the DOM once per mount.
+   */
+  const brushColorRef = React.useRef<string>("");
+  const getBrushColor = React.useCallback((): string => {
+    if (brushColorRef.current) return brushColorRef.current;
+    try {
+      const el = document.createElement("div");
+      el.setAttribute(
+        "style",
+        "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;color:hsl(var(--primary))",
+      );
+      document.body.appendChild(el);
+      const rgb = getComputedStyle(el).color; // "rgb(R, G, B)"
+      document.body.removeChild(el);
+      const m = rgb.match(/\d+/g);
+      if (m && m.length >= 3) {
+        // 50% blend toward white → noticeably lighter variant of the primary blue
+        const r = Math.round(parseInt(m[0]!) * 0.5 + 255 * 0.5);
+        const g = Math.round(parseInt(m[1]!) * 0.5 + 255 * 0.5);
+        const b = Math.round(parseInt(m[2]!) * 0.5 + 255 * 0.5);
+        brushColorRef.current = `rgba(${r},${g},${b},0.82)`;
+        return brushColorRef.current;
+      }
+    } catch { /* fall through */ }
+    brushColorRef.current = "rgba(96,165,250,0.82)"; // blue-400 fallback
+    return brushColorRef.current;
+  }, []);
+
+  const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    isDrawingOnCanvas.current = true;
+    const { x, y } = getCanvasPos(e);
+    const color = getBrushColor();
+    // Draw a filled dot at the click point.
+    ctx.beginPath();
+    ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    // Start a fresh stroke path from this point so continueDraw connects correctly.
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setHasDrawing(true);
+  };
+
+  const continueDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingOnCanvas.current) return;
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    const { x, y } = getCanvasPos(e);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = getBrushColor();
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const stopDraw = () => {
+    isDrawingOnCanvas.current = false;
+    canvasRef.current?.getContext("2d")?.beginPath();
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasDrawing(false);
+  };
+
+  /** Build a black-and-white PNG mask from the brush canvas (white = edit area). */
+  const getMaskDataUrl = (): string | null => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasDrawing) return null;
+    const src = canvas.getContext("2d");
+    if (!src) return null;
+    const src_data = src.getImageData(0, 0, canvas.width, canvas.height);
+
+    const tmp = document.createElement("canvas");
+    tmp.width = canvas.width;
+    tmp.height = canvas.height;
+    const dst = tmp.getContext("2d")!;
+    const mask = dst.createImageData(canvas.width, canvas.height);
+    for (let i = 0; i < src_data.data.length; i += 4) {
+      const isMarked = (src_data.data[i + 3] ?? 0) > 10;
+      mask.data[i] = isMarked ? 255 : 0;
+      mask.data[i + 1] = isMarked ? 255 : 0;
+      mask.data[i + 2] = isMarked ? 255 : 0;
+      mask.data[i + 3] = 255;
+    }
+    dst.putImageData(mask, 0, 0);
+    return tmp.toDataURL("image/png");
+  };
+
+  const applyImageEdit = () => {
+    if (!sessionId || !panelImageUrl || !editPrompt.trim()) return;
+    const maskDataUrl = editBrushMode && hasDrawing ? getMaskDataUrl() : undefined;
+    editImage.mutate({
+      sessionId,
+      imageUrl: panelImageUrl,
+      prompt: editPrompt.trim(),
+      maskDataUrl: maskDataUrl ?? undefined,
+    });
+  };
+
+  const undoPanelEdit = () => {
+    if (!panelImageHistory.length) return;
+    const [prev, ...rest] = panelImageHistory;
+    setPanelRedoStack((r) => [panelImageUrl, ...r]);
+    setPanelImageUrl(prev!);
+    setPanelImageHistory(rest);
+    setHasDrawing(false);
+    const ctx = canvasRef.current?.getContext("2d");
+    if (ctx && canvasRef.current)
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+  };
+
+  const redoPanelEdit = () => {
+    if (!panelRedoStack.length) return;
+    const [next, ...rest] = panelRedoStack;
+    setPanelImageHistory((h) => [panelImageUrl, ...h]);
+    setPanelRedoStack(rest);
+    setPanelImageUrl(next!);
+    setHasDrawing(false);
+    const ctx = canvasRef.current?.getContext("2d");
+    if (ctx && canvasRef.current)
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+  };
+
+  const chatSessions = chatHistoryQuery.data?.data ?? [];
+
   return (
-    <div className="flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] max-w-3xl mx-auto w-full flex-col px-4 py-4 md:px-6">
-      <div className="mb-3 flex items-center gap-3 border-b pb-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/agency/zeepo-ai-agent" aria-label="Back">
+    <div className={cn(
+      "relative flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] w-full overflow-hidden transition-all duration-300",
+      !activePanel && "max-w-3xl mx-auto",
+    )}>
+      {/* ── Chat-switching overlay ───────────────────────────── */}
+      {isSwitchingChat && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
+          <Spinner size={28} className="text-primary" />
+          <p className="text-sm text-muted-foreground">Loading chat…</p>
+        </div>
+      )}
+
+      {/* ── Chat column ──────────────────────────────────────── */}
+      <div className={cn(
+        "flex min-w-0 flex-col py-2 transition-all duration-300 ease-in-out",
+        activePanel
+          ? "hidden md:flex md:w-[48%] xl:w-[52%] shrink-0 px-3 md:px-4 border-r"
+          : "flex-1 px-4 md:px-6",
+      )}>
+      {/* ── Compact header ─────────────────────────────────── */}
+      <div className="mb-2 flex items-center gap-0.5">
+        {/* Back */}
+        <Button variant="ghost" size="icon" className="size-8 shrink-0 text-muted-foreground" asChild>
+          <Link to="/agency/zeepo-ai-agent" aria-label="Back to chats">
             <ArrowLeftIcon className="size-4" />
           </Link>
         </Button>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-semibold">{sessionRes.title || "Chat"}</h1>
-        </div>
+
+        {/* Chat title dropdown */}
+        <Popover open={chatHistoryOpen} onOpenChange={setChatHistoryOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              className="min-w-0 flex-1 justify-start gap-1.5 px-2 h-8 text-sm font-semibold hover:bg-muted/60"
+              aria-label="Open chat history"
+            >
+              <span className="truncate">
+                {generateTitle.isPending ? "Naming…" : (sessionRes.title || "New chat")}
+              </span>
+              <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[min(calc(100vw-2rem),22rem)] p-0"
+            align="start"
+            side="bottom"
+            sideOffset={4}
+            collisionPadding={12}
+          >
+            <Command>
+              <CommandInput placeholder="Search chats…" className="h-9" />
+              <CommandList className="max-h-72">
+                <CommandEmpty className="py-4 text-center text-sm text-muted-foreground">
+                  No chats found.
+                </CommandEmpty>
+                <CommandGroup>
+                  {chatHistoryQuery.isPending ? (
+                    <div className="space-y-1.5 p-2">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-9 w-full rounded-md" />
+                      ))}
+                    </div>
+                  ) : (
+                    chatSessions
+                      .filter((s: { id: string }) => s.id !== sessionId)
+                      .map((s: { id: string; title?: string | null; updatedAt: Date | string }) => (
+                        <CommandItem
+                          key={s.id}
+                          value={`${s.title ?? "New chat"} ${s.id}`}
+                          onSelect={() => {
+                            setChatHistoryOpen(false);
+                            setIsSwitchingChat(true);
+                            navigate(`/agency/zeepo-ai-agent/${s.id}`);
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+                        >
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <p className="truncate text-sm font-medium leading-tight">
+                              {s.title || "New chat"}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                            {formatDistanceToNow(new Date(s.updatedAt), { addSuffix: true })}
+                          </span>
+                        </CommandItem>
+                      ))
+                  )}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
+        {/* New chat */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0 text-muted-foreground"
+          aria-label="New chat"
+          disabled={createSession.isPending}
+          onClick={() => void handleNewChat()}
+        >
+          {createSession.isPending ? (
+            <Spinner size={14} className="text-muted-foreground" />
+          ) : (
+            <Plus className="size-4" />
+          )}
+        </Button>
       </div>
 
       <ScrollArea className="min-h-0 flex-1 rounded-xl border bg-muted/15 p-3 md:p-4">
@@ -472,9 +1150,31 @@ export default function ZeepoAiAgentSessionPage() {
             }) => {
             if (m.role === "user") {
               const ts = formatChatBubbleTime(m.createdAt);
+              const msgMeta = (m.metadata ?? {}) as Record<string, unknown>;
+              const msgAttachments = (msgMeta.attachments ?? []) as Attachment[];
               return (
                 <div key={m.id} className="flex justify-end gap-2">
                   <div className="flex max-w-[min(85%,28rem)] flex-col items-end gap-1">
+                    {/* Attachment thumbnails above the text bubble */}
+                    {msgAttachments.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 justify-end">
+                        {msgAttachments.map((a, i) => (
+                          <a
+                            key={i}
+                            href={a.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block rounded-xl overflow-hidden border border-white/20 shadow-sm hover:opacity-90 transition-opacity"
+                          >
+                            <img
+                              src={a.url}
+                              alt={a.name}
+                              className="h-[5.5rem] w-auto max-w-[8rem] object-cover"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     <div
                       className={cn(
                         "w-full rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm",
@@ -482,7 +1182,7 @@ export default function ZeepoAiAgentSessionPage() {
                       )}
                     >
                       <AiMarkdownRenderer
-                        content={m.content || ""}
+                        content={sanitizeUserMessageForDisplay(m.content || "")}
                         className="text-primary-foreground prose-headings:text-primary-foreground prose-p:text-primary-foreground prose-li:text-primary-foreground prose-strong:text-primary-foreground prose-a:text-primary-foreground/90 prose-code:bg-white/20 prose-code:text-primary-foreground prose-pre:bg-white/15"
                       />
                     </div>
@@ -572,7 +1272,7 @@ export default function ZeepoAiAgentSessionPage() {
               <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border bg-card px-4 py-3 shadow-sm">
                 <Spinner variant="ellipsis" className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {send.isPending ? "Zeepo is thinking…" : "Updating reply…"}
+                  {hasIntermediateReplies ? "Still working…" : "Zeepo is thinking…"}
                 </span>
               </div>
             </div>
@@ -665,6 +1365,31 @@ export default function ZeepoAiAgentSessionPage() {
                     }
 
                     if (completed) {
+                      // Document card — no media URL, just markdown content.
+                      if (g.modelCategory === "document") {
+                        const doc = extractDocument(g.outputs);
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            className="relative flex h-[7rem] w-[7rem] shrink-0 flex-col overflow-hidden rounded-xl border bg-primary/5 p-2 text-left ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            onClick={() =>
+                              doc &&
+                              setActivePanel({
+                                type: "document",
+                                title: doc.title,
+                                content: doc.content,
+                              })
+                            }
+                          >
+                            <FileText className="mb-1 size-4 shrink-0 text-primary" aria-hidden />
+                            <p className="line-clamp-5 flex-1 overflow-hidden text-[10px] font-medium leading-snug text-foreground/80 [overflow-wrap:anywhere]">
+                              {doc?.title ?? "Document"}
+                            </p>
+                          </button>
+                        );
+                      }
+
                       const mediaUrl = firstMediaUrl(g.outputs);
                       const textPreview = extractOutputPreview(g.outputs);
 
@@ -676,7 +1401,8 @@ export default function ZeepoAiAgentSessionPage() {
                             type="button"
                             className="relative h-[7rem] w-[7rem] shrink-0 overflow-hidden rounded-xl border bg-muted ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             onClick={() =>
-                              setMediaPreview({
+                              setActivePanel({
+                                type: "media",
                                 url: mediaUrl,
                                 kind,
                                 generationId: g.id,
@@ -725,61 +1451,6 @@ export default function ZeepoAiAgentSessionPage() {
         ) : null}
       </div>
 
-      <Dialog
-        open={Boolean(mediaPreview)}
-        onOpenChange={(open) => {
-          if (!open) setMediaPreview(null);
-        }}
-      >
-        <DialogContent
-          className="max-h-[92vh] max-w-[min(96vw,56rem)] gap-4 overflow-y-auto p-4 sm:p-6"
-          showCloseButton
-        >
-          <DialogHeader>
-            <DialogTitle className="sr-only">View generation</DialogTitle>
-          </DialogHeader>
-          {mediaPreview ? (
-            <div className="flex min-h-0 flex-col items-center justify-center gap-4">
-              {mediaPreview.kind === "image" ? (
-                <img
-                  src={mediaPreview.url}
-                  alt=""
-                  className="max-h-[min(78vh,800px)] w-auto max-w-full rounded-lg object-contain"
-                />
-              ) : null}
-              {mediaPreview.kind === "video" ? (
-                <video
-                  src={mediaPreview.url}
-                  controls
-                  playsInline
-                  className="max-h-[min(78vh,800px)] w-full max-w-full rounded-lg bg-black"
-                />
-              ) : null}
-              {mediaPreview.kind === "audio" ? (
-                <audio src={mediaPreview.url} controls className="w-full max-w-md" />
-              ) : null}
-              <DialogFooter className="w-full flex-row justify-center gap-2 sm:justify-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    const ext = fileExtensionForDownload(mediaPreview.kind, mediaPreview.url);
-                    void downloadMediaFile(
-                      mediaPreview.url,
-                      `zeepo-generation-${mediaPreview.generationId.slice(0, 8)}.${ext}`,
-                    );
-                  }}
-                >
-                  <Download className="size-4" />
-                  Download
-                </Button>
-              </DialogFooter>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-
       <form
         className="mt-3 flex flex-col gap-2"
         onSubmit={(e) => {
@@ -787,6 +1458,308 @@ export default function ZeepoAiAgentSessionPage() {
           sendCurrentDraft();
         }}
       >
+        {/* ── Step-by-step clarifying questions panel ───────────────────── */}
+        {pendingQuestionsInfo && questionFlow && !showAssistantThinking && (() => {
+          const currentQ = pendingQuestionsInfo.questions[questionFlow.currentIndex];
+          if (!currentQ) return null;
+          const total = pendingQuestionsInfo.questions.length;
+          return (
+            <div className="rounded-xl border bg-card shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+              {/* Header: nav arrows + progress dots + step counter + dismiss */}
+              <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-muted/40">
+                {/* Back arrow */}
+                <button
+                  type="button"
+                  aria-label="Previous question"
+                  disabled={questionFlow.currentIndex === 0}
+                  className="rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
+                  onClick={() => goToQuestion(questionFlow.currentIndex - 1)}
+                >
+                  <ChevronLeft className="size-3.5" />
+                </button>
+
+                {/* Progress dots (clickable) */}
+                <div className="flex gap-1.5 items-center">
+                  {pendingQuestionsInfo.questions.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      aria-label={`Go to question ${idx + 1}`}
+                      disabled={idx > questionFlow.answers.length}
+                      className={cn(
+                        "rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none",
+                        idx < questionFlow.currentIndex
+                          ? "size-2 bg-primary hover:opacity-70"
+                          : idx === questionFlow.currentIndex
+                          ? "size-2.5 bg-primary ring-2 ring-primary/30"
+                          : idx <= questionFlow.answers.length - 1
+                          ? "size-2 bg-primary/50 hover:opacity-70"
+                          : "size-2 bg-muted-foreground/25",
+                      )}
+                      onClick={() => goToQuestion(idx)}
+                    />
+                  ))}
+                </div>
+
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {questionFlow.currentIndex + 1} / {total}
+                </span>
+                <span className="text-[11px] text-muted-foreground/50 mx-0.5">·</span>
+                <span className="text-[11px] text-muted-foreground/70 leading-tight truncate">
+                  Answering helps me give you a better result
+                </span>
+
+                {/* Forward arrow */}
+                <button
+                  type="button"
+                  aria-label="Next question"
+                  disabled={
+                    questionFlow.currentIndex + 1 >= total ||
+                    questionFlow.currentIndex >= questionFlow.answers.length
+                  }
+                  className="rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-30"
+                  onClick={() => goToQuestion(questionFlow.currentIndex + 1)}
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
+
+                {/* Dismiss */}
+                <button
+                  type="button"
+                  aria-label="Skip questions"
+                  className="ml-1 rounded-md p-1 text-muted-foreground/60 hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => {
+                    setDismissedQuestionIds((prev) => {
+                      const next = new Set(prev);
+                      next.add(pendingQuestionsInfo.messageId);
+                      return next;
+                    });
+                    setQuestionFlow(null);
+                  }}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+
+              {/* Question text */}
+              <div className="px-4 pt-3.5 pb-2">
+                <p className="text-sm font-semibold text-foreground leading-relaxed">
+                  {currentQ.question}
+                </p>
+              </div>
+
+              {/* Option chips */}
+              {(() => {
+                const currentAnswer = questionFlow.answers[questionFlow.currentIndex];
+                const isCurrentAnswerCustom =
+                  currentAnswer !== undefined && !currentQ.options.includes(currentAnswer);
+                return (
+                  <div className="px-4 pb-3 pt-1 flex flex-wrap gap-2">
+                    {currentQ.options.map((opt) => {
+                      const isSelected = currentAnswer === opt;
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-foreground border-border hover:bg-primary hover:text-primary-foreground hover:border-primary",
+                          )}
+                          onClick={() => handleQuestionOptionSelect(opt)}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                    {/* "Other" always appended */}
+                    <button
+                      type="button"
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        questionFlow.showCustom || isCurrentAnswerCustom
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-foreground border-border hover:bg-primary hover:text-primary-foreground hover:border-primary",
+                      )}
+                      onClick={() => handleQuestionOptionSelect("__other__")}
+                    >
+                      Other
+                    </button>
+                    {/* "Upload file" chip — shown when allow_upload is set or question hints at assets */}
+                    {currentQ.allow_upload && (
+                      <>
+                        <input
+                          ref={questionFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setQuestionFlow((prev) =>
+                              prev ? { ...prev, isUploadingForStep: true, pendingUploadForStep: undefined } : prev,
+                            );
+                            e.target.value = "";
+                            try {
+                              const results = await uploadFiles("zeepoAgentAttachment", {
+                                files: [file],
+                              });
+                              const uploaded: Attachment = {
+                                url: results[0].url,
+                                name: file.name,
+                                mimeType: file.type,
+                              };
+                              // Hold the upload for user confirmation — don't advance yet.
+                              setQuestionFlow((prev) =>
+                                prev
+                                  ? { ...prev, isUploadingForStep: false, pendingUploadForStep: uploaded }
+                                  : prev,
+                              );
+                            } catch {
+                              toast.error("Upload failed. Please try again.");
+                              setQuestionFlow((prev) =>
+                                prev ? { ...prev, isUploadingForStep: false } : prev,
+                              );
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-150",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            questionFlow.isUploadingForStep
+                              ? "opacity-60 cursor-not-allowed"
+                              : "bg-background text-foreground border-border hover:bg-primary hover:text-primary-foreground hover:border-primary",
+                          )}
+                          disabled={questionFlow.isUploadingForStep}
+                          onClick={() => questionFileInputRef.current?.click()}
+                        >
+                          {questionFlow.isUploadingForStep ? (
+                            <Spinner className="size-3" />
+                          ) : (
+                            <Upload className="size-3.5" />
+                          )}
+                          Upload file
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Pending upload preview — shown after upload, awaiting confirmation */}
+              {questionFlow.pendingUploadForStep && (
+                <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <img
+                    src={questionFlow.pendingUploadForStep.url}
+                    alt={questionFlow.pendingUploadForStep.name}
+                    className="h-14 w-14 shrink-0 rounded-lg object-cover border border-border"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {questionFlow.pendingUploadForStep.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Ready to use</p>
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="size-7 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+                      aria-label="Confirm upload"
+                      onClick={() => {
+                        const a = questionFlow.pendingUploadForStep!;
+                        setQuestionFlow((prev) =>
+                          prev ? { ...prev, pendingUploadForStep: undefined } : prev,
+                        );
+                        advanceQuestion(`[Uploaded: ${a.name}]`, a);
+                      }}
+                    >
+                      <Check className="size-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="size-7 rounded-full"
+                      aria-label="Remove upload"
+                      onClick={() =>
+                        setQuestionFlow((prev) =>
+                          prev ? { ...prev, pendingUploadForStep: undefined } : prev,
+                        )
+                      }
+                    >
+                      <X className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom answer input (visible when "Other" is selected) */}
+              {questionFlow.showCustom && (
+                <div className="px-4 pb-3 flex gap-2 items-end animate-in fade-in slide-in-from-top-1 duration-150">
+                  <Textarea
+                    autoFocus
+                    placeholder="Type your answer…"
+                    value={questionFlow.customText}
+                    onChange={(e) =>
+                      setQuestionFlow((prev) =>
+                        prev ? { ...prev, customText: e.target.value } : prev,
+                      )
+                    }
+                    className="min-h-[36px] flex-1 resize-none text-sm"
+                    rows={1}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        !e.shiftKey &&
+                        questionFlow.customText.trim()
+                      ) {
+                        e.preventDefault();
+                        advanceQuestion(questionFlow.customText.trim());
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="size-9 shrink-0"
+                    disabled={!questionFlow.customText.trim()}
+                    onClick={() => advanceQuestion(questionFlow.customText.trim())}
+                  >
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Footer: skip hint */}
+              <div className="px-4 py-2.5 border-t bg-muted/20 flex items-center justify-between gap-3">
+                <p className="text-[11px] text-muted-foreground/70 leading-snug">
+                  Skip these if you prefer — just type your reply below and I&apos;ll work with what you give me. You can also ask me to ask again.
+                </p>
+                <button
+                  type="button"
+                  className="shrink-0 text-[11px] font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors focus-visible:outline-none"
+                  onClick={() => {
+                    setDismissedQuestionIds((prev) => {
+                      const next = new Set(prev);
+                      next.add(pendingQuestionsInfo.messageId);
+                      return next;
+                    });
+                    setQuestionFlow(null);
+                  }}
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         {selectedSkill ? (
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border bg-muted/40 px-2.5 py-1 text-xs text-foreground">
@@ -806,6 +1779,49 @@ export default function ZeepoAiAgentSessionPage() {
             </div>
           </div>
         ) : null}
+
+        {/* Pending attachment thumbnails */}
+        {pendingAttachments.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {pendingAttachments.map((a, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <div className="relative">
+                  <img
+                    src={a.url}
+                    alt={a.name}
+                    className="h-16 w-16 rounded-lg object-cover border border-border shadow-sm"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Remove attachment"
+                    className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:scale-110 transition-transform"
+                    onClick={() =>
+                      setPendingAttachments((prev) => prev.filter((_, idx) => idx !== i))
+                    }
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+                <span className="max-w-[4rem] truncate text-[10px] text-muted-foreground leading-tight">
+                  {a.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Hidden file input for the main chat upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void handleFileSelect(e.target.files);
+            e.target.value = "";
+          }}
+        />
 
         <div className="flex gap-2 items-end">
           <Popover open={skillsOpen} onOpenChange={setSkillsOpen}>
@@ -885,18 +1901,38 @@ export default function ZeepoAiAgentSessionPage() {
             </PopoverContent>
           </Popover>
 
+          {/* Attach image button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-[44px] w-[44px] shrink-0"
+            disabled={
+              showAssistantThinking ||
+              Boolean(pendingQuestionsInfo && questionFlow) ||
+              isUploading ||
+              pendingAttachments.length >= 4
+            }
+            aria-label="Attach image"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? <Spinner className="size-4" /> : <Paperclip className="size-5" />}
+          </Button>
+
           <Textarea
             ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={
-              selectedSkill
+              pendingQuestionsInfo && questionFlow
+                ? "Answer the question above first…"
+                : selectedSkill
                 ? `Add details for “${selectedSkill.title}”…`
-                : "Describe what you want…"
+                : "Describe what you want… (or attach an image)"
             }
             className="min-h-[44px] flex-1 resize-none"
             rows={2}
-            disabled={showAssistantThinking}
+            disabled={showAssistantThinking || Boolean(pendingQuestionsInfo && questionFlow)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -904,7 +1940,7 @@ export default function ZeepoAiAgentSessionPage() {
               }
             }}
           />
-          <Button type="submit" size="icon" className="h-[44px] w-[44px] shrink-0" disabled={showAssistantThinking}>
+          <Button type="submit" size="icon" className="h-[44px] w-[44px] shrink-0" disabled={showAssistantThinking || Boolean(pendingQuestionsInfo && questionFlow)}>
             {send.isPending ? (
               <Spinner variant="ellipsis" className="h-4 w-4 text-primary-foreground" />
             ) : (
@@ -917,6 +1953,353 @@ export default function ZeepoAiAgentSessionPage() {
           Agents can make mistakes. Verify important info. Don&apos;t share sensitive data.
         </p>
       </form>
+      </div>
+
+      {/* ── Side panel (sibling to chat column) ─────────────── */}
+      {activePanel && (
+        <div
+          className={cn(
+            // Mobile: absolute overlay that slides in over the chat
+            "absolute inset-0 z-40 flex flex-col bg-background",
+            // Desktop: normal flex sibling next to the chat column
+            "md:relative md:inset-auto md:z-auto md:flex-1",
+            "animate-in slide-in-from-right-2 duration-200 md:animate-none",
+          )}
+        >
+          {/* ── Panel header ───────────────────────────────── */}
+          <div className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              {activePanel.type === "document" ? (
+                <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
+                  <FileText className="size-4 text-primary" />
+                </div>
+              ) : activePanel.type === "media" && activePanel.kind === "audio" ? (
+                <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
+                  <Headphones className="size-4 text-primary" />
+                </div>
+              ) : (
+                <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
+                  <ImageIcon className="size-4 text-primary" />
+                </div>
+              )}
+              <span className="truncate text-sm font-semibold">
+                {activePanel.type === "document"
+                  ? activePanel.title
+                  : activePanel.type === "media" && activePanel.kind === "audio"
+                  ? "Audio"
+                  : activePanel.type === "media" && activePanel.kind === "video"
+                  ? "Video"
+                  : "Image"}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex shrink-0 items-center gap-1">
+              {activePanel.type === "media" && activePanel.kind === "image" && (
+                <>
+                  {panelImageHistory.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      aria-label="Undo edit"
+                      title="Undo"
+                      onClick={undoPanelEdit}
+                    >
+                      <Undo2 className="size-4" />
+                    </Button>
+                  )}
+                  {panelRedoStack.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      aria-label="Redo edit"
+                      title="Redo"
+                      onClick={redoPanelEdit}
+                    >
+                      <Redo2 className="size-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn("size-8", editBrushMode && "bg-primary/10 text-primary")}
+                    aria-label="Toggle brush mode"
+                    onClick={() => setEditBrushMode((v) => !v)}
+                  >
+                    <Paintbrush className="size-4" />
+                  </Button>
+                </>
+              )}
+              {activePanel.type === "media" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  aria-label="Download"
+                  onClick={() => {
+                    if (activePanel.type !== "media") return;
+                    const url = activePanel.kind === "image" ? panelImageUrl || activePanel.url : activePanel.url;
+                    const ext = fileExtensionForDownload(activePanel.kind, url);
+                    void downloadMediaFile(url, `zeepo-generation-${activePanel.generationId.slice(0, 8)}.${ext}`);
+                  }}
+                >
+                  <Download className="size-4" />
+                </Button>
+              )}
+              {activePanel.type === "document" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5 text-xs">
+                      <Download className="size-3.5" />
+                      Export
+                      <ChevronDown className="size-3 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (activePanel.type !== "document") return;
+                        try {
+                          await navigator.clipboard.writeText(activePanel.content);
+                          setDocCopied(true);
+                          setTimeout(() => setDocCopied(false), 2000);
+                        } catch { /* ignore */ }
+                      }}
+                    >
+                      {docCopied
+                        ? <Check className="mr-2 size-4 text-green-500" />
+                        : <Copy className="mr-2 size-4" />}
+                      {docCopied ? "Copied!" : "Copy document"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (activePanel.type !== "document") return;
+                        const slug = activePanel.title
+                          .replace(/[^a-z0-9 \-_]/gi, "").trim()
+                          .replace(/\s+/g, "-").toLowerCase() || "document";
+                        const blob = new Blob([activePanel.content], { type: "text/markdown;charset=utf-8" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url; a.download = `${slug}.md`; a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <Download className="mr-2 size-4" />
+                      Download Markdown
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (activePanel.type !== "document") return;
+                        try {
+                          const blob = await pdf(
+                            <ZeepoDocumentPdf title={activePanel.title} content={activePanel.content} />
+                          ).toBlob();
+                          const slug = activePanel.title
+                            .replace(/[^a-z0-9 \-_]/gi, "").trim()
+                            .replace(/\s+/g, "-").toLowerCase() || "document";
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url; a.download = `${slug}.pdf`; a.click();
+                          URL.revokeObjectURL(url);
+                        } catch (err) { console.error("PDF generation failed:", err); }
+                      }}
+                    >
+                      <FileText className="mr-2 size-4" />
+                      Download PDF
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8"
+                aria-label="Close panel"
+                onClick={() => { setActivePanel(null); setDocCopied(false); }}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* ── Panel body ───────────────────────────────── */}
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {activePanel.type === "media" ? (
+              <div className="flex size-full flex-col items-center justify-center gap-4 p-4">
+                {activePanel.kind === "image" ? (
+                  <div className="relative flex min-h-0 flex-1 items-center justify-center">
+                    {editImage.isPending && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-xl bg-background/70 backdrop-blur-sm">
+                        <Spinner size={28} className="text-primary" />
+                        <p className="text-xs font-medium text-foreground/80">
+                          {editBrushMode && hasDrawing
+                            ? "Regenerating selected region…"
+                            : "AI is editing your image…"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">This usually takes 10–20 seconds</p>
+                      </div>
+                    )}
+                    <img
+                      ref={panelImgRef}
+                      src={panelImageUrl || activePanel.url}
+                      alt=""
+                      className="max-h-full w-auto max-w-full rounded-xl object-contain"
+                      draggable={false}
+                    />
+                    {editBrushMode && (
+                      <canvas
+                        ref={canvasRef}
+                        className="absolute inset-0 cursor-crosshair rounded-xl"
+                        style={{ touchAction: "none" }}
+                        onMouseDown={startDraw}
+                        onMouseMove={continueDraw}
+                        onMouseUp={stopDraw}
+                        onMouseLeave={stopDraw}
+                      />
+                    )}
+                  </div>
+                ) : activePanel.kind === "video" ? (
+                  <video
+                    src={activePanel.url}
+                    controls
+                    playsInline
+                    className="max-h-full w-full max-w-full rounded-xl bg-black"
+                  />
+                ) : (
+                  <div className="flex w-full max-w-md flex-col items-center gap-4">
+                    <Headphones className="size-12 text-muted-foreground" />
+                    <audio src={activePanel.url} controls className="w-full" />
+                  </div>
+                )}
+              </div>
+            ) : activePanel.type === "document" ? (
+              <ScrollArea className="h-full w-full">
+                <div className="p-5 md:p-6">
+                  <div className="max-w-none text-foreground/90">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h1: ({ node: _n, ...props }) => <h1 className="text-2xl font-bold text-foreground mt-8 mb-4 pb-2 border-b border-muted" {...props} />,
+                        h2: ({ node: _n, ...props }) => <h2 className="text-xl font-bold text-foreground mt-8 mb-3" {...props} />,
+                        h3: ({ node: _n, ...props }) => <h3 className="text-base font-bold text-foreground mt-6 mb-2" {...props} />,
+                        h4: ({ node: _n, ...props }) => <h4 className="text-sm font-bold text-foreground/90 mt-4 mb-2 uppercase tracking-wide" {...props} />,
+                        h5: ({ node: _n, ...props }) => <h5 className="text-sm font-semibold text-foreground/80 mt-4 mb-1" {...props} />,
+                        h6: ({ node: _n, ...props }) => <h6 className="text-xs font-semibold text-muted-foreground mt-4 mb-1 uppercase" {...props} />,
+                        p: ({ node: _n, ...props }) => <p className="leading-7 mb-4 text-foreground/80" {...props} />,
+                        em: ({ node: _n, ...props }) => <em className="italic text-foreground/70" {...props} />,
+                        strong: ({ node: _n, ...props }) => <strong className="font-bold text-primary" {...props} />,
+                        ul: ({ node: _n, ...props }) => <ul className="list-disc pl-6 mb-5 space-y-1.5 text-foreground/80" {...props} />,
+                        ol: ({ node: _n, ...props }) => <ol className="list-decimal pl-6 mb-5 space-y-1.5 text-foreground/80" {...props} />,
+                        li: ({ node: _n, children, ...props }) => <li className="leading-relaxed" {...props}>{children}</li>,
+                        blockquote: ({ node: _n, ...props }) => <blockquote className="border-l-4 border-primary/40 pl-4 py-1 my-5 bg-primary/5 rounded-r-lg italic text-foreground/70" {...props} />,
+                        code: ({ node: _n, className, children, ...props }: any) => {
+                          const isBlock = className?.includes("language-");
+                          return isBlock
+                            ? <code className={`block text-sm font-mono ${className ?? ""}`} {...props}>{children}</code>
+                            : <code className="bg-muted text-foreground px-1.5 py-0.5 rounded text-[0.85em] font-mono" {...props}>{children}</code>;
+                        },
+                        pre: ({ node: _n, ...props }) => <pre className="bg-muted/60 border border-muted rounded-xl p-4 my-5 overflow-x-auto text-sm font-mono leading-relaxed" {...props} />,
+                        hr: ({ node: _n, ...props }) => <hr className="my-8 border-muted" {...props} />,
+                        a: ({ node: _n, ...props }) => <a className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity" target="_blank" rel="noopener noreferrer" {...props} />,
+                        table: ({ node: _n, ...props }) => <div className="overflow-x-auto my-6 rounded-xl border border-muted shadow-sm"><table className="w-full text-sm text-left border-collapse" {...props} /></div>,
+                        thead: ({ node: _n, ...props }) => <thead className="bg-muted/60 text-foreground font-semibold" {...props} />,
+                        tbody: ({ node: _n, ...props }) => <tbody className="divide-y divide-muted/60" {...props} />,
+                        tr: ({ node: _n, ...props }) => <tr className="hover:bg-muted/20 transition-colors" {...props} />,
+                        th: ({ node: _n, ...props }) => <th className="px-4 py-3 text-left font-semibold text-foreground border-b border-muted whitespace-nowrap" {...props} />,
+                        td: ({ node: _n, ...props }) => <td className="px-4 py-2.5 text-foreground/75 align-top" {...props} />,
+                      }}
+                    >
+                      {activePanel.content}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              </ScrollArea>
+            ) : null}
+          </div>
+
+          {/* ── Edit toolbar — shrink-0 sibling so it's never hidden by the image ── */}
+          {activePanel.type === "media" && activePanel.kind === "image" && (
+            <div className="shrink-0 border-t bg-muted/20 px-3 py-2.5 space-y-2">
+                {/* Brush controls row (shown in brush mode) */}
+                {editBrushMode && (
+                  <div className="flex items-center gap-2">
+                    <Paintbrush className="size-3.5 shrink-0 text-muted-foreground" />
+                    <input
+                      type="range"
+                      min={8}
+                      max={80}
+                      value={brushSize}
+                      onChange={(e) => setBrushSize(Number(e.target.value))}
+                      className="h-1.5 flex-1 accent-primary"
+                      aria-label="Brush size"
+                    />
+                    <span className="w-6 shrink-0 text-center text-[11px] text-muted-foreground">
+                      {brushSize}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      disabled={!hasDrawing}
+                      onClick={clearCanvas}
+                      aria-label="Clear brush strokes"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Prompt + apply row */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder={
+                        editBrushMode
+                          ? "Describe what to put in the brushed area…"
+                          : "Describe your edit (e.g. change shirt to blue)…"
+                      }
+                      value={editPrompt}
+                      onChange={(e) => setEditPrompt(e.target.value)}
+                      disabled={editImage.isPending}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          applyImageEdit();
+                        }
+                      }}
+                      className="w-full rounded-lg border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 shrink-0 gap-1.5 px-3"
+                    disabled={!editPrompt.trim() || editImage.isPending || (editBrushMode && !hasDrawing)}
+                    onClick={applyImageEdit}
+                  >
+                    {editImage.isPending ? (
+                      <Spinner size={13} className="text-primary-foreground" />
+                    ) : (
+                      <Wand2 className="size-3.5" />
+                    )}
+                    {editImage.isPending ? "Applying…" : "Apply"}
+                  </Button>
+                </div>
+
+                {/* Mode hint */}
+                <p className="text-[10px] text-muted-foreground/60">
+                  {editBrushMode
+                    ? "Paint the region to replace, then describe what to put there."
+                    : "Describe any change — text, colour, objects, style. Toggle 🖌 to paint a region."}
+                </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

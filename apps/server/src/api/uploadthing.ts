@@ -105,6 +105,17 @@ export const ourFileRouter: FileRouter = {
     .onUploadComplete(async ({ metadata }) => {
       return { uploadedBy: metadata.userId };
     }),
+
+  // Zeepo Agent chat attachments (images users attach to messages or clarifying questions)
+  zeepoAgentAttachment: f({ image: { maxFileSize: "16MB", maxFileCount: 4 } })
+    .middleware(async ({ req }) => {
+      const session = await auth.api.getSession({ headers: req.headers });
+      if (!session?.user) throw new Error("Unauthorized");
+      return { userId: session.user.id };
+    })
+    .onUploadComplete(async ({ metadata }) => {
+      return { uploadedBy: metadata.userId };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;
