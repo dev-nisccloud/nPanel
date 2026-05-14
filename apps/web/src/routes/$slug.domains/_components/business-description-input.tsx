@@ -24,16 +24,68 @@ export function BusinessDescriptionInput({
       <CardContent className="p-6">
         <div className="space-y-6">
           {/* Business Description Textarea */}
+          {/* Business Description Textarea */}
           <div className="space-y-3">
-            <div className="relative">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes ai-textarea-border {
+                0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.3); }
+                33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 8px 1px rgba(37,99,235,0.3);  }
+                66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 8px 1px rgba(6,182,212,0.3);  }
+                100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.3); }
+              }
+              @keyframes aitab-float {
+                0%, 100% { transform: translateY(0)    scale(1);    }
+                50%       { transform: translateY(-3px) scale(1.2); }
+              }
+              @keyframes aitab-hue {
+                0%   { color: #7c3aed; }
+                33%  { color: #2563eb; }
+                66%  { color: #06b6d4; }
+                100% { color: #7c3aed; }
+              }
+              .ai-textarea-wrap {
+                position: relative;
+                border-radius: 12px;
+                padding: 2px;
+                background: transparent;
+                border: 2px solid rgba(124,58,237,0.7);
+                animation: ai-textarea-border 6s linear infinite;
+                transition: all 0.5s ease;
+              }
+              .ai-textarea-wrap:focus-within {
+                box-shadow: 0 0 15px 3px rgba(124,58,237,0.4);
+              }
+              .ai-textarea-wrap textarea {
+                border: none !important;
+                box-shadow: none !important;
+                background: transparent !important;
+                min-height: 4.5rem !important;
+                transition: min-height 0.7s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                resize: none !important;
+              }
+              .ai-textarea-wrap:focus-within textarea,
+              .ai-textarea-wrap.has-value textarea {
+                min-height: 10rem !important;
+              }
+              .aitab-icon {
+                display: inline-flex;
+                align-items: center;
+                flex-shrink: 0;
+                animation: aitab-float 2.5s ease-in-out infinite, aitab-hue 6s linear infinite;
+              }
+            `}} />
+            <div className={`ai-textarea-wrap ${value.trim() ? 'has-value' : ''}`}>
+              <div className="absolute bottom-4 right-4 pointer-events-none z-10 aitab-icon">
+                <Sparkles className="h-7 w-7" />
+              </div>
               <textarea
                 placeholder="Describe your business, products, or services... For example: 'A modern coffee shop specializing in artisanal blends and sustainable practices, located in downtown Seattle'"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full h-32 md:h-40 p-4 text-base border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 placeholder:text-gray-400 bg-white"
+                className="w-full p-4 text-base rounded-lg placeholder:text-gray-400 bg-white"
                 maxLength={500}
               />
-              <div className="absolute bottom-3 right-3 text-xs text-gray-400 bg-white px-1 rounded">
+              <div className="absolute bottom-3 right-3 text-xs text-gray-400 bg-white/80 px-1 rounded">
                 {value.length}/500
               </div>
             </div>

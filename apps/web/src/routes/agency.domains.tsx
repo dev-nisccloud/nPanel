@@ -7,6 +7,7 @@ import { AiDomainSearch } from "./agency.domains/_components/ai-domain-search";
 import { DomainSearch } from "./agency.domains/_components/domain-search";
 import { TldSettings } from "./agency.domains/_components/tld-settings";
 import { trpc } from "@/utils/trpc";
+import { AiTabTrigger } from "@/components/ai-tab-trigger";
 
 export default function DomainsPage() {
   const utils = trpc.useUtils();
@@ -27,9 +28,9 @@ export default function DomainsPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
       <Tabs defaultValue="domain-search" className="w-full max-w-7xl mx-auto">
         <div className="flex justify-center mb-6">
-          <TabsList className="inline-flex w-auto">
+          <TabsList className="inline-flex w-auto gap-1.5 px-1.5">
             <TabsTrigger value="domain-search">Domain Search</TabsTrigger>
-            <TabsTrigger value="ai-domain-search">AI Domain Search</TabsTrigger>
+            <AiTabTrigger value="ai-domain-search" />
             {/* <TabsTrigger value="openprovider-tlds">Openprovider TLDs</TabsTrigger> */}
             {/* <TabsTrigger value="supported-domains">Supported Domains</TabsTrigger> */}
             <TabsTrigger value="settings">Settings</TabsTrigger>

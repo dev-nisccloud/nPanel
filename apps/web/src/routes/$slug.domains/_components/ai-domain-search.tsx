@@ -413,14 +413,79 @@ function AiDomainSearchInner() {
             )}
 
             <div className="max-w-2xl mx-auto space-y-3">
-              <Textarea
-                placeholder="Describe your business in detail: offer, audience, tone, and where you operate (city/country). Mention language, B2B vs B2C, competitors to avoid, and any words or themes you want — the AI uses these signals for locally credible names and TLD guidance."
-                className="min-h-[12rem] resize-y text-base leading-relaxed"
-                aria-label="Business description for AI domain search"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={generateIdeas.isPending}
-              />
+              <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes ai-textarea-border {
+                  0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.3); }
+                  33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 8px 1px rgba(37,99,235,0.3);  }
+                  66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 8px 1px rgba(6,182,212,0.3);  }
+                  100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.3); }
+                }
+                @keyframes aitab-float {
+                  0%, 100% { transform: translateY(0)    scale(1);    }
+                  50%       { transform: translateY(-3px) scale(1.2); }
+                }
+                @keyframes aitab-hue {
+                  0%   { color: #7c3aed; }
+                  33%  { color: #2563eb; }
+                  66%  { color: #06b6d4; }
+                  100% { color: #7c3aed; }
+                }
+                .ai-textarea-wrap {
+                  position: relative;
+                  border-radius: 12px;
+                  padding: 2px;
+                  background: transparent;
+                  border: 2px solid rgba(124,58,237,0.7);
+                  animation: ai-textarea-border 6s linear infinite;
+                  transition: all 0.5s ease;
+                }
+                .ai-textarea-wrap:focus-within {
+                  box-shadow: 0 0 15px 3px rgba(124,58,237,0.4);
+                }
+                .ai-textarea-wrap textarea {
+                  border: none !important;
+                  box-shadow: none !important;
+                  min-height: 4rem !important;
+                  transition: min-height 0.7s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                  resize: none !important;
+                }
+                .ai-textarea-wrap:focus-within textarea,
+                .ai-textarea-wrap.has-value textarea {
+                  min-height: 12rem !important;
+                }
+                .aitab-icon {
+                  display: inline-flex;
+                  align-items: center;
+                  flex-shrink: 0;
+                  animation: aitab-float 2.5s ease-in-out infinite, aitab-hue 6s linear infinite;
+                }
+              `}} />
+              <div className={`ai-textarea-wrap ${description.trim() ? 'has-value' : ''}`}>
+                <div className="absolute bottom-4 right-4 pointer-events-none z-10 aitab-icon">
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-primary/80"
+                  >
+                    <path d="M12 3 L13.5 8.5 L19 10 L13.5 11.5 L12 17 L10.5 11.5 L5 10 L10.5 8.5 Z" />
+                    <path d="M19 3 L19.8 5.2 L22 6 L19.8 6.8 L19 9 L18.2 6.8 L16 6 L18.2 5.2 Z" />
+                  </svg>
+                </div>
+                <Textarea
+                  placeholder="Describe your business in detail: offer, audience, tone, and where you operate (city/country). Mention language, B2B vs B2C, competitors to avoid, and any words or themes you want — the AI uses these signals for locally credible names and TLD guidance."
+                  className="text-base leading-relaxed bg-background pr-10"
+                  aria-label="Business description for AI domain search"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={generateIdeas.isPending}
+                />
+              </div>
               <p className="text-xs text-muted-foreground text-center">
                 At least {MIN_DESCRIPTION_LENGTH} characters required for AI suggestions.
               </p>
