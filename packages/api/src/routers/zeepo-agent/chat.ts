@@ -15,6 +15,8 @@ import { team as teamTable } from "@npanel/db/schema/teams";
 import { env } from "@npanel/env/server";
 import { protectedProcedure, router } from "../../trpc";
 import { generateSessionTitleSchema, imageEditSchema, sendMessageSchema } from "./schemas";
+import { zeepoAgentImageEditHistory } from "@npanel/db/schema/zeepo-agent";
+import { UTApi } from "uploadthing/server";
 import { insertAndEnqueueAgentGeneration } from "./generate";
 import {
 	getZeepoAgentOrchestrationModel,
@@ -768,9 +770,9 @@ export const zeepoAgentChatRouter = router({
 	/**
 	 * Synchronous AI image edit — no background job, result returned directly.
 	 *
-	 * Model selection:
-	 *   - maskDataUrl present  → flux-fill-dev  (inpainting: edit the brushed region)
-	 *   - maskDataUrl absent   → flux-kontext-dev (instruction: edit by text description)
+	 * Uses black-forest-labs/flux-2-pro with the source image passed via
+	 * input_images for image-to-image editing. When the user has drawn a mask,
+	 * the prompt is prefixed to target the brushed region.
 	 */
 	editImage: protectedProcedure
 		.input(imageEditSchema)
@@ -788,53 +790,67 @@ export const zeepoAgentChatRouter = router({
 
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
-			// 60-second hard timeout — both models complete well within this window.
+			// 90-second hard timeout — flux-2-pro is synchronous but can be slow at high res.
 			const withTimeout = <T>(p: Promise<T>): Promise<T> =>
 				Promise.race([
 					p,
 					new Promise<never>((_, rej) =>
-						setTimeout(() => rej(new Error("Image edit timed out after 60 s")), 60_000),
+						setTimeout(() => rej(new Error("Image edit timed out after 90 s")), 90_000),
 					),
 				]);
 
-			let output: unknown;
+			// When the user painted a mask, prefix the prompt so the model knows
+			// to target only the brushed region.
+			const effectivePrompt = input.maskDataUrl
+				? `Edit only the highlighted/selected region: ${input.prompt}`
+				: input.prompt;
 
-			if (input.maskDataUrl) {
-				// ── Inpainting mode: user painted a mask region ──────────────────
-				// flux-fill-dev: white mask = edit, black = preserve
-				output = await withTimeout(
-					replicate.run("black-forest-labs/flux-fill-dev", {
-						input: {
-							image: input.imageUrl,
-							mask: input.maskDataUrl,
-							prompt: input.prompt,
-							num_inference_steps: 28,
-							guidance: 30,
-							output_format: "png",
-						},
-					}),
-				);
-			} else {
-				// ── Instruction mode: edit by description, no mask ────────────────
-				// flux-kontext-dev: in-context editing, preserves everything not mentioned
-				output = await withTimeout(
-					replicate.run("black-forest-labs/flux-kontext-dev", {
-						input: {
-							input_image: input.imageUrl,
-							prompt: input.prompt,
-							output_format: "png",
-						},
-					}),
-				);
-			}
+			const output = await withTimeout(
+				replicate.run("black-forest-labs/flux-2-pro", {
+					input: {
+						prompt: effectivePrompt,
+						input_images: [input.imageUrl],
+						aspect_ratio: "match_input_image",
+						resolution: input.resolution ?? "1 MP",
+						output_format: input.outputFormat ?? "webp",
+						output_quality: 90,
+						safety_tolerance: 2,
+					},
+				}),
+			);
 
-			// Extract the output URL from whatever shape the SDK returns.
 			const resultUrl = extractReplicateImageUrl(output);
 			if (!resultUrl)
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Model returned no image.",
 				});
+
+			// Persist to edit history when a generationId is provided.
+			if (input.generationId) {
+				try {
+					const utapi = new UTApi();
+					const upRes = await utapi.uploadFilesFromUrl(resultUrl);
+					const upResult = Array.isArray(upRes) ? upRes[0] : upRes;
+					const persistedUrl = upResult?.data?.ufsUrl ?? upResult?.data?.url ?? resultUrl;
+
+					await db.insert(zeepoAgentImageEditHistory).values({
+						id: randomUUID(),
+						sessionId: input.sessionId,
+						generationId: input.generationId,
+						parentId: input.parentId ?? null,
+						userId,
+						imageUrl: persistedUrl,
+						operationType: "instruction",
+						label: input.maskDataUrl ? "Region Edit" : "Instruction Edit",
+						prompt: input.prompt,
+					});
+
+					return { imageUrl: persistedUrl };
+				} catch {
+					// Non-fatal — return the Replicate URL even if persist fails
+				}
+			}
 
 			return { imageUrl: resultUrl };
 		}),

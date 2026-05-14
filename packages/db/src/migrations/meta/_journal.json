@@ -183,6 +183,13 @@
       "when": 1778567406120,
       "tag": "0025_hesitant_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1778741618921,
+      "tag": "0026_short_luke_cage",
+      "breakpoints": true
     }
   ]
 }
