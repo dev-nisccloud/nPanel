@@ -205,7 +205,7 @@ export async function getCustomerTeamRedirectPath(
       },
       createdAt: new Date(),
     })
-    .catch(() => {});
+    .catch(() => { });
 
   return `/${teamSlug}/dashboard`;
 }
@@ -287,7 +287,7 @@ export async function getRootRedirectTargetFromHeaders(
   const defaultRedirect = isAgency
     ? "/agency/dashboard"
     : // CUSTOMER roles go through team routing (dashboard or create-team).
-      await getCustomerTeamRedirectPath(u);
+    await getCustomerTeamRedirectPath(u);
 
   const safeRequested = parseSafeInternalRedirectPath(requestedRedirect ?? null);
   if (safeRequested) {

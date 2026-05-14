@@ -577,8 +577,8 @@ export const tldSettingsRouter = router({
       data: tldSettingResponseSchema,
     }))
     .mutation(async ({ ctx, input }) => {
-      const { session } = ctx;
-      const userId = session!.user!.id;
+      const actor = getActor(ctx);
+      const userId = actor.userId;
 
       try {
         // Check if TLD setting exists and actor can mutate it
