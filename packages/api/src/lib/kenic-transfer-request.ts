@@ -64,6 +64,7 @@ export interface ExecuteKenicTransferInput {
 	authCode: string;
 	roid?: string;
 	period?: number;
+	nameServers?: Array<{ name: string; ip?: string }>;
 }
 
 export interface ExecuteKenicTransferResult {
@@ -121,6 +122,7 @@ export async function executeKenicTransferRequest(
 			authCode: input.authCode,
 			roid: input.roid,
 			period: input.period,
+			nameServers: input.nameServers,
 		});
 		sendFrame(socket, transferXml);
 		const transferResponseBuffer = await readFrame(socket);

@@ -1,35 +1,123 @@
-import { Resend } from "resend";
-
 /**
- * Helper function to delay execution
+ * Shared email helpers for the @npanel/api package.
+ * Uses AWS SES (sendRawEmail) via the shared ses-client — the same transport
+ * used by auth, teams invites, and agency invoicing flows.
+ * Previously used Resend; replaced because nisccloud.com was not verified there.
  */
+import * as crypto from "node:crypto";
+import { getSesClient, getSesConfigurationSetName } from "./ses-client";
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Get or create Resend client instance (lazy initialization)
- * This prevents initialization during build time when env vars may not be available
- */
-let resendClient: Resend | null = null;
-function getResendClient(): Resend {
-  if (!resendClient) {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      throw new Error("RESEND_API_KEY environment variable is not set");
-    }
-    resendClient = new Resend(apiKey);
-  }
-  return resendClient;
+// ---------------------------------------------------------------------------
+// Internal helpers (mirrors transactional-email.ts in @npanel/auth)
+// ---------------------------------------------------------------------------
+
+function toRfc2047Utf8(value: string): string {
+  if (/^[\x00-\x7F]*$/.test(value)) return value;
+  const buf = Buffer.from(value, "utf8");
+  return `=?UTF-8?B?${buf.toString("base64")}?=`;
 }
 
+function stripHeaderUnsafe(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").trim();
+}
+
+function parseDisplayEmail(value: string): { name: string | null; email: string } {
+  const v = stripHeaderUnsafe(value);
+  const m = v.match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/);
+  if (m) return { name: m[1]?.trim() || null, email: m[2]!.trim() };
+  return { name: null, email: v };
+}
+
+function buildFromHeader(fromEmail: string, fromName?: string | null): string {
+  const parsed = parseDisplayEmail(fromEmail);
+  const name = stripHeaderUnsafe(fromName ?? parsed.name ?? "");
+  const email = stripHeaderUnsafe(parsed.email);
+  return name ? `${toRfc2047Utf8(name)} <${email}>` : email;
+}
+
+function buildRawMimeEmail(params: {
+  from: string;
+  to: string;
+  subject: string;
+  replyTo?: string | null;
+  cc?: string[];
+  bcc?: string[];
+  text?: string | null;
+  html?: string | null;
+}): Buffer {
+  const boundary = `npanel-${crypto.randomUUID()}`;
+  const lines: string[] = [];
+  lines.push(`From: ${params.from}`);
+  lines.push(`To: ${stripHeaderUnsafe(params.to)}`);
+  lines.push(`Subject: ${toRfc2047Utf8(stripHeaderUnsafe(params.subject))}`);
+  if (params.replyTo) lines.push(`Reply-To: ${stripHeaderUnsafe(params.replyTo)}`);
+  if (params.cc?.length) lines.push(`Cc: ${params.cc.map(stripHeaderUnsafe).join(", ")}`);
+  lines.push("MIME-Version: 1.0");
+  lines.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+  lines.push("");
+
+  const text = params.text?.trim() ? params.text : null;
+  const html = params.html?.trim() ? params.html : null;
+
+  if (text) {
+    lines.push(`--${boundary}`);
+    lines.push('Content-Type: text/plain; charset="UTF-8"');
+    lines.push("Content-Transfer-Encoding: 7bit");
+    lines.push("");
+    lines.push(text);
+    lines.push("");
+  }
+
+  if (html) {
+    lines.push(`--${boundary}`);
+    lines.push('Content-Type: text/html; charset="UTF-8"');
+    lines.push("Content-Transfer-Encoding: 7bit");
+    lines.push("");
+    lines.push(html);
+    lines.push("");
+  }
+
+  if (!text && !html) {
+    lines.push(`--${boundary}`);
+    lines.push('Content-Type: text/plain; charset="UTF-8"');
+    lines.push("Content-Transfer-Encoding: 7bit");
+    lines.push("");
+    lines.push("(empty email)");
+    lines.push("");
+  }
+
+  lines.push(`--${boundary}--`);
+  lines.push("");
+  return Buffer.from(lines.join("\r\n"), "utf8");
+}
+
+function getSenderConfig() {
+  const fromDomainRaw = process.env.NISC_TX_EMAIL_DOMAIN?.trim();
+  const fromDomain =
+    fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
+  const fromEmail =
+    process.env.NISC_TX_FROM_EMAIL?.trim() ??
+    (fromDomain ? `noreply@${fromDomain}` : "noreply@nisccloud.com");
+  const fromName = process.env.NISC_TX_FROM_NAME?.trim() ?? "Nisc Cloud";
+  const replyTo = process.env.NISC_TX_REPLY_TO?.trim() ?? null;
+  return { fromEmail, fromName, replyTo };
+}
+
+// ---------------------------------------------------------------------------
+// Public API (same signature as before so all call-sites keep working)
+// ---------------------------------------------------------------------------
+
 /**
- * Send an email with automatic retry on rate limit errors
+ * Send a transactional email via AWS SES.
+ * Retries on transient (non-permanent) failures with exponential back-off.
  */
 export async function sendEmail({
   to,
   subject,
   html,
   text,
-  attachments,
   cc,
   bcc,
   maxRetries = 3,
@@ -38,109 +126,62 @@ export async function sendEmail({
   subject: string;
   html?: string;
   text?: string;
-  attachments?: Array<{
-    filename: string;
-    content: Buffer | string;
-    contentType?: string;
-  }>;
+  /** Note: attachments are not supported with SES raw email in this helper. */
+  attachments?: Array<{ filename: string; content: Buffer | string; contentType?: string }>;
   cc?: string[];
   bcc?: string[];
   maxRetries?: number;
 }) {
+  if (!html?.trim() && !text?.trim()) {
+    throw new Error("Either html or text must be provided");
+  }
+
+  const { fromEmail, fromName, replyTo } = getSenderConfig();
+  const configSet = getSesConfigurationSetName();
+
   let lastError: unknown;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      // Use the basic email sending approach without React components
-      const emailData: {
-        from: string;
-        to: string[];
-        subject: string;
-        html?: string;
-        text?: string;
-        cc?: string[];
-        bcc?: string[];
-      } = {
-        from: process.env.RESEND_FROM_EMAIL || "npanel <noreply@npanel.com>",
-        to: [to],
+      const raw = buildRawMimeEmail({
+        from: buildFromHeader(fromEmail, fromName),
+        to,
         subject,
-      };
+        replyTo,
+        cc,
+        bcc,
+        html: html ?? null,
+        text: text ?? null,
+      });
 
-      // Only add html or text if they exist
-      if (html) {
-        emailData.html = html;
-      }
-      if (text) {
-        emailData.text = text;
-      }
-      if (cc?.length) emailData.cc = cc;
-      if (bcc?.length) emailData.bcc = bcc;
+      const ses = getSesClient();
+      const destinations = [to, ...(cc ?? []), ...(bcc ?? [])];
 
-      // Get Resend client (lazy initialization)
-      const resend = getResendClient();
+      const res = await ses.sendRawEmail({
+        RawMessage: { Data: raw },
+        Destinations: destinations,
+        ...(configSet ? { ConfigurationSetName: configSet } : {}),
+      });
 
-      // Ensure at least html or text is provided
-      if (!emailData.html && !emailData.text) {
-        throw new Error("Either html or text must be provided");
-      }
+      console.log("Email sent successfully via SES:", res.MessageId);
+      return { id: res.MessageId };
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
 
-      // Resend API requires attachment content as base64 string (Buffer is not serialized correctly in JSON)
-      const normalizedAttachments =
-        attachments && attachments.length > 0
-          ? attachments.map((att) => ({
-            filename: att.filename,
-            content: typeof att.content === "string" ? att.content : att.content.toString("base64"),
-            ...(att.contentType && { contentType: att.contentType }),
-          }))
-          : undefined;
+      // Permanent failures — don't retry
+      const isPermanent =
+        msg.includes("MessageRejected") ||
+        msg.includes("InvalidParameterValue") ||
+        msg.includes("InvalidParameterException");
 
-      // Build payload so attachments are always included when present (Resend expects content as base64 string)
-      const emailPayload = {
-        from: emailData.from,
-        to: emailData.to,
-        subject: emailData.subject,
-        ...(emailData.html && { html: emailData.html }),
-        ...(emailData.text && { text: emailData.text }),
-        ...(cc && cc.length > 0 && { cc }),
-        ...(bcc && bcc.length > 0 && { bcc }),
-        ...(normalizedAttachments && normalizedAttachments.length > 0 && { attachments: normalizedAttachments }),
-      };
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Resend SDK has overloads that conflict with our payload shape
-      const { data, error } = await resend.emails.send(emailPayload as any);
-
-      if (error) {
-        // Check if it's a rate limit error
-        const isRateLimitError =
-          (error as { statusCode?: number }).statusCode === 429 ||
-          (error as { name?: string }).name === "rate_limit_exceeded";
-
-        if (isRateLimitError && attempt < maxRetries - 1) {
-          // Exponential backoff: 1s, 2s, 4s
-          const backoffDelay = Math.pow(2, attempt) * 1000;
-          console.log(`Rate limit hit, retrying in ${backoffDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
-          await delay(backoffDelay);
-          continue;
-        }
-
-        console.error("Error sending email:", error);
-        throw new Error(`Failed to send email: ${(error as { message?: string }).message || "Unknown error"}`);
+      if (isPermanent || attempt === maxRetries - 1) {
+        console.error("Email send failed (SES):", err);
+        throw err;
       }
 
-      console.log("Email sent successfully:", data);
-      return data;
-    } catch (error) {
-      lastError = error;
-
-      // If it's not a rate limit error or we're out of retries, throw
-      if (attempt === maxRetries - 1) {
-        console.error("Email service error after all retries:", error);
-        throw error;
-      }
-
-      // Wait before retrying
       const backoffDelay = Math.pow(2, attempt) * 1000;
-      console.log(`Error sending email, retrying in ${backoffDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
+      console.log(`Error sending email via SES, retrying in ${backoffDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
       await delay(backoffDelay);
     }
   }
@@ -149,8 +190,8 @@ export async function sendEmail({
 }
 
 /**
- * Send multiple emails with rate limiting (sequential with delay)
- * Respects rate limits by sending emails one at a time with delays
+ * Send multiple emails sequentially (rate-limiting friendly).
+ * Never throws — returns per-email success/failure so callers can handle individually.
  */
 export async function sendEmailBatch(
   emails: Array<{
@@ -158,33 +199,26 @@ export async function sendEmailBatch(
     subject: string;
     html?: string;
     text?: string;
+    cc?: string[];
   }>,
-  delayBetweenEmails = 600 // 600ms = 1.67 emails/second (safely under 2/second limit)
+  delayBetweenEmails = 300,
 ): Promise<Array<{ success: boolean; email: string; error?: string }>> {
   const results: Array<{ success: boolean; email: string; error?: string }> = [];
 
-  for (const email of emails) {
+  for (let i = 0; i < emails.length; i++) {
+    const email = emails[i]!;
     try {
       await sendEmail(email);
       results.push({ success: true, email: email.to });
-
-      // Add delay before next email (except for the last one)
-      if (email !== emails[emails.length - 1]) {
-        await delay(delayBetweenEmails);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
       console.error(`Failed to send email to ${email.to}:`, errorMessage);
-      results.push({
-        success: false,
-        email: email.to,
-        error: errorMessage
-      });
+      results.push({ success: false, email: email.to, error: errorMessage });
+    }
 
-      // Still add delay even on failure to respect rate limits
-      if (email !== emails[emails.length - 1]) {
-        await delay(delayBetweenEmails);
-      }
+    // Delay between sends (skip after last)
+    if (i < emails.length - 1) {
+      await delay(delayBetweenEmails);
     }
   }
 

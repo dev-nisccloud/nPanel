@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { HelpCircle, Check, Globe, Mail } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import {
   Dialog,
@@ -11,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useLocation } from "react-router";
+import { User, Users, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,6 +41,7 @@ import { toast } from "@/components/ui/sonner";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { useCartStore } from "@/stores/cart-store";
 import { CartItemCard } from "@/routes/agency/_components/sidebar/cart-item-card";
+import { authClient } from "@/lib/auth-client";
 
 const formatPrice = (price?: number, currency?: string) => {
   if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {
@@ -55,6 +59,7 @@ type Step =
   | "hosting-upsell"
   | "plan-selection"
   | "review"
+  | "registrant_info"
   | "payment"
   | "success"
   | "error";
@@ -114,14 +119,88 @@ export function GlobalBuyNowDialog() {
   const orderCreatedForCheckoutRef = React.useRef<string | null>(null);
   const onPaymentSuccessRef = React.useRef<(checkoutRequestId: string) => void | undefined>(undefined);
 
+  const location = useLocation();
+  const { data: session, isPending: isSessionLoading } = authClient.useSession();
+  const userRole = (session?.user as any)?.role;
+  const isAgencyUser = React.useMemo(() => {
+    const user = session?.user as any;
+    const role = String(user?.role || "");
+    const isAgency = role.toUpperCase().includes("AGENCY") || !!user?.agencyRoleId;
+
+    console.log("[BuyNow] Role Detection", { 
+      role, 
+      isAgency, 
+      pathname: location.pathname,
+      hasAgencyRoleId: !!user?.agencyRoleId
+    });
+    return isAgency;
+  }, [session?.user, location.pathname]);
+
+  const isAgencySide = React.useMemo(() => {
+    return location.pathname.startsWith("/agency") || isAgencyUser;
+  }, [location.pathname, isAgencyUser]);
+
+  const [registrantType, setRegistrantType] = React.useState<"customer" | "myself">(
+    isAgencySide ? "customer" : "myself"
+  );
+  const [manualRegistrantDetails, setManualRegistrantDetails] = React.useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    address: "",
+    city: "",
+    country: "Kenya",
+    postalCode: "",
+    phone: "",
+  });
+
+  React.useEffect(() => {
+    if (isAgencyUser && registrantType === "myself") {
+      setRegistrantType("customer");
+    }
+  }, [isAgencyUser, registrantType]);
+
+  const isManualDetailsComplete = React.useMemo(() => {
+    const required = [
+      manualRegistrantDetails.firstName,
+      manualRegistrantDetails.lastName,
+      manualRegistrantDetails.email,
+      manualRegistrantDetails.address,
+      manualRegistrantDetails.city,
+      manualRegistrantDetails.country,
+      manualRegistrantDetails.phone,
+    ];
+    return required.every((f) => !!f && String(f).trim().length > 0);
+  }, [manualRegistrantDetails]);
+
   const isCartMode = mode === "cart";
   const isTransferMode = mode === "transfer";
   const ctx = productContext;
   const hasDomain = !!ctx?.domain?.domain;
-  const isDomainProduct = hasDomain;
-
   const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
     enabled: open && (isCartMode || !!ctx?.productId),
+  });
+
+  const isDomainProduct = React.useMemo(() => {
+    if (isTransferMode) return true;
+    if (isCartMode) {
+      return items.some(
+        (i) => 
+          i.productId === domainsProductId || 
+          !!i.description?.toLowerCase().includes("domain") || 
+          !!i.productName?.toLowerCase().includes("domain")
+      );
+    }
+    const isDomain = hasDomain || !!ctx?.productName?.toLowerCase().includes("domain");
+    return !!isDomain;
+  }, [isTransferMode, isCartMode, items, domainsProductId, hasDomain, ctx?.productName]);
+
+  console.log("[BuyNow] State Check", { 
+    isAgencySide, 
+    isDomainProduct, 
+    mode, 
+    hasDomain, 
+    domainsProductId 
   });
   const { data: addOnsData = [] } = trpc.products.getAddOnsForProduct.useQuery(
     { baseProductId: ctx?.productId ?? "" },
@@ -130,6 +209,42 @@ export function GlobalBuyNowDialog() {
   const { data: hostingUpsellProducts = [] } = trpc.products.getHostingProductsForUpsell.useQuery(undefined, {
     enabled: open && !isCartMode && isDomainProduct,
   });
+  const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
+    enabled: open && isAgencySide && isDomainProduct,
+  });
+  const teamId = isTransferMode ? transferContext?.teamId : ctx?.teamId;
+  const teamBillingQuery = trpc.teamBilling.getByTeam.useQuery(
+    { teamId: teamId ?? "" },
+    { enabled: open && isAgencySide && isDomainProduct && !!teamId }
+  );
+
+  const userProfile = userInfoQuery.data?.profile;
+  const isProfileComplete = React.useMemo(() => {
+    if (!userProfile) return false;
+    const required = [
+      userProfile.firstName,
+      userProfile.lastName,
+      userProfile.address,
+      userProfile.city,
+      userProfile.country,
+      userProfile.postalCode,
+      userProfile.phone,
+    ];
+    return required.every((f) => !!f && String(f).trim().length > 0);
+  }, [userProfile]);
+
+  const teamBilling = teamBillingQuery.data;
+  const isTeamBillingComplete = React.useMemo(() => {
+    if (!teamBilling) return false;
+    const required = [
+      teamBilling.legalName,
+      teamBilling.billingEmail,
+      teamBilling.addressLine1,
+      teamBilling.city,
+      teamBilling.country,
+    ];
+    return required.every((f) => !!f && String(f).trim().length > 0);
+  }, [teamBilling]);
   const { data: planSelectionProduct } = trpc.products.getById.useQuery(
     { id: planSelectionProductId ?? "", includePlans: true },
     { enabled: !!planSelectionProductId && currentStep === "plan-selection" }
@@ -235,6 +350,15 @@ export function GlobalBuyNowDialog() {
       if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;
       orderCreatedForCheckoutRef.current = checkoutRequestIdParam;
       const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+
+      console.log("[BuyNow] Triggering order from payment", {
+        checkoutRequestIdParam,
+        isAgencySide,
+        registrantType,
+        manualRegistrantDetails,
+        isTransferMode,
+        isCartMode,
+      });
       if (isTransferMode && transferContext) {
         createOrderFromPayment.mutate({
           checkoutRequestId: checkoutRequestIdParam,
@@ -246,7 +370,11 @@ export function GlobalBuyNowDialog() {
               productPlanId: null,
               itemPrice: str(transferContext.price),
               itemSubtotal: str(transferContext.price),
-              metadata: { transferAuthCode: transferContext.authCode },
+              metadata: {
+                transferAuthCode: transferContext.authCode,
+                useRegistrantInfo: registrantType,
+                manualRegistrantDetails: registrantType === "customer" ? manualRegistrantDetails : undefined,
+              },
             },
           ],
           currency: transferContext.currency,
@@ -279,13 +407,25 @@ export function GlobalBuyNowDialog() {
             productPlanId: null,
             itemPrice: str(price),
             itemSubtotal: str(price),
+            metadata: {
+              useRegistrantInfo: registrantType,
+              manualRegistrantDetails:
+                registrantType === "customer" ? manualRegistrantDetails : undefined,
+            },
           };
         });
-        createOrderFromPayment.mutate({ checkoutRequestId: checkoutRequestIdParam, items: orderItems, currency: primaryCurrency });
+        createOrderFromPayment.mutate({
+          checkoutRequestId: checkoutRequestIdParam,
+          items: orderItems,
+          currency: primaryCurrency,
+        });
         return;
       }
       if (!ctx?.productId || !ctx?.domain?.domain) return;
-      const calc = ctx.domain.price?.calculated as { convertedPrice?: number; finalPrice?: number } | undefined;
+      const calc = ctx.domain.price?.calculated as {
+        convertedPrice?: number;
+        finalPrice?: number;
+      } | undefined;
       const price = calc?.convertedPrice ?? calc?.finalPrice ?? ctx.domain.price?.reseller?.price ?? 0;
       createOrderFromPayment.mutate({
         checkoutRequestId: checkoutRequestIdParam,
@@ -297,6 +437,11 @@ export function GlobalBuyNowDialog() {
             productPlanId: null,
             itemPrice: str(price),
             itemSubtotal: str(price),
+            metadata: {
+              useRegistrantInfo: registrantType,
+              manualRegistrantDetails:
+                registrantType === "customer" ? manualRegistrantDetails : undefined,
+            },
           },
         ],
         currency: displayCurrency,
@@ -312,6 +457,8 @@ export function GlobalBuyNowDialog() {
       ctx,
       displayCurrency,
       createOrderFromPayment,
+      isAgencySide,
+      registrantType,
     ]
   );
 
@@ -546,9 +693,20 @@ export function GlobalBuyNowDialog() {
         setSelectedPlanId(selectedMainPlan.planId);
         setSelectedBillingCycle(selectedMainPlan.billingCycle);
         setCurrentStep("plan-selection");
-      } else if (selectedUpsellPlans.length > 0) setCurrentStep("hosting-upsell");
-      else setCurrentStep("product");
-    } else if (currentStep === "payment") setCurrentStep("review");
+      } else if (selectedUpsellPlans.length > 0) {
+        setCurrentStep("hosting-upsell");
+      } else {
+        setCurrentStep("product");
+      }
+    } else if (currentStep === "registrant_info") {
+      setCurrentStep("review");
+    } else if (currentStep === "payment") {
+      if (isAgencySide && isDomainProduct) {
+        setCurrentStep("registrant_info");
+      } else {
+        setCurrentStep("review");
+      }
+    }
   };
 
   const handleGetDeal = (productId: string, productName: string) => {
@@ -610,16 +768,23 @@ export function GlobalBuyNowDialog() {
     });
   };
 
+  const hasInitializedStepRef = React.useRef(false);
   React.useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      hasInitializedStepRef.current = false;
+      return;
+    }
+    if (hasInitializedStepRef.current) return;
+
     if (isTransferMode) {
       setCurrentStep("review");
     } else if (isCartMode) {
       setCurrentStep("review");
     } else {
-      setCurrentStep(hasDomain ? "product" : "product");
+      setCurrentStep("product");
     }
-  }, [open, isCartMode, isTransferMode, hasDomain]);
+    hasInitializedStepRef.current = true;
+  }, [open, isCartMode, isTransferMode]);
 
   React.useEffect(() => {
     if (!open) {
@@ -631,6 +796,7 @@ export function GlobalBuyNowDialog() {
       setPlanSelectionProductId(null);
       setIsSelectingMainProductPlan(false);
       setSelectedPlanId(null);
+      setRegistrantType("customer");
       setSelectedPaymentMethod(null);
       setMpesaPhoneNumber("");
       setPaymentAmount("");
@@ -1070,6 +1236,182 @@ export function GlobalBuyNowDialog() {
           </div>
         );
 
+      case "registrant_info":
+        console.log("[BuyNow] Rendering registrant_info", { registrantType, isAgencySide });
+        return (
+          <div className="space-y-6 py-2">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-foreground">Registrant Information</h3>
+              <p className="text-sm text-muted-foreground">Select whose details to use for this domain registration.</p>
+            </div>
+
+            <div className="grid gap-4">
+              <div
+                className={cn(
+                  "relative flex cursor-pointer rounded-lg border bg-card p-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
+                  registrantType === "customer" ? "border-primary ring-1 ring-primary" : "border-border"
+                )}
+                onClick={() => setRegistrantType("customer")}
+              >
+                <div className="flex w-full items-start gap-4">
+                  <div className={cn(
+                    "mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    registrantType === "customer" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  )}>
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-foreground">Enter Customer Details</p>
+                      {registrantType === "customer" && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Manually enter the details for this registration.
+                    </p>
+
+                    <Accordion type="single" collapsible value={registrantType === "customer" ? "manual-form" : ""} className="mt-4 border-none">
+                      <AccordionItem value="manual-form" className="border-none">
+                        <AccordionContent className="pt-0 border-none">
+                          <div className="grid grid-cols-2 gap-3 pt-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">First Name</p>
+                              <Input
+                                value={manualRegistrantDetails.firstName}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, firstName: e.target.value })}
+                                placeholder="First Name"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Last Name</p>
+                              <Input
+                                value={manualRegistrantDetails.lastName}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, lastName: e.target.value })}
+                                placeholder="Last Name"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1 col-span-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Email Address</p>
+                              <Input
+                                value={manualRegistrantDetails.email}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, email: e.target.value })}
+                                placeholder="customer@example.com"
+                                className="h-8 text-xs"
+                                type="email"
+                              />
+                            </div>
+                            <div className="space-y-1 col-span-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Physical Address</p>
+                              <Input
+                                value={manualRegistrantDetails.address}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, address: e.target.value })}
+                                placeholder="Street, Building, etc."
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">City</p>
+                              <Input
+                                value={manualRegistrantDetails.city}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, city: e.target.value })}
+                                placeholder="City"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Country</p>
+                              <Input
+                                value={manualRegistrantDetails.country}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, country: e.target.value })}
+                                placeholder="Kenya"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Postal Code</p>
+                              <Input
+                                value={manualRegistrantDetails.postalCode}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, postalCode: e.target.value })}
+                                placeholder="e.g. 00100"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Phone Number</p>
+                              <Input
+                                value={manualRegistrantDetails.phone}
+                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, phone: e.target.value })}
+                                placeholder="0712345678"
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "relative flex cursor-pointer rounded-lg border bg-card p-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
+                  registrantType === "myself" ? "border-primary ring-1 ring-primary" : "border-border"
+                )}
+                onClick={() => setRegistrantType("myself")}
+              >
+                <div className="flex w-full items-start gap-4">
+                  <div className={cn(
+                    "mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    registrantType === "myself" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  )}>
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-foreground">Use My Details</p>
+                      {registrantType === "myself" && <div className="h-2 w-2 rounded-full bg-primary" />}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Use your own profile details as the domain registrant.
+                    </p>
+                    {userProfile && (
+                      <div className="mt-3 text-[11px] grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground bg-muted/30 p-2 rounded">
+                        <div>Name: {userProfile.firstName} {userProfile.lastName}</div>
+                        <div>Phone: {userProfile.phone}</div>
+                        <div className="col-span-2">Address: {userProfile.address}, {userProfile.city}</div>
+                      </div>
+                    )}
+                    {!isProfileComplete && (
+                      <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-md">
+                        <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs font-semibold mb-1">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Profile Incomplete
+                        </div>
+                        <p className="text-[11px] text-red-600/80 dark:text-red-400/80 mb-2">
+                          Your profile is missing required information (address, phone, etc.) needed for domain registration.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] border-red-200 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`/my-profile`, "_blank");
+                          }}
+                        >
+                          Complete Profile
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       case "success":
         return (
           <div className="space-y-4 text-center py-4">
@@ -1112,6 +1454,7 @@ export function GlobalBuyNowDialog() {
     if (effectiveStep === "hosting-upsell") return "Add hosting";
     if (effectiveStep === "plan-selection") return `Select plan: ${planSelectionProductName}`;
     if (effectiveStep === "review") return "Complete and review";
+    if (effectiveStep === "registrant_info") return "Registrant details";
     if (effectiveStep === "payment") return "Choose payment method";
     if (effectiveStep === "success") return "Order confirmed";
     if (effectiveStep === "error") return "Payment failed";
@@ -1128,6 +1471,7 @@ export function GlobalBuyNowDialog() {
             {effectiveStep === "hosting-upsell" && "Add hosting (optional)."}
             {effectiveStep === "plan-selection" && "Choose a plan."}
             {effectiveStep === "review" && "Review and proceed to checkout."}
+            {effectiveStep === "registrant_info" && "Choose whose details to use for registration."}
             {effectiveStep === "payment" && "Complete your payment."}
             {effectiveStep === "success" && "Order confirmed."}
             {effectiveStep === "error" && "Payment could not be completed."}
@@ -1151,6 +1495,8 @@ export function GlobalBuyNowDialog() {
                     setPlanSelectionProductName(ctx.productName);
                     setIsSelectingMainProductPlan(true);
                     setCurrentStep("plan-selection");
+                  } else if (isAgencySide && isDomainProduct) {
+                    setCurrentStep("registrant_info");
                   } else setCurrentStep("review");
                 }}
               >
@@ -1161,7 +1507,10 @@ export function GlobalBuyNowDialog() {
           {effectiveStep === "hosting-upsell" && (
             <>
               <Button variant="ghost" onClick={handleBack}>Back</Button>
-              <Button onClick={() => setCurrentStep("review")}>Proceed to checkout</Button>
+              <Button onClick={() => {
+                if (isAgencySide && isDomainProduct) setCurrentStep("registrant_info");
+                else setCurrentStep("review");
+              }}>Proceed to checkout</Button>
             </>
           )}
           {effectiveStep === "plan-selection" && (
@@ -1177,7 +1526,29 @@ export function GlobalBuyNowDialog() {
               >
                 Back
               </Button>
-              <Button onClick={addSelectedPlanToUpsell} disabled={!selectedPlanId}>Continue</Button>
+              <Button
+                disabled={!selectedPlanId}
+                onClick={() => {
+                  if (isAgencySide && isDomainProduct) setCurrentStep("registrant_info");
+                  else setCurrentStep("review");
+                }}
+              >
+                Next
+              </Button>
+            </>
+          )}
+          {effectiveStep === "registrant_info" && (
+            <>
+              <Button variant="ghost" onClick={handleBack}>Back</Button>
+              <Button
+                disabled={
+                  (registrantType === "myself" && !isProfileComplete) ||
+                  (registrantType === "customer" && !isManualDetailsComplete)
+                }
+                onClick={() => openForPayment()}
+              >
+                Next
+              </Button>
             </>
           )}
           {effectiveStep === "review" && (
@@ -1185,7 +1556,15 @@ export function GlobalBuyNowDialog() {
               <Button variant="ghost" onClick={isCartMode ? () => close() : isTransferMode ? () => close() : handleBack}>
                 {isCartMode ? "Cancel" : isTransferMode ? "Cancel" : "Back"}
               </Button>
-              <Button onClick={openForPayment}>
+              <Button
+                onClick={() => {
+                  if (isAgencySide && isDomainProduct) {
+                    setCurrentStep("registrant_info");
+                  } else {
+                    openForPayment();
+                  }
+                }}
+              >
                 {isTransferMode ? "Proceed to payment" : "Choose payment method"}
               </Button>
             </>

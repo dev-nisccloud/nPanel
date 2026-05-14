@@ -46,6 +46,19 @@ export const transferItemMetadataSchema = z
 		nameServers: z
 			.array(z.object({ name: z.string(), ip: z.string().optional() }))
 			.optional(),
+		useRegistrantInfo: z.enum(["myself", "customer"]).optional(),
+		manualRegistrantDetails: z
+			.object({
+				firstName: z.string().optional(),
+				lastName: z.string().optional(),
+				email: z.string().optional(),
+				address: z.string().optional(),
+				city: z.string().optional(),
+				country: z.string().optional(),
+				postalCode: z.string().optional(),
+				phone: z.string().optional(),
+			})
+			.optional(),
 	})
 	.optional();
 export type TransferItemMetadata = z.infer<typeof transferItemMetadataSchema>;

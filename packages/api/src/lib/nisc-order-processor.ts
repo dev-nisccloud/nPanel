@@ -690,6 +690,24 @@ function billingCycleToYears(billingCycle: string | null): number {
 	return 1;
 }
 
+async function resolveOwnerId(order: DomainOrder, item: DomainOrderItem): Promise<string | null> {
+	const metadata = item.metadata as { useRegistrantInfo?: string } | null;
+	if (metadata?.useRegistrantInfo === "myself") {
+		return order.createdBy;
+	}
+
+	if (order.teamId) {
+		const teamRow = await db
+			.select({ createdById: team.createdById })
+			.from(team)
+			.where(eq(team.id, order.teamId))
+			.limit(1);
+		return teamRow[0]?.createdById ?? order.userId;
+	}
+
+	return order.userId;
+}
+
 /** KENIC TLD (.ke, .co.ke, etc.): registration via Nisc using EPP (contacts + domain create). */
 async function processKenicOrderItem(
 	order: DomainOrder,
@@ -702,15 +720,7 @@ async function processKenicOrderItem(
 	if (!domain) {
 		return { ok: false, error: "Primary domain is required for KENIC domain registration." };
 	}
-	const ownerId = order.teamId
-		? (
-				await db
-					.select({ createdById: team.createdById })
-					.from(team)
-					.where(eq(team.id, order.teamId))
-					.limit(1)
-			)[0]?.createdById
-		: order.userId;
+	const ownerId = await resolveOwnerId(order, item);
 	if (!ownerId || !order.createdBy) {
 		return {
 			ok: false,
@@ -718,17 +728,45 @@ async function processKenicOrderItem(
 		};
 	}
 	try {
+		const metadata = item.metadata as {
+			nameServers?: Array<{ name: string; ip?: string }>;
+			manualRegistrantDetails?: any;
+		} | null;
+		void niscLog("processor_item_metadata", {
+			niscOrderId: order.id,
+			orderItemId: item.id,
+			metadata,
+		});
+
 		const { contactId } = await ensureKenicIntegration(ownerId, order.createdBy, {
+			logContext: { niscOrderId: order.id, orderItemId: item.id },
+			manualDetails: metadata?.manualRegistrantDetails,
+		});
+		const period = billingCycleToYears(item.billingCycle);
+		let nameServers = metadata?.nameServers;
+
+		if (!nameServers || nameServers.length === 0) {
+			try {
+				const { resolveNameserversForDomain } = await import("./tld-resolution");
+				nameServers = await resolveNameserversForDomain(domain);
+			} catch (err) {
+				return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+			}
+		}
+
+		void niscLog("ensure_kenic_integration_success", {
+			contactId: contactId,
 			niscOrderId: order.id,
 			orderItemId: item.id,
 		});
-		const period = billingCycleToYears(item.billingCycle);
+
 		const regResult = await registerKenicDomain({
 			domainName: domain,
 			registrantContactId: contactId,
 			period,
 			orderId: order.id,
 			orderItemId: item.id,
+			nameServers,
 		});
 		const name = item.productPlan
 			? `${item.product.name} - ${item.productPlan.name}`
@@ -810,15 +848,7 @@ async function processKenicTransferOrderItem(
 	if (!authCode) {
 		return { ok: false, error: "Transfer auth code is required. Provide it in the order item metadata (transferAuthCode)." };
 	}
-	const ownerId = order.teamId
-		? (
-				await db
-					.select({ createdById: team.createdById })
-					.from(team)
-					.where(eq(team.id, order.teamId))
-					.limit(1)
-			)[0]?.createdById
-		: order.userId;
+	const ownerId = await resolveOwnerId(order, item);
 	if (!ownerId || !order.createdBy) {
 		return {
 			ok: false,
@@ -826,11 +856,24 @@ async function processKenicTransferOrderItem(
 		};
 	}
 	try {
+		const metadata = item.metadata as DomainTransferItemMetadata & { manualRegistrantDetails?: any };
+		let nameServers = metadata?.nameServers;
+
+		if (!nameServers || nameServers.length === 0) {
+			try {
+				const { resolveNameserversForDomain } = await import("./tld-resolution");
+				nameServers = await resolveNameserversForDomain(domain);
+			} catch (err) {
+				return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+			}
+		}
+
 		const { executeKenicTransferRequest } = await import("./kenic-transfer-request");
 		const transferResult = await executeKenicTransferRequest({
 			name: domain,
 			authCode,
 			period: 1,
+			nameServers,
 		});
 		const name = item.productPlan
 			? `${item.product.name} - ${item.productPlan.name}`
@@ -926,20 +969,23 @@ async function processOpenProviderTransferOrderItem(
 		return { ok: false, error: "Transfer auth code is required. Provide it in the order item metadata (transferAuthCode)." };
 	}
 
-	const ownerId = order.teamId
-		? (
-				await db
-					.select({ createdById: team.createdById })
-					.from(team)
-					.where(eq(team.id, order.teamId))
-					.limit(1)
-			)[0]?.createdById
-		: order.userId;
+	const ownerId = await resolveOwnerId(order, item);
 	if (!ownerId || !order.createdBy) {
 		return { ok: false, error: "Order must have a team or user and createdBy for domain transfer." };
 	}
 
 	try {
+		let nameServers = meta?.nameServers;
+
+		if (!nameServers || nameServers.length === 0) {
+			try {
+				const { resolveNameserversForDomain } = await import("./tld-resolution");
+				nameServers = await resolveNameserversForDomain(domainName);
+			} catch (err) {
+				return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+			}
+		}
+
 		const openProvider = await import("@npanel/api/lib/openprovider-nisc");
 		const result = await openProvider.ensureOpenProviderAndTransferDomain({
 			ownerId,
@@ -956,7 +1002,8 @@ async function processOpenProviderTransferOrderItem(
 			billingCycle: item.billingCycle,
 			itemPrice: item.itemPrice,
 			currency: order.currency,
-			nameServers: meta?.nameServers,
+			nameServers,
+			manualDetails: metadata?.manualRegistrantDetails,
 		});
 		return {
 			ok: true,
@@ -998,20 +1045,27 @@ async function processOpenProviderOrderItem(
 		return { ok: false, error: "Primary domain is required for domain registration." };
 	}
 
-	const ownerId = order.teamId
-		? (
-				await db
-					.select({ createdById: team.createdById })
-					.from(team)
-					.where(eq(team.id, order.teamId))
-					.limit(1)
-			)[0]?.createdById
-		: order.userId;
+	const ownerId = await resolveOwnerId(order, item);
 	if (!ownerId || !order.createdBy) {
 		return { ok: false, error: "Order must have a team or user and createdBy for domain registration." };
 	}
 
 	try {
+		const metadata = item.metadata as {
+			nameServers?: Array<{ name: string; ip?: string }>;
+			manualRegistrantDetails?: any;
+		} | null;
+		let nameServers = metadata?.nameServers;
+
+		if (!nameServers || nameServers.length === 0) {
+			try {
+				const { resolveNameserversForDomain } = await import("./tld-resolution");
+				nameServers = await resolveNameserversForDomain(domainName);
+			} catch (err) {
+				return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+			}
+		}
+
 		const openProvider = await import("@npanel/api/lib/openprovider-nisc");
 		const result = await openProvider.ensureOpenProviderAndRegisterDomain({
 			ownerId,
@@ -1027,6 +1081,8 @@ async function processOpenProviderOrderItem(
 			billingCycle: item.billingCycle,
 			itemPrice: item.itemPrice,
 			currency: order.currency,
+			nameServers,
+			manualDetails: metadata?.manualRegistrantDetails,
 		});
 		if (result.subscriptionId) {
 			return {

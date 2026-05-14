@@ -13,8 +13,7 @@ import {
 	niscProductPlan,
 } from "@npanel/db/schema/products";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
-import { team } from "@npanel/db/schema/teams";
-import { teamMember } from "@npanel/db/schema/teams";
+import { team, teamMember, teamBillingSettings } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
@@ -611,50 +610,83 @@ export const niscServiceOrdersRouter = router({
 				}
 			}
 
-			const needsProfile = await Promise.all(
-				input.items.map(async (i) => {
-					const pRows = await db
-						.select({ serviceType: niscProduct.serviceType })
-						.from(niscProduct)
-						.where(eq(niscProduct.id, i.productId))
-						.limit(1);
-					const p = pRows[0];
-					return (
-						p?.serviceType === "web_hosting" ||
-						p?.serviceType === "email_hosting" ||
-						p?.serviceType === "domain_registration" ||
-						p?.serviceType === "domain_transfer"
-					);
-				}),
-			).then((arr) => arr.some(Boolean));
+			for (const item of input.items) {
+				const serviceType = serviceTypeByProductId.get(item.productId);
+				const isDomain = serviceType === "domain_registration" || serviceType === "domain_transfer";
+				const metadata = item.metadata as { useRegistrantInfo?: string } | null;
 
-			if (needsProfile) {
-				const payProfileRows = await db
-					.select()
-					.from(userProfile)
-					.where(eq(userProfile.userId, userId))
-					.limit(1);
-				const profile = payProfileRows[0];
-				if (!profile) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Complete your profile information and retry creating an order.",
-					});
-				}
-				const required = [
-					profile.firstName,
-					profile.lastName,
-					profile.address,
-					profile.city,
-					profile.country,
-					profile.postalCode,
-					profile.phone,
-				];
-				if (required.some((f) => !f || String(f).trim() === "")) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Complete your profile information and retry creating an order.",
-					});
+				if (isDomain) {
+					if (metadata?.useRegistrantInfo === "myself") {
+						const profRows = await db
+							.select()
+							.from(userProfile)
+							.where(eq(userProfile.userId, userId))
+							.limit(1);
+						const prof = profRows[0];
+						if (
+							!prof ||
+							[
+								prof.firstName,
+								prof.lastName,
+								prof.address,
+								prof.city,
+								prof.country,
+								prof.postalCode,
+								prof.phone,
+							].some((f) => !f || String(f).trim() === "")
+						) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message:
+									"Complete your profile details before using your own details for registration.",
+							});
+						}
+					} else if (metadata?.useRegistrantInfo === "customer") {
+						const manual = (metadata as any).manualRegistrantDetails;
+						if (
+							!manual ||
+							[
+								manual.firstName,
+								manual.lastName,
+								manual.email,
+								manual.address,
+								manual.city,
+								manual.country,
+								manual.phone,
+							].some((f) => !f || String(f).trim() === "")
+						) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message:
+									"Customer registration details are incomplete. Please fill all required fields.",
+							});
+						}
+					} else {
+						// Fallback/Legacy: check user profile
+						const profRows = await db
+							.select()
+							.from(userProfile)
+							.where(eq(userProfile.userId, userId))
+							.limit(1);
+						const prof = profRows[0];
+						if (
+							!prof ||
+							[
+								prof.firstName,
+								prof.lastName,
+								prof.address,
+								prof.city,
+								prof.country,
+								prof.postalCode,
+								prof.phone,
+							].some((f) => !f || String(f).trim() === "")
+						) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Complete your profile details before proceeding.",
+							});
+						}
+					}
 				}
 			}
 

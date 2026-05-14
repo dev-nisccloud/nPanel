@@ -48,13 +48,25 @@ const PROFILE_REQUIRED = [
 	"phone",
 ] as const;
 
+export type ManualRegistrantDetails = {
+	firstName: string;
+	lastName: string;
+	email: string;
+	address: string;
+	city: string;
+	country: string;
+	postalCode?: string | null;
+	phone: string;
+	state?: string | null;
+};
+
 export type EnsureOpenProviderResult = {
 	subscriptionId?: string;
 	pendingVerification: boolean;
 };
 
 export async function ensureOpenProviderAndRegisterDomain(params: {
-	ownerId: string;
+	ownerId: string | null;
 	createdBy: string;
 	domainName: string;
 	orderId: string;
@@ -67,79 +79,93 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 	billingCycle: string | null;
 	itemPrice: string;
 	currency: string;
+	nameServers?: Array<{ name: string; ip?: string }>;
+	manualDetails?: ManualRegistrantDetails;
 }): Promise<EnsureOpenProviderResult> {
-	const [userRow] = await db
-		.select({
-			id: userTable.id,
-			name: userTable.name,
-			email: userTable.email,
-			firstName: userProfile.firstName,
-			lastName: userProfile.lastName,
-			phone: userProfile.phone,
-			address: userProfile.address,
-			city: userProfile.city,
-			state: userProfile.state,
-			country: userProfile.country,
-			postalCode: userProfile.postalCode,
-			profileUserId: userProfile.userId,
-		})
-		.from(userTable)
-		.leftJoin(userProfile, eq(userProfile.userId, userTable.id))
-		.where(eq(userTable.id, params.ownerId))
-		.limit(1);
+	let ownerUser: { id: string | null; name: string; email: string; profile: ManualRegistrantDetails };
+	let integration: {
+		id: string;
+		platformCustomerId: string;
+		user: { email: string; name: string };
+	} | null = null;
 
-	if (!userRow?.profileUserId) {
-		throw new Error("User or profile not found. Complete your profile information and retry creating an order.");
+	if (params.manualDetails) {
+		ownerUser = {
+			id: null,
+			name: `${params.manualDetails.firstName} ${params.manualDetails.lastName}`,
+			email: params.manualDetails.email,
+			profile: params.manualDetails,
+		};
+	} else {
+		if (!params.ownerId) {
+			throw new Error("Owner ID is required when manual details are not provided.");
+		}
+		const [userRow] = await db
+			.select({
+				id: userTable.id,
+				name: userTable.name,
+				email: userTable.email,
+				firstName: userProfile.firstName,
+				lastName: userProfile.lastName,
+				phone: userProfile.phone,
+				address: userProfile.address,
+				city: userProfile.city,
+				state: userProfile.state,
+				country: userProfile.country,
+				postalCode: userProfile.postalCode,
+				profileUserId: userProfile.userId,
+			})
+			.from(userTable)
+			.leftJoin(userProfile, eq(userProfile.userId, userTable.id))
+			.where(eq(userTable.id, params.ownerId))
+			.limit(1);
+
+		if (!userRow?.profileUserId) {
+			throw new Error(
+				"User or profile not found. Complete your profile information and retry creating an order.",
+			);
+		}
+
+		ownerUser = {
+			id: userRow.id,
+			name: userRow.name,
+			email: userRow.email,
+			profile: {
+				firstName: userRow.firstName ?? "",
+				lastName: userRow.lastName ?? "",
+				address: userRow.address ?? "",
+				city: userRow.city ?? "",
+				country: userRow.country ?? "",
+				postalCode: userRow.postalCode ?? "",
+				state: userRow.state ?? null,
+				phone: userRow.phone ?? "",
+			},
+		};
+
+		const [integrationRow] = await db
+			.select({
+				id: customerIntegration.id,
+				platformCustomerId: customerIntegration.platformCustomerId,
+			})
+			.from(customerIntegration)
+			.where(
+				and(
+					eq(customerIntegration.userId, params.ownerId),
+					eq(customerIntegration.platform, "OPENPROVIDER"),
+				),
+			)
+			.limit(1);
+
+		if (integrationRow) {
+			integration = {
+				id: integrationRow.id,
+				platformCustomerId: integrationRow.platformCustomerId ?? "",
+				user: { email: ownerUser.email, name: ownerUser.name },
+			};
+		}
 	}
-
-	const ownerUser = {
-		id: userRow.id,
-		name: userRow.name,
-		email: userRow.email,
-		profile: {
-			firstName: userRow.firstName ?? "",
-			lastName: userRow.lastName ?? "",
-			address: userRow.address ?? "",
-			city: userRow.city ?? "",
-			country: userRow.country ?? "",
-			postalCode: userRow.postalCode ?? "",
-			state: userRow.state ?? null,
-			phone: userRow.phone ?? "",
-		},
-	};
 
 	const profile = ownerUser.profile;
-	const missing = PROFILE_REQUIRED.filter(
-		(k) => !(profile as Record<string, unknown>)[k] || String((profile as Record<string, unknown>)[k]).trim() === "",
-	);
-	if (missing.length > 0) {
-		throw new Error(
-			"Complete your profile information (first name, last name, address, city, country, postal code, phone) and retry creating an order.",
-		);
-	}
-
-	const [integrationRow] = await db
-		.select({
-			id: customerIntegration.id,
-			platformCustomerId: customerIntegration.platformCustomerId,
-		})
-		.from(customerIntegration)
-		.where(
-			and(
-				eq(customerIntegration.userId, params.ownerId),
-				eq(customerIntegration.platform, "OPENPROVIDER"),
-			),
-		)
-		.limit(1);
-
-	let integration: { id: string; platformCustomerId: string; user: { email: string; name: string } } | null =
-		integrationRow
-			? {
-					id: integrationRow.id,
-					platformCustomerId: integrationRow.platformCustomerId ?? "",
-					user: { email: ownerUser.email, name: ownerUser.name },
-				}
-			: null;
 
 	const client = createOpenProviderClient();
 	const authResponse = await client.authenticate({
@@ -178,12 +204,13 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		const handle = response.data?.handle;
 		if (!handle) throw new Error("OpenProvider did not return customer handle");
 
+		if (ownerUser.id) {
 			const now = new Date();
 			const inserted = await db
 				.insert(customerIntegration)
 				.values({
 					id: crypto.randomUUID(),
-					userId: params.ownerId,
+					userId: ownerUser.id,
 					platform: "OPENPROVIDER",
 					platformCustomerId: handle,
 					isCreated: true,
@@ -203,6 +230,13 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 				platformCustomerId: createdRow.platformCustomerId ?? "",
 				user: { email: ownerUser.email, name: ownerUser.name },
 			};
+		} else {
+			integration = {
+				id: "manual",
+				platformCustomerId: handle,
+				user: { email: ownerUser.email, name: ownerUser.name },
+			};
+		}
 
 		let alreadyVerified = false;
 		try {
@@ -351,6 +385,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		owner_handle: integration.platformCustomerId!,
 		admin_handle: integration.platformCustomerId!,
 		tech_handle: integration.platformCustomerId!,
+		name_servers: params.nameServers?.length ? params.nameServers : undefined,
 	};
 	void niscLog("processor_register_domain_request", {
 		niscOrderId: params.orderId,
@@ -414,79 +449,92 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	currency: string;
 	nameServers?: Array<{ name: string; ip?: string }>;
 	period?: number;
+	manualDetails?: ManualRegistrantDetails;
 }): Promise<EnsureOpenProviderTransferResult> {
-	const [userRow] = await db
-		.select({
-			id: userTable.id,
-			name: userTable.name,
-			email: userTable.email,
-			firstName: userProfile.firstName,
-			lastName: userProfile.lastName,
-			phone: userProfile.phone,
-			address: userProfile.address,
-			city: userProfile.city,
-			state: userProfile.state,
-			country: userProfile.country,
-			postalCode: userProfile.postalCode,
-			profileUserId: userProfile.userId,
-		})
-		.from(userTable)
-		.leftJoin(userProfile, eq(userProfile.userId, userTable.id))
-		.where(eq(userTable.id, params.ownerId))
-		.limit(1);
+	let ownerUser: { id: string | null; name: string; email: string; profile: ManualRegistrantDetails };
+	let integration: {
+		id: string;
+		platformCustomerId: string;
+		user: { email: string; name: string };
+	} | null = null;
 
-	if (!userRow?.profileUserId) {
-		throw new Error("User or profile not found. Complete your profile information and retry.");
+	if (params.manualDetails) {
+		ownerUser = {
+			id: null,
+			name: `${params.manualDetails.firstName} ${params.manualDetails.lastName}`,
+			email: params.manualDetails.email,
+			profile: params.manualDetails,
+		};
+	} else {
+		if (!params.ownerId) {
+			throw new Error("Owner ID is required when manual details are not provided.");
+		}
+		const [userRow] = await db
+			.select({
+				id: userTable.id,
+				name: userTable.name,
+				email: userTable.email,
+				firstName: userProfile.firstName,
+				lastName: userProfile.lastName,
+				phone: userProfile.phone,
+				address: userProfile.address,
+				city: userProfile.city,
+				state: userProfile.state,
+				country: userProfile.country,
+				postalCode: userProfile.postalCode,
+				profileUserId: userProfile.userId,
+			})
+			.from(userTable)
+			.leftJoin(userProfile, eq(userProfile.userId, userTable.id))
+			.where(eq(userTable.id, params.ownerId))
+			.limit(1);
+
+		if (!userRow?.profileUserId) {
+			throw new Error(
+				"User or profile not found. Complete your profile information and retry.",
+			);
+		}
+
+		ownerUser = {
+			id: userRow.id,
+			name: userRow.name,
+			email: userRow.email,
+			profile: {
+				firstName: userRow.firstName ?? "",
+				lastName: userRow.lastName ?? "",
+				phone: userRow.phone ?? "",
+				address: userRow.address ?? "",
+				city: userRow.city ?? "",
+				state: userRow.state ?? null,
+				country: userRow.country ?? "",
+				postalCode: userRow.postalCode ?? "",
+			},
+		};
+
+		const [integrationRow] = await db
+			.select({
+				id: customerIntegration.id,
+				platformCustomerId: customerIntegration.platformCustomerId,
+			})
+			.from(customerIntegration)
+			.where(
+				and(
+					eq(customerIntegration.userId, params.ownerId),
+					eq(customerIntegration.platform, "OPENPROVIDER"),
+				),
+			)
+			.limit(1);
+
+		if (integrationRow) {
+			integration = {
+				id: integrationRow.id,
+				platformCustomerId: integrationRow.platformCustomerId ?? "",
+				user: { email: ownerUser.email, name: ownerUser.name },
+			};
+		}
 	}
-
-	const ownerUser = {
-		id: userRow.id,
-		name: userRow.name,
-		email: userRow.email,
-		profile: {
-			firstName: userRow.firstName ?? "",
-			lastName: userRow.lastName ?? "",
-			phone: userRow.phone ?? "",
-			address: userRow.address ?? "",
-			city: userRow.city ?? "",
-			state: userRow.state ?? null,
-			country: userRow.country ?? "",
-			postalCode: userRow.postalCode ?? "",
-		},
-	};
 
 	const profile = ownerUser.profile;
-	const missing = PROFILE_REQUIRED.filter(
-		(k) => !(profile as Record<string, unknown>)[k] || String((profile as Record<string, unknown>)[k]).trim() === "",
-	);
-	if (missing.length > 0) {
-		throw new Error(
-			"Complete your profile information (first name, last name, address, city, country, postal code, phone) and retry.",
-		);
-	}
-
-	const [integrationRow] = await db
-		.select({
-			id: customerIntegration.id,
-			platformCustomerId: customerIntegration.platformCustomerId,
-		})
-		.from(customerIntegration)
-		.where(
-			and(
-				eq(customerIntegration.userId, params.ownerId),
-				eq(customerIntegration.platform, "OPENPROVIDER"),
-			),
-		)
-		.limit(1);
-
-	let integration: { id: string; platformCustomerId: string; user: { email: string; name: string } } | null =
-		integrationRow
-			? {
-					id: integrationRow.id,
-					platformCustomerId: integrationRow.platformCustomerId ?? "",
-					user: { email: ownerUser.email, name: ownerUser.name },
-				}
-			: null;
 
 	const client = createOpenProviderClient();
 	const authResponse = await client.authenticate({
@@ -524,31 +572,39 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		const handle = response.data?.handle;
 		if (!handle) throw new Error("OpenProvider did not return customer handle");
 
-		const now = new Date();
-		const inserted = await db
-			.insert(customerIntegration)
-			.values({
-				id: crypto.randomUUID(),
-				userId: params.ownerId,
-				platform: "OPENPROVIDER",
-				platformCustomerId: handle,
-				isCreated: true,
-				isActive: true,
-				createdBy: params.createdBy,
-				createdAt: now,
-				lastSyncedAt: now,
-				updatedAt: now,
-				platformData: response.data ?? null,
-			})
-			.returning();
+		if (ownerUser.id) {
+			const now = new Date();
+			const inserted = await db
+				.insert(customerIntegration)
+				.values({
+					id: crypto.randomUUID(),
+					userId: ownerUser.id,
+					platform: "OPENPROVIDER",
+					platformCustomerId: handle,
+					isCreated: true,
+					isActive: true,
+					createdBy: params.createdBy,
+					createdAt: now,
+					lastSyncedAt: now,
+					updatedAt: now,
+					platformData: response.data ?? null,
+				})
+				.returning();
 
-		const createdRow = inserted[0];
-		if (!createdRow) throw new Error("Failed to create OpenProvider integration");
-		integration = {
-			id: createdRow.id,
-			platformCustomerId: createdRow.platformCustomerId ?? "",
-			user: { email: ownerUser.email, name: ownerUser.name },
-		};
+			const createdRow = inserted[0];
+			if (!createdRow) throw new Error("Failed to create OpenProvider integration");
+			integration = {
+				id: createdRow.id,
+				platformCustomerId: createdRow.platformCustomerId ?? "",
+				user: { email: ownerUser.email, name: ownerUser.name },
+			};
+		} else {
+			integration = {
+				id: "manual",
+				platformCustomerId: handle,
+				user: { email: ownerUser.email, name: ownerUser.name },
+			};
+		}
 
 		let alreadyVerified = false;
 		try {
