@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AiDomainSearch } from "./$slug.domains/_components/ai-domain-search";
 import { DomainSearch } from "./$slug.domains/_components/domain-search";
 import { trpc } from "@/utils/trpc";
+import { AiTabTrigger } from "@/components/ai-tab-trigger";
 
 export default function DomainsPage() {
   const utils = trpc.useUtils();
@@ -27,7 +28,7 @@ export default function DomainsPage() {
         <div className="flex justify-center mb-6">
           <TabsList className="inline-flex w-auto">
             <TabsTrigger value="domain-search">Domain Search</TabsTrigger>
-            <TabsTrigger value="ai-domain-search">AI Domain Search</TabsTrigger>
+            <AiTabTrigger value="ai-domain-search" />
           </TabsList>
         </div>
 
