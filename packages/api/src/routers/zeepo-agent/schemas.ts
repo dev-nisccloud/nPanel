@@ -57,16 +57,144 @@ export const generateSessionTitleSchema = z.object({
 	sessionId: z.string(),
 });
 
-export const imageEditSchema = z.object({
-	/** Session the edit belongs to — used for auth only. */
+// ── Image edit history ────────────────────────────────────────────────────────
+
+export const listImageEditHistorySchema = z.object({
+	generationId: z.string(),
+});
+
+export const saveEditedImageSchema = z.object({
 	sessionId: z.string(),
-	/** URL of the source image to edit. */
+	generationId: z.string(),
+	parentId: z.string().optional(),
 	imageUrl: z.string().url(),
-	/** Plain-English instruction ("change the shirt colour to blue"). */
+	operationType: z
+		.enum([
+			"original",
+			"instruction",
+			"style",
+			"erase",
+			"background_swap",
+			"upscale",
+			"text_edit",
+			"variation",
+		])
+		.default("instruction"),
+	label: z.string().max(120).optional(),
+	prompt: z.string().max(1000).optional(),
+	metadata: z.record(z.unknown()).optional(),
+});
+
+// ── Style transfer ────────────────────────────────────────────────────────────
+
+export const STYLE_PRESETS = [
+	"watercolor",
+	"oil_painting",
+	"cinematic",
+	"anime",
+	"pixel_art",
+	"neon",
+	"pencil_sketch",
+	"vintage",
+] as const;
+
+export type StylePreset = (typeof STYLE_PRESETS)[number];
+
+export const styleTransferSchema = z.object({
+	sessionId: z.string(),
+	generationId: z.string(),
+	parentId: z.string().optional(),
+	imageUrl: z.string().url(),
+	style: z.enum(STYLE_PRESETS),
+	/** Custom prompt override (used when style is omitted). */
+	customPrompt: z.string().max(500).optional(),
+	outputFormat: z.enum(["webp", "png"]).default("webp"),
+	resolution: z.enum(["1 MP", "2 MP"]).default("1 MP"),
+});
+
+// ── Object erase ──────────────────────────────────────────────────────────────
+
+export const eraseObjectSchema = z.object({
+	sessionId: z.string(),
+	generationId: z.string(),
+	parentId: z.string().optional(),
+	imageUrl: z.string().url(),
+	/**
+	 * Base64 PNG data URL of the brush mask drawn by the user.
+	 * White pixels = erase this area, black = preserve.
+	 */
+	maskDataUrl: z.string().min(1),
+});
+
+// ── Background swap ───────────────────────────────────────────────────────────
+
+export const BG_PRESETS = [
+	"studio_white",
+	"gradient_blue",
+	"outdoor_park",
+	"office_desk",
+	"abstract_dark",
+	"sunset_beach",
+] as const;
+
+export const swapBackgroundSchema = z.object({
+	sessionId: z.string(),
+	generationId: z.string(),
+	parentId: z.string().optional(),
+	imageUrl: z.string().url(),
+	/** Natural-language description of the desired background. */
+	bgPrompt: z.string().min(1).max(500).trim(),
+	/** Optional preset key (for labelling history entries). */
+	bgPreset: z.enum(BG_PRESETS).optional(),
+});
+
+// ── Upscale ───────────────────────────────────────────────────────────────────
+
+export const upscaleImageSchema = z.object({
+	sessionId: z.string(),
+	generationId: z.string(),
+	parentId: z.string().optional(),
+	imageUrl: z.string().url(),
+});
+
+// ── Text edit ─────────────────────────────────────────────────────────────────
+
+export const editTextSchema = z.object({
+	sessionId: z.string(),
+	generationId: z.string(),
+	parentId: z.string().optional(),
+	imageUrl: z.string().url(),
+	/** What text to change and how, e.g. "Change 'SALE' to 'SOLD OUT'". */
+	prompt: z.string().min(1).max(500).trim(),
+});
+
+// ── Variations ────────────────────────────────────────────────────────────────
+
+export const generateVariationsSchema = z.object({
+	sessionId: z.string(),
+	generationId: z.string(),
+	parentId: z.string().optional(),
+	imageUrl: z.string().url(),
+	/** Optional extra instruction to apply to each variation. */
+	prompt: z.string().max(500).optional(),
+	outputFormat: z.enum(["webp", "png"]).default("webp"),
+});
+
+// ── Per-edit instruction edit (updated) ───────────────────────────────────────
+
+export const imageEditSchema = z.object({
+	sessionId: z.string(),
+	/** The generation this edit applies to — used to persist history. */
+	generationId: z.string().optional(),
+	/** The parent history entry this was derived from. */
+	parentId: z.string().optional(),
+	imageUrl: z.string().url(),
 	prompt: z.string().min(1).max(1000).trim(),
 	/**
-	 * Base64 PNG data URL of the brush mask (white = edit region, black = preserve).
-	 * When present → flux-fill-dev (inpainting). Absent → flux-kontext-dev (instruction edit).
+	 * Base64 PNG data URL of the brush mask drawn by the user.
+	 * When present the prompt is prefixed with a region-specific instruction.
 	 */
 	maskDataUrl: z.string().optional(),
+	outputFormat: z.enum(["webp", "png"]).default("webp"),
+	resolution: z.enum(["1 MP", "2 MP"]).default("1 MP"),
 });

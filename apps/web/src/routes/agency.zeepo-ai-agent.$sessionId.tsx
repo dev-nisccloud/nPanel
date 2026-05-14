@@ -38,7 +38,22 @@ import {
   Trash2,
   Minus,
   Redo2,
+  Eraser,
+  Palette,
+  Type,
+  Shuffle,
+  ZoomIn,
+  Layers,
+  Clock,
+  SplitSquareHorizontal,
+  Sparkles,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { pdf } from "@react-pdf/renderer";
@@ -357,6 +372,23 @@ export default function ZeepoAiAgentSessionPage() {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const panelImgRef = React.useRef<HTMLImageElement>(null);
   const isDrawingOnCanvas = React.useRef(false);
+
+  // ── Extended image-edit panel state ────────────────────────────────────────
+  type ImageEditMode = "instruct" | "style" | "erase" | "background" | "upscale" | "text_edit" | "variations";
+  const [editMode, setEditMode] = React.useState<ImageEditMode>("instruct");
+  const [outputFormat, setOutputFormat] = React.useState<"webp" | "png">("webp");
+  const [outputResolution, setOutputResolution] = React.useState<"1 MP" | "2 MP">("1 MP");
+  const [showBeforeAfter, setShowBeforeAfter] = React.useState(false);
+  const [customBgPrompt, setCustomBgPrompt] = React.useState("");
+  const [variationsResult, setVariationsResult] = React.useState<Array<{ imageUrl: string; record: { id: string; label?: string | null } }>>([]);
+  const [showHistoryDrawer, setShowHistoryDrawer] = React.useState(false);
+  /** Tracks the current history entry id so next edits chain correctly. */
+  const [panelHistoryEntryId, setPanelHistoryEntryId] = React.useState<string>("");
+  /** True while any image-edit operation (style, erase, bg, etc.) is running. */
+  const [editOpPending, setEditOpPending] = React.useState(false);
+  /** Label for the loading overlay. */
+  const [editOpLabel, setEditOpLabel] = React.useState("AI is editing your image…");
+
   const [questionFlow, setQuestionFlow] = React.useState<QuestionFlowState | null>(null);
   const [dismissedQuestionIds, setDismissedQuestionIds] = React.useState<Set<string>>(
     () => new Set(),
@@ -426,22 +458,74 @@ export default function ZeepoAiAgentSessionPage() {
     }
   };
 
+  /** Shared helper — called after any image edit operation completes. */
+  const applyEditResult = React.useCallback((newUrl: string, historyId?: string) => {
+    setPanelImageHistory((h) => [panelImageUrl, ...h]);
+    setPanelRedoStack([]);
+    setPanelImageUrl(newUrl);
+    if (historyId) setPanelHistoryEntryId(historyId);
+    setHasDrawing(false);
+    setVariationsResult([]);
+    setEditOpPending(false);
+    const ctx = canvasRef.current?.getContext("2d");
+    if (ctx && canvasRef.current)
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelImageUrl]);
+
   const editImage = trpc.zeepoAgent.chat.editImage.useMutation({
     onSuccess: (result) => {
       if (!result.imageUrl) return;
-      setPanelImageHistory((h) => [panelImageUrl, ...h]);
-      setPanelRedoStack([]); // new edit clears redo history
-      setPanelImageUrl(result.imageUrl);
+      applyEditResult(result.imageUrl);
       setEditPrompt("");
-      setHasDrawing(false);
-      // Clear canvas after successful edit.
-      const ctx = canvasRef.current?.getContext("2d");
-      if (ctx && canvasRef.current) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      }
     },
-    onError: (e) => toast.error(e.message || "Image edit failed"),
+    onError: (e) => { setEditOpPending(false); toast.error(e.message || "Image edit failed"); },
   });
+
+  const styleTransfer = trpc.zeepoAgent.imageEdits.styleTransfer.useMutation({
+    onSuccess: (r) => { applyEditResult(r.imageUrl, r.record.id); },
+    onError: (e) => { setEditOpPending(false); toast.error(e.message || "Style transfer failed"); },
+  });
+
+  const eraseObject = trpc.zeepoAgent.imageEdits.eraseObject.useMutation({
+    onSuccess: (r) => { applyEditResult(r.imageUrl, r.record.id); },
+    onError: (e) => { setEditOpPending(false); toast.error(e.message || "Erase failed"); },
+  });
+
+  const swapBackground = trpc.zeepoAgent.imageEdits.swapBackground.useMutation({
+    onSuccess: (r) => { applyEditResult(r.imageUrl, r.record.id); },
+    onError: (e) => { setEditOpPending(false); toast.error(e.message || "Background swap failed"); },
+  });
+
+  const upscaleImage = trpc.zeepoAgent.imageEdits.upscaleImage.useMutation({
+    onSuccess: (r) => { applyEditResult(r.imageUrl, r.record.id); },
+    onError: (e) => { setEditOpPending(false); toast.error(e.message || "Upscale failed"); },
+  });
+
+  const editText = trpc.zeepoAgent.imageEdits.editText.useMutation({
+    onSuccess: (r) => { applyEditResult(r.imageUrl, r.record.id); setEditPrompt(""); },
+    onError: (e) => { setEditOpPending(false); toast.error(e.message || "Text edit failed"); },
+  });
+
+  const generateVariations = trpc.zeepoAgent.imageEdits.generateVariations.useMutation({
+    onSuccess: (r) => {
+      setEditOpPending(false);
+      setVariationsResult((r.variations ?? []).filter(Boolean) as typeof variationsResult);
+    },
+    onError: (e) => { setEditOpPending(false); toast.error(e.message || "Variations failed"); },
+  });
+
+  const saveEditedImage = trpc.zeepoAgent.imageEdits.saveEditedImage.useMutation({
+    onSuccess: (r) => setPanelHistoryEntryId(r.record.id),
+  });
+
+  const panelGenerationId =
+    activePanel?.type === "media" ? (activePanel as { generationId?: string }).generationId ?? "" : "";
+
+  const editHistoryQuery = trpc.zeepoAgent.imageEdits.listEditHistory.useQuery(
+    { generationId: panelGenerationId },
+    { enabled: showHistoryDrawer && Boolean(panelGenerationId), staleTime: 0 },
+  );
 
   const skillsQuery = trpc.zeepoAgent.skills.list.useQuery(undefined, {
     enabled: Boolean(authSession?.user),
@@ -762,6 +846,22 @@ export default function ZeepoAiAgentSessionPage() {
       setEditPrompt("");
       setEditBrushMode(false);
       setHasDrawing(false);
+      setEditMode("instruct");
+      setVariationsResult([]);
+      setShowBeforeAfter(false);
+      setPanelHistoryEntryId("");
+      setCustomBgPrompt("");
+      setEditOpPending(false);
+      // Persist the original image as the first history snapshot (fire-and-forget).
+      if (sessionId && activePanel.generationId) {
+        saveEditedImage.mutate({
+          sessionId,
+          generationId: activePanel.generationId,
+          imageUrl: activePanel.url,
+          operationType: "original",
+          label: "Original",
+        });
+      }
     }
   // Depend on the image URL specifically so it fires when a different image is opened.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -787,6 +887,36 @@ export default function ZeepoAiAgentSessionPage() {
       window.removeEventListener("resize", sync);
     };
   }, [editBrushMode, panelImageUrl]);
+
+  /**
+   * Resolve the theme's --primary colour to a canvas-compatible rgba() string.
+   * Lets the browser resolve hsl(var(--primary)) via a hidden DOM element,
+   * then blends toward white for a lighter brush tint. Cached in a ref.
+   */
+  const brushColorRef = React.useRef<string>("");
+  const getBrushColor = React.useCallback((): string => {
+    if (brushColorRef.current) return brushColorRef.current;
+    try {
+      const el = document.createElement("div");
+      el.setAttribute(
+        "style",
+        "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;color:hsl(var(--primary))",
+      );
+      document.body.appendChild(el);
+      const rgb = getComputedStyle(el).color; // "rgb(R, G, B)"
+      document.body.removeChild(el);
+      const m = rgb.match(/\d+/g);
+      if (m && m.length >= 3) {
+        const r = Math.round(parseInt(m[0]!) * 0.5 + 255 * 0.5);
+        const g = Math.round(parseInt(m[1]!) * 0.5 + 255 * 0.5);
+        const b = Math.round(parseInt(m[2]!) * 0.5 + 255 * 0.5);
+        brushColorRef.current = `rgba(${r},${g},${b},0.82)`;
+        return brushColorRef.current;
+      }
+    } catch { /* fall through */ }
+    brushColorRef.current = "rgba(96,165,250,0.82)";
+    return brushColorRef.current;
+  }, []);
 
   if (authPending) {
     return (
@@ -884,38 +1014,6 @@ export default function ZeepoAiAgentSessionPage() {
     y: e.nativeEvent.offsetY,
   });
 
-  /**
-   * Resolve the theme's --primary colour to a canvas-compatible rgba() string.
-   * We let the browser resolve hsl(var(--primary)) via a hidden DOM element,
-   * then blend the result toward white for a lighter brush tint.
-   * Result is cached in a ref so we only hit the DOM once per mount.
-   */
-  const brushColorRef = React.useRef<string>("");
-  const getBrushColor = React.useCallback((): string => {
-    if (brushColorRef.current) return brushColorRef.current;
-    try {
-      const el = document.createElement("div");
-      el.setAttribute(
-        "style",
-        "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;color:hsl(var(--primary))",
-      );
-      document.body.appendChild(el);
-      const rgb = getComputedStyle(el).color; // "rgb(R, G, B)"
-      document.body.removeChild(el);
-      const m = rgb.match(/\d+/g);
-      if (m && m.length >= 3) {
-        // 50% blend toward white → noticeably lighter variant of the primary blue
-        const r = Math.round(parseInt(m[0]!) * 0.5 + 255 * 0.5);
-        const g = Math.round(parseInt(m[1]!) * 0.5 + 255 * 0.5);
-        const b = Math.round(parseInt(m[2]!) * 0.5 + 255 * 0.5);
-        brushColorRef.current = `rgba(${r},${g},${b},0.82)`;
-        return brushColorRef.current;
-      }
-    } catch { /* fall through */ }
-    brushColorRef.current = "rgba(96,165,250,0.82)"; // blue-400 fallback
-    return brushColorRef.current;
-  }, []);
-
   const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
@@ -988,11 +1086,100 @@ export default function ZeepoAiAgentSessionPage() {
   const applyImageEdit = () => {
     if (!sessionId || !panelImageUrl || !editPrompt.trim()) return;
     const maskDataUrl = editBrushMode && hasDrawing ? getMaskDataUrl() : undefined;
+    setEditOpLabel(maskDataUrl ? "Regenerating selected region…" : "AI is editing your image…");
+    setEditOpPending(true);
     editImage.mutate({
       sessionId,
+      generationId: panelGenerationId || undefined,
+      parentId: panelHistoryEntryId || undefined,
       imageUrl: panelImageUrl,
       prompt: editPrompt.trim(),
       maskDataUrl: maskDataUrl ?? undefined,
+      outputFormat,
+      resolution: outputResolution,
+    });
+  };
+
+  const applyStyleTransfer = (style: string) => {
+    if (!sessionId || !panelImageUrl || !panelGenerationId) return;
+    setEditOpLabel(`Applying ${style.replace("_", " ")} style…`);
+    setEditOpPending(true);
+    styleTransfer.mutate({
+      sessionId,
+      generationId: panelGenerationId,
+      parentId: panelHistoryEntryId || undefined,
+      imageUrl: panelImageUrl,
+      style: style as Parameters<typeof styleTransfer.mutate>[0]["style"],
+      outputFormat,
+      resolution: outputResolution,
+    });
+  };
+
+  const applyErase = () => {
+    if (!sessionId || !panelImageUrl || !panelGenerationId || !hasDrawing) return;
+    const maskDataUrl = getMaskDataUrl();
+    if (!maskDataUrl) return;
+    setEditOpLabel("Erasing selected region…");
+    setEditOpPending(true);
+    eraseObject.mutate({
+      sessionId,
+      generationId: panelGenerationId,
+      parentId: panelHistoryEntryId || undefined,
+      imageUrl: panelImageUrl,
+      maskDataUrl,
+    });
+  };
+
+  const applyBackgroundSwap = (bgPrompt: string, bgPreset?: string) => {
+    if (!sessionId || !panelImageUrl || !panelGenerationId || !bgPrompt.trim()) return;
+    setEditOpLabel("Swapping background…");
+    setEditOpPending(true);
+    swapBackground.mutate({
+      sessionId,
+      generationId: panelGenerationId,
+      parentId: panelHistoryEntryId || undefined,
+      imageUrl: panelImageUrl,
+      bgPrompt: bgPrompt.trim(),
+      bgPreset: bgPreset as Parameters<typeof swapBackground.mutate>[0]["bgPreset"] | undefined,
+    });
+  };
+
+  const applyUpscale = () => {
+    if (!sessionId || !panelImageUrl || !panelGenerationId) return;
+    setEditOpLabel("Upscaling and enhancing…");
+    setEditOpPending(true);
+    upscaleImage.mutate({
+      sessionId,
+      generationId: panelGenerationId,
+      parentId: panelHistoryEntryId || undefined,
+      imageUrl: panelImageUrl,
+    });
+  };
+
+  const applyTextEdit = () => {
+    if (!sessionId || !panelImageUrl || !panelGenerationId || !editPrompt.trim()) return;
+    setEditOpLabel("Editing text in image…");
+    setEditOpPending(true);
+    editText.mutate({
+      sessionId,
+      generationId: panelGenerationId,
+      parentId: panelHistoryEntryId || undefined,
+      imageUrl: panelImageUrl,
+      prompt: editPrompt.trim(),
+    });
+  };
+
+  const applyGenerateVariations = () => {
+    if (!sessionId || !panelImageUrl || !panelGenerationId) return;
+    setEditOpLabel("Generating 3 variations…");
+    setEditOpPending(true);
+    generateVariations.mutate({
+      sessionId,
+      generationId: panelGenerationId,
+      parentId: panelHistoryEntryId || undefined,
+      imageUrl: panelImageUrl,
+      prompt: editPrompt.trim() || undefined,
+      outputFormat,
     });
   };
 
@@ -1959,29 +2146,21 @@ export default function ZeepoAiAgentSessionPage() {
       {activePanel && (
         <div
           className={cn(
-            // Mobile: absolute overlay that slides in over the chat
             "absolute inset-0 z-40 flex flex-col bg-background",
-            // Desktop: normal flex sibling next to the chat column
             "md:relative md:inset-auto md:z-auto md:flex-1",
             "animate-in slide-in-from-right-2 duration-200 md:animate-none",
           )}
         >
           {/* ── Panel header ───────────────────────────────── */}
-          <div className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5">
-              {activePanel.type === "document" ? (
-                <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
-                  <FileText className="size-4 text-primary" />
-                </div>
-              ) : activePanel.type === "media" && activePanel.kind === "audio" ? (
-                <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
-                  <Headphones className="size-4 text-primary" />
-                </div>
-              ) : (
-                <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
-                  <ImageIcon className="size-4 text-primary" />
-                </div>
-              )}
+          <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2.5">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
+                {activePanel.type === "document"
+                  ? <FileText className="size-3.5 text-primary" />
+                  : activePanel.type === "media" && activePanel.kind === "audio"
+                  ? <Headphones className="size-3.5 text-primary" />
+                  : <ImageIcon className="size-3.5 text-primary" />}
+              </div>
               <span className="truncate text-sm font-semibold">
                 {activePanel.type === "document"
                   ? activePanel.title
@@ -1993,51 +2172,79 @@ export default function ZeepoAiAgentSessionPage() {
               </span>
             </div>
 
-            {/* Actions */}
             <div className="flex shrink-0 items-center gap-1">
+              {/* Image-specific header controls */}
               {activePanel.type === "media" && activePanel.kind === "image" && (
                 <>
-                  {panelImageHistory.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8"
-                      aria-label="Undo edit"
-                      title="Undo"
-                      onClick={undoPanelEdit}
-                    >
-                      <Undo2 className="size-4" />
-                    </Button>
-                  )}
-                  {panelRedoStack.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-8"
-                      aria-label="Redo edit"
-                      title="Redo"
-                      onClick={redoPanelEdit}
-                    >
-                      <Redo2 className="size-4" />
-                    </Button>
-                  )}
+                  {/* Before / After toggle */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn("size-8", editBrushMode && "bg-primary/10 text-primary")}
-                    aria-label="Toggle brush mode"
-                    onClick={() => setEditBrushMode((v) => !v)}
+                    className={cn("size-7", showBeforeAfter && "bg-primary/10 text-primary")}
+                    title={showBeforeAfter ? "Viewing original" : "Compare with original"}
+                    onClick={() => setShowBeforeAfter((v) => !v)}
+                    disabled={!panelImageHistory.length}
                   >
-                    <Paintbrush className="size-4" />
+                    <SplitSquareHorizontal className="size-3.5" />
                   </Button>
+                  {/* Undo */}
+                  {panelImageHistory.length > 0 && (
+                    <Button variant="ghost" size="icon" className="size-7" title="Undo" onClick={undoPanelEdit}>
+                      <Undo2 className="size-3.5" />
+                    </Button>
+                  )}
+                  {/* Redo */}
+                  {panelRedoStack.length > 0 && (
+                    <Button variant="ghost" size="icon" className="size-7" title="Redo" onClick={redoPanelEdit}>
+                      <Redo2 className="size-3.5" />
+                    </Button>
+                  )}
+                  {/* History */}
+                  {panelGenerationId && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn("size-7", showHistoryDrawer && "bg-primary/10 text-primary")}
+                      title="Edit history"
+                      onClick={() => setShowHistoryDrawer(true)}
+                    >
+                      <Clock className="size-3.5" />
+                    </Button>
+                  )}
+                  {/* Format / Resolution */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px] font-normal text-muted-foreground">
+                        {outputResolution} · {outputFormat.toUpperCase()}
+                        <ChevronDown className="size-3 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Resolution</p>
+                      {(["1 MP", "2 MP"] as const).map((r) => (
+                        <DropdownMenuItem key={r} onClick={() => setOutputResolution(r)} className="gap-2">
+                          {outputResolution === r && <Check className="size-3 text-primary" />}
+                          <span className={outputResolution === r ? "" : "pl-5"}>{r}</span>
+                        </DropdownMenuItem>
+                      ))}
+                      <p className="mt-1 px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Format</p>
+                      {(["webp", "png"] as const).map((f) => (
+                        <DropdownMenuItem key={f} onClick={() => setOutputFormat(f)} className="gap-2">
+                          {outputFormat === f && <Check className="size-3 text-primary" />}
+                          <span className={outputFormat === f ? "" : "pl-5"}>{f.toUpperCase()}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               )}
+              {/* Download */}
               {activePanel.type === "media" && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-8"
-                  aria-label="Download"
+                  className="size-7"
+                  title="Download"
                   onClick={() => {
                     if (activePanel.type !== "media") return;
                     const url = activePanel.kind === "image" ? panelImageUrl || activePanel.url : activePanel.url;
@@ -2045,81 +2252,33 @@ export default function ZeepoAiAgentSessionPage() {
                     void downloadMediaFile(url, `zeepo-generation-${activePanel.generationId.slice(0, 8)}.${ext}`);
                   }}
                 >
-                  <Download className="size-4" />
+                  <Download className="size-3.5" />
                 </Button>
               )}
+              {/* Document export */}
               {activePanel.type === "document" && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5 text-xs">
-                      <Download className="size-3.5" />
-                      Export
-                      <ChevronDown className="size-3 opacity-60" />
+                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2.5 text-xs">
+                      <Download className="size-3.5" /> Export <ChevronDown className="size-3 opacity-60" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuItem
-                      onClick={async () => {
-                        if (activePanel.type !== "document") return;
-                        try {
-                          await navigator.clipboard.writeText(activePanel.content);
-                          setDocCopied(true);
-                          setTimeout(() => setDocCopied(false), 2000);
-                        } catch { /* ignore */ }
-                      }}
-                    >
-                      {docCopied
-                        ? <Check className="mr-2 size-4 text-green-500" />
-                        : <Copy className="mr-2 size-4" />}
+                    <DropdownMenuItem onClick={async () => { if (activePanel.type !== "document") return; try { await navigator.clipboard.writeText(activePanel.content); setDocCopied(true); setTimeout(() => setDocCopied(false), 2000); } catch { /* ignore */ } }}>
+                      {docCopied ? <Check className="mr-2 size-4 text-green-500" /> : <Copy className="mr-2 size-4" />}
                       {docCopied ? "Copied!" : "Copy document"}
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => {
-                        if (activePanel.type !== "document") return;
-                        const slug = activePanel.title
-                          .replace(/[^a-z0-9 \-_]/gi, "").trim()
-                          .replace(/\s+/g, "-").toLowerCase() || "document";
-                        const blob = new Blob([activePanel.content], { type: "text/markdown;charset=utf-8" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url; a.download = `${slug}.md`; a.click();
-                        URL.revokeObjectURL(url);
-                      }}
-                    >
-                      <Download className="mr-2 size-4" />
-                      Download Markdown
+                    <DropdownMenuItem onClick={() => { if (activePanel.type !== "document") return; const slug = activePanel.title.replace(/[^a-z0-9 \-_]/gi, "").trim().replace(/\s+/g, "-").toLowerCase() || "document"; const blob = new Blob([activePanel.content], { type: "text/markdown;charset=utf-8" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${slug}.md`; a.click(); URL.revokeObjectURL(url); }}>
+                      <Download className="mr-2 size-4" /> Download Markdown
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={async () => {
-                        if (activePanel.type !== "document") return;
-                        try {
-                          const blob = await pdf(
-                            <ZeepoDocumentPdf title={activePanel.title} content={activePanel.content} />
-                          ).toBlob();
-                          const slug = activePanel.title
-                            .replace(/[^a-z0-9 \-_]/gi, "").trim()
-                            .replace(/\s+/g, "-").toLowerCase() || "document";
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url; a.download = `${slug}.pdf`; a.click();
-                          URL.revokeObjectURL(url);
-                        } catch (err) { console.error("PDF generation failed:", err); }
-                      }}
-                    >
-                      <FileText className="mr-2 size-4" />
-                      Download PDF
+                    <DropdownMenuItem onClick={async () => { if (activePanel.type !== "document") return; try { const blob = await pdf(<ZeepoDocumentPdf title={activePanel.title} content={activePanel.content} />).toBlob(); const slug = activePanel.title.replace(/[^a-z0-9 \-_]/gi, "").trim().replace(/\s+/g, "-").toLowerCase() || "document"; const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `${slug}.pdf`; a.click(); URL.revokeObjectURL(url); } catch (err) { console.error("PDF generation failed:", err); } }}>
+                      <FileText className="mr-2 size-4" /> Download PDF
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-label="Close panel"
-                onClick={() => { setActivePanel(null); setDocCopied(false); }}
-              >
-                <X className="size-4" />
+              <Button variant="ghost" size="icon" className="size-7" aria-label="Close panel" onClick={() => { setActivePanel(null); setDocCopied(false); setShowHistoryDrawer(false); }}>
+                <X className="size-3.5" />
               </Button>
             </div>
           </div>
@@ -2129,44 +2288,68 @@ export default function ZeepoAiAgentSessionPage() {
             {activePanel.type === "media" ? (
               <div className="flex size-full flex-col items-center justify-center gap-4 p-4">
                 {activePanel.kind === "image" ? (
-                  <div className="relative flex min-h-0 flex-1 items-center justify-center">
-                    {editImage.isPending && (
-                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-xl bg-background/70 backdrop-blur-sm">
+                  <div className="relative flex min-h-0 flex-1 w-full items-center justify-center">
+                    {/* Loading overlay for any edit operation */}
+                    {(editOpPending || editImage.isPending) && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-xl bg-background/75 backdrop-blur-sm">
                         <Spinner size={28} className="text-primary" />
-                        <p className="text-xs font-medium text-foreground/80">
-                          {editBrushMode && hasDrawing
-                            ? "Regenerating selected region…"
-                            : "AI is editing your image…"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">This usually takes 10–20 seconds</p>
+                        <p className="text-xs font-medium text-foreground/80">{editOpLabel}</p>
+                        <p className="text-[11px] text-muted-foreground">This usually takes 10–30 seconds</p>
                       </div>
                     )}
-                    <img
-                      ref={panelImgRef}
-                      src={panelImageUrl || activePanel.url}
-                      alt=""
-                      className="max-h-full w-auto max-w-full rounded-xl object-contain"
-                      draggable={false}
-                    />
-                    {editBrushMode && (
-                      <canvas
-                        ref={canvasRef}
-                        className="absolute inset-0 cursor-crosshair rounded-xl"
-                        style={{ touchAction: "none" }}
-                        onMouseDown={startDraw}
-                        onMouseMove={continueDraw}
-                        onMouseUp={stopDraw}
-                        onMouseLeave={stopDraw}
-                      />
+                    {/* Before / After split view */}
+                    {showBeforeAfter && panelImageHistory.length > 0 ? (
+                      <div className="flex h-full w-full gap-2 overflow-hidden rounded-xl">
+                        <div className="flex flex-1 flex-col items-center gap-1 overflow-hidden">
+                          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Before</span>
+                          <img src={panelImageHistory[panelImageHistory.length - 1] ?? ""} alt="before" className="max-h-full w-auto max-w-full rounded-lg object-contain" draggable={false} />
+                        </div>
+                        <div className="flex flex-1 flex-col items-center gap-1 overflow-hidden">
+                          <span className="text-[10px] font-medium text-primary uppercase tracking-wide">After</span>
+                          <img src={panelImageUrl || activePanel.url} alt="after" className="max-h-full w-auto max-w-full rounded-lg object-contain" draggable={false} />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <img
+                          ref={panelImgRef}
+                          src={panelImageUrl || activePanel.url}
+                          alt=""
+                          className="max-h-full w-auto max-w-full rounded-xl object-contain"
+                          draggable={false}
+                        />
+                        {(editMode === "instruct" || editMode === "erase") && editBrushMode && (
+                          <canvas
+                            ref={canvasRef}
+                            className="absolute inset-0 cursor-crosshair rounded-xl"
+                            style={{ touchAction: "none" }}
+                            onMouseDown={startDraw}
+                            onMouseMove={continueDraw}
+                            onMouseUp={stopDraw}
+                            onMouseLeave={stopDraw}
+                          />
+                        )}
+                      </>
+                    )}
+                    {/* Variations strip */}
+                    {variationsResult.length > 0 && (
+                      <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-2">
+                        {variationsResult.map((v, i) => (
+                          <button
+                            key={v.record.id}
+                            onClick={() => applyEditResult(v.imageUrl, v.record.id)}
+                            className="group relative overflow-hidden rounded-lg border-2 border-transparent hover:border-primary focus:border-primary focus:outline-none transition-all"
+                            title={`Select variation ${i + 1}`}
+                          >
+                            <img src={v.imageUrl} alt={`Variation ${i + 1}`} className="h-20 w-20 object-cover" />
+                            <span className="absolute bottom-0 left-0 right-0 bg-black/50 py-0.5 text-center text-[10px] text-white">V{i + 1}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ) : activePanel.kind === "video" ? (
-                  <video
-                    src={activePanel.url}
-                    controls
-                    playsInline
-                    className="max-h-full w-full max-w-full rounded-xl bg-black"
-                  />
+                  <video src={activePanel.url} controls playsInline className="max-h-full w-full max-w-full rounded-xl bg-black" />
                 ) : (
                   <div className="flex w-full max-w-md flex-col items-center gap-4">
                     <Headphones className="size-12 text-muted-foreground" />
@@ -2194,12 +2377,7 @@ export default function ZeepoAiAgentSessionPage() {
                         ol: ({ node: _n, ...props }) => <ol className="list-decimal pl-6 mb-5 space-y-1.5 text-foreground/80" {...props} />,
                         li: ({ node: _n, children, ...props }) => <li className="leading-relaxed" {...props}>{children}</li>,
                         blockquote: ({ node: _n, ...props }) => <blockquote className="border-l-4 border-primary/40 pl-4 py-1 my-5 bg-primary/5 rounded-r-lg italic text-foreground/70" {...props} />,
-                        code: ({ node: _n, className, children, ...props }: any) => {
-                          const isBlock = className?.includes("language-");
-                          return isBlock
-                            ? <code className={`block text-sm font-mono ${className ?? ""}`} {...props}>{children}</code>
-                            : <code className="bg-muted text-foreground px-1.5 py-0.5 rounded text-[0.85em] font-mono" {...props}>{children}</code>;
-                        },
+                        code: ({ node: _n, className, children, ...props }: any) => { const isBlock = className?.includes("language-"); return isBlock ? <code className={`block text-sm font-mono ${className ?? ""}`} {...props}>{children}</code> : <code className="bg-muted text-foreground px-1.5 py-0.5 rounded text-[0.85em] font-mono" {...props}>{children}</code>; },
                         pre: ({ node: _n, ...props }) => <pre className="bg-muted/60 border border-muted rounded-xl p-4 my-5 overflow-x-auto text-sm font-mono leading-relaxed" {...props} />,
                         hr: ({ node: _n, ...props }) => <hr className="my-8 border-muted" {...props} />,
                         a: ({ node: _n, ...props }) => <a className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity" target="_blank" rel="noopener noreferrer" {...props} />,
@@ -2210,94 +2388,316 @@ export default function ZeepoAiAgentSessionPage() {
                         th: ({ node: _n, ...props }) => <th className="px-4 py-3 text-left font-semibold text-foreground border-b border-muted whitespace-nowrap" {...props} />,
                         td: ({ node: _n, ...props }) => <td className="px-4 py-2.5 text-foreground/75 align-top" {...props} />,
                       }}
-                    >
-                      {activePanel.content}
-                    </ReactMarkdown>
+                    >{activePanel.content}</ReactMarkdown>
                   </div>
                 </div>
               </ScrollArea>
             ) : null}
           </div>
 
-          {/* ── Edit toolbar — shrink-0 sibling so it's never hidden by the image ── */}
+          {/* ── Image edit toolbar — full revamp ───────────────── */}
           {activePanel.type === "media" && activePanel.kind === "image" && (
-            <div className="shrink-0 border-t bg-muted/20 px-3 py-2.5 space-y-2">
-                {/* Brush controls row (shown in brush mode) */}
-                {editBrushMode && (
-                  <div className="flex items-center gap-2">
-                    <Paintbrush className="size-3.5 shrink-0 text-muted-foreground" />
-                    <input
-                      type="range"
-                      min={8}
-                      max={80}
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="h-1.5 flex-1 accent-primary"
-                      aria-label="Brush size"
-                    />
-                    <span className="w-6 shrink-0 text-center text-[11px] text-muted-foreground">
-                      {brushSize}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7"
-                      disabled={!hasDrawing}
-                      onClick={clearCanvas}
-                      aria-label="Clear brush strokes"
-                    >
-                      <Trash2 className="size-3.5" />
+            <div className="shrink-0 border-t bg-muted/20">
+              {/* Mode tabs */}
+              <div className="flex items-center gap-0.5 overflow-x-auto border-b px-2 py-1.5 scrollbar-none">
+                {([
+                  { id: "instruct", icon: <Wand2 className="size-3" />, label: "Instruct" },
+                  { id: "style",    icon: <Palette className="size-3" />, label: "Style" },
+                  { id: "erase",    icon: <Eraser className="size-3" />, label: "Erase" },
+                  { id: "background", icon: <Layers className="size-3" />, label: "Background" },
+                  { id: "upscale",  icon: <ZoomIn className="size-3" />, label: "Upscale" },
+                  { id: "text_edit", icon: <Type className="size-3" />, label: "Text" },
+                  { id: "variations", icon: <Shuffle className="size-3" />, label: "Variations" },
+                ] as { id: ImageEditMode; icon: React.ReactNode; label: string }[]).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => { setEditMode(tab.id); setEditBrushMode(tab.id === "erase"); setVariationsResult([]); }}
+                    className={cn(
+                      "flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                      editMode === tab.id
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    {tab.icon}{tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Mode content */}
+              <div className="px-3 py-2.5 space-y-2">
+                {/* ── Instruct mode ── */}
+                {editMode === "instruct" && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className={cn("size-7 shrink-0", editBrushMode && "bg-primary/10 text-primary")} title="Toggle brush mask" onClick={() => setEditBrushMode((v) => !v)}>
+                        <Paintbrush className="size-3.5" />
+                      </Button>
+                      {editBrushMode && (
+                        <>
+                          <input type="range" min={8} max={80} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="h-1.5 flex-1 accent-primary" aria-label="Brush size" />
+                          <span className="w-6 shrink-0 text-center text-[11px] text-muted-foreground">{brushSize}</span>
+                          <Button type="button" variant="ghost" size="icon" className="size-7" disabled={!hasDrawing} onClick={clearCanvas}><Trash2 className="size-3.5" /></Button>
+                        </>
+                      )}
+                    </div>
+                    {/* Prompt chips */}
+                    <div className="flex flex-wrap gap-1">
+                      {["Remove background", "Make it brighter", "Add soft shadow", "Change to dark mode"].map((chip) => (
+                        <button key={chip} onClick={() => setEditPrompt(chip)} className="rounded-full border bg-background px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-colors">{chip}</button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder={editBrushMode ? "Describe what to put in the painted area…" : "Describe your edit (e.g. change shirt to blue)…"}
+                        value={editPrompt}
+                        onChange={(e) => setEditPrompt(e.target.value)}
+                        disabled={editOpPending || editImage.isPending}
+                        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); applyImageEdit(); } }}
+                        className="flex-1 rounded-lg border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                      <Button type="button" size="sm" className="h-8 shrink-0 gap-1.5 px-3" disabled={!editPrompt.trim() || editOpPending || editImage.isPending || (editBrushMode && !hasDrawing)} onClick={applyImageEdit}>
+                        {(editOpPending || editImage.isPending) ? <Spinner size={13} className="text-primary-foreground" /> : <Wand2 className="size-3.5" />}
+                        {(editOpPending || editImage.isPending) ? "Applying…" : "Apply"}
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* ── Style mode ── */}
+                {editMode === "style" && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {([
+                        { id: "watercolor",    img: "/image_edit_icons/watercolor.png", label: "Watercolor" },
+                        { id: "oil_painting",  img: "/image_edit_icons/oilpaint.png",   label: "Oil Paint" },
+                        { id: "cinematic",     img: "/image_edit_icons/cinematic.png",  label: "Cinematic" },
+                        { id: "anime",         img: "/image_edit_icons/anime.png",      label: "Anime" },
+                        { id: "pixel_art",     img: "/image_edit_icons/pixel.png",      label: "Pixel Art" },
+                        { id: "neon",          img: "/image_edit_icons/neon.png",       label: "Neon Glow" },
+                        { id: "pencil_sketch", img: "/image_edit_icons/sketch.png",     label: "Sketch" },
+                        { id: "vintage",       img: "/image_edit_icons/vintage.png",    label: "Vintage" },
+                      ] as { id: string; img: string; label: string }[]).map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => applyStyleTransfer(s.id)}
+                          disabled={editOpPending}
+                          className="flex flex-col items-center gap-1 rounded-xl border bg-background px-1 py-2 text-center hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <img src={s.img} alt={s.label} className="h-8 w-8 rounded-md object-cover" draggable={false} />
+                          <span className="text-[10px] font-medium text-foreground/80 leading-tight">{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {editOpPending && <p className="text-center text-[11px] text-primary animate-pulse">Applying style…</p>}
+                  </div>
+                )}
+
+                {/* ── Erase mode ── */}
+                {editMode === "erase" && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Eraser className="size-3.5 shrink-0 text-muted-foreground" />
+                      <input type="range" min={8} max={80} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="h-1.5 flex-1 accent-primary" aria-label="Brush size" />
+                      <span className="w-6 shrink-0 text-center text-[11px] text-muted-foreground">{brushSize}</span>
+                      <Button type="button" variant="ghost" size="icon" className="size-7" disabled={!hasDrawing} onClick={clearCanvas}><Trash2 className="size-3.5" /></Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/70">Paint over the object you want to remove, then click Erase.</p>
+                    <Button type="button" size="sm" className="h-8 w-full gap-1.5" disabled={!hasDrawing || editOpPending} onClick={applyErase}>
+                      {editOpPending ? <Spinner size={13} className="text-primary-foreground" /> : <Eraser className="size-3.5" />}
+                      {editOpPending ? "Erasing…" : "Erase Selected Region"}
+                    </Button>
+                  </>
+                )}
+
+                {/* ── Background swap mode ── */}
+                {editMode === "background" && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      {([
+                        { id: "studio_white",  label: "Studio White",  prompt: "Clean white studio background" },
+                        { id: "gradient_blue", label: "Gradient Blue",  prompt: "Soft blue-to-purple gradient background" },
+                        { id: "outdoor_park",  label: "Outdoor Park",   prompt: "Lush green park with sunlight and trees" },
+                        { id: "office_desk",   label: "Office Desk",    prompt: "Modern office desk environment" },
+                        { id: "abstract_dark", label: "Abstract Dark",  prompt: "Abstract dark textured background" },
+                        { id: "sunset_beach",  label: "Sunset Beach",   prompt: "Golden sunset beach with ocean waves" },
+                      ] as { id: string; label: string; prompt: string }[]).map((bg) => (
+                        <button
+                          key={bg.id}
+                          onClick={() => { setCustomBgPrompt(bg.prompt); applyBackgroundSwap(bg.prompt, bg.id); }}
+                          disabled={editOpPending}
+                          className="rounded-full border bg-background px-2.5 py-1 text-[11px] hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-50"
+                        >
+                          {bg.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Or describe a custom background…"
+                        value={customBgPrompt}
+                        onChange={(e) => setCustomBgPrompt(e.target.value)}
+                        disabled={editOpPending}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyBackgroundSwap(customBgPrompt); } }}
+                        className="flex-1 rounded-lg border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                      <Button type="button" size="sm" className="h-8 shrink-0 gap-1.5 px-3" disabled={!customBgPrompt.trim() || editOpPending} onClick={() => applyBackgroundSwap(customBgPrompt)}>
+                        {editOpPending ? <Spinner size={13} className="text-primary-foreground" /> : <Sparkles className="size-3.5" />}
+                        {editOpPending ? "Swapping…" : "Swap"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Upscale mode ── */}
+                {editMode === "upscale" && (
+                  <div className="space-y-2 text-center">
+                    <p className="text-[11px] text-muted-foreground">Sharpen and enhance this image using AI upscaling. Best for logos, designs, and portraits.</p>
+                    <Button type="button" size="sm" className="h-8 w-full gap-1.5" disabled={editOpPending} onClick={applyUpscale}>
+                      {editOpPending ? <Spinner size={13} className="text-primary-foreground" /> : <ZoomIn className="size-3.5" />}
+                      {editOpPending ? "Enhancing…" : "Enhance & Upscale"}
                     </Button>
                   </div>
                 )}
 
-                {/* Prompt + apply row */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
+                {/* ── Text edit mode ── */}
+                {editMode === "text_edit" && (
+                  <>
+                    <div className="flex flex-wrap gap-1">
+                      {["Change headline to…", "Fix spelling in…", "Translate text to English"].map((chip) => (
+                        <button key={chip} onClick={() => setEditPrompt(chip)} className="rounded-full border bg-background px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary hover:text-primary transition-colors">{chip}</button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. Change 'GRAND OPENING' to 'SOLD OUT'"
+                        value={editPrompt}
+                        onChange={(e) => setEditPrompt(e.target.value)}
+                        disabled={editOpPending}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyTextEdit(); } }}
+                        className="flex-1 rounded-lg border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      />
+                      <Button type="button" size="sm" className="h-8 shrink-0 gap-1.5 px-3" disabled={!editPrompt.trim() || editOpPending} onClick={applyTextEdit}>
+                        {editOpPending ? <Spinner size={13} className="text-primary-foreground" /> : <Type className="size-3.5" />}
+                        {editOpPending ? "Editing…" : "Edit"}
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* ── Variations mode ── */}
+                {editMode === "variations" && (
+                  <div className="space-y-2">
                     <input
                       type="text"
-                      placeholder={
-                        editBrushMode
-                          ? "Describe what to put in the brushed area…"
-                          : "Describe your edit (e.g. change shirt to blue)…"
-                      }
+                      placeholder="Optional: describe how variations should differ…"
                       value={editPrompt}
                       onChange={(e) => setEditPrompt(e.target.value)}
-                      disabled={editImage.isPending}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          applyImageEdit();
-                        }
-                      }}
+                      disabled={editOpPending}
                       className="w-full rounded-lg border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
                     />
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-8 shrink-0 gap-1.5 px-3"
-                    disabled={!editPrompt.trim() || editImage.isPending || (editBrushMode && !hasDrawing)}
-                    onClick={applyImageEdit}
-                  >
-                    {editImage.isPending ? (
-                      <Spinner size={13} className="text-primary-foreground" />
-                    ) : (
-                      <Wand2 className="size-3.5" />
+                    <Button type="button" size="sm" className="h-8 w-full gap-1.5" disabled={editOpPending} onClick={applyGenerateVariations}>
+                      {editOpPending ? <Spinner size={13} className="text-primary-foreground" /> : <Shuffle className="size-3.5" />}
+                      {editOpPending ? "Generating…" : "Generate 3 Variations"}
+                    </Button>
+                    {variationsResult.length > 0 && (
+                      <p className="text-[10px] text-muted-foreground/70 text-center">Click a variation above to apply it.</p>
                     )}
-                    {editImage.isPending ? "Applying…" : "Apply"}
-                  </Button>
-                </div>
-
-                {/* Mode hint */}
-                <p className="text-[10px] text-muted-foreground/60">
-                  {editBrushMode
-                    ? "Paint the region to replace, then describe what to put there."
-                    : "Describe any change — text, colour, objects, style. Toggle 🖌 to paint a region."}
-                </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
+
+          {/* ── Edit history drawer (Sheet) ─────────────────── */}
+          <Sheet open={showHistoryDrawer} onOpenChange={setShowHistoryDrawer}>
+            <SheetContent side="right" className="w-72 sm:w-80 flex flex-col p-0">
+              <SheetHeader className="border-b px-4 py-3">
+                <SheetTitle className="flex items-center gap-2 text-sm">
+                  <Clock className="size-4 text-primary" /> Edit History
+                </SheetTitle>
+              </SheetHeader>
+              <ScrollArea className="flex-1">
+                {editHistoryQuery.isPending ? (
+                  <div className="flex flex-col gap-2 p-4">
+                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                  </div>
+                ) : (editHistoryQuery.data?.history ?? []).length === 0 ? (
+                  <div className="p-6 text-center text-sm text-muted-foreground">No history yet.</div>
+                ) : (
+                  <div className="flex flex-col gap-0">
+                    {(editHistoryQuery.data?.history ?? []).map((entry, i) => {
+                      const opIcons: Record<string, React.ReactNode> = {
+                        original: <ImageIcon className="size-3 text-muted-foreground" />,
+                        instruction: <Wand2 className="size-3 text-blue-500" />,
+                        style: <Palette className="size-3 text-violet-500" />,
+                        erase: <Eraser className="size-3 text-red-400" />,
+                        background_swap: <Layers className="size-3 text-green-500" />,
+                        upscale: <ZoomIn className="size-3 text-amber-500" />,
+                        text_edit: <Type className="size-3 text-cyan-500" />,
+                        variation: <Shuffle className="size-3 text-pink-500" />,
+                      };
+                      const isCurrent = entry.imageUrl === panelImageUrl;
+                      return (
+                        <div key={entry.id} className={cn("flex items-start gap-3 border-b px-4 py-3 last:border-b-0 transition-colors", isCurrent && "bg-primary/5")}>
+                          {/* Thumbnail */}
+                          <div className="relative shrink-0">
+                            <img src={entry.imageUrl} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                            {isCurrent && <div className="absolute inset-0 rounded-lg ring-2 ring-primary" />}
+                          </div>
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              {opIcons[entry.operationType] ?? opIcons["original"]}
+                              <span className="truncate text-[11px] font-medium text-foreground">{entry.label ?? entry.operationType}</span>
+                              {i === 0 && <span className="ml-auto shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">Original</span>}
+                            </div>
+                            <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+                            </p>
+                            {entry.prompt && <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground/70 italic">{entry.prompt}</p>}
+                          </div>
+                          {/* Actions */}
+                          <div className="flex shrink-0 flex-col gap-1">
+                            {!isCurrent && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-[10px]"
+                                onClick={() => {
+                                  setPanelImageHistory((h) => [panelImageUrl, ...h]);
+                                  setPanelRedoStack([]);
+                                  setPanelImageUrl(entry.imageUrl);
+                                  setPanelHistoryEntryId(entry.id);
+                                }}
+                              >
+                                Restore
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-[10px]"
+                              onClick={() => {
+                                if (activePanel?.type !== "media") return;
+                                const ext = entry.imageUrl.includes(".png") ? "png" : "webp";
+                                void downloadMediaFile(entry.imageUrl, `version-${i + 1}.${ext}`);
+                              }}
+                            >
+                              <Download className="size-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
         </div>
       )}
     </div>

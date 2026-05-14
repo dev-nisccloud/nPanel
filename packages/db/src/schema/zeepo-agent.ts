@@ -132,6 +132,46 @@ export const zeepoAgentActivityLog = pgTable(
   ]
 );
 
+// --- Zeepo Agent Image Edit History ------------------------------------------
+// Every edit applied to a generated image (instruction, style, erase, etc.)
+// is persisted here. Records form a linked-list via parentId, giving a full
+// version history for any generated image asset.
+
+export const zeepoAgentImageEditHistory = pgTable(
+  "zeepo_agent_image_edit_history",
+  {
+    id: text("id").primaryKey(),
+    sessionId: text("session_id")
+      .notNull()
+      .references(() => zeepoAgentSession.id, { onDelete: "cascade" }),
+    generationId: text("generation_id")
+      .notNull()
+      .references(() => zeepoAgentGeneration.id, { onDelete: "cascade" }),
+    /** The edit this version was derived from (null for the initial "original" snapshot). */
+    parentId: text("parent_id"),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Durable UploadThing URL for this image version. */
+    imageUrl: text("image_url").notNull(),
+    /** Human-readable operation label shown in the history timeline. */
+    operationType: text("operation_type").notNull().default("instruction"),
+    /** User-visible label, e.g. "Watercolor style" or "Background removed". */
+    label: text("label"),
+    /** Original text prompt / instructions used for this edit (if applicable). */
+    prompt: text("prompt"),
+    /** Arbitrary extra data (style preset name, seed, variation index, etc.). */
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("zeepo_agent_image_edit_history_sessionId_idx").on(table.sessionId),
+    index("zeepo_agent_image_edit_history_generationId_idx").on(table.generationId),
+    index("zeepo_agent_image_edit_history_userId_idx").on(table.userId),
+    index("zeepo_agent_image_edit_history_createdAt_idx").on(table.createdAt),
+  ]
+);
+
 // --- Relations ----------------------------------------------------------------
 
 export const zeepoAgentSessionRelations = relations(
@@ -148,6 +188,7 @@ export const zeepoAgentSessionRelations = relations(
     messages: many(zeepoAgentMessage),
     generations: many(zeepoAgentGeneration),
     activityLogs: many(zeepoAgentActivityLog),
+    imageEditHistory: many(zeepoAgentImageEditHistory),
   })
 );
 
@@ -190,6 +231,28 @@ export const zeepoAgentActivityLogRelations = relations(
     session: one(zeepoAgentSession, {
       fields: [zeepoAgentActivityLog.sessionId],
       references: [zeepoAgentSession.id],
+    }),
+  })
+);
+
+export const zeepoAgentImageEditHistoryRelations = relations(
+  zeepoAgentImageEditHistory,
+  ({ one }) => ({
+    session: one(zeepoAgentSession, {
+      fields: [zeepoAgentImageEditHistory.sessionId],
+      references: [zeepoAgentSession.id],
+    }),
+    generation: one(zeepoAgentGeneration, {
+      fields: [zeepoAgentImageEditHistory.generationId],
+      references: [zeepoAgentGeneration.id],
+    }),
+    user: one(user, {
+      fields: [zeepoAgentImageEditHistory.userId],
+      references: [user.id],
+    }),
+    parent: one(zeepoAgentImageEditHistory, {
+      fields: [zeepoAgentImageEditHistory.parentId],
+      references: [zeepoAgentImageEditHistory.id],
     }),
   })
 );

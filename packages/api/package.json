@@ -39,6 +39,7 @@
     "qrcode": "^1.5.4",
     "react-email-starter": "workspace:*",
     "replicate": "^1.4.0",
+    "uploadthing": "^7.7.4",
     "resend": "^6.9.4",
     "undici": "^7.24.4",
     "unsplash-js": "^7.0.20",
