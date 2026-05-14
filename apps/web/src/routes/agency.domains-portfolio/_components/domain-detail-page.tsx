@@ -43,8 +43,8 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [webDesignDialogOpen, setWebDesignDialogOpen] = React.useState(false);
   const [createSubscriptionDialogOpen, setCreateSubscriptionDialogOpen] = React.useState(false);
 
-  // Fetch domains list to find the specific domain
-  const { data: domainsData, isLoading } = trpc.openProvider.domains.list.useQuery(
+  // 1. Fetch OpenProvider domains
+  const { data: opDomainsData, isLoading: isOpLoading } = trpc.openProvider.domains.list.useQuery(
     {
       limit: 1000,
       offset: 0,
@@ -52,43 +52,90 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
     }
   );
 
-  const domain = React.useMemo(() => {
-    if (!domainsData?.data) return null;
-    return (domainsData.data as DomainPortfolio[]).find((d) => d.id === domainId);
-  }, [domainsData, domainId]);
+  // 2. Fetch KENIC domains (ledger from DB)
+  const { data: kenicDomainsData, isLoading: isKenicLoading } = trpc.kenic.domainList.list.useQuery({});
 
-  const openProviderId = domain
-    ? typeof domain.id === "string"
-      ? Number.parseInt(domain.id, 10)
-      : domain.id
+  // 3. Find the specific domain in either list
+  const domain = React.useMemo(() => {
+    const opDomains = (opDomainsData?.data ?? []) as DomainPortfolio[];
+    const kenicDomains = (kenicDomainsData?.data ?? []) as DomainPortfolio[];
+    
+    // Check OpenProvider domains
+    const opMatch = opDomains.find((d) => d.id === domainId);
+    if (opMatch) return { ...opMatch, source: "openprovider" as const };
+    
+    // Check KENIC domains
+    const kenicMatch = kenicDomains.find((d) => d.id === domainId);
+    if (kenicMatch) return { ...kenicMatch, source: "kenic" as const };
+    
+    return null;
+  }, [opDomainsData, kenicDomainsData, domainId]);
+
+  // 4. Fetch live KENIC info if applicable
+  const { data: kenicLiveInfo, isLoading: isKenicLiveLoading } = trpc.kenic.domainList.info.useQuery(
+    { domain: domain?.domain ?? "" },
+    { enabled: !!domain && (domain as any)?.source === "kenic" }
+  );
+
+  // 5. Merge live info
+  const mergedDomain = React.useMemo(() => {
+    if (!domain) return null;
+    if ((domain as any).source === "kenic" && kenicLiveInfo?.data) {
+      return {
+        ...domain,
+        nameservers: kenicLiveInfo.data.nameservers,
+        status: kenicLiveInfo.data.status as any,
+        expiryDate: kenicLiveInfo.data.exDate || domain.expiryDate,
+        registrationDate: kenicLiveInfo.data.crDate || domain.registrationDate,
+        registrantInfo: kenicLiveInfo.data.registrantInfo,
+      };
+    }
+    return domain;
+  }, [domain, kenicLiveInfo]);
+
+  const isLoading = isOpLoading || isKenicLoading || isKenicLiveLoading;
+
+  const isKenic = (mergedDomain as any)?.source === "kenic";
+
+  const openProviderId = mergedDomain && !isKenic
+    ? typeof mergedDomain.id === "string"
+      ? Number.parseInt(mergedDomain.id, 10)
+      : mergedDomain.id
     : null;
-  const { data: existingSubscription } = trpc.clientSubscriptions.getByOpenProviderId.useQuery(
+
+  const { data: opSubscription } = trpc.clientSubscriptions.getByOpenProviderId.useQuery(
     { openProviderId: openProviderId! },
     { enabled: openProviderId != null && !Number.isNaN(openProviderId) }
   );
+
+  // For KENIC, the domain.id is `kenic-${subscriptionId}`
+  const kenicSubscriptionId = isKenic && mergedDomain ? mergedDomain.id.replace("kenic-", "") : null;
+  const { data: kenicSubscription } = trpc.clientSubscriptions.getById.useQuery(
+    { id: kenicSubscriptionId! },
+    { enabled: !!kenicSubscriptionId }
+  );
+
+  const existingSubscription = isKenic ? kenicSubscription : opSubscription;
   const hasExistingSubscription = !!existingSubscription;
 
   const domainNameWithoutTld = React.useMemo(() => {
-    if (!domain?.domain) return "";
-    // Extract domain name without TLD (e.g., "example.com" -> "example")
-    const parts = domain.domain.split(".");
+    if (!mergedDomain?.domain) return "";
+    const parts = mergedDomain.domain.split(".");
     if (parts.length > 1) {
-      // Remove the last part (TLD) and join the rest
       return parts.slice(0, -1).join(".");
     }
-    return domain.domain;
-  }, [domain]);
+    return mergedDomain.domain;
+  }, [mergedDomain]);
 
-  // Check if renew button should be shown (30 days before expiry)
   const shouldShowRenew = React.useMemo(() => {
-    if (!domain) return false;
-    const expiryDate = new Date(domain.expiryDate);
+    if (!mergedDomain) return false;
+    const expiryDate = new Date(mergedDomain.expiryDate);
     const now = new Date();
     const daysUntilExpiry = Math.floor(
       (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
     return daysUntilExpiry <= 30;
-  }, [domain]);
+  }, [mergedDomain]);
 
   const handleHostingClick = (type: "web" | "email") => {
     setHostingPlanType(type);
@@ -152,10 +199,10 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
 
     return (
       <Badge
-        variant={variants[domain.status] || "secondary"}
-        className={`text-xs ${statusColors[domain.status] || ""}`}
+        variant={variants[mergedDomain!.status] || "secondary"}
+        className={`text-xs ${statusColors[mergedDomain!.status] || ""}`}
       >
-        {domain.status}
+        {mergedDomain!.status}
       </Badge>
     );
   };
@@ -173,7 +220,14 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               </Button>
             </Link>
             <div>
-              <h1 className="text-base font-semibold tracking-tight">Domain Details</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-semibold tracking-tight">Domain Details</h1>
+                {isKenic && (
+                  <Badge variant="outline" className="text-[10px] h-4 border-orange-300 text-orange-700 dark:border-orange-600 dark:text-orange-400">
+                    KENIC
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">Manage and monitor your domain</p>
             </div>
           </div>
@@ -272,13 +326,13 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                 <div className="lg:col-span-2 space-y-6">
                   {/* Connected Services: Plesk lookup + "Manage your website" or upsell cards */}
                   <ConnectedServicesSection
-                    domainName={domain.domain}
+                    domainName={mergedDomain.domain}
                     onHostingClick={handleHostingClick}
                   />
 
                   {/* Tools Section */}
                   <ToolsSection
-                    domain={domain.domain}
+                    domain={mergedDomain.domain}
                     onQrCodeClick={() => setQrDialogOpen(true)}
                     onWebDesignClick={() => setWebDesignDialogOpen(true)}
                   />
@@ -288,23 +342,23 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                 <div className="space-y-6">
                   {/* Domain Header Card */}
                   <DomainHeaderCard
-                    domain={domain}
+                    domain={mergedDomain as DomainPortfolio}
                     getStatusBadge={getStatusBadge}
                     shouldShowRenew={shouldShowRenew}
                   />
 
                   {/* Contact Information Card */}
-                  <ContactInformationCard domain={domain} />
+                  <ContactInformationCard domain={mergedDomain as DomainPortfolio} />
                 </div>
               </div>
             </TabsContent>
 
             <TabsContent value="dns" className="mt-6">
-              <DnsTab domain={domain} onHostingClick={handleHostingClick} />
+              <DnsTab domain={mergedDomain as DomainPortfolio} onHostingClick={handleHostingClick} />
             </TabsContent>
 
             <TabsContent value="nameservers" className="mt-6">
-              <NameserversTab domain={domain} />
+              <NameserversTab domain={mergedDomain as DomainPortfolio} />
             </TabsContent>
 
             <TabsContent value="protect-brand" className="mt-6">
@@ -321,12 +375,12 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
       <QrCodeDialog
         open={qrDialogOpen}
         onOpenChange={setQrDialogOpen}
-        domain={domain.domain}
+        domain={mergedDomain.domain}
       />
       <WebDesignContactDialog
         open={webDesignDialogOpen}
         onOpenChange={setWebDesignDialogOpen}
-        domainName={domain.domain}
+        domainName={mergedDomain.domain}
         supportPhoneNumber={import.meta.env.VITE_PUBLIC_SUPPORT_PHONE}
       />
       <HostingPlanDialog
@@ -342,7 +396,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
       <CreateSubscriptionFromDomainDialog
         open={createSubscriptionDialogOpen}
         onOpenChange={setCreateSubscriptionDialogOpen}
-        domain={domain}
+        domain={mergedDomain as DomainPortfolio}
       />
     </div>
   );
@@ -605,55 +659,68 @@ function DomainHeaderCard({
 function ContactInformationCard({ domain }: { domain: DomainPortfolio }) {
   const [showAll, setShowAll] = React.useState(false);
 
-  // Extract name parts if available
-  const fullName = domain.ownerFullName || domain.clientName || "";
-  const nameParts = fullName.split(" ");
-  const firstName = nameParts[0] || "";
-  const lastName = nameParts.slice(1).join(" ") || "";
+  const kenicInfo = (domain as any).source === "kenic" ? (domain as any).registrantInfo : null;
+
+  // Prefer live registry data for KENIC, otherwise fallback to local domain props
+  const fullName = kenicInfo?.name || domain.ownerFullName || domain.clientName || "";
+  const email = kenicInfo?.email || domain.clientEmail || "";
+  const organization = kenicInfo?.organization || "";
+  const phone = kenicInfo?.voice || "";
+  const address = kenicInfo?.address;
 
   return (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Contact information</h3>
+          <h3 className="font-semibold text-sm">Contact information</h3>
           <Button
             variant="link"
-            className="p-0 h-auto text-primary text-sm"
+            className="p-0 h-auto text-primary text-xs"
             onClick={() => setShowAll(!showAll)}
           >
             {showAll ? "Hide" : "View all"}
           </Button>
         </div>
-        <div className="space-y-2 text-sm">
+
+        <div className="space-y-4">
           <div>
-            <span className="text-muted-foreground">Email: </span>
-            <span className="font-mono">
-              {showAll ? (domain.clientEmail || "N/A") : "**********"}
-            </span>
+            <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Owner</p>
+            <p className="text-sm font-medium leading-none">{fullName}</p>
+            {organization && <p className="text-[11px] text-muted-foreground mt-1">{organization}</p>}
           </div>
+
           <div>
-            <span className="text-muted-foreground">First name: </span>
-            <span className="font-mono">
-              {showAll ? (firstName || "N/A") : "******"}
-            </span>
+            <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Email</p>
+            <p className="text-sm font-medium">{email}</p>
           </div>
-          <div>
-            <span className="text-muted-foreground">Last name: </span>
-            <span className="font-mono">
-              {showAll ? (lastName || "N/A") : "*****"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Phone number: </span>
-            <span className="font-mono">
-              {showAll ? "N/A" : "**********"}
-            </span>
-          </div>
-          {showAll && domain.ownerHandle && (
-            <div>
-              <span className="text-muted-foreground">Owner Handle: </span>
-              <span className="font-mono">{domain.ownerHandle}</span>
-            </div>
+
+          {showAll && (
+            <>
+              {phone && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Phone</p>
+                  <p className="text-sm font-medium">{phone}</p>
+                </div>
+              )}
+              {address && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Address</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {address.street && <span>{address.street}<br /></span>}
+                    {address.city}{address.state && `, ${address.state}`} {address.postcode}<br />
+                    {address.country}
+                  </p>
+                </div>
+              )}
+              {(domain.ownerHandle || kenicInfo?.handle) && (
+                <div>
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Registry Handle</p>
+                  <p className="text-xs font-mono bg-muted/50 p-1.5 rounded-sm inline-block">
+                    {kenicInfo?.handle || domain.ownerHandle}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </CardContent>
