@@ -768,15 +768,12 @@ async function processKenicOrderItem(
 			orderItemId: item.id,
 			nameServers,
 		});
-		const name = item.productPlan
-			? `${item.product.name} - ${item.productPlan.name}`
-			: item.product.name;
 		const subId = randomUUID();
 		const inserted = await db
 			.insert(niscClientSubscription)
 			.values({
 				id: subId,
-				name,
+				name: domain,
 				description: item.description ?? null,
 				userId: order.userId,
 				teamId: order.teamId,
@@ -875,15 +872,12 @@ async function processKenicTransferOrderItem(
 			period: 1,
 			nameServers,
 		});
-		const name = item.productPlan
-			? `${item.product.name} - ${item.productPlan.name}`
-			: item.product.name;
 		const subId = randomUUID();
 		const inserted = await db
 			.insert(niscClientSubscription)
 			.values({
 				id: subId,
-				name,
+				name: domain,
 				description: item.description ?? "transfer",
 				userId: order.userId,
 				teamId: order.teamId,

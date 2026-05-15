@@ -40,6 +40,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { useCartStore } from "@/stores/cart-store";
+import type { CartItem, DomainCartItem, HivelocityCartItem } from "@/stores/cart-store";
 import { CartItemCard } from "@/routes/agency/_components/sidebar/cart-item-card";
 import { authClient } from "@/lib/auth-client";
 
@@ -53,6 +54,28 @@ const formatPrice = (price?: number, currency?: string) => {
     : String(price);
   return `${symbol} ${n}`;
 };
+
+function parsePriceOverrideInput(raw: string | undefined): number | null {
+  if (raw == null) return null;
+  const t = String(raw).trim().replace(/,/g, "");
+  if (!t) return null;
+  const n = parseFloat(t);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100) / 100;
+}
+
+function getDomainCartLineBasePrice(d: {
+  addedInCurrency?: string;
+  price?: DomainCartItem["price"];
+}): number {
+  if (d.addedInCurrency && d.price?.calculated?.convertedPrice != null) {
+    return d.price.calculated.convertedPrice;
+  }
+  if (d.price?.calculated?.finalPrice != null) {
+    return d.price.calculated.finalPrice;
+  }
+  return d.price?.reseller?.price ?? d.price?.product?.price ?? 0;
+}
 
 type Step =
   | "product"
@@ -107,6 +130,8 @@ export function GlobalBuyNowDialog() {
   const [accountRefError, setAccountRefError] = React.useState("");
   const [phoneError, setPhoneError] = React.useState("");
   const [amountError, setAmountError] = React.useState("");
+  /** Per-line ex VAT amounts keyed for DB / checkout (agency users only). */
+  const [priceOverrideByKey, setPriceOverrideByKey] = React.useState<Record<string, string>>({});
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [isPolling, setIsPolling] = React.useState(false);
@@ -121,20 +146,11 @@ export function GlobalBuyNowDialog() {
 
   const location = useLocation();
   const { data: session, isPending: isSessionLoading } = authClient.useSession();
-  const userRole = (session?.user as any)?.role;
   const isAgencyUser = React.useMemo(() => {
     const user = session?.user as any;
     const role = String(user?.role || "");
-    const isAgency = role.toUpperCase().includes("AGENCY") || !!user?.agencyRoleId;
-
-    console.log("[BuyNow] Role Detection", { 
-      role, 
-      isAgency, 
-      pathname: location.pathname,
-      hasAgencyRoleId: !!user?.agencyRoleId
-    });
-    return isAgency;
-  }, [session?.user, location.pathname]);
+    return role.toUpperCase().includes("AGENCY") || !!user?.agencyRoleId;
+  }, [session?.user]);
 
   const isAgencySide = React.useMemo(() => {
     return location.pathname.startsWith("/agency") || isAgencyUser;
@@ -195,13 +211,6 @@ export function GlobalBuyNowDialog() {
     return !!isDomain;
   }, [isTransferMode, isCartMode, items, domainsProductId, hasDomain, ctx?.productName]);
 
-  console.log("[BuyNow] State Check", { 
-    isAgencySide, 
-    isDomainProduct, 
-    mode, 
-    hasDomain, 
-    domainsProductId 
-  });
   const { data: addOnsData = [] } = trpc.products.getAddOnsForProduct.useQuery(
     { baseProductId: ctx?.productId ?? "" },
     { enabled: open && !!ctx?.productId && !isCartMode }
@@ -280,6 +289,109 @@ export function GlobalBuyNowDialog() {
   const total = subtotal + taxes;
   const totalItems = getItemCount();
 
+  const effectiveTransferSubtotal =
+    isTransferMode && transferContext
+      ? (isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["transfer"]) ?? transferContext.price : transferContext.price)
+      : 0;
+
+  const effectiveCartSubtotal = React.useMemo(() => {
+    if (!isCartMode) return 0;
+    return items.reduce((sum, item) => {
+      if (item.type === "domain" && item.price) {
+        const base = getDomainCartLineBasePrice(item);
+        const key = `cart-domain:${item.id}`;
+        const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) : null;
+        return sum + (o ?? base);
+      }
+      if (item.type === "hivelocity") {
+        const hv = item as HivelocityCartItem;
+        const b = Number(hv.totalPrice ?? 0) || 0;
+        const key = `cart-hivelocity:${item.id}`;
+        const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) : null;
+        return sum + (o ?? b);
+      }
+      const key = `cart:${item.type}:${item.id}`;
+      const b = Number((item as { price?: number }).price ?? 0) || 0;
+      const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) : null;
+      return sum + (o ?? b);
+    }, 0);
+  }, [isCartMode, items, isAgencyUser, priceOverrideByKey]);
+
+  const effectiveProductFlowSubtotal = React.useMemo(() => {
+    if (isCartMode || isTransferMode) return productSubtotal;
+    const domainEff =
+      isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["product-domain"]) ?? domainTotal : domainTotal;
+    const addOnEff = selectedAddOns.reduce((s, a) => {
+      const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[`addon:${a.productId}`]) : null;
+      return s + (o ?? a.price);
+    }, 0);
+    const mainEff = selectedMainPlan
+      ? (isAgencyUser
+          ? parsePriceOverrideInput(priceOverrideByKey[`main-plan:${selectedMainPlan.planId}`]) ?? selectedMainPlan.price
+          : selectedMainPlan.price)
+      : 0;
+    const upsellEff = selectedUpsellPlans.reduce((s, p) => {
+      const key = `upsell:${p.productId}:${p.planId}`;
+      const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) : null;
+      return s + (o ?? p.price);
+    }, 0);
+    return domainEff + addOnEff + mainEff + upsellEff;
+  }, [
+    isCartMode,
+    isTransferMode,
+    productSubtotal,
+    isAgencyUser,
+    priceOverrideByKey,
+    domainTotal,
+    selectedAddOns,
+    selectedMainPlan,
+    selectedUpsellPlans,
+  ]);
+
+  const effectiveSubtotal = isTransferMode
+    ? effectiveTransferSubtotal
+    : isCartMode
+      ? effectiveCartSubtotal
+      : effectiveProductFlowSubtotal;
+  const effectiveTaxes = effectiveSubtotal * VAT_RATE;
+  const effectiveTotal = effectiveSubtotal + effectiveTaxes;
+
+  const patchPriceOverride = React.useCallback((key: string, value: string) => {
+    setPriceOverrideByKey((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const priceOverrideField = (key: string, currency: string, catalogExVat: number) => {
+    if (!isAgencyUser || isSessionLoading) return null;
+    const ph =
+      typeof catalogExVat === "number" && Number.isFinite(catalogExVat)
+        ? String(Math.round(catalogExVat * 100) / 100)
+        : "";
+    return (
+      <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5 w-full">
+        <p className="text-xs font-medium text-foreground">Price override</p>
+        <Input
+          type="text"
+          inputMode="decimal"
+          className="h-9 text-sm max-w-[220px]"
+          placeholder={ph}
+          value={priceOverrideByKey[key] ?? ""}
+          onChange={(e) => patchPriceOverride(key, e.target.value)}
+        />
+        <p className="text-[10px] text-muted-foreground leading-snug">
+          Use this if you want to enter your own custom price (ex VAT, {currency}).
+        </p>
+      </div>
+    );
+  };
+
+  const getDomainCartLineCurrency = (d: DomainCartItem): string => {
+    if (d.addedInCurrency) return d.addedInCurrency;
+    if (d.price?.calculated?.currency) return d.price.calculated.currency;
+    if (d.price?.reseller?.currency) return d.price.reseller.currency;
+    if (d.price?.product?.currency) return d.price.product.currency;
+    return "KES";
+  };
+
   const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
     const code = typeof resultCode === "string" ? parseInt(resultCode, 10) : resultCode;
     const map: Record<number, string> = {
@@ -351,15 +463,9 @@ export function GlobalBuyNowDialog() {
       orderCreatedForCheckoutRef.current = checkoutRequestIdParam;
       const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
 
-      console.log("[BuyNow] Triggering order from payment", {
-        checkoutRequestIdParam,
-        isAgencySide,
-        registrantType,
-        manualRegistrantDetails,
-        isTransferMode,
-        isCartMode,
-      });
       if (isTransferMode && transferContext) {
+        const base = transferContext.price;
+        const recorded = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["transfer"]) ?? base : base;
         createOrderFromPayment.mutate({
           checkoutRequestId: checkoutRequestIdParam,
           items: [
@@ -368,8 +474,8 @@ export function GlobalBuyNowDialog() {
               primaryDomain: transferContext.domain,
               description: "transfer",
               productPlanId: null,
-              itemPrice: str(transferContext.price),
-              itemSubtotal: str(transferContext.price),
+              itemPrice: str(recorded),
+              itemSubtotal: str(recorded),
               metadata: {
                 transferAuthCode: transferContext.authCode,
                 useRegistrantInfo: registrantType,
@@ -385,28 +491,20 @@ export function GlobalBuyNowDialog() {
       if (isCartMode) {
         const domains = getDomains();
         if (!domainsProductId || domains.length === 0) return;
-        const orderItems = domains.map((d) => {
-          const { price, currency } = (() => {
-            if (d.addedInCurrency && d.price?.calculated?.convertedPrice != null) {
-              return { price: d.price.calculated.convertedPrice, currency: d.addedInCurrency };
-            }
-            if (d.price?.calculated?.finalPrice != null) {
-              return {
-                price: d.price.calculated.finalPrice,
-                currency: d.price.calculated.currency ?? "KES",
-              };
-            }
-            const p = d.price?.reseller?.price ?? d.price?.product?.price ?? 0;
-            const c = d.price?.reseller?.currency ?? d.price?.product?.currency ?? "KES";
-            return { price: p, currency: c };
-          })();
+        const rows = domains.map((d) => {
+          const price = getDomainCartLineBasePrice(d);
+          return { d, price };
+        });
+        const orderItems = rows.map((r) => {
+          const key = `cart-domain:${r.d.id}`;
+          const line = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? r.price : r.price;
           return {
             productId: domainsProductId,
-            primaryDomain: d.domain,
+            primaryDomain: r.d.domain,
             description: "registration",
             productPlanId: null,
-            itemPrice: str(price),
-            itemSubtotal: str(price),
+            itemPrice: str(line),
+            itemSubtotal: str(line),
             metadata: {
               useRegistrantInfo: registrantType,
               manualRegistrantDetails:
@@ -422,11 +520,8 @@ export function GlobalBuyNowDialog() {
         return;
       }
       if (!ctx?.productId || !ctx?.domain?.domain) return;
-      const calc = ctx.domain.price?.calculated as {
-        convertedPrice?: number;
-        finalPrice?: number;
-      } | undefined;
-      const price = calc?.convertedPrice ?? calc?.finalPrice ?? ctx.domain.price?.reseller?.price ?? 0;
+      const baseLine = domainTotal;
+      const recorded = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["product-domain"]) ?? baseLine : baseLine;
       createOrderFromPayment.mutate({
         checkoutRequestId: checkoutRequestIdParam,
         items: [
@@ -435,8 +530,8 @@ export function GlobalBuyNowDialog() {
             primaryDomain: ctx.domain.domain,
             description: "registration",
             productPlanId: null,
-            itemPrice: str(price),
-            itemSubtotal: str(price),
+            itemPrice: str(recorded),
+            itemSubtotal: str(recorded),
             metadata: {
               useRegistrantInfo: registrantType,
               manualRegistrantDetails:
@@ -457,8 +552,11 @@ export function GlobalBuyNowDialog() {
       ctx,
       displayCurrency,
       createOrderFromPayment,
-      isAgencySide,
+      isAgencyUser,
+      priceOverrideByKey,
       registrantType,
+      manualRegistrantDetails,
+      domainTotal,
     ]
   );
 
@@ -666,7 +764,7 @@ export function GlobalBuyNowDialog() {
   };
   const openForPayment = () => {
     setCurrentStep("payment");
-    setPaymentAmount(total.toString());
+    setPaymentAmount(effectiveTotal.toString());
     const ts = Date.now().toString().slice(-9);
     setAccountReference(isCartMode ? `CART${ts}`.slice(0, 12) : isTransferMode && transferContext
       ? (transferContext.domain.replace(/\./g, "").slice(0, 3).toUpperCase() || "TRF") + ts
@@ -804,6 +902,7 @@ export function GlobalBuyNowDialog() {
       setAccountRefError("");
       setPhoneError("");
       setAmountError("");
+      setPriceOverrideByKey({});
       setCheckoutRequestId(null);
       setPaymentError(null);
       setShouldStopPolling(false);
@@ -1040,12 +1139,21 @@ export function GlobalBuyNowDialog() {
         if (isTransferMode && transferContext) {
           return (
             <div className="space-y-4">
-              <div className="bg-muted/50 rounded-lg p-4 flex justify-between items-center">
-                <div>
-                  <div className="font-medium">Domain transfer ? {transferContext.domain}</div>
-                  <div className="text-sm text-muted-foreground">Includes 1 year renewal</div>
+              <div className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
+                <div className="flex justify-between items-center gap-4">
+                  <div>
+                    <div className="font-medium">Domain transfer ? {transferContext.domain}</div>
+                    <div className="text-sm text-muted-foreground">Includes 1 year renewal</div>
+                  </div>
+                  <div className="font-semibold shrink-0">
+                    {formatPrice(transferContext.price, transferContext.currency)}
+                  </div>
                 </div>
-                <div className="font-semibold">{formatPrice(transferContext.price, transferContext.currency)}</div>
+                {priceOverrideField("transfer", transferContext.currency, transferContext.price)}
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Sub total (ex VAT)</span>
+                <span>{formatPrice(effectiveSubtotal, primaryCurr)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground inline-flex items-center gap-1">
@@ -1057,11 +1165,11 @@ export function GlobalBuyNowDialog() {
                     <TooltipContent>16% VAT (Kenya)</TooltipContent>
                   </Tooltip>
                 </span>
-                <span>{formatPrice(taxes, primaryCurr)}</span>
+                <span>{formatPrice(effectiveTaxes, primaryCurr)}</span>
               </div>
               <div className="border-t pt-4 flex items-center justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>{formatPrice(total, primaryCurr)}</span>
+                <span>{formatPrice(effectiveTotal, primaryCurr)}</span>
               </div>
               <p className="text-xs text-muted-foreground">By paying you agree to our Terms of Service. The transfer will be processed after payment.</p>
             </div>
@@ -1072,9 +1180,32 @@ export function GlobalBuyNowDialog() {
             <div className="space-y-4">
               <ScrollArea className="h-[200px] w-full">
                 <div className="space-y-3 pr-4">
-                  {items.map((item) => (
-                    <CartItemCard key={item.id} item={item} onRemove={() => {}} hideRemoveButton />
-                  ))}
+                  {items.map((item) => {
+                    let overrideKey: string | null = null;
+                    let overrideCurrency = primaryCurrency;
+                    let catalogExVat = 0;
+                    if (item.type === "domain" && item.price) {
+                      overrideKey = `cart-domain:${item.id}`;
+                      overrideCurrency = getDomainCartLineCurrency(item);
+                      catalogExVat = getDomainCartLineBasePrice(item);
+                    } else if (item.type === "hivelocity") {
+                      const hv = item as HivelocityCartItem;
+                      overrideKey = `cart-hivelocity:${item.id}`;
+                      overrideCurrency = hv.currency || primaryCurrency;
+                      catalogExVat = Number(hv.totalPrice ?? 0) || 0;
+                    } else {
+                      overrideKey = `cart:${item.type}:${item.id}`;
+                      overrideCurrency = (item as { currency?: string }).currency ?? primaryCurrency;
+                      catalogExVat = Number((item as { price?: number }).price ?? 0) || 0;
+                    }
+                    return (
+                      <div key={item.id} className="rounded-lg border border-border bg-card/40 overflow-hidden">
+                        <CartItemCard item={item} onRemove={() => {}} hideRemoveButton />
+                        {overrideKey != null &&
+                          priceOverrideField(overrideKey, overrideCurrency, catalogExVat)}
+                      </div>
+                    );
+                  })}
                 </div>
                 <ScrollBar orientation="vertical" />
               </ScrollArea>
@@ -1096,15 +1227,15 @@ export function GlobalBuyNowDialog() {
                     <TooltipContent>16% VAT (Kenya)</TooltipContent>
                   </Tooltip>
                 </span>
-                <span>{formatPrice(taxes, primaryCurr)}</span>
+                <span>{formatPrice(effectiveTaxes, primaryCurr)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Sub total</span>
-                <span>{formatPrice(subtotal, primaryCurr)}</span>
+                <span>{formatPrice(effectiveSubtotal, primaryCurr)}</span>
               </div>
               <div className="border-t pt-4 flex items-center justify-between font-bold text-lg">
                 <span>Total</span>
-                <span>{formatPrice(total, primaryCurr)}</span>
+                <span>{formatPrice(effectiveTotal, primaryCurr)}</span>
               </div>
               <p className="text-xs text-muted-foreground">
                 By checking out you agree to our Terms of Service and Privacy Policy.
@@ -1117,27 +1248,59 @@ export function GlobalBuyNowDialog() {
             <ScrollArea className="h-[300px] w-full">
               <div className="space-y-4 pr-4">
                 {hasDomain && ctx?.domain && (
-                  <div className="bg-muted/50 rounded-lg p-4 flex justify-between">
-                    <div><div className="font-medium">{ctx.domain.domain}</div><div className="text-sm text-muted-foreground">{duration} {duration === 1 ? "year" : "years"}</div></div>
-                    <div className="font-semibold">{formatPrice(domainTotal, displayCurrency)}</div>
+                  <div className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
+                    <div className="flex justify-between gap-4">
+                      <div>
+                        <div className="font-medium">{ctx.domain.domain}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {duration} {duration === 1 ? "year" : "years"}
+                        </div>
+                      </div>
+                      <div className="font-semibold shrink-0">{formatPrice(domainTotal, displayCurrency)}</div>
+                    </div>
+                    {priceOverrideField("product-domain", displayCurrency, domainTotal)}
                   </div>
                 )}
                 {selectedAddOns.length > 0 && selectedAddOns.map((a) => (
-                  <div key={a.productId} className="bg-muted/50 rounded-lg p-4 flex justify-between">
-                    <div><div className="font-medium">{a.productName}</div><div className="text-sm text-muted-foreground">{a.planName}</div></div>
-                    <div className="font-semibold">{formatPrice(a.price, a.currency)}</div>
+                  <div key={a.productId} className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
+                    <div className="flex justify-between gap-4">
+                      <div>
+                        <div className="font-medium">{a.productName}</div>
+                        <div className="text-sm text-muted-foreground">{a.planName}</div>
+                      </div>
+                      <div className="font-semibold shrink-0">{formatPrice(a.price, a.currency)}</div>
+                    </div>
+                    {priceOverrideField(`addon:${a.productId}`, a.currency, a.price)}
                   </div>
                 ))}
                 {selectedMainPlan && (
-                  <div className="bg-muted/50 rounded-lg p-4 flex justify-between">
-                    <div><div className="font-medium">{selectedMainPlan.productName} ? {selectedMainPlan.planName}</div><div className="text-sm text-muted-foreground">{selectedMainPlan.billingCycle}</div></div>
-                    <div className="font-semibold">{formatPrice(selectedMainPlan.price, selectedMainPlan.currency)}</div>
+                  <div className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
+                    <div className="flex justify-between gap-4">
+                      <div>
+                        <div className="font-medium">{selectedMainPlan.productName} ? {selectedMainPlan.planName}</div>
+                        <div className="text-sm text-muted-foreground">{selectedMainPlan.billingCycle}</div>
+                      </div>
+                      <div className="font-semibold shrink-0">
+                        {formatPrice(selectedMainPlan.price, selectedMainPlan.currency)}
+                      </div>
+                    </div>
+                    {priceOverrideField(
+                      `main-plan:${selectedMainPlan.planId}`,
+                      selectedMainPlan.currency,
+                      selectedMainPlan.price,
+                    )}
                   </div>
                 )}
                 {selectedUpsellPlans.map((p) => (
-                  <div key={p.planId} className="bg-muted/50 rounded-lg p-4 flex justify-between">
-                    <div><div className="font-medium">{p.productName} ? {p.planName}</div><div className="text-sm text-muted-foreground">{p.billingCycle}</div></div>
-                    <div className="font-semibold">{formatPrice(p.price, p.currency)}</div>
+                  <div key={p.planId} className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
+                    <div className="flex justify-between gap-4">
+                      <div>
+                        <div className="font-medium">{p.productName} ? {p.planName}</div>
+                        <div className="text-sm text-muted-foreground">{p.billingCycle}</div>
+                      </div>
+                      <div className="font-semibold shrink-0">{formatPrice(p.price, p.currency)}</div>
+                    </div>
+                    {priceOverrideField(`upsell:${p.productId}:${p.planId}`, p.currency, p.price)}
                   </div>
                 ))}
               </div>
@@ -1161,11 +1324,11 @@ export function GlobalBuyNowDialog() {
                   <TooltipContent>16% VAT (Kenya)</TooltipContent>
                 </Tooltip>
               </span>
-              <span>{formatPrice(taxes, primaryCurr)}</span>
+              <span>{formatPrice(effectiveTaxes, primaryCurr)}</span>
             </div>
             <div className="border-t pt-4 flex items-center justify-between font-bold text-lg">
               <span>Total</span>
-              <span>{formatPrice(total, primaryCurr)}</span>
+              <span>{formatPrice(effectiveTotal, primaryCurr)}</span>
             </div>
             <p className="text-xs text-muted-foreground">By checking out you agree to our Terms of Service and Privacy Policy.</p>
           </div>
@@ -1229,15 +1392,14 @@ export function GlobalBuyNowDialog() {
               </AccordionItem>
             </Accordion>
             <div className="border-t pt-4 space-y-2">
-              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal, primaryCurr)}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Taxes</span><span>{formatPrice(taxes, primaryCurr)}</span></div>
-              <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Total</span><span>{formatPrice(total, primaryCurr)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(effectiveSubtotal, primaryCurr)}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Taxes</span><span>{formatPrice(effectiveTaxes, primaryCurr)}</span></div>
+              <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Total</span><span>{formatPrice(effectiveTotal, primaryCurr)}</span></div>
             </div>
           </div>
         );
 
       case "registrant_info":
-        console.log("[BuyNow] Rendering registrant_info", { registrantType, isAgencySide });
         return (
           <div className="space-y-6 py-2">
             <div className="text-center">
@@ -1422,7 +1584,7 @@ export function GlobalBuyNowDialog() {
             <p className="text-sm text-muted-foreground">Your order has been received.</p>
             <div className="border-t pt-4 text-sm">
               <span className="text-muted-foreground">Order total </span>
-              <span className="font-semibold">{formatPrice(total, primaryCurr)}</span>
+              <span className="font-semibold">{formatPrice(effectiveTotal, primaryCurr)}</span>
             </div>
           </div>
         );
@@ -1438,7 +1600,7 @@ export function GlobalBuyNowDialog() {
             <p className="text-sm text-muted-foreground">{errMsg}</p>
             <div className="border-t pt-4 text-sm">
               <span className="text-muted-foreground">Order total </span>
-              <span className="font-semibold">{formatPrice(total, primaryCurr)}</span>
+              <span className="font-semibold">{formatPrice(effectiveTotal, primaryCurr)}</span>
             </div>
           </div>
         );

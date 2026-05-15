@@ -143,6 +143,7 @@ export declare function renderNiscOrderConfirmationEmail({ customerName, orderNu
         name: string;
         description?: string;
         price?: string;
+        status?: string;
     }>;
     orderLink?: string;
 }): Promise<string>;

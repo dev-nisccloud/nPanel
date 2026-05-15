@@ -14,8 +14,6 @@ interface OrderFailedEmailProps {
   failedItems?: Array<{ name: string; error?: string }>;
   failureReason?: string;
   retryLink?: string;
-  supportEmail?: string;
-  supportPhone?: string;
 }
 
 export const OrderFailedEmail = ({
@@ -24,14 +22,12 @@ export const OrderFailedEmail = ({
   failedItems = [],
   failureReason,
   retryLink = "https://app.nisccloud.com/agency/nisc-service-orders",
-  supportEmail = "support@nisccloud.com",
-  supportPhone = "+254 748 777 666",
 }: OrderFailedEmailProps) => {
   return (
     <EmailLayout preview={`[Nisc Admin] Order could not be completed: ${orderNumber}`}>
       <EmailHeader />
       <Section>
-        <EmailText>Hi {customerName},</EmailText>
+        <EmailText>Hello,</EmailText>
         <EmailText>
           A Nisc service order could not be fully processed and requires attention.
         </EmailText>
@@ -127,9 +123,6 @@ export const OrderFailedEmail = ({
 
         <EmailButton href={retryLink}>Open Nisc Service Orders</EmailButton>
 
-        <EmailText>
-          <strong>Need help?</strong> Contact support: {supportEmail} / {supportPhone}
-        </EmailText>
         <EmailSignature />
       </Section>
       <EmailFooter />
@@ -146,8 +139,6 @@ OrderFailedEmail.PreviewProps = {
   ],
   failureReason: 'One or more items failed during provisioning.',
   retryLink: 'https://app.nisccloud.com/agency/nisc-service-orders',
-  supportEmail: 'support@nisccloud.com',
-  supportPhone: '+254 748 777 666',
 } as OrderFailedEmailProps;
 
 export default OrderFailedEmail;

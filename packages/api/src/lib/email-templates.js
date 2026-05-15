@@ -1,5 +1,5 @@
 import { render } from '@react-email/render';
-import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, InvoiceSuccessEmail, QuotationDeliveryEmail, OrderConfirmationEmail, OrderReceivedEmail, OrderFailedEmail, PaymentReceiptEmail, CampaignCreatedEmail, CampaignCompletedEmail, CampaignScheduledEmail, CampaignCancelledEmail, ServiceRenewalReminderEmail, } from "react-email-starter/emails";
+import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, InvoiceSuccessEmail, QuotationDeliveryEmail, OrderConfirmationEmail, OrderReceivedEmail, OrderFailedEmail, NiscAdminOrderConfirmedEmail, PaymentReceiptEmail, CampaignCreatedEmail, CampaignCompletedEmail, CampaignScheduledEmail, CampaignCancelledEmail, ServiceRenewalReminderEmail, } from "react-email-starter/emails";
 export async function renderResetPasswordEmail({ userFirstname, resetPasswordLink, }) {
     return render(ResetPasswordEmail({
         userFirstname,
@@ -156,20 +156,18 @@ export async function renderServiceRenewalReminderEmail({ recipientName, service
         supportPhone,
     }));
 }
-// --- Nisc order & OpenProvider verification (HTML, no React component) ---
+// --- Nisc order & OpenProvider verification ---
+/** Super-admin email when QStash processing completes successfully. */
 export async function renderNiscOrderConfirmationEmail({ customerName, orderNumber, orderDate, totalAmount, currency, orderItems, orderLink, }) {
-    const itemsHtml = orderItems?.map((i) => `<tr><td>${escapeHtml(i.name)}</td><td>${i.description ? escapeHtml(i.description) : ""}</td><td>${i.price ?? ""} ${currency ?? ""}</td></tr>`).join("") ?? "";
-    return `<div style="font-family:sans-serif;max-width:600px;">
-  <h2>Order confirmed</h2>
-  <p>Hi ${escapeHtml(customerName ?? "Customer")},</p>
-  <p>Your Nisc service order has been processed successfully.</p>
-  <p><strong>Order number:</strong> ${escapeHtml(orderNumber ?? "")}</p>
-  <p><strong>Date:</strong> ${orderDate ?? ""}</p>
-  <table style="border-collapse:collapse;width:100%;"><thead><tr><th style="text-align:left;">Item</th><th style="text-align:left;">Details</th><th style="text-align:right;">Price</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-  <p><strong>Total:</strong> ${totalAmount ?? ""} ${currency ?? "KES"}</p>
-  ${orderLink ? `<p><a href="${escapeHtml(orderLink)}">View order</a></p>` : ""}
-  <p>Thank you for your business.</p>
-</div>`;
+    return render(NiscAdminOrderConfirmedEmail({
+        customerName,
+        orderNumber,
+        orderDate,
+        totalAmount,
+        currency,
+        orderItems,
+        orderLink,
+    }));
 }
 /** "Order received" email   React template; sent when order is created from payment; user will get another email when processed. */
 export async function renderNiscOrderReceivedEmail({ customerName, orderNumber, orderDate, totalAmount, currency, orderItems, }) {
