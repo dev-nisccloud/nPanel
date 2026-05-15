@@ -16,6 +16,7 @@ import {
 	createInvoiceForNiscOrder,
 } from "@npanel/api/lib/nisc-order-auto-invoice";
 import { verifySignature } from "../../lib/qstash-verify";
+import { getNormalizedPublicAppUrl, joinPublicAppPath } from "@npanel/api/lib/public-app-url";
 
 interface NiscOrderPayload {
 	niscOrderId: string;
@@ -105,9 +106,11 @@ export async function handleProcessNiscOrder(c: Context) {
 			},
 		});
 
-		const baseUrl = (process.env.VITE_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
-		const orderLink = `${baseUrl}/agency/nisc-service-orders?order=${niscOrderId}`;
-		const retryLink = `${baseUrl}/agency/nisc-service-orders`;
+		const baseUrl = getNormalizedPublicAppUrl();
+		const orderLink = joinPublicAppPath(
+			`/agency/nisc-service-orders?order=${encodeURIComponent(niscOrderId)}`,
+		);
+		const retryLink = joinPublicAppPath("/agency/nisc-service-orders");
 
 		let customerName = order.user?.name ?? null;
 		if (!customerName && order.team?.createdById) {
@@ -134,8 +137,8 @@ export async function handleProcessNiscOrder(c: Context) {
 				try {
 					const customerOrderLink =
 						order.team?.slug != null
-							? `${baseUrl}/${order.team.slug}/subscriptions`
-							: `${baseUrl}/dashboard`;
+							? joinPublicAppPath(`/${order.team.slug}/subscriptions`)
+							: joinPublicAppPath("/dashboard");
 					const orderConfirmationHtml = await renderOrderConfirmationEmail({
 						customerName: customerName ?? undefined,
 						orderNumber: orderAfter.orderNumber,
@@ -200,7 +203,7 @@ export async function handleProcessNiscOrder(c: Context) {
 								}
 								const invoiceDashboardUrl =
 									baseUrl && order.team?.slug
-										? `${baseUrl}/${order.team.slug}/invoices`
+										? joinPublicAppPath(`/${order.team.slug}/invoices`)
 										: undefined;
 								const invoiceSuccessHtml = await renderInvoiceSuccessEmail({
 									customerName: billingSettings!.legalName ?? undefined,
@@ -254,10 +257,21 @@ export async function handleProcessNiscOrder(c: Context) {
 						orderDate: orderAfter.createdAt.toISOString().slice(0, 10),
 						totalAmount: orderAfter.total,
 						currency: orderAfter.currency,
-						orderItems: orderAfter.orderItems.map((i) => ({
-							name: [i.product?.name, i.productPlan?.name].filter(Boolean).join(" - ") || i.primaryDomain || "Order item",
-							price: i.itemSubtotal,
-						})),
+						orderItems: orderAfter.orderItems.map((i) => {
+							const name =
+								[i.product?.name, i.productPlan?.name].filter(Boolean).join(" - ") ||
+								i.primaryDomain ||
+								"Order item";
+							const domain = i.primaryDomain?.trim();
+							const nameHasDomain =
+								domain && name.toLowerCase().includes(domain.toLowerCase());
+							return {
+								name,
+								description: domain && !nameHasDomain ? domain : undefined,
+								price: `${orderAfter.currency} ${i.itemSubtotal}`,
+								status: i.status,
+							};
+						}),
 						orderLink,
 					});
 					await sendEmailBatch(
