@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@npanel/ui/components/dialog";
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -147,7 +147,7 @@ export function EditClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6" hideClose>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader className="pb-4">
           <DialogTitle>Edit Client</DialogTitle>
           <DialogDescription>

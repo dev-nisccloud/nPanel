@@ -94,6 +94,15 @@ export function transformPleskSubscriptionsToTable(
  * These can be combined (e.g., 3 = 1+2, 272 = 256+16)
  */
 
+/** True when the Plesk subscription is not active (status !== 0). */
+export function isHostingSubscriptionSuspended(status: number | undefined | null): boolean {
+  if (status === undefined || status === null || isNaN(Number(status))) {
+    return true;
+  }
+  const statusNum = typeof status === "string" ? parseInt(status, 10) : Number(status);
+  return statusNum !== 0;
+}
+
 /**
  * Get status display text based on Plesk status number
  * Note: Status field may be missing from gen_info for some subscriptions

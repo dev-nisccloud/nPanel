@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Edit, Mail, ShieldCheck, ShieldX, Calendar, User, BadgeCheck, Plug } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@npanel/ui/components/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -138,7 +138,7 @@ export function ClientViewDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6" hideClose>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>

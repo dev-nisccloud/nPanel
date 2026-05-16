@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { authClient } from "@/lib/auth-client";
-import { Link, Navigate, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams, useLocation } from "react-router";
 import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -343,9 +343,16 @@ type ZeepoAgentSkillRow = {
   description: string;
 };
 
+type InitialNavState = {
+  initialMessage?: string;
+  initialSkillId?: string;
+  initialAttachments?: Array<{ url: string; name: string; mimeType: string }>;
+} | null;
+
 export default function ZeepoAiAgentSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: authSession, isPending: authPending } = authClient.useSession();
   const [draft, setDraft] = React.useState("");
   const [skillsOpen, setSkillsOpen] = React.useState(false);
@@ -790,6 +797,45 @@ export default function ZeepoAiAgentSessionPage() {
       });
     });
   }, [draft, pendingAttachments, send, sessionId, selectedSkill, showAssistantThinking]);
+
+  // ── Auto-send initial message from index page navigation state ──────────
+  const autoSentRef = React.useRef(false);
+  const sendRef = React.useRef(send.mutate);
+  sendRef.current = send.mutate;
+
+  React.useEffect(() => {
+    if (autoSentRef.current) return;
+    if (!sessionId) return;
+    const navState = location.state as InitialNavState;
+    if (!navState) return;
+
+    const { initialMessage, initialSkillId, initialAttachments } = navState;
+    // Wait until the session has loaded before sending
+    if (!sessionQuery.data?.data) return;
+    // Only fire when session has no messages yet
+    if ((sessionQuery.data.data.messages ?? []).length > 0) return;
+
+    autoSentRef.current = true;
+
+    // Pre-select skill if provided
+    if (initialSkillId) {
+      const allSkills = skillsQuery.data?.data ?? [];
+      const skill = allSkills.find((s) => s.id === initialSkillId);
+      if (skill) setSelectedSkill(skill);
+    }
+
+    if (initialMessage?.trim()) {
+      queueMicrotask(() => {
+        sendRef.current({
+          sessionId: sessionId!,
+          content: initialMessage.trim(),
+          ...(initialSkillId ? { skillId: initialSkillId } : {}),
+          ...(initialAttachments?.length ? { attachments: initialAttachments } : {}),
+        });
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionQuery.data?.data, sessionId, location.state]);
 
   // While a send mutation is in-flight the agent iterates multiple turns, each writing new
   // On page load: if the session already has ≥3 user messages but still carries the
@@ -1320,12 +1366,22 @@ export default function ZeepoAiAgentSessionPage() {
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 rounded-xl border bg-muted/15 p-3 md:p-4">
+      <ScrollArea className="min-h-0 flex-1 rounded-xl bg-muted/15 p-3 md:p-4">
         <div className="flex flex-col gap-4 pr-2">
           {messages.length === 0 && !showAssistantThinking ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              Say hello to start the conversation.
-            </p>
+            <div className="flex flex-col items-center justify-center py-14 gap-5">
+              <img src="/zepo.png" alt="Zeepo" className="h-75 w-75 object-contain drop-shadow-sm" width={144} height={144} />
+              <div className="flex flex-col items-center gap-1.5 text-center max-w-sm">
+                <p className="text-sm font-medium text-foreground">
+                  {selectedSkill ? selectedSkill.title : "Your AI agent, ready to work"}
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {selectedSkill
+                    ? `Tell me what you need and I'll take it from here — ask follow-up questions, refine, and deliver.`
+                    : "Describe what you need in plain language. Zeepo plans, executes, and iterates — writing, research, strategy, images, video, audio, and more."}
+                </p>
+              </div>
+            </div>
           ) : null}
 
           {messages.map(

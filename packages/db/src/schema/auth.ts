@@ -20,6 +20,19 @@ export const user = pgTable("user", {
   browserNotificationPermission: text("browser_notification_permission").default("default"),
   notificationPreferencesUpdatedAt: timestamp("notification_preferences_updated_at"),
 
+  generalEmailsAccepted: boolean("general_emails_accepted").default(false),
+  invoiceEmailsAccepted: boolean("invoice_emails_accepted").default(false),
+  supportEmailsAccepted: boolean("support_emails_accepted").default(false),
+  productEmailsAccepted: boolean("product_emails_accepted").default(false),
+  domainEmailsAccepted: boolean("domain_emails_accepted").default(false),
+  affiliateEmailsAccepted: boolean("affiliate_emails_accepted").default(false),
+  marketingEmailsAccepted: boolean("marketing_emails_accepted").default(false),
+  smsMarketingAccepted: boolean("sms_marketing_accepted").default(false),
+
+  adminNotes: text("admin_notes"),
+  howDidYouFindUs: text("how_did_you_find_us"),
+  acceptedTermsAndConditions: boolean("accepted_terms_and_conditions"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

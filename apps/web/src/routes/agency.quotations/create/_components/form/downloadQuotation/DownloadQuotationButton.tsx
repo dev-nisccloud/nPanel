@@ -23,6 +23,8 @@ export const DownloadQuotationButton = () => {
 	const utils = trpc.useUtils();
 	const { companyDetails, quotationDetails, quotationTerms, yourDetails } = useData();
 
+	const linkedUserId = form.watch("linkedUserId") as string | undefined;
+
 	const createMutation = trpc.quotations.create.useMutation({
 		onSuccess: () => {
 			setStatus("submitted");
@@ -92,6 +94,7 @@ export const DownloadQuotationButton = () => {
 				quotationNumber: quotationTerms.quotationNumber ?? undefined,
 				customerName: companyDetails.companyName ?? undefined,
 				customerEmail: companyDetails.email ?? undefined,
+				linkedUserId: linkedUserId || undefined,
 				issueDate: quotationTerms.issueDate
 					? new Date(quotationTerms.issueDate).toISOString()
 					: undefined,

@@ -11,6 +11,17 @@ export const clientSchema = z.object({
 	lastLoginAt: z.date().nullable(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
+	generalEmailsAccepted: z.boolean().nullable(),
+	invoiceEmailsAccepted: z.boolean().nullable(),
+	supportEmailsAccepted: z.boolean().nullable(),
+	productEmailsAccepted: z.boolean().nullable(),
+	domainEmailsAccepted: z.boolean().nullable(),
+	affiliateEmailsAccepted: z.boolean().nullable(),
+	marketingEmailsAccepted: z.boolean().nullable(),
+	smsMarketingAccepted: z.boolean().nullable(),
+	adminNotes: z.string().nullable(),
+	howDidYouFindUs: z.string().nullable(),
+	acceptedTermsAndConditions: z.boolean().nullable(),
 });
 
 export type Client = z.infer<typeof clientSchema>;

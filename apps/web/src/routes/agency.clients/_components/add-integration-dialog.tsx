@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@npanel/ui/components/dialog";
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -329,7 +329,7 @@ export function AddIntegrationDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8" hideClose>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8">
         <DialogHeader className="pb-6 space-y-2">
           <DialogTitle className="text-xl">Add Integration</DialogTitle>
           <DialogDescription className="pt-1 text-sm">
@@ -351,7 +351,7 @@ export function AddIntegrationDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0 pt-6">
+        <DialogFooter className="gap-3 pt-6">
           {step === "platform" && (
             <Button
               type="button"

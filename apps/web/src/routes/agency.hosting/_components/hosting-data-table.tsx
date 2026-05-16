@@ -21,13 +21,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Link, useNavigate } from "react-router";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { CreateSubscriptionForHostingDialog } from "./create-subscription-for-hosting-dialog";
+import { HostingSubscriptionActionMenu } from "./hosting-subscription-action-menu";
+import { HostingSubscriptionSuspendDialog } from "./hosting-subscription-suspend-dialog";
+import { useHostingSubscriptionSuspend } from "./use-hosting-subscription-suspend";
 import { trpc } from "@/utils/trpc";
 // import { useDataTableInstance } from "@/hooks/use-data-table-instance";
 
@@ -152,6 +149,10 @@ export function HostingDataTable() {
     { pleskSubscriptionId: string | number; subscriptionName: string } | null
   >(null);
 
+  const suspendActions = useHostingSubscriptionSuspend({
+    onSuccess: () => refetch(),
+  });
+
   const pleskIds = React.useMemo(
     () => data.map((s) => String(s.id)),
     [data]
@@ -244,35 +245,31 @@ export function HostingDataTable() {
                   </Badge>
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-block">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary"
-                            disabled={pleskIdsWithLinkedSet.has(String(subscription.id))}
-                            onClick={() =>
-                              setCreateSubscriptionFor({
-                                pleskSubscriptionId: subscription.id,
-                                subscriptionName: subscription.subscriptionName,
-                              })
-                            }
-                          >
-                            <FilePlus2 className="mr-2 h-4 w-4" />
-                            Create subscription
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="left" className="max-w-xs">
-                        {pleskIdsWithLinkedSet.has(String(subscription.id))
-                          ? CREATE_SUBSCRIPTION_TOOLTIP_LINKED
-                          : "Create a Nisc subscription and link it to a team or user."}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <HostingSubscriptionActionMenu
+                    subscriptionId={subscription.id}
+                    subscriptionName={subscription.subscriptionName}
+                    status={subscription.status}
+                    hasLinkedSubscription={pleskIdsWithLinkedSet.has(String(subscription.id))}
+                    createSubscriptionTooltipLinked={CREATE_SUBSCRIPTION_TOOLTIP_LINKED}
+                    onCreateSubscription={() =>
+                      setCreateSubscriptionFor({
+                        pleskSubscriptionId: subscription.id,
+                        subscriptionName: subscription.subscriptionName,
+                      })
+                    }
+                    onSuspend={() =>
+                      suspendActions.requestSuspend(
+                        subscription.id,
+                        subscription.subscriptionName,
+                      )
+                    }
+                    onUnsuspend={() =>
+                      suspendActions.requestUnsuspend(
+                        subscription.id,
+                        subscription.subscriptionName,
+                      )
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ))
@@ -362,6 +359,13 @@ export function HostingDataTable() {
         }
         subscriptionName={createSubscriptionFor?.subscriptionName}
         onSuccess={() => setCreateSubscriptionFor(null)}
+      />
+
+      <HostingSubscriptionSuspendDialog
+        dialog={suspendActions.dialog}
+        isPending={suspendActions.isPending}
+        onOpenChange={suspendActions.setDialogOpen}
+        onConfirm={suspendActions.confirm}
       />
     </div>
   );

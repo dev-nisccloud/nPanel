@@ -8,7 +8,7 @@ import { session as sessionTable, user } from "@npanel/db/schema/auth";
 import { userActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
 import { auth } from "@npanel/auth";
 import { renderAgencyUserCreatedEmail } from "../lib/email-templates";
-import { sendEmail } from "react-email-starter/src/email";
+import { sendEmail } from "../lib/email";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================

@@ -8,7 +8,7 @@ import { session as sessionTable, user } from "@npanel/db/schema/auth";
 import * as crypto from "crypto";
 import { auth } from "@npanel/auth";
 import { renderAccountCreatedEmail } from "../lib/email-templates";
-import { sendEmail } from "react-email-starter/src/email";
+import { sendEmail } from "../lib/email";
 import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
 import { XMLParser } from "fast-xml-parser";
 import { createOpenProviderClient, OpenProviderApiError } from "../lib/openprovider-client";
