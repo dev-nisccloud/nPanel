@@ -190,6 +190,34 @@
       "when": 1778741618921,
       "tag": "0026_short_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1778922354837,
+      "tag": "0027_thin_bucky",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1778925603445,
+      "tag": "0028_smiling_kang",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1778925856811,
+      "tag": "0029_known_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1778926267120,
+      "tag": "0030_sleepy_vulture",
+      "breakpoints": true
     }
   ]
 }

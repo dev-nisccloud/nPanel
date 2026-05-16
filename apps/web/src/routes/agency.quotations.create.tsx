@@ -24,6 +24,7 @@ export default function CreateQuotationPage() {
 			companyCountry: "",
 			companyTaxId: "",
 			companyZip: "",
+			linkedUserId: "",
 			note: "",
 			discount: "",
 			taxPercentage: undefined,

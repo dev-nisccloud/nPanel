@@ -40,6 +40,9 @@ export const quotation = pgTable(
     topBlock: jsonb("top_block"),
     bottomBlock: jsonb("bottom_block"),
     metadata: jsonb("metadata"),
+    linkedUserId: text("linked_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),

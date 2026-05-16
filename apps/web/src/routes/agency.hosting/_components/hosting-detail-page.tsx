@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, MoreVertical, FilePlus2, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight, Database } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight, Database } from "lucide-react";
 import { Icons } from "@/components/icons";
 import { Link } from "react-router";
 import { z } from "zod";
@@ -9,13 +9,6 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
@@ -30,13 +23,10 @@ import { InstallWordPressSheet } from "./install-wordpress-sheet";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { CreateSubscriptionForHostingDialog } from "./create-subscription-for-hosting-dialog";
+import { HostingSubscriptionActionMenu } from "./hosting-subscription-action-menu";
+import { HostingSubscriptionSuspendDialog } from "./hosting-subscription-suspend-dialog";
+import { useHostingSubscriptionSuspend } from "./use-hosting-subscription-suspend";
 import { trpc } from "@/utils/trpc";
 
 interface HostingDetailPageProps {
@@ -141,7 +131,9 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId);
   const [isCreateSubscriptionOpen, setIsCreateSubscriptionOpen] = React.useState(false);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
-  const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+  const suspendActions = useHostingSubscriptionSuspend({
+    onSuccess: () => refetch(),
+  });
   const mailboxQuotaLimitBytes = React.useMemo(() => {
     const limits = hostingData?.limits?.limit ?? [];
     const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
@@ -203,44 +195,26 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
           <div className="flex items-center gap-2">
             {getStatusBadge(hostingData.gen_info.status ?? 0)}
-            <DropdownMenu open={isActionMenuOpen} onOpenChange={setIsActionMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="block w-full">
-                        <DropdownMenuItem
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            if (hasLinkedSubscription) return;
-                            setIsActionMenuOpen(false);
-                            setTimeout(() => setIsCreateSubscriptionOpen(true), 0);
-                          }}
-                          disabled={hasLinkedSubscription}
-                        >
-                          <FilePlus2 className="mr-2 h-4 w-4" />
-                          Create subscription
-                        </DropdownMenuItem>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-xs">
-                      {hasLinkedSubscription
-                        ? createSubscriptionTooltipLinked
-                        : "Create a Nisc subscription and link it to a team or user."}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <HostingSubscriptionActionMenu
+              subscriptionId={Number(subscriptionId)}
+              subscriptionName={hostingData.gen_info.name || `Subscription ${hostingData.id}`}
+              status={hostingData.gen_info.status}
+              hasLinkedSubscription={hasLinkedSubscription}
+              createSubscriptionTooltipLinked={createSubscriptionTooltipLinked}
+              onCreateSubscription={() => setIsCreateSubscriptionOpen(true)}
+              onSuspend={() =>
+                suspendActions.requestSuspend(
+                  Number(subscriptionId),
+                  hostingData.gen_info.name || `Subscription ${hostingData.id}`,
+                )
+              }
+              onUnsuspend={() =>
+                suspendActions.requestUnsuspend(
+                  Number(subscriptionId),
+                  hostingData.gen_info.name || `Subscription ${hostingData.id}`,
+                )
+              }
+            />
           </div>
         </div>
 
@@ -408,6 +382,13 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
           }}
         />
       )}
+
+      <HostingSubscriptionSuspendDialog
+        dialog={suspendActions.dialog}
+        isPending={suspendActions.isPending}
+        onOpenChange={suspendActions.setDialogOpen}
+        onConfirm={suspendActions.confirm}
+      />
     </div>
   );
 }

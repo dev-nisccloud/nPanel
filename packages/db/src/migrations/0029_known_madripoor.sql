@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "accepted_terms_and_conditions" boolean;

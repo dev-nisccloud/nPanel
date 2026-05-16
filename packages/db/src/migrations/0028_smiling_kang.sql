@@ -1,0 +1,2 @@
+ALTER TABLE "quotation" ADD COLUMN "linked_user_id" text;--> statement-breakpoint
+ALTER TABLE "quotation" ADD CONSTRAINT "quotation_linked_user_id_user_id_fk" FOREIGN KEY ("linked_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;

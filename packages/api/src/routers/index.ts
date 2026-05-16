@@ -25,6 +25,7 @@ import { subdomainsDeleteRouter } from "./plesk/subdomains-delete";
 import { subscriptionsCreateRouter } from "./plesk/subscriptions-create";
 import { subscriptionsDeleteRouter } from "./plesk/subscriptions-delete";
 import { subscriptionsUpdateRouter } from "./plesk/subscriptions-update";
+import { subscriptionsSuspendRouter } from "./plesk/subscriptions-suspend";
 import { wpCredentialsRouter } from "./plesk/wp-credentials";
 import { wpPluginsAutoupdateRouter } from "./plesk/wp-plugins-autoupdate";
 import { wpPluginsDeleteRouter } from "./plesk/wp-plugins-delete";
@@ -156,6 +157,7 @@ export const appRouter = router({
 		subscriptionsCreate: subscriptionsCreateRouter,
 		subscriptionsDelete: subscriptionsDeleteRouter,
 		subscriptionsUpdate: subscriptionsUpdateRouter,
+		subscriptionsSuspend: subscriptionsSuspendRouter,
 		// WordPress Toolkit
 		wpCredentials: wpCredentialsRouter,
 		wpPluginsInstall: wpPluginsInstallRouter,

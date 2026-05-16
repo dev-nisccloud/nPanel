@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { session, user } from "@npanel/db/schema/auth";
 import { userActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
+import { mapUserAdminFields, mapUserEmailPreferences } from "../lib/user-extra-fields";
 
 // Zod schemas for API - independent from database schema
 const userInfoOutputSchema = z.object({
@@ -400,6 +401,8 @@ export const userProfileRouter = router({
         lastLoginAt: u.lastLoginAt,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
+        ...mapUserEmailPreferences(u),
+        ...mapUserAdminFields(u),
         profile: mapProfileRow(p),
       };
     }
