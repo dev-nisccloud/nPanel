@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { uploadFiles } from "@/hooks/use-uploadthing";
+import { RotatingText } from "@/components/rotating-text";
 
 type Attachment = { url: string; name: string; mimeType: string };
 
@@ -209,17 +210,53 @@ export default function ZeepoAiAgentIndexPage() {
       </div>
 
       {/* ── Main compose area ──────────────────────────────── */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes zeepo-compose-border {
+          0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 10px 2px rgba(124,58,237,0.2); }
+          33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 10px 2px rgba(37,99,235,0.2);  }
+          66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 10px 2px rgba(6,182,212,0.2);  }
+          100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 10px 2px rgba(124,58,237,0.2); }
+        }
+        .zeepo-compose-wrap {
+          position: relative;
+          width: 100%;
+          border-radius: 1rem;
+          border: 2px solid rgba(124,58,237,0.7);
+          animation: zeepo-compose-border 6s linear infinite;
+          overflow: hidden;
+        }
+        .zeepo-compose-wrap:focus-within {
+          box-shadow: 0 0 18px 4px rgba(124,58,237,0.3) !important;
+        }
+      `}} />
       <div className="w-full max-w-[580px] flex flex-col items-center gap-7">
         {/* Heading */}
-        <h1
-          className="text-[2.75rem] font-serif tracking-tight text-foreground text-center leading-tight"
-          style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
-        >
-          What can I do for you?
-        </h1>
+        <div className="flex flex-col items-center gap-1.5">
+          <h1
+            className="text-[2.75rem] font-serif tracking-tight text-foreground text-center leading-tight"
+            style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+          >
+            What can I do for you?
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            I can{" "}
+            <RotatingText
+              texts={[
+                "write strategies, plans, and proposals",
+                "check domain availability and buy instantly",
+                "generate images, video, and audio",
+                "research anything with live web search",
+                "build brand assets and creative copy",
+                "run marketing campaigns end to end",
+                "handle operational planning and briefs",
+              ]}
+              className="font-medium text-foreground"
+            />
+          </p>
+        </div>
 
         {/* Compose box */}
-        <div className="w-full rounded-2xl border bg-card shadow-sm overflow-hidden">
+        <div className="zeepo-compose-wrap bg-card shadow-sm">
           {/* Pending attachment thumbnails */}
           {pendingAttachments.length > 0 && (
             <div className="flex flex-wrap gap-2 px-4 pt-3">
