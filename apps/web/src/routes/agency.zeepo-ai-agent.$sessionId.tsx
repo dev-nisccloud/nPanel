@@ -60,6 +60,7 @@ import { pdf } from "@react-pdf/renderer";
 import { ZeepoDocumentPdf } from "@/components/zeepo/document-pdf";
 import { ZeepoDomainPurchaseCard } from "@/components/zeepo/domain-purchase-card";
 import type { AgentDomainCheckResult } from "@/stores/zeepo-payment-store";
+import { RotatingText } from "@/components/rotating-text";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1428,11 +1429,27 @@ export default function ZeepoAiAgentSessionPage() {
                 <p className="text-sm font-medium text-foreground">
                   {selectedSkill ? selectedSkill.title : "Your AI agent, ready to work"}
                 </p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {selectedSkill
-                    ? `Tell me what you need and I'll take it from here — ask follow-up questions, refine, and deliver.`
-                    : "Describe what you need in plain language. Zeepo plans, executes, and iterates — writing, research, strategy, images, video, audio, and more."}
-                </p>
+                {selectedSkill ? (
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Tell me what you need and I'll take it from here — ask follow-up questions, refine, and deliver.
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    I can{" "}
+                    <RotatingText
+                      texts={[
+                        "write strategies, plans, and proposals",
+                        "check domain availability and buy instantly",
+                        "generate images, video, and audio",
+                        "research anything with live web search",
+                        "build brand assets and creative copy",
+                        "run marketing campaigns end to end",
+                        "handle operational planning and briefs",
+                      ]}
+                      className="font-medium text-foreground"
+                    />
+                  </p>
+                )}
               </div>
             </div>
           ) : null}
@@ -2226,18 +2243,61 @@ export default function ZeepoAiAgentSessionPage() {
             {isUploading ? <Spinner className="size-4" /> : <Paperclip className="size-5" />}
           </Button>
 
-          <Textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes zeepo-input-border {
+              0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.25); }
+              33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 8px 1px rgba(37,99,235,0.25);  }
+              66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 8px 1px rgba(6,182,212,0.25);  }
+              100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.25); }
+            }
+            @keyframes zeepo-spark-float {
+              0%, 100% { transform: translateY(0) scale(1);    }
+              50%       { transform: translateY(-3px) scale(1.2); }
+            }
+            @keyframes zeepo-spark-hue {
+              0%   { color: #7c3aed; }
+              33%  { color: #2563eb; }
+              66%  { color: #06b6d4; }
+              100% { color: #7c3aed; }
+            }
+            .zeepo-input-wrap {
+              position: relative;
+              flex: 1 1 0%;
+              border-radius: 10px;
+              border: 2px solid rgba(124,58,237,0.7);
+              animation: zeepo-input-border 6s linear infinite;
+            }
+            .zeepo-input-wrap:focus-within {
+              box-shadow: 0 0 14px 3px rgba(124,58,237,0.35) !important;
+            }
+            .zeepo-input-wrap textarea {
+              border: none !important;
+              box-shadow: none !important;
+              border-radius: 8px;
+            }
+            .zeepo-spark {
+              animation: zeepo-spark-float 2.5s ease-in-out infinite, zeepo-spark-hue 6s linear infinite;
+            }
+          `}} />
+          <div className="zeepo-input-wrap">
+            <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 zeepo-spark">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3 L13.5 8.5 L19 10 L13.5 11.5 L12 17 L10.5 11.5 L5 10 L10.5 8.5 Z" />
+                <path d="M19 3 L19.8 5.2 L22 6 L19.8 6.8 L19 9 L18.2 6.8 L16 6 L18.2 5.2 Z" />
+              </svg>
+            </div>
+            <Textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={
               pendingQuestionsInfo && questionFlow
                 ? "Answer the question above first…"
                 : selectedSkill
                 ? `Add details for “${selectedSkill.title}”…`
                 : "Describe what you want… (or attach an image)"
             }
-            className="min-h-[44px] flex-1 resize-none"
+            className="min-h-[44px] w-full resize-none pr-8"
             rows={2}
             disabled={showAssistantThinking || Boolean(pendingQuestionsInfo && questionFlow)}
             onKeyDown={(e) => {
@@ -2247,6 +2307,7 @@ export default function ZeepoAiAgentSessionPage() {
               }
             }}
           />
+          </div>
           <Button type="submit" size="icon" className="h-[44px] w-[44px] shrink-0" disabled={showAssistantThinking || Boolean(pendingQuestionsInfo && questionFlow)}>
             {send.isPending ? (
               <Spinner variant="ellipsis" className="h-4 w-4 text-primary-foreground" />
