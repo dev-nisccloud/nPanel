@@ -58,6 +58,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { pdf } from "@react-pdf/renderer";
 import { ZeepoDocumentPdf } from "@/components/zeepo/document-pdf";
+import { ZeepoDomainPurchaseCard } from "@/components/zeepo/domain-purchase-card";
+import type { AgentDomainCheckResult } from "@/stores/zeepo-payment-store";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -286,7 +288,8 @@ function shouldHideZeepoAgentToolMessageForUi(content: string | null | undefined
       const tool = (o as Record<string, unknown>)._tool as string | undefined;
       if (
         tool === "check_domain_availability" ||
-        tool === "create_document"
+        tool === "create_document" ||
+        tool === "get_user_session"
       ) {
         return true;
       }
@@ -298,6 +301,30 @@ function shouldHideZeepoAgentToolMessageForUi(content: string | null | undefined
   }
 
   return false;
+}
+
+/**
+ * Parses a tool message content string and returns a DomainCheckResult if it
+ * contains check_domain_availability data, or null otherwise.
+ */
+function parseDomainCheckResult(
+  content: string | null | undefined,
+): AgentDomainCheckResult | null {
+  if (!content) return null;
+  try {
+    const o = JSON.parse(content) as Record<string, unknown>;
+    if (
+      o &&
+      typeof o === "object" &&
+      !Array.isArray(o) &&
+      (o as { _tool?: unknown })._tool === "check_domain_availability"
+    ) {
+      return o as unknown as AgentDomainCheckResult;
+    }
+  } catch {
+    // Not JSON or not the right shape.
+  }
+  return null;
 }
 
 function formatChatBubbleTime(value: Date | string | undefined | null): string {
@@ -1048,7 +1075,33 @@ export default function ZeepoAiAgentSessionPage() {
   }
 
   const sessionRes = sessionQuery.data.data;
-  const messages = sessionRes.messages ?? [];
+
+  // Deduplicate messages to prevent the optimistic user bubble (added in onMutate)
+  // from appearing alongside the real DB user message during the polling window.
+  // Rules:
+  //   1. Drop exact ID duplicates (shouldn't happen, but belt-and-suspenders).
+  //   2. Drop any optimistic-user-* entry if a real message with the same role+content exists.
+  const messages = (() => {
+    const raw: Array<{ id: string; role: string; content: string | null }> =
+      sessionRes.messages ?? [];
+    const seenIds = new Set<string>();
+    const deduped = raw.filter((m) => {
+      if (seenIds.has(m.id)) return false;
+      seenIds.add(m.id);
+      return true;
+    });
+    const realUserContents = new Set(
+      deduped
+        .filter((m) => m.role === "user" && !m.id.startsWith("optimistic-"))
+        .map((m) => m.content),
+    );
+    return deduped.filter((m) => {
+      if (m.id.startsWith("optimistic-") && realUserContents.has(m.content)) {
+        return false;
+      }
+      return true;
+    });
+  })();
   const generations = genQuery.data?.data ?? [];
   const genLoading = genQuery.isPending || genQuery.isLoading;
   const genError = genQuery.isError;
@@ -1473,6 +1526,17 @@ export default function ZeepoAiAgentSessionPage() {
             }
 
             if (m.role === "tool") {
+              const domainResult = parseDomainCheckResult(m.content);
+              if (domainResult) {
+                return (
+                  <div key={m.id} className="flex justify-start gap-2">
+                    <div className="mb-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
+                      <img src="/zepo.png" alt="" className="size-8 object-cover" width={32} height={32} />
+                    </div>
+                    <ZeepoDomainPurchaseCard result={domainResult} />
+                  </div>
+                );
+              }
               if (shouldHideZeepoAgentToolMessageForUi(m.content)) {
                 return null;
               }

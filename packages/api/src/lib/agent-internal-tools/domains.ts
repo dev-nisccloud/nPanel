@@ -11,7 +11,8 @@
  */
 
 import { createOpenProviderClient } from "../openprovider-client";
-import { checkKenicAvailability } from "../epp/kenic-availability";
+import { checkKenicAvailabilityAndFee } from "../epp/kenic-availability";
+import { getKenicPricingFromFallbacks } from "../epp/kenic-pricing";
 import { isKenicDomain } from "../epp/kenic-tlds";
 import { getRedisClient } from "../redis";
 import { toRetailPrice, DEFAULT_DISPLAY_CURRENCY } from "./pricing";
@@ -224,16 +225,34 @@ async function checkViaOpenProvider(
 	return results;
 }
 
+/**
+ * Extract the TLD extension from a full domain FQDN, e.g.
+ * "fineyakwoyo.co.ke" → "co.ke",  "example.ke" → "ke".
+ * Returns everything after the first dot.
+ */
+function tldFromDomain(fqdn: string): string {
+	const idx = fqdn.indexOf(".");
+	return idx >= 0 ? fqdn.slice(idx + 1) : fqdn;
+}
+
 async function checkViaKenic(
 	name: string,
 	extensions: string[],
+	targetCurrency: string,
 ): Promise<DomainCheckEntry[]> {
 	const results: DomainCheckEntry[] = [];
+
+	// Per-TLD price cache for this invocation: KENIC fees are uniform per TLD,
+	// so once we obtain the fee for an extension we reuse it for any subsequent
+	// domain of the same TLD without an extra EPP connection.
+	const tldPriceCache = new Map<string, { amount: number; currency: string } | null>();
+
 	// KENIC EPP does one domain per connection — run sequentially to avoid overwhelming the EPP server.
 	for (const ext of extensions) {
 		const domain = `${name}${ext}`;
 		try {
-			const r = await checkKenicAvailability(domain);
+			// One EPP call per domain: availability + fee extension (mirrors UI flow).
+			const r = await checkKenicAvailabilityAndFee(domain);
 			if (r === null) {
 				results.push({
 					domain,
@@ -242,14 +261,49 @@ async function checkViaKenic(
 					via: "error",
 					error: "KENIC EPP check unavailable",
 				});
-			} else {
-				results.push({
-					domain,
-					status: r.available ? "available" : "taken",
-					available: r.available,
-					via: "kenic",
-				});
+				continue;
 			}
+
+			let wholesaleFee = r.createFee;
+
+			// KENIC registry quirk: available domains sometimes omit fee:chkData.
+			// Fall back to fetching the fee from known-registered domains of the same TLD.
+			if (wholesaleFee === null && r.available) {
+				const tldKey = tldFromDomain(domain);
+				if (tldPriceCache.has(tldKey)) {
+					wholesaleFee = tldPriceCache.get(tldKey) ?? null;
+				} else {
+					const fallback = await getKenicPricingFromFallbacks(tldKey);
+					const fee = fallback?.createFee ?? null;
+					tldPriceCache.set(tldKey, fee);
+					wholesaleFee = fee;
+				}
+			}
+
+			// Apply platform margin + currency conversion (same as UI's getPricingInfo path).
+			let retailPrice: DomainCheckEntry["price"] | undefined;
+			if (wholesaleFee != null) {
+				const retail = await toRetailPrice(
+					wholesaleFee.amount,
+					wholesaleFee.currency,
+					targetCurrency,
+				);
+				if (retail) {
+					retailPrice = {
+						amount: retail.amount,
+						currency: retail.currency,
+						formatted: retail.formatted,
+					};
+				}
+			}
+
+			results.push({
+				domain,
+				status: r.available ? "available" : "taken",
+				available: r.available,
+				via: "kenic",
+				...(retailPrice ? { price: retailPrice } : {}),
+			});
 		} catch (e: unknown) {
 			results.push({
 				domain,
@@ -288,7 +342,7 @@ export async function agentCheckDomainAvailability(params: {
 	);
 
 	const [kenicResults, opResults] = await Promise.all([
-		checkViaKenic(name, kenicExts),
+		checkViaKenic(name, kenicExts, targetCurrency),
 		checkViaOpenProvider(name, opExts, targetCurrency),
 	]);
 

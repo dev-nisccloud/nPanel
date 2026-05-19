@@ -113,6 +113,12 @@ export const createDocumentArgsSchema = z.object({
 	content: z.string().min(1).max(80000),
 });
 
+/**
+ * No arguments — the tool always queries the session of the currently
+ * authenticated user. Agents cannot query another user's session.
+ */
+export const getSessionInfoArgsSchema = z.object({});
+
 export const checkDomainAvailabilityArgsSchema = z.object({
 	name: z
 		.string()
@@ -134,10 +140,25 @@ export type RunMediaGenerationArgs = z.infer<typeof runMediaGenerationArgsSchema
 export type WebSearchArgs = z.infer<typeof webSearchArgsSchema>;
 export type CheckDomainAvailabilityArgs = z.infer<typeof checkDomainAvailabilityArgsSchema>;
 export type CreateDocumentArgs = z.infer<typeof createDocumentArgsSchema>;
+export type GetSessionInfoArgs = z.infer<typeof getSessionInfoArgsSchema>;
 
 export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them through the "tool_calls" array):
 
-1) create_document
+1) get_user_session
+   Purpose: Retrieve the current authenticated user's account role and profile completeness. Use this immediately after presenting domain availability results — BEFORE saying domains are available for purchase — so you can tailor the next step message to the user's situation.
+   Arguments: none (no arguments object needed — you always check your own session, never another user's).
+   Returns: {
+     role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN",
+     isAgency: boolean,           // true for any AGENCY_* role
+     profileComplete: boolean,    // false means required domain-registration fields are missing
+     missingFields: string[]      // which fields need filling in (empty array when complete)
+   }
+   After results:
+   - If isAgency is true → tell the user: "Since you're on an agency account, during checkout you'll be prompted to enter the customer's details (name, email, address, phone) — the domain will be registered under their information."
+   - If isAgency is false AND profileComplete is false → tell the user which fields are missing and direct them to complete their profile at /my-profile BEFORE purchasing. Explain that domain registration requires this information and the order will fail without it.
+   - If isAgency is false AND profileComplete is true → proceed normally; the user can click Buy on any available domain above.
+
+2) create_document
    Purpose: produce a richly formatted, standalone markdown document — for strategies, detailed plans, proposals, full analyses, comprehensive breakdowns, reports, or any deliverable that benefits from structure and length beyond a chat reply.
    Arguments:
      - title  : string (1–200 chars) — concise document title (e.g. "Brand Strategy for Diamond Coffee Co.").
@@ -147,15 +168,15 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    When NOT to call: conversational replies, short answers, quick lists, follow-up clarifications, or anything that reads naturally as a chat bubble. Err toward NOT calling — only invoke when the document format genuinely adds value.
    After calling: write a SHORT chat reply (2–4 sentences) telling the user what the document covers and directing them to open it in the Generations section. Do NOT reproduce the full document content in the chat reply.
 
-2) check_domain_availability  ← NISC CLOUD INTERNAL TOOL
+3) check_domain_availability  ← NISC CLOUD INTERNAL TOOL
    Purpose: check whether domain names are available for registration through Nisc Cloud's own infrastructure (OpenProvider for gTLDs, KENIC EPP for .ke TLDs). ALWAYS use this when the user asks about domain availability, domain registration, or domain name ideas — never guess and never recommend external registrars.
    Arguments:
      - name       : string — the SLD (second-level domain) WITHOUT any extension or dots (e.g. "diamond-coffee" not "diamond-coffee.com").
      - extensions?: string[] (1–10 items) — TLD extensions to check (e.g. [".co.ke", ".com", ".africa", ".ke"]). If not specified, the server uses the smart default set for Kenyan businesses: .co.ke, .com, .ke, .africa, .net, .org. **Always override** when the user states a **primary market outside Kenya** — order extensions the way registrants in that market typically stack them (e.g. UK → .co.uk, .com; Germany → .de, .com; Nigeria → .com.ng, .ng, .com; EU-wide brand → .eu or national ccTLD of HQ + .com). Add context-specific gTLDs (.tech, .store, .agency) only when the brief fits. Regional NGO in Kenya → add .or.ke; global startup → .com, .io; creative studio → .studio, .agency.
    Returns: { name, checked: [{ domain, available, status, price?, isPremium?, via }], availableCount, checkedAt }
-   After results: present available domains clearly (highlight .co.ke and .com first for Kenyan businesses), show price where available, and ALWAYS direct the user to Nisc Cloud to register (nisccloud.com, sales@nisccloud.com, or +254 748 777 666). NEVER mention or recommend GoDaddy, Namecheap, Google Domains, Cloudflare, or any other registrar.
+   After results: present available domains and their prices, then IMMEDIATELY call get_user_session (do NOT skip this step). Do NOT tell the user to contact Nisc Cloud by email or phone for domain registration — they can purchase directly using the Buy buttons shown above each domain result. NEVER mention or recommend GoDaddy, Namecheap, Google Domains, Cloudflare, or any other registrar.
 
-2) web_search
+4) web_search
    Purpose: retrieve real-time grounding context from the live web via Brave Search. Call this BEFORE answering questions that involve specific real-world entities, current data, or regional context.
    Arguments:
      - query   : string (1–400 chars) — the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026"). ALWAYS embed geography directly in the query for non-major-market regions (Africa, Middle East, South/Southeast Asia except IN, ID, MY, PH) — e.g. "luxury car imports Nairobi Kenya 2026" not just "luxury cars".
@@ -167,7 +188,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    When NOT to call: general knowledge you are confident about, pure creative tasks where you have all context, or Nisc Cloud topics already in your system prompt. Do NOT call web_search for domain availability — use check_domain_availability instead.
    Call web_search BEFORE claiming facts about real-world entities — do not guess then search.
 
-4) list_models
+5) list_models
    Purpose: discover the *exact* Replicate model ids available in the Zeepo catalog for a category, filtered by capabilities.
    Arguments:
      - category? : "text" | "image" | "video" | "audio" | "background-remover"
@@ -175,7 +196,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Returns: an array of { id, category, provider, label, description, is_default, capabilities }.
    Use this tool BEFORE you ever pass a non-default "model_id" to run_media_generation.
 
-5) run_media_generation
+6) run_media_generation
    Purpose: queue a media generation job. Results stream back to the UI asynchronously.
    Arguments:
      - category : "text" | "image" | "video" | "audio" | "background-remover"

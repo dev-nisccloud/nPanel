@@ -54,6 +54,30 @@ function randomPlaceholderLabel(): string {
 }
 
 /**
+ * Get KENIC create and transfer fees for a TLD using only the known-registered
+ * fallback domains — no random-placeholder attempts. This is faster than
+ * `getKenicPricingForTld` and suitable for agent-internal tools where latency
+ * matters (at most 3 EPP connections instead of up to 15 + fallbacks).
+ *
+ * Returns null when the TLD has no known fallback domains or all fail.
+ */
+export async function getKenicPricingFromFallbacks(
+	extension: string,
+): Promise<KenicPricingResult | null> {
+	const normalised = extension.startsWith(".")
+		? extension.slice(1).toLowerCase()
+		: extension.toLowerCase();
+	const fallbacks = FALLBACK_DOMAINS_BY_TLD[normalised];
+	if (!fallbacks?.length) return null;
+
+	for (const domain of fallbacks) {
+		const result = await getKenicPricing(domain);
+		if (result?.createFee != null) return result;
+	}
+	return null;
+}
+
+/**
  * Get KENIC create and transfer fees for a TLD by running a check on a domain.
  * Tries random placeholders first; if the registry returns "available" with no fee info (common),
  * falls back to known-registered domains for that TLD so we get real-time transfer/create pricing.

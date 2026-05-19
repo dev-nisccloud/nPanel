@@ -11,6 +11,7 @@ import {
 	zeepoAgentSession,
 } from "@npanel/db/schema/zeepo-agent";
 import { user as userTable } from "@npanel/db/schema/auth";
+import { userProfile as userProfileTable } from "@npanel/db/schema/auth-extras";
 import { team as teamTable } from "@npanel/db/schema/teams";
 import { env } from "@npanel/env/server";
 import { protectedProcedure, router } from "../../trpc";
@@ -28,6 +29,7 @@ import { getZeepoAgentSkillById } from "./skills-catalog";
 import {
 	checkDomainAvailabilityArgsSchema,
 	createDocumentArgsSchema,
+	getSessionInfoArgsSchema,
 	listModelsArgsSchema,
 	runMediaGenerationArgsSchema,
 	webSearchArgsSchema,
@@ -619,9 +621,72 @@ export const zeepoAgentChatRouter = router({
 								};
 							}
 						}
+				} else if (tc.name === "get_user_session") {
+						// No meaningful args — validate defensively but always proceed.
+						getSessionInfoArgsSchema.safeParse(rawArgs);
+						try {
+							// Fetch the authenticated user's role and profile in parallel.
+							const [dbUser, profile] = await Promise.all([
+								db.query.user.findFirst({
+									where: eq(userTable.id, userId),
+									columns: { id: true, role: true },
+								}),
+								db.query.userProfile.findFirst({
+									where: eq(userProfileTable.userId, userId),
+									columns: {
+										firstName: true,
+										lastName: true,
+										phone: true,
+										address: true,
+										city: true,
+										country: true,
+										postalCode: true,
+									},
+								}),
+							]);
+
+							const role = (dbUser?.role ?? "CUSTOMER") as string;
+							const isAgency =
+								role === "AGENCY_USER" ||
+								role === "AGENCY_ADMIN" ||
+								role === "AGENCY_SUPER_ADMIN";
+
+							// Required fields for domain registration (same set the payment dialog checks).
+							const REQUIRED_PROFILE_FIELDS = [
+								"firstName",
+								"lastName",
+								"phone",
+								"address",
+								"city",
+								"country",
+								"postalCode",
+							] as const;
+							const missingFields: string[] = [];
+							if (!isAgency) {
+								for (const field of REQUIRED_PROFILE_FIELDS) {
+									const val = profile?.[field];
+									if (!val || String(val).trim() === "") {
+										missingFields.push(field);
+									}
+								}
+							}
+							const profileComplete = missingFields.length === 0;
+
+							resultPayload = {
+								_tool: "get_user_session",
+								role,
+								isAgency,
+								profileComplete,
+								missingFields,
+							};
+						} catch (e: any) {
+							resultPayload = {
+								error: `get_user_session failed: ${e?.message ?? "Unknown error"}`,
+							};
+						}
 					} else {
 						resultPayload = {
-							error: `Unknown tool "${tc.name}". Available: create_document, check_domain_availability, web_search, list_models, run_media_generation.`,
+							error: `Unknown tool "${tc.name}". Available: get_user_session, create_document, check_domain_availability, web_search, list_models, run_media_generation.`,
 						};
 					}
 
