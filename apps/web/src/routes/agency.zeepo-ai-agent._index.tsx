@@ -26,6 +26,7 @@ import {
   Clock,
   Zap,
   LayoutGrid,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -87,6 +88,15 @@ export default function ZeepoAiAgentIndexPage() {
   });
 
   const createSession = trpc.zeepoAgent.sessions.create.useMutation();
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const deleteSession = trpc.zeepoAgent.sessions.delete.useMutation({
+    onSuccess: () => {
+      void utils.zeepoAgent.sessions.list.invalidate();
+    },
+    onSettled: () => {
+      setDeletingId(null);
+    },
+  });
 
   // Auto-resize textarea
   React.useEffect(() => {
@@ -231,7 +241,14 @@ export default function ZeepoAiAgentIndexPage() {
       `}} />
       <div className="w-full max-w-[580px] flex flex-col items-center gap-7">
         {/* Heading */}
-        <div className="flex flex-col items-center gap-1.5">
+        <div className="flex flex-col items-center gap-3">
+          <img
+            src="/mascot.gif"
+            alt="Zeepo mascot"
+            className="h-75 w-75 object-contain"
+            width={128}
+            height={128}
+          />
           <h1
             className="text-[2.75rem] font-serif tracking-tight text-foreground text-center leading-tight"
             style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
@@ -420,7 +437,7 @@ export default function ZeepoAiAgentIndexPage() {
               </Button>
             </div>
 
-            <ScrollArea className="max-h-80">
+            <div className="max-h-72 overflow-y-auto">
               <div className="p-2">
                 {listQuery.isPending ? (
                   <div className="flex justify-center py-6">
@@ -432,28 +449,53 @@ export default function ZeepoAiAgentIndexPage() {
                   </p>
                 ) : (
                   rows.map((s) => (
-                    <Link
-                      key={s.id}
-                      to={`/agency/zeepo-ai-agent/${s.id}`}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/50 transition-colors"
-                      onClick={() => setHistoryOpen(false)}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium leading-tight">
-                          {s.title || "Untitled"}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(s.updatedAt), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-                    </Link>
+                    <div key={s.id} className="group relative flex items-center rounded-xl hover:bg-muted/50 transition-colors">
+                      <Link
+                        to={`/agency/zeepo-ai-agent/${s.id}`}
+                        className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5"
+                        onClick={() => setHistoryOpen(false)}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium leading-tight">
+                            {s.title || "Untitled"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(s.updatedAt), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                        </div>
+                        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground group-hover:opacity-0 transition-opacity" />
+                      </Link>
+                      <button
+                        type="button"
+                        aria-label="Delete chat"
+                        disabled={deletingId === s.id}
+                        className={cn(
+                          "absolute right-2 flex size-6 items-center justify-center rounded-md text-muted-foreground",
+                          "opacity-0 group-hover:opacity-100 transition-opacity",
+                          "hover:bg-destructive/10 hover:text-destructive",
+                          "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          "disabled:pointer-events-none",
+                        )}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDeletingId(s.id);
+                          deleteSession.mutate({ id: s.id });
+                        }}
+                      >
+                        {deletingId === s.id ? (
+                          <Spinner size={12} className="text-current" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                      </button>
+                    </div>
                   ))
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </>
       )}
