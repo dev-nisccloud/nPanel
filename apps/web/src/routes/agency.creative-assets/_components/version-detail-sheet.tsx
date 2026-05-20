@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import type { z } from "zod";
-import { X, Download, MessageSquare } from "lucide-react";
+import { X, Download, MessageSquare, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 import {
 	Sheet,
 	SheetClose,
@@ -14,11 +15,20 @@ import {
 	SheetTitle,
 } from "@/components/npanel-ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { trpc } from "@/utils/trpc";
 
 import { creativeAssetVersionSchema } from "./schema";
 import { formatFileSize } from "./utils";
 import { CustomDocumentViewer } from "./document-viewers/custom-document-viewer";
 import { CommentsSheet } from "./comments-sheet";
+import { VersionAiAnalysisSheet } from "./version-ai-analysis-sheet";
+
+function isImageMimeType(mimeType: string | undefined | null): boolean {
+	if (!mimeType) return false;
+	return mimeType.toLowerCase().startsWith("image/");
+}
 
 interface VersionDetailSheetProps {
 	open: boolean;
@@ -32,6 +42,37 @@ export function VersionDetailSheet({
 	version,
 }: VersionDetailSheetProps) {
 	const [isCommentsOpen, setIsCommentsOpen] = React.useState(false);
+	const [aiAnalysisSheetOpen, setAiAnalysisSheetOpen] = React.useState(false);
+
+	const utils = trpc.useUtils();
+
+	const runAiAnalysisMutation = trpc.creativeAssets.runAiImageAnalysis.useMutation({
+		onSuccess: () => {
+			void utils.creativeAssets.listAiImageAnalyses.invalidate({ versionId: version.id });
+		},
+		onError: (err) => {
+			toast.error(err.message || "AI analysis failed");
+			void utils.creativeAssets.listAiImageAnalyses.invalidate({ versionId: version.id });
+		},
+	});
+
+	const supportsAiImageAnalysis = isImageMimeType(version.mimeType);
+
+	React.useEffect(() => {
+		if (!open) {
+			setAiAnalysisSheetOpen(false);
+		}
+	}, [open]);
+
+	const handleOpenAiAnalysis = React.useCallback(() => {
+		if (!supportsAiImageAnalysis) return;
+		setAiAnalysisSheetOpen(true);
+		runAiAnalysisMutation.mutate({ creativeAssetVersionId: version.id });
+	}, [supportsAiImageAnalysis, version.id, runAiAnalysisMutation]);
+
+	const handleRunAiAnalysisAgain = React.useCallback(() => {
+		runAiAnalysisMutation.mutate({ creativeAssetVersionId: version.id });
+	}, [version.id, runAiAnalysisMutation]);
 
 	const handleDownload = React.useCallback(async () => {
 		if (!version.fileUrl) return;
@@ -53,6 +94,52 @@ export function VersionDetailSheet({
 
 	return (
 		<>
+			<style
+				dangerouslySetInnerHTML={{
+					__html: `
+            /* Same color cycle as AI domain search / Zeepo — glow is on the button edge (no nested frame). */
+            @keyframes creative-version-ai-glow {
+              0%   { box-shadow: 0 0 0 2px rgba(124,58,237,0.78), 0 0 22px 8px rgba(124,58,237,0.34), 0 0 44px 18px rgba(124,58,237,0.14); }
+              33%  { box-shadow: 0 0 0 2px rgba(37,99,235,0.78),  0 0 22px 8px rgba(37,99,235,0.34),  0 0 44px 18px rgba(37,99,235,0.14);  }
+              66%  { box-shadow: 0 0 0 2px rgba(6,182,212,0.78),  0 0 22px 8px rgba(6,182,212,0.34),  0 0 44px 18px rgba(6,182,212,0.14);  }
+              100% { box-shadow: 0 0 0 2px rgba(124,58,237,0.78), 0 0 22px 8px rgba(124,58,237,0.34), 0 0 44px 18px rgba(124,58,237,0.14); }
+            }
+            @keyframes creative-version-ai-spark-float {
+              0%, 100% { transform: translateY(0) scale(1); }
+              50%       { transform: translateY(-3px) scale(1.15); }
+            }
+            @keyframes creative-version-ai-spark-hue {
+              0%   { color: #7c3aed; }
+              33%  { color: #2563eb; }
+              66%  { color: #06b6d4; }
+              100% { color: #7c3aed; }
+            }
+            .creative-version-ai-btn--active {
+              border: 0 !important;
+              box-shadow: none;
+              animation: creative-version-ai-glow 6s linear infinite;
+            }
+            .creative-version-ai-btn--active:focus-visible {
+              outline: 2px solid var(--ring);
+              outline-offset: 3px;
+            }
+            .creative-version-ai-btn--inactive {
+              animation: none !important;
+              box-shadow: none !important;
+              opacity: 0.65;
+            }
+            .creative-version-ai-btn--active .creative-version-ai-spark {
+              color: hsl(var(--primary-foreground));
+              animation: creative-version-ai-spark-float 2.5s ease-in-out infinite,
+                creative-version-ai-spark-hue 6s linear infinite;
+            }
+            .creative-version-ai-btn--inactive .creative-version-ai-spark {
+              animation: none !important;
+              color: hsl(var(--muted-foreground));
+            }
+          `,
+				}}
+			/>
 			<Sheet open={open} onOpenChange={onOpenChange}>
 				<SheetContent
 					className="sm:max-w-[90vw] lg:max-w-[85vw] xl:max-w-[80vw] w-full p-0 flex flex-col"
@@ -129,9 +216,60 @@ export function VersionDetailSheet({
 								</div>
 							)}
 						</div>
+
+						<div className="shrink-0 border-t bg-background px-6 py-3 flex justify-end">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<span
+										tabIndex={-1}
+										className={cn("inline-flex rounded-xl outline-none", !supportsAiImageAnalysis && "cursor-not-allowed")}
+									>
+										<Button
+											type="button"
+											variant="default"
+											disabled={!supportsAiImageAnalysis}
+											onClick={handleOpenAiAnalysis}
+											className={cn(
+												"h-10 gap-2 rounded-xl px-4 border-0 shadow-none",
+												supportsAiImageAnalysis ? "creative-version-ai-btn--active" : "creative-version-ai-btn--inactive",
+											)}
+											aria-label="AI analysis"
+										>
+											<Sparkles className="h-4 w-4 shrink-0 creative-version-ai-spark" aria-hidden />
+											<span className="text-sm font-medium">AI analysis</span>
+										</Button>
+									</span>
+								</TooltipTrigger>
+								<TooltipContent side="top" align="end" sideOffset={8} className="max-w-[280px] text-left leading-snug">
+									{supportsAiImageAnalysis ? (
+										<p>
+											Open AI-assisted review for this image version: highlights visual quality, clarity, and
+											ideas you can brief back to creatives. Detailed results will appear here.
+										</p>
+									) : (
+										<p>
+											AI analysis currently supports image files only. PDFs, video, Office documents, and
+											other types will be supported in future versions.
+										</p>
+									)}
+								</TooltipContent>
+							</Tooltip>
+						</div>
 					</div>
 				</SheetContent>
 			</Sheet>
+
+			<VersionAiAnalysisSheet
+				open={aiAnalysisSheetOpen}
+				onOpenChange={setAiAnalysisSheetOpen}
+				isLoading={runAiAnalysisMutation.isPending}
+				onRunNewAnalysis={
+					supportsAiImageAnalysis ? handleRunAiAnalysisAgain : undefined
+				}
+				versionId={version.id}
+				internalVersionNumber={version.internalVersionNumber}
+				fileName={version.fileName}
+			/>
 
 			<CommentsSheet
 				open={isCommentsOpen}
