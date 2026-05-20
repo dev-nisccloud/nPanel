@@ -42,6 +42,8 @@ export type NiscOrderItemStatus = z.infer<typeof niscOrderItemStatusSchema>;
 
 export const transferItemMetadataSchema = z
 	.object({
+		/** Set when checkout starts (createCheckoutRequest); reused on createFromPayment. */
+		domainTransferRequestId: z.string().optional(),
 		transferAuthCode: z.string().optional(),
 		nameServers: z
 			.array(z.object({ name: z.string(), ip: z.string().optional() }))

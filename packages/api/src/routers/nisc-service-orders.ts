@@ -725,7 +725,10 @@ export const niscServiceOrdersRouter = router({
 					continue;
 				}
 				const meta = item.metadata && typeof item.metadata === "object"
-					? (item.metadata as { transferAuthCode?: string })
+					? (item.metadata as {
+							transferAuthCode?: string;
+							domainTransferRequestId?: string;
+						})
 					: null;
 				const authCode = meta?.transferAuthCode?.trim();
 				if (!authCode) {
@@ -736,20 +739,68 @@ export const niscServiceOrdersRouter = router({
 				}
 				const domainName = item.primaryDomain.trim();
 				const provider = isKenicDomain(domainName) ? "KENIC" : "OPENPROVIDER";
-				const requestId = crypto.randomUUID();
-				await db.insert(domainTransferRequest).values({
-					id: requestId,
-					domainName,
-					authCode,
-					provider,
-					status: "PENDING",
-					customerPriceAmount: item.itemSubtotal ?? null,
-					customerPriceCurrency: input.currency ?? "KES",
-					teamId: input.teamId ?? null,
-					createdById: userId,
-					createdAt: now,
-					updatedAt: now,
-				});
+				const existingRequestId = meta?.domainTransferRequestId?.trim();
+				let requestId: string;
+
+				if (existingRequestId) {
+					const [existing] = await db
+						.select({
+							id: domainTransferRequest.id,
+							createdById: domainTransferRequest.createdById,
+							status: domainTransferRequest.status,
+							niscOrderId: domainTransferRequest.niscOrderId,
+						})
+						.from(domainTransferRequest)
+						.where(eq(domainTransferRequest.id, existingRequestId))
+						.limit(1);
+					if (!existing || existing.createdById !== userId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Transfer request not found or access denied.",
+						});
+					}
+					if (existing.niscOrderId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "This transfer request is already linked to an order.",
+						});
+					}
+					if (!["AWAITING_PAYMENT", "PENDING"].includes(existing.status)) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Transfer request cannot be updated (status: ${existing.status}).`,
+						});
+					}
+					requestId = existing.id;
+					await db
+						.update(domainTransferRequest)
+						.set({
+							domainName,
+							authCode,
+							provider,
+							status: "PENDING",
+							customerPriceAmount: item.itemSubtotal ?? null,
+							customerPriceCurrency: input.currency ?? "KES",
+							teamId: input.teamId ?? null,
+							updatedAt: now,
+						})
+						.where(eq(domainTransferRequest.id, requestId));
+				} else {
+					requestId = crypto.randomUUID();
+					await db.insert(domainTransferRequest).values({
+						id: requestId,
+						domainName,
+						authCode,
+						provider,
+						status: "PENDING",
+						customerPriceAmount: item.itemSubtotal ?? null,
+						customerPriceCurrency: input.currency ?? "KES",
+						teamId: input.teamId ?? null,
+						createdById: userId,
+						createdAt: now,
+						updatedAt: now,
+					});
+				}
 				transferRequestIdsByIndex.push(requestId);
 			}
 

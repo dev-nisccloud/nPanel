@@ -49,6 +49,20 @@ function resolveServiceType(serviceType: string): string {
 	return serviceType;
 }
 
+/** Resolve provisioning branch from product type plus checkout hints (description / auth code). */
+function resolveItemServiceType(
+	rawServiceType: string,
+	item: { description: string | null; metadata: unknown },
+): string {
+	const base = resolveServiceType(rawServiceType);
+	if (base !== "domain_registration") return base;
+	const meta = item.metadata as { transferAuthCode?: string } | null;
+	if (item.description === "transfer" || meta?.transferAuthCode?.trim()) {
+		return "domain_transfer";
+	}
+	return base;
+}
+
 /** Resolve domain provider from TLD: KENIC for .ke/.co.ke etc., OpenProvider for the rest. */
 function getDomainProvider(domain: string | null): "kenic" | "openprovider" {
 	if (!domain || typeof domain !== "string" || !domain.trim()) return "openprovider";
@@ -100,7 +114,7 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 
 	for (const item of order.orderItems) {
 		const rawServiceType = item.product.serviceType;
-		const serviceType = resolveServiceType(rawServiceType);
+		const serviceType = resolveItemServiceType(rawServiceType, item);
 		if (rawServiceType !== serviceType) {
 			await niscLog("processor_service_type_resolved", {
 				niscOrderId,
@@ -410,6 +424,20 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 					updatedAt: now,
 				})
 				.where(eq(niscOrderItem.id, item.id));
+			if (serviceType === "domain_transfer") {
+				const transferMeta = item.metadata as DomainTransferItemMetadata;
+				const domainTransferRequestId = transferMeta?.domainTransferRequestId?.trim();
+				if (domainTransferRequestId) {
+					await db
+						.update(domainTransferRequest)
+						.set({
+							status: "FAILED",
+							providerResponse: { error: message, errorDetails },
+							updatedAt: now,
+						})
+						.where(eq(domainTransferRequest.id, domainTransferRequestId));
+				}
+			}
 			hasFailure = true;
 			failureReasons.push(`Item ${item.product.name}: ${message}`);
 		}
@@ -878,7 +906,8 @@ async function processKenicTransferOrderItem(
 			.values({
 				id: subId,
 				name: domain,
-				description: item.description ?? "transfer",
+				description:
+					item.description === "transfer" ? "domain-transfer" : (item.description ?? "domain-transfer"),
 				userId: order.userId,
 				teamId: order.teamId,
 				productId: item.productId,
@@ -969,7 +998,10 @@ async function processOpenProviderTransferOrderItem(
 	}
 
 	try {
-		let nameServers = meta?.nameServers;
+		const metadata = item.metadata as DomainTransferItemMetadata & {
+			manualRegistrantDetails?: unknown;
+		};
+		let nameServers = metadata?.nameServers;
 
 		if (!nameServers || nameServers.length === 0) {
 			try {

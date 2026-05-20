@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useLocation } from "react-router";
+import { Link, useLocation } from "react-router";
 import { User, Users, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,36 @@ function parsePriceOverrideInput(raw: string | undefined): number | null {
   const n = parseFloat(t);
   if (!Number.isFinite(n) || n <= 0) return null;
   return Math.round(n * 100) / 100;
+}
+
+const PROFILE_FIELD_LABELS: Record<string, string> = {
+  firstName: "First name",
+  lastName: "Last name",
+  address: "Street address",
+  city: "City",
+  country: "Country",
+  postalCode: "Postal code",
+  phone: "Phone number",
+};
+
+function getMissingProfileFields(profile: {
+  firstName?: string | null;
+  lastName?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  postalCode?: string | null;
+  phone?: string | null;
+} | null | undefined): string[] {
+  if (!profile) return Object.values(PROFILE_FIELD_LABELS);
+  const missing: string[] = [];
+  for (const key of Object.keys(PROFILE_FIELD_LABELS) as Array<keyof typeof PROFILE_FIELD_LABELS>) {
+    const value = profile[key];
+    if (!value || String(value).trim() === "") {
+      missing.push(PROFILE_FIELD_LABELS[key]!);
+    }
+  }
+  return missing;
 }
 
 function getDomainCartLineBasePrice(d: {
@@ -219,8 +249,15 @@ export function GlobalBuyNowDialog() {
     enabled: open && !isCartMode && isDomainProduct,
   });
   const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
-    enabled: open && isAgencySide && isDomainProduct,
+    enabled: open && isDomainProduct,
   });
+
+  const customerProfileHref = React.useMemo(() => {
+    const slug = location.pathname.split("/").filter(Boolean)[0];
+    return slug ? `/${slug}/my-profile` : "/dashboard/my-profile";
+  }, [location.pathname]);
+
+  const isCustomerDomainCheckout = isDomainProduct && !isAgencySide;
   const teamId = isTransferMode ? transferContext?.teamId : ctx?.teamId;
   const teamBillingQuery = trpc.teamBilling.getByTeam.useQuery(
     { teamId: teamId ?? "" },
@@ -241,6 +278,11 @@ export function GlobalBuyNowDialog() {
     ];
     return required.every((f) => !!f && String(f).trim().length > 0);
   }, [userProfile]);
+
+  const missingProfileFields = React.useMemo(
+    () => getMissingProfileFields(userProfile),
+    [userProfile],
+  );
 
   const teamBilling = teamBillingQuery.data;
   const isTeamBillingComplete = React.useMemo(() => {
@@ -412,8 +454,6 @@ export function GlobalBuyNowDialog() {
     return map[code] ?? resultDesc ?? `Payment failed with error code ${code}`;
   };
 
-  const utils = trpc.useUtils();
-
   const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
     onSuccess: (response) => {
       const checkoutId = response.data?.checkoutRequestId;
@@ -445,11 +485,16 @@ export function GlobalBuyNowDialog() {
 
   const PROCESSING_CODES = new Set([1037, 4999]);
 
+  const utils = trpc.useUtils();
+
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
     onSuccess: () => {
       if (isCartMode) clearCart();
       setCheckoutRequestId(null);
       orderCreatedForCheckoutRef.current = null;
+      if (isTransferMode) {
+        void utils.domainTransfer.listTransferRequests.invalidate();
+      }
     },
     onError: (err: { message?: string }) => {
       toast.error(err.message || "Order could not be created. Please contact support.");
@@ -477,6 +522,7 @@ export function GlobalBuyNowDialog() {
               itemPrice: str(recorded),
               itemSubtotal: str(recorded),
               metadata: {
+                domainTransferRequestId: transferContext.domainTransferRequestId,
                 transferAuthCode: transferContext.authCode,
                 useRegistrantInfo: registrantType,
                 manualRegistrantDetails: registrantType === "customer" ? manualRegistrantDetails : undefined,
@@ -774,6 +820,14 @@ export function GlobalBuyNowDialog() {
     setAmountError("");
   };
 
+  const goToDomainCheckoutStep = () => {
+    if (isDomainProduct) {
+      setCurrentStep("registrant_info");
+      return;
+    }
+    openForPayment();
+  };
+
   const handleBack = () => {
     if (currentStep === "hosting-upsell") setCurrentStep("product");
     else if (currentStep === "plan-selection") {
@@ -799,7 +853,7 @@ export function GlobalBuyNowDialog() {
     } else if (currentStep === "registrant_info") {
       setCurrentStep("review");
     } else if (currentStep === "payment") {
-      if (isAgencySide && isDomainProduct) {
+      if (isDomainProduct) {
         setCurrentStep("registrant_info");
       } else {
         setCurrentStep("review");
@@ -1172,6 +1226,14 @@ export function GlobalBuyNowDialog() {
                 <span>{formatPrice(effectiveTotal, primaryCurr)}</span>
               </div>
               <p className="text-xs text-muted-foreground">By paying you agree to our Terms of Service. The transfer will be processed after payment.</p>
+              {isCustomerDomainCheckout && !userInfoQuery.isLoading && !isProfileComplete ? (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>
+                    Complete your profile on the next step before payment. Domain orders require address, phone, and related details.
+                  </span>
+                </div>
+              ) : null}
             </div>
           );
         }
@@ -1400,6 +1462,81 @@ export function GlobalBuyNowDialog() {
         );
 
       case "registrant_info":
+        if (isCustomerDomainCheckout) {
+          return (
+            <div className="space-y-6 py-2">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-foreground">Complete your profile</h3>
+                <p className="text-sm text-muted-foreground">
+                  Domain orders use your account profile for registration and transfer. Payment cannot continue until required fields are filled in.
+                </p>
+              </div>
+
+              {userInfoQuery.isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Spinner size={28} />
+                </div>
+              ) : isProfileComplete ? (
+                <div className="rounded-lg border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-900/10 p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-400 text-sm font-semibold">
+                    <Check className="h-4 w-4 shrink-0" />
+                    Profile complete
+                  </div>
+                  {userProfile ? (
+                    <div className="text-xs text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
+                      <div>
+                        Name: {userProfile.firstName} {userProfile.lastName}
+                      </div>
+                      <div>Phone: {userProfile.phone}</div>
+                      <div className="col-span-2">
+                        Address: {userProfile.address}, {userProfile.city}, {userProfile.country}{" "}
+                        {userProfile.postalCode}
+                      </div>
+                    </div>
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    You can continue to payment. These details will be used for your domain order.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 p-4 space-y-4">
+                  <div className="flex items-start gap-2 text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">Profile incomplete</p>
+                      <p className="text-xs text-amber-800/90 dark:text-amber-300/90">
+                        Add the missing information in My Profile before paying. The order will be rejected without it.
+                      </p>
+                      {missingProfileFields.length > 0 ? (
+                        <ul className="text-xs list-disc pl-4 space-y-0.5 text-amber-900/80 dark:text-amber-200/80">
+                          {missingProfileFields.map((label) => (
+                            <li key={label}>{label}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" asChild>
+                      <Link to={customerProfileHref} onClick={() => close()}>
+                        Complete profile
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={userInfoQuery.isFetching}
+                      onClick={() => void userInfoQuery.refetch()}
+                    >
+                      {userInfoQuery.isFetching ? "Checking…" : "I've updated my profile"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-6 py-2">
             <div className="text-center">
@@ -1616,7 +1753,9 @@ export function GlobalBuyNowDialog() {
     if (effectiveStep === "hosting-upsell") return "Add hosting";
     if (effectiveStep === "plan-selection") return `Select plan: ${planSelectionProductName}`;
     if (effectiveStep === "review") return "Complete and review";
-    if (effectiveStep === "registrant_info") return "Registrant details";
+    if (effectiveStep === "registrant_info") {
+      return isCustomerDomainCheckout ? "Profile required" : "Registrant details";
+    }
     if (effectiveStep === "payment") return "Choose payment method";
     if (effectiveStep === "success") return "Order confirmed";
     if (effectiveStep === "error") return "Payment failed";
@@ -1633,7 +1772,10 @@ export function GlobalBuyNowDialog() {
             {effectiveStep === "hosting-upsell" && "Add hosting (optional)."}
             {effectiveStep === "plan-selection" && "Choose a plan."}
             {effectiveStep === "review" && "Review and proceed to checkout."}
-            {effectiveStep === "registrant_info" && "Choose whose details to use for registration."}
+            {effectiveStep === "registrant_info" &&
+              (isCustomerDomainCheckout
+                ? "Complete your profile before paying for a domain."
+                : "Choose whose details to use for registration.")}
             {effectiveStep === "payment" && "Complete your payment."}
             {effectiveStep === "success" && "Order confirmed."}
             {effectiveStep === "error" && "Payment could not be completed."}
@@ -1657,8 +1799,8 @@ export function GlobalBuyNowDialog() {
                     setPlanSelectionProductName(ctx.productName);
                     setIsSelectingMainProductPlan(true);
                     setCurrentStep("plan-selection");
-                  } else if (isAgencySide && isDomainProduct) {
-                    setCurrentStep("registrant_info");
+                  } else if (isDomainProduct) {
+                    goToDomainCheckoutStep();
                   } else setCurrentStep("review");
                 }}
               >
@@ -1669,10 +1811,14 @@ export function GlobalBuyNowDialog() {
           {effectiveStep === "hosting-upsell" && (
             <>
               <Button variant="ghost" onClick={handleBack}>Back</Button>
-              <Button onClick={() => {
-                if (isAgencySide && isDomainProduct) setCurrentStep("registrant_info");
-                else setCurrentStep("review");
-              }}>Proceed to checkout</Button>
+              <Button
+                onClick={() => {
+                  if (isDomainProduct) goToDomainCheckoutStep();
+                  else setCurrentStep("review");
+                }}
+              >
+                Proceed to checkout
+              </Button>
             </>
           )}
           {effectiveStep === "plan-selection" && (
@@ -1691,7 +1837,7 @@ export function GlobalBuyNowDialog() {
               <Button
                 disabled={!selectedPlanId}
                 onClick={() => {
-                  if (isAgencySide && isDomainProduct) setCurrentStep("registrant_info");
+                  if (isDomainProduct) goToDomainCheckoutStep();
                   else setCurrentStep("review");
                 }}
               >
@@ -1704,12 +1850,16 @@ export function GlobalBuyNowDialog() {
               <Button variant="ghost" onClick={handleBack}>Back</Button>
               <Button
                 disabled={
-                  (registrantType === "myself" && !isProfileComplete) ||
-                  (registrantType === "customer" && !isManualDetailsComplete)
+                  isCustomerDomainCheckout
+                    ? !isProfileComplete || userInfoQuery.isLoading
+                    : (registrantType === "myself" && !isProfileComplete) ||
+                      (registrantType === "customer" && !isManualDetailsComplete)
                 }
                 onClick={() => openForPayment()}
               >
-                Next
+                {isCustomerDomainCheckout && !isProfileComplete
+                  ? "Complete profile to continue"
+                  : "Continue to payment"}
               </Button>
             </>
           )}
@@ -1718,21 +1868,20 @@ export function GlobalBuyNowDialog() {
               <Button variant="ghost" onClick={isCartMode ? () => close() : isTransferMode ? () => close() : handleBack}>
                 {isCartMode ? "Cancel" : isTransferMode ? "Cancel" : "Back"}
               </Button>
-              <Button
-                onClick={() => {
-                  if (isAgencySide && isDomainProduct) {
-                    setCurrentStep("registrant_info");
-                  } else {
-                    openForPayment();
-                  }
-                }}
-              >
+              <Button onClick={goToDomainCheckoutStep}>
                 {isTransferMode ? "Proceed to payment" : "Choose payment method"}
               </Button>
             </>
           )}
           {effectiveStep === "payment" && (
-            <Button variant="outline" onClick={() => setCurrentStep("review")}>Back</Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setCurrentStep(isDomainProduct ? "registrant_info" : "review")
+              }
+            >
+              Back
+            </Button>
           )}
           {effectiveStep === "success" && (
             <Button onClick={() => close()}>Close</Button>
