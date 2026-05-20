@@ -25,9 +25,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { creativeAssetSchema } from "./schema";
 import { AssetStatusBadge } from "./asset-status-badge";
 import { VersionsTab } from "./versions-tab";
-import { PermissionsTab } from "./permissions-tab";
+// import { PermissionsTab } from "./permissions-tab";
 import { UploadVersionSheet } from "./upload-version-sheet";
-import { ManagePermissionsSheet } from "./manage-permissions-sheet";
+// import { ManagePermissionsSheet } from "./manage-permissions-sheet";
 import { Globe, Lock, Archive, ArchiveRestore, Check, X } from "lucide-react";
 import { useUserName } from "./use-user-names";
 
@@ -157,7 +157,7 @@ export function CreativeAssetsDetailPage({
   // All hooks must be called at the top level, before any conditional returns
   const utils = trpc.useUtils();
   const [isUploadVersionOpen, setIsUploadVersionOpen] = React.useState(false);
-  const [isManagePermissionsOpen, setIsManagePermissionsOpen] = React.useState(false);
+  // const [isManagePermissionsOpen, setIsManagePermissionsOpen] = React.useState(false);
   
   // Fetch createdBy user name - cached to avoid refetching
   const { name: createdByName } = useUserName(asset?.createdBy);
@@ -280,9 +280,9 @@ export function CreativeAssetsDetailPage({
     setIsUploadVersionOpen(true);
   };
 
-  const handleManagePermissions = () => {
-    setIsManagePermissionsOpen(true);
-  };
+  // const handleManagePermissions = () => {
+  //   setIsManagePermissionsOpen(true);
+  // };
 
   const handleVersionUploaded = (data: any) => {
     // Handle version upload - invalidate query to refetch asset data
@@ -292,10 +292,10 @@ export function CreativeAssetsDetailPage({
     }
   };
 
-  const handlePermissionsManaged = (data: any) => {
-    // Handle permissions update - invalidate query to refetch asset data
-    utils.creativeAssets.getById.invalidate({ id: assetId });
-  };
+  // const handlePermissionsManaged = (data: any) => {
+  //   // Handle permissions update - invalidate query to refetch asset data
+  //   utils.creativeAssets.getById.invalidate({ id: assetId });
+  // };
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -457,7 +457,7 @@ export function CreativeAssetsDetailPage({
 					<Tabs defaultValue="versions" className="w-full">
 						<TabsList className="w-fit">
 							<TabsTrigger value="versions">Versions</TabsTrigger>
-							<TabsTrigger value="permissions">Permissions</TabsTrigger>
+							{/* <TabsTrigger value="permissions">Permissions</TabsTrigger> */}
 						</TabsList>
 
 						<TabsContent value="versions" className="mt-6">
@@ -491,6 +491,7 @@ export function CreativeAssetsDetailPage({
 					/>
 						</TabsContent>
 
+						{/* Permissions tab — hidden until access logic is finalized
 						<TabsContent value="permissions" className="mt-6">
 							<PermissionsTab
 								asset={{
@@ -515,6 +516,7 @@ export function CreativeAssetsDetailPage({
 								onManagePermissions={handleManagePermissions}
 							/>
 						</TabsContent>
+						*/}
 					</Tabs>
 				</div>
 			</div>
@@ -531,13 +533,14 @@ export function CreativeAssetsDetailPage({
         }}
       />
 
-      {/* Manage Permissions Sheet */}
+      {/* Manage Permissions Sheet — hidden until access logic is finalized
 			<ManagePermissionsSheet
 				open={isManagePermissionsOpen}
 				onOpenChange={setIsManagePermissionsOpen}
 				assetId={assetId}
 				onManagePermissions={handlePermissionsManaged}
 			/>
+			*/}
 		</div>
 	);
 }

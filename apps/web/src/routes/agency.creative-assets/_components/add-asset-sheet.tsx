@@ -70,17 +70,15 @@ const STATUS_OPTIONS: ComboboxItem[] = [
 ];
 
 export function AddAssetSheet({ open, onOpenChange, onAddAsset }: AddAssetSheetProps) {
-  // Fetch teams - enabled when sheet is open or about to open
-  // This ensures teams are loaded reliably in both local and production environments
-  const { data: teams, isLoading: isLoadingTeams, refetch: refetchTeams } = trpc.teams.getUserTeams.useQuery(undefined, {
-    enabled: true, // Always enabled to pre-fetch teams
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    refetchOnMount: true, // Refetch when component mounts (sheet opens)
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+  // Agency: all workspace teams (not only teams the caller is a member of)
+  const { data: teams, isLoading: isLoadingTeams, refetch: refetchTeams } = trpc.teams.getAll.useQuery(undefined, {
+    enabled: true,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
-  // Refetch teams when sheet opens to ensure fresh data in production
   React.useEffect(() => {
     if (open && !teams && !isLoadingTeams) {
       refetchTeams();

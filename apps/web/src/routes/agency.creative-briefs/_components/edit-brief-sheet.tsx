@@ -34,8 +34,13 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 import { creativeBriefSchema } from "./schema";
+import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
+import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 
 const STYLE_PRESETS = ["Minimal", "Corporate", "Playful", "Modern", "Retro", "Bold", "Elegant", "Clean"] as const;
+
+/** Sentinel id for optional team combobox (must not collide with real team IDs). */
+const OPTIONAL_TEAM_SENTINEL = "__npanel_brief_team_none__";
 
 // Edit schema - only some fields are editable
 const EditFormSchema = z.object({
@@ -131,10 +136,11 @@ interface ExistingImage {
 }
 
 export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditBriefSheetProps) {
-  // Fetch teams
-  const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(undefined, {
+  // Agency: all teams (not only teams the caller is a member of)
+  const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(undefined, {
     enabled: open,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Update brief mutation
@@ -240,14 +246,17 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
 
   const isSubmitting = updateBriefMutation.isPending || isUploadingImages;
 
-  // Convert teams to options
-  const teamOptions = React.useMemo(() => {
-    if (!teams) return [];
-    return teams.map((team) => ({
-      id: team.id,
-      label: team.name,
-    }));
+  const teamComboboxItems: ComboboxItem[] = React.useMemo(() => {
+    const none: ComboboxItem = { id: OPTIONAL_TEAM_SENTINEL, label: "No team (optional)" };
+    if (!teams) return [none];
+    return [none, ...teams.map((team) => ({ id: team.id, label: team.name }))];
   }, [teams]);
+
+  const teamIdValue = form.watch("teamId");
+  const selectedTeamCombo = React.useMemo(() => {
+    if (!teamIdValue) return teamComboboxItems.find((t) => t.id === OPTIONAL_TEAM_SENTINEL);
+    return teamComboboxItems.find((t) => t.id === teamIdValue);
+  }, [teamIdValue, teamComboboxItems]);
 
   // Handle file drop - just add to local state, don't upload yet
   const handleDrop = (acceptedFiles: File[]) => {
@@ -474,18 +483,18 @@ export function EditBriefSheet({ open, onOpenChange, brief, onEditBrief }: EditB
                                 <Spinner variant="ellipsis" size="sm" />
                               </div>
                             ) : (
-                              <select
-                                {...field}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              <ComboboxDropdown
+                                placeholder="Select a team (optional)"
+                                searchPlaceholder="Search teams..."
+                                items={teamComboboxItems}
+                                selectedItem={selectedTeamCombo}
+                                onSelect={(item) => {
+                                  field.onChange(item.id === OPTIONAL_TEAM_SENTINEL ? "" : item.id);
+                                }}
+                                emptyResults="No teams found"
                                 disabled={isSubmitting}
-                              >
-                                <option value="">Select a team (optional)</option>
-                                {teamOptions.map((team) => (
-                                  <option key={team.id} value={team.id}>
-                                    {team.label}
-                                  </option>
-                                ))}
-                              </select>
+                                className="w-full"
+                              />
                             )}
                           </FormControl>
                           <FormMessage />

@@ -72,9 +72,10 @@ const STATUS_OPTIONS: ComboboxItem[] = [
 ];
 
 export function EditAssetSheet({ open, onOpenChange, asset, onEditAsset }: EditAssetSheetProps) {
-  // Pre-fetch teams before sheet opens
-  const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getUserTeams.useQuery(undefined, {
-    enabled: true, // Always fetch teams
+  const { data: teams, isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(undefined, {
+    enabled: true,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Update asset mutation - TODO: Create this mutation in the API
