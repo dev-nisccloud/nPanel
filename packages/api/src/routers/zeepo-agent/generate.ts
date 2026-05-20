@@ -23,6 +23,10 @@ export async function insertAndEnqueueAgentGeneration(params: {
 	prompt?: string | null;
 	inputs?: unknown;
 	ctx: { ipAddress?: string | null; userAgent?: string | null };
+	/** Extra seconds to wait before QStash delivers this job to the worker.
+	 *  Use when multiple generations are enqueued in the same turn to
+	 *  stagger Replicate API calls and avoid HTTP 429 rate-limit errors. */
+	delaySeconds?: number;
 }): Promise<{ generationId: string }> {
 	const {
 		userId,
@@ -34,6 +38,7 @@ export async function insertAndEnqueueAgentGeneration(params: {
 		prompt,
 		inputs,
 		ctx,
+		delaySeconds,
 	} = params;
 	const generationId = randomUUID();
 	const now = new Date();
@@ -56,7 +61,7 @@ export async function insertAndEnqueueAgentGeneration(params: {
 	});
 
 	try {
-		const result = await enqueueZeepoAgentGeneration(generationId);
+		const result = await enqueueZeepoAgentGeneration(generationId, { delaySeconds });
 		await db
 			.update(zeepoAgentGeneration)
 			.set({ qstashMessageId: result.messageId, updatedAt: new Date() })

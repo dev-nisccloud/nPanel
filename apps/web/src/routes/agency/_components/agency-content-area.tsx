@@ -6,6 +6,7 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 const IMAGE_GEN_STUDIO_EDITOR_PATH = "/agency/gen-ai/image-gen-studio/editor";
+const ZEEPO_AGENT_PATH = "/agency/zeepo-ai-agent";
 
 export function AgencyContentArea({
   contentLayout,
@@ -35,11 +36,12 @@ export function AgencyContentArea({
 export function AgencyContentInner({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const isImageGenStudioEditor = pathname?.includes(IMAGE_GEN_STUDIO_EDITOR_PATH);
+  const isZeepoAgent = pathname?.startsWith(ZEEPO_AGENT_PATH);
 
   return (
     <div
       className={cn(
-        "bg-[#f8fafb] dark:bg-background",
+        isZeepoAgent ? "bg-white dark:bg-white" : "bg-[#f8fafb] dark:bg-background",
         isImageGenStudioEditor ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0" : "h-full p-4 md:p-6"
       )}
     >

@@ -459,11 +459,17 @@ export const zeepoAgentChatRouter = router({
 					break;
 				}
 
-				for (let i = 0; i < toolCalls.length; i++) {
-					const tc = toolCalls[i]!;
-					const toolCallId = syntheticToolCalls![i]!.id;
-					const rawArgs = (tc.arguments ?? {}) as Record<string, unknown>;
-					let resultPayload: unknown;
+			// Counts media-generation tool calls within this turn so each
+			// successive one is delayed by MEDIA_STAGGER_SECONDS, preventing
+			// simultaneous Replicate predictions.create calls (HTTP 429).
+			const MEDIA_STAGGER_SECONDS = 12;
+			let mediaGenerationIndex = 0;
+
+			for (let i = 0; i < toolCalls.length; i++) {
+				const tc = toolCalls[i]!;
+				const toolCallId = syntheticToolCalls![i]!.id;
+				const rawArgs = (tc.arguments ?? {}) as Record<string, unknown>;
+				let resultPayload: unknown;
 
 					if (tc.name === "create_document") {
 						const parsedArgs = createDocumentArgsSchema.safeParse(rawArgs);
@@ -588,34 +594,40 @@ export const zeepoAgentChatRouter = router({
 								hint: "Inspect the tool definition and call list_models first if you are unsure of valid model ids.",
 							};
 						} else {
-							try {
-								const requires = safeCapsArray(parsedArgs.data.requires);
-								const model = pickModelForGeneration(
-									parsedArgs.data.category,
-									parsedArgs.data.model_id || undefined,
-									requires,
-								);
-								const { generationId } = await insertAndEnqueueAgentGeneration({
-									userId,
-									teamId: session.teamId ?? null,
-									sessionId: input.sessionId,
-									messageId: assistantRowId,
-									modelCategory: model.category,
-									modelId: model.id,
-									prompt: parsedArgs.data.prompt,
-									inputs: parsedArgs.data.inputs ?? {},
-									ctx: {
-										ipAddress: ctx.ipAddress ?? null,
-										userAgent: ctx.req.header("user-agent") ?? null,
-									},
-								});
-								resultPayload = {
-									generationId,
-									status: "QUEUED",
-									modelId: model.id,
-									category: model.category,
-								};
-							} catch (e: any) {
+						try {
+							const requires = safeCapsArray(parsedArgs.data.requires);
+							const model = pickModelForGeneration(
+								parsedArgs.data.category,
+								parsedArgs.data.model_id || undefined,
+								requires,
+							);
+							const staggerDelay =
+								mediaGenerationIndex > 0
+									? mediaGenerationIndex * MEDIA_STAGGER_SECONDS
+									: undefined;
+							const { generationId } = await insertAndEnqueueAgentGeneration({
+								userId,
+								teamId: session.teamId ?? null,
+								sessionId: input.sessionId,
+								messageId: assistantRowId,
+								modelCategory: model.category,
+								modelId: model.id,
+								prompt: parsedArgs.data.prompt,
+								inputs: parsedArgs.data.inputs ?? {},
+								ctx: {
+									ipAddress: ctx.ipAddress ?? null,
+									userAgent: ctx.req.header("user-agent") ?? null,
+								},
+								delaySeconds: staggerDelay,
+							});
+							mediaGenerationIndex++;
+							resultPayload = {
+								generationId,
+								status: "QUEUED",
+								modelId: model.id,
+								category: model.category,
+							};
+						} catch (e: any) {
 								resultPayload = {
 									error: e?.message || "Failed to start generation",
 								};

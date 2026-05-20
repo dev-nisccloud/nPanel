@@ -1424,7 +1424,7 @@ export default function ZeepoAiAgentSessionPage() {
         <div className="flex flex-col gap-4 pr-2">
           {messages.length === 0 && !showAssistantThinking ? (
             <div className="flex flex-col items-center justify-center py-14 gap-5">
-              <img src="/zepo.png" alt="Zeepo" className="h-75 w-75 object-contain drop-shadow-sm" width={144} height={144} />
+              <img src="/mascot.gif" alt="Zeepo" className="h-75 w-75 object-contain" width={128} height={128} />
               <div className="flex flex-col items-center gap-1.5 text-center max-w-sm">
                 <p className="text-sm font-medium text-foreground">
                   {selectedSkill ? selectedSkill.title : "Your AI agent, ready to work"}
