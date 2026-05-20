@@ -18,6 +18,9 @@ export interface TransferContext {
   currency: string;
   productId: string;
   productName?: string;
+  /** Created via domainTransfer.createCheckoutRequest before payment */
+  domainTransferRequestId: string;
+  provider: "kenic" | "openprovider";
   /** For customer/team checkout */
   teamId?: string;
 }

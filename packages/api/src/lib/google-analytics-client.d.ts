@@ -1,7 +1,37 @@
 import { analyticsdata_v1beta } from 'googleapis';
-/**
- * Client for Google Analytics 4 (Data API & Admin API) using a Service Account
- */
+
+export declare const GA4_ORGANIC_METRIC_NAMES: readonly [
+    'sessions',
+    'activeUsers',
+    'conversions',
+    'bounceRate',
+    'engagementRate',
+    'averageSessionDuration',
+];
+
+export declare const GA4_ORGANIC_METRICS: analyticsdata_v1beta.Schema$Metric[];
+
+export type Ga4OrganicSummary = {
+    sessions: number;
+    users: number;
+    conversions: number;
+    engagementRate: number;
+    bounceRate: number;
+    averageSessionDuration: number;
+};
+
+export declare function ga4OrganicSummaryFromReportRow(
+    metricValues: analyticsdata_v1beta.Schema$MetricValue[] | null | undefined,
+): Ga4OrganicSummary;
+
+export declare function ga4OrganicSummaryFromRunReportResponse(
+    response: analyticsdata_v1beta.Schema$RunReportResponse | null | undefined,
+): Ga4OrganicSummary;
+
+export declare function ga4OrganicSummaryFromDailyRows(
+    rows: analyticsdata_v1beta.Schema$Row[],
+): Ga4OrganicSummary;
+
 export declare class GoogleAnalyticsClient {
     private analytics;
     private admin;
@@ -9,34 +39,17 @@ export declare class GoogleAnalyticsClient {
     constructor();
     private getAnalytics;
     private getAdmin;
-    /**
-     * List all GA4 properties accessible by the service account
-     * and try to resolve their default URL via Data Streams.
-     */
+    private runOrganicReport;
+    private runOrganicReportSafe;
     listAccessibleProperties(): Promise<{
         propertyId: string;
         displayName: string;
         defaultUrl: string | null;
     }[]>;
-    /**
-     * Get organic search performance data
-     */
+    getOrganicPeriodTotals(propertyId: string, startDate: string, endDate: string): Promise<analyticsdata_v1beta.Schema$RunReportResponse>;
     getOrganicPerformance(propertyId: string, startDate: string, endDate: string): Promise<analyticsdata_v1beta.Schema$RunReportResponse>;
-    /**
-     * Get top organic landing pages
-     */
     getTopLandingPages(propertyId: string, startDate: string, endDate: string, limit?: number): Promise<analyticsdata_v1beta.Schema$RunReportResponse>;
-    /**
-     * Get organic traffic breakdown by country
-     */
     getTopCountries(propertyId: string, startDate: string, endDate: string, limit?: number): Promise<analyticsdata_v1beta.Schema$RunReportResponse>;
-    /**
-     * Get organic traffic breakdown by device category
-     */
     getTopDevices(propertyId: string, startDate: string, endDate: string): Promise<analyticsdata_v1beta.Schema$RunReportResponse>;
-    /**
-     * Get overall site stats (Session, Users, Engagement)
-     * Useful for the high-level scorecards
-     */
     getRealtimeStats(propertyId: string, startDate: string, endDate: string): Promise<analyticsdata_v1beta.Schema$RunReportResponse>;
 }

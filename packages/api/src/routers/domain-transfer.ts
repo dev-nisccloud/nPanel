@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { teamMember } from "@npanel/db/schema/teams";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
@@ -85,6 +86,9 @@ type DomainTransferRequestListItem = {
 	customerPriceAmount: string | null;
 	customerPriceCurrency: string | null;
 	submittedToProviderAt: Date | null;
+	niscOrderId: string | null;
+	niscOrderNumber: string | null;
+	niscOrderStatus: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 	createdBy: {
@@ -93,6 +97,13 @@ type DomainTransferRequestListItem = {
 		email: string;
 	};
 };
+
+/** Statuses that may still change while the user watches the transfer requests list. */
+export const ACTIVE_DOMAIN_TRANSFER_REQUEST_STATUSES = [
+	"AWAITING_PAYMENT",
+	"PENDING",
+	"SUBMITTED_TO_PROVIDER",
+] as const;
 
 const isAgencyUserRole = (role: string | null | undefined) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
@@ -393,6 +404,67 @@ export const domainTransferRouter = router({
 		}),
 
 	/**
+	 * Create a transfer request when the user proceeds to checkout (before payment).
+	 * Updated to PENDING when payment succeeds and linked to the Nisc order; processor updates further.
+	 */
+	createCheckoutRequest: protectedProcedure
+		.input(
+			z.object({
+				domain: z.string().min(1),
+				authCode: z.string().min(1),
+				provider: z.enum(["kenic", "openprovider"]),
+				providerPriceAmount: z.string().optional(),
+				providerPriceCurrency: z.string().optional(),
+				customerPriceAmount: z.string().optional(),
+				customerPriceCurrency: z.string().optional(),
+				teamId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session.user.id;
+			const userRole = ctx.session.user.role;
+			if (input.teamId && !isAgencyUserRole(userRole)) {
+				const [membership] = await db
+					.select({ id: teamMember.id })
+					.from(teamMember)
+					.where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
+					.limit(1);
+				if (!membership) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You do not have access to this team.",
+					});
+				}
+			}
+
+			const domainName = input.domain.trim().toLowerCase();
+			const authCode = input.authCode.trim();
+			const now = new Date();
+			const id = crypto.randomUUID();
+
+			await db.insert(domainTransferRequest).values({
+				id,
+				domainName,
+				authCode,
+				provider: input.provider === "kenic" ? "KENIC" : "OPENPROVIDER",
+				status: "AWAITING_PAYMENT",
+				providerPriceAmount: input.providerPriceAmount ?? null,
+				providerPriceCurrency: input.providerPriceCurrency ?? null,
+				customerPriceAmount: input.customerPriceAmount ?? null,
+				customerPriceCurrency: input.customerPriceCurrency ?? null,
+				teamId: input.teamId ?? null,
+				createdById: userId,
+				createdAt: now,
+				updatedAt: now,
+				niscOrderId: null,
+				submittedToProviderAt: null,
+				providerResponse: null,
+			});
+
+			return { id, domainName, status: "AWAITING_PAYMENT" as const };
+		}),
+
+	/**
 	 * List domain transfer requests for the agency (all requests; auth required).
 	 * Does not return authCode for security.
 	 */
@@ -420,6 +492,9 @@ export const domainTransferRouter = router({
 				customerPriceAmount: domainTransferRequest.customerPriceAmount,
 				customerPriceCurrency: domainTransferRequest.customerPriceCurrency,
 				submittedToProviderAt: domainTransferRequest.submittedToProviderAt,
+				niscOrderId: domainTransferRequest.niscOrderId,
+				niscOrderNumber: niscOrder.orderNumber,
+				niscOrderStatus: niscOrder.status,
 				createdAt: domainTransferRequest.createdAt,
 				updatedAt: domainTransferRequest.updatedAt,
 				createdBy: {
@@ -430,6 +505,7 @@ export const domainTransferRouter = router({
 			})
 			.from(domainTransferRequest)
 			.innerJoin(userTable, eq(domainTransferRequest.createdById, userTable.id))
+			.leftJoin(niscOrder, eq(domainTransferRequest.niscOrderId, niscOrder.id))
 			.where(whereClause ?? undefined)
 			.orderBy(desc(domainTransferRequest.createdAt));
 

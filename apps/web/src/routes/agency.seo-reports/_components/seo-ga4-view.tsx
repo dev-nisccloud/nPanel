@@ -352,7 +352,7 @@ export function SeoGa4View() {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent side="left" className="max-w-[240px] text-balance">
-                                            <p>Daily organic sessions and users from Google. Shows how many people visited and how that changes over time.</p>
+                                            <p>Daily organic sessions and users (GA4 Organic Search channel). Compare with Reports → Traffic acquisition → Organic Search.</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </CardHeader>

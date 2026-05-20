@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { useLocation } from "react-router";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CurrencyProvider } from "./agency.domains/_components/currency-context";
 import { TransferDomainSection } from "./agency.domain-transfer/_components/transfer-domain-section";
 import { TransferPrerequisites } from "./agency.domain-transfer/_components/transfer-prerequisites";
+import { TransferRequestsList } from "./agency.domain-transfer/_components/transfer-requests-list";
 import { trpc } from "@/utils/trpc";
 
 export default function DomainTransferPage() {
@@ -26,16 +28,26 @@ export default function DomainTransferPage() {
             </p>
           </div>
 
-          <div className="mt-6">
-            <TransferDomainSection
-              registerDomainsHref={teamSlug ? `/${teamSlug}/domains` : "/agency/domains"}
-              teamId={teamData?.id ?? null}
-            />
-          </div>
+          <Tabs defaultValue="transfer-domain" className="mt-6 w-full">
+            <TabsList className="w-fit mb-4">
+              <TabsTrigger value="transfer-domain">Transfer domain</TabsTrigger>
+              <TabsTrigger value="transfer-requests">Transfer requests</TabsTrigger>
+            </TabsList>
 
-          <div className="mt-6">
-            <TransferPrerequisites />
-          </div>
+            <TabsContent value="transfer-domain" className="mt-0 data-[state=inactive]:hidden" forceMount>
+              <TransferDomainSection
+                registerDomainsHref={teamSlug ? `/${teamSlug}/domains` : "/agency/domains"}
+                teamId={teamData?.id ?? null}
+              />
+              <div className="mt-6">
+                <TransferPrerequisites />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="transfer-requests" className="mt-0 data-[state=inactive]:hidden">
+              <TransferRequestsList />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </CurrencyProvider>

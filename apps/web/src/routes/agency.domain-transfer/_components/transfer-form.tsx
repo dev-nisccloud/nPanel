@@ -87,10 +87,12 @@ export function TransferForm({
   onSuccess,
 }: TransferFormProps) {
   const [showEppCode, setShowEppCode] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const utils = trpc.useUtils();
   const openForTransfer = useGlobalBuyNowStore((s) => s.openForTransfer);
-  // Use the existing \"Domains\" product for transfer (same as registration).
   const { data: domainsProductId, isLoading: loadingDomainsProduct } =
     trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined);
+  const createCheckoutRequest = trpc.domainTransfer.createCheckoutRequest.useMutation();
 
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferFormSchema),
@@ -99,7 +101,7 @@ export function TransferForm({
     },
   });
 
-  const onSubmit = (data: TransferFormValues) => {
+  const onSubmit = async (data: TransferFormValues) => {
     const authCode = (data.authCode ?? "").trim();
     if (!authCode) {
       toast.error("Authorization code required", {
@@ -108,23 +110,49 @@ export function TransferForm({
       return;
     }
     if (!domainsProductId) {
-      toast.error("Domain product not available for transfer", {
+      toast.error("Domains product not available", {
         description: "Please try again or contact support.",
       });
       return;
     }
-    openForTransfer({
-      domain: fullDomain,
-      authCode,
-      price,
-      currency,
-      productId: domainsProductId,
-      teamId: teamId ?? undefined,
-    });
-    onSuccess?.();
+
+    setIsSubmitting(true);
+    try {
+      const checkout = await createCheckoutRequest.mutateAsync({
+        domain: fullDomain,
+        authCode,
+        provider,
+        providerPriceAmount:
+          providerPriceAmount != null ? String(providerPriceAmount) : undefined,
+        providerPriceCurrency: providerPriceCurrency ?? undefined,
+        customerPriceAmount:
+          customerPriceAmount != null ? String(customerPriceAmount) : String(price),
+        customerPriceCurrency: customerPriceCurrency ?? currency,
+        teamId: teamId ?? undefined,
+      });
+      await utils.domainTransfer.listTransferRequests.invalidate();
+      openForTransfer({
+        domain: fullDomain,
+        authCode,
+        price,
+        currency,
+        productId: domainsProductId,
+        productName: "Domains",
+        domainTransferRequestId: checkout.id,
+        provider,
+        teamId: teamId ?? undefined,
+      });
+      onSuccess?.();
+    } catch (err) {
+      toast.error("Could not start transfer", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const isSubmitDisabled = loadingDomainsProduct;
+  const isSubmitDisabled = loadingDomainsProduct || isSubmitting || createCheckoutRequest.isPending;
 
   return (
     <Form {...form}>

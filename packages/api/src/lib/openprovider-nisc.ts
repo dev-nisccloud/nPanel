@@ -963,6 +963,12 @@ function billingCycleToYears(billingCycle: string | null): number {
 	}
 }
 
+/** Order item description "transfer" → subscription description "domain-transfer". */
+function domainSubscriptionDescription(orderDescription?: string | null): string | null {
+	if (orderDescription === "transfer") return "domain-transfer";
+	return orderDescription ?? null;
+}
+
 async function createDomainSubscription(
 	params: {
 		orderId: string;
@@ -987,7 +993,7 @@ async function createDomainSubscription(
 		.values({
 			id: subId,
 			name: primaryDomain,
-			description: params.description ?? null,
+			description: domainSubscriptionDescription(params.description),
 			userId: params.userId,
 			teamId: params.teamId,
 			productId: params.productId,
