@@ -213,12 +213,15 @@ export interface OpenProviderCustomerSearchResponse {
 
 // Domain Registration Types
 export interface OpenProviderDomainRegistrationRequest {
-  name: string;
-  extension: string;
+  /** Domain name and extension — nested per OpenProvider REST API spec */
+  domain: {
+    name: string;
+    extension: string;
+  };
   period?: number;
   owner_handle: string;
-  admin_handle: string;
-  tech_handle: string;
+  admin_handle?: string;
+  tech_handle?: string;
   billing_handle?: string;
   reseller_handle?: string;
   name_servers?: Array<{

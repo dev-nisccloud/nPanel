@@ -11,9 +11,28 @@ import { niscClientSubscription } from "@npanel/db/schema/products";
 import {
 	createOpenProviderClient,
 	OpenProviderApiError,
+	buildOpenProviderApiError,
 } from "./openprovider-client";
 import { niscLog } from "./nisc-order-logger";
 import type { OpenProviderCustomerRequest } from "../types/openprovider";
+
+/**
+ * Strip IP addresses from nameservers that are not in-bailiwick for the domain being registered.
+ * Glue records (IP on the nameserver entry) are only valid when the nameserver hostname is itself
+ * a subdomain of the domain being registered. Sending an IP for an out-of-bailiwick nameserver
+ * causes registries (e.g. .live, .com) to reject the registration with a generic error (code 199).
+ */
+function toApiNameServers(
+	domainName: string,
+	nameServers?: Array<{ name: string; ip?: string }>,
+): Array<{ name: string; ip?: string }> | undefined {
+	if (!nameServers?.length) return undefined;
+	const lower = domainName.toLowerCase();
+	return nameServers.map((ns) => {
+		const isInBailiwick = ns.name.toLowerCase().endsWith(`.${lower}`);
+		return isInBailiwick ? ns : { name: ns.name };
+	});
+}
 
 function logOpenProviderResponse(params: {
 	orderId: string;
@@ -30,13 +49,6 @@ function logOpenProviderResponse(params: {
 	});
 }
 
-/** OpenProvider returns 20000 when the email is already verified; we treat that as success and proceed to register. */
-function isAlreadyVerifiedError(e: unknown): boolean {
-	return (
-		e instanceof OpenProviderApiError &&
-		(e.code === 20000 || e.description.toLowerCase().includes("verified already"))
-	);
-}
 
 const PROFILE_REQUIRED = [
 	"firstName",
@@ -181,31 +193,66 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 	});
 
 		if (!integration) {
-		// Create customer on OpenProvider and integration record (profile already validated for required fields)
+		// Before creating a new customer, check if one already exists in OpenProvider for this email.
+		// This prevents creating duplicate handles on every retry (happens when DB integration record
+		// is not found, e.g. manual details path or first-save race condition).
+		const existingHandle = await findCustomerHandleByEmail(client, ownerUser.email ?? "");
+		logOpenProviderResponse({
+			orderId: params.orderId,
+			orderItemId: params.orderItemId,
+			call: "searchCustomers_pre_create",
+			rawResponse: existingHandle ? { found: true, handle: existingHandle } : { found: false },
+		});
+
 		const openProviderData = buildOpenProviderCustomerRequest(
 			profile as { firstName: string; lastName: string; address: string; city: string; country: string; postalCode: string; state?: string; phone: string },
 			ownerUser.email ?? "",
 		);
-		const response = await client.createCustomer(openProviderData);
-		logOpenProviderResponse({
-			orderId: params.orderId,
-			orderItemId: params.orderItemId,
-			call: "createCustomer",
-			rawResponse: response,
-		});
-		if (response.code !== 0) {
-			throw new OpenProviderApiError(
-				response.code,
-				response.desc || "Failed to create OpenProvider customer",
-				undefined,
-				response,
-			);
+
+		let handle: string;
+		if (existingHandle) {
+			// Reuse the existing handle but UPDATE its contact data so any previously stored
+			// bad data (wrong address number, wrong phone format, etc.) gets corrected before
+			// the domain registration is submitted to the registry.
+			handle = existingHandle;
+			void niscLog("processor_customer_update_request", {
+				niscOrderId: params.orderId,
+				orderItemId: params.orderItemId,
+				handle,
+				data: openProviderData,
+			});
+			const updateResp = await client.updateCustomer(handle, openProviderData).catch(() => null);
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "updateCustomer",
+				rawResponse: updateResp ?? { skipped: true },
+			});
+			void niscLog("processor_customer_reused", {
+				niscOrderId: params.orderId,
+				orderItemId: params.orderItemId,
+				handle: existingHandle,
+				updated: updateResp !== null,
+			});
+		} else {
+			const response = await client.createCustomer(openProviderData);
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "createCustomer",
+				rawResponse: response,
+			});
+			if (response.code !== 0) {
+				throw buildOpenProviderApiError(response, "Failed to create OpenProvider customer");
+			}
+			handle = response.data?.handle ?? "";
+			if (!handle) throw new Error("OpenProvider did not return customer handle");
 		}
-		const handle = response.data?.handle;
-		if (!handle) throw new Error("OpenProvider did not return customer handle");
 
 		if (ownerUser.id) {
 			const now = new Date();
+			// ON CONFLICT DO NOTHING prevents unique constraint failures on retry.
+			// Fall back to fetching the existing record if the insert was a no-op.
 			const inserted = await db
 				.insert(customerIntegration)
 				.values({
@@ -219,15 +266,22 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 					createdAt: now,
 					lastSyncedAt: now,
 					updatedAt: now,
-					platformData: response.data ?? null,
+					platformData: null,
 				})
+				.onConflictDoNothing()
 				.returning();
 
-			const createdRow = inserted[0];
-			if (!createdRow) throw new Error("Failed to create OpenProvider integration");
+			const savedRow = inserted[0] ?? await db
+				.select({ id: customerIntegration.id, platformCustomerId: customerIntegration.platformCustomerId })
+				.from(customerIntegration)
+				.where(and(eq(customerIntegration.userId, ownerUser.id), eq(customerIntegration.platform, "OPENPROVIDER")))
+				.limit(1)
+				.then((rows) => rows[0]);
+
+			if (!savedRow) throw new Error("Failed to create or retrieve OpenProvider integration");
 			integration = {
-				id: createdRow.id,
-				platformCustomerId: createdRow.platformCustomerId ?? "",
+				id: savedRow.id,
+				platformCustomerId: savedRow.platformCustomerId ?? handle,
 				user: { email: ownerUser.email, name: ownerUser.name },
 			};
 		} else {
@@ -238,154 +292,176 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 			};
 		}
 
-		let alreadyVerified = false;
-		try {
-			const startVerifyResp = await client.startEmailVerification({
-				email: ownerUser.email ?? "",
-				handle,
-				language: "en",
+		// Fire-and-forget: start email verification for ICANN compliance. Per OpenProvider docs,
+		// email verification is a post-registration step — do NOT block registration on it.
+		client.startEmailVerification({ email: ownerUser.email ?? "", handle, language: "en" })
+			.then((r) => logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: r }))
+			.catch((e) => {
+				logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: (e as OpenProviderApiError).rawResponse ?? { error: String(e) } });
 			});
-			logOpenProviderResponse({
-				orderId: params.orderId,
-				orderItemId: params.orderItemId,
-				call: "startEmailVerification",
-				rawResponse: startVerifyResp,
-			});
-		} catch (e) {
-			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
-				logOpenProviderResponse({
-					orderId: params.orderId,
-					orderItemId: params.orderItemId,
-					call: "startEmailVerification",
-					rawResponse: e.rawResponse,
-				});
-			}
-			if (isAlreadyVerifiedError(e)) {
-				alreadyVerified = true;
-			} else {
-				throw e;
-			}
-		}
-		if (!alreadyVerified) {
-			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-			const { sendEmail } = await import("./email");
-			const html = await renderOpenProviderVerifyEmail({
-				recipientName: profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : "Customer",
-				domainName: params.domainName,
-			});
-			await sendEmail({
-				to: ownerUser.email!,
-				subject: "Verify your email to complete domain purchase",
-				html,
-			});
-			const sub = await createDomainSubscription(
-				{
-					...params,
-					productPlanId: params.productPlanId ?? null,
-					description: params.description ?? null,
-				},
-				integration.id,
-				params.domainName,
-				null,
-				"PENDING",
-			);
-			return { subscriptionId: sub.id, pendingVerification: true };
-		}
-		// alreadyVerified: fall through to domain registration below
 	}
 
-	// Check verification status
-	const statusResponse = await client.checkEmailVerificationStatus({
-		handle: integration.platformCustomerId!,
-		email: integration.user.email ?? undefined,
-	});
-	logOpenProviderResponse({
-		orderId: params.orderId,
-		orderItemId: params.orderItemId,
-		call: "checkEmailVerificationStatus",
-		rawResponse: statusResponse,
-	});
-	if (statusResponse.code !== 0) {
-		throw new OpenProviderApiError(
-			statusResponse.code,
-			statusResponse.desc || "Failed to check email verification status",
-			undefined,
-			statusResponse,
-		);
-	}
-	const results = (statusResponse.data?.results as Array<{ status?: string }>) || [];
-	const isVerified = results.some((r) => r.status === "verified");
+	// Fire-and-forget: trigger email verification for returning customers too.
+	client.startEmailVerification({ email: integration.user.email ?? "", handle: integration.platformCustomerId!, language: "en" })
+		.then((r) => logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: r }))
+		.catch((e) => {
+			logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: (e as OpenProviderApiError).rawResponse ?? { error: String(e) } });
+		});
 
-	if (!isVerified) {
-		let alreadyVerified = false;
-		try {
-			const startVerifyResp = await client.startEmailVerification({
-				email: integration.user.email ?? "",
-				handle: integration.platformCustomerId!,
-				language: "en",
-			});
-			logOpenProviderResponse({
-				orderId: params.orderId,
-				orderItemId: params.orderItemId,
-				call: "startEmailVerification",
-				rawResponse: startVerifyResp,
-			});
-		} catch (e) {
-			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
-				logOpenProviderResponse({
-					orderId: params.orderId,
-					orderItemId: params.orderItemId,
-					call: "startEmailVerification",
-					rawResponse: e.rawResponse,
-				});
-			}
-			if (isAlreadyVerifiedError(e)) {
-				alreadyVerified = true;
-			} else {
-				throw e;
-			}
-		}
-		if (!alreadyVerified) {
-			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-			const { sendEmail } = await import("./email");
-			const html = await renderOpenProviderVerifyEmail({
-				recipientName: (integration.user as { name?: string }).name ?? "Customer",
-				domainName: params.domainName,
-			});
-			await sendEmail({
-				to: integration.user.email!,
-				subject: "Verify your email to complete domain purchase",
-				html,
-			});
-			const sub = await createDomainSubscription(
-				params,
-				integration.id,
-				params.domainName,
-				null,
-				"PENDING",
-			);
-			return { subscriptionId: sub.id, pendingVerification: true };
-		}
-		// alreadyVerified: fall through to domain registration below
-	}
-
-	// Verified: register domain
+	// Register domain — email verification is a post-registration ICANN compliance step per
+	// OpenProvider REST API docs. Registration does NOT wait for email verification.
 	const lastDot = params.domainName.lastIndexOf(".");
 	if (lastDot <= 0) {
 		throw new Error(`Invalid domain name: ${params.domainName}`);
 	}
 	const name = params.domainName.slice(0, lastDot);
-	const extension = params.domainName.slice(lastDot); // e.g. ".com"
+	const extension = params.domainName.slice(lastDot + 1); // e.g. "com" (no leading dot)
 	const period = billingCycleToYears(params.billingCycle);
 
+	// Verify the TLD is contracted/enabled for registration in this reseller account.
+	// Availability checks (checkDomains) work even without a TLD contract, but registration will
+	// fail with code 199 if the TLD hasn't been signed up for. Log the result for debugging.
+	const tldResp = await client.getTlds({ extensions: [extension], status: "ACT", limit: 10, with_price: false });
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "getTlds_pre_check",
+		rawResponse: tldResp,
+	});
+	if (tldResp.code === 0) {
+		const extNorm = extension.toLowerCase();
+		const tldFound = tldResp.data?.results?.some((t: { name?: string }) => {
+			const tName = (t?.name ?? "").toLowerCase().replace(/^\./, "");
+			return tName === extNorm;
+		});
+		void niscLog("processor_tld_availability_check", {
+			niscOrderId: params.orderId,
+			orderItemId: params.orderItemId,
+			extension,
+			tldFound: !!tldFound,
+			totalTldsReturned: tldResp.data?.total ?? 0,
+		});
+		if (!tldFound) {
+			throw new Error(
+				`TLD .${extension} is not enabled for registration in your OpenProvider reseller account. ` +
+					`Please log into your OpenProvider control panel, navigate to TLD Settings, and activate the .${extension} TLD, ` +
+					`or contact OpenProvider support.`,
+			);
+		}
+	}
+
+	// Pre-registration: check domain availability and detect already-owned domains.
+	// Use with_price: true to get the full result including any `reason` field that would indicate
+	// soft-quarantine (domain previously dropped and still within the 40-day quarantine window).
+	// During quarantine the registry returns status:"free" on availability checks but rejects
+	// registration attempts with code 199 — we need `reason` to detect this early.
+	const checkResp = await client.checkDomains({ domains: [{ name, extension }], with_price: true });
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "checkDomains",
+		rawResponse: checkResp,
+	});
+	if (checkResp.code === 0) {
+		const checkResult = checkResp.data?.results?.[0] as { status?: string; reason?: string; price?: unknown } | undefined;
+		void niscLog("processor_domain_availability_check", {
+			niscOrderId: params.orderId,
+			orderItemId: params.orderItemId,
+			domain: params.domainName,
+			status: checkResult?.status ?? "unknown",
+			reason: checkResult?.reason ?? null,
+		});
+
+		// Treat quarantine as "not available" rather than letting it fail silently at the registry.
+		if (checkResult?.status === "free" && checkResult?.reason) {
+			throw new Error(
+				`Domain ${params.domainName} is listed as free but the registry returned a restriction reason: "${checkResult.reason}". ` +
+					`This may indicate the domain is in a quarantine or redemption period. Try again later or contact support.`,
+			);
+		}
+		if (checkResult && checkResult.status !== "free") {
+			// Domain is not free — check if we already own it in our OpenProvider account.
+			const existingDomain = await findDomainInAccount(client, name, extension);
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "searchDomains_pre_check",
+				rawResponse: existingDomain ?? { found: false },
+			});
+			if (existingDomain) {
+				void niscLog("processor_domain_already_owned", {
+					niscOrderId: params.orderId,
+					orderItemId: params.orderItemId,
+					domain: params.domainName,
+					openProviderId: existingDomain.id,
+					status: existingDomain.status,
+				});
+				const sub = await createDomainSubscription(
+					params,
+					integration.id,
+					params.domainName,
+					existingDomain.id,
+					"ACTIVE",
+				);
+				return { subscriptionId: sub.id, pendingVerification: false };
+			}
+			throw new Error(
+				`Domain ${params.domainName} is not available for registration (status: ${checkResult.status}). ` +
+				`If you believe this is an error, contact support.`,
+			);
+		}
+	}
+
+	// Fetch any additional data fields required for this TLD's domain registrations and registrants.
+	// This surfaces missing required fields early, before the registry rejects with code 199.
+	const [additionalDataResp, customerAdditionalDataResp, customerDataResp] = await Promise.allSettled([
+		client.getAdditionalData({ domain: { extension } }),
+		client.getCustomerAdditionalData({ domain: { extension } }),
+		client.getCustomer(integration.platformCustomerId!),
+	]);
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "getAdditionalData_domain",
+		rawResponse: additionalDataResp.status === "fulfilled" ? additionalDataResp.value : { error: String((additionalDataResp as PromiseRejectedResult).reason) },
+	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "getAdditionalData_customer",
+		rawResponse: customerAdditionalDataResp.status === "fulfilled" ? customerAdditionalDataResp.value : { error: String((customerAdditionalDataResp as PromiseRejectedResult).reason) },
+	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "getCustomer",
+		rawResponse: customerDataResp.status === "fulfilled" ? customerDataResp.value : { error: String((customerDataResp as PromiseRejectedResult).reason) },
+	});
+
+	// Use TLD capabilities to decide which handle fields to include.
+	// Sending admin_handle or tech_handle for TLDs that don't support them (e.g. .live) causes
+	// the registry to reject the registration with the generic code 199.
+	const tldInfo = tldResp.data?.results?.[0] as {
+		owner_handle_supported?: boolean;
+		admin_handle_supported?: boolean;
+		tech_handle_supported?: boolean;
+	} | undefined;
+	// OpenProvider REST API requires domain name/extension as a nested "domain" object,
+	// NOT as flat top-level fields. Sending them flat causes code 199 from the registry.
 	const registerRequest = {
-		name,
-		extension,
+		domain: { name, extension },
 		period,
 		owner_handle: integration.platformCustomerId!,
-		admin_handle: integration.platformCustomerId!,
-		tech_handle: integration.platformCustomerId!,
-		name_servers: params.nameServers?.length ? params.nameServers : undefined,
+		...(tldInfo?.admin_handle_supported !== false && {
+			admin_handle: integration.platformCustomerId!,
+		}),
+		...(tldInfo?.tech_handle_supported !== false && {
+			tech_handle: integration.platformCustomerId!,
+		}),
+		// Strip IPs from out-of-bailiwick nameservers — sending glue-record IPs for nameservers that
+		// are not subdomains of the domain being registered causes registry rejection.
+		name_servers: toApiNameServers(params.domainName, params.nameServers),
+		autorenew: "default" as const,
 	};
 	void niscLog("processor_register_domain_request", {
 		niscOrderId: params.orderId,
@@ -402,12 +478,33 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		rawResponse: regResponse,
 	});
 	if (regResponse.code !== 0) {
-		throw new OpenProviderApiError(
-			regResponse.code,
-			regResponse.desc || "Domain registration failed",
-			undefined,
-			regResponse,
-		);
+		// Registration failed — before surfacing the error, check whether the domain was actually
+		// created in OpenProvider (e.g. partial success: registry accepted but API returned code 199).
+		const existingAfter = await findDomainInAccount(client, name, extension);
+		logOpenProviderResponse({
+			orderId: params.orderId,
+			orderItemId: params.orderItemId,
+			call: "searchDomains_post_failure",
+			rawResponse: existingAfter ?? { found: false },
+		});
+		if (existingAfter) {
+			void niscLog("processor_domain_registered_partial_success", {
+				niscOrderId: params.orderId,
+				orderItemId: params.orderItemId,
+				domain: params.domainName,
+				openProviderId: existingAfter.id,
+				originalCode: regResponse.code,
+			});
+			const sub = await createDomainSubscription(
+				params,
+				integration.id,
+				params.domainName,
+				existingAfter.id,
+				"ACTIVE",
+			);
+			return { subscriptionId: sub.id, pendingVerification: false };
+		}
+		throw buildOpenProviderApiError(regResponse, "Domain registration failed");
 	}
 	const domainId = regResponse.data?.id;
 	const sub = await createDomainSubscription(
@@ -550,27 +647,52 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	});
 
 	if (!integration) {
-		const openProviderData = buildOpenProviderCustomerRequest(
-			profile as { firstName: string; lastName: string; address: string; city: string; country: string; postalCode: string; state?: string; phone: string },
-			ownerUser.email ?? "",
-		);
-		const response = await client.createCustomer(openProviderData);
+		// Before creating a new customer, check if one already exists in OpenProvider for this email.
+		const existingHandleForTransfer = await findCustomerHandleByEmail(client, ownerUser.email ?? "");
 		logOpenProviderResponse({
 			orderId: params.orderId,
 			orderItemId: params.orderItemId,
-			call: "createCustomer",
-			rawResponse: response,
+			call: "searchCustomers_pre_create",
+			rawResponse: existingHandleForTransfer
+				? { found: true, handle: existingHandleForTransfer }
+				: { found: false },
 		});
-		if (response.code !== 0) {
-			throw new OpenProviderApiError(
-				response.code,
-				response.desc || "Failed to create OpenProvider customer",
-				undefined,
-				response,
-			);
+
+		const openProviderDataTransfer = buildOpenProviderCustomerRequest(
+			profile as { firstName: string; lastName: string; address: string; city: string; country: string; postalCode: string; state?: string; phone: string },
+			ownerUser.email ?? "",
+		);
+
+		let handle: string;
+		if (existingHandleForTransfer) {
+			handle = existingHandleForTransfer;
+			const updateRespTransfer = await client.updateCustomer(handle, openProviderDataTransfer).catch(() => null);
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "updateCustomer",
+				rawResponse: updateRespTransfer ?? { skipped: true },
+			});
+			void niscLog("processor_customer_reused", {
+				niscOrderId: params.orderId,
+				orderItemId: params.orderItemId,
+				handle: existingHandleForTransfer,
+				updated: updateRespTransfer !== null,
+			});
+		} else {
+			const response = await client.createCustomer(openProviderDataTransfer);
+			logOpenProviderResponse({
+				orderId: params.orderId,
+				orderItemId: params.orderItemId,
+				call: "createCustomer",
+				rawResponse: response,
+			});
+			if (response.code !== 0) {
+				throw buildOpenProviderApiError(response, "Failed to create OpenProvider customer");
+			}
+			handle = response.data?.handle ?? "";
+			if (!handle) throw new Error("OpenProvider did not return customer handle");
 		}
-		const handle = response.data?.handle;
-		if (!handle) throw new Error("OpenProvider did not return customer handle");
 
 		if (ownerUser.id) {
 			const now = new Date();
@@ -587,15 +709,22 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 					createdAt: now,
 					lastSyncedAt: now,
 					updatedAt: now,
-					platformData: response.data ?? null,
+					platformData: null,
 				})
+				.onConflictDoNothing()
 				.returning();
 
-			const createdRow = inserted[0];
-			if (!createdRow) throw new Error("Failed to create OpenProvider integration");
+			const savedRow = inserted[0] ?? await db
+				.select({ id: customerIntegration.id, platformCustomerId: customerIntegration.platformCustomerId })
+				.from(customerIntegration)
+				.where(and(eq(customerIntegration.userId, ownerUser.id), eq(customerIntegration.platform, "OPENPROVIDER")))
+				.limit(1)
+				.then((rows) => rows[0]);
+
+			if (!savedRow) throw new Error("Failed to create or retrieve OpenProvider integration");
 			integration = {
-				id: createdRow.id,
-				platformCustomerId: createdRow.platformCustomerId ?? "",
+				id: savedRow.id,
+				platformCustomerId: savedRow.platformCustomerId ?? handle,
 				user: { email: ownerUser.email, name: ownerUser.name },
 			};
 		} else {
@@ -606,146 +735,62 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 			};
 		}
 
-		let alreadyVerified = false;
-		try {
-			const startVerifyResp = await client.startEmailVerification({
-				email: ownerUser.email ?? "",
-				handle,
-				language: "en",
+		// Fire-and-forget: start email verification for ICANN compliance.
+		// Per OpenProvider docs, email verification is post-transfer — do NOT block transfer on it.
+		client.startEmailVerification({ email: ownerUser.email ?? "", handle, language: "en" })
+			.then((r) => logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: r }))
+			.catch((e) => {
+				logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: (e as OpenProviderApiError).rawResponse ?? { error: String(e) } });
 			});
-			logOpenProviderResponse({
-				orderId: params.orderId,
-				orderItemId: params.orderItemId,
-				call: "startEmailVerification",
-				rawResponse: startVerifyResp,
-			});
-		} catch (e) {
-			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
-				logOpenProviderResponse({
-					orderId: params.orderId,
-					orderItemId: params.orderItemId,
-					call: "startEmailVerification",
-					rawResponse: e.rawResponse,
-				});
-			}
-			if (isAlreadyVerifiedError(e)) {
-				alreadyVerified = true;
-			} else {
-				throw e;
-			}
-		}
-		if (!alreadyVerified) {
-			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-			const { sendEmail } = await import("./email");
-			const html = await renderOpenProviderVerifyEmail({
-				recipientName: profile.firstName ? `${profile.firstName} ${profile.lastName}`.trim() : "Customer",
-				domainName: params.domainName,
-			});
-			await sendEmail({
-				to: ownerUser.email!,
-				subject: "Verify your email to complete domain transfer",
-				html,
-			});
-			const sub = await createDomainSubscription(
-				params,
-				integration.id,
-				params.domainName,
-				null,
-				"PENDING",
-			);
-			return { subscriptionId: sub.id, pendingVerification: true };
-		}
 	}
 
-	const statusResponse = await client.checkEmailVerificationStatus({
-		handle: integration.platformCustomerId!,
-		email: integration.user.email ?? undefined,
-	});
-	logOpenProviderResponse({
-		orderId: params.orderId,
-		orderItemId: params.orderItemId,
-		call: "checkEmailVerificationStatus",
-		rawResponse: statusResponse,
-	});
-	if (statusResponse.code !== 0) {
-		throw new OpenProviderApiError(
-			statusResponse.code,
-			statusResponse.desc || "Failed to check email verification status",
-			undefined,
-			statusResponse,
-		);
-	}
-	const results = (statusResponse.data?.results as Array<{ status?: string }>) || [];
-	const isVerified = results.some((r) => r.status === "verified");
-
-	if (!isVerified) {
-		let alreadyVerifiedTransfer = false;
-		try {
-			const startVerifyResp = await client.startEmailVerification({
-				email: integration.user.email ?? "",
-				handle: integration.platformCustomerId!,
-				language: "en",
-			});
-			logOpenProviderResponse({
-				orderId: params.orderId,
-				orderItemId: params.orderItemId,
-				call: "startEmailVerification",
-				rawResponse: startVerifyResp,
-			});
-		} catch (e) {
-			if (e instanceof OpenProviderApiError && e.rawResponse != null) {
-				logOpenProviderResponse({
-					orderId: params.orderId,
-					orderItemId: params.orderItemId,
-					call: "startEmailVerification",
-					rawResponse: e.rawResponse,
-				});
-			}
-			if (isAlreadyVerifiedError(e)) {
-				alreadyVerifiedTransfer = true;
-			} else {
-				throw e;
-			}
-		}
-		if (!alreadyVerifiedTransfer) {
-			const { renderOpenProviderVerifyEmail } = await import("./email-templates");
-			const { sendEmail } = await import("./email");
-			const html = await renderOpenProviderVerifyEmail({
-				recipientName: (integration.user as { name?: string }).name ?? "Customer",
-				domainName: params.domainName,
-			});
-			await sendEmail({
-				to: integration.user.email!,
-				subject: "Verify your email to complete domain transfer",
-				html,
-			});
-			const sub = await createDomainSubscription(
-				params,
-				integration.id,
-				params.domainName,
-				null,
-				"PENDING",
-			);
-			return { subscriptionId: sub.id, pendingVerification: true };
-		}
-	}
+	// Fire-and-forget email verification for returning customers.
+	client.startEmailVerification({ email: integration.user.email ?? "", handle: integration.platformCustomerId!, language: "en" })
+		.then((r) => logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: r }))
+		.catch((e) => {
+			logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: (e as OpenProviderApiError).rawResponse ?? { error: String(e) } });
+		});
 
 	const lastDot = params.domainName.lastIndexOf(".");
 	if (lastDot <= 0) {
 		throw new Error(`Invalid domain name: ${params.domainName}`);
 	}
 	const name = params.domainName.slice(0, lastDot);
-	const extension = params.domainName.slice(lastDot);
+	const extension = params.domainName.slice(lastDot + 1); // e.g. "com" (no leading dot)
 	const period = params.period ?? billingCycleToYears(params.billingCycle);
+
+	// Check TLD capabilities so we only send handle fields the registry supports.
+	const tldRespTransfer = await client.getTlds({
+		extensions: [extension],
+		status: "ACT",
+		limit: 10,
+		with_price: false,
+	});
+	logOpenProviderResponse({
+		orderId: params.orderId,
+		orderItemId: params.orderItemId,
+		call: "getTlds_pre_check",
+		rawResponse: tldRespTransfer,
+	});
+	const tldInfoTransfer = tldRespTransfer.data?.results?.[0] as {
+		owner_handle_supported?: boolean;
+		admin_handle_supported?: boolean;
+		tech_handle_supported?: boolean;
+	} | undefined;
 
 	const transferRequest = {
 		domain: { name, extension },
 		auth_code: params.authCode,
 		owner_handle: integration.platformCustomerId!,
-		admin_handle: integration.platformCustomerId!,
-		tech_handle: integration.platformCustomerId!,
+		...(tldInfoTransfer?.admin_handle_supported !== false && {
+			admin_handle: integration.platformCustomerId!,
+		}),
+		...(tldInfoTransfer?.tech_handle_supported !== false && {
+			tech_handle: integration.platformCustomerId!,
+		}),
 		period,
-		name_servers: params.nameServers?.length ? params.nameServers : undefined,
+		// Strip IPs from out-of-bailiwick nameservers — glue records only valid for in-bailiwick NSes.
+		name_servers: toApiNameServers(params.domainName, params.nameServers),
 	};
 	void niscLog("processor_transfer_domain_request", {
 		niscOrderId: params.orderId,
@@ -762,12 +807,7 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		rawResponse: transferResponse,
 	});
 	if (transferResponse.code !== 0) {
-		throw new OpenProviderApiError(
-			transferResponse.code,
-			transferResponse.desc || "Domain transfer failed",
-			undefined,
-			transferResponse,
-		);
+		throw buildOpenProviderApiError(transferResponse, "Domain transfer failed");
 	}
 	const domainId = transferResponse.data?.id ?? null;
 	const sub = await createDomainSubscription(
@@ -780,38 +820,122 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	return { subscriptionId: sub.id, pendingVerification: false, rawResponse: transferResponse };
 }
 
+/**
+ * Search OpenProvider for an existing customer handle by email address.
+ * Returns the first matching handle string, or null if none found.
+ * Used to avoid creating duplicate customer handles on every retry.
+ */
+async function findCustomerHandleByEmail(
+	client: ReturnType<typeof createOpenProviderClient>,
+	email: string,
+): Promise<string | null> {
+	if (!email) return null;
+	try {
+		const resp = await client.searchCustomers({ email_pattern: email, limit: 5 });
+		if (resp.code !== 0 || !resp.data?.results?.length) return null;
+		const emailLower = email.toLowerCase();
+		const match = resp.data.results.find(
+			(c: { handle?: string; email?: string }) =>
+				(c.email ?? "").toLowerCase() === emailLower && c.handle,
+		);
+		return match?.handle ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Search the OpenProvider account for a domain by name + extension.
+ * Returns the first matching domain record or null if not found.
+ * Used to detect domains that were partially registered (registry accepted but our DB never updated).
+ */
+async function findDomainInAccount(
+	client: ReturnType<typeof createOpenProviderClient>,
+	name: string,
+	extension: string,
+): Promise<{ id: number; status: string } | null> {
+	try {
+		const searchResp = await client.searchDomains({
+			domain_name_pattern: `${name}.${extension}`,
+			limit: 5,
+		});
+		if (searchResp.code !== 0 || !searchResp.data?.results?.length) return null;
+		const fullDomain = `${name}.${extension}`;
+		const match = searchResp.data.results.find((d: { domain?: string; id?: number; status?: string }) => {
+			const dName = (d.domain ?? "").toLowerCase();
+			return dName === fullDomain || dName === `${name}${extension}`;
+		});
+		if (!match || typeof match.id !== "number") return null;
+		return { id: match.id, status: match.status ?? "unknown" };
+	} catch {
+		return null;
+	}
+}
+
 function buildOpenProviderCustomerRequest(
 	profile: { firstName: string; lastName: string; address: string; city: string; country: string; postalCode: string; state?: string; phone: string },
 	email: string,
 ): OpenProviderCustomerRequest {
+	// --- Phone normalisation ---
+	// Strip everything except digits, then normalise to international format.
+	// Kenyan numbers: 0712345678 → country=254, area=71, subscriber=2345678
+	//                 254712345678 → country=254, area=71, subscriber=2345678
 	const phoneStr = profile.phone || "";
 	const phoneDigits = phoneStr.replace(/\D/g, "");
 	let countryCode = "254";
-	let areaCode = "";
-	let subscriberNumber = "";
-	if (phoneDigits.startsWith("254")) {
+	let areaCode = "0";
+	let subscriberNumber = "0000000";
+
+	if (phoneDigits.startsWith("254") && phoneDigits.length > 3) {
+		// Already in international format (with or without +)
 		countryCode = "254";
-		const remaining = phoneDigits.slice(3);
-		areaCode = remaining.slice(0, 2);
-		subscriberNumber = remaining.slice(2);
-	} else if (phoneDigits.length >= 9) {
+		const national = phoneDigits.slice(3); // digits after country code
+		areaCode = national.slice(0, 2);
+		subscriberNumber = national.slice(2) || "0000000";
+	} else if (phoneDigits.startsWith("0") && phoneDigits.length >= 9) {
+		// Local format with trunk prefix — strip the leading 0
+		const national = phoneDigits.slice(1);
+		areaCode = national.slice(0, 2);
+		subscriberNumber = national.slice(2) || "0000000";
+	} else if (phoneDigits.length >= 7) {
+		// No leading 0 and no country code — use as-is
 		areaCode = phoneDigits.slice(0, 2);
-		subscriberNumber = phoneDigits.slice(2);
-	} else {
-		areaCode = phoneDigits.slice(0, 1) || "0";
-		subscriberNumber = phoneDigits.slice(1) || phoneDigits;
+		subscriberNumber = phoneDigits.slice(2) || "0000000";
 	}
-	const addressParts = (profile.address || "").split(/\s+/);
-	const street = addressParts.slice(0, -1).join(" ") || profile.address || "";
-	const number = addressParts[addressParts.length - 1] || "1";
-	const country = profile.country === "Kenya" ? "KE" : profile.country;
+
+	// --- Address normalisation ---
+	// OpenProvider requires a separate street name and house number.
+	// Attempt to extract a leading numeric/alphanumeric token (e.g. "123", "4B") as the house
+	// number. If none is found, default to "1" and use the full address as the street.
+	const addressStr = (profile.address || "").trim();
+	let street: string;
+	let houseNumber: string;
+	const leadingNumMatch = addressStr.match(/^(\d+[A-Za-z]?)\s+(.+)$/);
+	if (leadingNumMatch) {
+		houseNumber = leadingNumMatch[1]!;
+		street = leadingNumMatch[2]!;
+	} else {
+		houseNumber = "1";
+		street = addressStr || "N/A";
+	}
+
+	// Normalise country: accept full name "Kenya" or common variants and map to ISO 3166-1 alpha-2
+	const countryMap: Record<string, string> = {
+		kenya: "KE", "united states": "US", "united kingdom": "GB",
+		tanzania: "TZ", uganda: "UG", ethiopia: "ET", nigeria: "NG",
+		ghana: "GH", "south africa": "ZA",
+	};
+	const countryRaw = (profile.country || "").trim();
+	const country = countryRaw.length === 2
+		? countryRaw.toUpperCase()
+		: (countryMap[countryRaw.toLowerCase()] ?? countryRaw.toUpperCase());
 
 	return {
 		name: { first_name: profile.firstName, last_name: profile.lastName },
 		address: {
 			street,
-			number,
-			zipcode: profile.postalCode,
+			number: houseNumber,
+			zipcode: profile.postalCode || "00100",
 			city: profile.city,
 			country,
 			state: profile.state,

@@ -387,11 +387,15 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         open={hostingDialogOpen}
         onOpenChange={setHostingDialogOpen}
         planType="web"
+        domainName={mergedDomain.domain}
+        buyDomainHref="/agency/domains"
       />
       <HostingPlanDialog
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}
         planType="email"
+        domainName={mergedDomain.domain}
+        buyDomainHref="/agency/domains"
       />
       <CreateSubscriptionFromDomainDialog
         open={createSubscriptionDialogOpen}

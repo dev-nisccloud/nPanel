@@ -137,5 +137,7 @@ export const createFromPaymentInputSchema = z.object({
 	items: z.array(createFromPaymentItemSchema).min(1),
 	currency: z.string().default("KES"),
 	teamId: z.string().optional(),
+	/** Agency only: order / subscription owner (e.g. end customer user) instead of the payer session user. */
+	billedForUserId: z.string().min(1).optional(),
 });
 export type CreateFromPaymentInput = z.infer<typeof createFromPaymentInputSchema>;

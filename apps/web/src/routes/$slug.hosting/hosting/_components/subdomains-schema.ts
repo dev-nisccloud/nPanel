@@ -1,25 +1,36 @@
 import { z } from "zod";
 
-// Schema for the raw Plesk subdomains API response
+// Single subdomain result item (Plesk returns one object when there is only one subdomain)
+const subdomainResultItemSchema = z.object({
+  status: z.string().optional(),
+  "filter-id": z.string().optional(),
+  id: z.number().optional(),
+  data: z
+    .object({
+      parent: z.string().optional(),
+      name: z.string().optional(),
+      property: z
+        .array(
+          z.object({
+            name: z.string().optional(),
+            value: z.union([z.string(), z.boolean()]).optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+});
+
+// Schema for the raw Plesk subdomains API response (result can be array or single object)
 export const pleskSubdomainsResponseSchema = z.object({
   raw: z.string(),
   parsed: z.object({
     packet: z.object({
       subdomain: z.object({
         get: z.object({
-          result: z.array(z.object({
-            status: z.string().optional(),
-            "filter-id": z.string().optional(),
-            id: z.number().optional(),
-            data: z.object({
-              parent: z.string().optional(),
-              name: z.string().optional(),
-              property: z.array(z.object({
-                name: z.string().optional(),
-                value: z.union([z.string(), z.boolean()]).optional(),
-              })).optional(),
-            }).optional(),
-          })),
+          result: z
+            .union([z.array(subdomainResultItemSchema), subdomainResultItemSchema])
+            .transform((val) => (Array.isArray(val) ? val : [val])),
         }),
       }),
     }),

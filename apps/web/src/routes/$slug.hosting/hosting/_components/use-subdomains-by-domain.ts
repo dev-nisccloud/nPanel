@@ -11,18 +11,12 @@ function transformPleskSubdomainsToComponent(
   pleskResponse: z.infer<typeof pleskSubdomainsResponseSchema>
 ): z.infer<typeof subdomainSchema>[] {
   const results = pleskResponse.parsed.packet.subdomain.get.result;
-  
-  return results.map((result) => {
-    const data = result.data;
-    if (!data) {
-      return {
-        id: 0,
-        name: "Unknown Subdomain",
-        parent: "",
-        status: result.status ?? "unknown",
-        properties: undefined,
-      };
-    }
+
+  // Empty list: Plesk may return `{ status: "ok" }` with no `data` — skip fake "Unknown Subdomain" rows.
+  return results
+    .filter((result) => result.data != null)
+    .map((result) => {
+    const data = result.data!;
 
     // Extract properties from the property array
     const propertyArray = data.property || [];
