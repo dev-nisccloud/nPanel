@@ -8,8 +8,15 @@ import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products"
 import { seoReport, seoReportActivityLog } from "@npanel/db/schema/seo-reports";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
-import { GoogleSearchConsoleClient } from "../../lib/google-search-console-client";
-import { GoogleAnalyticsClient } from "../../lib/google-analytics-client";
+import {
+  GoogleSearchConsoleClient,
+  gscPropertySummaryFromDailyRows,
+  gscPropertySummaryFromRow,
+} from "../../lib/google-search-console-client";
+import {
+  GoogleAnalyticsClient,
+  ga4OrganicSummaryFromRunReportResponse,
+} from "../../lib/google-analytics-client";
 import { countries } from "@npanel/location";
 import {
   seoReportCreateInputSchema,
@@ -270,6 +277,8 @@ export const seoReportsRouter = router({
         const gscPromise = Promise.all([
           gsc.getSearchAnalytics(input.siteId, input.from, input.to),
           gsc.getSearchAnalytics(input.siteId, prevPeriod.from, prevPeriod.to),
+          gsc.getSiteSummaryTotals(input.siteId, input.from, input.to),
+          gsc.getSiteSummaryTotals(input.siteId, prevPeriod.from, prevPeriod.to),
           gsc.getTopKeywords(input.siteId, input.from, input.to, 50),
           gsc.getTopPages(input.siteId, input.from, input.to, 100),
           gsc.getTopPages(input.siteId, prevPeriod.from, prevPeriod.to, 100),
@@ -283,6 +292,8 @@ export const seoReportsRouter = router({
         const ga4Promise = input.ga4PropertyId ? Promise.allSettled([
           ga4.getOrganicPerformance(input.ga4PropertyId, input.from, input.to),
           ga4.getOrganicPerformance(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
+          ga4.getOrganicPeriodTotals(input.ga4PropertyId, input.from, input.to),
+          ga4.getOrganicPeriodTotals(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
           ga4.getTopLandingPages(input.ga4PropertyId, input.from, input.to, 100),
         ]) : Promise.resolve(null);
 
@@ -291,6 +302,8 @@ export const seoReportsRouter = router({
         const [
           currentStats,
           prevStats,
+          currentTotalsRow,
+          prevTotalsRow,
           currentKeywords,
           currentPages,
           prevPages,
@@ -305,67 +318,32 @@ export const seoReportsRouter = router({
         let ga4Prev: any[] = [];
         let ga4Pages: any[] = [];
 
+        let ga4CurrentTotalsResponse: Awaited<ReturnType<GoogleAnalyticsClient['getOrganicPeriodTotals']>> | undefined;
+        let ga4PrevTotalsResponse: Awaited<ReturnType<GoogleAnalyticsClient['getOrganicPeriodTotals']>> | undefined;
+
         if (ga4Results) {
           if (ga4Results[0].status === 'fulfilled') ga4Current = (ga4Results[0] as any).value?.rows || [];
           if (ga4Results[1].status === 'fulfilled') ga4Prev = (ga4Results[1] as any).value?.rows || [];
-          if (ga4Results[2].status === 'fulfilled') ga4Pages = (ga4Results[2] as any).value?.rows || [];
+          if (ga4Results[2].status === 'fulfilled') {
+            ga4CurrentTotalsResponse = (ga4Results[2] as any).value;
+          }
+          if (ga4Results[3].status === 'fulfilled') {
+            ga4PrevTotalsResponse = (ga4Results[3] as any).value;
+          }
+          if (ga4Results[4].status === 'fulfilled') ga4Pages = (ga4Results[4] as any).value?.rows || [];
         }
 
-        // Summary Statistics (GSC)
-        const calculateGscSummary = (data: any[]) => {
-          let clicks = 0;
-          let impressions = 0;
-          let sumCtr = 0;
-          let sumPos = 0;
-          data.forEach(row => {
-            clicks += row.clicks || 0;
-            impressions += row.impressions || 0;
-            sumCtr += row.ctr || 0;
-            sumPos += row.position || 0;
-          });
-          return {
-            clicks,
-            impressions,
-            ctr: data.length > 0 ? (sumCtr / data.length) * 100 : 0,
-            pos: data.length > 0 ? sumPos / data.length : 0,
-          };
-        };
+        // Summary Statistics (GSC) — property totals from API; fallback to weighted daily aggregate
+        const currentGscSummary = currentTotalsRow
+          ? gscPropertySummaryFromRow(currentTotalsRow)
+          : gscPropertySummaryFromDailyRows(currentStats);
+        const prevGscSummary = prevTotalsRow
+          ? gscPropertySummaryFromRow(prevTotalsRow)
+          : gscPropertySummaryFromDailyRows(prevStats);
 
-        const currentGscSummary = calculateGscSummary(currentStats);
-        const prevGscSummary = calculateGscSummary(prevStats);
-
-        // Summary Statistics (GA4)
-        const calculateGa4Summary = (data: any[]) => {
-          let sessions = 0;
-          let users = 0;
-          let conversions = 0;
-          let sumEngagement = 0;
-          let sumBounce = 0;
-          let sumDuration = 0;
-          const count = data.length;
-
-          data.forEach(row => {
-            const metrics = row.metricValues || [];
-            sessions += parseInt(metrics[0]?.value || '0');
-            users += parseInt(metrics[1]?.value || '0');
-            conversions += parseInt(metrics[2]?.value || '0');
-            sumBounce += parseFloat(metrics[3]?.value || '0');
-            sumEngagement += parseFloat(metrics[4]?.value || '0');
-            sumDuration += parseFloat(metrics[5]?.value || '0');
-          });
-
-          return {
-            sessions,
-            users,
-            conversions,
-            engagementRate: count > 0 ? (sumEngagement / count) * 100 : 0,
-            bounceRate: count > 0 ? (sumBounce / count) * 100 : 0,
-            averageSessionDuration: count > 0 ? sumDuration / count : 0,
-          };
-        };
-
-        const currentGa4Summary = calculateGa4Summary(ga4Current);
-        const prevGa4Summary = calculateGa4Summary(ga4Prev);
+        // Summary Statistics (GA4) — response.totals (TOTAL aggregation), then fallback
+        const currentGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4CurrentTotalsResponse);
+        const prevGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4PrevTotalsResponse);
 
 
         // Time Series (Merged GSC + GA4)
@@ -410,8 +388,8 @@ export const seoReportsRouter = router({
             existing.sessions = parseInt(metrics[0]?.value || '0');
             existing.totalUsers = parseInt(metrics[1]?.value || '0');
             existing.conversions = parseInt(metrics[2]?.value || '0');
-            existing.bounceRate = parseFloat(metrics[3]?.value || '0');
-            existing.engagementRate = parseFloat(metrics[4]?.value || '0');
+            existing.bounceRate = parseFloat(metrics[3]?.value || '0') * 100;
+            existing.engagementRate = parseFloat(metrics[4]?.value || '0') * 100;
             existing.averageSessionDuration = parseFloat(metrics[5]?.value || '0');
 
             timeSeriesMap.set(formattedDate, existing);
@@ -593,8 +571,8 @@ export const seoReportsRouter = router({
             totalClicksPrev: prevGscSummary.clicks,
             averageCtr: currentGscSummary.ctr,
             averageCtrPrev: prevGscSummary.ctr,
-            averagePosition: currentGscSummary.pos,
-            averagePositionPrev: prevGscSummary.pos,
+            averagePosition: currentGscSummary.position,
+            averagePositionPrev: prevGscSummary.position,
             // GA4
             totalSessions: currentGa4Summary.sessions,
             totalSessionsPrev: prevGa4Summary.sessions,
@@ -771,46 +749,21 @@ export const seoReportsRouter = router({
         const ga4 = new GoogleAnalyticsClient();
         const prevPeriod = getPreviousPeriod(input.from, input.to);
 
-        const [ga4Current, ga4Prev, ga4Pages, ga4Countries, ga4Devices] = await Promise.all([
-          ga4.getOrganicPerformance(input.ga4PropertyId, input.from, input.to),
-          ga4.getOrganicPerformance(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
-          ga4.getTopLandingPages(input.ga4PropertyId, input.from, input.to, 100),
-          ga4.getTopCountries(input.ga4PropertyId, input.from, input.to, 20),
-          ga4.getTopDevices(input.ga4PropertyId, input.from, input.to),
-        ]);
+        const [ga4Current, ga4Prev, ga4CurrentTotals, ga4PrevTotals, ga4Pages, ga4Countries, ga4Devices] =
+          await Promise.all([
+            ga4.getOrganicPerformance(input.ga4PropertyId, input.from, input.to),
+            ga4.getOrganicPerformance(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
+            ga4.getOrganicPeriodTotals(input.ga4PropertyId, input.from, input.to),
+            ga4.getOrganicPeriodTotals(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
+            ga4.getTopLandingPages(input.ga4PropertyId, input.from, input.to, 100),
+            ga4.getTopCountries(input.ga4PropertyId, input.from, input.to, 20),
+            ga4.getTopDevices(input.ga4PropertyId, input.from, input.to),
+          ]);
 
         const ga4CurrentRows = ga4Current?.rows ?? [];
         const ga4PrevRows = ga4Prev?.rows ?? [];
-
-        const calculateGa4Summary = (data: any[]) => {
-          let sessions = 0;
-          let users = 0;
-          let conversions = 0;
-          let sumEngagement = 0;
-          let sumBounce = 0;
-          let sumDuration = 0;
-          const count = data.length;
-          for (const row of data) {
-            const metrics = row.metricValues ?? [];
-            sessions += Number.parseInt(metrics[0]?.value ?? "0", 10);
-            users += Number.parseInt(metrics[1]?.value ?? "0", 10);
-            conversions += Number.parseInt(metrics[2]?.value ?? "0", 10);
-            sumBounce += Number.parseFloat(metrics[3]?.value ?? "0");
-            sumEngagement += Number.parseFloat(metrics[4]?.value ?? "0");
-            sumDuration += Number.parseFloat(metrics[5]?.value ?? "0");
-          }
-          return {
-            sessions,
-            users,
-            conversions,
-            engagementRate: count > 0 ? (sumEngagement / count) * 100 : 0,
-            bounceRate: count > 0 ? (sumBounce / count) * 100 : 0,
-            averageSessionDuration: count > 0 ? sumDuration / count : 0,
-          };
-        };
-
-        const currentGa4Summary = calculateGa4Summary(ga4CurrentRows);
-        const prevGa4Summary = calculateGa4Summary(ga4PrevRows);
+        const currentGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4CurrentTotals);
+        const prevGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4PrevTotals);
 
         const timeSeries = ga4CurrentRows.map((row: any) => {
           const dateVal = row.dimensionValues?.[0]?.value;
@@ -825,8 +778,8 @@ export const seoReportsRouter = router({
             sessions: Number.parseInt(metrics[0]?.value ?? "0", 10),
             totalUsers: Number.parseInt(metrics[1]?.value ?? "0", 10),
             conversions: Number.parseInt(metrics[2]?.value ?? "0", 10),
-            bounceRate: Number.parseFloat(metrics[3]?.value ?? "0"),
-            engagementRate: Number.parseFloat(metrics[4]?.value ?? "0"),
+            bounceRate: Number.parseFloat(metrics[3]?.value ?? "0") * 100,
+            engagementRate: Number.parseFloat(metrics[4]?.value ?? "0") * 100,
             averageSessionDuration: Number.parseFloat(metrics[5]?.value ?? "0"),
           };
         });
