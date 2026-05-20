@@ -55,6 +55,68 @@ export class OpenProviderApiError extends Error {
   }
 }
 
+/**
+ * Extract a rich human-readable error description from an OpenProvider API response body.
+ * Inspects registry, data, message, and warnings fields — the same extraction used for HTTP >= 400
+ * responses — so callers that receive non-zero codes on HTTP 200 responses get the same detail.
+ */
+export function buildOpenProviderApiError(
+  responseData: unknown,
+  fallbackDesc = 'Unknown error',
+  httpStatusCode?: number,
+): OpenProviderApiError {
+  if (!responseData || typeof responseData !== 'object') {
+    return new OpenProviderApiError(0, fallbackDesc, undefined, responseData);
+  }
+  const errorData = responseData as Record<string, unknown>;
+  const code = typeof errorData.code === 'number' ? errorData.code : 0;
+  const baseDesc = (typeof errorData.desc === 'string' && errorData.desc.trim())
+    ? errorData.desc.trim()
+    : fallbackDesc;
+  const extras: string[] = [];
+
+  if (errorData.registry && typeof errorData.registry === 'object') {
+    const reg = errorData.registry as Record<string, unknown>;
+    const regStrings = [reg.message, reg.description, reg.msg, reg.error, reg.detail, (reg as any).registry_message]
+      .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+      .map((s) => s.trim());
+    if (regStrings.length) extras.push(`Registry: ${regStrings.join('   ')}`);
+  }
+  if (typeof errorData.data === 'string' && errorData.data.trim()) {
+    extras.push(`Details: ${errorData.data.trim()}`);
+  } else if (errorData.data && typeof errorData.data === 'object') {
+    const d = errorData.data as Record<string, unknown>;
+    const dataStrings = [d.message, d.description, d.error, d.detail, (d as any).registry_message]
+      .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+      .map((s) => s.trim());
+    if (dataStrings.length) extras.push(dataStrings.join('   '));
+  }
+  if (typeof errorData.message === 'string' && errorData.message.trim()) {
+    extras.push(errorData.message.trim());
+  }
+  if (Array.isArray(errorData.warnings) && errorData.warnings.length > 0) {
+    const msgs = errorData.warnings
+      .map((w: unknown) => (typeof w === 'string' ? w : (w as Record<string, unknown>)?.message ?? (w as Record<string, unknown>)?.desc ?? String(w)))
+      .filter(Boolean);
+    if (msgs.length) extras.push(`Warnings: ${msgs.join('; ')}`);
+  }
+
+  const hasConcreteDetail = extras.length > 0;
+  const useOnlyExtras = code === 399 && hasConcreteDetail;
+  const description = useOnlyExtras
+    ? extras.join(' ')
+    : hasConcreteDetail
+      ? `${extras.join(' ')}. ${baseDesc}`
+      : baseDesc;
+
+  return new OpenProviderApiError(
+    code,
+    description,
+    httpStatusCode !== undefined ? new Error(`HTTP ${httpStatusCode}`) : undefined,
+    responseData,
+  );
+}
+
 export class OpenProviderClient {
   private token: string | null = null;
   private baseUrl: string;
@@ -157,69 +219,12 @@ export class OpenProviderClient {
       }
 
       if (response.statusCode >= 400) {
-        const errorData = responseData as OpenProviderError & Record<string, unknown>;
-        const baseDesc = errorData.desc || `HTTP ${response.statusCode}`;
-        const extras: string[] = [];
-        // OpenProvider often returns registry/nameserver errors with extra details (e.g. error 399)
-        if (errorData.registry && typeof errorData.registry === 'object') {
-          const reg = errorData.registry as Record<string, unknown>;
-          const regStrings = [
-            reg.message,
-            reg.description,
-            reg.msg,
-            reg.error,
-            reg.detail,
-            (reg as any).registry_message,
-          ]
-            .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
-            .map((s) => s.trim());
-          if (regStrings.length) extras.push(`Registry: ${regStrings.join('   ')}`);
-        }
-        // data can be "Additional error description" (string) or an object with message/description/etc.
-        if (typeof errorData.data === 'string' && errorData.data.trim()) {
-          extras.push(`Details: ${errorData.data.trim()}`);
-        } else if (errorData.data && typeof errorData.data === 'object') {
-          const d = errorData.data as Record<string, unknown>;
-          const dataStrings = [
-            d.message,
-            d.description,
-            d.error,
-            d.detail,
-            (d as any).registry_message,
-          ]
-            .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
-            .map((s) => s.trim());
-          if (dataStrings.length) extras.push(dataStrings.join('   '));
-        }
-        // Top-level message (e.g. some endpoints put the registry message here)
-        if (typeof errorData.message === 'string' && errorData.message.trim()) {
-          extras.push(errorData.message.trim());
-        }
-        if (Array.isArray(errorData.warnings) && errorData.warnings.length > 0) {
-          const msgs = errorData.warnings
-            .map((w: unknown) => (typeof w === 'string' ? w : (w as Record<string, unknown>)?.message ?? (w as Record<string, unknown>)?.desc ?? String(w)))
-            .filter(Boolean);
-          if (msgs.length) extras.push(`Warnings: ${msgs.join('; ')}`);
-        }
-        const code = errorData.code ?? response.statusCode;
+        const err = buildOpenProviderApiError(responseData, `HTTP ${response.statusCode}`, response.statusCode);
         // Clear token on auth errors so next request will re-authenticate
-        if (code === 401 || code === 403) {
+        if (err.code === 401 || err.code === 403) {
           this.clearAuth();
         }
-        // For 399, if we have concrete Details/Registry text, use only that and omit the generic "refer to registry message below"
-        const hasConcreteDetail = extras.length > 0;
-        const useOnlyExtras = code === 399 && hasConcreteDetail;
-        const description = useOnlyExtras
-          ? extras.join(' ')
-          : hasConcreteDetail
-            ? `${extras.join(' ')}. ${baseDesc}`
-            : baseDesc;
-        throw new OpenProviderApiError(
-          code,
-          description,
-          new Error(`HTTP ${response.statusCode}`),
-          responseData
-        );
+        throw err;
       }
 
       return responseData;
@@ -372,6 +377,15 @@ export class OpenProviderClient {
         throw error;
       }
       throw new OpenProviderApiError(0, 'Failed to update customer', error as Error);
+    }
+  }
+
+  async getCustomer(handle: string): Promise<{ code: number; desc: string; data: Record<string, unknown> }> {
+    try {
+      return await this.makeRequest('GET', `/customers/${handle}`);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) throw error;
+      throw new OpenProviderApiError(0, 'Failed to get customer', error as Error);
     }
   }
 

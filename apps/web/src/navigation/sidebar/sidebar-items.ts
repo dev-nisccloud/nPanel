@@ -385,12 +385,12 @@ export const agencysidebarItems: NavGroup[] = [
     label: "Management",
     items: [
       {
-        title: "Nisc Services",
+        title: "Products & Services",
         url: "/agency/nisc-services",
         icon: (props: any) => React.createElement(Icons.Plans, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
-        title: "Nisc Service Orders",
+        title: "Service Orders",
         url: "/agency/nisc-service-orders",
         icon: (props: any) => React.createElement(Icons.Cart, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },

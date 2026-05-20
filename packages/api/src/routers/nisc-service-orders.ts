@@ -948,18 +948,10 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
-			try {
-				await enqueueNiscOrderProcessing(order.id);
-			} catch (err) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						err instanceof Error
-							? err.message
-							: "Failed to re-enqueue order for processing",
-				});
-			}
-
+				// Reset status to PENDING BEFORE enqueuing so the worker never sees a non-PENDING order.
+			// Previously the enqueue happened first, causing a race condition: QStash delivered the
+			// message before the DB update completed, so the worker loaded the order in FAILED status
+			// and skipped it with worker_order_skip_not_pending.
 			await db.transaction(async (tx) => {
 				await tx
 					.update(niscOrder)
@@ -980,6 +972,25 @@ export const niscServiceOrdersRouter = router({
 						),
 					);
 			});
+
+			try {
+				await enqueueNiscOrderProcessing(order.id);
+			} catch (err) {
+				// Enqueue failed — roll back the status so the order doesn't get stuck in PENDING
+				// without a worker running. Best-effort: ignore errors from this rollback.
+				await db
+					.update(niscOrder)
+					.set({ status: "FAILED", failureReason: "Failed to re-enqueue for processing" })
+					.where(eq(niscOrder.id, order.id))
+					.catch(() => undefined);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message:
+						err instanceof Error
+							? err.message
+							: "Failed to re-enqueue order for processing",
+				});
+			}
 
 			return { success: true, niscOrderId: order.id };
 		}),
