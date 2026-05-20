@@ -13,6 +13,8 @@ import {
   Trash2,
   Globe,
   BarChart3,
+  User,
+  Users,
 } from "lucide-react";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import { Label } from "@/components/ui/label";
@@ -51,6 +53,8 @@ import { trpc, type RouterInputs } from "@/utils/trpc";
 import type { UseMutationResult } from "@tanstack/react-query";
 import { toast } from "@/components/ui/sonner";
 import { useCartStore } from "@/stores/cart-store";
+import { cn } from "@/lib/utils";
+import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 
 export interface ServicePlanDetails {
   planId: string;
@@ -81,15 +85,33 @@ interface BuyNowDialogProps {
   teamId?: string;
   /** When set, show a "Need a domain? Buy one" CTA in the domain step (e.g. `/${teamSlug}/domains`) */
   buyDomainHref?: string;
+  /**
+   * When set with requireDomainStep, the domain step is a confirmation for this FQDN (e.g. opened from
+   * domain portfolio) instead of the team domain picker. Still uses the same primaryDomain on the order.
+   */
+  portfolioDomainName?: string;
   /** If "add_to_cart", dialog stops at review and saves configured item to cart. */
   intent?: "buy_now" | "add_to_cart";
   /** Start non-Hivelocity flows directly on the payment step. */
   startAtPayment?: boolean;
   /** Team SEO Reports path for SEO onboarding (e.g. `/${slug}/seo-reports`). Shown when `plan.subType === "SEO"`. */
   seoReportsHref?: string;
+  /**
+   * Agency domains-portfolio hosting: after domain confirmation, show who this order is for
+   * (your agency account, a client team, or a specific user) before review/payment.
+   */
+  agencyPortfolioCheckout?: boolean;
 }
 
-type Step = "seo_connect" | "domain" | "hivelocity_config" | "review" | "payment" | "success" | "error";
+type Step =
+  | "seo_connect"
+  | "domain"
+  | "agency_billing"
+  | "hivelocity_config"
+  | "review"
+  | "payment"
+  | "success"
+  | "error";
 
 /** Validate domain format: hostname with at least one dot, valid chars, TLD 2+ chars */
 function isValidDomain(value: string): boolean {
@@ -171,11 +193,30 @@ export function BuyNowDialog({
   intent = "buy_now",
   startAtPayment = false,
   seoReportsHref,
+  portfolioDomainName,
+  agencyPortfolioCheckout = false,
 }: BuyNowDialogProps) {
   const isHivelocityPlan = Boolean(plan?.hivelocity);
   const isSeoPlan = plan?.subType === "SEO";
   const showSeoConnectStep = Boolean(isSeoPlan);
-  const showDomainStep = !!requireDomainStep && !!teamId && !showSeoConnectStep;
+  const portfolioDomainNormalized = React.useMemo(() => {
+    const t = portfolioDomainName?.trim() ?? "";
+    if (!t) return null;
+    return isValidDomain(t) ? t.toLowerCase() : null;
+  }, [portfolioDomainName]);
+  const showDomainConfirmOnly = Boolean(
+    requireDomainStep && (portfolioDomainName?.trim() ?? "") && !showSeoConnectStep,
+  );
+  const showDomainPicker = Boolean(
+    requireDomainStep &&
+      !!teamId &&
+      !(portfolioDomainName?.trim() ?? "") &&
+      !showSeoConnectStep,
+  );
+  const showDomainStep = showDomainConfirmOnly || showDomainPicker;
+  const showAgencyBillingStep = Boolean(
+    agencyPortfolioCheckout && requireDomainStep && !showSeoConnectStep && !isHivelocityPlan,
+  );
   const shouldStartAtPayment =
     startAtPayment && !showDomainStep && !isHivelocityPlan && !showSeoConnectStep && intent === "buy_now";
   const initialStep: Step = showSeoConnectStep
@@ -200,7 +241,7 @@ export function BuyNowDialog({
 
   const { data: teamDomains = [] } = trpc.domains.getByTeam.useQuery(
     { teamId: teamId ?? "" },
-    { enabled: !!teamId && !!requireDomainStep && open }
+    { enabled: !!teamId && showDomainPicker && open },
   );
 
   const manualDomainValid = manualDomain.trim() ? isValidDomain(manualDomain) : false;
@@ -208,8 +249,64 @@ export function BuyNowDialog({
     ? teamDomains.find((d) => d.id === selectedDomainId)
     : null;
   const effectiveDomain =
-    selectedDomain?.domainName ?? (manualDomainValid ? manualDomain.trim().toLowerCase() : null);
+    portfolioDomainNormalized ??
+    selectedDomain?.domainName ??
+    (manualDomainValid ? manualDomain.trim().toLowerCase() : null);
   const canProceedFromDomain = !!effectiveDomain;
+
+  type AgencyLinkType = "self" | "team" | "user";
+  const [agencyLinkType, setAgencyLinkType] = React.useState<AgencyLinkType>("self");
+  const [selectedAgencyTeamId, setSelectedAgencyTeamId] = React.useState("");
+  const [selectedAgencyUserId, setSelectedAgencyUserId] = React.useState("");
+
+  /** Agency portfolio checkout: list all client teams (requires agency role — server enforces). */
+  const { data: agencyTeams = [], isLoading: loadingAgencyTeams } = trpc.teams.getAll.useQuery(
+    undefined,
+    {
+      enabled:
+        open &&
+        agencyPortfolioCheckout &&
+        currentStep === "agency_billing" &&
+        agencyLinkType === "team",
+    },
+  );
+  const { data: agencyUsers = [], isLoading: loadingAgencyUsers } =
+    trpc.creativeBriefs.listUsersForApprover.useQuery(undefined, {
+      enabled: open && currentStep === "agency_billing" && agencyLinkType === "user",
+    });
+
+  const agencyTeamItems: ComboboxItem[] = React.useMemo(
+    () => agencyTeams.map((t) => ({ id: t.id, label: t.name })),
+    [agencyTeams],
+  );
+  const selectedAgencyTeamItem = agencyTeamItems.find((t) => t.id === selectedAgencyTeamId);
+  const agencyUserItems: ComboboxItem[] = React.useMemo(
+    () =>
+      agencyUsers.map((u) => ({
+        id: u.id,
+        label: u.name ? `${u.name} (${u.email})` : u.email,
+      })),
+    [agencyUsers],
+  );
+  const selectedAgencyUserItem = agencyUserItems.find((u) => u.id === selectedAgencyUserId);
+
+  const resolvedCheckoutTeamId = React.useMemo(() => {
+    if (showAgencyBillingStep) {
+      if (agencyLinkType === "team") return selectedAgencyTeamId || undefined;
+      return undefined;
+    }
+    return teamId ?? undefined;
+  }, [showAgencyBillingStep, agencyLinkType, selectedAgencyTeamId, teamId]);
+
+  const resolvedBilledForUserId = React.useMemo(() => {
+    if (showAgencyBillingStep && agencyLinkType === "user") return selectedAgencyUserId || undefined;
+    return undefined;
+  }, [showAgencyBillingStep, agencyLinkType, selectedAgencyUserId]);
+
+  const canProceedFromAgencyBilling =
+    agencyLinkType === "self" ||
+    (agencyLinkType === "team" && !!selectedAgencyTeamId) ||
+    (agencyLinkType === "user" && !!selectedAgencyUserId);
 
   // Hivelocity configuration step state
   const [hostname, setHostname] = React.useState("");
@@ -582,6 +679,9 @@ export function BuyNowDialog({
       immediateStepRef.current = null;
       immediatePaymentErrorRef.current = null;
       orderCreatedForCheckoutRef.current = null;
+      setAgencyLinkType("self");
+      setSelectedAgencyTeamId("");
+      setSelectedAgencyUserId("");
 
       // Calculate total and set payment amount
       const planPrice = plan.price || 0;
@@ -595,7 +695,7 @@ export function BuyNowDialog({
       const ref = `${planShort}${timestamp}`.substring(0, 12);
       setAccountReference(ref);
     }
-  }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep]);
+  }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep, agencyPortfolioCheckout]);
 
   // Helper function to get user-friendly error messages
   const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
@@ -722,7 +822,7 @@ export function BuyNowDialog({
 
   // When payment step reaches success and we have plan+team+domain, create order and send to processing (once per checkout)
   React.useEffect(() => {
-    if (currentStep !== "success" || !checkoutRequestId || !plan?.productId || !teamId) return;
+    if (currentStep !== "success" || !checkoutRequestId || !plan?.productId) return;
     if (plan.hivelocity) return;
     if (showDomainStep && !effectiveDomain) return;
     if (orderCreatedForCheckoutRef.current === checkoutRequestId) return;
@@ -731,7 +831,8 @@ export function BuyNowDialog({
     const priceStr = String(plan.price ?? 0);
     createOrderFromPayment.mutate({
       checkoutRequestId,
-      teamId,
+      ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
+      ...(resolvedBilledForUserId ? { billedForUserId: resolvedBilledForUserId } : {}),
       currency: plan.currency ?? "KES",
       items: [
         {
@@ -744,7 +845,16 @@ export function BuyNowDialog({
         },
       ],
     });
-  }, [currentStep, checkoutRequestId, plan, teamId, showDomainStep, effectiveDomain, createOrderFromPayment]);
+  }, [
+    currentStep,
+    checkoutRequestId,
+    plan,
+    resolvedCheckoutTeamId,
+    resolvedBilledForUserId,
+    showDomainStep,
+    effectiveDomain,
+    createOrderFromPayment,
+  ]);
 
   React.useEffect(() => {
     if (currentStep !== "success" || !checkoutRequestId || !plan?.hivelocity) return;
@@ -869,7 +979,7 @@ export function BuyNowDialog({
       amount: amount,
       accountReference: accountReference,
       transactionDesc,
-      ...(teamId && { teamId }),
+      ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
     });
   };
 
@@ -877,6 +987,8 @@ export function BuyNowDialog({
     if (currentStep === "seo_connect") {
       setCurrentStep("review");
     } else if (currentStep === "domain") {
+      setCurrentStep(showAgencyBillingStep ? "agency_billing" : "review");
+    } else if (currentStep === "agency_billing") {
       setCurrentStep("review");
     } else if (currentStep === "hivelocity_config") {
       setCurrentStep("review");
@@ -932,12 +1044,18 @@ export function BuyNowDialog({
       } else {
         setCurrentStep("review");
       }
-    } else if (currentStep === "review" && showSeoConnectStep) {
-      setCurrentStep("seo_connect");
-    } else if (currentStep === "review" && showDomainStep) {
+    } else if (currentStep === "review") {
+      if (showAgencyBillingStep) {
+        setCurrentStep("agency_billing");
+      } else if (showSeoConnectStep) {
+        setCurrentStep("seo_connect");
+      } else if (showDomainStep) {
+        setCurrentStep("domain");
+      } else if (isHivelocityPlan) {
+        setCurrentStep("hivelocity_config");
+      }
+    } else if (currentStep === "agency_billing") {
       setCurrentStep("domain");
-    } else if (currentStep === "review" && isHivelocityPlan) {
-      setCurrentStep("hivelocity_config");
     }
   };
 
@@ -997,6 +1115,51 @@ export function BuyNowDialog({
         );
 
       case "domain":
+        if (showDomainConfirmOnly) {
+          const rawPortfolio = portfolioDomainName?.trim() ?? "";
+          return (
+            <div className="space-y-4">
+              <div className="text-center py-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  Confirm domain for this purchase
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  You are purchasing this hosting plan for the domain you are viewing in your portfolio.
+                  Confirm to continue to review and payment.
+                </p>
+              </div>
+
+              <div className="rounded-lg border bg-muted/30 px-4 py-6 text-center">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Domain
+                </p>
+                <p className="mt-2 text-xl font-semibold font-mono text-foreground break-all">
+                  {rawPortfolio || "—"}
+                </p>
+              </div>
+
+              {!portfolioDomainNormalized && rawPortfolio ? (
+                <p className="text-sm text-destructive text-center">
+                  This value is not a valid domain name (expected format like example.com).
+                </p>
+              ) : null}
+
+              {buyDomainHref ? (
+                <p className="text-sm text-muted-foreground text-center">
+                  Need a different domain?{" "}
+                  <Link
+                    to={buyDomainHref}
+                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    Browse or buy domains
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </p>
+              ) : null}
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             <div className="text-center py-2">
@@ -1484,6 +1647,135 @@ export function BuyNowDialog({
           </div>
         );
 
+      case "agency_billing":
+        return (
+          <div className="space-y-6 py-2">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-foreground">Who is this hosting for?</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose whether this order is for your agency, a client team, or a specific user. This sets
+                how the subscription is linked after payment.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              <button
+                type="button"
+                className={cn(
+                  "relative flex cursor-pointer rounded-lg border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50",
+                  agencyLinkType === "self" ? "border-primary ring-1 ring-primary" : "border-border",
+                )}
+                onClick={() => setAgencyLinkType("self")}
+              >
+                <div className="flex w-full items-start gap-3">
+                  <div
+                    className={cn(
+                      "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                      agencyLinkType === "self" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">My agency account</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Bill as the agency; hosting is provisioned under your account context.
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={cn(
+                  "relative flex cursor-pointer rounded-lg border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50",
+                  agencyLinkType === "team" ? "border-primary ring-1 ring-primary" : "border-border",
+                )}
+                onClick={() => setAgencyLinkType("team")}
+              >
+                <div className="flex w-full items-start gap-3">
+                  <div
+                    className={cn(
+                      "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                      agencyLinkType === "team" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div>
+                      <p className="font-semibold text-foreground">A client team</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Link this hosting to a team you manage (same as domain subscription linking).
+                      </p>
+                    </div>
+                    {agencyLinkType === "team" ? (
+                      loadingAgencyTeams ? (
+                        <div className="flex h-10 items-center justify-center rounded-md border">
+                          <Spinner size={18} />
+                        </div>
+                      ) : (
+                        <ComboboxDropdown
+                          items={agencyTeamItems}
+                          selectedItem={selectedAgencyTeamItem}
+                          onSelect={(item) => setSelectedAgencyTeamId(item.id)}
+                          placeholder="Select a team..."
+                          searchPlaceholder="Search teams..."
+                          emptyResults="No teams found"
+                        />
+                      )
+                    ) : null}
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={cn(
+                  "relative flex cursor-pointer rounded-lg border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50",
+                  agencyLinkType === "user" ? "border-primary ring-1 ring-primary" : "border-border",
+                )}
+                onClick={() => setAgencyLinkType("user")}
+              >
+                <div className="flex w-full items-start gap-3">
+                  <div
+                    className={cn(
+                      "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                      agencyLinkType === "user" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div>
+                      <p className="font-semibold text-foreground">A specific user</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Assign the subscription to an individual user (end customer).
+                      </p>
+                    </div>
+                    {agencyLinkType === "user" ? (
+                      loadingAgencyUsers ? (
+                        <div className="flex h-10 items-center justify-center rounded-md border">
+                          <Spinner size={18} />
+                        </div>
+                      ) : (
+                        <ComboboxDropdown
+                          items={agencyUserItems}
+                          selectedItem={selectedAgencyUserItem}
+                          onSelect={(item) => setSelectedAgencyUserId(item.id)}
+                          placeholder="Select a user..."
+                          searchPlaceholder="Search users..."
+                          emptyResults="No users found"
+                        />
+                      )
+                    ) : null}
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        );
+
       case "review":
         return (
           <div className="space-y-4">
@@ -1939,7 +2231,12 @@ export function BuyNowDialog({
           <DialogDescription className="min-w-0 w-full max-w-full">
             {currentStep === "seo_connect" &&
               "How you will connect Google Search Console and GA4 to nPanel after subscribing"}
-            {currentStep === "domain" && "Choose or enter the domain to use with this plan"}
+            {currentStep === "domain" &&
+              (showDomainConfirmOnly
+                ? "Confirm the domain this hosting purchase applies to"
+                : "Choose or enter the domain to use with this plan")}
+            {currentStep === "agency_billing" &&
+              "Choose whether this order is for your agency, a client team, or a specific user"}
             {currentStep === "hivelocity_config" && "Select OS and required server details"}
             {currentStep === "review" &&
               (intent === "add_to_cart" ? "Review your configuration and add it to cart" : "Review your order and proceed to checkout")}
@@ -2005,6 +2302,26 @@ export function BuyNowDialog({
                 disabled={!canProceedFromDomain}
                 className="bg-primary text-primary-foreground"
               >
+                {showAgencyBillingStep ? "Next" : "Next: Review"}
+              </Button>
+            </>
+          )}
+          {currentStep === "agency_billing" && (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-primary">
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep("domain")}
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleNext}
+                disabled={!canProceedFromAgencyBilling}
+                className="bg-primary text-primary-foreground"
+              >
                 Next: Review
               </Button>
             </>
@@ -2036,17 +2353,22 @@ export function BuyNowDialog({
               >
                 Cancel
               </Button>
-              {showSeoConnectStep && (
+              {showAgencyBillingStep && (
+                <Button variant="outline" onClick={() => setCurrentStep("agency_billing")}>
+                  Back
+                </Button>
+              )}
+              {!showAgencyBillingStep && showSeoConnectStep && (
                 <Button variant="outline" onClick={() => setCurrentStep("seo_connect")}>
                   Back
                 </Button>
               )}
-              {showDomainStep && (
+              {!showAgencyBillingStep && !showSeoConnectStep && showDomainStep && (
                 <Button variant="outline" onClick={() => setCurrentStep("domain")}>
                   Back
                 </Button>
               )}
-              {!showDomainStep && isHivelocityPlan && (
+              {!showAgencyBillingStep && !showSeoConnectStep && !showDomainStep && isHivelocityPlan && (
                 <Button variant="outline" onClick={() => setCurrentStep("hivelocity_config")}>
                   Back
                 </Button>

@@ -61,6 +61,86 @@ async function ensureTeamMutationAccess(teamId: string, userId: string, role: st
 	}
 }
 
+/** Unwrap fast-xml-parser text nodes (e.g. `{ "#text": "123" }`) */
+function pleskXmlScalar(value: unknown): string | undefined {
+	if (value == null) return undefined;
+	if (typeof value === "string" || typeof value === "number") {
+		return String(value).trim();
+	}
+	if (typeof value === "object" && value !== null && "#text" in value) {
+		const t = (value as { "#text": unknown })["#text"];
+		if (t == null) return undefined;
+		return String(t).trim();
+	}
+	return undefined;
+}
+
+/**
+ * Plesk webspace/get <result> top-level <id> is the numeric subscription id used in hosting URLs.
+ * Never use <filter-id> for routing — when filtering by domain name, filter-id echoes the domain string.
+ */
+function extractPleskWebspaceNumericId(result: Record<string, unknown> | undefined): number | null {
+	if (!result) return null;
+	const s = pleskXmlScalar(result.id);
+	if (!s) return null;
+	const n = parseInt(s.replace(/\s/g, ""), 10);
+	if (Number.isNaN(n) || n <= 0) return null;
+	return n;
+}
+
+function isPleskWebspaceResultPresent(result: Record<string, unknown> | undefined): boolean {
+	if (!result) return false;
+	const st = pleskXmlScalar(result.status);
+	if (st?.toLowerCase() === "error") return false;
+	if (st?.toLowerCase() === "ok") return true;
+	return result.data != null;
+}
+
+async function resolvePleskIdFromDbByPrimaryDomain(domainLower: string): Promise<number | null> {
+	const rows = await db
+		.select({ pleskFilterId: hostingSubscription.pleskFilterId })
+		.from(hostingSubscription)
+		.where(sql`lower(${hostingSubscription.primaryDomain}) = ${domainLower}`)
+		.limit(10);
+	for (const row of rows) {
+		const n = parseInt(String(row.pleskFilterId ?? "").replace(/\s/g, ""), 10);
+		if (!Number.isNaN(n) && n > 0) return n;
+	}
+	return null;
+}
+
+/** Customer teams: only treat as "connected" if this Plesk webspace is linked to the team's client subscription row(s). */
+async function teamHasLinkedHostingForPleskId(teamId: string, pleskId: number): Promise<boolean> {
+	const idStr = String(pleskId);
+	const [direct, viaHosting] = await Promise.all([
+		db
+			.select({ id: niscClientSubscription.id })
+			.from(niscClientSubscription)
+			.where(
+				and(
+					eq(niscClientSubscription.teamId, teamId),
+					or(
+						eq(niscClientSubscription.pleskFilterId, idStr),
+						sql`(${niscClientSubscription.serviceRefs}->>'pleskSubscriptionId') = ${idStr}`,
+					),
+				),
+			)
+			.limit(1)
+			.then((r) => r[0] ?? null),
+		db
+			.select({ id: niscClientSubscription.id })
+			.from(niscClientSubscription)
+			.innerJoin(
+				hostingSubscription,
+				eq(niscClientSubscription.hostingSubscriptionId, hostingSubscription.id),
+			)
+			.where(and(eq(niscClientSubscription.teamId, teamId), eq(hostingSubscription.pleskFilterId, idStr)))
+			.limit(1)
+			.then((r) => r[0] ?? null),
+	]);
+	return !!(direct || viaHosting);
+}
+
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
@@ -103,6 +183,8 @@ const getByPleskFilterIdOutputSchema = z.object({
 
 const getHostingByDomainNameInputSchema = z.object({
 	domainName: z.string().min(1, "Domain name is required"),
+	/** Required for customer (non-agency) callers: scopes "connected hosting" to subscriptions linked to this team. */
+	teamId: z.string().optional(),
 });
 
 const getHostingByDomainNameOutputSchema = z.object({
@@ -726,7 +808,8 @@ export const hostingRouter = router({
 			};
 		}),
 
-	// Check if domain has hosting in Plesk by domain name (for agency domain portfolio details)
+	// Check if domain has hosting in Plesk by domain name (domain portfolio "Connected services").
+	// Returns a numeric Plesk webspace id for /hosting/:id — never use filter-id (can be the domain name).
 	getHostingByDomainName: protectedProcedure
 		.input(getHostingByDomainNameInputSchema)
 		.output(getHostingByDomainNameOutputSchema)
@@ -737,11 +820,16 @@ export const hostingRouter = router({
 					message: "You must be logged in",
 				});
 			}
-			if (!isAgencyUserRole(ctx.session.user.role)) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "Only agency users can access this endpoint",
-				});
+			const role = ctx.session.user.role;
+			const isAgency = isAgencyUserRole(role);
+			if (!isAgency) {
+				if (!input.teamId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "teamId is required to check hosting for this domain",
+					});
+				}
+				await ensureTeamReadAccess(input.teamId, ctx.session.user.id, role);
 			}
 			if (!process.env.PLESK_XML_ENDPOINT) {
 				return { hasHosting: false, subscriptionId: null };
@@ -775,10 +863,25 @@ export const hostingRouter = router({
 				const parsed = parser.parse(xml);
 				const rawResult = parsed?.packet?.webspace?.get?.result;
 				if (!rawResult) return { hasHosting: false, subscriptionId: null };
-				const result = Array.isArray(rawResult) ? rawResult[0] : rawResult;
-				const id = result?.id ?? result?.["filter-id"];
-				if (id == null) return { hasHosting: false, subscriptionId: null };
-				return { hasHosting: true, subscriptionId: String(id) };
+				const result = (Array.isArray(rawResult) ? rawResult[0] : rawResult) as Record<string, unknown>;
+				const st = pleskXmlScalar(result.status);
+				if (st?.toLowerCase() === "error") {
+					return { hasHosting: false, subscriptionId: null };
+				}
+				let pleskNum = extractPleskWebspaceNumericId(result);
+				if (!pleskNum && isPleskWebspaceResultPresent(result)) {
+					pleskNum = await resolvePleskIdFromDbByPrimaryDomain(input.domainName.trim().toLowerCase());
+				}
+				if (!pleskNum) {
+					return { hasHosting: false, subscriptionId: null };
+				}
+				if (!isAgency && input.teamId) {
+					const linked = await teamHasLinkedHostingForPleskId(input.teamId, pleskNum);
+					if (!linked) {
+						return { hasHosting: false, subscriptionId: null };
+					}
+				}
+				return { hasHosting: true, subscriptionId: String(pleskNum) };
 			} catch {
 				return { hasHosting: false, subscriptionId: null };
 			}

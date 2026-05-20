@@ -11,8 +11,19 @@ function transformPleskDnsToComponent(
   pleskResponse: z.infer<typeof pleskDnsResponseSchema>
 ): z.infer<typeof dnsRecordSchema>[] {
   const records = pleskResponse.parsed.packet.dns["get_rec"].result;
-  
-  return records.map((record) => ({
+
+  // Empty zone: Plesk may return `{ status: "ok" }` with no `data` — do not show Unknown Host/Value rows.
+  return records
+    .filter((record) => {
+      if (!record.data) return false;
+      const d = record.data;
+      const hasType = d.type != null && String(d.type).trim() !== "";
+      const hasHost = d.host != null && String(d.host).trim() !== "";
+      const hasValue = d.value != null && String(d.value).trim() !== "";
+      const hasId = record.id != null && record.id > 0;
+      return hasType || hasHost || hasValue || hasId;
+    })
+    .map((record) => ({
     id: record.id ?? 0,
     "site-id": record.data?.["site-id"] ?? 0,
     type: record.data?.type ?? "A",

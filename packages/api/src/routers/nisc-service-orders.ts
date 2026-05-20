@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
 
 import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
 import { userProfile } from "@npanel/db/schema/auth-extras";
 import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
 import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
@@ -35,6 +36,12 @@ function generateNiscOrderNumber(): string {
 
 function isAgencyUserRole(role: string | null | undefined): boolean {
 	return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+}
+
+/** Match app-side agency detection for checkout assignee (e.g. domains portfolio buy now). */
+function canAssignBilledForUserId(role: string | null | undefined): boolean {
+	if (isAgencyUserRole(role)) return true;
+	return (role ?? "").toUpperCase().includes("AGENCY");
 }
 
 function isAgencySuperAdminRole(role: string | null | undefined): boolean {
@@ -764,12 +771,38 @@ export const niscServiceOrdersRouter = router({
 			const total = String(totalNum);
 			const currency = input.currency || "KES";
 
+			let orderUserId = userId;
+			const billedFor = input.billedForUserId?.trim();
+			if (billedFor) {
+				if (input.teamId?.trim()) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Provide either teamId or billedForUserId, not both.",
+					});
+				}
+				const role = session.user.role as string | undefined;
+				if (!canAssignBilledForUserId(role)) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only agency users can assign an order to another user.",
+					});
+				}
+				const targetRows = await db.select({ id: user.id }).from(user).where(eq(user.id, billedFor)).limit(1);
+				if (!targetRows[0]) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Selected user was not found.",
+					});
+				}
+				orderUserId = billedFor;
+			}
+
 			const payOrderIns = await db
 				.insert(niscOrder)
 				.values({
 					id: randomUUID(),
 					orderNumber,
-					userId: userId,
+					userId: orderUserId,
 					teamId: input.teamId ?? null,
 					createdBy: session.user.id,
 					status: "PENDING",

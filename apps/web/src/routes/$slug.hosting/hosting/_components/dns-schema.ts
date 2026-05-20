@@ -1,5 +1,26 @@
 import { z } from "zod";
 
+// Plesk returns an array, a single result object, or omits records when empty (then wrapped as one stub).
+function normalizeDnsGetRecResult(val: unknown): unknown[] {
+  if (val == null) return [];
+  if (Array.isArray(val)) return val;
+  return [val];
+}
+
+const pleskDnsResultItemSchema = z.object({
+  status: z.string().optional(),
+  id: z.number().optional(),
+  data: z
+    .object({
+      "site-id": z.number().optional(),
+      type: z.string().optional(),
+      host: z.string().optional(),
+      value: z.union([z.string(), z.number()]).optional(),
+      opt: z.union([z.string(), z.number()]).optional(),
+    })
+    .optional(),
+});
+
 // Schema for the raw Plesk DNS API response
 export const pleskDnsResponseSchema = z.object({
   raw: z.string(),
@@ -7,17 +28,7 @@ export const pleskDnsResponseSchema = z.object({
     packet: z.object({
       dns: z.object({
         "get_rec": z.object({
-          result: z.array(z.object({
-            status: z.string().optional(),
-            id: z.number().optional(),
-            data: z.object({
-              "site-id": z.number().optional(),
-              type: z.string().optional(),
-              host: z.string().optional(),
-              value: z.union([z.string(), z.number()]).optional(),
-              opt: z.union([z.string(), z.number()]).optional(),
-            }).optional(),
-          })),
+          result: z.preprocess(normalizeDnsGetRecResult, z.array(pleskDnsResultItemSchema)),
         }),
       }),
     }),

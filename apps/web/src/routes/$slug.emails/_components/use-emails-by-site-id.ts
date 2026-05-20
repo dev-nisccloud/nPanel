@@ -11,16 +11,13 @@ function transformPleskEmailsToComponent(
   pleskResponse: z.infer<typeof pleskEmailsResponseSchema>
 ): z.infer<typeof emailAccountSchema>[] {
   const results = pleskResponse.parsed.packet.mail["get_info"].result;
-  
-  return results.map((result) => {
-    const mailname = result.mailname;
-    if (!mailname) {
-      return {
-        id: 0,
-        name: "Unknown Email",
-        status: result.status ?? "unknown",
-      };
-    }
+
+  // Empty mailbox list: Plesk returns `{ status: "ok" }` only; schema wraps it as one
+  // result with no mailname — do not synthesize a fake "Unknown Email" row.
+  return results
+    .filter((result) => result.mailname != null)
+    .map((result) => {
+    const mailname = result.mailname!;
 
     // Handle forwarding addresses (can be string or array)
     const forwardingAddresses = mailname.forwarding?.address;

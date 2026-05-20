@@ -384,6 +384,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     onHostingClick={handleHostingClick}
                     isAgency={isAgency}
                     teamSlug={teamSlug}
+                    customerTeamId={subscriptionById?.teamId ?? null}
                   />
 
                   {/* Tools Section */}
@@ -443,11 +444,21 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         open={hostingDialogOpen}
         onOpenChange={setHostingDialogOpen}
         planType="web"
+        domainName={domain.domain}
+        teamId={!isAgency ? subscriptionById?.teamId ?? null : null}
+        buyDomainHref={
+          isAgency ? "/agency/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
+        }
       />
       <HostingPlanDialog
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}
         planType="email"
+        domainName={domain.domain}
+        teamId={!isAgency ? subscriptionById?.teamId ?? null : null}
+        buyDomainHref={
+          isAgency ? "/agency/domains" : teamSlug ? `/${teamSlug}/domains` : undefined
+        }
       />
       <CreateSubscriptionFromDomainDialog
         open={createSubscriptionDialogOpen}
@@ -464,16 +475,21 @@ function ConnectedServicesSection({
   onHostingClick,
   isAgency,
   teamSlug,
+  customerTeamId,
 }: {
   domainName: string;
   onHostingClick: (type: "web" | "email") => void;
   isAgency: boolean;
   teamSlug: string;
+  /** Required for customer view: server scopes Plesk match to subscriptions linked to this team */
+  customerTeamId: string | null;
 }) {
   const navigate = useNavigate();
   const { data, isLoading } = trpc.hosting.getHostingByDomainName.useQuery(
-    { domainName },
-    { enabled: !!domainName }
+    isAgency
+      ? { domainName }
+      : { domainName, teamId: customerTeamId ?? undefined },
+    { enabled: !!domainName && (isAgency || !!customerTeamId) }
   );
 
   const hasHosting = data?.hasHosting ?? false;

@@ -5,12 +5,12 @@ import { pleskDatabasesResponseSchema, databaseSchema } from "./databases-schema
 import { toast } from "@/components/ui/sonner";
 
 /**
- * True if the item has meaningful database data (avoid treating empty {} as a DB).
+ * True if the item is a real DB row (skip Plesk `{ status: "ok" }` stubs and id: 0 placeholders).
  */
-function isNonEmptyDbItem(
-  db: { id?: number; name?: string }
-): boolean {
-  return db.id != null || (db.name != null && String(db.name).trim() !== "");
+function isNonEmptyDbItem(db: { id?: number; name?: string; status?: string }): boolean {
+  if (db.name != null && String(db.name).trim() !== "") return true;
+  if (db.id != null && Number(db.id) > 0) return true;
+  return false;
 }
 
 /**

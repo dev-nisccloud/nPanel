@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router";
 import { z } from "zod";
 import { trpc } from "@/utils/trpc";
 import { pleskSubscriptionByIdResponseSchema, hostingDetailSchema } from "./hosting-detail-schema";
@@ -82,6 +83,21 @@ function transformPleskSubscriptionToDetail(
  * This replaces the previous pattern of 2 sequential queries with a single batched query
  */
 export function useHostingDetailBatched(subscriptionId: string) {
+  const { pathname } = useLocation();
+  const isAgencyHostingRoute = pathname.startsWith("/agency/");
+  const customerTeamSlug = !isAgencyHostingRoute ? (pathname.split("/")[1] ?? "") : "";
+
+  const {
+    data: teamRow,
+    isLoading: teamSlugLoading,
+    isError: teamSlugError,
+  } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug: customerTeamSlug },
+    { enabled: !isAgencyHostingRoute && !!customerTeamSlug },
+  );
+
+  const customerTeamId = !isAgencyHostingRoute ? teamRow?.id : undefined;
+
   const {
     data: batchedData,
     isLoading,
@@ -90,9 +106,12 @@ export function useHostingDetailBatched(subscriptionId: string) {
     refetch,
     isRefetching,
   } = trpc.hosting.getDetailWithSubscription.useQuery(
-    { subscriptionId },
+    { subscriptionId, teamId: customerTeamId },
     {
-      enabled: !!subscriptionId,
+      enabled:
+        !!subscriptionId &&
+        (isAgencyHostingRoute ||
+          (!teamSlugLoading && !teamSlugError && !!customerTeamId)),
       staleTime: 10 * 60 * 1000, // 10 minutes
       gcTime: 30 * 60 * 1000, // 30 minutes
       retry: (failureCount, error: any) => {
@@ -166,7 +185,7 @@ export function useHostingDetailBatched(subscriptionId: string) {
   return {
     data: transformedData,
     subscription: subscriptionData,
-    isLoading: isLoading || isRefetching,
+    isLoading: isLoading || isRefetching || (!isAgencyHostingRoute && teamSlugLoading),
     isError: isError || !!transformationError,
     error: error || transformationError,
     refetch,
