@@ -93,6 +93,53 @@ function buildRawMimeEmail(params: {
   return Buffer.from(lines.join("\r\n"), "utf8");
 }
 
+function buildRawMimeWithPdf(params: {
+  from: string;
+  to: string;
+  subject: string;
+  replyTo?: string | null;
+  cc?: string[];
+  bcc?: string[];
+  html: string;
+  attachmentFilename: string;
+  attachment: Buffer;
+}): Buffer {
+  const boundaryMixed = `npanel-mixed-${crypto.randomUUID()}`;
+  const boundaryAlt = `npanel-alt-${crypto.randomUUID()}`;
+  const lines: string[] = [];
+  lines.push(`From: ${params.from}`);
+  lines.push(`To: ${stripHeaderUnsafe(params.to)}`);
+  if (params.cc?.length) lines.push(`Cc: ${params.cc.map(stripHeaderUnsafe).join(", ")}`);
+  lines.push(`Subject: ${toRfc2047Utf8(stripHeaderUnsafe(params.subject))}`);
+  if (params.replyTo) lines.push(`Reply-To: ${stripHeaderUnsafe(params.replyTo)}`);
+  lines.push("MIME-Version: 1.0");
+  lines.push(`Content-Type: multipart/mixed; boundary="${boundaryMixed}"`);
+  lines.push("");
+
+  lines.push(`--${boundaryMixed}`);
+  lines.push(`Content-Type: multipart/alternative; boundary="${boundaryAlt}"`);
+  lines.push("");
+  lines.push(`--${boundaryAlt}`);
+  lines.push('Content-Type: text/html; charset="UTF-8"');
+  lines.push("Content-Transfer-Encoding: 7bit");
+  lines.push("");
+  lines.push(params.html);
+  lines.push("");
+  lines.push(`--${boundaryAlt}--`);
+  lines.push("");
+
+  lines.push(`--${boundaryMixed}`);
+  lines.push(`Content-Type: application/pdf; name="${params.attachmentFilename}"`);
+  lines.push("Content-Transfer-Encoding: base64");
+  lines.push(`Content-Disposition: attachment; filename="${params.attachmentFilename}"`);
+  lines.push("");
+  lines.push(params.attachment.toString("base64"));
+  lines.push("");
+  lines.push(`--${boundaryMixed}--`);
+  lines.push("");
+  return Buffer.from(lines.join("\r\n"), "utf8");
+}
+
 function getSenderConfig() {
   const fromDomainRaw = process.env.NISC_TX_EMAIL_DOMAIN?.trim();
   const fromDomain =
@@ -182,6 +229,87 @@ export async function sendEmail({
 
       const backoffDelay = Math.pow(2, attempt) * 1000;
       console.log(`Error sending email via SES, retrying in ${backoffDelay}ms (attempt ${attempt + 1}/${maxRetries})`);
+      await delay(backoffDelay);
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Send HTML email with a single PDF attachment via AWS SES raw MIME.
+ */
+export async function sendEmailWithPdf({
+  to,
+  subject,
+  html,
+  attachmentFilename,
+  attachment,
+  cc,
+  bcc,
+  maxRetries = 3,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  attachmentFilename: string;
+  attachment: Buffer;
+  cc?: string[];
+  bcc?: string[];
+  maxRetries?: number;
+}) {
+  if (!html.trim()) {
+    throw new Error("html must be provided");
+  }
+
+  const { fromEmail, fromName, replyTo } = getSenderConfig();
+  const configSet = getSesConfigurationSetName();
+
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const raw = buildRawMimeWithPdf({
+        from: buildFromHeader(fromEmail, fromName),
+        to,
+        subject,
+        replyTo,
+        cc,
+        bcc,
+        html,
+        attachmentFilename,
+        attachment,
+      });
+
+      const ses = getSesClient();
+      const destinations = [to, ...(cc ?? []), ...(bcc ?? [])];
+
+      const res = await ses.sendRawEmail({
+        RawMessage: { Data: raw },
+        Destinations: destinations,
+        ...(configSet ? { ConfigurationSetName: configSet } : {}),
+      });
+
+      console.log("Email with PDF sent successfully via SES:", res.MessageId);
+      return { id: res.MessageId };
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+
+      const isPermanent =
+        msg.includes("MessageRejected") ||
+        msg.includes("InvalidParameterValue") ||
+        msg.includes("InvalidParameterException");
+
+      if (isPermanent || attempt === maxRetries - 1) {
+        console.error("Email with PDF send failed (SES):", err);
+        throw err;
+      }
+
+      const backoffDelay = Math.pow(2, attempt) * 1000;
+      console.log(
+        `Error sending email with PDF via SES, retrying in ${backoffDelay}ms (attempt ${attempt + 1}/${maxRetries})`,
+      );
       await delay(backoffDelay);
     }
   }

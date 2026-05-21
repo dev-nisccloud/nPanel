@@ -1,6 +1,6 @@
 /**
- * Auto-create invoice for a completed Nisc order when team has complete billing settings.
- * Used by the process-nisc-order worker.
+ * Auto-create invoice for a Nisc order before provisioning (team billing or user profile).
+ * Used by the process-nisc-order worker via nisc-order-invoice-delivery.
  */
 import * as crypto from "crypto";
 import { eq, sql } from "@npanel/db";

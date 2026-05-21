@@ -8,13 +8,9 @@ import {
 	renderOrderConfirmationEmail,
 	renderNiscOrderConfirmationEmail,
 	renderNiscOrderFailedEmail,
-	renderInvoiceSuccessEmail,
 } from "@npanel/api/lib/email-templates";
 import { sendEmail, sendEmailBatch } from "@npanel/api/lib/email";
-import {
-	isTeamBillingComplete,
-	createInvoiceForNiscOrder,
-} from "@npanel/api/lib/nisc-order-auto-invoice";
+import { runPreProvisioningInvoiceForOrder } from "@npanel/api/lib/nisc-order-invoice-delivery";
 import { verifySignature } from "../../lib/qstash-verify";
 import { getNormalizedPublicAppUrl, joinPublicAppPath } from "@npanel/api/lib/public-app-url";
 
@@ -85,6 +81,8 @@ export async function handleProcessNiscOrder(c: Context) {
 	}
 
 	try {
+		await runPreProvisioningInvoiceForOrder(niscOrderId);
+
 		await niscLog("worker_processor_start", { niscOrderId });
 		const result = await processNiscOrder(niscOrderId);
 		await niscLog("worker_processor_done", {
@@ -173,71 +171,6 @@ export async function handleProcessNiscOrder(c: Context) {
 				}
 			}
 
-			if (order.teamId && order.createdBy) {
-				if (!isTeamBillingComplete(billingSettings)) {
-					await niscLog("invoice_not_created", {
-						niscOrderId,
-						reason: "team_billing_settings_incomplete_or_missing",
-					});
-				} else {
-					try {
-						const invoiceResult = await createInvoiceForNiscOrder(
-							db as any,
-							orderAfter as any,
-							billingSettings!,
-							order.createdBy,
-						);
-						if (invoiceResult) {
-							const toEmail = billingSettings!.billingEmail.trim();
-							if (toEmail) {
-								const initiator = await db.query.user.findFirst({
-									where: eq(userTable.id, order.createdBy),
-									columns: { email: true },
-								});
-								const ccList: string[] = [];
-								if (initiator?.email && typeof initiator.email === "string" && initiator.email.trim()) {
-									const initiatorEmail = initiator.email.trim();
-									if (initiatorEmail.toLowerCase() !== toEmail.toLowerCase()) {
-										ccList.push(initiatorEmail);
-									}
-								}
-								const invoiceDashboardUrl =
-									baseUrl && order.team?.slug
-										? joinPublicAppPath(`/${order.team.slug}/invoices`)
-										: undefined;
-								const invoiceSuccessHtml = await renderInvoiceSuccessEmail({
-									customerName: billingSettings!.legalName ?? undefined,
-									invoiceNumber: invoiceResult.invoiceNumber,
-									orderNumber: orderAfter.orderNumber,
-									totalAmount: orderAfter.total,
-									currency: orderAfter.currency,
-									supportEmail: "accounts@nisccloud.com",
-									supportPhone: "+254 748 777 666",
-									invoiceLink: invoiceDashboardUrl,
-								});
-								await sendEmail({
-									to: toEmail,
-									subject: `Your invoice ${invoiceResult.invoiceNumber} from Nisc Cloud Limited`,
-									html: invoiceSuccessHtml,
-									...(ccList.length > 0 && { cc: ccList }),
-								});
-								await niscLog("worker_invoice_created_and_sent", {
-									niscOrderId,
-									invoiceId: invoiceResult.invoiceId,
-									invoiceNumber: invoiceResult.invoiceNumber,
-									ccCount: ccList.length,
-								});
-							}
-						}
-					} catch (invoiceErr) {
-						const errMsg = invoiceErr instanceof Error ? invoiceErr.message : String(invoiceErr);
-						await niscLog("worker_invoice_creation_failed", {
-							niscOrderId,
-							error: errMsg,
-						});
-					}
-				}
-			}
 		}
 
 		const superAdmins = await db.query.user.findMany({
