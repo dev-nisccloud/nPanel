@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Info, ArrowLeftRight, XIcon } from "lucide-react";
+import { addYears, format } from "date-fns";
+import { ArrowLeftRight, Info, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetClose,
@@ -13,6 +15,7 @@ import {
   SheetTitle,
 } from "@/components/npanel-ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DomainRenewalInfoSection } from "@/components/domain-renewal-info-section";
 import { TransferForm } from "./transfer-form";
 
 export type TransferProvider = "kenic" | "openprovider";
@@ -20,13 +23,13 @@ export type TransferProvider = "kenic" | "openprovider";
 interface TransferReadyCardProps {
   domain: string;
   extension: string;
-  /** Customer-facing price (after margin) ? shown in UI */
+  /** Customer-facing price (after margin) — shown in UI */
   price: number;
   currency: string;
-  /** Provider price (no margin) ? for DB when initiating transfer */
+  /** Provider price (no margin) — for DB when initiating transfer */
   providerPriceAmount?: number | null;
   providerPriceCurrency?: string | null;
-  /** Customer price (after margin) ? for DB when initiating transfer */
+  /** Customer price (after margin) — for DB when initiating transfer */
   customerPriceAmount?: number | null;
   customerPriceCurrency?: string | null;
   provider: TransferProvider;
@@ -37,28 +40,16 @@ interface TransferReadyCardProps {
   initialExtension: string;
   /** CTA button label; default "Purchase". Use "Continue" for KENIC pending_check. */
   ctaLabel?: string;
-  /** Badge label; default "Ready for transfer". Use "We'll check availability" for KENIC pending_check. */
+  /** Badge label; default "Ready for transfer". Empty string hides the badge. */
   statusLabel?: string;
   /** For customer/team checkout (createFromPayment teamId) */
   teamId?: string | null;
 }
 
-// Same formatPrice as domain search/registration (Intl.NumberFormat + currency symbols)
 function formatPrice(price?: number, currency?: string): string {
-  if (price == null) return "N/A";
-  const currencySymbols: Record<string, string> = {
-    USD: "$",
-    KES: "KSh",
-    EUR: "€",
-    GBP: " ?",
-    CAD: "C$",
-    AUD: "A$",
-    JPY: " ?",
-    INR: "₹",
-    ZAR: "R",
-    NGN: "₦",
-  };
-  const symbol = currencySymbols[currency ?? "USD"] ?? currency ?? "$";
+  if (price == null || !Number.isFinite(price)) return "N/A";
+  const symbol =
+    (currency || "KES") === "KES" ? "KSh" : currency === "USD" ? "$" : currency || "KSh";
   const formattedNumber = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -84,47 +75,96 @@ export function TransferReadyCard({
   statusLabel = "Ready for transfer",
   teamId,
 }: TransferReadyCardProps) {
-  const renewalYear = new Date().getFullYear() + 1;
-  const renewalDate = `${renewalYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`;
+  const isPendingCheck = ctaLabel === "Continue";
+  const showStatusBadge = statusLabel !== "";
+
+  /** After transfer (+1 year included), approximate expiry date */
+  const expiryAfterTransferLabel = React.useMemo(
+    () => format(addYears(new Date(), 1), "MMMM d, yyyy"),
+    [],
+  );
+
+  const handlePurchaseClick = () => {
+    onPurchaseSheetOpenChange(true);
+  };
 
   return (
     <>
-      <Card className="overflow-hidden rounded-lg border shadow-sm">
-        <CardContent className="p-0">
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4">
-            <div className="flex flex-col gap-1">
-              {statusLabel ? (
-                <span className="inline-flex w-fit rounded-full bg-green-500/15 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
-                  {statusLabel}
-                </span>
-              ) : null}
-              <span className="text-lg font-bold text-foreground">{domain}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-bold text-foreground">
-                {formatPrice(price, currency)}
-              </span>
-              <Button
-                size="sm"
-                onClick={() => onPurchaseSheetOpenChange(true)}
-                className="font-semibold"
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1 space-y-2">
+            {showStatusBadge ? (
+              <Badge
+                variant="outline"
+                className="border-primary/25 bg-primary/5 text-primary"
               >
-                {ctaLabel}
-              </Button>
+                {statusLabel}
+              </Badge>
+            ) : isPendingCheck ? (
+              <Badge variant="secondary">We&apos;ll check availability</Badge>
+            ) : null}
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                <ArrowLeftRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold tracking-tight text-foreground">
+                  {domain}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Transfer to Nisc Cloud · includes 1 year renewal
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-start gap-3 rounded-b-lg bg-muted/50 px-4 py-3">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground/10 text-foreground">
-              <Info className="h-3.5 w-3.5" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              The price includes <strong className="text-foreground">domain renewal</strong>. After the successful
-              transfer, your domain&apos;s expiration date will be{" "}
-              <strong className="text-foreground">{renewalDate}</strong>.
+
+          <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end lg:flex-row lg:items-center">
+            <p className="text-lg font-semibold tabular-nums text-foreground">
+              {formatPrice(price, currency)}
             </p>
+            <Button size="sm" className="min-w-[6.5rem] font-semibold" onClick={handlePurchaseClick}>
+              {ctaLabel}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        <Separator />
+
+        <div className="flex gap-3 bg-muted/40 px-4 py-3">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <p className="text-sm text-muted-foreground">
+            {provider === "openprovider" ? (
+              <>
+                The transfer price includes{" "}
+                <span className="font-medium text-foreground">one year of renewal</span>. After a
+                successful transfer, your domain is expected to expire on{" "}
+                <span className="font-medium text-foreground">{expiryAfterTransferLabel}</span>.
+              </>
+            ) : (
+              <>
+                The transfer price includes{" "}
+                <span className="font-medium text-foreground">one year of registration</span>.
+                Complete checkout to start your transfer—we&apos;ll confirm availability and pricing
+                for Kenyan domains shortly.
+              </>
+            )}
+          </p>
+        </div>
+
+        {provider === "openprovider" ? (
+          <>
+            <Separator />
+            <div className="px-4 py-3">
+              <DomainRenewalInfoSection
+                domain={domain}
+                yearsFromNow={1}
+                hideForKenic
+                className="rounded-lg border border-dashed bg-muted/40 px-4 py-3"
+              />
+            </div>
+          </>
+        ) : null}
+      </div>
 
       <Sheet open={purchaseSheetOpen} onOpenChange={onPurchaseSheetOpenChange}>
         <SheetContent className="flex flex-col overflow-hidden sm:max-w-lg">
@@ -144,7 +184,7 @@ export function TransferReadyCard({
               <Button
                 size="icon"
                 variant="ghost"
-                className="size-auto p-0 m-0 hover:bg-transparent"
+                className="m-0 size-auto p-0 hover:bg-transparent"
                 aria-label="Close"
               >
                 <XIcon className="size-5" />
@@ -152,13 +192,15 @@ export function TransferReadyCard({
             </SheetClose>
           </SheetHeader>
 
-          <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
-            <ScrollArea className="flex-1 min-h-0 pr-4">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <ScrollArea className="min-h-0 flex-1 pr-4">
               <div className="px-1 pb-6">
                 <TransferForm
                   fullDomain={domain}
                   initialDomain={initialDomain}
-                  initialExtension={initialExtension.startsWith(".") ? initialExtension.slice(1) : initialExtension}
+                  initialExtension={
+                    initialExtension.startsWith(".") ? initialExtension.slice(1) : initialExtension
+                  }
                   price={price}
                   currency={currency}
                   providerPriceAmount={providerPriceAmount}

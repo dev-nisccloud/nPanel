@@ -71,6 +71,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
   const [pricedResult, setPricedResult] = React.useState<DomainSearchResult | null>(null);
   const [createPricedResult, setCreatePricedResult] = React.useState<DomainSearchResult | null>(null);
   const [purchaseSheetOpen, setPurchaseSheetOpen] = React.useState(false);
+  const [isPricingProcessing, setIsPricingProcessing] = React.useState(false);
 
   const currencyContext = useCurrency();
   const pricingHook = useDomainPricing(currencyContext);
@@ -183,6 +184,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
         setPricedResult(null);
       }
       if (createPricedResult !== null) setCreatePricedResult(null);
+      setIsPricingProcessing(false);
       return;
     }
 
@@ -223,6 +225,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
       : undefined;
 
     const batch = hasCreatePrice ? [rawResult, createRawResult!] : [rawResult];
+    setIsPricingProcessing(true);
     pricingHook
       .calculatePricesBatch(batch)
       .then((priced) => {
@@ -232,6 +235,9 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
       .catch(() => {
         setPricedResult(null);
         setCreatePricedResult(null);
+      })
+      .finally(() => {
+        setIsPricingProcessing(false);
       });
   }, [
     status,
@@ -264,34 +270,22 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
     typeof transferPrice.price === "number" &&
     !Number.isNaN(transferPrice.price);
 
-  // Prefer calculated (margin + conversion); fallback to raw API price so Kenic/other never shows blank
+  /** Customer-facing transfer price — only after TLD margin + currency conversion (same as agency domains). */
   const displayPrice =
-    calculated != null
-      ? (calculated.convertedPrice ?? calculated.finalPrice)
-      : hasNumericPrice && transferPrice
-        ? transferPrice.price
-        : null;
+    calculated != null ? (calculated.convertedPrice ?? calculated.finalPrice) : null;
 
   const displayCurrency =
-    calculated != null
-      ? (calculated.displayCurrency ?? calculated.currency)
-      : hasNumericPrice && transferPrice?.currency
-        ? transferPrice.currency
-        : null;
+    calculated != null ? (calculated.displayCurrency ?? calculated.currency) : null;
 
   const createDisplayPrice =
     calculatedCreate != null
       ? (calculatedCreate.convertedPrice ?? calculatedCreate.finalPrice)
-      : transferPrice?.createPrice != null && (transferPrice?.createCurrency ?? "").length > 0
-        ? transferPrice.createPrice
-        : null;
+      : null;
 
   const createDisplayCurrency =
     calculatedCreate != null
       ? (calculatedCreate.displayCurrency ?? calculatedCreate.currency)
-      : (transferPrice?.createCurrency ?? "").length > 0
-        ? transferPrice!.createCurrency!
-        : null;
+      : null;
 
   const inputBorderClass =
     status === "error"
@@ -305,23 +299,25 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
     transferPrice?.createPrice != null &&
     (transferPrice?.createCurrency ?? "").length > 0;
 
-  const pricingReady =
-    !hasNumericPrice ||
-    (pricedResult != null && (!hasCreatePriceForPending || createPricedResult != null));
+  const transferPricingReady = !hasNumericPrice || calculated != null;
+  const createPricingReady =
+    !hasCreatePriceForPending || calculatedCreate != null;
+  const pricingReady = transferPricingReady && createPricingReady;
 
   const showReadyCard =
     status === "valid" &&
     parsedDomain != null &&
     provider != null &&
     pricingReady &&
+    !isPricingProcessing &&
+    !pricingHook.isLoadingTldSettings &&
     (hasNumericPrice ? displayPrice != null : true);
 
   const showPricingLoading =
     status === "valid" &&
     parsedDomain != null &&
     hasNumericPrice &&
-    !pricingReady &&
-    !pricingHook.isLoadingTldSettings;
+    (pricingHook.isLoadingTldSettings || isPricingProcessing || !pricingReady);
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
@@ -421,9 +417,14 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
             <Lock className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-500" />
             <div>
               <h3 className="font-medium text-foreground">Domain is locked</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{message}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                This domain is locked at the current registrar. Unlock it in your registrar&apos;s
+                control panel, then try the transfer again.
+              </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                After unlocking at your current registrar, return here and check the domain again to continue with the transfer.
+                After unlocking at your current registrar, wait about 15 seconds for your changes
+                to reflect, then return here and check the domain again to continue with the
+                transfer.
               </p>
             </div>
           </div>
@@ -446,42 +447,10 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
         {showPricingLoading && (
           <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Spinner variant="ellipsis" size={14} className="shrink-0 text-muted-foreground" />
-            Getting price?
+            Applying pricing and currency conversion…
           </p>
         )}
 
-        {showReadyCard && status === "valid" && parsedDomain && provider && transferStatus !== "pending_check" && (
-          <p className="mt-2 rounded-md bg-muted/80 px-3 py-2 text-sm text-muted-foreground">
-            {hasNumericPrice && displayPrice != null && displayCurrency != null ? (
-              <>
-                Transfer your .{parsedDomain.extension} for {formatPrice(displayPrice, displayCurrency)}. Price
-                includes one year&apos;s renewal.
-              </>
-            ) : (
-              <>Contact support for .{parsedDomain.extension} transfer pricing.</>
-            )}
-          </p>
-        )}
-
-        {showReadyCard && status === "valid" && parsedDomain && provider && transferStatus === "pending_check" && (
-          <p className="mt-2 rounded-md bg-muted/80 px-3 py-2 text-sm text-muted-foreground">
-            We will check the availability of your domain and get back to you in a few minutes.
-            {hasNumericPrice && displayPrice != null && displayCurrency != null && (
-              <>
-                {" "}
-                If this domain is available for <strong>transfer</strong>, it will cost you{" "}
-                {formatPrice(displayPrice, displayCurrency)}.
-              </>
-            )}
-            {createDisplayPrice != null && createDisplayCurrency != null && (
-              <>
-                {" "}
-                If available for <strong>registration</strong>, it will cost you{" "}
-                {formatPrice(createDisplayPrice, createDisplayCurrency)}.
-              </>
-            )}
-          </p>
-        )}
       </div>
 
       {showReadyCard && parsedDomain && provider && (
@@ -490,11 +459,11 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
             domain={parsedDomain.full}
             extension={parsedDomain.extension}
             price={displayPrice ?? 0}
-            currency={displayCurrency ?? transferPrice?.currency ?? "USD"}
+            currency={displayCurrency ?? "KES"}
             providerPriceAmount={transferPrice?.price ?? null}
             providerPriceCurrency={transferPrice?.currency ?? null}
-            customerPriceAmount={displayPrice ?? null}
-            customerPriceCurrency={displayCurrency ?? transferPrice?.currency ?? null}
+            customerPriceAmount={displayPrice}
+            customerPriceCurrency={displayCurrency}
             provider={provider}
             teamId={teamId}
             onPurchase={() => setPurchaseSheetOpen(true)}

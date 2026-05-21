@@ -13,7 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Link, useLocation } from "react-router";
-import { User, Users, AlertTriangle } from "lucide-react";
+import { User, Users, UserSearch, AlertTriangle } from "lucide-react";
+import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -43,6 +44,7 @@ import { useCartStore } from "@/stores/cart-store";
 import type { CartItem, DomainCartItem, HivelocityCartItem } from "@/stores/cart-store";
 import { CartItemCard } from "@/routes/agency/_components/sidebar/cart-item-card";
 import { authClient } from "@/lib/auth-client";
+import { BuyNowDomainProductStep } from "@/components/buy-now-domain-product-step";
 
 const formatPrice = (price?: number, currency?: string) => {
   if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {
@@ -92,6 +94,73 @@ function getMissingProfileFields(profile: {
     }
   }
   return missing;
+}
+
+type RegistrantType = "customer" | "myself" | "existing_customer";
+
+type ManualRegistrantDetails = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  address: string;
+  city: string;
+  country: string;
+  postalCode: string;
+  phone: string;
+};
+
+type CustomerForRegistrant = {
+  id: string;
+  name: string;
+  email: string;
+  profileComplete: boolean;
+  missingFields: string[];
+  profile: {
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+    postalCode: string | null;
+  } | null;
+};
+
+function customerToManualRegistrantDetails(customer: CustomerForRegistrant): ManualRegistrantDetails {
+  const p = customer.profile;
+  return {
+    firstName: p?.firstName?.trim() ?? "",
+    lastName: p?.lastName?.trim() ?? "",
+    email: customer.email.trim(),
+    address: p?.address?.trim() ?? "",
+    city: p?.city?.trim() ?? "",
+    country: p?.country?.trim() ?? "Kenya",
+    postalCode: p?.postalCode?.trim() ?? "",
+    phone: p?.phone?.trim() ?? "",
+  };
+}
+
+function buildRegistrantOrderMetadata(
+  registrantType: RegistrantType,
+  manualRegistrantDetails: ManualRegistrantDetails,
+  selectedCustomer: CustomerForRegistrant | undefined,
+): {
+  useRegistrantInfo: "myself" | "customer";
+  manualRegistrantDetails?: ManualRegistrantDetails;
+} {
+  if (registrantType === "myself") {
+    return { useRegistrantInfo: "myself" };
+  }
+  if (registrantType === "existing_customer" && selectedCustomer?.profileComplete) {
+    return {
+      useRegistrantInfo: "customer",
+      manualRegistrantDetails: customerToManualRegistrantDetails(selectedCustomer),
+    };
+  }
+  return {
+    useRegistrantInfo: "customer",
+    manualRegistrantDetails,
+  };
 }
 
 function getDomainCartLineBasePrice(d: {
@@ -204,10 +273,11 @@ export function GlobalBuyNowDialog() {
     return location.pathname.startsWith("/agency") || isAgencyUser;
   }, [location.pathname, isAgencyUser]);
 
-  const [registrantType, setRegistrantType] = React.useState<"customer" | "myself">(
+  const [registrantType, setRegistrantType] = React.useState<RegistrantType>(
     isAgencySide ? "customer" : "myself"
   );
-  const [manualRegistrantDetails, setManualRegistrantDetails] = React.useState({
+  const [selectedExistingCustomerId, setSelectedExistingCustomerId] = React.useState("");
+  const [manualRegistrantDetails, setManualRegistrantDetails] = React.useState<ManualRegistrantDetails>({
     firstName: "",
     lastName: "",
     email: "",
@@ -270,6 +340,47 @@ export function GlobalBuyNowDialog() {
   }, [location.pathname]);
 
   const isCustomerDomainCheckout = isDomainProduct && !isAgencySide;
+  const isAgencyDomainCheckout = isDomainProduct && isAgencySide;
+
+  const customersForRegistrantQuery = trpc.userProfile.listCustomersForRegistrant.useQuery(undefined, {
+    enabled: open && isAgencyDomainCheckout,
+  });
+
+  const customersForRegistrant = customersForRegistrantQuery.data ?? [];
+
+  const selectedExistingCustomer = React.useMemo(
+    () => customersForRegistrant.find((c) => c.id === selectedExistingCustomerId),
+    [customersForRegistrant, selectedExistingCustomerId],
+  );
+
+  const customerComboboxItems: ComboboxItem[] = React.useMemo(
+    () =>
+      customersForRegistrant.map((c) => ({
+        id: c.id,
+        label: c.name?.trim() ? `${c.name} (${c.email})` : c.email,
+        disabled: !c.profileComplete,
+      })),
+    [customersForRegistrant],
+  );
+
+  const selectedCustomerComboboxItem = React.useMemo(
+    () => customerComboboxItems.find((item) => item.id === selectedExistingCustomerId),
+    [customerComboboxItems, selectedExistingCustomerId],
+  );
+
+  const isExistingCustomerReady =
+    registrantType === "existing_customer" &&
+    !!selectedExistingCustomer?.profileComplete;
+
+  const registrantOrderMetadata = React.useMemo(
+    () =>
+      buildRegistrantOrderMetadata(
+        registrantType,
+        manualRegistrantDetails,
+        selectedExistingCustomer,
+      ),
+    [registrantType, manualRegistrantDetails, selectedExistingCustomer],
+  );
   const teamId = isTransferMode ? transferContext?.teamId : ctx?.teamId;
   const teamBillingQuery = trpc.teamBilling.getByTeam.useQuery(
     { teamId: teamId ?? "" },
@@ -542,8 +653,7 @@ export function GlobalBuyNowDialog() {
               metadata: {
                 domainTransferRequestId: transferContext.domainTransferRequestId,
                 transferAuthCode: transferContext.authCode,
-                useRegistrantInfo: registrantType,
-                manualRegistrantDetails: registrantType === "customer" ? manualRegistrantDetails : undefined,
+                ...registrantOrderMetadata,
               },
             },
           ],
@@ -569,11 +679,7 @@ export function GlobalBuyNowDialog() {
             productPlanId: null,
             itemPrice: str(line),
             itemSubtotal: str(line),
-            metadata: {
-              useRegistrantInfo: registrantType,
-              manualRegistrantDetails:
-                registrantType === "customer" ? manualRegistrantDetails : undefined,
-            },
+            metadata: registrantOrderMetadata,
           };
         });
         createOrderFromPayment.mutate({
@@ -596,11 +702,7 @@ export function GlobalBuyNowDialog() {
             productPlanId: null,
             itemPrice: str(recorded),
             itemSubtotal: str(recorded),
-            metadata: {
-              useRegistrantInfo: registrantType,
-              manualRegistrantDetails:
-                registrantType === "customer" ? manualRegistrantDetails : undefined,
-            },
+            metadata: registrantOrderMetadata,
           },
         ],
         currency: displayCurrency,
@@ -618,8 +720,7 @@ export function GlobalBuyNowDialog() {
       createOrderFromPayment,
       isAgencyUser,
       priceOverrideByKey,
-      registrantType,
-      manualRegistrantDetails,
+      registrantOrderMetadata,
       domainTotal,
     ]
   );
@@ -1023,7 +1124,18 @@ export function GlobalBuyNowDialog() {
       setPlanSelectionProductId(null);
       setIsSelectingMainProductPlan(false);
       setSelectedPlanId(null);
-      setRegistrantType("customer");
+      setRegistrantType(isAgencySide ? "customer" : "myself");
+      setSelectedExistingCustomerId("");
+      setManualRegistrantDetails({
+        firstName: "",
+        lastName: "",
+        email: "",
+        address: "",
+        city: "",
+        country: "Kenya",
+        postalCode: "",
+        phone: "",
+      });
       setSelectedPaymentMethod(null);
       setMpesaPhoneNumber("");
       setPaymentAmount("");
@@ -1067,87 +1179,67 @@ export function GlobalBuyNowDialog() {
     switch (effectiveStep) {
       case "product": {
         if (!ctx) return null;
+        if (hasDomain && ctx.domain) {
+          return (
+            <BuyNowDomainProductStep
+              productName={ctx.productName}
+              domain={ctx.domain}
+              duration={duration}
+              onDurationChange={setDuration}
+              domainDisplayPrice={domainDisplayPrice}
+              domainTotal={domainTotal}
+              displayCurrency={displayCurrency}
+              addOnsData={addOnsData}
+              selectedAddOns={selectedAddOns}
+              onToggleAddOn={toggleAddOn}
+            />
+          );
+        }
         return (
           <div className="space-y-4">
             <div className="text-center py-2">
               <h3 className="text-lg font-semibold text-foreground">Get the best of your {ctx.productName}</h3>
               <p className="text-sm text-muted-foreground">Complete your purchase and add optional services</p>
             </div>
-            <ScrollArea className="h-[400px] w-full">
-              <div className="space-y-4 pr-4">
-                {hasDomain && ctx.domain && (
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium truncate">{ctx.domain.domain}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent>Domain registered for selected duration.</TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Select value={duration.toString()} onValueChange={(v) => setDuration(parseInt(v, 10))}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue>{duration} {duration === 1 ? "year" : "years"}</SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 4, 5, 10].map((y) => (
-                              <SelectItem key={y} value={String(y)}>{y} year{y > 1 ? "s" : ""}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="text-right flex-shrink-0 font-semibold text-lg">
-                        {formatPrice(domainTotal, displayCurrency)}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {addOnsData.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-base font-semibold text-foreground">Recommended add-ons</h4>
-                    {addOnsData.map(({ product, plans: addonPlans }) => {
-                      const plan = (addonPlans as Array<{ id: string; name: string; price: string | null; currency: string }>)[0];
-                      const price = plan ? parseFloat(plan.price ?? "0") : 0;
-                      const currency = plan?.currency ?? "KES";
-                      const isSelected = selectedAddOns.some((a) => a.productId === product.id);
-                      return (
-                        <button
-                          key={product.id}
-                          type="button"
-                          onClick={() => plan && toggleAddOn(product.id, product.name, plan.id, plan.name, price, currency)}
-                          className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                            isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/50"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <span className="font-medium text-foreground">{product.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-primary bg-primary" : "border-muted-foreground"}`}>
-                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
-                              </div>
-                              <span className="text-sm font-medium">{price === 0 ? "Free" : formatPrice(price, currency)}</span>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {!hasDomain && !isDomainProduct && (
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <div className="font-medium text-foreground">{ctx.productName}</div>
-                  </div>
-                )}
+            {!hasDomain && !isDomainProduct && (
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <div className="font-medium text-foreground">{ctx.productName}</div>
               </div>
-              <ScrollBar orientation="vertical" />
-            </ScrollArea>
+            )}
+            {addOnsData.length > 0 && (
+              <ScrollArea className="h-[280px] w-full">
+                <div className="space-y-3 pr-4">
+                  <h4 className="text-sm font-semibold text-foreground">Optional add-ons</h4>
+                  {addOnsData.map(({ product, plans: addonPlans }) => {
+                    const plan = (addonPlans as Array<{ id: string; name: string; price: string | null; currency: string }>)[0];
+                    const price = plan ? parseFloat(plan.price ?? "0") : 0;
+                    const currency = plan?.currency ?? "KES";
+                    const isSelected = selectedAddOns.some((a) => a.productId === product.id);
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => plan && toggleAddOn(product.id, product.name, plan.id, plan.name, price, currency)}
+                        className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                          isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="font-medium text-foreground">{product.name}</span>
+                          <div className="flex items-center gap-2">
+                            <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${isSelected ? "border-primary bg-primary" : "border-muted-foreground"}`}>
+                              {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                            </div>
+                            <span className="text-sm font-medium">{price === 0 ? "Free" : formatPrice(price, currency)}</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <ScrollBar orientation="vertical" />
+              </ScrollArea>
+            )}
           </div>
         );
       }
@@ -1721,7 +1813,10 @@ export function GlobalBuyNowDialog() {
                   "relative flex cursor-pointer rounded-lg border bg-card px-5 py-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
                   registrantType === "customer" ? "border-primary ring-1 ring-primary" : "border-border"
                 )}
-                onClick={() => setRegistrantType("customer")}
+                onClick={() => {
+                  setRegistrantType("customer");
+                  setSelectedExistingCustomerId("");
+                }}
               >
                 <div className="flex w-full items-start gap-5">
                   <div className={cn(
@@ -1827,9 +1922,130 @@ export function GlobalBuyNowDialog() {
               <div
                 className={cn(
                   "relative flex cursor-pointer rounded-lg border bg-card px-5 py-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
+                  registrantType === "existing_customer"
+                    ? "border-primary ring-1 ring-primary"
+                    : "border-border"
+                )}
+                onClick={() => setRegistrantType("existing_customer")}
+              >
+                <div className="flex w-full items-start gap-5">
+                  <div
+                    className={cn(
+                      "mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                      registrantType === "existing_customer"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <UserSearch className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-foreground">Select existing customer</p>
+                      {registrantType === "existing_customer" ? (
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Choose a customer account with a complete profile for this registration.
+                    </p>
+                    <div className="mt-4" onClick={() => setRegistrantType("existing_customer")}>
+                      {customersForRegistrantQuery.isLoading ? (
+                        <div className="flex justify-center py-3">
+                          <Spinner size={20} />
+                        </div>
+                      ) : customersForRegistrantQuery.error ? (
+                        <p className="text-xs text-destructive">
+                          {customersForRegistrantQuery.error.message ?? "Failed to load customers."}
+                        </p>
+                      ) : (
+                        <ComboboxDropdown
+                          placeholder="Search customers…"
+                          searchPlaceholder="Search by name or email"
+                          items={customerComboboxItems}
+                          selectedItem={selectedCustomerComboboxItem}
+                          disabled={registrantType !== "existing_customer"}
+                          onSelect={(item) => {
+                            if (item.disabled) return;
+                            setSelectedExistingCustomerId(item.id);
+                            setRegistrantType("existing_customer");
+                          }}
+                          renderListItem={({ isChecked, item }) => {
+                            const customer = customersForRegistrant.find((c) => c.id === item.id);
+                            const row = (
+                              <span className="flex items-center gap-2 w-full min-w-0">
+                                <Check
+                                  className={cn(
+                                    "h-4 w-4 shrink-0",
+                                    isChecked ? "opacity-100" : "opacity-0",
+                                  )}
+                                />
+                                <span
+                                  className={cn(
+                                    "truncate",
+                                    item.disabled && "text-muted-foreground",
+                                  )}
+                                >
+                                  {item.label}
+                                </span>
+                              </span>
+                            );
+                            if (!item.disabled) return row;
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="flex w-full cursor-not-allowed">{row}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs text-xs">
+                                  Profile incomplete. Complete the customer&apos;s profile before
+                                  selecting them.
+                                  {customer && customer.missingFields.length > 0 ? (
+                                    <span className="block mt-1 text-muted-foreground">
+                                      Missing: {customer.missingFields.join(", ")}
+                                    </span>
+                                  ) : null}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          }}
+                          emptyResults="No customers found"
+                        />
+                      )}
+                    </div>
+                    {registrantType === "existing_customer" && selectedExistingCustomer?.profileComplete ? (
+                      <div className="mt-3 text-[11px] grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground bg-muted/30 p-2 rounded">
+                        <div>
+                          Name: {selectedExistingCustomer.profile?.firstName}{" "}
+                          {selectedExistingCustomer.profile?.lastName}
+                        </div>
+                        <div>Phone: {selectedExistingCustomer.profile?.phone}</div>
+                        <div className="col-span-2">
+                          Address: {selectedExistingCustomer.profile?.address},{" "}
+                          {selectedExistingCustomer.profile?.city}
+                        </div>
+                      </div>
+                    ) : null}
+                    {registrantType === "existing_customer" &&
+                    selectedExistingCustomer &&
+                    !selectedExistingCustomer.profileComplete ? (
+                      <p className="mt-2 text-xs text-destructive">
+                        This customer&apos;s profile is incomplete. Choose another customer or complete
+                        their profile first.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "relative flex cursor-pointer rounded-lg border bg-card px-5 py-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
                   registrantType === "myself" ? "border-primary ring-1 ring-primary" : "border-border"
                 )}
-                onClick={() => setRegistrantType("myself")}
+                onClick={() => {
+                  setRegistrantType("myself");
+                  setSelectedExistingCustomerId("");
+                }}
               >
                 <div className="flex w-full items-start gap-5">
                   <div className={cn(
@@ -2033,7 +2249,8 @@ export function GlobalBuyNowDialog() {
                   isCustomerDomainCheckout
                     ? !isProfileComplete || userInfoQuery.isLoading
                     : (registrantType === "myself" && !isProfileComplete) ||
-                      (registrantType === "customer" && !isManualDetailsComplete)
+                      (registrantType === "customer" && !isManualDetailsComplete) ||
+                      (registrantType === "existing_customer" && !isExistingCustomerReady)
                 }
                 onClick={() => openForPayment()}
               >
