@@ -302,7 +302,7 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Nisc Email Marketing",
+        title: "Email Marketing",
         url: "/agency/nisc-email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [

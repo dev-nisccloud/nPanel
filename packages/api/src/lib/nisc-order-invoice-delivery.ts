@@ -254,7 +254,7 @@ export async function runPreProvisioningInvoiceForOrder(niscOrderId: string): Pr
 			team: { columns: { slug: true } },
 			orderItems: {
 				with: {
-					product: { columns: { name: true } },
+					product: { columns: { name: true, serviceType: true } },
 					productPlan: { columns: { name: true } },
 				},
 			},
@@ -290,7 +290,10 @@ export async function runPreProvisioningInvoiceForOrder(niscOrderId: string): Pr
 					primaryDomain: i.primaryDomain,
 					billingCycle: i.billingCycle,
 					description: i.description,
-					product: { name: i.product?.name ?? "Service" },
+					product: {
+						name: i.product?.name ?? "Service",
+						serviceType: i.product?.serviceType ?? null,
+					},
 					productPlan: i.productPlan,
 				})),
 			},

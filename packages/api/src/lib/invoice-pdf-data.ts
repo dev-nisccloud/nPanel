@@ -24,6 +24,7 @@ export type InvoiceForPdfData = Pick<
 	| "tax"
 	| "amount"
 	| "customerName"
+	| "customerEmail"
 >;
 
 export interface InvoicePdfLineItem {

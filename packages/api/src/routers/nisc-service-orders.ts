@@ -17,6 +17,7 @@ import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { team, teamMember, teamBillingSettings } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
+import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import { processNiscOrder } from "../lib/nisc-order-processor";
 import {
@@ -564,6 +565,7 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 			const userId = session.user.id;
+			const userRole = session.user.role;
 
 			const txRows = await db
 				.select()
@@ -745,23 +747,30 @@ export const niscServiceOrdersRouter = router({
 				const existingRequestId = meta?.domainTransferRequestId?.trim();
 				let requestId: string;
 
+				let existing: {
+					id: string;
+					createdById: string;
+					teamId: string | null;
+					status: string;
+					niscOrderId: string | null;
+				} | undefined;
+
 				if (existingRequestId) {
-					const [existing] = await db
+					const [row] = await db
 						.select({
 							id: domainTransferRequest.id,
 							createdById: domainTransferRequest.createdById,
+							teamId: domainTransferRequest.teamId,
 							status: domainTransferRequest.status,
 							niscOrderId: domainTransferRequest.niscOrderId,
 						})
 						.from(domainTransferRequest)
 						.where(eq(domainTransferRequest.id, existingRequestId))
 						.limit(1);
-					if (!existing || existing.createdById !== userId) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Transfer request not found or access denied.",
-						});
-					}
+					existing = row;
+				}
+
+				if (existing) {
 					if (existing.niscOrderId) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
@@ -775,31 +784,49 @@ export const niscServiceOrdersRouter = router({
 						});
 					}
 					requestId = existing.id;
+					const billedFor = input.billedForUserId?.trim();
+					const transferOwnerId =
+						billedFor &&
+						(canAssignBilledForUserId(userRole) || (await userIsAgencyStaff(userId)))
+							? billedFor
+							: existing.createdById;
 					await db
 						.update(domainTransferRequest)
 						.set({
-							domainName,
+							domainName: domainName.toLowerCase(),
 							authCode,
 							provider,
 							status: "PENDING",
 							customerPriceAmount: item.itemSubtotal ?? null,
 							customerPriceCurrency: input.currency ?? "KES",
-							teamId: input.teamId ?? null,
+							teamId: input.teamId ?? existing.teamId ?? null,
+							createdById: transferOwnerId,
 							updatedAt: now,
 						})
 						.where(eq(domainTransferRequest.id, requestId));
+				} else if (existingRequestId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Transfer request not found.",
+					});
 				} else {
+					const billedFor = input.billedForUserId?.trim();
+					const newOwnerId =
+						billedFor &&
+						(canAssignBilledForUserId(userRole) || (await userIsAgencyStaff(userId)))
+							? billedFor
+							: userId;
 					requestId = crypto.randomUUID();
 					await db.insert(domainTransferRequest).values({
 						id: requestId,
-						domainName,
+						domainName: domainName.toLowerCase(),
 						authCode,
 						provider,
 						status: "PENDING",
 						customerPriceAmount: item.itemSubtotal ?? null,
 						customerPriceCurrency: input.currency ?? "KES",
 						teamId: input.teamId ?? null,
-						createdById: userId,
+						createdById: newOwnerId,
 						createdAt: now,
 						updatedAt: now,
 					});
@@ -827,15 +854,10 @@ export const niscServiceOrdersRouter = router({
 
 			let orderUserId = userId;
 			const billedFor = input.billedForUserId?.trim();
+			const orderTeamId = input.teamId?.trim() || null;
 			if (billedFor) {
-				if (input.teamId?.trim()) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Provide either teamId or billedForUserId, not both.",
-					});
-				}
 				const role = session.user.role as string | undefined;
-				if (!canAssignBilledForUserId(role)) {
+				if (!canAssignBilledForUserId(role) && !(await userIsAgencyStaff(userId))) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "Only agency users can assign an order to another user.",
@@ -848,6 +870,12 @@ export const niscServiceOrdersRouter = router({
 						message: "Selected user was not found.",
 					});
 				}
+				if (orderTeamId && !(await isTeamMember(orderTeamId, billedFor))) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Selected user is not a member of this team.",
+					});
+				}
 				orderUserId = billedFor;
 			}
 
@@ -857,7 +885,7 @@ export const niscServiceOrdersRouter = router({
 					id: randomUUID(),
 					orderNumber,
 					userId: orderUserId,
-					teamId: input.teamId ?? null,
+					teamId: orderTeamId,
 					createdBy: session.user.id,
 					status: "PENDING",
 					subtotal,
