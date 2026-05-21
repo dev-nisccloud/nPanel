@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import { apiUrl, authClient } from "@/lib/auth-client";
+import { isPublicPath } from "@/lib/session-gate";
 import { trpc } from "@/utils/trpc";
 
 // Use the same server origin that authClient uses for tRPC calls.
@@ -51,9 +52,15 @@ export function QueryProvider({ children }: QueryProviderProps) {
       },
     });
 
-    // When session has expired (UNAUTHORIZED), sign out and redirect to login so both dashboards behave strictly
+    // When session has expired (UNAUTHORIZED), sign out and redirect to login — but never from public/auth routes (avoids redirect loops).
     const redirectToLogin = () => {
+      if (typeof window !== "undefined" && isPublicPath(window.location.pathname)) {
+        return;
+      }
       authClient.signOut().then(() => {
+        if (typeof window !== "undefined" && isPublicPath(window.location.pathname)) {
+          return;
+        }
         window.location.href = "/auth/login";
       });
     };

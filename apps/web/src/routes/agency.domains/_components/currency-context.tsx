@@ -52,8 +52,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('selectedCurrency', selectedCurrency);
   }, [selectedCurrency]);
 
-  // Fetch real exchange rates from API
-  const { data: exchangeRates, isLoading: isLoadingRates } = trpc.currency.getExchangeRates.useQuery(
+  // Public rates — CurrencyProvider also mounts on auth via GlobalBuyNowDialogWrapper; protected currency.* would 401 and loop redirects.
+  const { data: exchangeRates, isLoading: isLoadingRates } = trpc.publicPricing.getExchangeRatesPublic.useQuery(
     { baseCurrency: 'USD' },
     {
       staleTime: 6 * 60 * 60 * 1000, // 6 hours (matches server cache)
@@ -64,7 +64,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Currency conversion mutation - stable reference using useRef for callbacks; guard callbacks to avoid setState on unmounted component
-  const convertPricesMutation = trpc.currency.convertPrices.useMutation({
+  const convertPricesMutation = trpc.publicPricing.convertPricesPublic.useMutation({
     onMutate: () => {
       if (isMountedRef.current) setIsConverting(true);
     },
