@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "react-router";
 import { Plus, RefreshCw, Search, Receipt, RotateCcw, EllipsisVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,9 +54,17 @@ function EmptyState({
 }
 
 export default function NiscServiceOrdersPage() {
+	const [searchParams, setSearchParams] = useSearchParams();
 	const [isCreateOpen, setIsCreateOpen] = React.useState(false);
 	const [selectedOrderId, setSelectedOrderId] = React.useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = React.useState("");
+
+	React.useEffect(() => {
+		const orderId = searchParams.get("order")?.trim();
+		if (orderId) {
+			setSelectedOrderId(orderId);
+		}
+	}, [searchParams]);
 
 	const utils = trpc.useUtils();
 	const { data, isLoading, error, refetch } = trpc.niscServiceOrders.getAll.useQuery(
@@ -265,7 +274,16 @@ export default function NiscServiceOrdersPage() {
 
 			<ViewOrderSheet
 				open={!!selectedOrderId}
-				onOpenChange={(open) => !open && setSelectedOrderId(null)}
+				onOpenChange={(open) => {
+					if (!open) {
+						setSelectedOrderId(null);
+						if (searchParams.has("order")) {
+							const next = new URLSearchParams(searchParams);
+							next.delete("order");
+							setSearchParams(next, { replace: true });
+						}
+					}
+				}}
 				orderId={selectedOrderId}
 				onRetrySuccess={() => refetch()}
 			/>

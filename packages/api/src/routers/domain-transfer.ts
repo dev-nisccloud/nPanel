@@ -105,6 +105,18 @@ export const ACTIVE_DOMAIN_TRANSFER_REQUEST_STATUSES = [
 	"SUBMITTED_TO_PROVIDER",
 ] as const;
 
+/** Terminal outcomes — transfer requests in these statuses cannot be deleted. */
+export const NON_DELETABLE_DOMAIN_TRANSFER_REQUEST_STATUSES = [
+	"COMPLETED",
+	"FAILED",
+] as const;
+
+function isTransferRequestDeletable(status: string): boolean {
+	return !(NON_DELETABLE_DOMAIN_TRANSFER_REQUEST_STATUSES as readonly string[]).includes(
+		status,
+	);
+}
+
 const isAgencyUserRole = (role: string | null | undefined) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 
@@ -114,6 +126,29 @@ async function getMemberTeamIds(userId: string) {
 		.from(teamMember)
 		.where(eq(teamMember.userId, userId));
 	return memberships.map((m) => m.teamId);
+}
+
+async function assertTransferRequestAccess(
+	userId: string,
+	userRole: string | null | undefined,
+	row: { createdById: string; teamId: string | null },
+) {
+	if (isAgencyUserRole(userRole)) return;
+	if (row.createdById === userId) return;
+	if (row.teamId) {
+		const teamIds = await getMemberTeamIds(userId);
+		if (teamIds.includes(row.teamId)) return;
+	}
+	throw new TRPCError({
+		code: "FORBIDDEN",
+		message: "You do not have access to this transfer request.",
+	});
+}
+
+function toCheckoutTransferProvider(
+	dbProvider: string,
+): "kenic" | "openprovider" {
+	return dbProvider === "KENIC" ? "kenic" : "openprovider";
 }
 
 export const domainTransferRouter = router({
@@ -165,7 +200,7 @@ export const domainTransferRouter = router({
 					if (rdap.locked) {
 						return buildReturn("locked", false, "openprovider", parsed, {
 							error:
-								"This domain is locked at the current registrar. Unlock it in your registrar's control panel, then try the transfer again.",
+								"This domain is locked at the current registrar. Unlock it in your registrar's control panel, then wait about 15 seconds for the change to take effect before checking again.",
 						});
 					}
 					// exists && !locked Ã¢â€ â€™ ready; get price below
@@ -462,6 +497,126 @@ export const domainTransferRouter = router({
 			});
 
 			return { id, domainName, status: "AWAITING_PAYMENT" as const };
+		}),
+
+	/**
+	 * Resume checkout for a transfer request awaiting payment (returns EPP code for buy-now only).
+	 */
+	getCheckoutResumeContext: protectedProcedure
+		.input(z.object({ id: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session.user.id;
+			const userRole = ctx.session.user.role;
+
+			const [row] = await db
+				.select({
+					id: domainTransferRequest.id,
+					domainName: domainTransferRequest.domainName,
+					authCode: domainTransferRequest.authCode,
+					provider: domainTransferRequest.provider,
+					status: domainTransferRequest.status,
+					customerPriceAmount: domainTransferRequest.customerPriceAmount,
+					customerPriceCurrency: domainTransferRequest.customerPriceCurrency,
+					teamId: domainTransferRequest.teamId,
+					createdById: domainTransferRequest.createdById,
+					niscOrderId: domainTransferRequest.niscOrderId,
+				})
+				.from(domainTransferRequest)
+				.where(eq(domainTransferRequest.id, input.id))
+				.limit(1);
+
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Transfer request not found.",
+				});
+			}
+
+			await assertTransferRequestAccess(userId, userRole, row);
+
+			if (row.status !== "AWAITING_PAYMENT") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This transfer request is not awaiting payment.",
+				});
+			}
+
+			if (row.niscOrderId) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "This transfer request is already linked to an order.",
+				});
+			}
+
+			const price = row.customerPriceAmount
+				? Number.parseFloat(row.customerPriceAmount)
+				: Number.NaN;
+			if (Number.isNaN(price) || price <= 0) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Transfer price is missing or invalid.",
+				});
+			}
+
+			return {
+				id: row.id,
+				domainName: row.domainName,
+				authCode: row.authCode,
+				provider: toCheckoutTransferProvider(row.provider),
+				price,
+				currency: row.customerPriceCurrency ?? "KES",
+				teamId: row.teamId,
+			};
+		}),
+
+	/**
+	 * Delete a transfer request (agency only). Not allowed for completed or failed requests.
+	 */
+	deleteTransferRequest: protectedProcedure
+		.input(z.object({ id: z.string().min(1) }))
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session.user.id;
+			const userRole = ctx.session.user.role;
+
+			if (!isAgencyUserRole(userRole)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only agency users can delete transfer requests.",
+				});
+			}
+
+			const [row] = await db
+				.select({
+					id: domainTransferRequest.id,
+					status: domainTransferRequest.status,
+					createdById: domainTransferRequest.createdById,
+					teamId: domainTransferRequest.teamId,
+				})
+				.from(domainTransferRequest)
+				.where(eq(domainTransferRequest.id, input.id))
+				.limit(1);
+
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Transfer request not found.",
+				});
+			}
+
+			await assertTransferRequestAccess(userId, userRole, row);
+
+			if (!isTransferRequestDeletable(row.status)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Completed or failed transfer requests cannot be deleted.",
+				});
+			}
+
+			await db
+				.delete(domainTransferRequest)
+				.where(eq(domainTransferRequest.id, input.id));
+
+			return { success: true as const };
 		}),
 
 	/**

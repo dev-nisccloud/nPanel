@@ -33,7 +33,7 @@ export default function DomainTransferPage() {
             </TabsContent>
 
             <TabsContent value="transfer-requests" className="mt-0 data-[state=inactive]:hidden">
-              <TransferRequestsList />
+              <TransferRequestsList variant="agency" />
             </TabsContent>
           </Tabs>
         </div>
