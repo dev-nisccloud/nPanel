@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
+import { addBillingCycleToDate } from "@npanel/api/lib/nisc-order-invoice-line-items";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import type { DomainPortfolio } from "./domain-portfolio-card";
@@ -100,15 +101,11 @@ export function CreateSubscriptionFromDomainDialog({
   const selectedTeam = teamItems.find((t) => t.id === selectedTeamId);
   const selectedUser = userItems.find((u) => u.id === selectedUserId);
 
-  const subscriptionDate = domain.orderDate
-    ? new Date(domain.orderDate)
-    : new Date();
-  const expiryDate = domain.registryExpirationDate
-    ? new Date(domain.registryExpirationDate)
-    : new Date(domain.expiryDate);
-  const nextRenewalDate = domain.renewalDate
-    ? new Date(domain.renewalDate)
-    : expiryDate;
+  const subscriptionDate = domain.activeDate
+    ? new Date(domain.activeDate)
+    : domain.orderDate
+      ? new Date(domain.orderDate)
+      : new Date();
 
   const openProviderId =
     typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id;
@@ -119,6 +116,13 @@ export function CreateSubscriptionFromDomainDialog({
       : domain.unit === "y"
         ? "YEARLY"
         : "YEARLY";
+
+  const expiryDate =
+    addBillingCycleToDate(subscriptionDate, billingCycle) ??
+    (domain.registryExpirationDate
+      ? new Date(domain.registryExpirationDate)
+      : new Date(domain.expiryDate));
+  const nextRenewalDate = domain.renewalDate ? new Date(domain.renewalDate) : expiryDate;
 
   const handleSubmit = () => {
     setSubmitError(null);

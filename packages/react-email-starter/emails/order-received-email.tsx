@@ -63,7 +63,7 @@ export const OrderReceivedEmail = ({
             <strong>Order Date &amp; Time:</strong> {orderDate}
           </EmailText>
           <EmailText style={{ margin: '8px 0', fontSize: '18px', fontWeight: 'bold', color: '#059669' }}>
-            <strong>Total Amount:</strong> {formattedAmount}
+            <strong>Total Amount (incl. VAT):</strong> {formattedAmount}
           </EmailText>
         </div>
 
@@ -143,10 +143,10 @@ OrderReceivedEmail.PreviewProps = {
   currency: 'KES',
   orderItems: [
     {
-      name: 'heliumcreations.com',
-      description: 'Domain transfer',
+      name: '(heliumcreations.com) Domain - Transfer',
+      description: 'Subscription: 21 May 2026 – 21 May 2027 (1 year)',
       quantity: 1,
-      price: '2,194.02 KES',
+      price: 'KES 2,544.06',
     },
   ],
   supportEmail: 'support@nisccloud.com',

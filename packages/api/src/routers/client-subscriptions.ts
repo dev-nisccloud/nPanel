@@ -1088,6 +1088,7 @@ export const clientSubscriptionsRouter = router({
                     id: z.string(),
                     productName: z.string(),
                     productPlanName: z.string().nullable(),
+                    subscriptionName: z.string().nullable(),
                     subscriptionDate: z.date().nullable(),
                     nextRenewalDate: z.date().nullable(),
                     expiryDate: z.date().nullable(),
@@ -1138,8 +1139,9 @@ export const clientSubscriptionsRouter = router({
 
             return subs.map((sub) => ({
                 id: sub.id,
-                productName: sub.name ?? sub.product.name,
+                productName: sub.product.name,
                 productPlanName: sub.productPlan?.name ?? null,
+                subscriptionName: sub.name ?? null,
                 subscriptionDate: sub.subscriptionDate,
                 nextRenewalDate: sub.nextRenewalDate,
                 expiryDate: sub.expiryDate,

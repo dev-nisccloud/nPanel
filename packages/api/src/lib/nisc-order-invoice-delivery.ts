@@ -13,6 +13,7 @@ import { sanitizeInvoicePdfFilename } from "./invoice-pdf-data";
 import { renderInvoiceSuccessEmail } from "./email-templates";
 import { sendEmailWithPdf } from "./email";
 import { niscLog } from "./nisc-order-logger";
+import { formatNiscDateTime } from "./nisc-datetime-format";
 import { getNormalizedPublicAppUrl, joinPublicAppPath } from "./public-app-url";
 import {
 	resolveNiscOrderInvoiceBilling,
@@ -40,7 +41,7 @@ export type NiscOrderInvoiceDeliveryResult =
 
 function formatInvoiceEmailDate(value: Date | null | undefined): string {
 	if (!value) return "N/A";
-	return value.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+	return formatNiscDateTime(value);
 }
 
 export type CreateAndEmailNiscOrderInvoiceInput = {

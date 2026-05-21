@@ -17,6 +17,7 @@ import {
 } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { buildNiscOrderInvoiceLineItemCopy } from "./nisc-order-invoice-line-items";
+import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc-order-tax";
 
 const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
 
@@ -42,7 +43,7 @@ const BANK_PAYMENT_DETAILS = {
 	qrCodeValue: "www.nisccloud.com",
 };
 
-const TAX_PERCENTAGE = 16;
+const TAX_PERCENTAGE = NISC_ORDER_VAT_PERCENTAGE;
 
 export { isTeamBillingComplete };
 
@@ -57,9 +58,9 @@ export async function createInvoiceForNiscOrder(
 	const dueDate = null; // Already paid; schema allows null
 
 	const subtotalNum = order.orderItems.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
-	const taxAmount = Math.round(subtotalNum * (TAX_PERCENTAGE / 100) * 100) / 100;
-	const totalNum = subtotalNum + taxAmount;
-	const subtotal = subtotalNum.toFixed(2);
+	const { subtotal: subtotalRounded, tax: taxAmount, total: totalNum } =
+		computeNiscOrderTotalsWithTax(subtotalNum);
+	const subtotal = subtotalRounded.toFixed(2);
 	const tax = taxAmount.toFixed(2);
 	const total = totalNum.toFixed(2);
 	const currency = order.currency || "KES";

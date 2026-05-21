@@ -38,8 +38,14 @@ function getStatusBadgeClass(status: string): string {
 	return statusColors[status] ?? "";
 }
 
-function displayServiceName(productName: string, productPlanName: string | null): string {
-	return productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
+/** Same as agency: "Product" or "Product - Plan", then "(subscription name)" e.g. "Domains (example.com)" */
+function displayServiceName(
+	productName: string,
+	productPlanName: string | null,
+	subscriptionName: string | null,
+): string {
+	const base = productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
+	return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
 }
 
 export interface CustomerSubscriptionsTableProps {
@@ -71,7 +77,8 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 			(s) =>
 				s.productName.toLowerCase().includes(q) ||
 				(s.productPlanName ?? "").toLowerCase().includes(q) ||
-				s.status.toLowerCase().includes(q)
+				(s.subscriptionName ?? "").toLowerCase().includes(q) ||
+				s.status.toLowerCase().includes(q),
 		);
 	}, [list, searchQuery]);
 
@@ -184,7 +191,11 @@ export function CustomerSubscriptionsTable({ onViewSubscription }: CustomerSubsc
 								filtered.map((sub) => (
 									<TableRow key={sub.id}>
 										<TableCell className="pl-6 font-medium">
-											{displayServiceName(sub.productName, sub.productPlanName)}
+											{displayServiceName(
+												sub.productName,
+												sub.productPlanName,
+												sub.subscriptionName,
+											)}
 										</TableCell>
 										<TableCell>{formatDate(sub.subscriptionDate)}</TableCell>
 										<TableCell>{formatDate(sub.expiryDate)}</TableCell>

@@ -3,6 +3,7 @@
  * Format: "(identifier) Service - Action" with subscription dates from billing cycle.
  */
 import type { NiscOrderItemForInvoice } from "../schemas/nisc-order-invoice";
+import { formatNiscDate } from "./nisc-datetime-format";
 
 export type InvoiceLineItemAction = "Transfer" | "Registration" | "Renewal";
 
@@ -12,7 +13,7 @@ export type NiscOrderInvoiceLineItemCopy = {
 };
 
 function formatDateForInvoice(d: Date): string {
-	return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+	return formatNiscDate(d);
 }
 
 export function addBillingCycleToDate(start: Date, billingCycle: string | null | undefined): Date | null {

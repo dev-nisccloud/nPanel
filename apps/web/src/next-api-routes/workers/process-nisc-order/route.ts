@@ -10,6 +10,8 @@ import {
 } from "@npanel/api/lib/email-templates";
 import { sendEmail, sendEmailBatch } from "@npanel/api/lib/email";
 import { runPreProvisioningInvoiceForOrder } from "@npanel/api/lib/nisc-order-invoice-delivery";
+import { formatNiscDateTime } from "@npanel/api/lib/nisc-datetime-format";
+import { buildNiscOrderReceivedEmailItems } from "@npanel/api/lib/nisc-order-received-email";
 import { getNormalizedPublicAppUrl, joinPublicAppPath } from "@npanel/api/lib/public-app-url";
 
 interface NiscOrderPayload {
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
 			team: { select: { createdById: true, slug: true } },
 			orderItems: {
 				include: {
-					product: { select: { name: true } },
+					product: { select: { name: true, serviceType: true } },
 					productPlan: { select: { name: true } },
 				},
 			},
@@ -111,7 +113,7 @@ export async function POST(request: Request) {
 			include: {
 				orderItems: {
 					include: {
-						product: { select: { name: true } },
+						product: { select: { name: true, serviceType: true } },
 						productPlan: { select: { name: true } },
 					},
 				},
@@ -154,16 +156,31 @@ export async function POST(request: Request) {
 						order.team?.slug != null
 							? joinPublicAppPath(`/${order.team.slug}/subscriptions`)
 							: joinPublicAppPath("/dashboard");
+					const { orderItems: confirmationItems, totalAmount: confirmationTotal } =
+						buildNiscOrderReceivedEmailItems({
+							createdAt: orderAfter.createdAt,
+							currency: orderAfter.currency,
+							subtotal: orderAfter.subtotal,
+							orderItems: orderAfter.orderItems.map((i) => ({
+								itemPrice: i.itemPrice,
+								itemSubtotal: i.itemSubtotal,
+								primaryDomain: i.primaryDomain,
+								billingCycle: i.billingCycle,
+								description: i.description,
+								product: {
+									name: i.product?.name ?? "Service",
+									serviceType: i.product?.serviceType ?? null,
+								},
+								productPlan: i.productPlan,
+							})),
+						});
 					const orderConfirmationHtml = await renderOrderConfirmationEmail({
 						customerName: customerName ?? undefined,
 						orderNumber: orderAfter.orderNumber,
-						orderDate: orderAfter.createdAt.toISOString().slice(0, 10),
-						totalAmount: orderAfter.total,
+						orderDate: formatNiscDateTime(orderAfter.createdAt),
+						totalAmount: confirmationTotal,
 						currency: orderAfter.currency,
-						orderItems: orderAfter.orderItems.map((i) => ({
-							name: [i.product?.name, i.productPlan?.name].filter(Boolean).join(" - ") || i.primaryDomain || "Order item",
-							price: i.itemSubtotal,
-						})),
+						orderItems: confirmationItems,
 						supportEmail: "accounts@nisccloud.com",
 						supportPhone: "+254 748 777 666",
 						orderLink: customerOrderLink,
@@ -208,27 +225,34 @@ export async function POST(request: Request) {
 						recipients: "super_admins",
 						count: superAdminEmails.length,
 					});
+					const { orderItems: adminConfirmationItems, totalAmount: adminConfirmationTotal } =
+						buildNiscOrderReceivedEmailItems({
+							createdAt: orderAfter.createdAt,
+							currency: orderAfter.currency,
+							subtotal: orderAfter.subtotal,
+							orderItems: orderAfter.orderItems.map((i) => ({
+								itemPrice: i.itemPrice,
+								itemSubtotal: i.itemSubtotal,
+								primaryDomain: i.primaryDomain,
+								billingCycle: i.billingCycle,
+								description: i.description,
+								product: {
+									name: i.product?.name ?? "Service",
+									serviceType: i.product?.serviceType ?? null,
+								},
+								productPlan: i.productPlan,
+							})),
+						});
 					const html = await renderNiscOrderConfirmationEmail({
 						customerName: customerName ?? undefined,
 						orderNumber: orderAfter.orderNumber,
-						orderDate: orderAfter.createdAt.toISOString().slice(0, 10),
-						totalAmount: orderAfter.total,
+						orderDate: formatNiscDateTime(orderAfter.createdAt),
+						totalAmount: adminConfirmationTotal,
 						currency: orderAfter.currency,
-						orderItems: orderAfter.orderItems.map((i) => {
-							const name =
-								[i.product?.name, i.productPlan?.name].filter(Boolean).join(" - ") ||
-								i.primaryDomain ||
-								"Order item";
-							const domain = i.primaryDomain?.trim();
-							const nameHasDomain =
-								domain && name.toLowerCase().includes(domain.toLowerCase());
-							return {
-								name,
-								description: domain && !nameHasDomain ? domain : undefined,
-								price: `${orderAfter.currency} ${i.itemSubtotal}`,
-								status: i.status,
-							};
-						}),
+						orderItems: adminConfirmationItems.map((line, idx) => ({
+							...line,
+							status: orderAfter.orderItems[idx]?.status,
+						})),
 						orderLink,
 					});
 					await sendEmailBatch(
