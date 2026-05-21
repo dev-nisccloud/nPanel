@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { HelpCircle, Check, Globe, Mail } from "lucide-react";
+import { HelpCircle, Check, Globe, Mail, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import {
@@ -136,6 +136,22 @@ interface SelectedAddOn {
   currency: string;
 }
 
+/** Scrollable step body — avoids dialog overflow on small viewports. */
+function BuyNowStepScroll({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <ScrollArea className="h-[min(52vh,28rem)] w-full">
+      <div className={cn("px-1 py-2", className)}>{children}</div>
+      <ScrollBar orientation="vertical" />
+    </ScrollArea>
+  );
+}
+
 export function GlobalBuyNowDialog() {
   const { open, mode, productContext, transferContext, close } = useGlobalBuyNowStore();
   const { items, getTotalsByCurrency, getCurrenciesInCart, getItemCount, clearCart, getDomains } = useCartStore();
@@ -163,6 +179,8 @@ export function GlobalBuyNowDialog() {
   /** Per-line ex VAT amounts keyed for DB / checkout (agency users only). */
   const [priceOverrideByKey, setPriceOverrideByKey] = React.useState<Record<string, string>>({});
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
+  const [manualTransactionReference, setManualTransactionReference] = React.useState("");
+  const [manualTransactionRefError, setManualTransactionRefError] = React.useState("");
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
   const [isPolling, setIsPolling] = React.useState(false);
   const [shouldStopPolling, setShouldStopPolling] = React.useState(false);
@@ -199,12 +217,6 @@ export function GlobalBuyNowDialog() {
     postalCode: "",
     phone: "",
   });
-
-  React.useEffect(() => {
-    if (isAgencyUser && registrantType === "myself") {
-      setRegistrantType("customer");
-    }
-  }, [isAgencyUser, registrantType]);
 
   const isManualDetailsComplete = React.useMemo(() => {
     const required = [
@@ -498,6 +510,12 @@ export function GlobalBuyNowDialog() {
     },
     onError: (err: { message?: string }) => {
       toast.error(err.message || "Order could not be created. Please contact support.");
+    },
+  });
+
+  const recordManualPayment = trpc.paymentTransactions.recordManual.useMutation({
+    onError: (err: { message?: string }) => {
+      toast.error(err.message || "Could not record payment.");
     },
   });
 
@@ -808,6 +826,63 @@ export function GlobalBuyNowDialog() {
     immediateStepRef.current = null;
     immediatePaymentErrorRef.current = null;
   };
+  const resolvedPaymentTeamId = isTransferMode ? transferContext?.teamId : undefined;
+
+  const handleManualTransactionReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setManualTransactionReference(value);
+    if (!value.trim()) {
+      setManualTransactionRefError("Transaction reference is required");
+    } else if (value.trim().length < 3) {
+      setManualTransactionRefError("Reference must be at least 3 characters");
+    } else {
+      setManualTransactionRefError("");
+    }
+  };
+
+  const handleRecordManualPayment = async () => {
+    const ref = manualTransactionReference.trim();
+    if (!ref) {
+      setManualTransactionRefError("Transaction reference is required");
+      return;
+    }
+    if (ref.length < 3) {
+      setManualTransactionRefError("Reference must be at least 3 characters");
+      return;
+    }
+    const amount = parseFloat(paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter a valid payment amount.");
+      return;
+    }
+
+    try {
+      const result = await recordManualPayment.mutateAsync({
+        transactionReference: ref,
+        amount,
+        currency: isCartMode ? primaryCurrency : displayCurrency,
+        accountReference: accountReference.trim() || undefined,
+        transactionDesc: isTransferMode && transferContext
+          ? `Transfer ${transferContext.domain}`
+          : isCartMode
+            ? "Cart checkout"
+            : ctx?.domain?.domain
+              ? `Domain ${ctx.domain.domain}`
+              : ctx?.productName ?? "Nisc order",
+        teamId: resolvedPaymentTeamId,
+      });
+      terminalStateDetectedRef.current = true;
+      setShouldStopPolling(true);
+      setPaymentError(null);
+      immediateStepRef.current = "success";
+      setCurrentStep("success");
+      triggerOrderFromPayment(result.checkoutRequestId);
+      toast.success("Payment recorded and order submitted.");
+    } catch {
+      // onError toast
+    }
+  };
+
   const openForPayment = () => {
     setCurrentStep("payment");
     setPaymentAmount(effectiveTotal.toString());
@@ -958,6 +1033,8 @@ export function GlobalBuyNowDialog() {
       setAmountError("");
       setPriceOverrideByKey({});
       setCheckoutRequestId(null);
+      setManualTransactionReference("");
+      setManualTransactionRefError("");
       setPaymentError(null);
       setShouldStopPolling(false);
       setIsPolling(false);
@@ -1398,15 +1475,21 @@ export function GlobalBuyNowDialog() {
 
       case "payment":
         return (
-          <div className="space-y-4">
+          <BuyNowStepScroll className="space-y-6">
             <div className="text-center py-2">
               <h3 className="text-lg font-semibold text-foreground">Choose payment method</h3>
               <p className="text-sm text-muted-foreground">Select your preferred method</p>
             </div>
-            <Accordion type="single" collapsible className="w-full" value={selectedPaymentMethod ?? undefined}>
-              <AccordionItem value="mpesa" className="border rounded-lg">
+            <div className="flex flex-col gap-4">
+            <Accordion
+              type="single"
+              collapsible
+              className="flex w-full flex-col gap-4 [&>[data-slot=accordion-item]]:border-b-0"
+              value={selectedPaymentMethod ?? undefined}
+            >
+              <AccordionItem value="mpesa" className="rounded-lg border overflow-hidden shrink-0">
                 <Card className="border-0 shadow-none">
-                  <AccordionTrigger className="px-4 py-4 hover:no-underline" onClick={() => setSelectedPaymentMethod(selectedPaymentMethod === "mpesa" ? null : "mpesa")}>
+                  <AccordionTrigger className="px-5 py-4 hover:no-underline" onClick={() => setSelectedPaymentMethod(selectedPaymentMethod === "mpesa" ? null : "mpesa")}>
                     <div className="flex items-center gap-4 w-full">
                       <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
                         <img src="/mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
@@ -1417,7 +1500,7 @@ export function GlobalBuyNowDialog() {
                       </div>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
+                  <AccordionContent className="px-5 pb-4">
                     {showPaymentWaiting ? (
                       <div className="py-8 flex flex-col items-center">
                         <Spinner variant="ellipsis" size={48} className="mb-4 text-primary" />
@@ -1452,19 +1535,107 @@ export function GlobalBuyNowDialog() {
                   </AccordionContent>
                 </Card>
               </AccordionItem>
+              {isAgencyUser ? (
+                <AccordionItem value="manual" className="rounded-lg border overflow-hidden">
+                  <Card className="border-0 shadow-none">
+                    <AccordionTrigger
+                      className="px-5 py-4 hover:no-underline"
+                      onClick={() =>
+                        setSelectedPaymentMethod(selectedPaymentMethod === "manual" ? null : "manual")
+                      }
+                    >
+                      <div className="flex items-center gap-4 w-full">
+                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                          <Receipt className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold text-foreground">Record payment reference</div>
+                          <div className="text-sm text-muted-foreground">
+                            M-Pesa receipt, bank transfer, or other external payment
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-5 pb-4">
+                      <div className="space-y-4 pt-2">
+                        <p className="text-xs text-muted-foreground">
+                          Enter the transaction reference from the payment provider. This creates a successful
+                          payment record and completes the order (same as a confirmed M-Pesa payment).
+                        </p>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Transaction reference *</label>
+                          <Input
+                            placeholder="e.g. SH12345678 or bank transfer ref"
+                            value={manualTransactionReference}
+                            onChange={handleManualTransactionReferenceChange}
+                            className={manualTransactionRefError ? "border-destructive" : ""}
+                            maxLength={64}
+                          />
+                          {manualTransactionRefError ? (
+                            <p className="text-xs text-destructive">{manualTransactionRefError}</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              Must be unique. Used as the payment checkout ID for this order.
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Amount ({primaryCurr}) *</label>
+                          <Input
+                            type="number"
+                            value={paymentAmount}
+                            onChange={handleAmountChange}
+                            className={amountError ? "border-destructive" : ""}
+                            min={1}
+                          />
+                          {amountError && <p className="text-xs text-destructive">{amountError}</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Account reference</label>
+                          <Input
+                            placeholder="Optional internal reference"
+                            value={accountReference}
+                            onChange={handleAccountReferenceChange}
+                            className={accountRefError ? "border-destructive" : ""}
+                            maxLength={12}
+                          />
+                          {accountRefError && <p className="text-xs text-destructive">{accountRefError}</p>}
+                        </div>
+                        <Button
+                          onClick={() => void handleRecordManualPayment()}
+                          disabled={
+                            recordManualPayment.isPending ||
+                            createOrderFromPayment.isPending ||
+                            !manualTransactionReference.trim() ||
+                            !!manualTransactionRefError ||
+                            !paymentAmount ||
+                            !!amountError
+                          }
+                          className="w-full"
+                        >
+                          {recordManualPayment.isPending || createOrderFromPayment.isPending
+                            ? "Processing…"
+                            : "Record payment & complete order"}
+                        </Button>
+                      </div>
+                    </AccordionContent>
+                  </Card>
+                </AccordionItem>
+              ) : null}
             </Accordion>
-            <div className="border-t pt-4 space-y-2">
+            </div>
+            <div className="border-t pt-4 mt-8 space-y-2">
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(effectiveSubtotal, primaryCurr)}</span></div>
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Taxes</span><span>{formatPrice(effectiveTaxes, primaryCurr)}</span></div>
               <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Total</span><span>{formatPrice(effectiveTotal, primaryCurr)}</span></div>
             </div>
-          </div>
+          </BuyNowStepScroll>
         );
 
       case "registrant_info":
         if (isCustomerDomainCheckout) {
           return (
-            <div className="space-y-6 py-2">
+            <BuyNowStepScroll className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-foreground">Complete your profile</h3>
                 <p className="text-sm text-muted-foreground">
@@ -1533,12 +1704,12 @@ export function GlobalBuyNowDialog() {
                   </div>
                 </div>
               )}
-            </div>
+            </BuyNowStepScroll>
           );
         }
 
         return (
-          <div className="space-y-6 py-2">
+          <BuyNowStepScroll className="space-y-6">
             <div className="text-center">
               <h3 className="text-lg font-semibold text-foreground">Registrant Information</h3>
               <p className="text-sm text-muted-foreground">Select whose details to use for this domain registration.</p>
@@ -1547,12 +1718,12 @@ export function GlobalBuyNowDialog() {
             <div className="grid gap-4">
               <div
                 className={cn(
-                  "relative flex cursor-pointer rounded-lg border bg-card p-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
+                  "relative flex cursor-pointer rounded-lg border bg-card px-5 py-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
                   registrantType === "customer" ? "border-primary ring-1 ring-primary" : "border-border"
                 )}
                 onClick={() => setRegistrantType("customer")}
               >
-                <div className="flex w-full items-start gap-4">
+                <div className="flex w-full items-start gap-5">
                   <div className={cn(
                     "mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                     registrantType === "customer" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
@@ -1568,81 +1739,81 @@ export function GlobalBuyNowDialog() {
                       Manually enter the details for this registration.
                     </p>
 
-                    <Accordion type="single" collapsible value={registrantType === "customer" ? "manual-form" : ""} className="mt-4 border-none">
+                    <Accordion type="single" collapsible value={registrantType === "customer" ? "manual-form" : ""} className="mt-5 border-none">
                       <AccordionItem value="manual-form" className="border-none">
                         <AccordionContent className="pt-0 border-none">
-                          <div className="grid grid-cols-2 gap-3 pt-2" onClick={(e) => e.stopPropagation()}>
-                            <div className="space-y-1">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">First Name</p>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-5 pt-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">First Name</p>
                               <Input
                                 value={manualRegistrantDetails.firstName}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, firstName: e.target.value })}
                                 placeholder="First Name"
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                               />
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Last Name</p>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Last Name</p>
                               <Input
                                 value={manualRegistrantDetails.lastName}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, lastName: e.target.value })}
                                 placeholder="Last Name"
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                               />
                             </div>
-                            <div className="space-y-1 col-span-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Email Address</p>
+                            <div className="space-y-2 col-span-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Email Address</p>
                               <Input
                                 value={manualRegistrantDetails.email}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, email: e.target.value })}
                                 placeholder="customer@example.com"
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                                 type="email"
                               />
                             </div>
-                            <div className="space-y-1 col-span-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Physical Address</p>
+                            <div className="space-y-2 col-span-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Physical Address</p>
                               <Input
                                 value={manualRegistrantDetails.address}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, address: e.target.value })}
                                 placeholder="Street, Building, etc."
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                               />
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">City</p>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">City</p>
                               <Input
                                 value={manualRegistrantDetails.city}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, city: e.target.value })}
                                 placeholder="City"
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                               />
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Country</p>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Country</p>
                               <Input
                                 value={manualRegistrantDetails.country}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, country: e.target.value })}
                                 placeholder="Kenya"
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                               />
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Postal Code</p>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Postal Code</p>
                               <Input
                                 value={manualRegistrantDetails.postalCode}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, postalCode: e.target.value })}
                                 placeholder="e.g. 00100"
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                               />
                             </div>
-                            <div className="space-y-1">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase">Phone Number</p>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Phone Number</p>
                               <Input
                                 value={manualRegistrantDetails.phone}
                                 onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, phone: e.target.value })}
                                 placeholder="0712345678"
-                                className="h-8 text-xs"
+                                className="h-9 text-xs"
                               />
                             </div>
                           </div>
@@ -1655,19 +1826,19 @@ export function GlobalBuyNowDialog() {
 
               <div
                 className={cn(
-                  "relative flex cursor-pointer rounded-lg border bg-card p-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
+                  "relative flex cursor-pointer rounded-lg border bg-card px-5 py-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
                   registrantType === "myself" ? "border-primary ring-1 ring-primary" : "border-border"
                 )}
                 onClick={() => setRegistrantType("myself")}
               >
-                <div className="flex w-full items-start gap-4">
+                <div className="flex w-full items-start gap-5">
                   <div className={cn(
                     "mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                     registrantType === "myself" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                   )}>
                     <User className="h-5 w-5" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-foreground">Use My Details</p>
                       {registrantType === "myself" && <div className="h-2 w-2 rounded-full bg-primary" />}
@@ -1675,15 +1846,23 @@ export function GlobalBuyNowDialog() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Use your own profile details as the domain registrant.
                     </p>
-                    {userProfile && (
+                    {userInfoQuery.isLoading && registrantType === "myself" ? (
+                      <div className="mt-3 flex justify-center py-4">
+                        <Spinner size={20} />
+                      </div>
+                    ) : null}
+                    {userProfile && registrantType === "myself" ? (
                       <div className="mt-3 text-[11px] grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground bg-muted/30 p-2 rounded">
                         <div>Name: {userProfile.firstName} {userProfile.lastName}</div>
                         <div>Phone: {userProfile.phone}</div>
                         <div className="col-span-2">Address: {userProfile.address}, {userProfile.city}</div>
                       </div>
-                    )}
-                    {!isProfileComplete && (
-                      <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-md">
+                    ) : null}
+                    {registrantType === "myself" && !userInfoQuery.isLoading && !isProfileComplete ? (
+                      <div
+                        className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-md"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs font-semibold mb-1">
                           <AlertTriangle className="h-3.5 w-3.5" />
                           Profile Incomplete
@@ -1691,24 +1870,25 @@ export function GlobalBuyNowDialog() {
                         <p className="text-[11px] text-red-600/80 dark:text-red-400/80 mb-2">
                           Your profile is missing required information (address, phone, etc.) needed for domain registration.
                         </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-[10px] border-red-200 hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`/my-profile`, "_blank");
-                          }}
-                        >
-                          Complete Profile
+                        {missingProfileFields.length > 0 ? (
+                          <ul className="text-[11px] list-disc pl-4 mb-2 text-red-600/80 dark:text-red-400/80">
+                            {missingProfileFields.map((label) => (
+                              <li key={label}>{label}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        <Button size="sm" variant="outline" className="h-7 text-[10px]" asChild>
+                          <Link to="/agency/my-account" onClick={() => close()}>
+                            Complete profile
+                          </Link>
                         </Button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </BuyNowStepScroll>
         );
 
       case "success":
@@ -1783,7 +1963,7 @@ export function GlobalBuyNowDialog() {
         </DialogHeader>
         <div className="flex-1 min-h-0 px-6 overflow-hidden">
           <ScrollArea className="h-full">
-            <div className="py-4 pr-4">{renderStep()}</div>
+            <div className="py-4">{renderStep()}</div>
             <ScrollBar orientation="vertical" />
           </ScrollArea>
         </div>
