@@ -18,6 +18,10 @@ import { provisionInitialUsageCreditsForSubscription } from "./subscription-usag
 import { isKenicDomain } from "./epp/kenic-tlds";
 import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
+import {
+	computeSubscriptionExpiryFromBillingCycle,
+	resolveDomainTransferSubscriptionStartDate,
+} from "./nisc-subscription-dates";
 
 /** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
 function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
@@ -710,7 +714,14 @@ type DomainOrderItem = {
 	productPlan: { name: string; pricingModel: string; price: string | null; cost: string | null } | null;
 };
 
-type DomainOrder = { teamId: string | null; userId: string | null; createdBy: string | null; id: string; currency: string };
+type DomainOrder = {
+	teamId: string | null;
+	userId: string | null;
+	createdBy: string | null;
+	id: string;
+	currency: string;
+	createdAt: Date;
+};
 
 function billingCycleToYears(billingCycle: string | null): number {
 	if (!billingCycle) return 1;
@@ -900,6 +911,14 @@ async function processKenicTransferOrderItem(
 			period: 1,
 			nameServers,
 		});
+		const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
+			domainTransferRequestId: metadata?.domainTransferRequestId,
+			orderCreatedAt: order.createdAt,
+		});
+		const expiryDate = computeSubscriptionExpiryFromBillingCycle(
+			subscriptionDate,
+			item.billingCycle,
+		);
 		const subId = randomUUID();
 		const inserted = await db
 			.insert(niscClientSubscription)
@@ -916,8 +935,9 @@ async function processKenicTransferOrderItem(
 				niscOrderId: order.id,
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
-				subscriptionDate: new Date(),
+				subscriptionDate,
 				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
+				nextRenewalDate: expiryDate,
 				pricingModel: "FIXED",
 				agreedPrice: item.itemPrice,
 				agreedCurrency: order.currency,
@@ -925,7 +945,7 @@ async function processKenicTransferOrderItem(
 				agreedCostCurrency: "KES",
 				primaryDomain: domain,
 				openProviderId: null,
-				expiryDate: transferResult.exDate ? new Date(transferResult.exDate) : null,
+				expiryDate,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
 				metadata: null,
@@ -964,7 +984,7 @@ async function processKenicTransferOrderItem(
 }
 
 async function processOpenProviderTransferOrderItem(
-	order: { teamId: string | null; userId: string | null; createdBy: string | null; id: string; currency: string },
+	order: DomainOrder,
 	item: {
 		id: string;
 		productId: string;
@@ -1030,6 +1050,8 @@ async function processOpenProviderTransferOrderItem(
 			currency: order.currency,
 			nameServers,
 			manualDetails: metadata?.manualRegistrantDetails,
+			domainTransferRequestId: metadata?.domainTransferRequestId,
+			orderCreatedAt: order.createdAt,
 		});
 		return {
 			ok: true,

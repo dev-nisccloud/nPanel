@@ -46,9 +46,13 @@ function getStatusBadgeClass(status: string): string {
 	return statusColors[status] ?? "";
 }
 
-function serviceName(productName: string, productPlanName: string | null): string {
-	if (!productPlanName?.trim()) return productName;
-	return `${productName} - ${productPlanName}`;
+function displayServiceName(
+	productName: string,
+	productPlanName: string | null,
+	subscriptionName: string | null,
+): string {
+	const base = productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
+	return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
 }
 
 interface CustomerSubscriptionViewSheetProps {
@@ -72,6 +76,7 @@ export function CustomerSubscriptionViewSheet({
 
 	const productName = sub?.product?.name ?? "";
 	const productPlanName = sub?.productPlan?.name ?? null;
+	const subscriptionName = sub?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
 	const userName = sub?.userName ?? null;
 	const displayOwner = userName ?? teamName ?? "- ";
@@ -89,7 +94,8 @@ export function CustomerSubscriptionViewSheet({
 								{subscriptionId && isLoading ? (
 									<Skeleton className="h-6 w-48" />
 								) : (
-									serviceName(productName, productPlanName) || "Subscription"
+									displayServiceName(productName, productPlanName, subscriptionName) ||
+										"Subscription"
 								)}
 							</SheetTitle>
 							<SheetDescription>

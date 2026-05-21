@@ -985,7 +985,8 @@ export const niscServiceOrdersRouter = router({
 						with: {
 							orderItems: {
 								with: {
-									product: { columns: { name: true } },
+									product: { columns: { name: true, serviceType: true } },
+									productPlan: { columns: { name: true } },
 								},
 							},
 							user: { columns: { id: true, name: true, email: true } },
@@ -994,16 +995,32 @@ export const niscServiceOrdersRouter = router({
 					if (!orderWithUser?.user?.email) return;
 					const { sendEmail } = await import("../lib/email");
 					const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
-					const orderItems = orderWithUser.orderItems.map((i) => ({
-						name: i.primaryDomain || (i.product?.name ?? "Order item"),
-						description: i.description ?? undefined,
-						price: i.itemPrice,
-					}));
+					const { buildNiscOrderReceivedEmailItems } = await import(
+						"../lib/nisc-order-received-email"
+					);
+					const { formatNiscDateTime } = await import("../lib/nisc-datetime-format");
+					const { orderItems, totalAmount } = buildNiscOrderReceivedEmailItems({
+						createdAt: orderWithUser.createdAt,
+						currency: orderWithUser.currency,
+						subtotal: orderWithUser.subtotal,
+						orderItems: orderWithUser.orderItems.map((i) => ({
+							itemPrice: i.itemPrice,
+							itemSubtotal: i.itemSubtotal,
+							primaryDomain: i.primaryDomain,
+							billingCycle: i.billingCycle,
+							description: i.description,
+							product: {
+								name: i.product?.name ?? "Service",
+								serviceType: i.product?.serviceType ?? null,
+							},
+							productPlan: i.productPlan,
+						})),
+					});
 					const html = await renderNiscOrderReceivedEmail({
 						customerName: orderWithUser.user.name ?? undefined,
 						orderNumber: orderWithUser.orderNumber,
-						orderDate: orderWithUser.createdAt.toISOString().replace("T", " ").slice(0, 16),
-						totalAmount: orderWithUser.total,
+						orderDate: formatNiscDateTime(orderWithUser.createdAt),
+						totalAmount,
 						currency: orderWithUser.currency,
 						orderItems,
 					});

@@ -27,6 +27,7 @@ import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
+import { DomainPortfolioContactInfo, type KenicRegistrantInfo } from "./domain-portfolio-contact-info";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DomainDetailPageProps {
@@ -348,7 +349,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                   />
 
                   {/* Contact Information Card */}
-                  <ContactInformationCard domain={mergedDomain as DomainPortfolio} />
+                  <DomainPortfolioContactInfo
+                    domain={mergedDomain as DomainPortfolio}
+                    source={(mergedDomain as { source?: "kenic" | "openprovider" }).source}
+                    registrantInfo={(mergedDomain as { registrantInfo?: KenicRegistrantInfo }).registrantInfo}
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -653,79 +658,6 @@ function DomainHeaderCard({
               )}
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Contact Information Card Component
-function ContactInformationCard({ domain }: { domain: DomainPortfolio }) {
-  const [showAll, setShowAll] = React.useState(false);
-
-  const kenicInfo = (domain as any).source === "kenic" ? (domain as any).registrantInfo : null;
-
-  // Prefer live registry data for KENIC, otherwise fallback to local domain props
-  const fullName = kenicInfo?.name || domain.ownerFullName || domain.clientName || "";
-  const email = kenicInfo?.email || domain.clientEmail || "";
-  const organization = kenicInfo?.organization || "";
-  const phone = kenicInfo?.voice || "";
-  const address = kenicInfo?.address;
-
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-sm">Contact information</h3>
-          <Button
-            variant="link"
-            className="p-0 h-auto text-primary text-xs"
-            onClick={() => setShowAll(!showAll)}
-          >
-            {showAll ? "Hide" : "View all"}
-          </Button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Owner</p>
-            <p className="text-sm font-medium leading-none">{fullName}</p>
-            {organization && <p className="text-[11px] text-muted-foreground mt-1">{organization}</p>}
-          </div>
-
-          <div>
-            <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Email</p>
-            <p className="text-sm font-medium">{email}</p>
-          </div>
-
-          {showAll && (
-            <>
-              {phone && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Phone</p>
-                  <p className="text-sm font-medium">{phone}</p>
-                </div>
-              )}
-              {address && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Address</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {address.street && <span>{address.street}<br /></span>}
-                    {address.city}{address.state && `, ${address.state}`} {address.postcode}<br />
-                    {address.country}
-                  </p>
-                </div>
-              )}
-              {(domain.ownerHandle || kenicInfo?.handle) && (
-                <div>
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-medium">Registry Handle</p>
-                  <p className="text-xs font-mono bg-muted/50 p-1.5 rounded-sm inline-block">
-                    {kenicInfo?.handle || domain.ownerHandle}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
         </div>
       </CardContent>
     </Card>

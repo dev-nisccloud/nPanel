@@ -547,6 +547,8 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 	nameServers?: Array<{ name: string; ip?: string }>;
 	period?: number;
 	manualDetails?: ManualRegistrantDetails;
+	domainTransferRequestId?: string | null;
+	orderCreatedAt?: Date | null;
 }): Promise<EnsureOpenProviderTransferResult> {
 	let ownerUser: { id: string | null; name: string; email: string; profile: ManualRegistrantDetails };
 	let integration: {
@@ -810,12 +812,18 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		throw buildOpenProviderApiError(transferResponse, "Domain transfer failed");
 	}
 	const domainId = transferResponse.data?.id ?? null;
+	const { resolveDomainTransferSubscriptionStartDate } = await import("./nisc-subscription-dates");
+	const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
+		domainTransferRequestId: params.domainTransferRequestId,
+		orderCreatedAt: params.orderCreatedAt,
+	});
 	const sub = await createDomainSubscription(
 		params,
 		integration.id,
 		params.domainName,
 		domainId ?? undefined,
 		"ACTIVE",
+		{ subscriptionDate, applyBillingCycleExpiry: true },
 	);
 	return { subscriptionId: sub.id, pendingVerification: false, rawResponse: transferResponse };
 }
@@ -986,7 +994,17 @@ async function createDomainSubscription(
 	primaryDomain: string,
 	openProviderId: number | null,
 	status: "PENDING" | "ACTIVE",
+	options?: { subscriptionDate?: Date; applyBillingCycleExpiry?: boolean },
 ) {
+	const subscriptionDate = options?.subscriptionDate ?? new Date();
+	let expiryDate: Date | null = null;
+	let nextRenewalDate: Date | null = null;
+	if (options?.applyBillingCycleExpiry) {
+		const { computeSubscriptionExpiryFromBillingCycle } = await import("./nisc-subscription-dates");
+		expiryDate = computeSubscriptionExpiryFromBillingCycle(subscriptionDate, params.billingCycle);
+		nextRenewalDate = expiryDate;
+	}
+
 	const subId = crypto.randomUUID();
 	const [sub] = await db
 		.insert(niscClientSubscription)
@@ -1001,7 +1019,9 @@ async function createDomainSubscription(
 			niscOrderId: params.orderId,
 			subscribedBy: params.createdBy,
 			status,
-			subscriptionDate: new Date(),
+			subscriptionDate,
+			expiryDate,
+			nextRenewalDate,
 			billingCycle: (params.billingCycle as any) ?? null,
 			pricingModel: "FIXED",
 			agreedPrice: params.itemPrice,

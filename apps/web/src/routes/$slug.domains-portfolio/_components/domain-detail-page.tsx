@@ -27,6 +27,7 @@ import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
+import { DomainPortfolioContactInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DomainDetailPageProps {
@@ -405,7 +406,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                   />
 
                   {/* Contact Information Card */}
-                  <ContactInformationCard domain={domain} />
+                  <DomainPortfolioContactInfo domain={domain} source="openprovider" />
                 </div>
               </div>
             </TabsContent>
@@ -725,66 +726,6 @@ function DomainHeaderCard({
               )}
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Contact Information Card Component
-function ContactInformationCard({ domain }: { domain: DomainPortfolio }) {
-  const [showAll, setShowAll] = React.useState(false);
-
-  // Extract name parts if available
-  const fullName = domain.ownerFullName || domain.clientName || "";
-  const nameParts = fullName.split(" ");
-  const firstName = nameParts[0] || "";
-  const lastName = nameParts.slice(1).join(" ") || "";
-
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Contact information</h3>
-          <Button
-            variant="link"
-            className="p-0 h-auto text-primary text-sm"
-            onClick={() => setShowAll(!showAll)}
-          >
-            {showAll ? "Hide" : "View all"}
-          </Button>
-        </div>
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">Email: </span>
-            <span className="font-mono">
-              {showAll ? (domain.clientEmail || "N/A") : "**********"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">First name: </span>
-            <span className="font-mono">
-              {showAll ? (firstName || "N/A") : "******"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Last name: </span>
-            <span className="font-mono">
-              {showAll ? (lastName || "N/A") : "*****"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Phone number: </span>
-            <span className="font-mono">
-              {showAll ? "N/A" : "**********"}
-            </span>
-          </div>
-          {showAll && domain.ownerHandle && (
-            <div>
-              <span className="text-muted-foreground">Owner Handle: </span>
-              <span className="font-mono">{domain.ownerHandle}</span>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

@@ -73,12 +73,22 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function displayServiceName(
+  productName: string,
+  productPlanName: string | null,
+  subscriptionName: string | null,
+): string {
+  const base = productPlanName?.trim() ? `${productName} - ${productPlanName}` : productName;
+  return subscriptionName?.trim() ? `${base} (${subscriptionName})` : base;
+}
+
 /** Map clientSubscriptions.listForTeam item to dashboard-local row type. API dates may be ISO strings over the wire. */
 function toDashboardRow(
   sub: {
     id: string;
     productName: string;
     productPlanName: string | null;
+    subscriptionName?: string | null;
     subscriptionDate: Date | string | null;
     nextRenewalDate: Date | string | null;
     expiryDate: Date | string | null;
@@ -88,9 +98,10 @@ function toDashboardRow(
   const subDate = sub.subscriptionDate ? (sub.subscriptionDate instanceof Date ? sub.subscriptionDate : new Date(sub.subscriptionDate)) : null;
   const nextDate = sub.nextRenewalDate ?? sub.expiryDate;
   const nextRenewal = nextDate ? (nextDate instanceof Date ? nextDate : new Date(nextDate)) : null;
+  const label = displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName ?? null);
   return {
     id: sub.id,
-    planName: sub.productName,
+    planName: label,
     planType: sub.productName,
     subscriptionDate: subDate,
     nextRenewalDate: nextRenewal,
