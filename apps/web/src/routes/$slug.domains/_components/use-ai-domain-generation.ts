@@ -43,7 +43,7 @@ export function useAIDomainGeneration() {
         },
         body: JSON.stringify({
           businessDescription: businessDescription.trim(),
-          count: 6,
+          count: 12,
         }),
       });
 
