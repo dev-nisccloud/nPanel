@@ -11,9 +11,10 @@ const nullableString = z.string().optional().nullable();
 export const billingCycleSchema = z.enum(["MONTHLY", "YEARLY", "BIENNIALLY"]);
 export type BillingCycleType = z.infer<typeof billingCycleSchema>;
 
-/** Product reference (name only) in an order item. */
+/** Product reference in an order item. */
 export const orderItemProductSchema = z.object({
 	name: z.string(),
+	serviceType: nullableString,
 });
 /** Product plan reference (name only), optional for items without a plan. */
 export const orderItemProductPlanSchema = z.object({

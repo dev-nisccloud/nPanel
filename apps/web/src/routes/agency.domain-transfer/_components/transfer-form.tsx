@@ -90,8 +90,14 @@ export function TransferForm({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const utils = trpc.useUtils();
   const openForTransfer = useGlobalBuyNowStore((s) => s.openForTransfer);
-  const { data: domainsProductId, isLoading: loadingDomainsProduct } =
-    trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined);
+  const { data: transferProduct, isLoading: loadingTransferProduct } =
+    trpc.clientSubscriptions.getTransferProductId.useQuery(undefined);
+  const { data: domainsProductIdFallback, isLoading: loadingDomainsProductFallback } =
+    trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
+      enabled: transferProduct === null,
+    });
+  const domainsProductId = transferProduct?.id ?? domainsProductIdFallback ?? null;
+  const loadingDomainsProduct = loadingTransferProduct || loadingDomainsProductFallback;
   const createCheckoutRequest = trpc.domainTransfer.createCheckoutRequest.useMutation();
 
   const form = useForm<TransferFormValues>({
@@ -137,7 +143,7 @@ export function TransferForm({
         price,
         currency,
         productId: domainsProductId,
-        productName: "Domains",
+        productName: transferProduct?.name ?? "Domain transfer",
         domainTransferRequestId: checkout.id,
         provider,
         teamId: teamId ?? undefined,

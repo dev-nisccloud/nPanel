@@ -16,6 +16,7 @@ import {
 	invoiceLineItem,
 } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { buildNiscOrderInvoiceLineItemCopy } from "./nisc-order-invoice-line-items";
 
 const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
 
@@ -44,28 +45,6 @@ const BANK_PAYMENT_DETAILS = {
 const TAX_PERCENTAGE = 16;
 
 export { isTeamBillingComplete };
-
-function formatDateForInvoice(d: Date): string {
-	return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function addBillingCycleToDate(start: Date, billingCycle: string | null): Date | null {
-	if (!billingCycle) return null;
-	const end = new Date(start);
-	if (billingCycle === "MONTHLY") {
-		end.setMonth(end.getMonth() + 1);
-		return end;
-	}
-	if (billingCycle === "YEARLY") {
-		end.setFullYear(end.getFullYear() + 1);
-		return end;
-	}
-	if (billingCycle === "BIENNIALLY") {
-		end.setFullYear(end.getFullYear() + 2);
-		return end;
-	}
-	return null;
-}
 
 export async function createInvoiceForNiscOrder(
 	_prisma: unknown,
@@ -132,54 +111,48 @@ export async function createInvoiceForNiscOrder(
 	});
 
 	await db.insert(invoice).values({
-			id: newInvoiceId,
-			token,
-			teamId: order.teamId,
-			customerName: billing.legalName,
-			customerEmail: billing.billingEmail,
-			invoiceNumber: generatedInvoiceNumber,
-			status: "SENT",
-			amount: total,
-			subtotal,
-			tax,
-			taxPercentage: TAX_PERCENTAGE,
-			currency,
-			issueDate,
-			dueDate,
-			fromDetails: FROM_DETAILS,
-			customerDetails,
-			paymentDetails,
-			template: { logoUrl: COMPANY_LOGO_URL },
-			createdBy,
-			updatedBy: createdBy,
-			createdAt: now,
-			updatedAt: now,
+		id: newInvoiceId,
+		token,
+		teamId: order.teamId,
+		customerName: billing.legalName,
+		customerEmail: billing.billingEmail,
+		invoiceNumber: generatedInvoiceNumber,
+		status: "SENT",
+		amount: total,
+		subtotal,
+		tax,
+		taxPercentage: TAX_PERCENTAGE,
+		currency,
+		issueDate,
+		dueDate,
+		fromDetails: FROM_DETAILS,
+		customerDetails,
+		paymentDetails,
+		template: { logoUrl: COMPANY_LOGO_URL },
+		createdBy,
+		updatedBy: createdBy,
+		createdAt: now,
+		updatedAt: now,
 	});
 
 	const subscriptionDate = order.createdAt ?? now;
 	const lineItems: InvoiceLineItemCreate[] = order.orderItems.map((item, index) => {
-		const itemDesc = (item.description ?? "").trim().toLowerCase();
-		const isDomainRegistration = itemDesc === "registration";
-		const isDomainTransfer = itemDesc === "transfer";
-		const isDomainItem = isDomainRegistration || isDomainTransfer;
-
-		const name = isDomainItem
-			? `Domains - (${isDomainRegistration ? "Registration" : "Transfer"})`
-			: `${item.product.name}${item.productPlan ? ` - ${item.productPlan.name}` : ""}`;
-
-		const domainBrackets = item.primaryDomain?.trim() ? `(${item.primaryDomain})` : "";
-		const expiryDate = addBillingCycleToDate(subscriptionDate, item.billingCycle ?? null);
-		const subStartStr = formatDateForInvoice(subscriptionDate);
-		const subEndStr = expiryDate ? formatDateForInvoice(expiryDate) : "";
-		const subscriptionPart =
-			subEndStr !== "" ? `Subscription: ${subStartStr} - ${subEndStr}` : `Subscription: ${subStartStr} -`;
-		const description = [domainBrackets, subscriptionPart].filter(Boolean).join(". ");
+		const { name, description } = buildNiscOrderInvoiceLineItemCopy(
+			{
+				...item,
+				product: {
+					name: item.product.name,
+					serviceType: item.product.serviceType ?? null,
+				},
+			},
+			subscriptionDate,
+		);
 		return {
 			id: crypto.randomUUID(),
 			invoiceId: newInvoiceId,
 			position: index,
 			name,
-			description: description || undefined,
+			description,
 			quantity: 1,
 			price: item.itemPrice,
 			total: item.itemSubtotal,
@@ -188,27 +161,27 @@ export async function createInvoiceForNiscOrder(
 
 	for (const item of lineItems) {
 		await db.insert(invoiceLineItem).values({
-				id: item.id,
-				invoiceId: item.invoiceId,
-				position: item.position,
-				name: item.name,
-				description: item.description ?? null,
-				quantity: item.quantity,
-				price: item.price,
-				total: item.total,
-				createdAt: now,
-				updatedAt: now,
-			});
+			id: item.id,
+			invoiceId: item.invoiceId,
+			position: item.position,
+			name: item.name,
+			description: item.description ?? null,
+			quantity: item.quantity,
+			price: item.price,
+			total: item.total,
+			createdAt: now,
+			updatedAt: now,
+		});
 	}
 
 	await db.insert(invoiceActivityLog).values({
-			id: crypto.randomUUID(),
-			invoiceId: newInvoiceId,
-			userId: createdBy,
-			action: "CREATE",
-			description: "Auto-generated invoice from Nisc order",
-			metadata: { niscOrderId: order.id, orderNumber: order.orderNumber },
-			createdAt: now,
+		id: crypto.randomUUID(),
+		invoiceId: newInvoiceId,
+		userId: createdBy,
+		action: "CREATE",
+		description: "Auto-generated invoice from Nisc order",
+		metadata: { niscOrderId: order.id, orderNumber: order.orderNumber },
+		createdAt: now,
 	});
 
 	await db

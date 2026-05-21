@@ -12,6 +12,11 @@ import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import { rdapLookup } from "../lib/rdap/client";
 import { createOpenProviderClient, OpenProviderApiError } from "../lib/openprovider-client";
 import { executeKenicTransferRequest } from "../lib/kenic-transfer-request";
+import {
+	getMemberTeamIds,
+	isAgencyUserRole,
+	userIsAgencyStaff,
+} from "../lib/domain-transfer-access";
 
 /**
  * Parse domain into name and extension (extension without leading dot).
@@ -115,34 +120,6 @@ function isTransferRequestDeletable(status: string): boolean {
 	return !(NON_DELETABLE_DOMAIN_TRANSFER_REQUEST_STATUSES as readonly string[]).includes(
 		status,
 	);
-}
-
-const isAgencyUserRole = (role: string | null | undefined) =>
-	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
-
-async function getMemberTeamIds(userId: string) {
-	const memberships = await db
-		.select({ teamId: teamMember.teamId })
-		.from(teamMember)
-		.where(eq(teamMember.userId, userId));
-	return memberships.map((m) => m.teamId);
-}
-
-async function assertTransferRequestAccess(
-	userId: string,
-	userRole: string | null | undefined,
-	row: { createdById: string; teamId: string | null },
-) {
-	if (isAgencyUserRole(userRole)) return;
-	if (row.createdById === userId) return;
-	if (row.teamId) {
-		const teamIds = await getMemberTeamIds(userId);
-		if (teamIds.includes(row.teamId)) return;
-	}
-	throw new TRPCError({
-		code: "FORBIDDEN",
-		message: "You do not have access to this transfer request.",
-	});
 }
 
 function toCheckoutTransferProvider(
@@ -453,11 +430,33 @@ export const domainTransferRouter = router({
 				customerPriceAmount: z.string().optional(),
 				customerPriceCurrency: z.string().optional(),
 				teamId: z.string().optional(),
+				/** Agency only: transfer owner (customer) when starting checkout on their behalf. */
+				createdForUserId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
 			const userRole = ctx.session.user.role;
+			const createdFor = input.createdForUserId?.trim();
+			if (createdFor) {
+				if (!isAgencyUserRole(userRole) && !(await userIsAgencyStaff(userId))) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only agency users can create a transfer for another user.",
+					});
+				}
+				const [target] = await db
+					.select({ id: userTable.id })
+					.from(userTable)
+					.where(eq(userTable.id, createdFor))
+					.limit(1);
+				if (!target) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Selected user was not found.",
+					});
+				}
+			}
 			if (input.teamId && !isAgencyUserRole(userRole)) {
 				const [membership] = await db
 					.select({ id: teamMember.id })
@@ -488,7 +487,7 @@ export const domainTransferRouter = router({
 				customerPriceAmount: input.customerPriceAmount ?? null,
 				customerPriceCurrency: input.customerPriceCurrency ?? null,
 				teamId: input.teamId ?? null,
-				createdById: userId,
+				createdById: createdFor ?? userId,
 				createdAt: now,
 				updatedAt: now,
 				niscOrderId: null,
@@ -505,9 +504,6 @@ export const domainTransferRouter = router({
 	getCheckoutResumeContext: protectedProcedure
 		.input(z.object({ id: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.session.user.id;
-			const userRole = ctx.session.user.role;
-
 			const [row] = await db
 				.select({
 					id: domainTransferRequest.id,
@@ -518,7 +514,6 @@ export const domainTransferRouter = router({
 					customerPriceAmount: domainTransferRequest.customerPriceAmount,
 					customerPriceCurrency: domainTransferRequest.customerPriceCurrency,
 					teamId: domainTransferRequest.teamId,
-					createdById: domainTransferRequest.createdById,
 					niscOrderId: domainTransferRequest.niscOrderId,
 				})
 				.from(domainTransferRequest)
@@ -531,8 +526,6 @@ export const domainTransferRouter = router({
 					message: "Transfer request not found.",
 				});
 			}
-
-			await assertTransferRequestAccess(userId, userRole, row);
 
 			if (row.status !== "AWAITING_PAYMENT") {
 				throw new TRPCError({
@@ -575,7 +568,6 @@ export const domainTransferRouter = router({
 	deleteTransferRequest: protectedProcedure
 		.input(z.object({ id: z.string().min(1) }))
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.session.user.id;
 			const userRole = ctx.session.user.role;
 
 			if (!isAgencyUserRole(userRole)) {
@@ -602,8 +594,6 @@ export const domainTransferRouter = router({
 					message: "Transfer request not found.",
 				});
 			}
-
-			await assertTransferRequestAccess(userId, userRole, row);
 
 			if (!isTransferRequestDeletable(row.status)) {
 				throw new TRPCError({

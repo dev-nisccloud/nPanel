@@ -1,8 +1,39 @@
 import React from "react";
 import { Text, View } from "@react-pdf/renderer";
+import type { Style } from "@react-pdf/types";
 import { currencyList } from "@/lib/currency";
 import { pdfTypography, pdfUtils } from "@/lib/pdfStyles";
 import type { InvoiceItemDetails, Item } from "@/routes/agency.invoicing/types";
+
+function LineItemDescriptionCell({
+  text,
+  lineStyle,
+  compactLineItems,
+}: {
+  text: string;
+  lineStyle: Style;
+  compactLineItems: boolean;
+}) {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const body = lines.length > 0 ? lines : [text];
+
+  return (
+    <View style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+      {body.map((line, index) => (
+        <Text
+          key={`${index}-${line.slice(0, 24)}`}
+          wrap
+          style={{
+            ...lineStyle,
+            ...(index > 0 ? { marginTop: compactLineItems ? 2 : 4 } : {}),
+          }}
+        >
+          {line}
+        </Text>
+      ))}
+    </View>
+  );
+}
 
 export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
   note,
@@ -94,17 +125,11 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
               ...borderStyle,
             }}
           >
-            <Text
-              style={{
-                flex: 1,
-                ...lineText,
-                // Ensure long descriptions wrap cleanly instead of overflowing.
-                flexWrap: "wrap",
-                paddingRight: 12,
-              }}
-            >
-              {itemDescription}
-            </Text>
+            <LineItemDescriptionCell
+              text={itemDescription ?? ""}
+              lineStyle={lineText}
+              compactLineItems={!!compactLineItems}
+            />
             <View
               style={{
                 flex: 1,

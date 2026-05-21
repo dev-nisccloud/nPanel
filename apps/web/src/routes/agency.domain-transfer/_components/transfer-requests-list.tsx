@@ -12,6 +12,7 @@ import {
   Send,
   CreditCard,
   EllipsisVertical,
+  RefreshCw,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
@@ -45,8 +46,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-const ACTIVE_STATUSES = new Set(["AWAITING_PAYMENT", "PENDING", "SUBMITTED_TO_PROVIDER"]);
 
 const NON_DELETABLE_STATUSES = new Set(["COMPLETED", "FAILED"]);
 
@@ -147,16 +146,15 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
 
   const utils = trpc.useUtils();
 
-  const { data: requests = [], isLoading, error, isFetching } =
-    trpc.domainTransfer.listTransferRequests.useQuery(undefined, {
-      refetchInterval: (query) => {
-        const rows = query.state.data ?? [];
-        return rows.some((r) => ACTIVE_STATUSES.has(r.status)) ? 3000 : false;
-      },
-      refetchIntervalInBackground: true,
-    });
+  const { data: requests = [], isLoading, error, isFetching, refetch } =
+    trpc.domainTransfer.listTransferRequests.useQuery(undefined);
 
-  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery();
+  const { data: transferProduct } = trpc.clientSubscriptions.getTransferProductId.useQuery();
+  const { data: domainsProductIdFallback } = trpc.clientSubscriptions.getDomainsProductId.useQuery(
+    undefined,
+    { enabled: transferProduct === null },
+  );
+  const domainsProductId = transferProduct?.id ?? domainsProductIdFallback ?? null;
   const getCheckoutResume = trpc.domainTransfer.getCheckoutResumeContext.useMutation();
   const deleteTransferRequest = trpc.domainTransfer.deleteTransferRequest.useMutation({
     onSuccess: () => {
@@ -242,16 +240,21 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
     );
   }
 
-  const hasActive = requests.some((r) => ACTIVE_STATUSES.has(r.status));
-
   return (
     <div className="space-y-2">
-      {hasActive && isFetching && (
-        <p className="text-xs text-muted-foreground flex items-center gap-2 px-1">
-          <Spinner size={14} className="shrink-0" />
-          Updating transfer status…
-        </p>
-      )}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+          title="Refresh transfer requests"
+          aria-label="Refresh transfer requests"
+        >
+          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+        </Button>
+      </div>
       <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader>

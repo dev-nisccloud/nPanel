@@ -640,6 +640,13 @@ export function GlobalBuyNowDialog() {
       if (isTransferMode && transferContext) {
         const base = transferContext.price;
         const recorded = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["transfer"]) ?? base : base;
+        // Team transfers use teamId on the order; agency may also set billedForUserId (registrant).
+        const billedForUserId =
+          isAgencyUser &&
+          registrantType === "existing_customer" &&
+          selectedExistingCustomerId.trim()
+            ? selectedExistingCustomerId.trim()
+            : undefined;
         createOrderFromPayment.mutate({
           checkoutRequestId: checkoutRequestIdParam,
           items: [
@@ -658,7 +665,8 @@ export function GlobalBuyNowDialog() {
             },
           ],
           currency: transferContext.currency,
-          teamId: transferContext.teamId,
+          ...(transferContext.teamId ? { teamId: transferContext.teamId } : {}),
+          ...(billedForUserId ? { billedForUserId } : {}),
         });
         return;
       }
@@ -721,6 +729,8 @@ export function GlobalBuyNowDialog() {
       isAgencyUser,
       priceOverrideByKey,
       registrantOrderMetadata,
+      registrantType,
+      selectedExistingCustomerId,
       domainTotal,
     ]
   );
