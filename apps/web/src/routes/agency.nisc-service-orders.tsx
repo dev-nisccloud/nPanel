@@ -26,6 +26,7 @@ import { toast } from "@/components/ui/sonner";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { CreateOrderSheet } from "./agency.nisc-service-orders/_components/create-order-sheet";
 import { ViewOrderSheet } from "./agency.nisc-service-orders/_components/view-order-sheet";
+import { OrderInvoiceSection } from "./agency.nisc-service-orders/_components/order-invoice-section";
 
 const STATUS_VARIANTS: Record<string, string> = {
 	PENDING: "secondary",
@@ -194,6 +195,7 @@ export default function NiscServiceOrdersPage() {
 										<TableHead>Products</TableHead>
 										<TableHead>Total</TableHead>
 										<TableHead>Status</TableHead>
+										<TableHead>Invoice</TableHead>
 										<TableHead>Date</TableHead>
 										<TableHead className="w-12 pr-6" />
 									</TableRow>
@@ -228,6 +230,14 @@ export default function NiscServiceOrdersPage() {
 												<Badge variant={STATUS_VARIANTS[order.status] as any ?? "secondary"}>
 													{order.status}
 												</Badge>
+											</TableCell>
+											<TableCell onClick={(e) => e.stopPropagation()}>
+												<OrderInvoiceSection
+													invoiceId={order.invoiceId ?? null}
+													invoiceNumber={order.invoiceNumber ?? null}
+													metadata={order.metadata}
+													compact
+												/>
 											</TableCell>
 											<TableCell>
 												{new Date(order.createdAt).toLocaleDateString()}

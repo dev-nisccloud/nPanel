@@ -415,10 +415,10 @@ function AiDomainSearchInner() {
             <div className="max-w-2xl mx-auto space-y-3">
               <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes ai-textarea-border {
-                  0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.3); }
-                  33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 8px 1px rgba(37,99,235,0.3);  }
-                  66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 8px 1px rgba(6,182,212,0.3);  }
-                  100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.3); }
+                  0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 16px 3px rgba(124,58,237,0.4); }
+                  33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 16px 3px rgba(37,99,235,0.4);  }
+                  66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 16px 3px rgba(6,182,212,0.4);  }
+                  100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 16px 3px rgba(124,58,237,0.4); }
                 }
                 @keyframes aitab-float {
                   0%, 100% { transform: translateY(0)    scale(1);    }
@@ -440,7 +440,7 @@ function AiDomainSearchInner() {
                   transition: all 0.5s ease;
                 }
                 .ai-textarea-wrap:focus-within {
-                  box-shadow: 0 0 15px 3px rgba(124,58,237,0.4);
+                  box-shadow: 0 0 26px 5px rgba(124,58,237,0.48);
                 }
                 .ai-textarea-wrap textarea {
                   border: none !important;
@@ -478,7 +478,7 @@ function AiDomainSearchInner() {
                   </svg>
                 </div>
                 <Textarea
-                  placeholder="Describe your business in detail: offer, audience, tone, and where you operate (city/country). Mention language, B2B vs B2C, competitors to avoid, and any words or themes you want — the AI uses these signals for locally credible names and TLD guidance."
+                  placeholder="Describe your business in detail: offer, audience, tone, and where you operate (city/country). Mention language, B2B vs B2C, competitors to avoid, and any words or themes you want the AI to use for locally credible names and TLD guidance."
                   className="text-base leading-relaxed bg-background pr-10"
                   aria-label="Business description for AI domain search"
                   value={description}
@@ -527,7 +527,7 @@ function AiDomainSearchInner() {
 
           {generateIdeas.isPending ? (
             <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 list-none p-0 m-0">
-              {Array.from({ length: 6 }, (_, i) => (
+              {Array.from({ length: 12 }, (_, i) => (
                 <li key={i} className="min-w-0">
                   {CARD_SKELETON}
                 </li>

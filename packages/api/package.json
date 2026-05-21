@@ -37,6 +37,7 @@
     "googleapis": "^171.4.0",
     "openai": "^6.32.0",
     "qrcode": "^1.5.4",
+    "react": "catalog:",
     "react-email-starter": "workspace:*",
     "replicate": "^1.4.0",
     "uploadthing": "^7.7.4",
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@npanel/config": "workspace:*",
+    "@types/react": "catalog:",
     "@types/adm-zip": "^0.5.8",
     "@types/archiver": "^7.0.0",
     "@types/qrcode": "^1.5.6",

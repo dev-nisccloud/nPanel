@@ -8,6 +8,9 @@ import { protectedProcedure, router } from "../trpc";
 
 export const AI_DOMAIN_SEARCH_MODEL = "anthropic/claude-4.5-haiku";
 
+/** Number of name ideas returned per generation request. */
+export const AI_DOMAIN_SUGGESTION_COUNT = 12;
+
 // ---------- constants ----------
 
 /** TLDs always included in every batch availability check. */
@@ -57,14 +60,14 @@ const nameIdeaSchema = z.object({
 });
 
 const generateOutputSchema = z.object({
-  suggestions: z.array(nameIdeaSchema).min(6).max(6),
+  suggestions: z.array(nameIdeaSchema).min(AI_DOMAIN_SUGGESTION_COUNT).max(AI_DOMAIN_SUGGESTION_COUNT),
 });
 
 // ---------- prompts ----------
 
 function buildSystemPrompt(): string {
   return `You are a sharp, opinionated naming strategist hired to name things that end up in Fast Company.
-Your task: suggest 6 business names with matching domain labels. You do NOT default to safe, generic, or category-average suggestions.
+Your task: suggest ${AI_DOMAIN_SUGGESTION_COUNT} business names with matching domain labels. You do NOT default to safe, generic, or category-average suggestions.
 
 ## Read the brief like a strategist (do this before you invent anything)
 From the user's text, infer everything they signal — explicitly or implicitly — including where relevant:
@@ -93,14 +96,14 @@ Reflect whatever else the user gave you:
 - Distinctiveness: avoid tired generic suffixes like "-ify", "-ly", "-hub", "-io", "-pro", "-app", "-tech", "-connect", "-solutions", "-group".
 - No mindless mashups: never glue two category-obvious words together (e.g. "QuickShip", "SmartLoan", "TechSolutions") — that is not naming, it is labelling.
 
-## Name length and structure — VARY across the 6 suggestions
-Business names can be 1, 2, or 3 words. You MUST produce a varied set — do NOT give 6 single-word names. A good distribution across the 6 is roughly:
-- 2 single-word coined or unexpected names (e.g. "Notion", "Peleka", "Savanu")
-- 2 two-word names (e.g. "Black Sheep", "Ground Speed", "Lemon Drop")
-- 2 three-word names (e.g. "Dollar Shave Club", "Innocent Drinks Co", "Black Sheep Coffee") — use these only when the extra words add punch, not padding.
+## Name length and structure — VARY across the ${AI_DOMAIN_SUGGESTION_COUNT} suggestions
+Business names can be 1, 2, or 3 words. You MUST produce a varied set — do NOT give ${AI_DOMAIN_SUGGESTION_COUNT} single-word names. A good distribution across the ${AI_DOMAIN_SUGGESTION_COUNT} is roughly:
+- 4 single-word coined or unexpected names (e.g. "Notion", "Peleka", "Savanu")
+- 4 two-word names (e.g. "Black Sheep", "Ground Speed", "Lemon Drop")
+- 4 three-word names (e.g. "Dollar Shave Club", "Innocent Drinks Co", "Black Sheep Coffee") — use these only when the extra words add punch, not padding.
 Adjust the split naturally to fit the brief: a SaaS product skews shorter; a neighbourhood deli can wear three words. Never pad a name just to hit a length — every word must earn its place.
 
-## Naming strategies — use at least 5 different strategies across the 6 suggestions
+## Naming strategies — use at least 8 different strategies across the ${AI_DOMAIN_SUGGESTION_COUNT} suggestions
 You have these strategies available. Pick freely — NO strategy may be used more than twice. NO strategy is mandatory. The mix must feel deliberate, not mechanical:
 
 1. "invented_portmanteau" — blend two concepts into one new word (Pinterest = pin + interest; Snapchat = snap + chat).
@@ -112,7 +115,7 @@ You have these strategies available. Pick freely — NO strategy may be used mor
 7. "action_verb_brand" — a verb used as the full brand identity, energetic and imperative (Uber, Lyft, Zoom, Bolt, Jump).
 8. "number_or_symbol_anchor" — a number or symbol that becomes identity (7-Eleven, 3M, Heinz 57) — use sparingly and only when it has real resonance with the brief.
 
-HARD RULE: use **at least 5 distinct strategies** across the 6 suggestions. If the brief strongly suits only a few, still vary as much as it allows — no strategy more than twice.
+HARD RULE: use **at least 8 distinct strategies** across the ${AI_DOMAIN_SUGGESTION_COUNT} suggestions. If the brief strongly suits only a few, still vary as much as it allows — no strategy more than three times.
 
 ## Domain label rules (CRITICAL — read carefully):
 - The domain label is the SLD only — no dots, no TLD, no spaces.
@@ -123,12 +126,12 @@ HARD RULE: use **at least 5 distinct strategies** across the 6 suggestions. If t
 - Do NOT add hyphens to separate syllables or improve readability. "kopa-cloud" is WRONG if "kopacloud" works.
 
 ## Output format:
-Valid JSON only — a single **flat** array of exactly 6 objects (array.length === 6). No markdown, no code fences, no commentary before or after.
+Valid JSON only — a single **flat** array of exactly ${AI_DOMAIN_SUGGESTION_COUNT} objects (array.length === ${AI_DOMAIN_SUGGESTION_COUNT}). No markdown, no code fences, no commentary before or after.
 Each object must have exactly these keys:
 - "businessName": string — the brand name as it would appear on a sign or in a logo (may include spaces for multi-word names)
 - "domainName": string — SLD only; spaces collapsed, no TLD
 - "namingStrategy": exactly one of the strategy keys listed above (e.g. "modifier_noun")
-- "businessDescription": 2–3 sentences on WHY this name works — emotional resonance, audience fit, memorability, and (when geography/market was stated) how this fits **that** market's expectations and typical domain/TLD pairing — not generic global filler
+- "businessDescription": 2–3 short sentences on WHY this name works — emotional resonance, audience fit, memorability, and (when geography/market was stated) how this fits **that** market's expectations and typical domain/TLD pairing — not generic global filler. **Punctuation:** use commas and periods only. Do NOT use em dashes (—), en dashes (–), or double hyphens (--) as sentence punctuation.
 - "domainRationale": 1 sentence on why this domain label is the right choice
 - "recommendedTlds": array of up to 3 TLD strings (e.g. [".africa", ".studio", ".io"]) — only TLDs that meaningfully fit THIS specific business name and industry BEYOND the standard base set (.ke, .co.ke, .com, .net, .org). Think: creative agencies → .studio or .agency; tech SaaS → .io or .app; African regional brand → .africa; food/drink → .cafe or .bar; NGO → .org (already in base — skip). If the base set fully covers this name, return []. Each string must start with a dot and be a real registered TLD.
 
@@ -164,13 +167,14 @@ async function fetchOptionalNamingGrounding(businessDescription: string): Promis
 function buildUserPrompt(businessDescription: string, webGrounding: string | null): string {
   const tail = `
 
-Return exactly 6 JSON objects in one **flat** array (not nested inside another array). The array length must be 6.
+Return exactly ${AI_DOMAIN_SUGGESTION_COUNT} JSON objects in one **flat** array (not nested inside another array). The array length must be ${AI_DOMAIN_SUGGESTION_COUNT}.
 
 **Execution check (silent — do not print this; just enforce it):**
 1. List every constraint extracted: place, language, industry, tone, must-include/avoid words.
-2. Count name lengths: the 6 must include at least 1 single-word name, at least 1 two-word name, and at least 1 three-word name. If any length bucket is empty, replace the weakest entry.
-3. Count strategies used: at least 5 distinct strategy keys across the 6 rows; no strategy appears more than twice.
-4. If location was given: at least 3 suggestions must feel locally credible — traceable to the stated geography by sound, language roots, or market-typical naming pattern. Names that could belong to any country fail this check.`;
+2. Count name lengths: the ${AI_DOMAIN_SUGGESTION_COUNT} must include at least 2 single-word names, at least 2 two-word names, and at least 2 three-word names. If any length bucket is empty, replace the weakest entries.
+3. Count strategies used: at least 8 distinct strategy keys across the rows; no strategy appears more than three times.
+4. If location was given: at least 6 suggestions must feel locally credible — traceable to the stated geography by sound, language roots, or market-typical naming pattern. Names that could belong to any country fail this check.
+5. Scan every businessDescription: remove em dashes, en dashes, and "--" used as punctuation; rewrite with commas or periods.`;
 
   const core = `Business description:
 
@@ -318,6 +322,21 @@ function extractSuggestionRows(parsed: unknown): unknown[] {
  * Prefers a single unhyphenated word — only keeps hyphens if the
  * dehyphenated form would be invalid (too long, empty, etc.).
  */
+/** Normalize AI prose: strip em/en dashes and double-hyphen punctuation. */
+function cleanBusinessDescription(raw: string): string {
+  let t = raw.trim();
+  if (!t) return t;
+  t = t
+    .replace(/\s*[—–]\s*/g, ", ")
+    .replace(/\s+--\s+/g, ", ")
+    .replace(/,\s*,/g, ",")
+    .replace(/\s{2,}/g, " ")
+    .replace(/,\s*\./g, ".")
+    .replace(/\.\s*,/g, ".")
+    .trim();
+  return t;
+}
+
 function cleanDomainLabel(raw: string): string {
   const normalized = raw.trim().toLowerCase();
 
@@ -454,24 +473,24 @@ export const aiDomainSearchRouter = router({
       const parsed = parseSuggestionsJson(rawText);
       const rows = extractSuggestionRows(parsed);
 
-      if (rows.length !== 6) {
+      if (rows.length !== AI_DOMAIN_SUGGESTION_COUNT) {
         console.warn(
-          `[aiDomainSearch.generateNameIdeas] Expected 6 suggestion rows, got ${rows.length}. Raw (truncated):`,
+          `[aiDomainSearch.generateNameIdeas] Expected ${AI_DOMAIN_SUGGESTION_COUNT} suggestion rows, got ${rows.length}. Raw (truncated):`,
           rawText.slice(0, 500)
         );
       }
 
-      const normalized = rows.slice(0, 6).map((row) => {
+      const normalized = rows.slice(0, AI_DOMAIN_SUGGESTION_COUNT).map((row) => {
         const o = row as Record<string, unknown>;
         return {
           businessName: String(o.businessName ?? "").trim(),
-          businessDescription: String(o.businessDescription ?? "").trim(),
+          businessDescription: cleanBusinessDescription(String(o.businessDescription ?? "")),
           domainName: cleanDomainLabel(String(o.domainName ?? "")),
           recommendedTlds: parseRecommendedTlds(o.recommendedTlds),
         };
       });
 
-      // Run availability checks for all 6 names in parallel, each covering
+      // Run availability checks for all names in parallel, each covering
       // the base TLD set plus any AI-recommended extras for that name.
       const availabilityResults = await Promise.all(
         normalized.map(async (s): Promise<AvailabilityEntry[]> => {
@@ -523,10 +542,10 @@ export const aiDomainSearchRouter = router({
         });
       }
 
-      if (validated.data.suggestions.length < 6) {
+      if (validated.data.suggestions.length < AI_DOMAIN_SUGGESTION_COUNT) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "The AI returned fewer than 6 ideas. Please try again.",
+          message: `The AI returned fewer than ${AI_DOMAIN_SUGGESTION_COUNT} ideas. Please try again.`,
         });
       }
 

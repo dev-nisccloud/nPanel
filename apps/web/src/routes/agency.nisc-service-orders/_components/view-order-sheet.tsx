@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
+import { OrderInvoiceSection } from "./order-invoice-section";
 
 /** Shallow type for order items in the view to avoid deep tRPC type instantiation. */
 type ViewOrderItem = {
@@ -152,6 +153,11 @@ export function ViewOrderSheet({
 								{order.total} {order.currency}
 							</p>
 						</div>
+						<OrderInvoiceSection
+							invoiceId={order.invoiceId ?? null}
+							invoiceNumber={order.invoiceNumber ?? null}
+							metadata={order.metadata}
+						/>
 						{order.processingLogs && order.processingLogs.length > 0 && (
 							<div className="w-full">
 								<Collapsible defaultOpen={false} className="group">
