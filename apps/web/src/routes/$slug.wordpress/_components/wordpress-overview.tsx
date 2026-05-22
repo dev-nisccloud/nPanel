@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
+import { OverviewQuickActions } from "@/components/wordpress/overview-quick-actions";
 import { wordpressInstallationSchema } from "./schema";
 
 interface WordPressOverviewProps {
@@ -32,42 +33,44 @@ interface WordPressOverviewProps {
 
 export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverviewProps) {
   const getStatusBadge = () => {
-    if (wpData.status?.infected) {
-      return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">Infected</Badge>;
-    }
-    if (wpData.status?.unsupported) {
-      return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">Unsupported</Badge>;
-    }
-    if (wpData.status?.alive) {
-      return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">Online</Badge>;
-    }
-    return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">Offline</Badge>;
+    if (wpData.status?.infected) return <Badge variant="destructive">Infected</Badge>;
+    if (wpData.status?.unsupported) return <Badge variant="secondary">Unsupported</Badge>;
+    if (wpData.status?.alive) return <Badge variant="default">Online</Badge>;
+    return <Badge variant="secondary">Offline</Badge>;
   };
 
   const getSecurityBadge = () => {
     if (wpData.features?.security?.status === "secureRecommended") {
-      return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
-        <Shield className="h-3 w-3 mr-1" />
-        Secure
-      </Badge>;
+      return (
+        <Badge variant="default">
+          <Shield className="h-3 w-3 mr-1" />
+          Secure
+        </Badge>
+      );
     }
-    return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
-      <AlertTriangle className="h-3 w-3 mr-1" />
-      Needs Attention
-    </Badge>;
+    return (
+      <Badge variant="secondary">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        Needs attention
+      </Badge>
+    );
   };
 
   const getSslBadge = () => {
     if (wpData.domain?.ssl?.enabled) {
-      return <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
-        <CheckCircle className="h-3 w-3 mr-1" />
-        Enabled
-      </Badge>;
+      return (
+        <Badge variant="default">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Enabled
+        </Badge>
+      );
     }
-    return <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800">
-      <XCircle className="h-3 w-3 mr-1" />
-      Disabled
-    </Badge>;
+    return (
+      <Badge variant="secondary">
+        <XCircle className="h-3 w-3 mr-1" />
+        Disabled
+      </Badge>
+    );
   };
 
   const getUpdatesCount = () => {
@@ -111,19 +114,6 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
             <div>
               <p className="text-sm font-medium text-muted-foreground">Owner</p>
               <p className="text-base text-primary flex-1">{wpData.owner?.name || wpData.owner?.login || "Not Available"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Installation Type</p>
-              <p className="text-base text-primary flex-1">{wpData.installationType || "Not Available"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Path</p>
-              <p
-                className="text-base text-primary flex-1 min-w-0 break-all line-clamp-3"
-                title={wpData.path || undefined}
-              >
-                {wpData.path || "Not Available"}
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -304,29 +294,20 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Debug Mode:</span>
-              <Badge variant={wpData.features?.debug?.status ? "destructive" : "default"}>
-                {wpData.features?.debug?.status ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Maintenance Mode:</span>
-              <Badge variant={wpData.features?.maintenance?.status ? "secondary" : "default"}>
-                {wpData.features?.maintenance?.status ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Indexing:</span>
-              <Badge variant={wpData.features?.indexing?.status ? "default" : "secondary"}>
-                {wpData.features?.indexing?.status ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Installation Limits & Features & Capabilities - Together */}
+      <OverviewQuickActions
+        onNavigateToTab={onNavigateToTab}
+        highlights={{
+          vulnerable: wpData.features?.vulnerability?.vulnerable,
+          maintenance: wpData.features?.maintenance?.status,
+          debug: wpData.features?.debug?.status,
+          updatesCount: getUpdatesCount(),
+        }}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Installation Limits */}
         <Card>
@@ -397,24 +378,6 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
               <span className="text-sm font-medium text-muted-foreground">Action Log:</span>
               <Badge variant={wpData.features?.actionLog?.available ? "default" : "secondary"}>
                 {wpData.features?.actionLog?.available ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Hotlink Protection:</span>
-              <Badge variant={wpData.features?.hotlinkProtection?.status ? "default" : "secondary"}>
-                {wpData.features?.hotlinkProtection?.status ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Password Protection:</span>
-              <Badge variant={wpData.features?.passwordProtection?.status ? "default" : "secondary"}>
-                {wpData.features?.passwordProtection?.status ? "Enabled" : "Disabled"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Nginx Caching:</span>
-              <Badge variant={wpData.features?.nginxCaching?.status ? "default" : "secondary"}>
-                {wpData.features?.nginxCaching?.status ? "Enabled" : "Disabled"}
               </Badge>
             </div>
           </CardContent>
