@@ -53,7 +53,9 @@ import {
   DEFAULT_HOSTING_BILLING_CYCLE,
   DEFAULT_HOSTING_BILLING_INTERVAL,
   type HostingPlanType,
-  type SelectedHostingUpsell,
+  type UpsellBrowseTarget,
+  type SelectedServiceUpsell,
+  type MarketingProductOffering,
   type PricingPlanRow,
 } from "@/components/global-buy-now/hosting-steps";
 
@@ -202,6 +204,7 @@ interface SelectedUpsellPlan {
   price: number;
   currency: string;
   hostingType?: HostingPlanType;
+  upsellCategory?: "hosting" | "marketing";
 }
 
 interface SelectedAddOn {
@@ -247,7 +250,7 @@ export function GlobalBuyNowDialog() {
     DEFAULT_HOSTING_BILLING_CYCLE,
   );
   const [isSelectingMainProductPlan, setIsSelectingMainProductPlan] = React.useState(false);
-  const [hostingPlanType, setHostingPlanType] = React.useState<HostingPlanType | null>(null);
+  const [upsellBrowseTarget, setUpsellBrowseTarget] = React.useState<UpsellBrowseTarget | null>(null);
   const [hostingBillingInterval, setHostingBillingInterval] = React.useState<"monthly" | "yearly">(
     DEFAULT_HOSTING_BILLING_INTERVAL,
   );
@@ -331,6 +334,20 @@ export function GlobalBuyNowDialog() {
     trpc.products.getEmailHostingPlansForPricing.useQuery(undefined, {
       enabled: open && !isCartMode && isDomainProduct,
     });
+  const { data: digitalMarketingUpsell, isLoading: isLoadingDigitalMarketing } =
+    trpc.products.getDigitalMarketingPlansForUpsell.useQuery(undefined, {
+      enabled: open && !isCartMode && isDomainProduct,
+    });
+  const marketingOfferings: MarketingProductOffering[] = React.useMemo(
+    () =>
+      (digitalMarketingUpsell?.products ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        plans: p.plans as PricingPlanRow[],
+      })),
+    [digitalMarketingUpsell?.products],
+  );
   const webFromPrice = getMinYearlyFromPlans(webHostingPricing?.plans ?? []);
   const emailFromPrice = getMinYearlyFromPlans(emailHostingPricing?.plans ?? []);
   const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
@@ -1098,22 +1115,41 @@ export function GlobalBuyNowDialog() {
     openForPayment();
   };
 
-  const upsellToHostingSelected = React.useCallback(
-    (plans: SelectedUpsellPlan[]): SelectedHostingUpsell[] =>
-      plans
-        .map((p) => {
-          const hostingType =
-            p.hostingType ??
-            (p.productName.toLowerCase().includes("email")
-              ? "email"
-              : p.productName.toLowerCase().includes("web") ||
-                  p.productName.toLowerCase().includes("website")
-                ? "web"
-                : null);
-          if (!hostingType) return null;
-          return { ...p, hostingType };
-        })
-        .filter((p): p is SelectedHostingUpsell => p != null),
+  const upsellToServiceSelected = React.useCallback(
+    (plans: SelectedUpsellPlan[]): SelectedServiceUpsell[] =>
+      plans.map((p) => {
+        if (p.upsellCategory === "marketing" || p.hostingType == null) {
+          return {
+            category: "marketing" as const,
+            productId: p.productId,
+            productName: p.productName,
+            planId: p.planId,
+            planName: p.planName,
+            billingCycle: p.billingCycle,
+            price: p.price,
+            currency: p.currency,
+          };
+        }
+        const hostingType =
+          p.hostingType ??
+          (p.productName.toLowerCase().includes("email")
+            ? "email"
+            : p.productName.toLowerCase().includes("web") ||
+                p.productName.toLowerCase().includes("website")
+              ? "web"
+              : "web");
+        return {
+          category: "hosting" as const,
+          hostingType,
+          productId: p.productId,
+          productName: p.productName,
+          planId: p.planId,
+          planName: p.planName,
+          billingCycle: p.billingCycle,
+          price: p.price,
+          currency: p.currency,
+        };
+      }),
     [],
   );
 
@@ -1126,7 +1162,7 @@ export function GlobalBuyNowDialog() {
         setIsSelectingMainProductPlan(false);
         setCurrentStep("product");
       } else {
-        setHostingPlanType(null);
+        setUpsellBrowseTarget(null);
         setSelectedPlanId(null);
         setCurrentStep("hosting-upsell");
       }
@@ -1158,8 +1194,8 @@ export function GlobalBuyNowDialog() {
     }
   };
 
-  const handleHostingBrowsePlans = (type: HostingPlanType) => {
-    setHostingPlanType(type);
+  const openUpsellPlanSelection = (target: UpsellBrowseTarget) => {
+    setUpsellBrowseTarget(target);
     setSelectedPlanId(null);
     setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
     setIsSelectingMainProductPlan(false);
@@ -1168,51 +1204,104 @@ export function GlobalBuyNowDialog() {
     setCurrentStep("plan-selection");
   };
 
-  const handleHostingRemove = (type: HostingPlanType) => {
-    setSelectedUpsellPlans((prev) => prev.filter((p) => p.hostingType !== type));
+  const handleHostingBrowsePlans = (type: HostingPlanType) => {
+    openUpsellPlanSelection({ category: "hosting", hostingType: type });
   };
 
-  const hostingPricingPlans: PricingPlanRow[] =
-    hostingPlanType === "web"
-      ? (webHostingPricing?.plans ?? [])
-      : hostingPlanType === "email"
-        ? (emailHostingPricing?.plans ?? [])
-        : [];
-  const hostingProductFeatures =
-    hostingPlanType === "web"
-      ? (webHostingPricing?.productFeatures ?? [])
-      : hostingPlanType === "email"
-        ? (emailHostingPricing?.productFeatures ?? [])
-        : [];
-  const isLoadingHostingPlans =
-    hostingPlanType === "web"
-      ? isLoadingWebHostingPricing
-      : hostingPlanType === "email"
-        ? isLoadingEmailHostingPricing
-        : false;
+  const handleMarketingBrowsePlans = (productId: string, productName: string) => {
+    openUpsellPlanSelection({ category: "marketing", productId, productName });
+  };
+
+  const handleHostingRemove = (type: HostingPlanType) => {
+    setSelectedUpsellPlans((prev) =>
+      prev.filter((p) => p.upsellCategory === "marketing" || p.hostingType !== type),
+    );
+  };
+
+  const handleMarketingRemove = (productId: string) => {
+    setSelectedUpsellPlans((prev) =>
+      prev.filter((p) => p.upsellCategory !== "marketing" || p.productId !== productId),
+    );
+  };
+
+  const upsellPlanSelectionContext = React.useMemo(() => {
+    if (!upsellBrowseTarget) return null;
+    if (upsellBrowseTarget.category === "hosting") {
+      return {
+        title:
+          upsellBrowseTarget.hostingType === "web" ? "Website hosting" : "Email hosting",
+        plans:
+          upsellBrowseTarget.hostingType === "web"
+            ? (webHostingPricing?.plans ?? [])
+            : (emailHostingPricing?.plans ?? []),
+        productFeatures:
+          upsellBrowseTarget.hostingType === "web"
+            ? (webHostingPricing?.productFeatures ?? [])
+            : (emailHostingPricing?.productFeatures ?? []),
+        isLoading:
+          upsellBrowseTarget.hostingType === "web"
+            ? isLoadingWebHostingPricing
+            : isLoadingEmailHostingPricing,
+        planType: upsellBrowseTarget.hostingType,
+      };
+    }
+    const product = marketingOfferings.find((p) => p.id === upsellBrowseTarget.productId);
+    return {
+      title: upsellBrowseTarget.productName,
+      plans: product?.plans ?? [],
+      productFeatures: digitalMarketingUpsell?.productFeatures ?? [],
+      isLoading: isLoadingDigitalMarketing,
+      planType: undefined as HostingPlanType | undefined,
+    };
+  }, [
+    upsellBrowseTarget,
+    webHostingPricing,
+    emailHostingPricing,
+    isLoadingWebHostingPricing,
+    isLoadingEmailHostingPricing,
+    marketingOfferings,
+    digitalMarketingUpsell?.productFeatures,
+    isLoadingDigitalMarketing,
+  ]);
 
   const addSelectedPlanToUpsell = () => {
-    if (hostingPlanType && selectedPlanId) {
-      const plan = hostingPricingPlans.find((p) => p.id === selectedPlanId);
+    if (upsellBrowseTarget && selectedPlanId) {
+      const plans = upsellPlanSelectionContext?.plans ?? [];
+      const plan = plans.find((p) => p.id === selectedPlanId);
       if (!plan) return;
       const cycle =
         hostingBillingCyclesByPlanId[plan.id] ??
         (hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY");
-      const upsell = planSelectionToUpsell(plan, hostingPlanType, cycle);
-      setSelectedUpsellPlans((prev) => [
-        ...prev.filter((p) => p.hostingType !== hostingPlanType),
-        {
-          productId: upsell.productId,
-          productName: upsell.productName,
-          planId: upsell.planId,
-          planName: upsell.planName,
-          billingCycle: upsell.billingCycle,
-          price: upsell.price,
-          currency: upsell.currency,
-          hostingType: upsell.hostingType,
-        },
-      ]);
-      setHostingPlanType(null);
+      const upsell = planSelectionToUpsell(plan, upsellBrowseTarget, cycle);
+      setSelectedUpsellPlans((prev) => {
+        const without =
+          upsellBrowseTarget.category === "hosting"
+            ? prev.filter(
+                (p) =>
+                  !(
+                    (p.upsellCategory === "hosting" || p.hostingType != null) &&
+                    p.hostingType === upsellBrowseTarget.hostingType
+                  ),
+              )
+            : prev.filter(
+                (p) => !(p.upsellCategory === "marketing" && p.productId === upsellBrowseTarget.productId),
+              );
+        return [
+          ...without,
+          {
+            productId: upsell.productId,
+            productName: upsell.productName,
+            planId: upsell.planId,
+            planName: upsell.planName,
+            billingCycle: upsell.billingCycle,
+            price: upsell.price,
+            currency: upsell.currency,
+            hostingType: upsell.hostingType,
+            upsellCategory: upsell.category,
+          },
+        ];
+      });
+      setUpsellBrowseTarget(null);
       setSelectedPlanId(null);
       setCurrentStep("hosting-upsell");
       return;
@@ -1295,7 +1384,7 @@ export function GlobalBuyNowDialog() {
       setSelectedMainPlan(null);
       setPlanSelectionProductId(null);
       setIsSelectingMainProductPlan(false);
-      setHostingPlanType(null);
+      setUpsellBrowseTarget(null);
       setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
       setHostingBillingCyclesByPlanId({});
       setRegistrantStepCompleted(false);
@@ -1415,28 +1504,34 @@ export function GlobalBuyNowDialog() {
           <BuyNowStepScroll>
             <HostingUpsellStep
               domainLabel={ctx?.domain?.domain}
-              selected={upsellToHostingSelected(selectedUpsellPlans)}
+              selected={upsellToServiceSelected(selectedUpsellPlans)}
               webFromPrice={webFromPrice}
               emailFromPrice={emailFromPrice}
+              marketingProducts={marketingOfferings}
+              isLoadingMarketing={isLoadingDigitalMarketing}
               pricePeriodLabel="/yr"
               isLoadingPrices={isLoadingWebHostingPricing || isLoadingEmailHostingPricing}
-              onBrowsePlans={handleHostingBrowsePlans}
-              onChangePlan={handleHostingBrowsePlans}
-              onRemove={handleHostingRemove}
+              onBrowseHostingPlans={handleHostingBrowsePlans}
+              onChangeHostingPlan={handleHostingBrowsePlans}
+              onRemoveHosting={handleHostingRemove}
+              onBrowseMarketingPlans={handleMarketingBrowsePlans}
+              onChangeMarketingPlan={handleMarketingBrowsePlans}
+              onRemoveMarketing={handleMarketingRemove}
             />
           </BuyNowStepScroll>
         );
 
       case "plan-selection":
-        if (hostingPlanType) {
+        if (upsellBrowseTarget && upsellPlanSelectionContext) {
           return (
             <BuyNowStepScroll>
               <HostingPlanSelectionStep
-                planType={hostingPlanType}
+                selectionTitle={upsellPlanSelectionContext.title}
+                planType={upsellPlanSelectionContext.planType}
                 domainLabel={ctx?.domain?.domain}
-                plans={hostingPricingPlans}
-                productFeatures={hostingProductFeatures}
-                isLoading={isLoadingHostingPlans}
+                plans={upsellPlanSelectionContext.plans}
+                productFeatures={upsellPlanSelectionContext.productFeatures}
+                isLoading={upsellPlanSelectionContext.isLoading}
                 selectedPlanId={selectedPlanId}
                 billingInterval={hostingBillingInterval}
                 billingCyclesByPlanId={hostingBillingCyclesByPlanId}
@@ -2251,10 +2346,14 @@ export function GlobalBuyNowDialog() {
   const getTitle = () => {
     if (isCartMode) return totalItems === 1 ? "Complete your purchase" : `Review ${totalItems} items`;
     if (effectiveStep === "product") return `Buy ${hasDomain ? ctx?.domain?.domain ?? ctx?.productName : ctx?.productName}`;
-    if (effectiveStep === "hosting-upsell") return "Add hosting services";
+    if (effectiveStep === "hosting-upsell") return "Add services";
     if (effectiveStep === "plan-selection") {
-      if (hostingPlanType === "web") return "Website hosting plans";
-      if (hostingPlanType === "email") return "Email hosting plans";
+      if (upsellBrowseTarget?.category === "hosting") {
+        return upsellBrowseTarget.hostingType === "web" ? "Website hosting plans" : "Email hosting plans";
+      }
+      if (upsellBrowseTarget?.category === "marketing") {
+        return `${upsellBrowseTarget.productName} plans`;
+      }
       return `Select plan: ${planSelectionProductName}`;
     }
     if (effectiveStep === "review") return "Complete and review";
@@ -2272,7 +2371,7 @@ export function GlobalBuyNowDialog() {
       <DialogContent
         className={cn(
           "max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0",
-          effectiveStep === "plan-selection" && hostingPlanType ? "sm:max-w-2xl" : "sm:max-w-[600px]",
+          effectiveStep === "plan-selection" && upsellBrowseTarget ? "sm:max-w-2xl" : "sm:max-w-[600px]",
         )}
       >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
@@ -2280,9 +2379,9 @@ export function GlobalBuyNowDialog() {
           <DialogDescription>
             {effectiveStep === "product" && "Add optional services and proceed."}
             {effectiveStep === "hosting-upsell" &&
-              "Add website or email hosting for your domain, or skip to checkout."}
+              "Add hosting or digital marketing for your domain, or skip to checkout."}
             {effectiveStep === "plan-selection" &&
-              (hostingPlanType
+              (upsellBrowseTarget
                 ? "Compare plans and pick the billing period that works for you."
                 : "Choose a plan to continue.")}
             {effectiveStep === "review" && "Review and proceed to checkout."}
@@ -2341,7 +2440,7 @@ export function GlobalBuyNowDialog() {
                 Back
               </Button>
               <Button disabled={!selectedPlanId} onClick={addSelectedPlanToUpsell}>
-                {hostingPlanType ? "Add to order" : "Continue"}
+                {upsellBrowseTarget ? "Add to order" : "Continue"}
               </Button>
             </>
           )}

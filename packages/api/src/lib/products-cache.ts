@@ -85,3 +85,8 @@ export function addonsKey(baseProductId: string): string[] {
 export function hostingUpsellKey(): string[] {
   return ["hosting-upsell"];
 }
+
+/** Cache key for getDigitalMarketingPlansForUpsell. */
+export function digitalMarketingUpsellKey(): string[] {
+  return ["digital-marketing-upsell"];
+}
