@@ -58,6 +58,18 @@ export function VersionDetailSheet({
 
 	const supportsAiImageAnalysis = isImageMimeType(version.mimeType);
 
+	const analysesQuery = trpc.creativeAssets.listAiImageAnalyses.useQuery(
+		{ versionId: version.id },
+		{ enabled: open && supportsAiImageAnalysis },
+	);
+
+	const hasCompletedAnalysis = React.useMemo(() => {
+		for (const row of analysesQuery.data ?? []) {
+			if (row.status === "COMPLETED") return true;
+		}
+		return false;
+	}, [analysesQuery.data]);
+
 	React.useEffect(() => {
 		if (!open) {
 			setAiAnalysisSheetOpen(false);
@@ -67,8 +79,7 @@ export function VersionDetailSheet({
 	const handleOpenAiAnalysis = React.useCallback(() => {
 		if (!supportsAiImageAnalysis) return;
 		setAiAnalysisSheetOpen(true);
-		runAiAnalysisMutation.mutate({ creativeAssetVersionId: version.id });
-	}, [supportsAiImageAnalysis, version.id, runAiAnalysisMutation]);
+	}, [supportsAiImageAnalysis]);
 
 	const handleRunAiAnalysisAgain = React.useCallback(() => {
 		runAiAnalysisMutation.mutate({ creativeAssetVersionId: version.id });
@@ -233,18 +244,23 @@ export function VersionDetailSheet({
 												"h-10 gap-2 rounded-xl px-4 border-0 shadow-none",
 												supportsAiImageAnalysis ? "creative-version-ai-btn--active" : "creative-version-ai-btn--inactive",
 											)}
-											aria-label="AI analysis"
+											aria-label={
+												hasCompletedAnalysis ? "View AI analysis" : "Run AI analysis"
+											}
 										>
 											<Sparkles className="h-4 w-4 shrink-0 creative-version-ai-spark" aria-hidden />
-											<span className="text-sm font-medium">AI analysis</span>
+											<span className="text-sm font-medium">
+												{hasCompletedAnalysis ? "View AI analysis" : "Run AI analysis"}
+											</span>
 										</Button>
 									</span>
 								</TooltipTrigger>
 								<TooltipContent side="top" align="end" sideOffset={8} className="max-w-[280px] text-left leading-snug">
 									{supportsAiImageAnalysis ? (
 										<p>
-											Open AI-assisted review for this image version: highlights visual quality, clarity, and
-											ideas you can brief back to creatives. Detailed results will appear here.
+											{hasCompletedAnalysis
+												? "Open the latest AI scores, rationale, and run history for this version. Start a new run from the analysis panel when you need a fresh pass."
+												: "Open the analysis panel and run AI vision on this image when you are ready. Results are saved so you can compare runs over time."}
 										</p>
 									) : (
 										<p>
