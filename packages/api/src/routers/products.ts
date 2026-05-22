@@ -20,6 +20,7 @@ import {
     idKey,
     addonsKey,
     hostingUpsellKey,
+    digitalMarketingUpsellKey,
 } from "../lib/products-cache";
 
 // ============================================================================
@@ -804,6 +805,158 @@ export const productsRouter = router({
             }
 
             return { productFeatures, plans };
+        }),
+
+    /**
+     * Digital marketing upsell catalog (category MARKETING) for domain checkout.
+     * Returns each active product with fixed-price plans; excludes add-ons.
+     */
+    getDigitalMarketingPlansForUpsell: publicProcedure
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                products: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        description: z.string().nullable(),
+                        plans: z.array(
+                            z.object({
+                                id: z.string(),
+                                name: z.string(),
+                                niscPrice: z.string().nullable(),
+                                niscCurrency: z.string(),
+                                billingCycle: z.string(),
+                                isPopular: z.boolean(),
+                                isRecommended: z.boolean(),
+                                productId: z.string(),
+                                productName: z.string(),
+                                featureValues: z.array(
+                                    z.object({
+                                        available: z.boolean(),
+                                        valueOverride: z.string().nullable(),
+                                    }),
+                                ),
+                            }),
+                        ),
+                    }),
+                ),
+            }),
+        )
+        .query(async () => {
+            const cached = await getCached<{
+                productFeatures: Array<{ key: string; label: string }>;
+                products: Array<{
+                    id: string;
+                    name: string;
+                    description: string | null;
+                    plans: unknown[];
+                }>;
+            }>(digitalMarketingUpsellKey());
+            if (cached != null) return cached;
+
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    eq(niscProduct.category, "MARKETING"),
+                    eq(niscProduct.isAddOn, false),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
+                    plans: {
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "FIXED"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
+                    },
+                },
+            });
+
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push(f);
+                    }
+                }
+            }
+
+            const catalogProducts: Array<{
+                id: string;
+                name: string;
+                description: string | null;
+                plans: Array<{
+                    id: string;
+                    name: string;
+                    niscPrice: string | null;
+                    niscCurrency: string;
+                    billingCycle: string;
+                    isPopular: boolean;
+                    isRecommended: boolean;
+                    productId: string;
+                    productName: string;
+                    featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+                }>;
+            }> = [];
+
+            for (const product of products) {
+                const productPlans: (typeof catalogProducts)[number]["plans"] = [];
+                for (const plan of (product as { plans?: unknown[] }).plans ?? []) {
+                    const planRow = plan as {
+                        id: string;
+                        name: string;
+                        price: string | null;
+                        currency: string | null;
+                        billingCycle: string | null;
+                        isPopular: boolean | null;
+                        isRecommended: boolean | null;
+                        planFeatures?: Array<{
+                            key: string;
+                            available: boolean;
+                            valueOverride?: string | null;
+                        }>;
+                    };
+                    const planFeats = planRow.planFeatures ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+                    productPlans.push({
+                        id: planRow.id,
+                        name: planRow.name,
+                        niscPrice: planRow.price ?? null,
+                        niscCurrency: planRow.currency ?? "KES",
+                        billingCycle: planRow.billingCycle ?? "MONTHLY",
+                        isPopular: planRow.isPopular ?? false,
+                        isRecommended: planRow.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+                if (productPlans.length > 0) {
+                    catalogProducts.push({
+                        id: product.id,
+                        name: product.name,
+                        description: product.description ?? null,
+                        plans: productPlans,
+                    });
+                }
+            }
+
+            const result = { productFeatures, products: catalogProducts };
+            await setCached(digitalMarketingUpsellKey(), result);
+            return result;
         }),
 
     /** Plans for SEO customer pricing table. Matches products whose name contains "seo" (case-insensitive). Same shape as getHostingPlansForPricing. */

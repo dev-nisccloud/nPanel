@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Globe, Mail, Sparkles } from "lucide-react";
+import { BarChart3, Check, Globe, Mail, Megaphone, Sparkles, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,8 +40,13 @@ export type PricingPlanRow = {
 
 export type ProductFeatureRow = { key: string; label: string };
 
-export type SelectedHostingUpsell = {
-  hostingType: HostingPlanType;
+export type UpsellBrowseTarget =
+  | { category: "hosting"; hostingType: HostingPlanType }
+  | { category: "marketing"; productId: string; productName: string };
+
+export type SelectedServiceUpsell = {
+  category: "hosting" | "marketing";
+  hostingType?: HostingPlanType;
   productId: string;
   productName: string;
   planId: string;
@@ -50,6 +55,35 @@ export type SelectedHostingUpsell = {
   price: number;
   currency: string;
 };
+
+/** @deprecated Use SelectedServiceUpsell */
+export type SelectedHostingUpsell = SelectedServiceUpsell & { hostingType: HostingPlanType };
+
+export type MarketingProductOffering = {
+  id: string;
+  name: string;
+  description: string | null;
+  plans: PricingPlanRow[];
+};
+
+function marketingProductIcon(name: string): LucideIcon {
+  const n = name.toLowerCase();
+  if (n.includes("seo") || n.includes("search")) return BarChart3;
+  return Megaphone;
+}
+
+function marketingProductBlurb(description: string | null, name: string): string {
+  if (description?.trim()) return description.trim();
+  const n = name.toLowerCase();
+  if (n.includes("seo")) return "Improve visibility with SEO tools and reporting.";
+  if (n.includes("media") || n.includes("ads") || n.includes("ppc")) {
+    return "Run and optimize paid campaigns across major ad platforms.";
+  }
+  if (n.includes("email")) return "Send campaigns and grow your audience with email marketing.";
+  if (n.includes("creative") || n.includes("design")) return "Creative assets and design support for your brand.";
+  if (n.includes("social")) return "Manage and grow your social presence.";
+  return "Add this digital marketing service to your order.";
+}
 
 const formatPrice = (price: number, currency = "KES") => {
   const code = currency || "KES";
@@ -160,15 +194,19 @@ function PlanFeatureChips({ chips, extraCount }: { chips: PlanFeatureChip[]; ext
 
 type HostingUpsellStepProps = {
   domainLabel?: string;
-  selected: SelectedHostingUpsell[];
-  /** Lowest yearly price (after annual discount) for marketing */
+  selected: SelectedServiceUpsell[];
   webFromPrice: number | null;
   emailFromPrice: number | null;
+  marketingProducts?: MarketingProductOffering[];
+  isLoadingMarketing?: boolean;
   pricePeriodLabel?: string;
   isLoadingPrices?: boolean;
-  onBrowsePlans: (type: HostingPlanType) => void;
-  onChangePlan: (type: HostingPlanType) => void;
-  onRemove: (type: HostingPlanType) => void;
+  onBrowseHostingPlans: (type: HostingPlanType) => void;
+  onChangeHostingPlan: (type: HostingPlanType) => void;
+  onRemoveHosting: (type: HostingPlanType) => void;
+  onBrowseMarketingPlans: (productId: string, productName: string) => void;
+  onChangeMarketingPlan: (productId: string, productName: string) => void;
+  onRemoveMarketing: (productId: string) => void;
 };
 
 export function HostingUpsellStep({
@@ -176,23 +214,30 @@ export function HostingUpsellStep({
   selected,
   webFromPrice,
   emailFromPrice,
+  marketingProducts = [],
+  isLoadingMarketing = false,
   pricePeriodLabel = "/yr",
   isLoadingPrices = false,
-  onBrowsePlans,
-  onChangePlan,
-  onRemove,
+  onBrowseHostingPlans,
+  onChangeHostingPlan,
+  onRemoveHosting,
+  onBrowseMarketingPlans,
+  onChangeMarketingPlan,
+  onRemoveMarketing,
 }: HostingUpsellStepProps) {
-  const webSelected = selected.find((p) => p.hostingType === "web");
-  const emailSelected = selected.find((p) => p.hostingType === "email");
+  const webSelected = selected.find((p) => p.category === "hosting" && p.hostingType === "web");
+  const emailSelected = selected.find((p) => p.category === "hosting" && p.hostingType === "email");
+  const marketingSelectedByProduct = (productId: string) =>
+    selected.find((p) => p.category === "marketing" && p.productId === productId);
 
   return (
     <div className="space-y-3">
       <div className="rounded-xl border border-border/80 bg-muted/30 px-4 py-3">
-        <p className="text-sm font-medium text-foreground">Power up your domain</p>
+        <p className="text-sm font-medium text-foreground">Grow with your domain</p>
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
           {domainLabel
-            ? `Optional hosting for ${domainLabel}. Skip anytime, you can add this later.`
-            : "Add website or email hosting now, or continue without."}
+            ? `Optional hosting and digital marketing for ${domainLabel}. Skip any time — add later from your dashboard.`
+            : "Add hosting or digital marketing services now, or continue without."}
         </p>
       </div>
 
@@ -206,9 +251,9 @@ export function HostingUpsellStep({
           pricePeriodLabel={pricePeriodLabel}
           isLoadingPrice={isLoadingPrices}
           selected={webSelected}
-          onBrowse={() => onBrowsePlans("web")}
-          onChange={() => onChangePlan("web")}
-          onRemove={() => onRemove("web")}
+          onBrowse={() => onBrowseHostingPlans("web")}
+          onChange={() => onChangeHostingPlan("web")}
+          onRemove={() => onRemoveHosting("web")}
         />
         <HostingServiceCard
           type="email"
@@ -219,11 +264,50 @@ export function HostingUpsellStep({
           pricePeriodLabel={pricePeriodLabel}
           isLoadingPrice={isLoadingPrices}
           selected={emailSelected}
-          onBrowse={() => onBrowsePlans("email")}
-          onChange={() => onChangePlan("email")}
-          onRemove={() => onRemove("email")}
+          onBrowse={() => onBrowseHostingPlans("email")}
+          onChange={() => onChangeHostingPlan("email")}
+          onRemove={() => onRemoveHosting("email")}
         />
       </div>
+
+      {(isLoadingMarketing || marketingProducts.length > 0) && (
+        <div className="space-y-2 pt-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-0.5">
+            Digital marketing
+          </p>
+          {isLoadingMarketing ? (
+            <div className="grid gap-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {marketingProducts.map((product) => {
+                const Icon = marketingProductIcon(product.name);
+                const fromPrice = getMinYearlyFromPlans(product.plans);
+                const selectedPlan = marketingSelectedByProduct(product.id);
+                return (
+                  <HostingServiceCard
+                    key={product.id}
+                    type="web"
+                    icon={Icon}
+                    title={product.name}
+                    description={marketingProductBlurb(product.description, product.name)}
+                    fromPrice={fromPrice}
+                    pricePeriodLabel={pricePeriodLabel}
+                    isLoadingPrice={false}
+                    selected={selectedPlan}
+                    onBrowse={() => onBrowseMarketingPlans(product.id, product.name)}
+                    onChange={() => onChangeMarketingPlan(product.id, product.name)}
+                    onRemove={() => onRemoveMarketing(product.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -247,7 +331,7 @@ function HostingServiceCard({
   description: string;
   fromPrice: number | null;
   isLoadingPrice: boolean;
-  selected?: SelectedHostingUpsell;
+  selected?: SelectedServiceUpsell;
   onBrowse: () => void;
   onChange: () => void;
   onRemove: () => void;
@@ -342,7 +426,9 @@ function HostingServiceCard({
 }
 
 type HostingPlanSelectionStepProps = {
-  planType: HostingPlanType;
+  /** When set, used instead of hosting-specific title */
+  selectionTitle?: string;
+  planType?: HostingPlanType;
   domainLabel?: string;
   plans: PricingPlanRow[];
   productFeatures: ProductFeatureRow[];
@@ -356,6 +442,7 @@ type HostingPlanSelectionStepProps = {
 };
 
 export function HostingPlanSelectionStep({
+  selectionTitle,
   planType,
   domainLabel,
   plans,
@@ -379,7 +466,9 @@ export function HostingPlanSelectionStep({
     });
   }, [plans]);
 
-  const title = planType === "web" ? "Website hosting" : "Email hosting";
+  const title =
+    selectionTitle ??
+    (planType === "web" ? "Website hosting" : planType === "email" ? "Email hosting" : "Select a plan");
 
   if (isLoading) {
     return (
@@ -394,7 +483,7 @@ export function HostingPlanSelectionStep({
   if (sortedPlans.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-        No {planType === "web" ? "website" : "email"} hosting plans are available right now.
+        No plans are available for this service right now.
       </div>
     );
   }
@@ -551,14 +640,27 @@ export function HostingPlanSelectionStep({
 
 export function planSelectionToUpsell(
   plan: PricingPlanRow,
-  hostingType: HostingPlanType,
+  target: UpsellBrowseTarget,
   billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY",
-): SelectedHostingUpsell {
+): SelectedServiceUpsell {
   const price = parseFloat(plan.niscPrice || "0");
   const monthly = monthlyFromPlanPrice(price, plan.billingCycle);
   const total = totalForCycle(monthly, billingCycle);
+  if (target.category === "hosting") {
+    return {
+      category: "hosting",
+      hostingType: target.hostingType,
+      productId: plan.productId,
+      productName: plan.productName,
+      planId: plan.id,
+      planName: plan.name,
+      billingCycle,
+      price: total,
+      currency: plan.niscCurrency || "KES",
+    };
+  }
   return {
-    hostingType,
+    category: "marketing",
     productId: plan.productId,
     productName: plan.productName,
     planId: plan.id,
