@@ -1,3 +1,4 @@
+/** @deprecated Use tab components under @/components/wordpress/tabs */
 "use client";
 
 import * as React from "react";

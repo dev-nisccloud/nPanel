@@ -1,5 +1,5 @@
 import { useParams } from "react-router";
-import { WordPressDetailPage } from "./agency.wordpress/_components/wordpress-detail-page";
+import { WordPressDetailPage } from "@/components/wordpress/detail/wordpress-detail-page";
 import React, { Component, ErrorInfo, ReactNode } from "react";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -46,7 +46,11 @@ export default function WordPressDetailRoute() {
 
   return (
     <ErrorBoundary>
-      <WordPressDetailPage installationId={id} />
+      <WordPressDetailPage
+        installationId={id}
+        backTo="/agency/wordpress"
+        backLabel="Back to WordPress"
+      />
     </ErrorBoundary>
   );
 }
