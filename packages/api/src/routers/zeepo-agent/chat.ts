@@ -29,6 +29,8 @@ import { getZeepoAgentSkillById } from "./skills-catalog";
 import {
 	checkDomainAvailabilityArgsSchema,
 	createDocumentArgsSchema,
+	createImagePresentationArgsSchema,
+	createPresentationArgsSchema,
 	getSessionInfoArgsSchema,
 	listModelsArgsSchema,
 	runMediaGenerationArgsSchema,
@@ -515,6 +517,94 @@ export const zeepoAgentChatRouter = router({
 								};
 							}
 						}
+					} else if (tc.name === "create_presentation") {
+						const parsedArgs = createPresentationArgsSchema.safeParse(rawArgs);
+						if (!parsedArgs.success) {
+							resultPayload = {
+								error: `create_presentation received invalid arguments: ${parsedArgs.error.message}`,
+							};
+						} else {
+							try {
+								const presId = randomUUID();
+								const now = new Date();
+								await db.insert(zeepoAgentGeneration).values({
+									id: presId,
+									sessionId: input.sessionId,
+									messageId: null,
+									userId,
+									teamId: session.teamId ?? null,
+									modelCategory: "presentation",
+									modelId: "zeepo/presentation",
+									status: "COMPLETED",
+									prompt: parsedArgs.data.title,
+									inputs: {},
+									outputs: {
+										presentation: {
+											title: parsedArgs.data.title,
+											theme: parsedArgs.data.theme,
+											slides: parsedArgs.data.slides,
+										},
+									},
+									createdAt: now,
+									updatedAt: now,
+									completedAt: now,
+								});
+								resultPayload = {
+									_tool: "create_presentation",
+									status: "CREATED",
+									title: parsedArgs.data.title,
+									slideCount: parsedArgs.data.slides.length,
+								};
+							} catch (e: any) {
+								resultPayload = {
+									error: `Presentation creation failed: ${e?.message ?? "Unknown error"}`,
+								};
+							}
+						}
+					} else if (tc.name === "create_image_presentation") {
+						const parsedArgs = createImagePresentationArgsSchema.safeParse(rawArgs);
+						if (!parsedArgs.success) {
+							resultPayload = {
+								error: `create_image_presentation received invalid arguments: ${parsedArgs.error.message}`,
+							};
+						} else {
+							try {
+								const presId = randomUUID();
+								const now = new Date();
+								await db.insert(zeepoAgentGeneration).values({
+									id: presId,
+									sessionId: input.sessionId,
+									messageId: null,
+									userId,
+									teamId: session.teamId ?? null,
+									modelCategory: "image-presentation",
+									modelId: "zeepo/image-presentation",
+									status: "COMPLETED",
+									prompt: parsedArgs.data.title,
+									inputs: {},
+									outputs: {
+										imagePresentation: {
+											title: parsedArgs.data.title,
+											slides: parsedArgs.data.slides,
+										},
+									},
+									createdAt: now,
+									updatedAt: now,
+									completedAt: now,
+								});
+								resultPayload = {
+									_tool: "create_image_presentation",
+									status: "CREATED",
+									title: parsedArgs.data.title,
+									slideCount: parsedArgs.data.slides.length,
+									hasImages: parsedArgs.data.slides.some(s => Boolean(s.imageUrl)),
+								};
+							} catch (e: any) {
+								resultPayload = {
+									error: `Image presentation creation failed: ${e?.message ?? "Unknown error"}`,
+								};
+							}
+						}
 					} else if (tc.name === "check_domain_availability") {
 						const parsedArgs =
 							checkDomainAvailabilityArgsSchema.safeParse(rawArgs);
@@ -698,7 +788,7 @@ export const zeepoAgentChatRouter = router({
 						}
 					} else {
 						resultPayload = {
-							error: `Unknown tool "${tc.name}". Available: get_user_session, create_document, check_domain_availability, web_search, list_models, run_media_generation.`,
+							error: `Unknown tool "${tc.name}". Available: get_user_session, create_document, create_presentation, create_image_presentation, check_domain_availability, web_search, list_models, run_media_generation.`,
 						};
 					}
 

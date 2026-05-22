@@ -20,7 +20,7 @@ export function SecurityMeasuresCard({ installationId }: { installationId: numbe
 
   const { data: catalog } = trpc.plesk.wpFeatures.getSecurityMeasures.useQuery();
   const { data: statusData, refetch: refetchStatus } = trpc.plesk.wpFeatures.getSecurityStatus.useQuery({
-    installationIds: [installationId],
+    installationsIds: [installationId],
   });
 
   const rawMeasures = Array.isArray(catalog?.data)

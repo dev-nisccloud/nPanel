@@ -11,13 +11,17 @@ import type { DomainPortfolio } from "./domain-portfolio-card";
 interface DnsTabProps {
   domain: DomainPortfolio;
   onHostingClick: (type: "web" | "email") => void;
+  /** Customer view: scopes Plesk lookup to subscriptions linked to this team (same as overview). */
+  isAgency?: boolean;
+  teamId?: string | null;
 }
 
-export function DnsTab({ domain, onHostingClick }: DnsTabProps) {
-  // Check for hosting subscription
+export function DnsTab({ domain, onHostingClick, isAgency = false, teamId = null }: DnsTabProps) {
   const { data: hostingData, isLoading } = trpc.hosting.getHostingByDomainName.useQuery(
-    { domainName: domain.domain },
-    { enabled: !!domain.domain }
+    isAgency
+      ? { domainName: domain.domain }
+      : { domainName: domain.domain, teamId: teamId ?? undefined },
+    { enabled: !!domain.domain && (isAgency || !!teamId) },
   );
 
   const hasHosting = hostingData?.hasHosting ?? false;

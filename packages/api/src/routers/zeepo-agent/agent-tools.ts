@@ -31,7 +31,11 @@ const sharedInputsSchema = z.object({
 
 /** Per-category whitelisted optional input bag. Unknown keys are dropped. */
 const imageInputsSchema = sharedInputsSchema.extend({
-	aspect_ratio: z.enum(["1:1", "3:2", "16:9", "9:16", "4:3", "3:4"]).optional(),
+	// Note: aspect_ratio support varies by model.
+	// gpt-image-2 (design specialist) only accepts "1:1", "3:2", "2:3".
+	// Flux/SDXL-class models additionally support "16:9", "9:16", "4:3", "3:4".
+	// The server passes the value straight to Replicate; mismatches return 422.
+	aspect_ratio: z.enum(["1:1", "3:2", "2:3", "16:9", "9:16", "4:3", "3:4"]).optional(),
 	reference_image_url: z.string().url().optional(),
 	output_format: z.enum(["png", "jpg", "webp"]).optional(),
 	/** Set to "png" when generating design assets (logos, cards) to preserve transparency */
@@ -113,6 +117,130 @@ export const createDocumentArgsSchema = z.object({
 	content: z.string().min(1).max(80000),
 });
 
+// ── Presentation slide schemas ────────────────────────────────────────────────
+
+export const presentationSlideSchema = z.object({
+	/** Visual layout of this slide. */
+	layout: z.enum([
+		"title",         // Hero cover — title + subtitle centred, optional bg image
+		"content",       // Title + body paragraph, optional side image
+		"bullets",       // Title + bullet list, optional side image
+		"image-full",    // Full-bleed image with gradient text overlay at bottom
+		"two-column",    // Title + two equal content columns
+		"quote",         // Large pull-quote, centred, decorative marks
+		"section-break", // Accent-colour divider card between sections
+		"stats",         // Grid of 2–4 large KPI numbers with labels
+		"chart",         // SVG bar or donut chart with labels
+		"timeline",      // Horizontal timeline of dated events
+		"big-number",    // Single giant statistic with context copy
+	]),
+	title: z.string().max(200).optional(),
+	subtitle: z.string().max(300).optional(),
+	/** Paragraph body (plain text or simple markdown **bold** / *italic*). */
+	body: z.string().max(2000).optional(),
+	/** Bullet-list items (max 7 for readability). */
+	bullets: z.array(z.string().max(300)).max(7).optional(),
+	/** Left-column content for two-column layout. */
+	leftContent: z.string().max(1000).optional(),
+	/** Right-column content for two-column layout. */
+	rightContent: z.string().max(1000).optional(),
+	/**
+	 * UploadThing image URL for this slide's image / background.
+	 * MUST be an UploadThing CDN URL (utfs.io / uploadthing.com).
+	 * Never pass a Replicate-hosted URL here — first call run_media_generation,
+	 * wait for the generation to complete and appear in SESSION ASSETS, then
+	 * pass the UploadThing FILE_URL returned there.
+	 * ALWAYS set imagePosition when setting imageUrl.
+	 */
+	imageUrl: z.string().url().optional(),
+	/**
+	 * Where the image is placed. REQUIRED when imageUrl is set.
+	 * "background" = full-bleed behind text (use with title, content, bullets, image-full).
+	 * "right" / "left" = image panel beside content (use with content, bullets).
+	 */
+	imagePosition: z.enum(["background", "right", "left"]).optional(),
+	/** Hex slide background colour override (e.g. "#1a1a2e"). */
+	bgColor: z.string().max(20).optional(),
+	/** Hex text colour override — leave blank and let auto-contrast pick it. */
+	textColor: z.string().max(20).optional(),
+	/** Hex accent / highlight colour for this slide. */
+	accentColor: z.string().max(20).optional(),
+	/** Presenter speaker notes (not shown on slide, exported to PPTX). */
+	notes: z.string().max(1000).optional(),
+	/** Data for the "stats" layout. 2–4 items. */
+	stats: z.array(z.object({
+		/** Big display value, e.g. "10K+", "$2.4M", "99.9%". */
+		value: z.string().max(30),
+		/** Short label beneath the value. */
+		label: z.string().max(80),
+		/** Optional change indicator, e.g. "↑ 43%" or "+120% YoY". */
+		delta: z.string().max(40).optional(),
+		/** Optional emoji icon beside the value. */
+		icon: z.string().max(4).optional(),
+	})).min(2).max(4).optional(),
+	/** Data for the "chart" layout. */
+	chartData: z.object({
+		type: z.enum(["bar", "donut"]),
+		/** Category labels (one per value). */
+		labels: z.array(z.string().max(30)).min(2).max(10),
+		/** Numeric values matching labels. */
+		values: z.array(z.number()).min(2).max(10),
+		/** Optional hex colours per bar/segment. */
+		colors: z.array(z.string().max(20)).max(10).optional(),
+		/** Optional unit suffix for bar chart value labels, e.g. "K", "%", "M". */
+		unit: z.string().max(8).optional(),
+	}).optional(),
+	/** Events for the "timeline" layout. 3–6 items recommended. */
+	timeline: z.array(z.object({
+		date: z.string().max(40),
+		event: z.string().max(120),
+		detail: z.string().max(180).optional(),
+	})).min(2).max(6).optional(),
+});
+
+export const createPresentationArgsSchema = z.object({
+	/** Deck title shown on the cover slide and in the export filename. */
+	title: z.string().min(1).max(200),
+	/** Visual theme applied to all slides (individual slides can override colours). */
+	theme: z.enum(["dark", "light", "branded", "minimal"]),
+	/** All slides in order. 1–40 slides. */
+	slides: z.array(presentationSlideSchema).min(1).max(40),
+});
+
+export type CreatePresentationArgs = z.infer<typeof createPresentationArgsSchema>;
+export type PresentationSlide = z.infer<typeof presentationSlideSchema>;
+
+// ── Image Presentation schemas ────────────────────────────────────────────────
+
+/** A single slide in an image-based presentation. */
+export const imagePresentationSlideSchema = z.object({
+	/**
+	 * Detailed image-generation prompt for this slide.
+	 * Write as a vivid, scene-describing prompt (style, lighting, composition, subject).
+	 */
+	prompt: z.string().min(1).max(800),
+	/**
+	 * UploadThing CDN URL (utfs.io / uploadthing.com) for this slide's image.
+	 * Leave blank on the first call (images are still generating).
+	 * Fill in on the second call once the FILE_URL appears in RECENT GENERATIONS.
+	 */
+	imageUrl: z.string().url().optional(),
+	/** Short caption displayed at the bottom of the slide (optional). */
+	caption: z.string().max(200).optional(),
+	/** Presenter notes (not shown on slide). */
+	notes: z.string().max(500).optional(),
+});
+
+export const createImagePresentationArgsSchema = z.object({
+	/** Deck title. Also used as the export filename. */
+	title: z.string().min(1).max(200),
+	/** Slides in order. Each slide becomes one generated image. 1–20 slides. */
+	slides: z.array(imagePresentationSlideSchema).min(1).max(20),
+});
+
+export type CreateImagePresentationArgs = z.infer<typeof createImagePresentationArgsSchema>;
+export type ImagePresentationSlide = z.infer<typeof imagePresentationSlideSchema>;
+
 /**
  * No arguments — the tool always queries the session of the currently
  * authenticated user. Agents cannot query another user's session.
@@ -141,6 +269,7 @@ export type WebSearchArgs = z.infer<typeof webSearchArgsSchema>;
 export type CheckDomainAvailabilityArgs = z.infer<typeof checkDomainAvailabilityArgsSchema>;
 export type CreateDocumentArgs = z.infer<typeof createDocumentArgsSchema>;
 export type GetSessionInfoArgs = z.infer<typeof getSessionInfoArgsSchema>;
+// CreatePresentationArgs and PresentationSlide are exported above with the schema.
 
 export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them through the "tool_calls" array):
 
@@ -204,4 +333,154 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
      - model_id? : string — MUST be an id you saw in a list_models result for the same category. Omit to use the default for the category.
      - requires? : capability keys the chosen model MUST satisfy (e.g. ["audio_generation"] for video with audio; ["design"] to force the design-specialist model for logos, cards, flyers). The server validates this.
      - inputs? : optional category-specific knobs (image: {aspect_ratio, reference_image_url, output_format, negative_prompt, seed}; video: {aspect_ratio, duration_seconds, reference_image_url, with_audio, negative_prompt, seed}; audio: {voice, duration_seconds, negative_prompt, seed}; text: {max_tokens, negative_prompt, seed}; background-remover: {image: <url>}). Unknown keys are rejected.
-   Returns: { generationId, status: "QUEUED", modelId, category } (for your context only — never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now — you'll see it in Generations when ready.").`;
+       IMPORTANT — aspect_ratio for images: the default model (gpt-image-2) ONLY accepts "1:1", "3:2", or "2:3". Do NOT pass "16:9", "9:16", "4:3", or "3:4" with the default model — this causes a 422 error. Use "3:2" for landscape (widescreen slide backgrounds), "1:1" for square assets, and "2:3" for portrait. Other ratios are only valid when you explicitly pick a Flux/SDXL-class model via model_id.
+   Returns: { generationId, status: "QUEUED", modelId, category } (for your context only — never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now — you'll see it in Generations when ready.").
+
+7) create_presentation
+   Purpose: produce a professionally designed slide deck — pitches, strategy decks, proposals, reports, educational content, or any multi-slide deliverable. Exports: PDF, PPTX (PowerPoint), PNG per slide.
+
+   ── ARGUMENTS ──────────────────────────────────────────────────────────────
+   - title  : string — deck title shown on cover slide and export filename.
+   - theme  : "dark" | "light" | "branded" | "minimal"
+       • dark     — deep navy (#0a0f1e) bg, white text, indigo accent. Bold, cinematic. Best for pitches, tech, night-mode content.
+       • light    — near-white (#f8fafc) bg, near-black text, blue accent. Clean, corporate. Best for reports, client decks, daytime presentations.
+       • branded  — deep indigo (#1e1b4b) bg, lavender text, purple accent. Distinctive, premium. Best for brand presentations.
+       • minimal  — pure white bg, black text, black accent. Editorial, typographic. Best for design-focused, editorial content.
+   - slides : array of slide objects (1–40). See layouts and design rules below.
+
+   ── SLIDE LAYOUTS ──────────────────────────────────────────────────────────
+   Choose layouts that vary through the deck — never use the same layout 3+ times in a row.
+
+   "title"        Hero cover. Fields: title (required), subtitle, imageUrl+imagePosition="background".
+                  Use ONLY for the opening cover slide or major section openers.
+
+   "section-break" Chapter divider. Fields: title (required), subtitle. Has its own accent bg automatically.
+                  Use between major sections. Keep title short (3–6 words).
+
+   "content"      Title + paragraph body. Fields: title, body (use **bold** for key phrases), imageUrl+imagePosition="right"|"left"|"background".
+                  Best for: executive summaries, single concept explanations, image+text pairs.
+
+   "bullets"      Title + bullet list. Fields: title, subtitle?, bullets[] (3–6 items max). Optional imageUrl+imagePosition="right"|"left".
+                  Each bullet: concise, 10–15 words max. NO full sentences. Lead with the key fact.
+                  Best for: key points, features, recommendations.
+
+   "two-column"   Title + two equal columns. Fields: title, leftContent, rightContent.
+                  Best for: comparisons, before/after, pros/cons, two perspectives. Use **bold** for sub-headings within columns.
+
+   "quote"        Single pull-quote. Fields: body (the quote text, 20–60 words), subtitle (attribution — write as plain name/title, no leading dash or em dash, e.g. "Jane Doe, CEO" not "— Jane Doe").
+                  Best for: testimonials, key insights, thought leadership moments.
+
+   "image-full"   Full-bleed image with title+subtitle overlaid. Fields: title, subtitle?, imageUrl (REQUIRED — imagePosition is implied "background").
+                  Best for: visual impact moments, photography, scene-setting.
+
+   "stats"        Grid of 2–4 large KPI numbers. Fields: title, stats[] with {value, label, delta?, icon?}.
+                  values: short strings like "10K+", "$2.4M", "99.9%", "3×". delta: change indicator like "↑ 43%".
+                  Best for: impact metrics, financial highlights, growth proof.
+
+   "chart"        SVG bar or donut chart. Fields: title, subtitle?, chartData: {type:"bar"|"donut", labels[], values[], colors[]?, unit?}.
+                  bar: up to 8 bars (vertical). donut: up to 6 segments. Provide real/estimated numbers.
+                  Best for: revenue breakdowns, survey results, market share, performance over time.
+
+   "timeline"     Horizontal event timeline. Fields: title, timeline[]: {date, event, detail?}. 3–5 events ideal.
+                  Best for: roadmaps, company history, project phases, go-to-market sequence.
+
+   "big-number"   Single giant statistic. Fields: title (the big number/stat), subtitle (what it measures), body (1–2 sentences of context).
+                  Best for: opening impact, single most important proof point, wow moments.
+
+   ── DESIGN RULES (MANDATORY — follow every one) ─────────────────────────────
+   1. CONTRAST FIRST — Never put light text on a light background or dark text on a dark background.
+      • If bgColor is light (#ffffff, #f8fafc, #f0f0f0, any hex where R+G+B > 400): use dark textColor (#0f172a, #111827, #18181b).
+      • If bgColor is dark (#0a0f1e, #1e1b4b, any hex where R+G+B < 300): use light textColor (#f8fafc, #ffffff, #e0e7ff).
+      • NEVER override textColor at all unless you're also setting a custom bgColor — let the renderer auto-compute contrast.
+      • NEVER set textColor="#ffffff" on a white or near-white bgColor. This is the most common mistake — it makes text invisible.
+
+   2. COLOUR HARMONY — accent colours must contrast with both bg and text.
+      • On dark bg: bright/saturated accents work well (#6366f1, #22d3ee, #f59e0b, #10b981, #f43f5e).
+      • On light bg: medium-dark accents only (#2563eb, #7c3aed, #059669, #dc2626, #d97706).
+      • Never use a light accent on a light bg (invisible). Never use an accent that matches the bg.
+
+   3. SLIDE DENSITY — each slide should convey ONE main idea.
+      • bullets: max 6 items, each under 15 words.
+      • body: max 3 short paragraphs; use **bold** to call out key terms.
+      • Never put body AND bullets on the same slide — choose one.
+      • stats: max 4 KPIs per slide; if you have more, split across two stats slides.
+
+   4. LAYOUT VARIETY — a well-designed deck varies layouts intentionally:
+      • Slide 1: always "title"
+      • After every 2–3 content slides, use a "section-break" or "quote" or "big-number" to reset the pace.
+      • For data-heavy content, use "stats" or "chart" instead of bullets with numbers.
+      • Use "image-full" for visual breathing room between dense content.
+
+   5. TYPOGRAPHY & HIERARCHY
+      • Title: max 8 words. Sharp, active, no filler words.
+      • Subtitle: supports the title in 1 sentence.
+      • Body: written in clean prose, **bold** key phrases only.
+      • Bullets: lead with the most important word/phrase, support in the rest of the bullet.
+      • NEVER use em dashes (—) anywhere in slide content — not in titles, subtitles, body, bullets, or any field. Use a regular hyphen (-) if a separator is needed. Em dashes look broken in presentation fonts and are not acceptable.
+
+   6. SLIDE COUNT GUIDELINES
+      • 10–15 slides for a typical pitch or strategy deck.
+      • Open: title + agenda/overview (2 slides).
+      • Body: 6–10 content slides with varied layouts.
+      • Close: summary/CTA + final title or quote (2 slides).
+
+   ── IMAGE WORKFLOW ──────────────────────────────────────────────────────────
+   Images in slides MUST use UploadThing URLs (FILE_URL from RECENT GENERATIONS).
+   NEVER use a Replicate-hosted URL directly — it will expire.
+
+   Recommended flow when slides need visual imagery:
+     Step 1 (same turn): Call run_media_generation for each image needed (aspect_ratio "3:2" for landscape/background images).
+                         Also call create_presentation in the same turn, using bgColor placeholders for image slides.
+                         Tell the user their images are generating and the deck is ready with placeholder colours.
+     Step 2 (next turn, after images show as COMPLETED in RECENT GENERATIONS with FILE_URL):
+                         Call create_presentation again with the actual imageUrl values filled in.
+                         Tell the user the deck is now updated with the real images.
+
+   For "image-full" layout: imagePosition is implied — just set imageUrl and the full-bleed render is automatic.
+   For "content"/"bullets" with side image: always set imagePosition="right" or "left" alongside imageUrl.
+   For "title" with bg image: set imagePosition="background".
+
+   ── AFTER CALLING ───────────────────────────────────────────────────────────
+   Write a SHORT reply (2–4 sentences): what the deck covers, how many slides, and that it is ready to open and export as PDF, PPTX, or PNG.
+
+8) create_image_presentation
+   Purpose: produce a photorealistic / high-graphic image-based slide deck where EVERY slide is a full AI-generated image. Use this instead of create_presentation when the user wants photorealistic visuals, cinematic scenes, high-end graphic design, or any deck that should look like a polished visual production rather than a text layout deck.
+
+   ── WHEN TO USE ──────────────────────────────────────────────────────────────
+   • User says: "make it look photorealistic", "high graphics", "cinematic slides", "image deck", "visual slides", "graphic slides", "like a real design".
+   • The content benefits from full-bleed imagery over text layouts (e.g. a travel deck, a product showcase, a brand story, a photography portfolio walkthrough).
+   • NEVER use for data-heavy decks (charts, stats, timelines) — use create_presentation instead.
+
+   ── ARGUMENTS ──────────────────────────────────────────────────────────────
+   - title  : string — deck title, used as the export filename.
+   - slides : array of slide objects (1–20). Each slide = one generated image.
+       • prompt   : (required) — detailed image-generation prompt. See PROMPT GUIDELINES below.
+       • imageUrl : (optional) — UploadThing FILE_URL once the image is ready. Leave blank on the first call.
+       • caption  : (optional) — short text shown at the bottom of the slide (max 200 chars).
+       • notes    : (optional) — presenter notes (not visible on slide).
+
+   ── PROMPT GUIDELINES (critical — image quality depends on this) ──────────────
+   Each prompt must be a richly descriptive image generation prompt:
+   • Describe: subject, setting, composition, lighting, mood, colour palette, style.
+   • Use cinematic / editorial language: "golden hour lighting", "shallow depth of field", "aerial view", "dramatic shadows", "vibrant saturated colours", "muted pastel palette", "studio lighting", "photorealistic render".
+   • Include text/graphic design needs if any: "bold white headline in the centre", "minimalist design layout with brand logo top-right".
+   • Keep each prompt 80–200 words for best results.
+   • All slides should share a visual style — mention the shared aesthetic in every prompt (e.g. "consistent dark cinematic style", "same warm editorial photography feel").
+
+   ── IMAGE WORKFLOW ────────────────────────────────────────────────────────────
+   Step 1 (same turn):
+     • For EACH slide, call run_media_generation with:
+         category: "image"
+         model_id: "google/nano-banana-pro"
+         requires: ["design"]
+         inputs: { aspect_ratio: "3:2" }        ← always 3:2 for landscape slide images
+         prompt: the detailed slide prompt
+     • Also call create_image_presentation with the same prompts but NO imageUrl fields.
+     • Tell the user their slides are generating and the deck is ready as a placeholder.
+
+   Step 2 (next turn, once images show as COMPLETED with FILE_URL in RECENT GENERATIONS):
+     • Call create_image_presentation again, this time including imageUrl for each slide.
+     • Tell the user the deck is now complete with all images.
+
+   ── AFTER CALLING ───────────────────────────────────────────────────────────
+   Write a SHORT reply (2–4 sentences): how many image slides, the visual style, and that images are generating (Step 1) or the deck is complete and ready to download as a ZIP (Step 2).`;

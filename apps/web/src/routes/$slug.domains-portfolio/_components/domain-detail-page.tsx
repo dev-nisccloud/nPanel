@@ -412,7 +412,12 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="dns" className="mt-6">
-              <DnsTab domain={domain} onHostingClick={handleHostingClick} />
+              <DnsTab
+                domain={domain}
+                onHostingClick={handleHostingClick}
+                isAgency={isAgency}
+                teamId={subscriptionById?.teamId ?? null}
+              />
             </TabsContent>
 
             <TabsContent value="nameservers" className="mt-6">
