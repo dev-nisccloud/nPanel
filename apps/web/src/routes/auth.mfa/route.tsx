@@ -107,6 +107,8 @@ export default function MfaVerifyPage() {
     }
   };
 
+  const isCodeComplete = /^\d{6}$/.test(code.trim());
+
   const verifyCode = async () => {
     const normalized = code.trim();
     if (!/^\d{6}$/.test(normalized)) {
@@ -163,7 +165,14 @@ export default function MfaVerifyPage() {
               </p>
             </div>
 
-            <div className="space-y-3">
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!isCodeComplete || isSubmitting || isSendingCode) return;
+                void verifyCode();
+              }}
+            >
               <OtpExpiryCountdown expiresAt={otpExpiresAt} />
               <Input
                 value={code}
@@ -172,13 +181,13 @@ export default function MfaVerifyPage() {
                 maxLength={6}
                 placeholder="123456"
                 autoComplete="one-time-code"
+                autoFocus
+                aria-invalid={code.length > 0 && !isCodeComplete}
               />
               <Button
+                type="submit"
                 className="w-full"
-                onClick={() => {
-                  void verifyCode();
-                }}
-                disabled={isSubmitting || isSendingCode}
+                disabled={!isCodeComplete || isSubmitting || isSendingCode}
               >
                 {isSubmitting ? "Verifying..." : "Verify code"}
               </Button>
@@ -194,7 +203,7 @@ export default function MfaVerifyPage() {
                   {isSendingCode ? "Sending..." : "Resend code"}
                 </button>
               </div>
-            </div>
+            </form>
           </>
         )}
       </div>
