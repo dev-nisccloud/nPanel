@@ -428,13 +428,27 @@ export const wpFeaturesRouter = router({
     }),
 
   getSecurityStatus: protectedProcedure
-    .input(z.object({
-      installationsIds: z.array(z.number())
-    }))
+    .input(
+      z
+        .object({
+          installationsIds: z.array(z.number()).optional(),
+          /** @deprecated use installationsIds — kept for mistyped clients */
+          installationIds: z.array(z.number()).optional(),
+        })
+        .transform((v) => ({
+          installationsIds: v.installationsIds ?? v.installationIds ?? [],
+        }))
+        .refine((v) => v.installationsIds.length > 0, {
+          message: "At least one installation id is required",
+        }),
+    )
     .query(async ({ input }) => {
-      // Using simpler filtering for now
-      const query = input.installationsIds.map(id => `installationsIds[]=${id}`).join('&');
-      return sendPleskRestRequest(`/v1/security-measures/checker?${query}`);
+      const query = input.installationsIds.map((id) => `installationsIds[]=${id}`).join("&");
+      const res = await sendPleskRestRequest(`/v1/security-measures/checker?${query}`);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return res.data;
+      }
+      return { data: [] };
     }),
 
   resolveSecurityMeasure: protectedProcedure

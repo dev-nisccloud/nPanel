@@ -1,3 +1,4 @@
+// @refresh reset
 "use client";
 
 import * as React from "react";
@@ -47,6 +48,8 @@ import {
   Clock,
   SplitSquareHorizontal,
   Sparkles,
+  Presentation,
+  ArrowUpRight,
 } from "lucide-react";
 import {
   Sheet,
@@ -58,9 +61,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { pdf } from "@react-pdf/renderer";
 import { ZeepoDocumentPdf } from "@/components/zeepo/document-pdf";
+import { generatePresentationPdfBlob } from "@/components/zeepo/presentation-pdf";
+import type { PresentationData } from "@/components/zeepo/presentation-pdf";
+import { generatePresentationPptx } from "@/lib/generate-presentation-pptx";
 import { ZeepoDomainPurchaseCard } from "@/components/zeepo/domain-purchase-card";
 import type { AgentDomainCheckResult } from "@/stores/zeepo-payment-store";
 import { RotatingText } from "@/components/rotating-text";
+import { BarChart, Bar, XAxis, Cell, ResponsiveContainer, PieChart, Pie } from "recharts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,6 +76,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import { uploadFiles } from "@/hooks/use-uploadthing";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -188,6 +196,35 @@ function extractDocument(outputs: unknown): { title: string; content: string } |
   return { title, content };
 }
 
+function extractPresentation(outputs: unknown): PresentationData | null {
+  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+  const pres = (outputs as Record<string, unknown>).presentation;
+  if (!pres || typeof pres !== "object" || Array.isArray(pres)) return null;
+  const p = pres as Record<string, unknown>;
+  if (typeof p.title !== "string" || !Array.isArray(p.slides)) return null;
+  return pres as PresentationData;
+}
+
+type ImagePresentationSlide = {
+  prompt: string;
+  imageUrl?: string;
+  caption?: string;
+  notes?: string;
+};
+type ImagePresentationData = {
+  title: string;
+  slides: ImagePresentationSlide[];
+};
+
+function extractImagePresentation(outputs: unknown): ImagePresentationData | null {
+  if (!outputs || typeof outputs !== "object" || Array.isArray(outputs)) return null;
+  const pres = (outputs as Record<string, unknown>).imagePresentation;
+  if (!pres || typeof pres !== "object" || Array.isArray(pres)) return null;
+  const p = pres as Record<string, unknown>;
+  if (typeof p.title !== "string" || !Array.isArray(p.slides)) return null;
+  return pres as ImagePresentationData;
+}
+
 const UUID_SEGMENT = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
 /** Strip job / generation UUIDs from assistant copy (defense in depth vs model drift). */
@@ -290,11 +327,13 @@ function shouldHideZeepoAgentToolMessageForUi(content: string | null | undefined
       if (
         tool === "check_domain_availability" ||
         tool === "create_document" ||
+        tool === "create_presentation" ||
+        tool === "create_image_presentation" ||
         tool === "get_user_session"
       ) {
         return true;
       }
-      // create_document success without _tool marker (status: "CREATED")
+      // create_document / create_presentation success without _tool marker (status: "CREATED")
       if (o.status === "CREATED" && typeof o.title === "string") return true;
     }
   } catch {
@@ -364,6 +403,582 @@ function ChatLoadingSkeleton() {
   );
 }
 
+// ─── Presentation viewer (slide-by-slide with CSS rendering) ─────────────────
+
+type GenerationRow = {
+  id: string;
+  modelCategory: string;
+  outputs: unknown;
+  status: string;
+};
+
+type PresentationViewerProps = {
+  data: PresentationData;
+  slideIndex: number;
+  onSlideChange: (i: number) => void;
+  /** All session generations — used to resolve image generationId for the edit panel. */
+  generations: GenerationRow[];
+  /** Open an image URL in the full media edit panel. */
+  onOpenImage: (url: string, generationId: string) => void;
+};
+
+/** Inline markdown: **bold**, *italic*, \n → <br /> */
+function InlineMarkdown({ text }: { text: string }) {
+  // Normalise literal \n sequences (LLM sometimes emits them) before splitting
+  const normalised = text.replace(/\\n/g, "\n");
+  const parts = normalised.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
+        if (part.startsWith("*") && part.endsWith("*")) return <em key={i}>{part.slice(1, -1)}</em>;
+        return part.split("\n").map((line, j, arr) => (
+          <React.Fragment key={`${i}-${j}`}>{line}{j < arr.length - 1 && <br />}</React.Fragment>
+        ));
+      })}
+    </>
+  );
+}
+
+/** Return #0f172a (dark) or #f8fafc (light) depending on bg luminance, ensuring legible contrast. */
+function autoTextColor(hexBg: string): string {
+  try {
+    const h = hexBg.replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.45 ? "#0f172a" : "#f8fafc";
+  } catch {
+    return "#f8fafc";
+  }
+}
+
+const CHART_PALETTE = ["#6366f1","#22d3ee","#f59e0b","#10b981","#f43f5e","#a78bfa","#34d399","#fbbf24"];
+
+function SlideBarChart({ labels, values, colors, unit, fg, muted, accent }: {
+  labels: string[]; values: number[]; colors?: string[]; unit?: string;
+  fg: string; muted: string; accent: string;
+}) {
+  const data = labels.map((l, i) => ({ name: l, value: values[i] ?? 0 }));
+  return (
+    <ResponsiveContainer width="100%" height={160}>
+      <BarChart data={data} margin={{ top: 16, right: 8, bottom: 18, left: 8 }} barCategoryGap="28%">
+        <XAxis
+          dataKey="name"
+          tick={{ fontSize: 9, fill: muted, fontFamily: "Inter,system-ui" }}
+          axisLine={{ stroke: `${muted}44` }}
+          tickLine={false}
+        />
+        <Bar dataKey="value" radius={[4, 4, 0, 0]}
+          label={{ position: "top", fontSize: 9, fill: fg, fontFamily: "Inter,system-ui",
+                   formatter: (v: number) => `${v}${unit ?? ""}` }}>
+          {data.map((_, i) => (
+            <Cell key={i} fill={colors?.[i] ?? CHART_PALETTE[i % CHART_PALETTE.length] ?? accent} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+function SlideDonutChart({ labels, values, colors, fg, accent }: {
+  labels: string[]; values: number[]; colors?: string[];
+  fg: string; accent: string;
+}) {
+  const total = values.reduce((a, b) => a + b, 0) || 1;
+  const data = labels.map((l, i) => ({ name: l, value: values[i] ?? 0, pct: Math.round((values[i] ?? 0) / total * 100) }));
+  const RADIAN = Math.PI / 180;
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, pct, name }: Record<string, number> & { name: string }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 1.45;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return pct < 5 ? null : (
+      <text x={x} y={y} fill={fg} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central"
+            fontSize={8} fontFamily="Inter,system-ui">
+        {name} {pct}%
+      </text>
+    );
+  };
+  return (
+    <ResponsiveContainer width="100%" height={160}>
+      <PieChart margin={{ top: 8, right: 40, bottom: 8, left: 40 }}>
+        <Pie data={data} cx="50%" cy="50%" innerRadius={38} outerRadius={62}
+             dataKey="value" labelLine={false} label={renderLabel}>
+          {data.map((_, i) => (
+            <Cell key={i} fill={colors?.[i] ?? CHART_PALETTE[i % CHART_PALETTE.length] ?? accent} />
+          ))}
+        </Pie>
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+type SlideData = PresentationData["slides"][0];
+
+function PresentationSlideView({ slide, theme }: { slide: SlideData; theme: PresentationData["theme"] }) {
+  const themes: Record<PresentationData["theme"], { bg: string; text: string; muted: string; accent: string; surface: string }> = {
+    dark:    { bg: "#0a0f1e", text: "#f8fafc", muted: "#94a3b8", accent: "#6366f1", surface: "rgba(255,255,255,0.06)" },
+    light:   { bg: "#f8fafc", text: "#0f172a", muted: "#475569", accent: "#2563eb", surface: "rgba(0,0,0,0.04)" },
+    branded: { bg: "#1e1b4b", text: "#e0e7ff", muted: "#a5b4fc", accent: "#818cf8", surface: "rgba(255,255,255,0.07)" },
+    minimal: { bg: "#ffffff", text: "#18181b", muted: "#71717a", accent: "#18181b", surface: "rgba(0,0,0,0.04)" },
+  };
+  const t = themes[theme] ?? themes.dark;
+  const bg     = slide.bgColor ?? t.bg;
+  // Smart contrast: if no explicit textColor, compute from background to avoid white-on-white / dark-on-dark
+  const fg     = slide.textColor ?? autoTextColor(bg);
+  const muted  = slide.textColor ? `${fg}99` : t.muted;
+  const accent = slide.accentColor ?? t.accent;
+  const surface = t.surface;
+
+  const hasBgImage   = Boolean(slide.imageUrl && slide.imagePosition === "background");
+  const hasRightImg  = Boolean(slide.imageUrl && slide.imagePosition === "right");
+  const hasLeftImg   = Boolean(slide.imageUrl && slide.imagePosition === "left");
+
+  const base: React.CSSProperties = {
+    width: "100%", aspectRatio: "16/9", backgroundColor: bg,
+    position: "relative", overflow: "hidden", display: "flex",
+    flexDirection: "row", fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+  };
+
+  const fullBleed: React.CSSProperties = {
+    position: "absolute", inset: 0,
+    backgroundImage: `url(${slide.imageUrl})`,
+    backgroundSize: "cover", backgroundPosition: "center",
+  };
+
+  const overlay = (opacity = 0.55): React.CSSProperties => ({
+    position: "absolute", inset: 0,
+    backgroundColor: `rgba(0,0,0,${opacity})`,
+  });
+
+  const pad: React.CSSProperties = {
+    position: "relative", zIndex: 1,
+    display: "flex", flexDirection: "column", justifyContent: "center",
+    padding: "6% 7%",
+    flex: (hasRightImg || hasLeftImg) ? "0 0 58%" : 1,
+  };
+
+  // ── Decorative accent pill ──────────────────────────────────────────────────
+  const AccentPill = ({ short = false }: { short?: boolean }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: "4%" }}>
+      <div style={{ width: short ? 24 : 36, height: 3, backgroundColor: accent, borderRadius: 99 }} />
+      {!short && <div style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: accent, opacity: 0.5 }} />}
+    </div>
+  );
+
+  // ── TITLE SLIDE ────────────────────────────────────────────────────────────
+  if (slide.layout === "title") {
+    return (
+      <div style={base}>
+        {hasBgImage && <><div style={fullBleed} /><div style={overlay(0.52)} /></>}
+        {/* Geometric bg decoration (only when no image) */}
+        {!hasBgImage && (
+          <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+            <div style={{ position: "absolute", right: "-10%", top: "-20%", width: "55%", aspectRatio: "1", borderRadius: "50%", background: `radial-gradient(circle, ${accent}22 0%, transparent 70%)` }} />
+            <div style={{ position: "absolute", left: "-5%", bottom: "-25%", width: "40%", aspectRatio: "1", borderRadius: "50%", background: `radial-gradient(circle, ${accent}15 0%, transparent 70%)` }} />
+          </div>
+        )}
+        <div style={{ ...pad, alignItems: "center", justifyContent: "center", textAlign: "center", flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "5%", justifyContent: "center" }}>
+            <div style={{ width: 40, height: 3, backgroundColor: accent, borderRadius: 99 }} />
+            <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: accent }} />
+            <div style={{ width: 40, height: 3, backgroundColor: accent, borderRadius: 99 }} />
+          </div>
+          {slide.title && <h1 style={{ fontSize: "clamp(1.5rem, 4.5vw, 3rem)", fontWeight: 800, color: fg, lineHeight: 1.15, marginBottom: "3%", letterSpacing: "-0.01em" }}>{slide.title}</h1>}
+          {slide.subtitle && <p style={{ fontSize: "clamp(0.8rem, 2vw, 1.15rem)", color: hasBgImage ? `${fg}cc` : muted, lineHeight: 1.55, maxWidth: "75%", margin: "0 auto" }}>{slide.subtitle}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ── SECTION BREAK ──────────────────────────────────────────────────────────
+  if (slide.layout === "section-break") {
+    const sectionBg = slide.bgColor ?? accent;
+    const sectionFg = slide.textColor ?? autoTextColor(sectionBg);
+    return (
+      <div style={{ ...base, backgroundColor: sectionBg }}>
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%)` }} />
+        <div style={{ ...pad, alignItems: "center", justifyContent: "center", textAlign: "center", flex: 1 }}>
+          <div style={{ width: 48, height: 2, backgroundColor: `${sectionFg}50`, marginBottom: "4%", alignSelf: "center", borderRadius: 99 }} />
+          {slide.title && <h2 style={{ fontSize: "clamp(1.3rem, 4vw, 2.4rem)", fontWeight: 800, color: sectionFg, lineHeight: 1.2, letterSpacing: "-0.01em" }}>{slide.title}</h2>}
+          {slide.subtitle && <p style={{ fontSize: "clamp(0.75rem, 1.8vw, 1rem)", color: `${sectionFg}bb`, marginTop: "3%", lineHeight: 1.5 }}>{slide.subtitle}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ── IMAGE FULL ─────────────────────────────────────────────────────────────
+  if (slide.layout === "image-full") {
+    return (
+      <div style={base}>
+        {slide.imageUrl
+          ? <div style={fullBleed} />
+          : <div style={{ position: "absolute", inset: 0, backgroundColor: accent }} />
+        }
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)" }} />
+        <div style={{ position: "absolute", bottom: "7%", left: "7%", right: "20%", zIndex: 1 }}>
+          <div style={{ width: 28, height: 3, backgroundColor: accent, borderRadius: 99, marginBottom: "2.5%" }} />
+          {slide.title && <h2 style={{ fontSize: "clamp(1.1rem, 3vw, 2rem)", fontWeight: 800, color: "#ffffff", lineHeight: 1.2, marginBottom: "1.5%", letterSpacing: "-0.01em" }}>{slide.title}</h2>}
+          {(slide.subtitle ?? slide.body) && <p style={{ fontSize: "clamp(0.7rem, 1.6vw, 0.95rem)", color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}><InlineMarkdown text={slide.subtitle ?? slide.body ?? ""} /></p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ── QUOTE ──────────────────────────────────────────────────────────────────
+  if (slide.layout === "quote") {
+    return (
+      <div style={base}>
+        {hasBgImage && <><div style={fullBleed} /><div style={overlay(0.6)} /></>}
+        {!hasBgImage && <div style={{ position: "absolute", inset: 0, background: `linear-gradient(160deg, ${bg} 60%, ${accent}18 100%)` }} />}
+        <div style={{ ...pad, flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+          <div style={{ fontSize: "clamp(4rem, 10vw, 7rem)", fontWeight: 900, color: accent, lineHeight: 0.6, marginBottom: "2%", opacity: 0.6, fontFamily: "Georgia,serif" }}>"</div>
+          <p style={{ fontSize: "clamp(0.9rem, 2.4vw, 1.4rem)", fontStyle: "italic", color: fg, lineHeight: 1.6, marginBottom: "5%", maxWidth: "78%" }}>
+            <InlineMarkdown text={slide.body ?? slide.title ?? ""} />
+          </p>
+          {slide.subtitle && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
+              <div style={{ width: 20, height: 1, backgroundColor: accent }} />
+              <p style={{ fontSize: "clamp(0.65rem, 1.5vw, 0.85rem)", color: accent, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>{slide.subtitle}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── TWO COLUMN ─────────────────────────────────────────────────────────────
+  if (slide.layout === "two-column") {
+    return (
+      <div style={base}>
+        <div style={{ ...pad, flex: 1 }}>
+          <AccentPill />
+          {slide.title && <h2 style={{ fontSize: "clamp(0.9rem, 2.3vw, 1.45rem)", fontWeight: 800, color: fg, marginBottom: "4%", lineHeight: 1.25 }}>{slide.title}</h2>}
+          <div style={{ display: "flex", flex: 1, gap: "4%" }}>
+            <div style={{ flex: 1, paddingRight: "4%", borderRight: `1px solid ${accent}28`, fontSize: "clamp(0.62rem, 1.4vw, 0.82rem)", color: muted, lineHeight: 1.7 }}>
+              {slide.leftContent && <InlineMarkdown text={slide.leftContent} />}
+            </div>
+            <div style={{ flex: 1, fontSize: "clamp(0.62rem, 1.4vw, 0.82rem)", color: muted, lineHeight: 1.7 }}>
+              {slide.rightContent && <InlineMarkdown text={slide.rightContent} />}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── STATS / KPI ────────────────────────────────────────────────────────────
+  if (slide.layout === "stats" && slide.stats?.length) {
+    const cols = slide.stats.length <= 2 ? 2 : slide.stats.length === 3 ? 3 : 4;
+    return (
+      <div style={base}>
+        {!hasBgImage && <div style={{ position: "absolute", inset: 0, background: `linear-gradient(140deg, ${bg} 50%, ${accent}12 100%)` }} />}
+        {hasBgImage && <><div style={fullBleed} /><div style={overlay(0.65)} /></>}
+        <div style={{ ...pad, flex: 1, justifyContent: "center" }}>
+          <AccentPill />
+          {slide.title && <h2 style={{ fontSize: "clamp(0.85rem, 2vw, 1.2rem)", fontWeight: 700, color: fg, marginBottom: "5%", lineHeight: 1.3 }}>{slide.title}</h2>}
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: "3%" }}>
+            {slide.stats.map((s, i) => (
+              <div key={i} style={{ backgroundColor: surface, borderRadius: 8, padding: "5% 4%", border: `1px solid ${accent}20` }}>
+                {s.icon && <div style={{ fontSize: "clamp(1rem, 2.5vw, 1.6rem)", marginBottom: "4%" }}>{s.icon}</div>}
+                <div style={{ fontSize: "clamp(1.4rem, 4vw, 2.6rem)", fontWeight: 900, color: accent, lineHeight: 1, marginBottom: "6%" }}>{s.value}</div>
+                <div style={{ fontSize: "clamp(0.55rem, 1.3vw, 0.75rem)", color: fg, fontWeight: 600, marginBottom: "3%", lineHeight: 1.3 }}>{s.label}</div>
+                {s.delta && <div style={{ fontSize: "clamp(0.5rem, 1.1vw, 0.65rem)", color: s.delta.startsWith("↓") || s.delta.startsWith("-") ? "#f87171" : "#34d399", fontWeight: 700 }}>{s.delta}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── CHART ──────────────────────────────────────────────────────────────────
+  if (slide.layout === "chart" && slide.chartData) {
+    const cd = slide.chartData;
+    return (
+      <div style={base}>
+        <div style={{ ...pad, flex: 1 }}>
+          <AccentPill />
+          {slide.title && <h2 style={{ fontSize: "clamp(0.85rem, 2vw, 1.2rem)", fontWeight: 800, color: fg, marginBottom: slide.subtitle ? "1%" : "5%", lineHeight: 1.25 }}>{slide.title}</h2>}
+          {slide.subtitle && <p style={{ fontSize: "clamp(0.58rem, 1.3vw, 0.78rem)", color: muted, marginBottom: "4%", lineHeight: 1.4 }}>{slide.subtitle}</p>}
+          <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+            {cd.type === "donut"
+              ? <SlideDonutChart labels={cd.labels} values={cd.values} colors={cd.colors} fg={fg} muted={muted} accent={accent} />
+              : <SlideBarChart labels={cd.labels} values={cd.values} colors={cd.colors} unit={cd.unit} fg={fg} muted={muted} accent={accent} />
+            }
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── TIMELINE ───────────────────────────────────────────────────────────────
+  if (slide.layout === "timeline" && slide.timeline?.length) {
+    const events = slide.timeline;
+    return (
+      <div style={base}>
+        <div style={{ ...pad, flex: 1, justifyContent: "center" }}>
+          <AccentPill />
+          {slide.title && <h2 style={{ fontSize: "clamp(0.85rem, 2vw, 1.2rem)", fontWeight: 800, color: fg, marginBottom: "5%", lineHeight: 1.25 }}>{slide.title}</h2>}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 0, position: "relative" }}>
+            {/* Connector line */}
+            <div style={{ position: "absolute", top: "11px", left: 0, right: 0, height: 2, backgroundColor: `${accent}30`, zIndex: 0 }} />
+            {events.map((ev, i) => (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", position: "relative", zIndex: 1, paddingLeft: i > 0 ? "2%" : 0, paddingRight: i < events.length - 1 ? "2%" : 0 }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: i === 0 ? accent : `${accent}50`, border: `3px solid ${bg}`, marginBottom: "8%", flexShrink: 0 }} />
+                <div style={{ fontSize: "clamp(0.5rem, 1.1vw, 0.65rem)", color: accent, fontWeight: 700, marginBottom: "4%", letterSpacing: "0.04em" }}>{ev.date}</div>
+                <div style={{ fontSize: "clamp(0.58rem, 1.3vw, 0.78rem)", color: fg, fontWeight: 700, lineHeight: 1.3, marginBottom: "4%" }}>{ev.event}</div>
+                {ev.detail && <div style={{ fontSize: "clamp(0.5rem, 1.1vw, 0.63rem)", color: muted, lineHeight: 1.45 }}>{ev.detail}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── BIG NUMBER ─────────────────────────────────────────────────────────────
+  if (slide.layout === "big-number") {
+    return (
+      <div style={base}>
+        {!hasBgImage && <div style={{ position: "absolute", inset: 0, background: `linear-gradient(135deg, ${bg} 40%, ${accent}18 100%)` }} />}
+        {hasBgImage && <><div style={fullBleed} /><div style={overlay(0.62)} /></>}
+        <div style={{ ...pad, flex: 1, alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+          {slide.title && <div style={{ fontSize: "clamp(3rem, 10vw, 6.5rem)", fontWeight: 900, color: accent, lineHeight: 1, letterSpacing: "-0.03em", marginBottom: "2%" }}>{slide.title}</div>}
+          {slide.subtitle && <div style={{ fontSize: "clamp(0.9rem, 2.2vw, 1.3rem)", fontWeight: 700, color: fg, marginBottom: "3%", letterSpacing: "0.02em", textTransform: "uppercase" }}>{slide.subtitle}</div>}
+          {slide.body && <p style={{ fontSize: "clamp(0.68rem, 1.6vw, 0.9rem)", color: muted, lineHeight: 1.6, maxWidth: "60%", margin: "0 auto" }}><InlineMarkdown text={slide.body} /></p>}
+        </div>
+      </div>
+    );
+  }
+
+  // ── CONTENT / BULLETS (default) ────────────────────────────────────────────
+  return (
+    <div style={base}>
+      {hasBgImage && <><div style={fullBleed} /><div style={overlay(0.5)} /></>}
+      {hasLeftImg && (
+        <div style={{ width: "42%", flexShrink: 0, backgroundImage: `url(${slide.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+          <div style={{ height: "100%", background: "linear-gradient(to right, transparent 70%, rgba(0,0,0,0.18) 100%)" }} />
+        </div>
+      )}
+      <div style={pad}>
+        <AccentPill />
+        {slide.title && <h2 style={{ fontSize: "clamp(0.95rem, 2.5vw, 1.6rem)", fontWeight: 800, color: fg, marginBottom: "3%", lineHeight: 1.2, letterSpacing: "-0.01em" }}>{slide.title}</h2>}
+        {slide.subtitle && <p style={{ fontSize: "clamp(0.62rem, 1.5vw, 0.85rem)", color: muted, marginBottom: "4%", lineHeight: 1.5, fontStyle: "italic" }}><InlineMarkdown text={slide.subtitle} /></p>}
+        {slide.body && <p style={{ fontSize: "clamp(0.62rem, 1.5vw, 0.82rem)", color: hasBgImage ? `${fg}ee` : muted, lineHeight: 1.75 }}><InlineMarkdown text={slide.body} /></p>}
+        {slide.bullets && slide.bullets.length > 0 && (
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "2.5%" }}>
+            {slide.bullets.map((b, i) => (
+              <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "2.5%", fontSize: "clamp(0.62rem, 1.45vw, 0.83rem)", color: hasBgImage ? `${fg}ee` : muted, lineHeight: 1.55 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: accent, flexShrink: 0, marginTop: "0.35em" }} />
+                <span><InlineMarkdown text={b} /></span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {hasRightImg && (
+        <div style={{ width: "42%", flexShrink: 0, backgroundImage: `url(${slide.imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }}>
+          <div style={{ height: "100%", background: "linear-gradient(to left, transparent 70%, rgba(0,0,0,0.18) 100%)" }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Image Presentation Viewer ────────────────────────────────────────────────
+
+function ImagePresentationViewer({
+  data,
+  slideIndex,
+  onSlideChange,
+}: {
+  data: ImagePresentationData;
+  slideIndex: number;
+  onSlideChange: (i: number) => void;
+}) {
+  const total = data.slides.length;
+  const slide = data.slides[Math.min(slideIndex, total - 1)];
+  const prev = () => onSlideChange(Math.max(0, slideIndex - 1));
+  const next = () => onSlideChange(Math.min(total - 1, slideIndex + 1));
+
+  return (
+    <div className="flex h-full flex-col bg-black select-none">
+      {/* Slide canvas */}
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+        {slide?.imageUrl ? (
+          <img
+            key={slide.imageUrl}
+            src={slide.imageUrl}
+            alt={slide.caption ?? `Slide ${slideIndex + 1}`}
+            className="max-h-full max-w-full object-contain"
+            draggable={false}
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-3 text-white/40">
+            <ImageIcon className="size-12 opacity-30" />
+            <p className="text-sm">Generating slide {slideIndex + 1}…</p>
+            <p className="text-xs max-w-xs text-center leading-relaxed opacity-70">{slide?.prompt}</p>
+          </div>
+        )}
+
+        {/* Caption overlay */}
+        {slide?.caption && slide.imageUrl && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-6 py-4">
+            <p className="text-center text-sm text-white/90 font-medium">{slide.caption}</p>
+          </div>
+        )}
+
+        {/* Nav arrows */}
+        {slideIndex > 0 && (
+          <button
+            onClick={prev}
+            className="absolute left-3 top-1/2 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="size-5" />
+          </button>
+        )}
+        {slideIndex < total - 1 && (
+          <button
+            onClick={next}
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex size-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="size-5" />
+          </button>
+        )}
+
+        {/* Slide counter */}
+        <div className="absolute top-3 right-3 rounded-full bg-black/40 px-2.5 py-1 text-xs text-white/80 backdrop-blur-sm">
+          {slideIndex + 1} / {total}
+        </div>
+      </div>
+
+      {/* Dot navigation */}
+      {total > 1 && (
+        <div className="flex shrink-0 items-center justify-center gap-1.5 py-3">
+          {data.slides.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => onSlideChange(i)}
+              className={cn(
+                "rounded-full transition-all",
+                i === slideIndex
+                  ? "size-2.5 bg-white"
+                  : s.imageUrl
+                  ? "size-1.5 bg-white/40 hover:bg-white/60"
+                  : "size-1.5 bg-white/20 hover:bg-white/40",
+              )}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PresentationViewer({ data, slideIndex, onSlideChange, generations, onOpenImage }: PresentationViewerProps) {
+  const total = data.slides.length;
+  const slide = data.slides[slideIndex];
+  const [showImageHint, setShowImageHint] = React.useState(false);
+
+  /** Find the generationId for a given image URL by scanning session generations. */
+  function findGenerationIdForUrl(url: string): string {
+    for (const g of generations) {
+      const found = findUrlInOutputs(g.outputs, url);
+      if (found) return g.id;
+    }
+    return "";
+  }
+
+  function findUrlInOutputs(outputs: unknown, target: string): boolean {
+    if (typeof outputs === "string") return outputs === target;
+    if (Array.isArray(outputs)) return outputs.some((v) => findUrlInOutputs(v, target));
+    if (outputs && typeof outputs === "object") {
+      return Object.values(outputs as Record<string, unknown>).some((v) => findUrlInOutputs(v, target));
+    }
+    return false;
+  }
+
+  const slideImageUrl = slide?.imageUrl;
+
+  return (
+    <div className="flex h-full flex-col bg-black/5">
+      {/* Slide preview */}
+      <div
+        className="relative flex flex-1 items-center justify-center overflow-hidden p-4"
+        onMouseEnter={() => setShowImageHint(true)}
+        onMouseLeave={() => setShowImageHint(false)}
+      >
+        <div className="w-full max-w-3xl" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.25)", borderRadius: 8, overflow: "hidden" }}>
+          {slide && <PresentationSlideView slide={slide} theme={data.theme} />}
+        </div>
+
+        {/* "Open slide image" overlay button — only shows when slide has an image */}
+        {slideImageUrl && showImageHint && (
+          <button
+            type="button"
+            className="absolute bottom-6 right-6 flex items-center gap-1.5 rounded-lg border bg-background/90 px-2.5 py-1.5 text-[11px] font-medium text-foreground shadow-md backdrop-blur-sm transition hover:bg-background"
+            onClick={() => {
+              const genId = findGenerationIdForUrl(slideImageUrl);
+              onOpenImage(slideImageUrl, genId);
+            }}
+          >
+            <ImageIcon className="size-3.5 text-primary" />
+            Open slide image
+          </button>
+        )}
+      </div>
+
+      {/* Navigation bar */}
+      <div className="flex shrink-0 items-center justify-between border-t bg-background px-4 py-2.5">
+        <button
+          type="button"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+          disabled={slideIndex === 0}
+          onClick={() => onSlideChange(Math.max(0, slideIndex - 1))}
+        >
+          <ChevronLeft className="size-4" /> Prev
+        </button>
+        <div className="flex items-center gap-1">
+          {data.slides.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={cn(
+                "rounded-full transition-all",
+                i === slideIndex
+                  ? "w-4 h-2 bg-primary"
+                  : "w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/60",
+              )}
+              onClick={() => onSlideChange(i)}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+          disabled={slideIndex === total - 1}
+          onClick={() => onSlideChange(Math.min(total - 1, slideIndex + 1))}
+        >
+          Next <ChevronRight className="size-4" />
+        </button>
+      </div>
+
+      {/* Speaker notes */}
+      {slide?.notes && (
+        <div className="shrink-0 border-t bg-muted/30 px-4 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Speaker notes</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{slide.notes}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 type ZeepoAgentSkillRow = {
   id: string;
   category: string;
@@ -388,9 +1003,14 @@ export default function ZeepoAiAgentSessionPage() {
   type ActivePanel =
     | { type: "media"; url: string; kind: GenerationMediaKind; generationId: string }
     | { type: "document"; title: string; content: string }
+    | { type: "presentation"; data: PresentationData }
+    | { type: "image-presentation"; data: ImagePresentationData }
     | null;
   const [activePanel, setActivePanel] = React.useState<ActivePanel>(null);
+  const [presentationSlideIndex, setPresentationSlideIndex] = React.useState(0);
+  const [imagePresentationSlideIndex, setImagePresentationSlideIndex] = React.useState(0);
   const [docCopied, setDocCopied] = React.useState(false);
+  const [generationsOpen, setGenerationsOpen] = React.useState(true);
 
   // ── Image-edit panel state ──────────────────────────────────────────────
   /** The image currently shown in the panel (may differ from activePanel.url after edits). */
@@ -428,6 +1048,13 @@ export default function ZeepoAiAgentSessionPage() {
   const [dismissedQuestionIds, setDismissedQuestionIds] = React.useState<Set<string>>(
     () => new Set(),
   );
+  /**
+   * Pending attachments — stored as local File objects with a local preview URL.
+   * Upload to UploadThing only happens when the user presses Send.
+   */
+  type PendingFile = { file: File; previewUrl: string; name: string; mimeType: string };
+  const [pendingFiles, setPendingFiles] = React.useState<PendingFile[]>([]);
+  /** Keep backwards-compat alias for already-uploaded attachments (e.g. from question flow). */
   const [pendingAttachments, setPendingAttachments] = React.useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = React.useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = React.useState(false);
@@ -457,6 +1084,25 @@ export default function ZeepoAiAgentSessionPage() {
       },
     },
   );
+
+  /**
+   * Set of image URLs referenced by at least one presentation slide.
+   * Drives the "Slide" badge on image generation cards.
+   * Must stay before any early returns.
+   */
+  const slideImageUrls = React.useMemo<Set<string>>(() => {
+    const urls = new Set<string>();
+    for (const g of genQuery.data?.data ?? []) {
+      if (g.modelCategory === "presentation") {
+        const pres = extractPresentation(g.outputs);
+        if (pres) for (const slide of pres.slides) { if (slide.imageUrl) urls.add(slide.imageUrl); }
+      } else if (g.modelCategory === "image-presentation") {
+        const pres = extractImagePresentation(g.outputs);
+        if (pres) for (const slide of pres.slides) { if (slide.imageUrl) urls.add(slide.imageUrl); }
+      }
+    }
+    return urls;
+  }, [genQuery.data?.data]);
 
   // Loaded lazily when the chat history dropdown opens.
   const chatHistoryQuery = trpc.zeepoAgent.sessions.list.useQuery(
@@ -786,45 +1432,94 @@ export default function ZeepoAiAgentSessionPage() {
     advanceQuestion(opt);
   }
 
+  /**
+   * Stage files locally — create a blob preview URL, do NOT upload yet.
+   * Upload happens in sendCurrentDraft just before sending.
+   * When onUploaded is provided (question-flow uploads) we upload immediately
+   * because the answer needs the real URL.
+   */
   async function handleFileSelect(files: FileList | null, onUploaded?: (a: Attachment) => void) {
     if (!files?.length) return;
-    setIsUploading(true);
-    try {
-      const results = await uploadFiles("zeepoAgentAttachment", { files: Array.from(files) });
-      const uploaded: Attachment[] = results.map((r, i) => ({
-        url: r.url,
-        name: files[i]?.name ?? r.name ?? "attachment",
-        mimeType: files[i]?.type ?? "image/*",
-      }));
-      if (onUploaded) {
+
+    // Immediate-upload path: used by question flow or other callers that need a real URL now.
+    if (onUploaded) {
+      setIsUploading(true);
+      try {
+        const results = await uploadFiles("zeepoAgentAttachment", { files: Array.from(files) });
+        const uploaded: Attachment[] = results.map((r, i) => ({
+          url: r.url,
+          name: files[i]?.name ?? r.name ?? "attachment",
+          mimeType: files[i]?.type ?? "image/*",
+        }));
         uploaded.forEach(onUploaded);
-      } else {
-        setPendingAttachments((prev) => [...prev, ...uploaded].slice(0, 4));
+      } catch {
+        toast.error("Upload failed. Please try again.");
+      } finally {
+        setIsUploading(false);
       }
-    } catch (err) {
-      toast.error("Upload failed. Please try again.");
-    } finally {
-      setIsUploading(false);
+      return;
     }
+
+    // Deferred-upload path: stage locally for the main chat input.
+    const incoming = Array.from(files).slice(0, 4);
+    const staged: PendingFile[] = incoming.map((f) => ({
+      file: f,
+      previewUrl: URL.createObjectURL(f),
+      name: f.name,
+      mimeType: f.type || "image/*",
+    }));
+    setPendingFiles((prev) => {
+      // Revoke old blobs that will be replaced to avoid leaks
+      const combined = [...prev, ...staged].slice(0, 4);
+      return combined;
+    });
   }
 
   const sendCurrentDraft = React.useCallback(() => {
     const t = draft.trim();
-    if (!t || showAssistantThinking || !sessionId) return;
-    const attachmentsToSend = pendingAttachments.length ? [...pendingAttachments] : undefined;
+    if (!t || showAssistantThinking || isUploading || !sessionId) return;
+    const stagedFiles = pendingFiles.length ? [...pendingFiles] : [];
+    const alreadyUploaded = pendingAttachments.length ? [...pendingAttachments] : [];
     setDraft("");
+    setPendingFiles((prev) => { prev.forEach((f) => URL.revokeObjectURL(f.previewUrl)); return []; });
     setPendingAttachments([]);
-    // Let React commit the cleared controlled textarea before the mutation disables it / runs onMutate,
-    // otherwise the field can briefly keep showing the sent prompt.
+
+    // If there are staged local files, upload them now then send.
+    if (stagedFiles.length) {
+      setIsUploading(true);
+      uploadFiles("zeepoAgentAttachment", { files: stagedFiles.map((f) => f.file) })
+        .then((results) => {
+          const uploaded: Attachment[] = results.map((r, i) => ({
+            url: r.url,
+            name: stagedFiles[i]?.name ?? r.name ?? "attachment",
+            mimeType: stagedFiles[i]?.mimeType ?? "image/*",
+          }));
+          const allAttachments = [...alreadyUploaded, ...uploaded];
+          send.mutate({
+            sessionId: sessionId!,
+            content: t,
+            ...(selectedSkill ? { skillId: selectedSkill.id } : {}),
+            ...(allAttachments.length ? { attachments: allAttachments } : {}),
+          });
+        })
+        .catch(() => {
+          toast.error("File upload failed. Please try again.");
+        })
+        .finally(() => setIsUploading(false));
+      return;
+    }
+
+    // No staged files — send immediately.
+    // Let React commit the cleared controlled textarea before the mutation runs.
     queueMicrotask(() => {
       send.mutate({
-        sessionId,
+        sessionId: sessionId!,
         content: t,
         ...(selectedSkill ? { skillId: selectedSkill.id } : {}),
-        ...(attachmentsToSend ? { attachments: attachmentsToSend } : {}),
+        ...(alreadyUploaded.length ? { attachments: alreadyUploaded } : {}),
       });
     });
-  }, [draft, pendingAttachments, send, sessionId, selectedSkill, showAssistantThinking]);
+  }, [draft, pendingFiles, pendingAttachments, send, sessionId, selectedSkill, showAssistantThinking, isUploading]);
 
   // ── Auto-send initial message from index page navigation state ──────────
   const autoSentRef = React.useRef(false);
@@ -1423,33 +2118,35 @@ export default function ZeepoAiAgentSessionPage() {
       <ScrollArea className="min-h-0 flex-1 rounded-xl bg-muted/15 p-3 md:p-4">
         <div className="flex flex-col gap-4 pr-2">
           {messages.length === 0 && !showAssistantThinking ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-5">
-              <img src="/mascot.gif" alt="Zeepo" className="h-75 w-75 object-contain" width={128} height={128} />
-              <div className="flex flex-col items-center gap-1.5 text-center max-w-sm">
-                <p className="text-sm font-medium text-foreground">
-                  {selectedSkill ? selectedSkill.title : "Your AI agent, ready to work"}
-                </p>
-                {selectedSkill ? (
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Tell me what you need and I'll take it from here — ask follow-up questions, refine, and deliver.
+            <div className="flex justify-center px-2 py-8 sm:py-10">
+              <div className="flex max-w-md items-start gap-3 px-2">
+                <ZeepoMascot className="h-11 w-11 shrink-0" />
+                <div className="min-w-0 flex flex-col gap-1.5 text-left">
+                  <p className="text-sm font-medium text-foreground">
+                    {selectedSkill ? selectedSkill.title : "Your AI agent, ready to work"}
                   </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    I can{" "}
-                    <RotatingText
-                      texts={[
-                        "write strategies, plans, and proposals",
-                        "check domain availability and buy instantly",
-                        "generate images, video, and audio",
-                        "research anything with live web search",
-                        "build brand assets and creative copy",
-                        "run marketing campaigns end to end",
-                        "handle operational planning and briefs",
-                      ]}
-                      className="font-medium text-foreground"
-                    />
-                  </p>
-                )}
+                  {selectedSkill ? (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Tell me what you need and I'll take it from here — ask follow-up questions, refine, and deliver.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      I can{" "}
+                      <RotatingText
+                        texts={[
+                          "write strategies, plans, and proposals",
+                          "check domain availability and buy instantly",
+                          "generate images, video, and audio",
+                          "research anything with live web search",
+                          "build brand assets and creative copy",
+                          "create slide decks and presentations",
+                          "handle operational planning and briefs",
+                        ]}
+                        className="font-medium text-foreground"
+                      />
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           ) : null}
@@ -1608,8 +2305,36 @@ export default function ZeepoAiAgentSessionPage() {
 
       <div className="mt-2 shrink-0">
         {generations.length > 0 || genLoading || genError ? (
-          <div className="rounded-xl border bg-card p-2 shadow-sm">
-            <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">Generations</p>
+          <div className="rounded-xl border bg-card shadow-sm">
+            {/* ── Accordion toggle header ── */}
+            <button
+              type="button"
+              onClick={() => setGenerationsOpen(o => !o)}
+              className="flex w-full items-center justify-between px-3 py-2.5 transition-colors hover:bg-muted/40 rounded-t-xl"
+              aria-expanded={generationsOpen}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">Generations</span>
+                {(genLoading && generations.length === 0) && (
+                  <Spinner variant="ellipsis" className="size-3.5 text-muted-foreground" />
+                )}
+                {generations.length > 0 && (
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary leading-none">
+                    {generations.length}
+                  </span>
+                )}
+              </div>
+              <ChevronDown
+                className={cn(
+                  "size-4 text-muted-foreground transition-transform duration-200",
+                  generationsOpen ? "rotate-0" : "-rotate-90",
+                )}
+              />
+            </button>
+
+            {/* ── Collapsible content ── */}
+            {generationsOpen && (
+              <div className="px-2 pb-2">
             {genError ? (
               <Alert variant="destructive" className="mb-2 py-2">
                 <AlertCircle className="size-4" />
@@ -1714,11 +2439,77 @@ export default function ZeepoAiAgentSessionPage() {
                         );
                       }
 
+                      // Text presentation card
+                      if (g.modelCategory === "presentation") {
+                        const pres = extractPresentation(g.outputs);
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            className="relative flex h-[7rem] w-[7rem] shrink-0 flex-col overflow-hidden rounded-xl border bg-indigo-500/10 p-2 text-left ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            onClick={() => {
+                              if (pres) {
+                                setPresentationSlideIndex(0);
+                                setActivePanel({ type: "presentation", data: pres });
+                              }
+                            }}
+                          >
+                            <Presentation className="mb-1 size-4 shrink-0 text-indigo-500" aria-hidden />
+                            <p className="line-clamp-3 flex-1 overflow-hidden text-[10px] font-medium leading-snug text-foreground/80 [overflow-wrap:anywhere]">
+                              {pres?.title ?? "Presentation"}
+                            </p>
+                            {pres && (
+                              <p className="text-[9px] text-muted-foreground mt-auto">
+                                {pres.slides.length} slides
+                              </p>
+                            )}
+                          </button>
+                        );
+                      }
+
+                      // Image presentation card
+                      if (g.modelCategory === "image-presentation") {
+                        const pres = extractImagePresentation(g.outputs);
+                        const ready = pres?.slides.filter(s => s.imageUrl).length ?? 0;
+                        const total = pres?.slides.length ?? 0;
+                        const coverUrl = pres?.slides.find(s => s.imageUrl)?.imageUrl;
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            className="relative flex h-[7rem] w-[7rem] shrink-0 flex-col overflow-hidden rounded-xl border text-left ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            style={{ background: coverUrl ? "none" : "linear-gradient(135deg,#312e81,#4f46e5)" }}
+                            onClick={() => {
+                              if (pres) {
+                                setImagePresentationSlideIndex(0);
+                                setActivePanel({ type: "image-presentation", data: pres });
+                              }
+                            }}
+                          >
+                            {coverUrl && (
+                              <img src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                            <div className="relative flex h-full flex-col justify-end p-2">
+                              <ImageIcon className="mb-1 size-3.5 shrink-0 text-white/80" aria-hidden />
+                              <p className="line-clamp-2 text-[10px] font-medium leading-snug text-white [overflow-wrap:anywhere]">
+                                {pres?.title ?? "Image Deck"}
+                              </p>
+                              <p className="text-[9px] text-white/60 mt-0.5">
+                                {ready}/{total} ready
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      }
+
                       const mediaUrl = firstMediaUrl(g.outputs);
                       const textPreview = extractOutputPreview(g.outputs);
 
                       if (mediaUrl) {
                         const kind = guessMediaKind(mediaUrl, g.modelCategory);
+                        // Images used as slide assets are hidden from the strip — they live inside the slide deck
+                        if (kind === "image" && slideImageUrls.has(mediaUrl)) return null;
                         return (
                           <button
                             key={g.id}
@@ -1771,6 +2562,8 @@ export default function ZeepoAiAgentSessionPage() {
                 )}
               </div>
             </div>
+            </div>
+          )}
           </div>
         ) : null}
       </div>
@@ -2104,30 +2897,31 @@ export default function ZeepoAiAgentSessionPage() {
           </div>
         ) : null}
 
-        {/* Pending attachment thumbnails */}
-        {pendingAttachments.length > 0 && (
+        {/* Pending attachment thumbnails — local previews, not yet uploaded */}
+        {pendingFiles.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {pendingAttachments.map((a, i) => (
+            {pendingFiles.map((f, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
                 <div className="relative">
                   <img
-                    src={a.url}
-                    alt={a.name}
+                    src={f.previewUrl}
+                    alt={f.name}
                     className="h-16 w-16 rounded-lg object-cover border border-border shadow-sm"
                   />
                   <button
                     type="button"
                     aria-label="Remove attachment"
                     className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:scale-110 transition-transform"
-                    onClick={() =>
-                      setPendingAttachments((prev) => prev.filter((_, idx) => idx !== i))
-                    }
+                    onClick={() => {
+                      URL.revokeObjectURL(f.previewUrl);
+                      setPendingFiles((prev) => prev.filter((_, idx) => idx !== i));
+                    }}
                   >
                     <X className="size-3" />
                   </button>
                 </div>
                 <span className="max-w-[4rem] truncate text-[10px] text-muted-foreground leading-tight">
-                  {a.name}
+                  {f.name}
                 </span>
               </div>
             ))}
@@ -2148,6 +2942,24 @@ export default function ZeepoAiAgentSessionPage() {
         />
 
         <div className="flex gap-2 items-end">
+          {/* Attach image button */}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-[44px] w-[44px] shrink-0"
+            disabled={
+              showAssistantThinking ||
+              Boolean(pendingQuestionsInfo && questionFlow) ||
+              isUploading ||
+              pendingAttachments.length >= 4
+            }
+            aria-label="Attach image"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? <Spinner className="size-4" /> : <Paperclip className="size-5" />}
+          </Button>
+
           <Popover open={skillsOpen} onOpenChange={setSkillsOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -2225,24 +3037,6 @@ export default function ZeepoAiAgentSessionPage() {
             </PopoverContent>
           </Popover>
 
-          {/* Attach image button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-[44px] w-[44px] shrink-0"
-            disabled={
-              showAssistantThinking ||
-              Boolean(pendingQuestionsInfo && questionFlow) ||
-              isUploading ||
-              pendingAttachments.length >= 4
-            }
-            aria-label="Attach image"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {isUploading ? <Spinner className="size-4" /> : <Paperclip className="size-5" />}
-          </Button>
-
           <style dangerouslySetInnerHTML={{ __html: `
             @keyframes zeepo-input-border {
               0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.25); }
@@ -2308,8 +3102,8 @@ export default function ZeepoAiAgentSessionPage() {
             }}
           />
           </div>
-          <Button type="submit" size="icon" className="h-[44px] w-[44px] shrink-0" disabled={showAssistantThinking || Boolean(pendingQuestionsInfo && questionFlow)}>
-            {send.isPending ? (
+          <Button type="submit" size="icon" className="h-[44px] w-[44px] shrink-0" disabled={showAssistantThinking || isUploading || Boolean(pendingQuestionsInfo && questionFlow)}>
+            {send.isPending || isUploading ? (
               <Spinner variant="ellipsis" className="h-4 w-4 text-primary-foreground" />
             ) : (
               <SendIcon className="size-4" />
@@ -2338,6 +3132,10 @@ export default function ZeepoAiAgentSessionPage() {
               <div className="rounded-lg bg-primary/10 p-1.5 shrink-0">
                 {activePanel.type === "document"
                   ? <FileText className="size-3.5 text-primary" />
+                  : activePanel.type === "presentation"
+                  ? <Presentation className="size-3.5 text-indigo-500" />
+                  : activePanel.type === "image-presentation"
+                  ? <ImageIcon className="size-3.5 text-violet-500" />
                   : activePanel.type === "media" && activePanel.kind === "audio"
                   ? <Headphones className="size-3.5 text-primary" />
                   : <ImageIcon className="size-3.5 text-primary" />}
@@ -2345,6 +3143,10 @@ export default function ZeepoAiAgentSessionPage() {
               <span className="truncate text-sm font-semibold">
                 {activePanel.type === "document"
                   ? activePanel.title
+                  : activePanel.type === "presentation"
+                  ? activePanel.data.title
+                  : activePanel.type === "image-presentation"
+                  ? activePanel.data.title
                   : activePanel.type === "media" && activePanel.kind === "audio"
                   ? "Audio"
                   : activePanel.type === "media" && activePanel.kind === "video"
@@ -2437,6 +3239,107 @@ export default function ZeepoAiAgentSessionPage() {
                 </Button>
               )}
               {/* Document export */}
+              {activePanel.type === "presentation" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2.5 text-xs">
+                      <Download className="size-3.5" /> Export <ChevronDown className="size-3 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (activePanel.type !== "presentation") return;
+                        try {
+                          const blob = await generatePresentationPdfBlob(activePanel.data);
+                          const slug = activePanel.data.title.replace(/[^a-z0-9 \-_]/gi, "").trim().replace(/\s+/g, "-").toLowerCase() || "presentation";
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a"); a.href = url; a.download = `${slug}.pdf`; a.click(); URL.revokeObjectURL(url);
+                        } catch (err) { toast.error("PDF export failed. Please try again."); }
+                      }}
+                    >
+                      <FileText className="mr-2 size-4" /> Download PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (activePanel.type !== "presentation") return;
+                        try {
+                          const blob = await generatePresentationPptx(activePanel.data);
+                          const slug = activePanel.data.title.replace(/[^a-z0-9 \-_]/gi, "").trim().replace(/\s+/g, "-").toLowerCase() || "presentation";
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a"); a.href = url; a.download = `${slug}.pptx`; a.click(); URL.revokeObjectURL(url);
+                        } catch (err) { toast.error("PPTX export failed. Please try again."); }
+                      }}
+                    >
+                      <Download className="mr-2 size-4" /> Download PPTX
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        if (activePanel.type !== "presentation") return;
+                        try {
+                          const [{ getDocument, GlobalWorkerOptions }, JSZip] = await Promise.all([
+                            import("pdfjs-dist"),
+                            import("jszip").then(m => m.default),
+                          ]);
+                          GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+                          const blob = await generatePresentationPdfBlob(activePanel.data);
+                          const arrayBuffer = await blob.arrayBuffer();
+                          const pdfDoc = await getDocument({ data: arrayBuffer }).promise;
+                          const slug = activePanel.data.title.replace(/[^a-z0-9 \-_]/gi, "").trim().replace(/\s+/g, "-").toLowerCase() || "presentation";
+                          const zip = new JSZip();
+                          for (let i = 1; i <= pdfDoc.numPages; i++) {
+                            const page = await pdfDoc.getPage(i);
+                            const viewport = page.getViewport({ scale: 3 });
+                            const canvas = document.createElement("canvas");
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            const ctx = canvas.getContext("2d")!;
+                            await page.render({ canvasContext: ctx, viewport }).promise;
+                            const pngBlob = await new Promise<Blob | null>(res => canvas.toBlob(res, "image/png"));
+                            if (pngBlob) {
+                              zip.file(`${slug}-slide-${String(i).padStart(2, "0")}.png`, pngBlob);
+                            }
+                          }
+                          const zipBlob = await zip.generateAsync({ type: "blob" });
+                          const url = URL.createObjectURL(zipBlob);
+                          const a = document.createElement("a"); a.href = url; a.download = `${slug}-slides.zip`; a.click(); URL.revokeObjectURL(url);
+                        } catch (err) { toast.error("PNG export failed. Please try again."); }
+                      }}
+                    >
+                      <ImageIcon className="mr-2 size-4" /> Download PNGs (ZIP)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              {/* Image presentation export — download ZIP of all slide images */}
+              {activePanel.type === "image-presentation" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 px-2.5 text-xs"
+                  onClick={async () => {
+                    if (activePanel.type !== "image-presentation") return;
+                    const slides = activePanel.data.slides.filter(s => s.imageUrl);
+                    if (slides.length === 0) { toast.error("No images are ready yet. Please wait for generation to complete."); return; }
+                    try {
+                      const JSZip = await import("jszip").then(m => m.default);
+                      const zip = new JSZip();
+                      const slug = activePanel.data.title.replace(/[^a-z0-9 \-_]/gi, "").trim().replace(/\s+/g, "-").toLowerCase() || "image-deck";
+                      await Promise.all(slides.map(async (slide, i) => {
+                        const res = await fetch(slide.imageUrl!);
+                        const blob = await res.blob();
+                        const ext = blob.type.includes("png") ? "png" : "jpg";
+                        zip.file(`${slug}-slide-${String(i + 1).padStart(2, "0")}.${ext}`, blob);
+                      }));
+                      const zipBlob = await zip.generateAsync({ type: "blob" });
+                      const url = URL.createObjectURL(zipBlob);
+                      const a = document.createElement("a"); a.href = url; a.download = `${slug}-slides.zip`; a.click(); URL.revokeObjectURL(url);
+                    } catch { toast.error("Export failed. Please try again."); }
+                  }}
+                >
+                  <Download className="size-3.5" /> Download ZIP
+                </Button>
+              )}
               {activePanel.type === "document" && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -2458,7 +3361,7 @@ export default function ZeepoAiAgentSessionPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <Button variant="ghost" size="icon" className="size-7" aria-label="Close panel" onClick={() => { setActivePanel(null); setDocCopied(false); setShowHistoryDrawer(false); }}>
+              <Button variant="ghost" size="icon" className="size-7" aria-label="Close panel" onClick={() => { setActivePanel(null); setDocCopied(false); setShowHistoryDrawer(false); setPresentationSlideIndex(0); }}>
                 <X className="size-3.5" />
               </Button>
             </div>
@@ -2573,6 +3476,28 @@ export default function ZeepoAiAgentSessionPage() {
                   </div>
                 </div>
               </ScrollArea>
+            ) : activePanel.type === "presentation" ? (
+              <PresentationViewer
+                data={activePanel.data}
+                slideIndex={presentationSlideIndex}
+                onSlideChange={setPresentationSlideIndex}
+                generations={generations}
+                onOpenImage={(url, generationId) => {
+                  setActivePanel({
+                    type: "media",
+                    url,
+                    kind: "image",
+                    generationId,
+                  });
+                  setPresentationSlideIndex(0);
+                }}
+              />
+            ) : activePanel.type === "image-presentation" ? (
+              <ImagePresentationViewer
+                data={activePanel.data}
+                slideIndex={imagePresentationSlideIndex}
+                onSlideChange={setImagePresentationSlideIndex}
+              />
             ) : null}
           </div>
 
