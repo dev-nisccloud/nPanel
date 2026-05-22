@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { HelpCircle, Check, Globe, Mail, Receipt } from "lucide-react";
+import { HelpCircle, Check, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import {
@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Link, useLocation } from "react-router";
-import { User, Users, UserSearch, AlertTriangle } from "lucide-react";
+import { User, UserPlus, UserSearch, AlertTriangle } from "lucide-react";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,17 @@ import type { CartItem, DomainCartItem, HivelocityCartItem } from "@/stores/cart
 import { CartItemCard } from "@/routes/agency/_components/sidebar/cart-item-card";
 import { authClient } from "@/lib/auth-client";
 import { BuyNowDomainProductStep } from "@/components/buy-now-domain-product-step";
+import {
+  HostingUpsellStep,
+  HostingPlanSelectionStep,
+  planSelectionToUpsell,
+  getMinYearlyFromPlans,
+  DEFAULT_HOSTING_BILLING_CYCLE,
+  DEFAULT_HOSTING_BILLING_INTERVAL,
+  type HostingPlanType,
+  type SelectedHostingUpsell,
+  type PricingPlanRow,
+} from "@/components/global-buy-now/hosting-steps";
 
 const formatPrice = (price?: number, currency?: string) => {
   if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {
@@ -96,7 +107,7 @@ function getMissingProfileFields(profile: {
   return missing;
 }
 
-type RegistrantType = "customer" | "myself" | "existing_customer";
+type RegistrantType = "myself" | "existing_customer";
 
 type ManualRegistrantDetails = {
   firstName: string;
@@ -142,7 +153,6 @@ function customerToManualRegistrantDetails(customer: CustomerForRegistrant): Man
 
 function buildRegistrantOrderMetadata(
   registrantType: RegistrantType,
-  manualRegistrantDetails: ManualRegistrantDetails,
   selectedCustomer: CustomerForRegistrant | undefined,
 ): {
   useRegistrantInfo: "myself" | "customer";
@@ -157,10 +167,7 @@ function buildRegistrantOrderMetadata(
       manualRegistrantDetails: customerToManualRegistrantDetails(selectedCustomer),
     };
   }
-  return {
-    useRegistrantInfo: "customer",
-    manualRegistrantDetails,
-  };
+  return { useRegistrantInfo: "myself" };
 }
 
 function getDomainCartLineBasePrice(d: {
@@ -194,6 +201,7 @@ interface SelectedUpsellPlan {
   billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
   price: number;
   currency: string;
+  hostingType?: HostingPlanType;
 }
 
 interface SelectedAddOn {
@@ -235,8 +243,19 @@ export function GlobalBuyNowDialog() {
   const [planSelectionProductId, setPlanSelectionProductId] = React.useState<string | null>(null);
   const [planSelectionProductName, setPlanSelectionProductName] = React.useState<string>("");
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
-  const [selectedBillingCycle, setSelectedBillingCycle] = React.useState<"MONTHLY" | "YEARLY" | "BIENNIALLY">("MONTHLY");
+  const [selectedBillingCycle, setSelectedBillingCycle] = React.useState<"MONTHLY" | "YEARLY" | "BIENNIALLY">(
+    DEFAULT_HOSTING_BILLING_CYCLE,
+  );
   const [isSelectingMainProductPlan, setIsSelectingMainProductPlan] = React.useState(false);
+  const [hostingPlanType, setHostingPlanType] = React.useState<HostingPlanType | null>(null);
+  const [hostingBillingInterval, setHostingBillingInterval] = React.useState<"monthly" | "yearly">(
+    DEFAULT_HOSTING_BILLING_INTERVAL,
+  );
+  const [hostingBillingCyclesByPlanId, setHostingBillingCyclesByPlanId] = React.useState<
+    Record<string, "MONTHLY" | "YEARLY" | "BIENNIALLY">
+  >({});
+  /** Domain checkout: registrant step finished; review before payment is allowed */
+  const [registrantStepCompleted, setRegistrantStepCompleted] = React.useState(false);
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string | null>(null);
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
@@ -274,32 +293,9 @@ export function GlobalBuyNowDialog() {
   }, [location.pathname, isAgencyUser]);
 
   const [registrantType, setRegistrantType] = React.useState<RegistrantType>(
-    isAgencySide ? "customer" : "myself"
+    isAgencySide ? "existing_customer" : "myself",
   );
   const [selectedExistingCustomerId, setSelectedExistingCustomerId] = React.useState("");
-  const [manualRegistrantDetails, setManualRegistrantDetails] = React.useState<ManualRegistrantDetails>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    address: "",
-    city: "",
-    country: "Kenya",
-    postalCode: "",
-    phone: "",
-  });
-
-  const isManualDetailsComplete = React.useMemo(() => {
-    const required = [
-      manualRegistrantDetails.firstName,
-      manualRegistrantDetails.lastName,
-      manualRegistrantDetails.email,
-      manualRegistrantDetails.address,
-      manualRegistrantDetails.city,
-      manualRegistrantDetails.country,
-      manualRegistrantDetails.phone,
-    ];
-    return required.every((f) => !!f && String(f).trim().length > 0);
-  }, [manualRegistrantDetails]);
 
   const isCartMode = mode === "cart";
   const isTransferMode = mode === "transfer";
@@ -327,9 +323,16 @@ export function GlobalBuyNowDialog() {
     { baseProductId: ctx?.productId ?? "" },
     { enabled: open && !!ctx?.productId && !isCartMode }
   );
-  const { data: hostingUpsellProducts = [] } = trpc.products.getHostingProductsForUpsell.useQuery(undefined, {
-    enabled: open && !isCartMode && isDomainProduct,
-  });
+  const { data: webHostingPricing, isLoading: isLoadingWebHostingPricing } =
+    trpc.products.getHostingPlansForPricing.useQuery(undefined, {
+      enabled: open && !isCartMode && isDomainProduct,
+    });
+  const { data: emailHostingPricing, isLoading: isLoadingEmailHostingPricing } =
+    trpc.products.getEmailHostingPlansForPricing.useQuery(undefined, {
+      enabled: open && !isCartMode && isDomainProduct,
+    });
+  const webFromPrice = getMinYearlyFromPlans(webHostingPricing?.plans ?? []);
+  const emailFromPrice = getMinYearlyFromPlans(emailHostingPricing?.plans ?? []);
   const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
     enabled: open && isDomainProduct,
   });
@@ -373,13 +376,8 @@ export function GlobalBuyNowDialog() {
     !!selectedExistingCustomer?.profileComplete;
 
   const registrantOrderMetadata = React.useMemo(
-    () =>
-      buildRegistrantOrderMetadata(
-        registrantType,
-        manualRegistrantDetails,
-        selectedExistingCustomer,
-      ),
-    [registrantType, manualRegistrantDetails, selectedExistingCustomer],
+    () => buildRegistrantOrderMetadata(registrantType, selectedExistingCustomer),
+    [registrantType, selectedExistingCustomer],
   );
   const teamId = isTransferMode ? transferContext?.teamId : ctx?.teamId;
   const teamBillingQuery = trpc.teamBilling.getByTeam.useQuery(
@@ -630,7 +628,82 @@ export function GlobalBuyNowDialog() {
     },
   });
 
-  // Create order on payment success ?? called from poll callback to avoid useEffect latency
+  const buildDomainProductOrderItems = React.useCallback(() => {
+    if (!ctx?.productId || !ctx?.domain?.domain) return [];
+    const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+    const domainName = ctx.domain.domain;
+    const linePrice = (key: string, base: number) =>
+      isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? base : base;
+
+    const items: Array<{
+      productId: string;
+      productPlanId?: string | null;
+      billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY";
+      primaryDomain: string;
+      description?: string;
+      itemPrice: string;
+      itemSubtotal: string;
+      metadata?: ReturnType<typeof buildRegistrantOrderMetadata>;
+    }> = [
+      {
+        productId: ctx.productId,
+        primaryDomain: domainName,
+        description: "registration",
+        productPlanId: null,
+        itemPrice: str(linePrice("product-domain", domainTotal)),
+        itemSubtotal: str(linePrice("product-domain", domainTotal)),
+        metadata: registrantOrderMetadata,
+      },
+    ];
+
+    for (const addon of selectedAddOns) {
+      const price = linePrice(`addon:${addon.productId}`, addon.price);
+      items.push({
+        productId: addon.productId,
+        productPlanId: addon.planId,
+        primaryDomain: domainName,
+        itemPrice: str(price),
+        itemSubtotal: str(price),
+      });
+    }
+
+    if (selectedMainPlan) {
+      const price = linePrice(`main-plan:${selectedMainPlan.planId}`, selectedMainPlan.price);
+      items.push({
+        productId: selectedMainPlan.productId,
+        productPlanId: selectedMainPlan.planId,
+        billingCycle: selectedMainPlan.billingCycle,
+        primaryDomain: domainName,
+        itemPrice: str(price),
+        itemSubtotal: str(price),
+      });
+    }
+
+    for (const upsell of selectedUpsellPlans) {
+      const price = linePrice(`upsell:${upsell.productId}:${upsell.planId}`, upsell.price);
+      items.push({
+        productId: upsell.productId,
+        productPlanId: upsell.planId,
+        billingCycle: upsell.billingCycle,
+        primaryDomain: domainName,
+        itemPrice: str(price),
+        itemSubtotal: str(price),
+      });
+    }
+
+    return items;
+  }, [
+    ctx,
+    domainTotal,
+    isAgencyUser,
+    priceOverrideByKey,
+    registrantOrderMetadata,
+    selectedAddOns,
+    selectedMainPlan,
+    selectedUpsellPlans,
+  ]);
+
+  // Create order on payment success — called from poll callback to avoid useEffect latency
   const triggerOrderFromPayment = React.useCallback(
     (checkoutRequestIdParam: string) => {
       if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;
@@ -697,23 +770,20 @@ export function GlobalBuyNowDialog() {
         });
         return;
       }
-      if (!ctx?.productId || !ctx?.domain?.domain) return;
-      const baseLine = domainTotal;
-      const recorded = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["product-domain"]) ?? baseLine : baseLine;
+      const orderItems = buildDomainProductOrderItems();
+      if (orderItems.length === 0) return;
+      const billedForUserId =
+        isAgencyUser &&
+        registrantType === "existing_customer" &&
+        selectedExistingCustomerId.trim()
+          ? selectedExistingCustomerId.trim()
+          : undefined;
       createOrderFromPayment.mutate({
         checkoutRequestId: checkoutRequestIdParam,
-        items: [
-          {
-            productId: ctx.productId,
-            primaryDomain: ctx.domain.domain,
-            description: "registration",
-            productPlanId: null,
-            itemPrice: str(recorded),
-            itemSubtotal: str(recorded),
-            metadata: registrantOrderMetadata,
-          },
-        ],
+        items: orderItems,
         currency: displayCurrency,
+        ...(ctx?.teamId ? { teamId: ctx.teamId } : {}),
+        ...(billedForUserId ? { billedForUserId } : {}),
       });
     },
     [
@@ -732,6 +802,7 @@ export function GlobalBuyNowDialog() {
       registrantType,
       selectedExistingCustomerId,
       domainTotal,
+      buildDomainProductOrderItems,
     ]
   );
 
@@ -1006,13 +1077,45 @@ export function GlobalBuyNowDialog() {
     setAmountError("");
   };
 
+  const goToRegistrantStep = () => {
+    setRegistrantStepCompleted(false);
+    setCurrentStep("registrant_info");
+  };
+
   const goToDomainCheckoutStep = () => {
     if (isDomainProduct) {
-      setCurrentStep("registrant_info");
+      goToRegistrantStep();
       return;
     }
     openForPayment();
   };
+
+  const proceedFromReview = () => {
+    if (isDomainProduct && !registrantStepCompleted) {
+      goToRegistrantStep();
+      return;
+    }
+    openForPayment();
+  };
+
+  const upsellToHostingSelected = React.useCallback(
+    (plans: SelectedUpsellPlan[]): SelectedHostingUpsell[] =>
+      plans
+        .map((p) => {
+          const hostingType =
+            p.hostingType ??
+            (p.productName.toLowerCase().includes("email")
+              ? "email"
+              : p.productName.toLowerCase().includes("web") ||
+                  p.productName.toLowerCase().includes("website")
+                ? "web"
+                : null);
+          if (!hostingType) return null;
+          return { ...p, hostingType };
+        })
+        .filter((p): p is SelectedHostingUpsell => p != null),
+    [],
+  );
 
   const handleBack = () => {
     if (currentStep === "hosting-upsell") setCurrentStep("product");
@@ -1022,8 +1125,16 @@ export function GlobalBuyNowDialog() {
         setPlanSelectionProductName("");
         setIsSelectingMainProductPlan(false);
         setCurrentStep("product");
-      } else setCurrentStep("hosting-upsell");
+      } else {
+        setHostingPlanType(null);
+        setSelectedPlanId(null);
+        setCurrentStep("hosting-upsell");
+      }
     } else if (currentStep === "review" && !isCartMode && ctx) {
+      if (isDomainProduct && registrantStepCompleted) {
+        setCurrentStep("registrant_info");
+        return;
+      }
       if (selectedMainPlan) {
         setPlanSelectionProductId(ctx.productId);
         setPlanSelectionProductName(ctx.productName);
@@ -1037,25 +1148,76 @@ export function GlobalBuyNowDialog() {
         setCurrentStep("product");
       }
     } else if (currentStep === "registrant_info") {
-      setCurrentStep("review");
-    } else if (currentStep === "payment") {
       if (isDomainProduct) {
-        setCurrentStep("registrant_info");
+        setCurrentStep("hosting-upsell");
       } else {
         setCurrentStep("review");
       }
+    } else if (currentStep === "payment") {
+      setCurrentStep("review");
     }
   };
 
-  const handleGetDeal = (productId: string, productName: string) => {
-    setPlanSelectionProductId(productId);
-    setPlanSelectionProductName(productName);
+  const handleHostingBrowsePlans = (type: HostingPlanType) => {
+    setHostingPlanType(type);
     setSelectedPlanId(null);
-    setSelectedBillingCycle("MONTHLY");
+    setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
+    setIsSelectingMainProductPlan(false);
+    setPlanSelectionProductId(null);
+    setPlanSelectionProductName("");
     setCurrentStep("plan-selection");
   };
 
+  const handleHostingRemove = (type: HostingPlanType) => {
+    setSelectedUpsellPlans((prev) => prev.filter((p) => p.hostingType !== type));
+  };
+
+  const hostingPricingPlans: PricingPlanRow[] =
+    hostingPlanType === "web"
+      ? (webHostingPricing?.plans ?? [])
+      : hostingPlanType === "email"
+        ? (emailHostingPricing?.plans ?? [])
+        : [];
+  const hostingProductFeatures =
+    hostingPlanType === "web"
+      ? (webHostingPricing?.productFeatures ?? [])
+      : hostingPlanType === "email"
+        ? (emailHostingPricing?.productFeatures ?? [])
+        : [];
+  const isLoadingHostingPlans =
+    hostingPlanType === "web"
+      ? isLoadingWebHostingPricing
+      : hostingPlanType === "email"
+        ? isLoadingEmailHostingPricing
+        : false;
+
   const addSelectedPlanToUpsell = () => {
+    if (hostingPlanType && selectedPlanId) {
+      const plan = hostingPricingPlans.find((p) => p.id === selectedPlanId);
+      if (!plan) return;
+      const cycle =
+        hostingBillingCyclesByPlanId[plan.id] ??
+        (hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY");
+      const upsell = planSelectionToUpsell(plan, hostingPlanType, cycle);
+      setSelectedUpsellPlans((prev) => [
+        ...prev.filter((p) => p.hostingType !== hostingPlanType),
+        {
+          productId: upsell.productId,
+          productName: upsell.productName,
+          planId: upsell.planId,
+          planName: upsell.planName,
+          billingCycle: upsell.billingCycle,
+          price: upsell.price,
+          currency: upsell.currency,
+          hostingType: upsell.hostingType,
+        },
+      ]);
+      setHostingPlanType(null);
+      setSelectedPlanId(null);
+      setCurrentStep("hosting-upsell");
+      return;
+    }
+
     const plan = plans.find((p) => p.id === selectedPlanId);
     if (!plan || !planSelectionProductId || !planSelectionProductName) return;
     const priceNum = parseFloat(plan.price ?? "0");
@@ -1133,19 +1295,13 @@ export function GlobalBuyNowDialog() {
       setSelectedMainPlan(null);
       setPlanSelectionProductId(null);
       setIsSelectingMainProductPlan(false);
+      setHostingPlanType(null);
+      setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
+      setHostingBillingCyclesByPlanId({});
+      setRegistrantStepCompleted(false);
       setSelectedPlanId(null);
-      setRegistrantType(isAgencySide ? "customer" : "myself");
+      setRegistrantType(isAgencySide ? "existing_customer" : "myself");
       setSelectedExistingCustomerId("");
-      setManualRegistrantDetails({
-        firstName: "",
-        lastName: "",
-        email: "",
-        address: "",
-        city: "",
-        country: "Kenya",
-        postalCode: "",
-        phone: "",
-      });
       setSelectedPaymentMethod(null);
       setMpesaPhoneNumber("");
       setPaymentAmount("");
@@ -1256,116 +1412,145 @@ export function GlobalBuyNowDialog() {
 
       case "hosting-upsell":
         return (
-          <div className="space-y-4">
-            <div className="text-center py-2">
-              <h3 className="text-lg font-semibold text-foreground">Add hosting services</h3>
-            </div>
-            {selectedUpsellPlans.length > 0 && (
-              <div className="space-y-2">
-                {selectedUpsellPlans.map((p) => (
-                  <div key={p.planId} className="bg-muted/50 rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{p.productName} ? {p.planName}</div>
-                      <div className="text-sm text-muted-foreground">{p.billingCycle}</div>
-                    </div>
-                    <div className="font-semibold">{formatPrice(p.price, p.currency)}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {hostingUpsellProducts.map(({ product }) => (
-              <div key={product.id} className="rounded-lg border-2 border-border bg-card p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {product.name.toLowerCase().includes("email") ? <Mail className="h-5 w-5 text-primary" /> : <Globe className="h-5 w-5 text-primary" />}
-                    <span className="font-semibold text-foreground">{product.name}</span>
-                  </div>
-                  <Button
-                    variant={selectedUpsellPlans.some((u) => u.productId === product.id) ? "secondary" : "default"}
-                    onClick={() => handleGetDeal(product.id, product.name)}
-                  >
-                    {selectedUpsellPlans.some((u) => u.productId === product.id) ? "Change plan" : "Get deal"}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <BuyNowStepScroll>
+            <HostingUpsellStep
+              domainLabel={ctx?.domain?.domain}
+              selected={upsellToHostingSelected(selectedUpsellPlans)}
+              webFromPrice={webFromPrice}
+              emailFromPrice={emailFromPrice}
+              pricePeriodLabel="/yr"
+              isLoadingPrices={isLoadingWebHostingPricing || isLoadingEmailHostingPricing}
+              onBrowsePlans={handleHostingBrowsePlans}
+              onChangePlan={handleHostingBrowsePlans}
+              onRemove={handleHostingRemove}
+            />
+          </BuyNowStepScroll>
         );
 
       case "plan-selection":
+        if (hostingPlanType) {
+          return (
+            <BuyNowStepScroll>
+              <HostingPlanSelectionStep
+                planType={hostingPlanType}
+                domainLabel={ctx?.domain?.domain}
+                plans={hostingPricingPlans}
+                productFeatures={hostingProductFeatures}
+                isLoading={isLoadingHostingPlans}
+                selectedPlanId={selectedPlanId}
+                billingInterval={hostingBillingInterval}
+                billingCyclesByPlanId={hostingBillingCyclesByPlanId}
+                onSelectPlan={(planId) => {
+                  setSelectedPlanId(planId);
+                  if (!hostingBillingCyclesByPlanId[planId]) {
+                    setHostingBillingCyclesByPlanId((prev) => ({
+                      ...prev,
+                      [planId]:
+                        hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY",
+                    }));
+                  }
+                }}
+                onBillingIntervalChange={(interval) => {
+                  setHostingBillingInterval(interval);
+                  if (selectedPlanId) {
+                    setHostingBillingCyclesByPlanId((prev) => ({
+                      ...prev,
+                      [selectedPlanId]:
+                        interval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY",
+                    }));
+                  }
+                }}
+                onPlanBillingCycleChange={(planId, cycle) => {
+                  setHostingBillingCyclesByPlanId((prev) => ({ ...prev, [planId]: cycle }));
+                }}
+              />
+            </BuyNowStepScroll>
+          );
+        }
         return (
-          <div className="space-y-4">
-            <div className="text-center py-2">
-              <h3 className="text-lg font-semibold text-foreground">Select plan: {planSelectionProductName}</h3>
-              <p className="text-sm text-muted-foreground">Choose a plan from the list</p>
-            </div>
-            {plans.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No plans available.</div>
-            ) : (
-              <div className="space-y-3">
-                {plans.map((plan) => {
-                  const price = parseFloat(plan.price ?? "0");
-                  const isSelected = selectedPlanId === plan.id;
-                  const planCycle = (plan.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY") ?? "MONTHLY";
-                  const cycle = isSelected ? selectedBillingCycle : planCycle;
-                  let monthlyPrice = price;
-                  if (planCycle === "YEARLY") monthlyPrice = price / 12;
-                  else if (planCycle === "BIENNIALLY") monthlyPrice = price / 24;
-                  const months = cycle === "MONTHLY" ? 1 : cycle === "YEARLY" ? 12 : 24;
-                  const displayTotal = monthlyPrice * months;
-                  return (
-                    <div
-                      key={plan.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        setSelectedPlanId(plan.id);
-                        setSelectedBillingCycle(planCycle);
-                      }}
-                      onKeyDown={(e) => e.key === "Enter" && (setSelectedPlanId(plan.id), setSelectedBillingCycle(planCycle))}
-                      className={`rounded-lg border-2 p-4 cursor-pointer transition-all ${
-                        isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <span className="font-semibold text-foreground">{plan.name}</span>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {formatPrice(monthlyPrice, plan.currency)}/mo
-                          </p>
-                          {isSelected && (
-                            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                              <Select
-                                value={cycle}
-                                onValueChange={(v: "MONTHLY" | "YEARLY" | "BIENNIALLY") => setSelectedBillingCycle(v)}
-                              >
-                                <SelectTrigger className="w-32 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="MONTHLY">Monthly</SelectItem>
-                                  <SelectItem value="YEARLY">Yearly</SelectItem>
-                                  <SelectItem value="BIENNIALLY">Biennially</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-primary bg-primary" : "border-muted-foreground"}`}>
+          <BuyNowStepScroll>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Choose a plan for <span className="font-medium text-foreground">{planSelectionProductName}</span>
+              </p>
+              {plans.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
+                  No plans available.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {plans.map((plan) => {
+                    const price = parseFloat(plan.price ?? "0");
+                    const isSelected = selectedPlanId === plan.id;
+                    const planCycle = (plan.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY") ?? "MONTHLY";
+                    const cycle = isSelected ? selectedBillingCycle : planCycle;
+                    let monthlyPrice = price;
+                    if (planCycle === "YEARLY") monthlyPrice = price / 12;
+                    else if (planCycle === "BIENNIALLY") monthlyPrice = price / 24;
+                    const months = cycle === "MONTHLY" ? 1 : cycle === "YEARLY" ? 12 : 24;
+                    const displayTotal = monthlyPrice * months;
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlanId(plan.id);
+                          setSelectedBillingCycle(planCycle);
+                        }}
+                        className={cn(
+                          "w-full text-left rounded-xl border-2 p-3.5 transition-all",
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border/80 bg-card hover:border-primary/40",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <span className="text-sm font-semibold text-foreground">{plan.name}</span>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatPrice(monthlyPrice, plan.currency)}/mo
+                            </p>
+                            {isSelected && (
+                              <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                                <Select
+                                  value={cycle}
+                                  onValueChange={(v: "MONTHLY" | "YEARLY" | "BIENNIALLY") =>
+                                    setSelectedBillingCycle(v)
+                                  }
+                                >
+                                  <SelectTrigger className="w-32 h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                    <SelectItem value="YEARLY">Yearly</SelectItem>
+                                    <SelectItem value="BIENNIALLY">Every 2 years</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                          <div
+                            className={cn(
+                              "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
+                              isSelected ? "border-primary bg-primary" : "border-muted-foreground/40",
+                            )}
+                          >
                             {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                           </div>
-                          {isSelected && (
-                            <div className="text-sm font-medium mt-1">{formatPrice(displayTotal, plan.currency)}</div>
-                          )}
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                        {isSelected && (
+                          <p className="text-xs font-medium text-foreground mt-2 pt-2 border-t border-border/60">
+                            {formatPrice(displayTotal, plan.currency)} total
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </BuyNowStepScroll>
         );
 
       case "review":
@@ -1518,7 +1703,7 @@ export function GlobalBuyNowDialog() {
                   <div className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
                     <div className="flex justify-between gap-4">
                       <div>
-                        <div className="font-medium">{selectedMainPlan.productName} ? {selectedMainPlan.planName}</div>
+                        <div className="font-medium">{selectedMainPlan.productName} · {selectedMainPlan.planName}</div>
                         <div className="text-sm text-muted-foreground">{selectedMainPlan.billingCycle}</div>
                       </div>
                       <div className="font-semibold shrink-0">
@@ -1536,7 +1721,7 @@ export function GlobalBuyNowDialog() {
                   <div key={p.planId} className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
                     <div className="flex justify-between gap-4">
                       <div>
-                        <div className="font-medium">{p.productName} ? {p.planName}</div>
+                        <div className="font-medium">{p.productName} · {p.planName}</div>
                         <div className="text-sm text-muted-foreground">{p.billingCycle}</div>
                       </div>
                       <div className="font-semibold shrink-0">{formatPrice(p.price, p.currency)}</div>
@@ -1813,122 +1998,32 @@ export function GlobalBuyNowDialog() {
         return (
           <BuyNowStepScroll className="space-y-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-foreground">Registrant Information</h3>
-              <p className="text-sm text-muted-foreground">Select whose details to use for this domain registration.</p>
+              <h3 className="text-lg font-semibold text-foreground">Registrant details</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose a customer in nPanel or use your agency profile for this domain registration.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+              <div className="flex gap-3 min-w-0">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <UserPlus className="size-4" />
+                </div>
+                <div className="space-y-0.5 min-w-0">
+                  <p className="text-sm font-medium text-foreground">New customer?</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Create them in nPanel with a complete profile, then return here to process the order on their behalf.
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" className="shrink-0 w-full sm:w-auto" asChild>
+                <Link to="/agency/clients" onClick={() => close()}>
+                  Create customer in nPanel
+                </Link>
+              </Button>
             </div>
 
             <div className="grid gap-4">
-              <div
-                className={cn(
-                  "relative flex cursor-pointer rounded-lg border bg-card px-5 py-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
-                  registrantType === "customer" ? "border-primary ring-1 ring-primary" : "border-border"
-                )}
-                onClick={() => {
-                  setRegistrantType("customer");
-                  setSelectedExistingCustomerId("");
-                }}
-              >
-                <div className="flex w-full items-start gap-5">
-                  <div className={cn(
-                    "mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                    registrantType === "customer" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                  )}>
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-foreground">Enter Customer Details</p>
-                      {registrantType === "customer" && <div className="h-2 w-2 rounded-full bg-primary" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Manually enter the details for this registration.
-                    </p>
-
-                    <Accordion type="single" collapsible value={registrantType === "customer" ? "manual-form" : ""} className="mt-5 border-none">
-                      <AccordionItem value="manual-form" className="border-none">
-                        <AccordionContent className="pt-0 border-none">
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-5 pt-3" onClick={(e) => e.stopPropagation()}>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">First Name</p>
-                              <Input
-                                value={manualRegistrantDetails.firstName}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, firstName: e.target.value })}
-                                placeholder="First Name"
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Last Name</p>
-                              <Input
-                                value={manualRegistrantDetails.lastName}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, lastName: e.target.value })}
-                                placeholder="Last Name"
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                            <div className="space-y-2 col-span-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Email Address</p>
-                              <Input
-                                value={manualRegistrantDetails.email}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, email: e.target.value })}
-                                placeholder="customer@example.com"
-                                className="h-9 text-xs"
-                                type="email"
-                              />
-                            </div>
-                            <div className="space-y-2 col-span-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Physical Address</p>
-                              <Input
-                                value={manualRegistrantDetails.address}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, address: e.target.value })}
-                                placeholder="Street, Building, etc."
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">City</p>
-                              <Input
-                                value={manualRegistrantDetails.city}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, city: e.target.value })}
-                                placeholder="City"
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Country</p>
-                              <Input
-                                value={manualRegistrantDetails.country}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, country: e.target.value })}
-                                placeholder="Kenya"
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Postal Code</p>
-                              <Input
-                                value={manualRegistrantDetails.postalCode}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, postalCode: e.target.value })}
-                                placeholder="e.g. 00100"
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Phone Number</p>
-                              <Input
-                                value={manualRegistrantDetails.phone}
-                                onChange={(e) => setManualRegistrantDetails({ ...manualRegistrantDetails, phone: e.target.value })}
-                                placeholder="0712345678"
-                                className="h-9 text-xs"
-                              />
-                            </div>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </div>
-                </div>
-              </div>
-
               <div
                 className={cn(
                   "relative flex cursor-pointer rounded-lg border bg-card px-5 py-4 shadow-sm focus:outline-none transition-all hover:border-primary/50",
@@ -1957,7 +2052,7 @@ export function GlobalBuyNowDialog() {
                       ) : null}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Choose a customer account with a complete profile for this registration.
+                      Search and select a customer with a complete profile — recommended for client orders.
                     </p>
                     <div className="mt-4" onClick={() => setRegistrantType("existing_customer")}>
                       {customersForRegistrantQuery.isLoading ? (
@@ -2039,8 +2134,8 @@ export function GlobalBuyNowDialog() {
                     selectedExistingCustomer &&
                     !selectedExistingCustomer.profileComplete ? (
                       <p className="mt-2 text-xs text-destructive">
-                        This customer&apos;s profile is incomplete. Choose another customer or complete
-                        their profile first.
+                        This customer&apos;s profile is incomplete. Complete their profile in Clients, or
+                        choose another customer.
                       </p>
                     ) : null}
                   </div>
@@ -2156,8 +2251,12 @@ export function GlobalBuyNowDialog() {
   const getTitle = () => {
     if (isCartMode) return totalItems === 1 ? "Complete your purchase" : `Review ${totalItems} items`;
     if (effectiveStep === "product") return `Buy ${hasDomain ? ctx?.domain?.domain ?? ctx?.productName : ctx?.productName}`;
-    if (effectiveStep === "hosting-upsell") return "Add hosting";
-    if (effectiveStep === "plan-selection") return `Select plan: ${planSelectionProductName}`;
+    if (effectiveStep === "hosting-upsell") return "Add hosting services";
+    if (effectiveStep === "plan-selection") {
+      if (hostingPlanType === "web") return "Website hosting plans";
+      if (hostingPlanType === "email") return "Email hosting plans";
+      return `Select plan: ${planSelectionProductName}`;
+    }
     if (effectiveStep === "review") return "Complete and review";
     if (effectiveStep === "registrant_info") {
       return isCustomerDomainCheckout ? "Profile required" : "Registrant details";
@@ -2170,18 +2269,27 @@ export function GlobalBuyNowDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+      <DialogContent
+        className={cn(
+          "max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0",
+          effectiveStep === "plan-selection" && hostingPlanType ? "sm:max-w-2xl" : "sm:max-w-[600px]",
+        )}
+      >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
             {effectiveStep === "product" && "Add optional services and proceed."}
-            {effectiveStep === "hosting-upsell" && "Add hosting (optional)."}
-            {effectiveStep === "plan-selection" && "Choose a plan."}
+            {effectiveStep === "hosting-upsell" &&
+              "Add website or email hosting for your domain, or skip to checkout."}
+            {effectiveStep === "plan-selection" &&
+              (hostingPlanType
+                ? "Compare plans and pick the billing period that works for you."
+                : "Choose a plan to continue.")}
             {effectiveStep === "review" && "Review and proceed to checkout."}
             {effectiveStep === "registrant_info" &&
               (isCustomerDomainCheckout
                 ? "Complete your profile before paying for a domain."
-                : "Choose whose details to use for registration.")}
+                : "Select a customer in nPanel or use your agency profile.")}
             {effectiveStep === "payment" && "Complete your payment."}
             {effectiveStep === "success" && "Order confirmed."}
             {effectiveStep === "error" && "Payment could not be completed."}
@@ -2199,7 +2307,7 @@ export function GlobalBuyNowDialog() {
               <Button variant="ghost" onClick={() => close()}>Cancel</Button>
               <Button
                 onClick={() => {
-                  if (isDomainProduct && hostingUpsellProducts.length > 0) setCurrentStep("hosting-upsell");
+                  if (isDomainProduct) setCurrentStep("hosting-upsell");
                   else if (!hasDomain && ctx?.productId) {
                     setPlanSelectionProductId(ctx.productId);
                     setPlanSelectionProductName(ctx.productName);
@@ -2210,7 +2318,7 @@ export function GlobalBuyNowDialog() {
                   } else setCurrentStep("review");
                 }}
               >
-                {isDomainProduct && hostingUpsellProducts.length > 0 ? "Continue" : !hasDomain && ctx?.productId ? "Select plan" : "Proceed to checkout"}
+                {isDomainProduct ? "Continue" : !hasDomain && ctx?.productId ? "Select plan" : "Proceed to checkout"}
               </Button>
             </>
           )}
@@ -2229,25 +2337,11 @@ export function GlobalBuyNowDialog() {
           )}
           {effectiveStep === "plan-selection" && (
             <>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setPlanSelectionProductId(null);
-                  setPlanSelectionProductName("");
-                  setIsSelectingMainProductPlan(false);
-                  setCurrentStep(isSelectingMainProductPlan ? "product" : "hosting-upsell");
-                }}
-              >
+              <Button variant="ghost" onClick={handleBack}>
                 Back
               </Button>
-              <Button
-                disabled={!selectedPlanId}
-                onClick={() => {
-                  if (isDomainProduct) goToDomainCheckoutStep();
-                  else setCurrentStep("review");
-                }}
-              >
-                Next
+              <Button disabled={!selectedPlanId} onClick={addSelectedPlanToUpsell}>
+                {hostingPlanType ? "Add to order" : "Continue"}
               </Button>
             </>
           )}
@@ -2259,14 +2353,16 @@ export function GlobalBuyNowDialog() {
                   isCustomerDomainCheckout
                     ? !isProfileComplete || userInfoQuery.isLoading
                     : (registrantType === "myself" && !isProfileComplete) ||
-                      (registrantType === "customer" && !isManualDetailsComplete) ||
                       (registrantType === "existing_customer" && !isExistingCustomerReady)
                 }
-                onClick={() => openForPayment()}
+                onClick={() => {
+                  setRegistrantStepCompleted(true);
+                  setCurrentStep("review");
+                }}
               >
                 {isCustomerDomainCheckout && !isProfileComplete
                   ? "Complete profile to continue"
-                  : "Continue to payment"}
+                  : "Review order"}
               </Button>
             </>
           )}
@@ -2275,17 +2371,19 @@ export function GlobalBuyNowDialog() {
               <Button variant="ghost" onClick={isCartMode ? () => close() : isTransferMode ? () => close() : handleBack}>
                 {isCartMode ? "Cancel" : isTransferMode ? "Cancel" : "Back"}
               </Button>
-              <Button onClick={goToDomainCheckoutStep}>
-                {isTransferMode ? "Proceed to payment" : "Choose payment method"}
+              <Button onClick={proceedFromReview}>
+                {isTransferMode || isCartMode
+                  ? "Proceed to payment"
+                  : isDomainProduct && !registrantStepCompleted
+                    ? "Continue to registrant details"
+                    : "Choose payment method"}
               </Button>
             </>
           )}
           {effectiveStep === "payment" && (
             <Button
               variant="outline"
-              onClick={() =>
-                setCurrentStep(isDomainProduct ? "registrant_info" : "review")
-              }
+              onClick={() => setCurrentStep("review")}
             >
               Back
             </Button>

@@ -568,7 +568,11 @@ export const productsRouter = router({
             const products = await db.query.niscProduct.findMany({
                 where: and(
                     eq(niscProduct.isActive, true),
-                    ilike(niscProduct.name, "%hosting%"),
+                    or(
+                        ilike(niscProduct.name, "%web hosting%"),
+                        ilike(niscProduct.name, "%website hosting%"),
+                        ilike(niscProduct.name, "%email hosting%"),
+                    ),
                 ),
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
                 with: {
