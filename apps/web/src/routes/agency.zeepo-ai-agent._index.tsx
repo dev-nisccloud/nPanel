@@ -34,7 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { uploadFiles } from "@/hooks/use-uploadthing";
+import { uploadErrorMessage, uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
 import { RotatingText } from "@/components/rotating-text";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 
@@ -47,8 +47,24 @@ const SAMPLE_PROMPTS: SamplePrompt[] = [
     icon: Layers,
     color: "text-blue-500",
     bg: "bg-blue-500/10",
-    title: "Vibrant social media ads",
-    prompt: `Design a set of 5 vibrant, high-converting social media ad creatives for a streetwear fashion brand called "Jua Collective" targeting Gen Z in East Africa. Use the design-specialist model for maximum graphic quality. Deliver each as a separate image: (1) Instagram feed post (1:1) — bold typographic hero layout with product centred, neon orange and black palette, "New Drop" badge, price callout, strong CTA; (2) Instagram Stories format (2:3) — full-bleed lifestyle shot concept with large bold text overlay, "Limited Edition" stamp, swipe-up area at bottom; (3) Facebook / Meta feed ad — clean product flat-lay on minimal background, brand logo top-left, short punchy headline, outlined CTA button; (4) TikTok / Reels cover frame (2:3) — product in motion blur with high-contrast background, bright yellow and black, "Shop Now" in bold block font; (5) Twitter/X banner (3:2) — product collage grid, brand name dominant, deep black background with electric accents. Visual style across all five: unapologetically bold, youthful energy, premium streetwear aesthetic, consistent colour system (neon orange #FF5C00, black, white), print-quality graphic output.`,
+    title: "Editorial streetwear ad suite",
+    prompt: `You are a senior graphic designer. Design a set of 5 print-ready social ad creatives for "Jua Collective" — premium East African streetwear for Gen Z. Use the design-specialist model only. Treat each output as a finished agency comp (crisp type, aligned grid, realistic shadows, no AI slop, no watermarks). Brand system locked across all five: neon orange #FF5C00, black #000000, white #FFFFFF; hero product = oversized orange graphic hoodie and/or high-top sneakers; typography = bold Swiss sans (headlines, CTAs) with optional elegant serif for one editorial line only.
+
+Reference the precision of premium DTC / outdoor campaign layouts: editorial hierarchy, lifestyle photography integrated with designed type, pill or rounded CTAs, circular badges, hand-drawn feature callouts, and asymmetric product + copy balance.
+
+Deliver 5 separate images:
+
+(1) Instagram feed — 1:1, asymmetric minimalist layout (ASARAI-style): off-white textured background; streetwear product group left (~45% width) with soft directional shadow; right column — "JUA COLLECTIVE" wordmark top, headline "Wear the City Loud" in bold black sans, subline "Limited Nairobi Drop" smaller, neon orange pill CTA "Shop Now" bottom-right; frame edges with subtle urban props (spray cap, chain, folded map) like botanical framing — tasteful, not cluttered; strict alignment and generous whitespace.
+
+(2) Instagram Stories — 2:3, layered editorial poster (North Face NEXT-style): full-bleed lifestyle photo — young East African model in orange hoodie, urban rooftop, soft fog/mist background; giant background word "DROP" in extra-bold black sans behind the subject (subject breaks the letterforms); foreground headline "Don't Miss the Drop" left-aligned; vertical side text "Heavyweight · Oversized Fit" rotated 90°; solid black pill CTA "SHOP NOW" lower-right; reserve clean swipe-up zone at bottom 12%.
+
+(3) Facebook / Meta feed — 1:1, lifestyle-meets-product editorial (CAYZEN-style): high-key scene — hands styling/adjusting the orange hoodie on a white marble or concrete surface; top-centered typography — serif hero line "Built for the Streets" + sans subline "New Season. Same Heat."; product flat-lay at bottom with streetwear props (cap, laces, tag); circular black "NEW DROP" badge mid-left with small orange dot accent; rounded rectangle CTA "Shop Now" in #FF5C00 bottom-right; soft window bokeh city background, natural diffused light.
+
+(4) TikTok / Reels cover — 2:3, technical action poster (North Face annotate-style): dynamic mid-stride model in orange hoodie, high-contrast environment (gritty wall or night street, shallow depth); top headline "Defy Ordinary. Move Different." bold black sans; three hand-drawn script callouts with thin orange arrows pointing to garment: "Premium Cotton Blend", "Oversized Cut", "Reflective Hit" — casual marker-style lettering; circular "NEW" badge; black rectangular CTA "Shop Now" white type bottom-right; energetic but designed, not chaotic.
+
+(5) Twitter/X banner — 3:2, product grid + dominant brand lockup: deep black background; 3-column product collage (hoodie flat-lay, sneaker angle, detail crop of orange graphic print) with thin white gutters; large "JUA COLLECTIVE" wordmark dominant left or center in bold white sans; electric orange accent line or underline; small supporting line "East Africa · Streetwear · 2025"; compact orange outline or solid CTA "Shop the Drop" far right; editorial, poster-like balance.
+
+Global craft rules: consistent lighting logic per frame; real-world proportions; CTAs always legible at mobile size; no lorem ipsum; no extra logos; all five must feel like one campaign system.`,
   },
   {
     icon: Hexagon,
@@ -224,14 +240,14 @@ export default function ZeepoAiAgentIndexPage() {
         [
           ...prev,
           ...results.map((r, i) => ({
-            url: r.url,
+            url: uploadThingFileUrl(r),
             name: fileArray[i]?.name ?? r.name ?? "attachment",
             mimeType: fileArray[i]?.type ?? "image/*",
           })),
         ].slice(0, 4),
       );
-    } catch {
-      toast.error("Upload failed. Please try again.");
+    } catch (e) {
+      toast.error(uploadErrorMessage(e));
     } finally {
       setIsUploading(false);
     }

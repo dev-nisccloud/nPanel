@@ -77,7 +77,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
-import { uploadFiles } from "@/hooks/use-uploadthing";
+import { uploadErrorMessage, uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
 import { formatDistanceToNow } from "date-fns";
 import {
   Command,
@@ -1447,13 +1447,13 @@ export default function ZeepoAiAgentSessionPage() {
       try {
         const results = await uploadFiles("zeepoAgentAttachment", { files: Array.from(files) });
         const uploaded: Attachment[] = results.map((r, i) => ({
-          url: r.url,
+          url: uploadThingFileUrl(r),
           name: files[i]?.name ?? r.name ?? "attachment",
           mimeType: files[i]?.type ?? "image/*",
         }));
         uploaded.forEach(onUploaded);
-      } catch {
-        toast.error("Upload failed. Please try again.");
+      } catch (e) {
+        toast.error(uploadErrorMessage(e));
       } finally {
         setIsUploading(false);
       }
@@ -1490,7 +1490,7 @@ export default function ZeepoAiAgentSessionPage() {
       uploadFiles("zeepoAgentAttachment", { files: stagedFiles.map((f) => f.file) })
         .then((results) => {
           const uploaded: Attachment[] = results.map((r, i) => ({
-            url: r.url,
+            url: uploadThingFileUrl(r),
             name: stagedFiles[i]?.name ?? r.name ?? "attachment",
             mimeType: stagedFiles[i]?.mimeType ?? "image/*",
           }));
@@ -1502,8 +1502,8 @@ export default function ZeepoAiAgentSessionPage() {
             ...(allAttachments.length ? { attachments: allAttachments } : {}),
           });
         })
-        .catch(() => {
-          toast.error("File upload failed. Please try again.");
+        .catch((e) => {
+          toast.error(uploadErrorMessage(e));
         })
         .finally(() => setIsUploading(false));
       return;
@@ -2725,7 +2725,7 @@ export default function ZeepoAiAgentSessionPage() {
                                 files: [file],
                               });
                               const uploaded: Attachment = {
-                                url: results[0].url,
+                                url: uploadThingFileUrl(results[0]),
                                 name: file.name,
                                 mimeType: file.type,
                               };
@@ -2735,8 +2735,8 @@ export default function ZeepoAiAgentSessionPage() {
                                   ? { ...prev, isUploadingForStep: false, pendingUploadForStep: uploaded }
                                   : prev,
                               );
-                            } catch {
-                              toast.error("Upload failed. Please try again.");
+                            } catch (e) {
+                              toast.error(uploadErrorMessage(e));
                               setQuestionFlow((prev) =>
                                 prev ? { ...prev, isUploadingForStep: false } : prev,
                               );

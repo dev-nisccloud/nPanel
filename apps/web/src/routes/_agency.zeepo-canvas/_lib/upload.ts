@@ -1,4 +1,4 @@
-import { uploadFiles } from "@/hooks/use-uploadthing";
+import { uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
 
 export const uploadFile = async (file: File) => {
   const res = await uploadFiles("zeepoCanvasMedia", {
@@ -10,7 +10,7 @@ export const uploadFile = async (file: File) => {
   }
 
   return {
-    url: res[0].url,
+    url: uploadThingFileUrl(res[0]),
     type: file.type,
   };
 };

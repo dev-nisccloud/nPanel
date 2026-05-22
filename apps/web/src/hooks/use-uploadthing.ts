@@ -4,22 +4,42 @@ import * as React from "react";
 import { generateReactHelpers, generateUploadButton, generateUploadDropzone } from "@uploadthing/react";
 import type { OurFileRouter } from "@/lib/uploadthing-types";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+import { apiUrl } from "@/lib/auth-client";
 
 /**
- * Generate React helpers for UploadThing
- * This provides typed hooks and functions for programmatic uploads
+ * UploadThing route handler lives on the API server (Hono), not the static web app.
+ * In dev, apiUrl("/api/uploadthing") stays relative and Vite proxies /api → server.
+ * In production, apiUrl points at VITE_SERVER_URL so session cookies are sent (same as tRPC/auth).
  */
-export const { useUploadThing: useUploadThingOriginal, uploadFiles } = generateReactHelpers<OurFileRouter>();
+const uploadthingUrl = apiUrl("/api/uploadthing");
 
-/**
- * Upload Button Component
- */
-export const UploadButton = generateUploadButton<OurFileRouter>();
+const uploadthingInit = {
+  url: uploadthingUrl,
+  fetch: ((input, init) =>
+    fetch(input, { ...init, credentials: "include" })) as typeof fetch,
+};
 
-/**
- * Upload Dropzone Component
- */
-export const UploadDropzone = generateUploadDropzone<OurFileRouter>();
+export const { useUploadThing: useUploadThingOriginal, uploadFiles } =
+  generateReactHelpers<OurFileRouter>(uploadthingInit);
+
+export const UploadButton = generateUploadButton<OurFileRouter>(uploadthingInit);
+
+export const UploadDropzone = generateUploadDropzone<OurFileRouter>(uploadthingInit);
+
+/** UploadThing v7 may return `ufsUrl` instead of `url`. */
+export function uploadThingFileUrl(file: {
+  url?: string | null;
+  ufsUrl?: string | null;
+}): string {
+  const url = file.ufsUrl ?? file.url ?? "";
+  if (!url) throw new Error("File URL missing from upload response");
+  return url;
+}
+
+export function uploadErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return "Upload failed. Please try again.";
+}
 
 interface UseUploadThingOptions {
   endpoint?: keyof typeof UPLOAD_ENDPOINTS;
@@ -35,37 +55,14 @@ interface UseUploadThingReturn {
 
 /**
  * Reusable hook for UploadThing file uploads
- * 
+ *
  * Note: For programmatic uploads, use UploadButton or UploadDropzone components.
  * This hook provides upload state tracking.
- * 
- * @example
- * ```tsx
- * const { isUploading, progress } = useUploadThing({
- *   endpoint: "IMAGE",
- *   onUploadComplete: (urls) => console.log("Uploaded:", urls),
- * });
- * 
- * <UploadButton
- *   endpoint="imageUploader"
- *   onClientUploadComplete={(res) => {
- *     console.log("Files: ", res);
- *   }}
- *   onUploadError={(error: Error) => {
- *     console.error(error);
- *   }}
- * />
- * ```
  */
-export function useUploadThing(options: UseUploadThingOptions = {}): UseUploadThingReturn {
+export function useUploadThing(_options: UseUploadThingOptions = {}): UseUploadThingReturn {
   const [progress, setProgress] = React.useState(0);
   const [error, setError] = React.useState<Error | null>(null);
   const [isUploading, setIsUploading] = React.useState(false);
-
-  React.useEffect(() => {
-    // You can add global upload state listeners here if needed
-    // For now, this provides a basic interface
-  }, []);
 
   return {
     isUploading,
@@ -73,4 +70,3 @@ export function useUploadThing(options: UseUploadThingOptions = {}): UseUploadTh
     error,
   };
 }
-
