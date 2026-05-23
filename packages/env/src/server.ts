@@ -26,6 +26,8 @@ export const env = createEnv({
     BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
     QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url(),
     REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url(),
+    /** Nisc Email Builder (neb) — standalone AI HTML builder */
+    QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT: z.string().url().optional(),
     QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),
     REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL: z.string().url(),
     REPLICATE_API_TOKEN: z.string().min(1),

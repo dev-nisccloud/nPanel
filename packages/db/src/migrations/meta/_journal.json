@@ -232,6 +232,20 @@
       "when": 1779270030178,
       "tag": "0032_futuristic_may_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1779526526601,
+      "tag": "0033_violet_pepper_potts",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1779527504974,
+      "tag": "0034_demonic_wild_child",
+      "breakpoints": true
     }
   ]
 }

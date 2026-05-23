@@ -138,3 +138,12 @@ export interface MetaAdsAnalysisJobPayload {
 export interface MetaAdsAnalysisJobResult {
 	messageId: string;
 }
+
+/** Nisc Email Builder (neb) — multi-agent HTML build */
+export interface NebBuildJobPayload {
+	jobId: string;
+}
+
+export interface NebBuildJobResult {
+	messageId: string;
+}

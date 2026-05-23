@@ -77,6 +77,8 @@ export interface BraveSearchParams {
 	depth?: BraveSearchDepth;
 	freshness?: BraveSearchFreshness;
 	country?: string;
+	/** Inline goggle rules, e.g. `$discard\\n$site=example.com` */
+	goggles?: string;
 }
 
 /**
@@ -86,7 +88,7 @@ export interface BraveSearchParams {
 export async function callBraveLlmContext(
 	params: BraveSearchParams,
 ): Promise<string> {
-	const { apiKey, query, depth = "standard", freshness, country } = params;
+	const { apiKey, query, depth = "standard", freshness, country, goggles } = params;
 	const cfg = DEPTH_CONFIG[depth];
 
 	// Only include country when Brave supports it; unsupported regions (e.g. most of Africa)
@@ -105,6 +107,7 @@ export async function callBraveLlmContext(
 		context_threshold_mode: "balanced",
 		...(freshness ? { freshness } : {}),
 		...(safeCountry ? { country: safeCountry } : {}),
+		...(goggles ? { goggles } : {}),
 	};
 
 	const res = await fetch("https://api.search.brave.com/res/v1/llm/context", {
