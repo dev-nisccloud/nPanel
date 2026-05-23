@@ -4,7 +4,8 @@ import { db } from "@npanel/db";
 import { invoice } from "@npanel/db/schema/invoicing";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
+import { OPEN_AR_STATUSES } from "./metrics";
 
 export const niscTaxRouter = router({
   // ─── T-01 Tax Summary ─────────────────────────────────────────────────────
@@ -44,9 +45,7 @@ export const niscTaxRouter = router({
           eq(invoice.status, "PAID"),
           gte(invoice.paidAt, from),
           lte(invoice.paidAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),
@@ -56,12 +55,8 @@ export const niscTaxRouter = router({
         .select({ tax: invoice.tax, vat: invoice.vat })
         .from(invoice)
         .where(and(
-          inArray(invoice.status, ["SENT", "OVERDUE", "PARTIALLY_PAID", "DRAFT"]),
-          gte(invoice.createdAt, from),
-          lte(invoice.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          inArray(invoice.status, [...OPEN_AR_STATUSES, "DRAFT"]),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),

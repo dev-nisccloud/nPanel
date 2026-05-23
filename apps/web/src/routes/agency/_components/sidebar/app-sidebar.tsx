@@ -21,6 +21,16 @@ import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
+const NISC_REPORTS_PREFIX = "/agency/nisc-reports";
+
+function hasMenuKey(url: string, allowedKeys: Set<string>): boolean {
+  if (allowedKeys.has(url)) return true;
+  if (url === NISC_REPORTS_PREFIX) {
+    return [...allowedKeys].some((key) => key.startsWith(NISC_REPORTS_PREFIX));
+  }
+  return false;
+}
+
 /**
  * Recursively filters sidebar items based on allowed keys.
  */
@@ -34,13 +44,13 @@ function filterSidebarItems(
         .map((item) => {
           // If item has subItems, filter them too
           const filteredSubItems = item.subItems?.filter((sub) =>
-            allowedKeys.has(sub.url)
+            hasMenuKey(sub.url, allowedKeys)
           );
 
           // An item is visible if:
           // 1. Its URL is directly in allowedKeys
           // 2. It has at least one visible subItem
-          const isItemVisible = allowedKeys.has(item.url) || (filteredSubItems && filteredSubItems.length > 0);
+          const isItemVisible = hasMenuKey(item.url, allowedKeys) || (filteredSubItems && filteredSubItems.length > 0);
 
           if (!isItemVisible) return null;
 

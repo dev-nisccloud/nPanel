@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, count, desc, eq, gt, gte, inArray, lte, sql, sum } from "@npanel/db";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, lte, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { invoice } from "@npanel/db/schema/invoicing";
 import { invoiceTransaction } from "@npanel/db/schema/invoicing";
@@ -7,7 +7,7 @@ import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInMinutes } from "date-fns";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
 
 export const niscPaymentsRouter = router({
   // ─── PY-01 Payment Method Breakdown ───────────────────────────────────────
@@ -34,9 +34,7 @@ export const niscPaymentsRouter = router({
           eq(invoiceTransaction.status, "COMPLETED"),
           gte(invoiceTransaction.paidAt, from),
           lte(invoiceTransaction.paidAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),
@@ -92,9 +90,7 @@ export const niscPaymentsRouter = router({
         .where(and(
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
           }),
@@ -161,9 +157,7 @@ export const niscPaymentsRouter = router({
           inArray(paymentTransaction.status, ["PENDING", "FAILED"]),
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
           }),
@@ -181,9 +175,7 @@ export const niscPaymentsRouter = router({
           inArray(paymentTransaction.status, ["PENDING", "FAILED"]),
           gte(paymentTransaction.initiatedAt, from),
           lte(paymentTransaction.initiatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
           }),
@@ -229,14 +221,16 @@ export const niscPaymentsRouter = router({
       });
       const offset = (page - 1) * pageSize;
 
+      const refundInPeriod = or(
+        and(isNotNull(paymentTransaction.refundedAt), gte(paymentTransaction.refundedAt, from), lte(paymentTransaction.refundedAt, to)),
+        and(isNull(paymentTransaction.refundedAt), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to)),
+      );
+
       const rows = await db.query.paymentTransaction.findMany({
         where: and(
           eq(paymentTransaction.status, "REFUNDED"),
-          gte(paymentTransaction.initiatedAt, from),
-          lte(paymentTransaction.initiatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+          refundInPeriod,
+          buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
           }),
@@ -252,11 +246,8 @@ export const niscPaymentsRouter = router({
         .from(paymentTransaction)
         .where(and(
           eq(paymentTransaction.status, "REFUNDED"),
-          gte(paymentTransaction.initiatedAt, from),
-          lte(paymentTransaction.initiatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+          refundInPeriod,
+          buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
           }),

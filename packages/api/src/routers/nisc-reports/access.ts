@@ -1,6 +1,5 @@
-import { and, eq, inArray, or, type SQL } from "@npanel/db";
-import { db } from "@npanel/db";
-import { team, teamMember } from "@npanel/db/schema/teams";
+import { TRPCError } from "@trpc/server";
+import { inArray, type SQL } from "@npanel/db";
 
 type ActorRole = string | null | undefined;
 
@@ -8,58 +7,64 @@ export function isAgencyUserRole(role: ActorRole): boolean {
   return role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
 }
 
+export function isAgencySuperAdmin(role: ActorRole): boolean {
+  return role === "AGENCY_SUPER_ADMIN";
+}
+
+/** NISC reports are agency-only. */
+export function requireAgencyReportAccess(role: ActorRole): void {
+  if (!isAgencyUserRole(role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "NISC reports are only available to agency users.",
+    });
+  }
+}
+
+export type ReportScope = {
+  userId: string;
+  role: string;
+  /** Optional dashboard filter; empty = all teams. */
+  teamIds: string[];
+};
+
+/** Agency readers see all data; optional teamIds narrows the result set. */
 export async function resolveReportReadScope(params: {
   userId: string;
   role: ActorRole;
   requestedTeamIds?: string[];
-}): Promise<{ isAgencyUser: boolean; userId: string; teamIds: string[] }> {
-  const { userId, role, requestedTeamIds } = params;
-  const isAgencyUser = isAgencyUserRole(role);
-  if (isAgencyUser) {
-    return { isAgencyUser, userId, teamIds: requestedTeamIds ?? [] };
-  }
-
-  const [memberRows, ownedRows] = await Promise.all([
-    db.query.teamMember.findMany({
-      where: eq(teamMember.userId, userId),
-      columns: { teamId: true },
-    }),
-    db.query.team.findMany({
-      where: eq(team.createdById, userId),
-      columns: { id: true },
-    }),
-  ]);
-
-  const accessibleTeamIds = new Set<string>();
-  for (const row of memberRows) accessibleTeamIds.add(row.teamId);
-  for (const row of ownedRows) accessibleTeamIds.add(row.id);
-
-  const requested = requestedTeamIds?.length ? new Set(requestedTeamIds) : null;
-  const scopedTeamIds = requested
-    ? Array.from(accessibleTeamIds).filter((teamId) => requested.has(teamId))
-    : Array.from(accessibleTeamIds);
-
-  return { isAgencyUser, userId, teamIds: scopedTeamIds };
+}): Promise<ReportScope> {
+  requireAgencyReportAccess(params.role);
+  return {
+    userId: params.userId,
+    role: params.role ?? "",
+    teamIds: params.requestedTeamIds ?? [],
+  };
 }
 
-export function buildOwnerOrTeamReadScope(params: {
-  isAgencyUser: boolean;
-  ownerCondition: SQL<unknown>;
-  teamColumn: any;
+/** Optional team filter (agency users only reach this via resolveReportReadScope). */
+export function buildReportEntityScope(params: {
+  teamColumn: Parameters<typeof inArray>[0];
   teamIds: string[];
 }): SQL<unknown> | undefined {
-  if (params.isAgencyUser) return undefined;
-  if (params.teamIds.length === 0) return params.ownerCondition;
-
-  return or(params.ownerCondition, inArray(params.teamColumn, params.teamIds));
-}
-
-export function buildTeamReadScope(params: {
-  isAgencyUser: boolean;
-  teamColumn: any;
-  teamIds: string[];
-}): SQL<unknown> | undefined {
-  if (params.isAgencyUser) return undefined;
-  if (params.teamIds.length === 0) return and(eq(params.teamColumn, "__no_team_access__"));
+  if (params.teamIds.length === 0) return undefined;
   return inArray(params.teamColumn, params.teamIds);
+}
+
+/**
+ * Write access on report-related resources: owner, or agency super admin override.
+ * (Report endpoints are read-only today; use this for future mutations.)
+ */
+export function assertAgencyMutationAccess(params: {
+  actorUserId: string;
+  role: ActorRole;
+  ownerUserId: string;
+}): void {
+  requireAgencyReportAccess(params.role);
+  if (isAgencySuperAdmin(params.role)) return;
+  if (params.actorUserId === params.ownerUserId) return;
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "Only the record owner or an agency super admin can perform this action.",
+  });
 }

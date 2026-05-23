@@ -4,7 +4,8 @@ import { db } from "@npanel/db";
 import { niscClientSubscription, niscCommissionEntry } from "@npanel/db/schema/products";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, monthlyMrr, toNum } from "./filters";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
+import { subscriptionMrr } from "./metrics";
 
 const FIXED = "FIXED";
 
@@ -43,9 +44,7 @@ export const niscProfitabilityRouter = router({
           inArray(niscClientSubscription.status, statuses),
           isNull(niscClientSubscription.upgradedToSubscriptionId),
           isNull(niscClientSubscription.downgradedToSubscriptionId),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -64,7 +63,7 @@ export const niscProfitabilityRouter = router({
         .map(s => {
           const cat = (s as any).product?.category;
           if (productCategories?.length && cat && !productCategories.includes(cat)) return null;
-          const revenue = monthlyMrr(s.agreedPrice, s.billingCycle);
+          const revenue = subscriptionMrr(s);
           const cost    = monthlyMrr(s.agreedCost ?? null, s.billingCycle);
           const grossMargin = revenue - cost;
           const marginPct   = revenue > 0 ? (grossMargin / revenue) * 100 : 0;
@@ -122,9 +121,7 @@ export const niscProfitabilityRouter = router({
         where: and(
           gte(niscCommissionEntry.createdAt, from),
           lte(niscCommissionEntry.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscCommissionEntry.createdBy, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscCommissionEntry.teamId,
             teamIds: scope.teamIds,
           }),
@@ -142,9 +139,7 @@ export const niscProfitabilityRouter = router({
         .where(and(
           gte(niscCommissionEntry.createdAt, from),
           lte(niscCommissionEntry.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscCommissionEntry.createdBy, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscCommissionEntry.teamId,
             teamIds: scope.teamIds,
           }),

@@ -89,6 +89,7 @@ export const agencyMenuKeys = [
 	"/agency/reports/sales",
 	"/agency/reports/creative",
 
+	"/agency/nisc-reports",
 	"/agency/nisc-reports/revenue",
 	"/agency/nisc-reports/invoices",
 	"/agency/nisc-reports/quotations",
