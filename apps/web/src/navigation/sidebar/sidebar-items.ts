@@ -308,11 +308,16 @@ export const agencysidebarItems: NavGroup[] = [
         subItems: [
           { title: "Campaigns", url: "/agency/nisc-email-marketing/campaigns", },
           { title: "Audiences", url: "/agency/nisc-email-marketing/audiences", },
-          { title: "Email Builder", url: "/agency/nisc-email-marketing/email-builder", },
+          { title: "AI Email Builder", url: "/agency/nisc-email-builder", },
           { title: "Email Events", url: "/agency/nisc-email-marketing/email-events", },
           { title: "Domains", url: "/agency/nisc-email-marketing/domain-configuration", },
         ],
       },
+      // {
+      //   title: "Nisc Email Builder",
+      //   url: "/agency/nisc-email-builder",
+      //   icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      // },
       // {
       //   title: "Email Marketing",
       //   url: "/agency/email-marketing",
@@ -404,8 +409,8 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/clients",
         icon: (props: any) => React.createElement(Icons.Clients, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Clients", url: "/agency/clients", },
-          { title: "Manage Teams", url: "/agency/manage-teams", },
+          { title: "Manage Clients", url: "/agency/clients", },
+          { title: "Manage Organizations", url: "/agency/manage-teams", },
           // { title: "Create Client", url: "/agency/clients", },
           { title: "Manage Users", url: "/agency/manage-users", },
           // { title: "Manage Affiliates", url: "/agency/manage-affiliates", },

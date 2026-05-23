@@ -26,6 +26,7 @@ import { handleZeepoCanvasWebhook } from "./api/webhooks/zeepo-canvas";
 import { handleZeepoAgent } from "./api/workers/zeepo-agent";
 import { handleZeepoAgentWebhook } from "./api/webhooks/zeepo-agent";
 import { handleEmailBuilderAi } from "./api/workers/email-builder-ai";
+import { handleNiscEmailBuilder } from "./api/workers/nisc-email-builder";
 import { handleEmailBuilderAiWebhook } from "./api/webhooks/replicate-email-builder-ai";
 import { handleMetaAdsAnalysis } from "./api/workers/meta-ads-analysis";
 import { handleMetaAdsAnalysisWebhook } from "./api/webhooks/replicate-meta-ads-analysis";
@@ -135,6 +136,7 @@ app.on(["POST"], "/api/workers/publish-linkedin-content*", handlePublishLinkedIn
 app.on(["POST"], "/api/workers/zeepo-canvas*", handleZeepoCanvas);
 app.on(["POST"], "/api/workers/zeepo-agent*", handleZeepoAgent);
 app.on(["POST"], "/api/workers/email-builder-ai*", handleEmailBuilderAi);
+app.on(["POST"], "/api/workers/nisc-email-builder*", handleNiscEmailBuilder);
 app.on(["POST"], "/api/workers/meta-ads-analysis*", handleMetaAdsAnalysis);
 
 export default {
