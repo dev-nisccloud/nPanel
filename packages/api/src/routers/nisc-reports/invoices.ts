@@ -5,7 +5,8 @@ import { invoice, invoiceTransaction, creditNote, invoiceActivityLog } from "@np
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
+import { invoiceIssuedInPeriod } from "./metrics";
 
 export const niscInvoicesRouter = router({
   // ─── I-01 Status Summary ───────────────────────────────────────────────────
@@ -29,11 +30,8 @@ export const niscInvoicesRouter = router({
         .select({ status: invoice.status, amount: invoice.amount })
         .from(invoice)
         .where(and(
-          gte(invoice.createdAt, from),
-          lte(invoice.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          invoiceIssuedInPeriod(from, to),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),
@@ -88,11 +86,8 @@ export const niscInvoicesRouter = router({
 
       const rows = await db.query.invoice.findMany({
         where: and(
-          gte(invoice.createdAt, from),
-          lte(invoice.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          invoiceIssuedInPeriod(from, to),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),
@@ -113,11 +108,8 @@ export const niscInvoicesRouter = router({
         .select({ c: count() })
         .from(invoice)
         .where(and(
-          gte(invoice.createdAt, from),
-          lte(invoice.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          invoiceIssuedInPeriod(from, to),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),
@@ -163,11 +155,8 @@ export const niscInvoicesRouter = router({
         })
         .from(invoice)
         .where(and(
-          gte(invoice.createdAt, from),
-          lte(invoice.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          invoiceIssuedInPeriod(from, to),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),
@@ -236,9 +225,7 @@ export const niscInvoicesRouter = router({
         where: and(
           gte(creditNote.issuedAt, from),
           lte(creditNote.issuedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(creditNote.createdBy, scope.userId),
+          buildReportEntityScope({
             teamColumn: creditNote.teamId,
             teamIds: scope.teamIds,
           }),
@@ -256,9 +243,7 @@ export const niscInvoicesRouter = router({
         .where(and(
           gte(creditNote.issuedAt, from),
           lte(creditNote.issuedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(creditNote.createdBy, scope.userId),
+          buildReportEntityScope({
             teamColumn: creditNote.teamId,
             teamIds: scope.teamIds,
           }),
@@ -325,11 +310,8 @@ export const niscInvoicesRouter = router({
 
       const rows = await db.query.invoice.findMany({
         where: and(
-          gte(invoice.createdAt, from),
-          lte(invoice.createdAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+          invoiceIssuedInPeriod(from, to),
+          buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
           }),

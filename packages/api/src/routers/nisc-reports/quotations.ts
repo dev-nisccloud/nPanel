@@ -43,7 +43,6 @@ export const niscQuotationsRouter = router({
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
           quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined,
-          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ));
 
       const byStatusMap = new Map<string, { count: number; amount: number }>();
@@ -126,7 +125,6 @@ export const niscQuotationsRouter = router({
         .where(and(
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
-          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ));
 
       const stages: Record<string, { count: number; amount: number }> = {
@@ -182,7 +180,6 @@ export const niscQuotationsRouter = router({
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
           quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined,
-          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ),
         columns: {
           id: true, quotationNumber: true, customerName: true, customerEmail: true,
@@ -201,7 +198,6 @@ export const niscQuotationsRouter = router({
           gte(quotation.createdAt, from),
           lte(quotation.createdAt, to),
           quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined,
-          scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId),
         ));
 
       return {

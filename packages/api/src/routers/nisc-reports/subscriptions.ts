@@ -7,9 +7,14 @@ import {
   niscProduct,
 } from "@npanel/db/schema/products";
 import { protectedProcedure, router } from "../../trpc";
-import { reportFiltersSchema, monthlyMrr } from "./filters";
-import { differenceInDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { reportFiltersSchema } from "./filters";
+import { differenceInDays } from "date-fns";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
+import {
+  countSubscriptionsActiveAtDate,
+  mrrDeltaBetweenSubscriptions,
+  subscriptionMrr,
+} from "./metrics";
 
 const FIXED = "FIXED";
 const ACTIVE = "ACTIVE";
@@ -46,9 +51,7 @@ export const niscSubscriptionsRouter = router({
           inArray(niscClientSubscription.status, statuses),
           isNull(niscClientSubscription.upgradedToSubscriptionId),
           isNull(niscClientSubscription.downgradedToSubscriptionId),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -66,7 +69,7 @@ export const niscSubscriptionsRouter = router({
       for (const s of subs) {
         const cat = s.product?.category ?? "CUSTOM";
         if (productCategories?.length && !productCategories.includes(cat as NiscProductCategory)) continue;
-        const mrr = s.pricingModel === FIXED ? monthlyMrr(s.agreedPrice, s.billingCycle) : 0;
+        const mrr = subscriptionMrr(s);
         totalMrr += mrr;
 
         const ce = byCatMap.get(cat) ?? { mrr: 0, count: 0 };
@@ -114,9 +117,7 @@ export const niscSubscriptionsRouter = router({
         where: and(
           gte(niscClientSubscription.subscriptionDate, from),
           lte(niscClientSubscription.subscriptionDate, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -124,7 +125,7 @@ export const niscSubscriptionsRouter = router({
       });
       let newMrr = 0;
       for (const s of newSubs) {
-        if (s.pricingModel === FIXED) newMrr += monthlyMrr(s.agreedPrice, s.billingCycle);
+        newMrr += subscriptionMrr(s);
       }
 
       const churnedSubs = await db.query.niscClientSubscription.findMany({
@@ -132,9 +133,7 @@ export const niscSubscriptionsRouter = router({
           inArray(niscClientSubscription.status, [CANCELLED, EXPIRED]),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -142,43 +141,73 @@ export const niscSubscriptionsRouter = router({
       });
       let churnedMrr = 0;
       for (const s of churnedSubs) {
-        if (s.pricingModel === FIXED) churnedMrr += monthlyMrr(s.agreedPrice, s.billingCycle);
+        churnedMrr += subscriptionMrr(s);
       }
 
       const upgradedSubs = await db.query.niscClientSubscription.findMany({
         where: and(
           eq(niscClientSubscription.status, UPGRADED),
-          gte(niscClientSubscription.updatedAt, from),
-          lte(niscClientSubscription.updatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          gte(niscClientSubscription.upgradedAt, from),
+          lte(niscClientSubscription.upgradedAt, to),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
         ),
+        columns: {
+          id: true,
+          pricingModel: true,
+          agreedPrice: true,
+          billingCycle: true,
+          upgradedToSubscriptionId: true,
+        },
       });
       let expansionMrr = 0;
       for (const s of upgradedSubs) {
-        if (s.pricingModel === FIXED) expansionMrr += monthlyMrr(s.agreedPrice, s.billingCycle);
+        if (!s.upgradedToSubscriptionId) {
+          expansionMrr += subscriptionMrr(s);
+          continue;
+        }
+        const replacement = await db.query.niscClientSubscription.findFirst({
+          where: eq(niscClientSubscription.id, s.upgradedToSubscriptionId),
+          columns: { pricingModel: true, agreedPrice: true, billingCycle: true },
+        });
+        if (replacement) {
+          expansionMrr += Math.max(0, mrrDeltaBetweenSubscriptions(s, replacement));
+        }
       }
 
       const downgradedSubs = await db.query.niscClientSubscription.findMany({
         where: and(
           eq(niscClientSubscription.status, DOWNGRADED),
-          gte(niscClientSubscription.updatedAt, from),
-          lte(niscClientSubscription.updatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          gte(niscClientSubscription.downgradedAt, from),
+          lte(niscClientSubscription.downgradedAt, to),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
         ),
+        columns: {
+          id: true,
+          pricingModel: true,
+          agreedPrice: true,
+          billingCycle: true,
+          downgradedToSubscriptionId: true,
+        },
       });
       let contractionMrr = 0;
       for (const s of downgradedSubs) {
-        if (s.pricingModel === FIXED) contractionMrr += monthlyMrr(s.agreedPrice, s.billingCycle);
+        if (!s.downgradedToSubscriptionId) {
+          contractionMrr += subscriptionMrr(s);
+          continue;
+        }
+        const replacement = await db.query.niscClientSubscription.findFirst({
+          where: eq(niscClientSubscription.id, s.downgradedToSubscriptionId),
+          columns: { pricingModel: true, agreedPrice: true, billingCycle: true },
+        });
+        if (replacement) {
+          contractionMrr += Math.max(0, -mrrDeltaBetweenSubscriptions(s, replacement));
+        }
       }
 
       return {
@@ -206,9 +235,7 @@ export const niscSubscriptionsRouter = router({
       const allStatuses = ["ACTIVE", "PENDING", "CANCELLED", "EXPIRED", "SUSPENDED", "UPGRADED", "DOWNGRADED"];
 
       const subs = await db.query.niscClientSubscription.findMany({
-        where: buildOwnerOrTeamReadScope({
-          isAgencyUser: scope.isAgencyUser,
-          ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+        where: buildReportEntityScope({
           teamColumn: niscClientSubscription.teamId,
           teamIds: scope.teamIds,
         }),
@@ -219,7 +246,7 @@ export const niscSubscriptionsRouter = router({
       for (const s of subs) {
         const cat = s.product?.category;
         if (productCategories?.length && cat && !productCategories.includes(cat as NiscProductCategory)) continue;
-        const mrr = s.pricingModel === FIXED ? monthlyMrr(s.agreedPrice, s.billingCycle) : 0;
+        const mrr = subscriptionMrr(s);
         const e = map.get(s.status) ?? { count: 0, mrr: 0 };
         e.count += 1; e.mrr += mrr;
         map.set(s.status, e);
@@ -262,9 +289,7 @@ export const niscSubscriptionsRouter = router({
 
       const rows = await db.query.niscClientSubscription.findMany({
         where: and(
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -283,9 +308,7 @@ export const niscSubscriptionsRouter = router({
         .select({ c: count() })
         .from(niscClientSubscription)
         .where(and(
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -298,13 +321,13 @@ export const niscSubscriptionsRouter = router({
           teamName: (s as any).team?.name ?? null,
           productName: (s as any).product?.name ?? null,
           pricingModel: s.pricingModel,
-          agreedPrice: s.pricingModel === FIXED ? monthlyMrr(s.agreedPrice, s.billingCycle) : 0,
+          agreedPrice: subscriptionMrr(s),
           billingCycle: s.billingCycle,
           status: s.status,
           subscriptionDate: s.subscriptionDate,
           nextRenewalDate: s.nextRenewalDate,
           expiryDate: s.expiryDate,
-          mrr: s.pricingModel === FIXED ? monthlyMrr(s.agreedPrice, s.billingCycle) : 0,
+          mrr: subscriptionMrr(s),
         })),
         total: Number(cntRow?.c ?? 0),
       };
@@ -339,9 +362,7 @@ export const niscSubscriptionsRouter = router({
           eq(niscClientSubscription.status, ACTIVE),
           gte(niscClientSubscription.nextRenewalDate, now),
           lte(niscClientSubscription.nextRenewalDate, future),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -358,7 +379,7 @@ export const niscSubscriptionsRouter = router({
         teamName: (s as any).team?.name ?? null,
         productName: (s as any).product?.name ?? null,
         renewalDate: s.nextRenewalDate,
-        expectedPrice: monthlyMrr(s.agreedPrice, s.billingCycle),
+        expectedPrice: subscriptionMrr(s),
         billingCycle: s.billingCycle,
         autoRenew: s.autoRenew ?? false,
         status: s.status,
@@ -397,9 +418,7 @@ export const niscSubscriptionsRouter = router({
           inArray(niscClientSubscription.status, [CANCELLED, EXPIRED]),
           gte(niscClientSubscription.updatedAt, from),
           lte(niscClientSubscription.updatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -410,30 +429,18 @@ export const niscSubscriptionsRouter = router({
         },
       });
 
-      const [activeAtStartRow] = await db
-        .select({ c: count() })
-        .from(niscClientSubscription)
-        .where(and(
-          eq(niscClientSubscription.status, ACTIVE),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
-            teamColumn: niscClientSubscription.teamId,
-            teamIds: scope.teamIds,
-          }),
-        ));
-      const activeAtStart = Number(activeAtStartRow?.c ?? 0) + churned.length;
+      const activeAtStart = await countSubscriptionsActiveAtDate({ asOf: from, scope });
 
       let totalChurnedMrr = 0;
       const rows = churned.map(s => {
-        const mrrLost = s.pricingModel === FIXED ? monthlyMrr(s.agreedPrice, s.billingCycle) : 0;
+        const mrrLost = subscriptionMrr(s);
         totalChurnedMrr += mrrLost;
         const start = s.subscriptionDate ?? s.createdAt;
         return {
           id: s.id,
           teamName: (s as any).team?.name ?? null,
           productName: (s as any).product?.name ?? null,
-          agreedPrice: monthlyMrr(s.agreedPrice, s.billingCycle),
+          agreedPrice: subscriptionMrr(s),
           billingCycle: s.billingCycle,
           subscriptionDate: s.subscriptionDate,
           churnDate: s.updatedAt,
@@ -471,11 +478,9 @@ export const niscSubscriptionsRouter = router({
       const upgraded = await db.query.niscClientSubscription.findMany({
         where: and(
           eq(niscClientSubscription.status, UPGRADED),
-          gte(niscClientSubscription.updatedAt, from),
-          lte(niscClientSubscription.updatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          gte(niscClientSubscription.upgradedAt, from),
+          lte(niscClientSubscription.upgradedAt, to),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -488,11 +493,9 @@ export const niscSubscriptionsRouter = router({
       const downgraded = await db.query.niscClientSubscription.findMany({
         where: and(
           eq(niscClientSubscription.status, DOWNGRADED),
-          gte(niscClientSubscription.updatedAt, from),
-          lte(niscClientSubscription.updatedAt, to),
-          buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+          gte(niscClientSubscription.downgradedAt, from),
+          lte(niscClientSubscription.downgradedAt, to),
+          buildReportEntityScope({
             teamColumn: niscClientSubscription.teamId,
             teamIds: scope.teamIds,
           }),
@@ -503,23 +506,44 @@ export const niscSubscriptionsRouter = router({
         },
       });
 
-      return [
-        ...upgraded.map(s => ({
+      const upgradeRows = await Promise.all(upgraded.map(async s => {
+        let priceDelta = subscriptionMrr(s);
+        if (s.upgradedToSubscriptionId) {
+          const replacement = await db.query.niscClientSubscription.findFirst({
+            where: eq(niscClientSubscription.id, s.upgradedToSubscriptionId),
+            columns: { pricingModel: true, agreedPrice: true, billingCycle: true },
+          });
+          if (replacement) priceDelta = mrrDeltaBetweenSubscriptions(s, replacement);
+        }
+        return {
           id: s.id,
-          teamName: (s as any).team?.name ?? null,
-          productName: (s as any).product?.name ?? null,
-          changeType: "UPGRADE",
-          priceDelta: monthlyMrr(s.agreedPrice, s.billingCycle),
-          eventDate: s.updatedAt,
-        })),
-        ...downgraded.map(s => ({
+          teamName: (s as { team?: { name: string } }).team?.name ?? null,
+          productName: (s as { product?: { name: string } }).product?.name ?? null,
+          changeType: "UPGRADE" as const,
+          priceDelta,
+          eventDate: s.upgradedAt ?? s.updatedAt,
+        };
+      }));
+
+      const downgradeRows = await Promise.all(downgraded.map(async s => {
+        let priceDelta = -subscriptionMrr(s);
+        if (s.downgradedToSubscriptionId) {
+          const replacement = await db.query.niscClientSubscription.findFirst({
+            where: eq(niscClientSubscription.id, s.downgradedToSubscriptionId),
+            columns: { pricingModel: true, agreedPrice: true, billingCycle: true },
+          });
+          if (replacement) priceDelta = mrrDeltaBetweenSubscriptions(s, replacement);
+        }
+        return {
           id: s.id,
-          teamName: (s as any).team?.name ?? null,
-          productName: (s as any).product?.name ?? null,
-          changeType: "DOWNGRADE",
-          priceDelta: -monthlyMrr(s.agreedPrice, s.billingCycle),
-          eventDate: s.updatedAt,
-        })),
-      ].sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime());
+          teamName: (s as { team?: { name: string } }).team?.name ?? null,
+          productName: (s as { product?: { name: string } }).product?.name ?? null,
+          changeType: "DOWNGRADE" as const,
+          priceDelta,
+          eventDate: s.downgradedAt ?? s.updatedAt,
+        };
+      }));
+
+      return [...upgradeRows, ...downgradeRows].sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime());
     }),
 });
