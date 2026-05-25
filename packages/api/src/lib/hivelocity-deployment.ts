@@ -98,12 +98,30 @@ async function fetchDevicesForOrder(orderId: number): Promise<unknown> {
 	});
 }
 
-function extractDeviceIdFromDeviceList(raw: unknown): number | null {
+function extractDeviceIdFromDeviceList(
+	raw: unknown,
+	expectedHostname?: string | null,
+): number | null {
 	if (!Array.isArray(raw) || raw.length === 0) return null;
-	const first = raw[0];
-	if (!first || typeof first !== "object") return null;
-	const obj = first as Record<string, unknown>;
-	const id = Number(obj.deviceId ?? obj.id);
+
+	const rows = raw.filter((row) => row && typeof row === "object") as Record<string, unknown>[];
+	if (!rows.length) return null;
+
+	const hostnameNeedle = expectedHostname?.trim().toLowerCase();
+	if (hostnameNeedle) {
+		const byHostname = rows.find((obj) => {
+			const host = String(obj.hostname ?? obj.name ?? "").trim().toLowerCase();
+			return host === hostnameNeedle;
+		});
+		if (byHostname) {
+			const id = Number(byHostname.deviceId ?? byHostname.id);
+			if (Number.isFinite(id) && id > 0) return id;
+		}
+		return null;
+	}
+
+	const first = rows[0];
+	const id = Number(first.deviceId ?? first.id);
 	return Number.isFinite(id) && id > 0 ? id : null;
 }
 
@@ -124,10 +142,15 @@ async function waitForDeploymentStart(
 	return last;
 }
 
-async function waitForDeviceId(orderId: number, maxAttempts = 12, delayMs = 5000): Promise<number | null> {
+async function waitForDeviceId(
+	orderId: number,
+	expectedHostname?: string | null,
+	maxAttempts = 12,
+	delayMs = 5000,
+): Promise<number | null> {
 	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		const devicesRaw = await fetchDevicesForOrder(orderId);
-		const deviceId = extractDeviceIdFromDeviceList(devicesRaw);
+		const deviceId = extractDeviceIdFromDeviceList(devicesRaw, expectedHostname);
 		if (deviceId != null) return deviceId;
 		if (attempt < maxAttempts - 1) {
 			await new Promise((r) => setTimeout(r, delayMs));
@@ -199,9 +222,9 @@ export async function provisionHivelocityViaDeployment(
 	let devicesRaw: unknown = null;
 	if (orderId != null) {
 		devicesRaw = await fetchDevicesForOrder(orderId);
-		deviceId = extractDeviceIdFromDeviceList(devicesRaw);
+		deviceId = extractDeviceIdFromDeviceList(devicesRaw, meta.hivelocityHostname);
 		if (deviceId == null) {
-			deviceId = await waitForDeviceId(orderId);
+			deviceId = await waitForDeviceId(orderId, meta.hivelocityHostname);
 			if (deviceId != null) {
 				devicesRaw = await fetchDevicesForOrder(orderId);
 			}
