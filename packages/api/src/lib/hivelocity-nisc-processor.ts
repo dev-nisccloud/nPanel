@@ -13,6 +13,12 @@ import {
 import { provisionHivelocityViaDeployment } from "./hivelocity-deployment";
 import { assertHivelocityOptionIdsExclusive } from "./hivelocity-option-validation";
 
+function buildHivelocityDeploymentName(orderNumberOrId: string): string {
+	const base = orderNumberOrId.trim();
+	const name = base.toLowerCase().startsWith("nisc-") ? base : `Nisc-${base}`;
+	return name.slice(0, 120);
+}
+
 function buildHivelocityErrorDetails(err: unknown): Record<string, unknown> {
 	if (err instanceof TRPCError) {
 		return {
@@ -92,7 +98,7 @@ export async function processHivelocityOrderItem(
 	try {
 		await assertHivelocityOptionIdsExclusive(hivelocityProductId, hivelocityOptionIds);
 		deploymentResult = await provisionHivelocityViaDeployment({
-			deploymentName: `Nisc-${order.orderNumber ?? item.id}`.slice(0, 120),
+			deploymentName: buildHivelocityDeploymentName(order.orderNumber ?? item.id),
 			meta,
 		});
 	} catch (err) {
