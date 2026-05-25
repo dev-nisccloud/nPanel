@@ -87,8 +87,10 @@ export async function hivelocityRequest<T>(path: string, options: HivelocityRequ
 
 export function getHivelocityEnvStatus() {
 	const apiKey = getHivelocityApiKey();
+	const billingInfoId = process.env.HIVELOCITY_BILLING_INFO_ID?.trim();
 	return {
 		hasApiKey: !!apiKey,
+		hasBillingInfoId: !!billingInfoId,
 		baseUrl: HIVELOCITY_BASE_URL,
 	};
 }

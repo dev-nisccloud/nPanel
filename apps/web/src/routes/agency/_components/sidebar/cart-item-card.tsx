@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore, type CartItem, type DomainCartItem, type HivelocityCartItem } from "@/stores/cart-store";
+import { getHivelocityPeriodLabel, type HivelocityPeriod } from "@/lib/hivelocity-checkout";
 
 interface CartItemCardProps {
   item: CartItem;
@@ -179,23 +180,63 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
                   <div className="text-xs text-muted-foreground">
                     {(item as HivelocityCartItem).planType ? (item as HivelocityCartItem).planType : null}
                   </div>
-                  <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs">
-                    <div className="flex items-center justify-between">
+                  <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="text-muted-foreground">Hostname</span>
                       <span className="font-medium text-foreground break-all">{(item as HivelocityCartItem).hostname}</span>
                     </div>
-                    {(item as HivelocityCartItem).os ? (
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-muted-foreground">OS</span>
-                        <span className="font-medium text-foreground">{(item as HivelocityCartItem).os!.name}</span>
+                    {(item as HivelocityCartItem).hivelocityPeriod ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-muted-foreground">Billing period</span>
+                        <span className="font-medium text-foreground">
+                          {getHivelocityPeriodLabel((item as HivelocityCartItem).hivelocityPeriod as HivelocityPeriod)}
+                        </span>
                       </div>
                     ) : null}
                   </div>
 
+                  {(() => {
+                    const hv = item as HivelocityCartItem;
+                    const lines =
+                      hv.invoiceLines?.length
+                        ? hv.invoiceLines
+                        : [
+                            { id: "base", kind: "base" as const, name: hv.planName, amountExVat: hv.basePrice },
+                            ...(hv.os
+                              ? [{ id: `os-${hv.os.id}`, kind: "os" as const, name: `OS — ${hv.os.name}`, amountExVat: hv.os.price }]
+                              : []),
+                            ...hv.addons.map((a) => ({
+                              id: `addon-${a.id}`,
+                              kind: "addon" as const,
+                              name: a.name,
+                              amountExVat: a.price,
+                            })),
+                          ];
+                    return (
+                      <div className="rounded-md border bg-background/60">
+                        <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground border-b">
+                          Invoice lines
+                        </div>
+                        <div className="px-3 py-2 space-y-2">
+                          {lines.map((line) => (
+                            <div key={line.id} className="flex items-start justify-between gap-2 text-xs">
+                              <span className="text-foreground line-clamp-2">{line.name}</span>
+                              <span className="font-semibold shrink-0">
+                                {line.amountExVat > 0
+                                  ? formatPrice(line.amountExVat, hv.currency)
+                                  : "Free"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {(item as HivelocityCartItem).addons?.length ? (
                     <div className="rounded-md border bg-background/60">
                       <div className="px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground border-b">
-                        Add-ons
+                        Removable add-ons
                       </div>
                       <div className="px-3 py-2 space-y-2">
                         {(item as HivelocityCartItem).addons.map((a) => (
@@ -207,9 +248,6 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
                               ) : null}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <div className="text-xs font-semibold text-primary">
-                                {formatPrice(a.price, (item as HivelocityCartItem).currency)}
-                              </div>
                               {!hideRemoveButton ? (
                                 <Button
                                   size="icon"
@@ -249,10 +287,17 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
         
         {/* Price Row */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Price</span>
+          <span className="text-sm text-muted-foreground">
+            {item.type === "hivelocity" ? "Subtotal (ex VAT)" : "Price"}
+          </span>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-base text-primary">
-              {formatPrice(servicePrice.price, servicePrice.currency)}
+              {formatPrice(
+                item.type === "hivelocity"
+                  ? (item as HivelocityCartItem).subtotalExVat ?? (item as HivelocityCartItem).totalPrice
+                  : servicePrice.price,
+                servicePrice.currency,
+              )}
             </span>
             {servicePrice.currency && (
               <span className="text-xs text-muted-foreground">
@@ -261,6 +306,17 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
             )}
           </div>
         </div>
+        {item.type === "hivelocity" && (item as HivelocityCartItem).vatAmount != null ? (
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span>Total incl. VAT</span>
+            <span className="font-semibold text-foreground">
+              {formatPrice(
+                ((item as HivelocityCartItem).subtotalExVat ?? 0) + ((item as HivelocityCartItem).vatAmount ?? 0),
+                (item as HivelocityCartItem).currency,
+              )}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );

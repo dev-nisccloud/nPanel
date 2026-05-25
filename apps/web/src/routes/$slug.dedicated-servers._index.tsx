@@ -19,6 +19,8 @@ import { PlanCardSkeleton } from "./agency.dedicated-servers/_components/plan-ca
 import { PlanFilter, type DedicatedFilter, DEFAULT_FILTER, applyDedicatedFilter } from "./agency.dedicated-servers/_components/plan-filter";
 import { HivelocityServersTable } from "./_components/hivelocity-servers-table";
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
+import { useHivelocityNiscProducts } from "@/hooks/use-hivelocity-nisc-products";
+import { buildHivelocityPlanForCheckout } from "@/lib/build-hivelocity-service-plan";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
 // import { toast } from "@/components/ui/sonner";
 
@@ -62,6 +64,7 @@ export default function DedicatedServersPage() {
 	}, [plansQuery.data]);
 
 	const pricing = useHivelocityPricing("DEDICATED_SERVERS");
+	const { productIdByType } = useHivelocityNiscProducts();
 
 	const displayCurrency: "KES" | "USD" = pricing.usdToKesRate ? "KES" : "USD";
 	const showOriginalUsd = Boolean(pricing.settings?.base.marginType);
@@ -134,45 +137,33 @@ export default function DedicatedServersPage() {
 
 	const openBuyNow = React.useCallback((p: any) => {
 		setDialogIntent("buy_now");
-		const base = (p as any).__baseUsd ?? { monthly: p.product_monthly_price, hourly: p.product_hourly_price };
-		setSelectedPlan({
-			planId: String(p.product_id),
-			planName: p.product_name,
-			planType: "Dedicated Servers Hosting",
-			price: Number(p.product_monthly_price ?? 0),
-			currency: displayCurrency,
-			billingCycle: "MONTHLY",
-			hivelocity: {
+		setSelectedPlan(
+			buildHivelocityPlanForCheckout(p, {
 				productType: "DEDICATED_SERVERS",
-				hivelocityProductId: Number(p.product_id),
-				locationName: p.data_center,
-				baseMonthlyUsd: Number(base.monthly ?? 0),
-				baseHourlyUsd: Number(base.hourly ?? 0),
-			},
-		});
+				planTypeLabel: "Dedicated Servers Hosting",
+				displayCurrency,
+				niscProductId: productIdByType.DEDICATED_SERVERS,
+				locationDisplayName: facilityTitleByCode.get(p.data_center) ?? p.data_center,
+				pricing,
+			}),
+		);
 		setBuyNowOpen(true);
-	}, [displayCurrency]);
+	}, [displayCurrency, productIdByType, facilityTitleByCode, pricing]);
 
 	const openCartFlow = React.useCallback((p: any) => {
 		setDialogIntent("add_to_cart");
-		const base = (p as any).__baseUsd ?? { monthly: p.product_monthly_price, hourly: p.product_hourly_price };
-		setSelectedPlan({
-			planId: String(p.product_id),
-			planName: p.product_name,
-			planType: "Dedicated Servers Hosting",
-			price: Number(p.product_monthly_price ?? 0),
-			currency: displayCurrency,
-			billingCycle: "MONTHLY",
-			hivelocity: {
+		setSelectedPlan(
+			buildHivelocityPlanForCheckout(p, {
 				productType: "DEDICATED_SERVERS",
-				hivelocityProductId: Number(p.product_id),
-				locationName: p.data_center,
-				baseMonthlyUsd: Number(base.monthly ?? 0),
-				baseHourlyUsd: Number(base.hourly ?? 0),
-			},
-		});
+				planTypeLabel: "Dedicated Servers Hosting",
+				displayCurrency,
+				niscProductId: productIdByType.DEDICATED_SERVERS,
+				locationDisplayName: facilityTitleByCode.get(p.data_center) ?? p.data_center,
+				pricing,
+			}),
+		);
 		setBuyNowOpen(true);
-	}, [displayCurrency]);
+	}, [displayCurrency, productIdByType, facilityTitleByCode, pricing]);
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">

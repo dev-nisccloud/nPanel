@@ -74,6 +74,8 @@ export function PlanCard({
 		onBuyNow?.(plan);
 	};
 
+	const isUnavailable = plan.stock === "unavailable";
+
 	return (
 		<Card className="group transition-all hover:shadow-md hover:border-primary/50 h-full flex flex-col">
 			<CardHeader className="pb-3">
@@ -251,11 +253,22 @@ export function PlanCard({
 
 				{/* Buttons row */}
 				<div className="flex justify-center gap-2 pt-1">
-					<Button variant="outline" size="sm" onClick={handleAddToCart} className="w-auto">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={handleAddToCart}
+						className="w-auto"
+						disabled={isUnavailable}
+					>
 						<ShoppingCart className="h-4 w-4 mr-2" />
 						Add to cart
 					</Button>
-					<Button size="sm" onClick={handleBuyNow} className="w-auto bg-primary text-primary-foreground">
+					<Button
+						size="sm"
+						onClick={handleBuyNow}
+						className="w-auto bg-primary text-primary-foreground"
+						disabled={isUnavailable}
+					>
 						<CreditCard className="h-4 w-4 mr-2" />
 						Buy now
 					</Button>

@@ -291,6 +291,7 @@ export async function runPreProvisioningInvoiceForOrder(niscOrderId: string): Pr
 					primaryDomain: i.primaryDomain,
 					billingCycle: i.billingCycle,
 					description: i.description,
+					metadata: i.metadata,
 					product: {
 						name: i.product?.name ?? "Service",
 						serviceType: i.product?.serviceType ?? null,

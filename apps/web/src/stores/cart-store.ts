@@ -57,36 +57,59 @@ interface HivelocityCartItem extends BaseCartItem {
   type: "hivelocity";
   /** DEDICATED_SERVERS | VPS | VDS */
   productType: string;
+  /** nisc_product UUID — same product for base plan, OS, and add-ons */
+  niscProductId?: string;
   planName: string;
   planType?: string;
   billingCycle?: string;
+  hivelocityPeriod: string;
   /** Currency used for display/checkout in the UI (KES or USD typically) */
   currency: string;
 
-  /** Base plan (already in display currency) */
+  /** Base plan (already in display currency, ex VAT) */
   basePrice: number;
 
   hostname: string;
   locationName?: string;
+  locationDisplayName?: string;
   hivelocityProductId: number;
 
   os: {
     id: string;
     name: string;
-    /** Price in display currency per month */
+    /** Price in display currency per month, ex VAT */
     price: number;
+    priceUsd?: number;
   } | null;
 
   addons: Array<{
     id: string;
     name: string;
-    /** Price in display currency per month */
+    /** Price in display currency per month, ex VAT */
     price: number;
     group?: string;
+    priceUsd?: number;
   }>;
 
-  /** Monthly total (base + os + addons) in display currency */
+  /** Invoice-style lines (ex VAT) — OS and add-ons under main product */
+  invoiceLines: Array<{
+    id: string;
+    kind: "base" | "os" | "addon";
+    name: string;
+    description?: string;
+    amountExVat: number;
+    optionId?: number;
+  }>;
+
+  /** Subtotal ex VAT (base + os + addons) */
+  subtotalExVat: number;
+  vatAmount: number;
+  /** @deprecated use subtotalExVat — kept for persisted carts */
   totalPrice: number;
+  selectedOptionIds: number[];
+  basePriceUsdMonthly?: number;
+  osPriceUsdMonthly?: number;
+  addonsPriceUsdMonthly?: number;
 }
 
 // Union type for all possible cart items
@@ -176,9 +199,22 @@ export const useCartStore = create<CartStore>()(
           items: state.items.map((it) => {
             if (it.id !== itemId) return it;
             if (it.type !== "hivelocity") return it;
-            const nextAddons = it.addons.filter((a) => a.id !== addonId);
-            const nextTotal = (it.basePrice ?? 0) + (it.os?.price ?? 0) + nextAddons.reduce((s, a) => s + (a.price ?? 0), 0);
-            return { ...it, addons: nextAddons, totalPrice: nextTotal };
+            const hv = it as HivelocityCartItem;
+            const nextAddons = hv.addons.filter((a) => a.id !== addonId);
+            const nextInvoiceLines = hv.invoiceLines.filter((l) => l.id !== `addon-${addonId}`);
+            const subtotalExVat = nextInvoiceLines.reduce((s, l) => s + l.amountExVat, 0);
+            const vatAmount = subtotalExVat * 0.16;
+            return {
+              ...hv,
+              addons: nextAddons,
+              invoiceLines: nextInvoiceLines,
+              subtotalExVat,
+              vatAmount,
+              totalPrice: subtotalExVat,
+              selectedOptionIds: nextAddons
+                .map((a) => Number(a.id))
+                .filter((n) => Number.isFinite(n)),
+            };
           }),
         }));
       },
@@ -220,7 +256,9 @@ export const useCartStore = create<CartStore>()(
             return sum + price;
           }
           if (item.type === "hivelocity") {
-            return sum + ((item as any).totalPrice ?? 0);
+            const hv = item as HivelocityCartItem;
+            const subtotal = Number(hv.subtotalExVat ?? hv.totalPrice ?? 0) || 0;
+            return sum + subtotal;
           }
           // Add other item type calculations here as needed
           return sum;
@@ -262,9 +300,9 @@ export const useCartStore = create<CartStore>()(
             totals[currency] = (totals[currency] || 0) + price;
           }
           if (item.type === "hivelocity") {
-            const hv = item as any;
+            const hv = item as HivelocityCartItem;
             const currency = hv.currency || "USD";
-            const price = Number(hv.totalPrice ?? 0) || 0;
+            const price = Number(hv.subtotalExVat ?? hv.totalPrice ?? 0) || 0;
             totals[currency] = (totals[currency] || 0) + price;
           }
         });
