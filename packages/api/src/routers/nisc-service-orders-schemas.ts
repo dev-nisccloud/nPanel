@@ -65,6 +65,77 @@ export const transferItemMetadataSchema = z
 	.optional();
 export type TransferItemMetadata = z.infer<typeof transferItemMetadataSchema>;
 
+export const hivelocityPeriodSchema = z.enum([
+	"hourly",
+	"monthly",
+	"quarterly",
+	"semi-annually",
+	"annually",
+	"biennial",
+	"triennial",
+]);
+export type HivelocityPeriod = z.infer<typeof hivelocityPeriodSchema>;
+
+export const hivelocityInvoiceLineSchema = z.object({
+	id: z.string(),
+	kind: z.enum(["base", "os", "addon"]),
+	name: z.string(),
+	description: z.string().optional(),
+	amountExVat: z.number(),
+	optionId: z.number().optional(),
+});
+export type HivelocityInvoiceLine = z.infer<typeof hivelocityInvoiceLineSchema>;
+
+export const hivelocityItemMetadataSchema = z.object({
+	hivelocityProductId: z.coerce.number().int().positive(),
+	hivelocityLocationName: z.string().min(1),
+	hivelocityOsName: z.string().min(1),
+	hivelocityHostname: z.string().min(1),
+	hivelocityPeriod: hivelocityPeriodSchema,
+	hivelocityOptionIds: z.array(z.coerce.number().int()).default([]),
+	/** Hivelocity product option id for the selected OS (Deployment API `options` array). */
+	hivelocityOsOptionId: z.coerce.number().int().optional(),
+	basePriceUsd: z.coerce.number().optional(),
+	osPriceUsd: z.coerce.number().optional(),
+	addonsPriceUsd: z.coerce.number().optional(),
+	subtotalKes: z.coerce.number().optional(),
+	totalKes: z.coerce.number().optional(),
+	usdToKesRate: z.coerce.number().optional(),
+	productType: z.enum(["DEDICATED_SERVERS", "VPS", "VDS"]).optional(),
+	invoiceLines: z.array(hivelocityInvoiceLineSchema).optional(),
+});
+export type HivelocityItemMetadata = z.infer<typeof hivelocityItemMetadataSchema>;
+
+export const HIVELOCITY_SERVICE_TYPES = [
+	"dedicated_server_hosting",
+	"vps_hosting",
+	"vds_hosting",
+] as const;
+
+function isHivelocityMetadataCandidate(value: unknown): value is Record<string, unknown> {
+	return value != null && typeof value === "object" && "hivelocityProductId" in value;
+}
+
+/** Route metadata to the correct schema. Transfer schema must not run first — it accepts any object. */
+export function parseOrderItemMetadata(value: unknown): TransferItemMetadata | HivelocityItemMetadata | undefined | null {
+	if (value == null) return value as undefined | null;
+	if (isHivelocityMetadataCandidate(value)) {
+		return hivelocityItemMetadataSchema.parse(value);
+	}
+	return transferItemMetadataSchema.parse(value);
+}
+
+export const orderItemMetadataSchema = z.preprocess(
+	(value) => {
+		if (value == null) return value;
+		if (isHivelocityMetadataCandidate(value)) {
+			return hivelocityItemMetadataSchema.parse(value);
+		}
+		return value;
+	},
+	z.union([hivelocityItemMetadataSchema, transferItemMetadataSchema, z.undefined(), z.null()]),
+);
+
 // ============================================================================
 // Create order (agency manual order)
 // ============================================================================
@@ -75,7 +146,7 @@ export const createOrderItemSchema = z.object({
 	billingCycle: billingCycleSchema.optional(),
 	primaryDomain: z.string().optional(),
 	domainSubscriptionId: z.string().optional(),
-	metadata: transferItemMetadataSchema,
+	metadata: orderItemMetadataSchema,
 });
 
 export const createOrderInputSchema = z
@@ -121,6 +192,8 @@ export type RetryNiscOrderInput = z.infer<typeof retryNiscOrderInputSchema>;
 // Create from payment (checkout flow)
 // ============================================================================
 
+export const createFromPaymentMetadataSchema = z.record(z.string(), z.unknown()).optional().nullable();
+
 export const createFromPaymentItemSchema = z.object({
 	productId: z.string(),
 	productPlanId: z.string().nullable().optional(),
@@ -130,7 +203,8 @@ export const createFromPaymentItemSchema = z.object({
 	itemPrice: z.string(),
 	itemSubtotal: z.string(),
 	domainSubscriptionId: z.string().optional(),
-	metadata: transferItemMetadataSchema,
+	/** Passthrough at input; validated in createFromPayment handler by product serviceType. */
+	metadata: createFromPaymentMetadataSchema,
 });
 export type CreateFromPaymentItemInput = z.infer<typeof createFromPaymentItemSchema>;
 

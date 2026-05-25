@@ -17,6 +17,7 @@ import {
 } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { buildNiscOrderInvoiceLineItemCopy } from "./nisc-order-invoice-line-items";
+import { hivelocityInvoiceLineSchema, type HivelocityInvoiceLine } from "../routers/nisc-service-orders-schemas";
 import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc-order-tax";
 
 const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
@@ -137,7 +138,53 @@ export async function createInvoiceForNiscOrder(
 	});
 
 	const subscriptionDate = order.createdAt ?? now;
-	const lineItems: InvoiceLineItemCreate[] = order.orderItems.map((item, index) => {
+	const lineItems: InvoiceLineItemCreate[] = [];
+	let position = 0;
+
+	for (const item of order.orderItems) {
+		const rawMeta = item.metadata;
+		const invoiceLinesRaw =
+			rawMeta &&
+			typeof rawMeta === "object" &&
+			"invoiceLines" in rawMeta &&
+			Array.isArray((rawMeta as { invoiceLines?: unknown }).invoiceLines)
+				? (rawMeta as { invoiceLines: unknown[] }).invoiceLines
+				: null;
+
+		const hivelocityLines = invoiceLinesRaw
+			?.map((line) => hivelocityInvoiceLineSchema.safeParse(line))
+			.filter((r): r is { success: true; data: HivelocityInvoiceLine } => r.success)
+			.map((r) => r.data);
+
+		if (hivelocityLines && hivelocityLines.length > 0) {
+			const { description: subscriptionPeriod } = buildNiscOrderInvoiceLineItemCopy(
+				{
+					...item,
+					product: {
+						name: item.product.name,
+						serviceType: item.product.serviceType ?? null,
+					},
+				},
+				subscriptionDate,
+			);
+			for (const line of hivelocityLines) {
+				const amount = line.amountExVat.toFixed(2);
+				lineItems.push({
+					id: crypto.randomUUID(),
+					invoiceId: newInvoiceId,
+					position: position++,
+					name: line.name,
+					description:
+						line.description?.trim() ||
+						(line.kind === "base" ? subscriptionPeriod : undefined),
+					quantity: 1,
+					price: amount,
+					total: amount,
+				});
+			}
+			continue;
+		}
+
 		const { name, description } = buildNiscOrderInvoiceLineItemCopy(
 			{
 				...item,
@@ -148,17 +195,17 @@ export async function createInvoiceForNiscOrder(
 			},
 			subscriptionDate,
 		);
-		return {
+		lineItems.push({
 			id: crypto.randomUUID(),
 			invoiceId: newInvoiceId,
-			position: index,
+			position: position++,
 			name,
 			description,
 			quantity: 1,
 			price: item.itemPrice,
 			total: item.itemSubtotal,
-		};
-	});
+		});
+	}
 
 	for (const item of lineItems) {
 		await db.insert(invoiceLineItem).values({

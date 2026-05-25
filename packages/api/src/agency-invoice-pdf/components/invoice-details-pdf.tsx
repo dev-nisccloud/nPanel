@@ -5,6 +5,9 @@ import { currencyList } from "../currency-map";
 import { pdfTypography, pdfUtils } from "../pdf-styles";
 import type { InvoiceItemDetails, Item } from "../types";
 
+const hasLineAmount = (amount: unknown): amount is number =>
+  amount !== undefined && amount !== null && `${amount}` !== "";
+
 function LineItemDescriptionCell({
   text,
   lineStyle,
@@ -148,7 +151,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                   maxWidth: 80,
                 }}
               >
-                {amount ? formatPdfMoney(Number(amount)) : ""}
+                {hasLineAmount(amount) ? formatPdfMoney(Number(amount)) : ""}
               </Text>
               <Text
                 style={{
@@ -160,7 +163,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
                 }}
               >
                 {currencyDetails?.currencySymbol}
-                {amount
+                {hasLineAmount(amount)
                   ? formatPdfMoney((qty ? +qty : 1) * Number(amount))
                   : ""}
               </Text>
@@ -280,7 +283,7 @@ export const InvoiceDetailsPdf: React.FC<InvoiceItemDetails> = ({
 const calculateTotalAmount = (items: Item[]): number =>
   items.reduce((total, item) => {
     const quantity = item.qty ? +item.qty : 1;
-    const amount = item.amount ? +item.amount : 0;
+    const amount = hasLineAmount(item.amount) ? +item.amount : 0;
     return total + quantity * amount;
   }, 0);
 

@@ -3,7 +3,8 @@
  * For each item: no integration → create NiscClientSubscription;
  * Plesk (web_hosting, email_hosting) → ensure integration + provision;
  * OpenProvider (domain_registration) → ensure integration, verify email, register domain;
- * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata).
+ * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata);
+ * Hivelocity (dedicated_server_hosting, vps_hosting, vds_hosting) → Deployment API, create subscription with device refs.
  */
 import { eq } from "@npanel/db";
 import { randomUUID } from "node:crypto";
@@ -22,6 +23,8 @@ import {
 	computeSubscriptionExpiryFromBillingCycle,
 	resolveDomainTransferSubscriptionStartDate,
 } from "./nisc-subscription-dates";
+import { processHivelocityOrderItem } from "./hivelocity-nisc-processor";
+import { HIVELOCITY_SERVICE_TYPES } from "../routers/nisc-service-orders-schemas";
 
 /** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
 function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
@@ -211,6 +214,71 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						error: result.error,
 						errorDetails: pleskErrorDetails,
 						rawResponse: result.errorDetails,
+					});
+					hasFailure = true;
+					failureReasons.push(`Item ${item.product.name}: ${result.error}`);
+				}
+				continue;
+			}
+
+			if (HIVELOCITY_SERVICE_TYPES.includes(serviceType as (typeof HIVELOCITY_SERVICE_TYPES)[number])) {
+				await niscLog("processor_item_branch", {
+					niscOrderId,
+					orderItemId: item.id,
+					branch: "hivelocity",
+					serviceType,
+				});
+				const result = await processHivelocityOrderItem(order, item);
+				if (result.ok) {
+					await niscLog("processor_api_raw_response", {
+						niscOrderId,
+						orderItemId: item.id,
+						provider: "hivelocity",
+						call: "POST /deploy/ (Deployment API)",
+						rawResponse: result.rawResponse,
+					});
+					await db
+						.update(niscOrderItem)
+						.set({
+							status: "PROVISIONED",
+							niscClientSubscriptionId: result.subscriptionId,
+							updatedAt: now,
+						})
+						.where(eq(niscOrderItem.id, item.id));
+					await niscLog("processor_item_success", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: "hivelocity",
+						subscriptionId: result.subscriptionId,
+					});
+					hasSuccess = true;
+				} else {
+					const errDetails = result.errorDetails ?? {
+						provider: "hivelocity" as const,
+						message: result.error,
+					};
+					await niscLog("processor_api_raw_response", {
+						niscOrderId,
+						orderItemId: item.id,
+						provider: "hivelocity",
+						call: "POST /deploy/ (Deployment API)",
+						rawResponse: errDetails,
+					});
+					await db
+						.update(niscOrderItem)
+						.set({
+							status: "FAILED",
+							provisioningError: result.error,
+							provisioningErrorDetails: errDetails,
+							updatedAt: now,
+						})
+						.where(eq(niscOrderItem.id, item.id));
+					await niscLog("processor_item_failed", {
+						niscOrderId,
+						orderItemId: item.id,
+						branch: "hivelocity",
+						error: result.error,
+						errorDetails: errDetails,
 					});
 					hasFailure = true;
 					failureReasons.push(`Item ${item.product.name}: ${result.error}`);

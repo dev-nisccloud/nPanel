@@ -20,12 +20,15 @@ import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import { processNiscOrder } from "../lib/nisc-order-processor";
+import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
 import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
 	getAllNiscOrdersInputSchema,
 	getNiscOrderByIdInputSchema,
 	retryNiscOrderInputSchema,
+	hivelocityItemMetadataSchema,
+	HIVELOCITY_SERVICE_TYPES,
 } from "./nisc-service-orders-schemas";
 
 function generateNiscOrderNumber(): string {
@@ -33,6 +36,11 @@ function generateNiscOrderNumber(): string {
 	const timestamp = Date.now().toString().slice(-6);
 	const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
 	return `Nisc-${year}-${timestamp}-${random}`;
+}
+
+async function processNiscOrderWithPreInvoice(niscOrderId: string) {
+	await runPreProvisioningInvoiceForOrder(niscOrderId);
+	return processNiscOrder(niscOrderId);
 }
 
 function isAgencyUserRole(role: string | null | undefined): boolean {
@@ -59,7 +67,8 @@ function requiresExternalProvisioning(serviceType: string): boolean {
 		resolved === "web_hosting" ||
 		resolved === "email_hosting" ||
 		resolved === "domain_registration" ||
-		resolved === "domain_transfer"
+		resolved === "domain_transfer" ||
+		HIVELOCITY_SERVICE_TYPES.includes(resolved as (typeof HIVELOCITY_SERVICE_TYPES)[number])
 	);
 }
 
@@ -608,6 +617,39 @@ export const niscServiceOrdersRouter = router({
 						message: `Domain item "${product.name}" requires a primary domain.`,
 					});
 				}
+				if (
+					HIVELOCITY_SERVICE_TYPES.includes(
+						product.serviceType as (typeof HIVELOCITY_SERVICE_TYPES)[number],
+					)
+				) {
+					const parsed = hivelocityItemMetadataSchema.safeParse(item.metadata);
+					if (!parsed.success) {
+						const detail = parsed.error.issues
+							.map((i) => `${i.path.join(".") || "metadata"}: ${i.message}`)
+							.join("; ");
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Server item "${product.name}" requires valid Hivelocity configuration metadata. ${detail}`,
+						});
+					}
+					const meta = parsed.data;
+					if (meta.hivelocityPeriod === "hourly") {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Hourly billing is not available for server orders.",
+						});
+					}
+					if (
+						!/^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(
+							meta.hivelocityHostname.trim(),
+						)
+					) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Server hostname must be a valid FQDN.",
+						});
+					}
+				}
 			}
 
 			const serviceTypeByProductId = new Map<string, string>();
@@ -949,26 +991,22 @@ export const niscServiceOrdersRouter = router({
 				try {
 					const result = await enqueueNiscOrderProcessing(order.id);
 					qstashMessageId = result.messageId;
-				} catch (err) {
 					await db
 						.update(niscOrder)
-						.set({
-							failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
-						})
+						.set({ qstashMessageId })
 						.where(eq(niscOrder.id, order.id));
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message:
-							err instanceof Error ? err.message : "Failed to enqueue order for processing",
-					});
+				} catch (enqueueErr) {
+					// QStash unavailable (e.g. local dev without ngrok) — invoice then provision inline.
+					const processResult = await processNiscOrderWithPreInvoice(order.id);
+					if (!processResult.ok) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: processResult.failureReason || "Failed to complete order processing",
+						});
+					}
 				}
-
-				await db
-					.update(niscOrder)
-					.set({ qstashMessageId })
-					.where(eq(niscOrder.id, order.id));
 			} else {
-				const processResult = await processNiscOrder(order.id);
+				const processResult = await processNiscOrderWithPreInvoice(order.id);
 				if (!processResult.ok) {
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",

@@ -28,6 +28,7 @@ export const niscOrderItemForInvoiceSchema = z.object({
 	primaryDomain: nullableString,
 	billingCycle: nullableString,
 	description: nullableString,
+	metadata: z.record(z.unknown()).optional().nullable(),
 	product: orderItemProductSchema,
 	productPlan: orderItemProductPlanSchema,
 });

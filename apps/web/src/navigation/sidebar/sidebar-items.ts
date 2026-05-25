@@ -240,9 +240,9 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/dedicated-servers",
         icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Dedicated Servers", url: "/agency/dedicated-servers", },
           { title: "VPS Hosting", url: "/agency/vps", },
           { title: "VDS Hosting", url: "/agency/vds", },
+          // { title: "Dedicated Servers", url: "/agency/dedicated-servers", },
         ],
       },
       // {

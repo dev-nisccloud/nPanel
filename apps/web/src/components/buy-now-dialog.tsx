@@ -55,6 +55,32 @@ import { toast } from "@/components/ui/sonner";
 import { useCartStore } from "@/stores/cart-store";
 import { cn } from "@/lib/utils";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
+import { HivelocityInvoiceBreakdown } from "@/components/hivelocity-invoice-breakdown";
+import {
+  buildHivelocityInvoiceBreakdown,
+  formatNextBillingDate,
+  getAvailableHivelocityPeriods,
+  getHivelocityPeriodLabel,
+  getOptionUsdForBillingPeriod,
+  getPeriodPriceSuffix,
+  mapHivelocityPeriodToBillingCycle,
+  type HivelocityPeriod,
+} from "@/lib/hivelocity-checkout";
+import {
+  generateMpesaAccountReference,
+  validateMpesaAccountReference,
+} from "@/lib/mpesa-account-reference";
+import {
+  generateDefaultHivelocityHostname,
+  HIVELOCITY_DEFAULT_HOSTNAME_DOMAIN,
+} from "@/lib/hivelocity-default-hostname";
+import {
+  collectHivelocityOptionTags,
+  dedupeExclusiveGroupOptionIds,
+  getOptionExpressionIncompatibilityReason,
+  isHivelocityOptionGroupMultiSelect,
+  validateHivelocityOptionSelection,
+} from "@/lib/hivelocity-option-compatibility";
 
 export interface ServicePlanDetails {
   planId: string;
@@ -63,15 +89,24 @@ export interface ServicePlanDetails {
   subType?: string; // e.g., "WEB_HOSTING", "EMAIL_HOSTING"
   price: number;
   currency: string;
-  billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
+  billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
   /** Required for creating Nisc order from payment (product table flow). */
   productId?: string;
   hivelocity?: {
     productType: "DEDICATED_SERVERS" | "VPS" | "VDS";
     hivelocityProductId: number;
     locationName: string;
+    locationDisplayName?: string;
     baseMonthlyUsd: number;
     baseHourlyUsd: number;
+    /** Display currency prices per billing term (margin + conversion applied). */
+    pricesByPeriod?: Partial<Record<HivelocityPeriod, number>>;
+    /** Raw USD prices per billing term (pre-margin). */
+    baseUsdByPeriod?: Partial<Record<HivelocityPeriod, number>>;
+    hourlyRateUsd?: number;
+    hourlyRateDisplay?: number;
+    disabledBillingPeriods?: string[];
+    stock?: "available" | "limited" | "unavailable";
   };
 }
 
@@ -310,8 +345,22 @@ export function BuyNowDialog({
 
   // Hivelocity configuration step state
   const [hostname, setHostname] = React.useState("");
+  const defaultHostnameRef = React.useRef("");
   const [selectedOsId, setSelectedOsId] = React.useState<string>("");
   const [selectedOptionIds, setSelectedOptionIds] = React.useState<string[]>([]);
+  const [hivelocityPeriod, setHivelocityPeriod] = React.useState<HivelocityPeriod>("monthly");
+
+  const availableHivelocityPeriods = React.useMemo(
+    () => getAvailableHivelocityPeriods(plan?.hivelocity?.disabledBillingPeriods),
+    [plan?.hivelocity?.disabledBillingPeriods],
+  );
+
+  React.useEffect(() => {
+    if (!open || !isHivelocityPlan) return;
+    if (!availableHivelocityPeriods.some((p) => p.value === hivelocityPeriod)) {
+      setHivelocityPeriod(availableHivelocityPeriods[0]?.value ?? "monthly");
+    }
+  }, [open, isHivelocityPlan, availableHivelocityPeriods, hivelocityPeriod]);
 
   const hivelocityOsQuery = trpc.hivelocity.getProductOperatingSystems.useQuery(
     { productId: plan?.hivelocity?.hivelocityProductId ?? 0 },
@@ -445,6 +494,12 @@ export function BuyNowDialog({
     return Object.values(data || {}).flat();
   }, [hivelocityOptionsQuery.data]);
 
+  const groupedProductOptions = React.useMemo(() => {
+    return hivelocityOptionsQuery.data?.success
+      ? (hivelocityOptionsQuery.data.data as Record<string, any[]>)
+      : {};
+  }, [hivelocityOptionsQuery.data]);
+
   const optionGroupById = React.useMemo(() => {
     const map = new Map<string, string>();
     const data = hivelocityOptionsQuery.data?.success ? (hivelocityOptionsQuery.data.data as Record<string, any[]>) : {};
@@ -504,40 +559,52 @@ export function BuyNowDialog({
     [selectedOs, selectedOsFeatures],
   );
 
-  const getGroupSelectionMode = React.useCallback((groupName: string, rows: any[]) => {
-    const g = String(groupName ?? "").trim().toLowerCase();
-    // Known mutually-exclusive categories (selecting one should unselect others).
-    const singleGroups = [
-      "data center",
-      "datacenter",
-      "location",
-      "facility",
-      "region",
-      "control panel",
-      "daily backup",
-      "backup",
-      "data migration",
-      "migration",
-      "chassis upgrade",
-      "bandwidth",
-      "ip address",
-      "ip addresses",
-    ];
-    if (singleGroups.some((k) => g.includes(k))) {
-      return "single" as const;
-    }
-    // Heuristic: if all options look like locations (common tags), force single-select.
-    const locationTagHints = ["facility", "datacenter", "data_center", "location", "region"];
-    const looksLikeLocation = rows.some((r) => {
-      const tags: string[] = Array.isArray(r?.tags) ? r.tags : [];
-      const t = tags.join(" ").toLowerCase();
-      return locationTagHints.some((h) => t.includes(h));
-    });
-    if (looksLikeLocation) return "single" as const;
-    return "multi" as const;
+  const getAddonDisabledReason = React.useCallback(
+    (addon: any, groupName?: string, includeInTagSet = false) => {
+      const osReason = getAddonOsCompatibilityReason(addon, groupName);
+      if (osReason) return osReason;
+
+      const addonId = String(addon?.id ?? "");
+      const otherSelected = includeInTagSet
+        ? selectedOptions
+        : selectedOptions.filter((o) => String(o?.id ?? "") !== addonId);
+      const tagsForCheck = collectHivelocityOptionTags(selectedOs, otherSelected);
+      return getOptionExpressionIncompatibilityReason(addon, tagsForCheck);
+    },
+    [getAddonOsCompatibilityReason, selectedOptions, selectedOs],
+  );
+
+  const hivelocitySelectionValidation = React.useMemo(
+    () =>
+      validateHivelocityOptionSelection({
+        os: selectedOs,
+        allOptions: allProductOptions,
+        selectedOptionIds,
+        groupedOptions: groupedProductOptions,
+      }),
+    [allProductOptions, groupedProductOptions, selectedOptionIds, selectedOs],
+  );
+
+  const getGroupSelectionMode = React.useCallback((groupName: string, _rows?: any[]) => {
+    return isHivelocityOptionGroupMultiSelect(groupName) ? ("multi" as const) : ("single" as const);
   }, []);
 
-  // If OS changes, auto-remove any previously selected add-ons that became incompatible.
+  // Dedupe legacy multi-select within the same upgrade category (e.g. Applications).
+  React.useEffect(() => {
+    if (!open || !isHivelocityPlan) return;
+    if (!Object.keys(groupedProductOptions).length) return;
+    if (!selectedOptionIds.length) return;
+
+    setSelectedOptionIds((prev) => {
+      const next = dedupeExclusiveGroupOptionIds(groupedProductOptions, prev);
+      if (next.length === prev.length && next.every((id, i) => id === prev[i])) {
+        return prev;
+      }
+      return next;
+    });
+  }, [groupedProductOptions, isHivelocityPlan, open, selectedOptionIds.length]);
+
+  // If OS or tag set changes, auto-remove add-ons that became incompatible.
   React.useEffect(() => {
     if (!open || !isHivelocityPlan) return;
     if (!selectedOs) return;
@@ -549,7 +616,7 @@ export function BuyNowDialog({
       if (!id) continue;
       if (!selectedOptionIds.includes(id)) continue;
       const groupName = optionGroupById.get(id);
-      const reason = getAddonOsCompatibilityReason(opt, groupName);
+      const reason = getAddonDisabledReason(opt, groupName, true);
       if (reason) incompatible.add(id);
     }
 
@@ -557,11 +624,11 @@ export function BuyNowDialog({
 
     setSelectedOptionIds((prev) => prev.filter((id) => !incompatible.has(id)));
     toast.message("Some add-ons were removed", {
-      description: "They’re not compatible with the selected operating system.",
+      description: "They’re not compatible with your current OS and add-on selection.",
     });
   }, [
     allProductOptions,
-    getAddonOsCompatibilityReason,
+    getAddonDisabledReason,
     isHivelocityPlan,
     open,
     optionGroupById,
@@ -575,7 +642,10 @@ export function BuyNowDialog({
     return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(hostname.trim());
   }, [hostname]);
 
-  const canProceedFromHivelocityConfig = Boolean(selectedOs) && hostnameValid;
+  const canProceedFromHivelocityConfig =
+    Boolean(selectedOs) &&
+    hostnameValid &&
+    hivelocitySelectionValidation.ok;
 
   const [osSearch, setOsSearch] = React.useState("");
   const filteredOs = React.useMemo(() => {
@@ -588,16 +658,35 @@ export function BuyNowDialog({
   const osPriceUsd = encodeNumber(selectedOs?.monthlyPrice);
   const addonsPriceUsd = React.useMemo(() => selectedOptions.reduce((s, o) => s + encodeNumber(o?.monthlyPrice), 0), [selectedOptions]);
   const addonsCount = selectedOptions.length;
-  const extrasUsd = osPriceUsd + addonsPriceUsd;
-  const extrasMarginedUsd = React.useMemo(
-    () => applyMarginFor("os", osPriceUsd) + applyMarginFor("addons", addonsPriceUsd),
-    [applyMarginFor, osPriceUsd, addonsPriceUsd],
+
+  const hivelocityBaseDisplayPrice = React.useMemo(() => {
+    if (!plan?.hivelocity) return plan?.price ?? 0;
+    return plan.hivelocity.pricesByPeriod?.[hivelocityPeriod] ?? plan.price;
+  }, [plan, hivelocityPeriod]);
+
+  const periodPriceSuffix = React.useMemo(
+    () => getPeriodPriceSuffix(hivelocityPeriod),
+    [hivelocityPeriod],
   );
-  const extrasDisplay = React.useMemo(() => {
-    if (!plan?.hivelocity) return 0;
-    if (plan.currency === "KES" && usdToKesRate) return extrasMarginedUsd * usdToKesRate;
-    return extrasMarginedUsd;
-  }, [extrasMarginedUsd, plan?.hivelocity, plan?.currency, usdToKesRate]);
+
+  const convertOptionUsdToDisplay = React.useCallback(
+    (monthlyPriceUsd: number, bucket: "os" | "addons") => {
+      const periodUsd = getOptionUsdForBillingPeriod(monthlyPriceUsd, hivelocityPeriod);
+      const margined = applyMarginFor(bucket, periodUsd);
+      if (!Number.isFinite(margined) || margined <= 0) return 0;
+      if (plan?.currency === "KES" && usdToKesRate) return margined * usdToKesRate;
+      return margined;
+    },
+    [hivelocityPeriod, applyMarginFor, plan?.currency, usdToKesRate],
+  );
+
+  const formatPeriodPrice = React.useCallback(
+    (amount: number) => {
+      if (!Number.isFinite(amount) || amount <= 0) return "Free";
+      return `${formatPrice(amount, plan?.currency ?? "KES")}${periodPriceSuffix}`;
+    },
+    [plan?.currency, periodPriceSuffix],
+  );
 
   // Payment state
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string | null>(null);
@@ -620,28 +709,87 @@ export function BuyNowDialog({
   const immediateStepRef = React.useRef<Step | null>(null);
   const immediatePaymentErrorRef = React.useRef<string | null>(null);
   const orderCreatedForCheckoutRef = React.useRef<string | null>(null);
+  const orderCreateInFlightRef = React.useRef<string | null>(null);
+  const hivelocityCheckoutSnapshotRef = React.useRef<
+    RouterInputs["niscServiceOrders"]["createFromPayment"]["items"][number] | null
+  >(null);
 
   // Calculate pricing using useMemo to ensure proper reactivity
-  const pricing = React.useMemo(() => {
-    const basePrice = plan?.price || 0;
-    const osMonthlyUsd = selectedOs?.monthlyPrice ? encodeNumber(selectedOs.monthlyPrice) : 0;
-    const optionsMonthlyUsd = selectedOptions.reduce((sum, opt) => sum + encodeNumber(opt?.monthlyPrice), 0);
-    const hivelocityExtrasDisplay = plan?.hivelocity
-      ? (() => {
-          const extrasMargined = applyMarginFor("os", osMonthlyUsd) + applyMarginFor("addons", optionsMonthlyUsd);
-          if (plan.currency === "KES" && usdToKesRate) return extrasMargined * usdToKesRate;
-          return extrasMargined;
-        })()
+  const hivelocityInvoiceBreakdown = React.useMemo(() => {
+    if (!plan?.hivelocity) return null;
+
+    const osDisplay = selectedOs
+      ? convertOptionUsdToDisplay(encodeNumber(selectedOs.monthlyPrice), "os")
       : 0;
-    const effectiveBasePrice = basePrice + hivelocityExtrasDisplay;
-    const taxes = effectiveBasePrice * 0.16; // 16% VAT
-    const couponDiscount = 0; // TODO: Implement coupon validation
-    const subtotal = effectiveBasePrice - couponDiscount;
+
+    const addonLines = selectedOptions.map((opt: any) => {
+      const id = String(opt?.id ?? "");
+      const priceUsd = encodeNumber(opt?.monthlyPrice);
+      const display = convertOptionUsdToDisplay(priceUsd, "addons");
+      const group = optionGroupById.get(id);
+      return {
+        id,
+        name: String(opt?.name ?? "Add-on"),
+        group: group ?? undefined,
+        amountExVat: display,
+      };
+    });
+
+    return buildHivelocityInvoiceBreakdown({
+      serviceProductName: plan.planType,
+      planIdentifier: plan.planName,
+      locationLabel: `${plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName} · ${getHivelocityPeriodLabel(hivelocityPeriod)}`,
+      baseAmountExVat: hivelocityBaseDisplayPrice,
+      os: selectedOs
+        ? {
+            id: selectedOs.id,
+            name: String(selectedOs.name),
+            amountExVat: osDisplay,
+          }
+        : null,
+      addons: addonLines,
+    });
+  }, [
+    plan,
+    selectedOs,
+    selectedOptions,
+    hivelocityPeriod,
+    hivelocityBaseDisplayPrice,
+    convertOptionUsdToDisplay,
+    optionGroupById,
+  ]);
+
+  const pricing = React.useMemo(() => {
+    if (plan?.hivelocity && hivelocityInvoiceBreakdown) {
+      const displayCurrency = plan.currency || "KES";
+      return {
+        basePrice: hivelocityInvoiceBreakdown.subtotalExVat,
+        taxes: hivelocityInvoiceBreakdown.vatAmount,
+        couponDiscount: 0,
+        subtotal: hivelocityInvoiceBreakdown.subtotalExVat,
+        total: hivelocityInvoiceBreakdown.totalIncVat,
+        displayCurrency,
+        invoiceBreakdown: hivelocityInvoiceBreakdown,
+      };
+    }
+
+    const basePrice = plan?.price || 0;
+    const taxes = basePrice * 0.16;
+    const couponDiscount = 0;
+    const subtotal = basePrice - couponDiscount;
     const total = subtotal + taxes;
     const displayCurrency = plan?.currency || "KES";
-    
-    return { basePrice: effectiveBasePrice, taxes, couponDiscount, subtotal, total, displayCurrency };
-  }, [plan, selectedOs, selectedOptions, usdToKesRate, applyMarginFor]);
+
+    return {
+      basePrice,
+      taxes,
+      couponDiscount,
+      subtotal,
+      total,
+      displayCurrency,
+      invoiceBreakdown: null as ReturnType<typeof buildHivelocityInvoiceBreakdown> | null,
+    };
+  }, [plan, hivelocityInvoiceBreakdown]);
 
   // Reset state when dialog opens/closes
   React.useEffect(() => {
@@ -658,9 +806,13 @@ export function BuyNowDialog({
       setCurrentStep(first);
       setManualDomain("");
       setSelectedDomainId(null);
-      setHostname("");
+      defaultHostnameRef.current = plan.hivelocity
+        ? generateDefaultHivelocityHostname(plan.hivelocity.productType)
+        : "";
+      setHostname(defaultHostnameRef.current);
       setSelectedOsId("");
       setSelectedOptionIds([]);
+      setHivelocityPeriod("monthly");
       setCouponCode("");
       setShowCouponInput(false);
       setSelectedPaymentMethod(null);
@@ -679,6 +831,7 @@ export function BuyNowDialog({
       immediateStepRef.current = null;
       immediatePaymentErrorRef.current = null;
       orderCreatedForCheckoutRef.current = null;
+      hivelocityCheckoutSnapshotRef.current = null;
       setAgencyLinkType("self");
       setSelectedAgencyTeamId("");
       setSelectedAgencyUserId("");
@@ -688,12 +841,10 @@ export function BuyNowDialog({
       const taxes = planPrice * 0.16; // 16% VAT
       const total = planPrice + taxes;
       setPaymentAmount(total.toString());
-      
-      // Generate account reference
-      const timestamp = Date.now().toString().slice(-6);
-      const planShort = plan.planName.substring(0, 6).toUpperCase().replace(/\s/g, '');
-      const ref = `${planShort}${timestamp}`.substring(0, 12);
+
+      const ref = generateMpesaAccountReference(plan.planName);
       setAccountReference(ref);
+      setAccountRefError(validateMpesaAccountReference(ref));
     }
   }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep, agencyPortfolioCheckout]);
 
@@ -768,20 +919,7 @@ export function BuyNowDialog({
     }
   };
 
-  // Account reference validation
-  const handleAccountReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '').substring(0, 12);
-    setAccountReference(value);
-    
-    if (!value) {
-      setAccountRefError("Account reference is required");
-    } else if (value.length < 3) {
-      setAccountRefError("Account reference must be at least 3 characters");
-    } else {
-      setAccountRefError("");
-    }
-  };
-
+  // Account reference is auto-generated and read-only on the payment step.
   // M-Pesa STK Push mutation
   const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
     onSuccess: (response) => {
@@ -820,31 +958,126 @@ export function BuyNowDialog({
     },
   }) as UseMutationResult<void, { message?: string }, CreateFromPaymentInput>;
 
+  const buildHivelocityPaymentItem = React.useCallback((): CreateFromPaymentInput["items"][number] | null => {
+    if (!plan?.hivelocity || !hivelocityInvoiceBreakdown || !selectedOs) return null;
+
+    const osPriceUsd = getOptionUsdForBillingPeriod(
+      encodeNumber(selectedOs.monthlyPrice),
+      hivelocityPeriod,
+    );
+    const addonsPriceUsd = selectedOptions.reduce(
+      (s, o) => s + getOptionUsdForBillingPeriod(encodeNumber(o?.monthlyPrice), hivelocityPeriod),
+      0,
+    );
+
+    return {
+      productId: plan.productId,
+      productPlanId: null,
+      billingCycle: mapHivelocityPeriodToBillingCycle(hivelocityPeriod),
+      description: `${plan.planName} @ ${plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName}`,
+      itemPrice: String(Math.round(hivelocityInvoiceBreakdown.totalIncVat)),
+      itemSubtotal: String(Math.round(hivelocityInvoiceBreakdown.subtotalExVat)),
+      metadata: {
+        hivelocityProductId: Number(plan.hivelocity.hivelocityProductId),
+        hivelocityLocationName: plan.hivelocity.locationName,
+        hivelocityOsName: String(selectedOs.name),
+        hivelocityOsOptionId: Number(selectedOs.id),
+        hivelocityHostname: hostname.trim(),
+        hivelocityPeriod,
+        hivelocityOptionIds: selectedOptions
+          .map((o: { id?: unknown }) => Number(o?.id))
+          .filter((n) => Number.isFinite(n)),
+        basePriceUsd:
+          plan.hivelocity.baseUsdByPeriod?.[hivelocityPeriod] ?? plan.hivelocity.baseMonthlyUsd,
+        osPriceUsd,
+        addonsPriceUsd,
+        subtotalKes: Math.round(hivelocityInvoiceBreakdown.subtotalExVat),
+        totalKes: Math.round(hivelocityInvoiceBreakdown.totalIncVat),
+        usdToKesRate: usdToKesRate ?? undefined,
+        invoiceLines: hivelocityInvoiceBreakdown.lines,
+        productType: plan.hivelocity.productType,
+      },
+    };
+  }, [
+    plan,
+    hivelocityInvoiceBreakdown,
+    selectedOs,
+    hivelocityPeriod,
+    selectedOptions,
+    hostname,
+    usdToKesRate,
+  ]);
+
   // When payment step reaches success and we have plan+team+domain, create order and send to processing (once per checkout)
   React.useEffect(() => {
     if (currentStep !== "success" || !checkoutRequestId || !plan?.productId) return;
-    if (plan.hivelocity) return;
-    if (showDomainStep && !effectiveDomain) return;
+    if (plan.hivelocity) {
+      if (!hivelocityCheckoutSnapshotRef.current) return;
+    } else if (showDomainStep && !effectiveDomain) {
+      return;
+    }
     if (orderCreatedForCheckoutRef.current === checkoutRequestId) return;
+    if (orderCreateInFlightRef.current === checkoutRequestId) return;
 
-    orderCreatedForCheckoutRef.current = checkoutRequestId;
-    const priceStr = String(plan.price ?? 0);
-    createOrderFromPayment.mutate({
-      checkoutRequestId,
-      ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
-      ...(resolvedBilledForUserId ? { billedForUserId: resolvedBilledForUserId } : {}),
-      currency: plan.currency ?? "KES",
-      items: [
+    orderCreateInFlightRef.current = checkoutRequestId;
+
+    const markOrderCreateFinished = () => {
+      if (orderCreateInFlightRef.current === checkoutRequestId) {
+        orderCreateInFlightRef.current = null;
+      }
+    };
+
+    const hivelocityItem = hivelocityCheckoutSnapshotRef.current;
+    if (plan.hivelocity && hivelocityItem) {
+      createOrderFromPayment.mutate(
         {
-          productId: plan.productId,
-          productPlanId: plan.planId,
-          billingCycle: plan.billingCycle,
-          primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
-          itemPrice: priceStr,
-          itemSubtotal: priceStr,
+          checkoutRequestId,
+          ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
+          ...(resolvedBilledForUserId ? { billedForUserId: resolvedBilledForUserId } : {}),
+          currency: plan.currency ?? "KES",
+          items: [hivelocityItem],
         },
-      ],
-    });
+        {
+          onSuccess: () => {
+            orderCreatedForCheckoutRef.current = checkoutRequestId;
+            markOrderCreateFinished();
+          },
+          onError: () => {
+            markOrderCreateFinished();
+          },
+        },
+      );
+      return;
+    }
+
+    const priceStr = String(plan.price ?? 0);
+    createOrderFromPayment.mutate(
+      {
+        checkoutRequestId,
+        ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
+        ...(resolvedBilledForUserId ? { billedForUserId: resolvedBilledForUserId } : {}),
+        currency: plan.currency ?? "KES",
+        items: [
+          {
+            productId: plan.productId,
+            productPlanId: plan.planId,
+            billingCycle: plan.billingCycle,
+            primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
+            itemPrice: priceStr,
+            itemSubtotal: priceStr,
+          },
+        ],
+      },
+      {
+        onSuccess: () => {
+          orderCreatedForCheckoutRef.current = checkoutRequestId;
+          markOrderCreateFinished();
+        },
+        onError: () => {
+          markOrderCreateFinished();
+        },
+      },
+    );
   }, [
     currentStep,
     checkoutRequestId,
@@ -855,13 +1088,6 @@ export function BuyNowDialog({
     effectiveDomain,
     createOrderFromPayment,
   ]);
-
-  React.useEffect(() => {
-    if (currentStep !== "success" || !checkoutRequestId || !plan?.hivelocity) return;
-    if (orderCreatedForCheckoutRef.current === checkoutRequestId) return;
-    orderCreatedForCheckoutRef.current = checkoutRequestId;
-    toast.success("Payment received. Order will be processed shortly.");
-  }, [currentStep, checkoutRequestId, plan]);
 
   // Poll payment status ?? real-time only, no cache
   const queryPaymentStatus = trpc.paymentGateway.mpesa.queryStkPush.useQuery(
@@ -977,7 +1203,7 @@ export function BuyNowDialog({
     initiateMpesaPayment.mutate({
       phoneNumber: formattedPhone,
       amount: amount,
-      accountReference: accountReference,
+      accountReference: accountReference.trim(),
       transactionDesc,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
     });
@@ -991,41 +1217,67 @@ export function BuyNowDialog({
     } else if (currentStep === "agency_billing") {
       setCurrentStep("review");
     } else if (currentStep === "hivelocity_config") {
+      if (!hivelocitySelectionValidation.ok) {
+        toast.error("Incompatible add-ons selected", {
+          description: hivelocitySelectionValidation.reasons[0],
+        });
+        return;
+      }
       setCurrentStep("review");
     } else if (currentStep === "review") {
-      if (intent === "add_to_cart" && plan?.hivelocity) {
+      if (intent === "add_to_cart" && plan?.hivelocity && hivelocityInvoiceBreakdown) {
         const currency = pricing.displayCurrency;
-        const osDisplay = osPriceUsd > 0
-          ? plan.currency === "KES" && usdToKesRate
-            ? applyMarginFor("os", osPriceUsd) * usdToKesRate
-            : applyMarginFor("os", osPriceUsd)
-          : 0;
+        const osPriceUsd = encodeNumber(selectedOs?.monthlyPrice);
+        const addonsPriceUsd = selectedOptions.reduce(
+          (s, o) => s + encodeNumber(o?.monthlyPrice),
+          0,
+        );
 
         addHivelocity({
           productType: plan.hivelocity.productType,
+          niscProductId: plan.productId,
           planName: plan.planName,
           planType: plan.planType,
-          billingCycle: plan.billingCycle,
+          billingCycle: mapHivelocityPeriodToBillingCycle(hivelocityPeriod),
+          hivelocityPeriod,
           currency,
-          basePrice: plan.price,
+          basePrice: hivelocityBaseDisplayPrice,
           hostname: hostname.trim(),
           locationName: plan.hivelocity.locationName,
+          locationDisplayName: plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName,
           hivelocityProductId: plan.hivelocity.hivelocityProductId,
           os: selectedOs
-            ? { id: String(selectedOs.id), name: String(selectedOs.name), price: osDisplay }
+            ? {
+                id: String(selectedOs.id),
+                name: String(selectedOs.name),
+                price:
+                  hivelocityInvoiceBreakdown.lines.find((l) => l.kind === "os")?.amountExVat ?? 0,
+                priceUsd: getOptionUsdForBillingPeriod(osPriceUsd, hivelocityPeriod),
+              }
             : null,
           addons: selectedOptions.map((opt: any) => {
             const id = String(opt?.id ?? "");
             const priceUsd = encodeNumber(opt?.monthlyPrice);
-            const display = priceUsd > 0
-              ? plan.currency === "KES" && usdToKesRate
-                ? applyMarginFor("addons", priceUsd) * usdToKesRate
-                : applyMarginFor("addons", priceUsd)
-              : 0;
+            const line = hivelocityInvoiceBreakdown.lines.find((l) => l.id === `addon-${id}`);
             const group = optionGroupById.get(id);
-            return { id, name: String(opt?.name ?? "Add-on"), price: display, group: group ?? undefined };
+            return {
+              id,
+              name: String(opt?.name ?? "Add-on"),
+              price: line?.amountExVat ?? 0,
+              group: group ?? undefined,
+              priceUsd: getOptionUsdForBillingPeriod(priceUsd, hivelocityPeriod),
+            };
           }),
-          totalPrice: pricing.basePrice,
+          invoiceLines: hivelocityInvoiceBreakdown.lines,
+          subtotalExVat: hivelocityInvoiceBreakdown.subtotalExVat,
+          vatAmount: hivelocityInvoiceBreakdown.vatAmount,
+          totalPrice: hivelocityInvoiceBreakdown.totalIncVat,
+          selectedOptionIds: selectedOptions
+            .map((o: any) => Number(o?.id))
+            .filter((n) => Number.isFinite(n)),
+          basePriceUsdMonthly: plan.hivelocity.baseUsdByPeriod?.[hivelocityPeriod] ?? plan.hivelocity.baseMonthlyUsd,
+          osPriceUsdMonthly: osPriceUsd,
+          addonsPriceUsdMonthly: addonsPriceUsd,
         });
         toast.success("Added to cart");
         onOpenChange(false);
@@ -1034,6 +1286,10 @@ export function BuyNowDialog({
 
       setCurrentStep("payment");
       setPaymentAmount(pricing.total.toString());
+      hivelocityCheckoutSnapshotRef.current = buildHivelocityPaymentItem();
+      const ref = generateMpesaAccountReference(plan.planName);
+      setAccountReference(ref);
+      setAccountRefError(validateMpesaAccountReference(ref));
     }
   };
 
@@ -1270,29 +1526,24 @@ export function BuyNowDialog({
         );
 
       case "hivelocity_config":
-        const groupedOptions = hivelocityOptionsQuery.data?.success
-          ? (hivelocityOptionsQuery.data.data as Record<string, any[]>)
-          : {};
         const groupedOptionsWithoutOs = Object.fromEntries(
-          Object.entries(groupedOptions).filter(([group]) => group.trim().toLowerCase() !== "operating system"),
+          Object.entries(groupedProductOptions).filter(
+            ([group]) => group.trim().toLowerCase() !== "operating system",
+          ),
         );
         return (
           <div className="space-y-4">
             <div className="rounded-xl border bg-muted/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Server className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold line-clamp-1">{plan.planName}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-1">{plan.planType}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Server className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold line-clamp-1">{plan.planName}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{plan.planType}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
                     <Badge variant="outline" className="rounded-full">
-                      Location: {plan.hivelocity?.locationName}
+                      {plan.hivelocity?.locationDisplayName ?? plan.hivelocity?.locationName}
                     </Badge>
                     <Badge variant="destructive" className="rounded-full">
                       OS required
@@ -1302,21 +1553,10 @@ export function BuyNowDialog({
                     </Badge>
                   </div>
                 </div>
-
-                <div className="shrink-0 text-right">
-                  <p className="text-xs text-muted-foreground">Monthly price</p>
-                  <p className="text-base font-semibold">{formatPrice(plan.price, plan.currency)}</p>
-                  {extrasDisplay > 0 ? (
-                    <p className="text-xs text-emerald-600 mt-1">+ {formatPrice(extrasDisplay, plan.currency)} extras</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground mt-1">No extras selected</p>
-                  )}
-                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-xl border p-4">
+            <div className="rounded-xl border p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">Operating system</p>
@@ -1345,11 +1585,13 @@ export function BuyNowDialog({
                       const id = String(os.id);
                       const active = id === selectedOsId;
                       const priceUsd = encodeNumber(os.monthlyPrice);
-                      const displayUsd = applyMarginFor("os", priceUsd);
+                      const periodUsd = getOptionUsdForBillingPeriod(priceUsd, hivelocityPeriod);
+                      const displayAmount = convertOptionUsdToDisplay(priceUsd, "os");
+                      const marginedPeriodUsd = applyMarginFor("os", periodUsd);
                       const features = os.operatingSystemFeatures ?? {};
                       const tags: string[] = Array.isArray((os as any)?.tags) ? ((os as any).tags as string[]) : [];
-                      const showOriginal = hivelocityMarkupFlags.os && Math.abs(displayUsd - priceUsd) > 1e-9;
-                      const original = formatOriginalUsdAndKes(priceUsd);
+                      const showOriginal = hivelocityMarkupFlags.os && Math.abs(marginedPeriodUsd - periodUsd) > 1e-9;
+                      const original = formatOriginalUsdAndKes(periodUsd);
                       return (
                         <button
                           key={id}
@@ -1364,7 +1606,7 @@ export function BuyNowDialog({
                             <div className="min-w-0">
                               <p className="text-sm font-semibold line-clamp-1">{os.name}</p>
                               <p className="text-sm font-semibold text-primary mt-1">
-                                {priceUsd > 0 ? `${formatUsdOrKes(displayUsd)} /mo` : "Free"}
+                                {formatPeriodPrice(displayAmount)}
                               </p>
                               {priceUsd > 0 && showOriginal ? (
                                 <div className="mt-1 text-[11px] text-emerald-600">
@@ -1408,13 +1650,30 @@ export function BuyNowDialog({
               </div>
 
               <div className="rounded-xl border p-4">
-                <p className="text-sm font-semibold">Hostname</p>
-                <p className="text-xs text-muted-foreground">A fully qualified domain name (FQDN)</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Hostname</p>
+                    <p className="text-xs text-muted-foreground">
+                      A fully qualified domain name (FQDN). We assign a default one for you if you do not have your own yet.
+                    </p>
+                  </div>
+                  {defaultHostnameRef.current ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-8 text-xs"
+                      onClick={() => setHostname(defaultHostnameRef.current)}
+                    >
+                      Use default
+                    </Button>
+                  ) : null}
+                </div>
                 <div className="mt-3 relative">
                   <Input
                     id="hivelocity-hostname"
                     type="text"
-                    placeholder="e.g. server.example.com"
+                    placeholder={`e.g. server.${HIVELOCITY_DEFAULT_HOSTNAME_DOMAIN}`}
                     value={hostname}
                     onChange={(e) => setHostname(e.target.value)}
                     className={`pr-10 ${hostname.trim() ? (hostnameValid ? "border-green-500 focus-visible:ring-green-500" : "border-destructive focus-visible:ring-destructive") : ""}`}
@@ -1436,7 +1695,7 @@ export function BuyNowDialog({
                 )}
 
                 <p className="text-xs text-muted-foreground mt-3">
-                  Need a domain for your hostname?{" "}
+                  Have your own domain?{" "}
                   <Link
                     to={buyDomainHref ?? "/agency/domains"}
                     className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
@@ -1491,13 +1750,17 @@ export function BuyNowDialog({
                                 const optionId = String(opt.id);
                                 const checked = selectedOptionIds.includes(optionId);
                                 const priceUsd = encodeNumber(opt.monthlyPrice);
-                                const displayUsd = applyMarginFor("addons", priceUsd);
+                                const periodUsd = getOptionUsdForBillingPeriod(priceUsd, hivelocityPeriod);
+                                const displayAmount = convertOptionUsdToDisplay(priceUsd, "addons");
+                                const marginedPeriodUsd = applyMarginFor("addons", periodUsd);
                                 const tags: string[] = Array.isArray(opt?.tags) ? (opt.tags as string[]) : [];
                                 const expressions: string[] = Array.isArray(opt?.expressions) ? (opt.expressions as string[]) : [];
                                 const features = opt?.operatingSystemFeatures ?? null;
-                                const showOriginal = hivelocityMarkupFlags.addons && Math.abs(displayUsd - priceUsd) > 1e-9;
-                                const original = formatOriginalUsdAndKes(priceUsd);
-                                const disabledReason = getAddonOsCompatibilityReason(opt, group);
+                                const showOriginal = hivelocityMarkupFlags.addons && Math.abs(marginedPeriodUsd - periodUsd) > 1e-9;
+                                const original = formatOriginalUsdAndKes(periodUsd);
+                                const disabledReason = checked
+                                  ? null
+                                  : getAddonDisabledReason(opt, group);
                                 const disabled = Boolean(disabledReason);
                                 const optNameLower = String(opt?.name ?? "").toLowerCase();
                                 const isManagedServices = String(group ?? "").toLowerCase().includes("managed service");
@@ -1550,7 +1813,7 @@ export function BuyNowDialog({
                                     <span className="min-w-0">
                                       <span className="block font-medium line-clamp-1">{opt.name}</span>
                                       <span className="block text-sm font-semibold text-primary mt-1">
-                                        {priceUsd > 0 ? `${formatUsdOrKes(displayUsd)} /mo` : "Free"}
+                                        {formatPeriodPrice(displayAmount)}
                                       </span>
                                       {priceUsd > 0 && showOriginal ? (
                                         <span className="block mt-1 text-[11px] text-emerald-600">
@@ -1629,12 +1892,17 @@ export function BuyNowDialog({
                 </div>
               </div>
 
-              {!canProceedFromHivelocityConfig ? (
+            {!canProceedFromHivelocityConfig ? (
                 <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
                   <p className="font-medium">Complete required fields</p>
                   <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                    <li>- Select an operating system</li>
-                    <li>- Enter a valid hostname</li>
+                    {!selectedOs ? <li>- Select an operating system</li> : null}
+                    {!hostnameValid ? <li>- Enter a valid hostname</li> : null}
+                    {!hivelocitySelectionValidation.ok
+                      ? hivelocitySelectionValidation.reasons.map((reason) => (
+                          <li key={reason}>- {reason}</li>
+                        ))
+                      : null}
                   </ul>
                 </div>
               ) : (
@@ -1643,7 +1911,6 @@ export function BuyNowDialog({
                   <p className="text-xs text-muted-foreground mt-1">Next you’ll confirm totals and pay securely via M-Pesa.</p>
                 </div>
               )}
-            </div>
           </div>
         );
 
@@ -1790,36 +2057,21 @@ export function BuyNowDialog({
 
             <ScrollArea className="h-[300px] w-full">
               <div className="space-y-4 pr-4">
-                {/* Product */}
-                <div className="rounded-xl border bg-muted/30 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="font-semibold text-foreground line-clamp-2 break-words">
-                        {plan.planName}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {plan.planType}
-                        {plan.subType && ` - ${plan.subType.replace(/_/g, ' ')}`}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs text-muted-foreground">Configured monthly</p>
-                      <div className="font-semibold text-foreground">
-                        {formatPrice(pricing.basePrice, pricing.displayCurrency)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <div className="rounded-md border bg-background/70 px-3 py-2">
-                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Billing cycle</p>
-                      <p className="font-medium text-foreground mt-0.5">{plan.billingCycle}</p>
-                    </div>
-                    {plan.hivelocity ? (
-                      <>
+                {plan.hivelocity ? (
+                  <>
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <div className="font-semibold text-foreground line-clamp-2 break-words">{plan.planName}</div>
+                      <div className="text-sm text-muted-foreground mt-1">{plan.planType}</div>
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div className="rounded-md border bg-background/70 px-3 py-2">
+                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Billing period</p>
+                          <p className="font-medium text-foreground mt-0.5">{getHivelocityPeriodLabel(hivelocityPeriod)}</p>
+                        </div>
                         <div className="rounded-md border bg-background/70 px-3 py-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Location</p>
-                          <p className="font-medium text-foreground mt-0.5">{plan.hivelocity.locationName}</p>
+                          <p className="font-medium text-foreground mt-0.5">
+                            {plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName}
+                          </p>
                         </div>
                         <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Operating system</p>
@@ -1829,85 +2081,51 @@ export function BuyNowDialog({
                           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hostname</p>
                           <p className="font-medium text-foreground mt-0.5 break-all">{hostname || "Not provided"}</p>
                         </div>
-                        <div className="rounded-md border bg-background/70 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Add-ons selected</p>
-                          <p className="font-medium text-foreground mt-0.5">{addonsCount}</p>
-                        </div>
-                      </>
+                      </div>
+                    </div>
+
+                    {!plan.productId ? (
+                      <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+                        Service product is not linked yet. An active nPanel product for this server type is required before checkout can complete.
+                      </div>
                     ) : null}
-                  </div>
-                </div>
 
-                {plan.hivelocity ? (
-                  <div className="rounded-xl border p-4">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Selected items</p>
-
-                    <div className="mt-3 rounded-lg border bg-background/60">
-                      <div className="flex items-center justify-between px-3 py-2 text-sm">
-                        <span className="font-medium text-foreground">Base plan</span>
-                        <span className="font-semibold text-foreground">{formatPrice(plan.price, plan.currency)}</span>
+                    {pricing.invoiceBreakdown ? (
+                      <HivelocityInvoiceBreakdown
+                        breakdown={pricing.invoiceBreakdown}
+                        currency={pricing.displayCurrency}
+                        formatPrice={formatPrice}
+                        title="Invoice line items"
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-foreground line-clamp-2 break-words">
+                          {plan.planName}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {plan.planType}
+                          {plan.subType && ` - ${plan.subType.replace(/_/g, " ")}`}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-muted-foreground">Price</p>
+                        <div className="font-semibold text-foreground">
+                          {formatPrice(pricing.basePrice, pricing.displayCurrency)}
+                        </div>
                       </div>
                     </div>
-
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-foreground">Add-ons</p>
-                        <p className="text-xs text-muted-foreground">{selectedOptions.length + (selectedOs ? 1 : 0)} items</p>
-                      </div>
-
-                      <div className="mt-2 space-y-2">
-                        {selectedOs ? (
-                          <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground line-clamp-1">OS: {selectedOs.name}</p>
-                              <p className="text-xs text-muted-foreground">Operating system license</p>
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <p className="text-sm font-semibold text-primary">
-                                {osPriceUsd > 0 ? `${formatUsdOrKes(applyMarginFor("os", osPriceUsd))} /mo` : "Free"}
-                              </p>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {selectedOptions.length ? (
-                          selectedOptions.map((opt: any) => {
-                            const id = String(opt?.id ?? "");
-                            const priceUsd = encodeNumber(opt?.monthlyPrice);
-                            const displayUsd = applyMarginFor("addons", priceUsd);
-                            return (
-                              <div key={id} className="flex items-start justify-between gap-3 rounded-lg border bg-muted/10 px-3 py-2">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-foreground line-clamp-1">{opt?.name ?? "Add-on"}</p>
-                                  <p className="text-xs text-muted-foreground">Add-on</p>
-                                </div>
-                                <div className="shrink-0 flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-primary">
-                                    {priceUsd > 0 ? `${formatUsdOrKes(displayUsd)} /mo` : "Free"}
-                                  </p>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                    onClick={() => setSelectedOptionIds((prev) => prev.filter((x) => x !== id))}
-                                    aria-label={`Remove ${opt?.name ?? "add-on"}`}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
-                            No add-ons selected.
-                          </div>
-                        )}
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div className="rounded-md border bg-background/70 px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Billing cycle</p>
+                        <p className="font-medium text-foreground mt-0.5">{plan.billingCycle}</p>
                       </div>
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
               <ScrollBar orientation="vertical" />
             </ScrollArea>
@@ -1933,29 +2151,32 @@ export function BuyNowDialog({
               </div>
             </div>
 
-            {/* Taxes & Fees */}
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Taxes & fees</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>16% VAT tax has been applied according to Kenyan regulations.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <span>{formatPrice(pricing.taxes, pricing.displayCurrency)}</span>
-            </div>
+            {/* Taxes & Fees — non-Hivelocity only (Hivelocity totals are in invoice breakdown) */}
+            {!plan.hivelocity ? (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Taxes & fees</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>16% VAT tax has been applied according to Kenyan regulations.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <span>{formatPrice(pricing.taxes, pricing.displayCurrency)}</span>
+                </div>
 
-            {/* Total */}
-            <div className="border-t pt-4">
-              <div className="flex items-center justify-between font-bold text-lg">
-                <span>Total</span>
-                <span>{formatPrice(pricing.total, pricing.displayCurrency)}</span>
-              </div>
-            </div>
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between font-bold text-lg">
+                    <span>Total</span>
+                    <span>{formatPrice(pricing.total, pricing.displayCurrency)}</span>
+                  </div>
+                </div>
+              </>
+            ) : null}
 
             {/* Legal Text */}
             <p className="text-xs text-muted-foreground">
@@ -2073,21 +2294,21 @@ export function BuyNowDialog({
 
                           <div className="space-y-2">
                             <label htmlFor="account-reference" className="text-sm font-medium text-foreground">
-                              Account Reference <span className="text-destructive">*</span>
+                              Account Reference
                             </label>
                             <Input
                               id="account-reference"
-                              placeholder="Enter account reference"
                               value={accountReference}
-                              onChange={handleAccountReferenceChange}
-                              className={`w-full ${accountRefError ? "border-destructive" : ""}`}
+                              readOnly
+                              disabled
+                              className="w-full bg-muted/50 cursor-default text-foreground disabled:opacity-100"
                               maxLength={12}
                             />
                             {accountRefError ? (
                               <p className="text-xs text-destructive">{accountRefError}</p>
                             ) : (
                               <p className="text-xs text-muted-foreground">
-                                Max 12 characters, alphanumeric only ({accountReference.length}/12)
+                                Auto-generated for this order ({accountReference.length}/12)
                               </p>
                             )}
                           </div>
@@ -2157,18 +2378,36 @@ export function BuyNowDialog({
               <div className="space-y-2">
                 <p className="text-sm text-foreground">
                   {plan.hivelocity ? (
-                    <>
-                      Payment for <span className="font-semibold">{plan.planName}</span> has been received. We’ll start provisioning once this checkout is linked to the provisioning pipeline.
-                    </>
+                    createOrderFromPayment.isPending ? (
+                      <>Submitting your server order for provisioning…</>
+                    ) : createOrderFromPayment.isError ? (
+                      <>
+                        Payment for <span className="font-semibold">{plan.planName}</span> was received, but the order could not be created automatically. Please contact support with your M-Pesa reference.
+                      </>
+                    ) : createOrderFromPayment.isSuccess ? (
+                      <>
+                        Your server <span className="font-semibold">{plan.planName}</span>
+                        {hostname.trim() ? (
+                          <>
+                            {" "}
+                            (<span className="font-mono text-xs">{hostname.trim()}</span>)
+                          </>
+                        ) : null}{" "}
+                        is being provisioned and will appear on your dashboard in a few minutes.
+                      </>
+                    ) : (
+                      <>Confirming your order…</>
+                    )
                   ) : (
                     <>
                       Your service plan <span className="font-semibold">{plan.planName}</span> will be activated on your dashboard in a few minutes.
                     </>
                   )}
                 </p>
-                {plan.hivelocity ? (
-                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground">
-                    Provisioning is not enabled yet for Dedicated/VPS/VDS. This is payment acknowledgement only.
+                {plan.hivelocity && createOrderFromPayment.isError ? (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-foreground">
+                    {createOrderFromPayment.error?.message ??
+                      "Order creation failed. Please contact support with your M-Pesa reference."}
                   </div>
                 ) : null}
               </div>
@@ -2220,6 +2459,90 @@ export function BuyNowDialog({
         return null;
     }
   };
+
+  const hivelocityNextBillingDate = React.useMemo(
+    () => formatNextBillingDate(hivelocityPeriod),
+    [hivelocityPeriod],
+  );
+
+  const hivelocityConfigFooterBar =
+    currentStep === "hivelocity_config" && plan?.hivelocity && hivelocityInvoiceBreakdown ? (
+      <div className="flex flex-col gap-2 min-w-0 flex-1 text-left">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4">
+          <div className="min-w-0 sm:w-[180px] shrink-0">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">
+              Billing period
+            </p>
+            <Select
+              value={hivelocityPeriod}
+              onValueChange={(v) => setHivelocityPeriod(v as HivelocityPeriod)}
+            >
+              <SelectTrigger className="h-9 mt-1">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableHivelocityPeriods.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="block w-full">
+                      <SelectItem
+                        value="hourly"
+                        disabled
+                        className="pointer-events-auto cursor-not-allowed opacity-50"
+                      >
+                        Hourly
+                      </SelectItem>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[240px] text-left">
+                    Hourly billing is not available for your account. Contact support for more
+                    information, or choose another billing cycle.
+                  </TooltipContent>
+                </Tooltip>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {getHivelocityPeriodLabel(hivelocityPeriod)} price
+            </p>
+            <p className="text-xl font-bold leading-tight text-foreground">
+              {formatPrice(hivelocityInvoiceBreakdown.subtotalExVat, plan.currency)}
+            </p>
+            {hivelocityNextBillingDate ? (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Next billing: {hivelocityNextBillingDate}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground border-t pt-2">
+          <span className="line-clamp-1">
+            Server {formatPeriodPrice(hivelocityBaseDisplayPrice)}
+          </span>
+          {selectedOs ? (
+            <span className="line-clamp-1">
+              OS {formatPeriodPrice(convertOptionUsdToDisplay(encodeNumber(selectedOs.monthlyPrice), "os"))}
+            </span>
+          ) : null}
+          {selectedOptions.length > 0 ? (
+            <span>
+              {selectedOptions.length} add-on{selectedOptions.length === 1 ? "" : "s"}{" "}
+              {formatPeriodPrice(
+                selectedOptions.reduce(
+                  (sum, o) => sum + convertOptionUsdToDisplay(encodeNumber(o?.monthlyPrice), "addons"),
+                  0,
+                ),
+              )}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    ) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -2277,7 +2600,12 @@ export function BuyNowDialog({
           </ScrollArea>
         </div>
 
-        <DialogFooter className="gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t">
+        <DialogFooter
+          className={cn(
+            "gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t",
+            currentStep === "hivelocity_config" && "!flex-col !items-stretch",
+          )}
+        >
           {currentStep === "seo_connect" && (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-primary">
@@ -2327,22 +2655,25 @@ export function BuyNowDialog({
             </>
           )}
           {currentStep === "hivelocity_config" && (
-            <>
-              <Button
-                variant="ghost"
-                onClick={() => onOpenChange(false)}
-                className="text-primary"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleNext}
-                disabled={!canProceedFromHivelocityConfig}
-                className="bg-primary text-primary-foreground"
-              >
-                Next: Review
-              </Button>
-            </>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 w-full">
+              {hivelocityConfigFooterBar}
+              <div className="flex flex-wrap gap-2 shrink-0 sm:justify-end">
+                <Button
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                  className="text-primary"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleNext}
+                  disabled={!canProceedFromHivelocityConfig}
+                  className="bg-primary text-primary-foreground"
+                >
+                  Next: Review
+                </Button>
+              </div>
+            </div>
           )}
           {currentStep === "review" && (
             <>
@@ -2376,6 +2707,7 @@ export function BuyNowDialog({
               <Button
                 onClick={handleNext}
                 className="bg-primary text-primary-foreground"
+                disabled={intent === "buy_now" && isHivelocityPlan && !plan?.productId}
               >
                 {intent === "add_to_cart" ? "Add to cart" : "Choose payment method"}
               </Button>
