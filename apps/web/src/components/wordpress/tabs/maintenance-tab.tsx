@@ -25,7 +25,7 @@ export function WordPressMaintenanceTab({ installationId }: { installationId: st
   });
 
   return (
-    <div>
+    <>
       <WpFeatureCard
         title="Maintenance mode"
         description="Show a maintenance page to visitors while you work on the site."
@@ -35,15 +35,15 @@ export function WordPressMaintenanceTab({ installationId }: { installationId: st
           variant: features?.maintenance?.status ? "secondary" : "outline",
         }}
       >
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Label className="text-sm font-medium">Enable maintenance mode</Label>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Label className="text-sm">Enable maintenance mode</Label>
           <div className="flex items-center gap-2">
             <Switch
               checked={features?.maintenance?.status ?? false}
               disabled={toggleMaintenance.isPending}
               onCheckedChange={(val) => toggleMaintenance.mutate({ installationId: id, status: val })}
             />
-            <Button type="button" variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
+            <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(true)}>
               <Settings2 className="h-4 w-4" />
               <span className="sr-only">Page content settings</span>
             </Button>
@@ -56,6 +56,6 @@ export function WordPressMaintenanceTab({ installationId }: { installationId: st
         onOpenChange={setSettingsOpen}
         installationId={id}
       />
-    </div>
+    </>
   );
 }

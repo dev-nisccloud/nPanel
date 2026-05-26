@@ -35,54 +35,52 @@ export function WordPressDevelopmentTab({ installationId }: { installationId: st
   const debugOn = features?.debug?.status ?? false;
 
   return (
-    <div>
-      <WpFeatureCard
-        title="WordPress debug"
-        description="Control WP_DEBUG and related constants. Disable on production sites when finished troubleshooting."
-        icon={Terminal}
-        badge={{ label: debugOn ? "On" : "Off", variant: debugOn ? "destructive" : "secondary" }}
-      >
-        <div className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
-            <Label className="text-sm font-medium">Enable debug mode</Label>
-            <Switch
-              checked={debugOn}
-              disabled={updateDebug.isPending}
-              onCheckedChange={(val) => updateDebug.mutate({ installationId: id, status: val })}
-            />
-          </div>
-
-          {debugOn ? (
-            <div className="space-y-4 border-t border-border/60 pt-4">
-              {debugLoading ? (
-                <Spinner size={20} />
-              ) : (
-                <>
-                  {(
-                    [
-                      ["wpDebug", "WP_DEBUG", debugSettings?.data?.wpDebug],
-                      ["wpDebugLog", "Log to debug.log", debugSettings?.data?.wpDebugLog],
-                      ["wpDebugDisplay", "Show on screen", debugSettings?.data?.wpDebugDisplay],
-                      ["scriptDebug", "Unminified scripts", debugSettings?.data?.scriptDebug],
-                      ["saveQueries", "Save DB queries", debugSettings?.data?.saveQueries],
-                    ] as const
-                  ).map(([key, label, checked]) => (
-                    <div key={key} className="flex items-center justify-between gap-4">
-                      <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
-                      <Switch
-                        checked={Boolean(checked)}
-                        onCheckedChange={(val) =>
-                          updateDebugSettings.mutate({ installationId: id, [key]: val })
-                        }
-                      />
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-          ) : null}
+    <WpFeatureCard
+      title="WordPress debug"
+      description="Control WP_DEBUG and related constants. Disable on production when finished troubleshooting."
+      icon={Terminal}
+      badge={{ label: debugOn ? "On" : "Off", variant: debugOn ? "destructive" : "secondary" }}
+    >
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm">Enable debug mode</Label>
+          <Switch
+            checked={debugOn}
+            disabled={updateDebug.isPending}
+            onCheckedChange={(val) => updateDebug.mutate({ installationId: id, status: val })}
+          />
         </div>
-      </WpFeatureCard>
-    </div>
+
+        {debugOn ? (
+          <div className="space-y-3 border-t border-border/60 pt-3">
+            {debugLoading ? (
+              <Spinner size={20} />
+            ) : (
+              <>
+                {(
+                  [
+                    ["wpDebug", "WP_DEBUG", debugSettings?.data?.wpDebug],
+                    ["wpDebugLog", "Log to debug.log", debugSettings?.data?.wpDebugLog],
+                    ["wpDebugDisplay", "Show on screen", debugSettings?.data?.wpDebugDisplay],
+                    ["scriptDebug", "Unminified scripts", debugSettings?.data?.scriptDebug],
+                    ["saveQueries", "Save DB queries", debugSettings?.data?.saveQueries],
+                  ] as const
+                ).map(([key, label, checked]) => (
+                  <div key={key} className="flex items-center justify-between gap-3">
+                    <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
+                    <Switch
+                      checked={Boolean(checked)}
+                      onCheckedChange={(val) =>
+                        updateDebugSettings.mutate({ installationId: id, [key]: val })
+                      }
+                    />
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </WpFeatureCard>
   );
 }

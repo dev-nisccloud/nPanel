@@ -25,12 +25,12 @@ export function wpStatusBadgeClassName(tone: WpStatusTone): string {
     case "danger":
       return "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/10";
     case "success":
-      return "border-green-600/40 bg-green-600/10 text-green-800 dark:text-green-300 hover:bg-green-600/10";
+      return "border-primary/30 bg-primary/10 text-primary hover:bg-primary/10";
     case "muted":
       return "border-border bg-muted/50 text-muted-foreground hover:bg-muted/50";
     case "warning":
     default:
-      return "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10";
+      return "border-border bg-muted text-foreground hover:bg-muted";
   }
 }
 
@@ -46,7 +46,7 @@ export function WpStatusBadge({
   return (
     <Badge
       variant="outline"
-      className={cn("shrink-0 capitalize", wpStatusBadgeClassName(tone), className)}
+      className={cn("shrink-0 capitalize text-xs", wpStatusBadgeClassName(tone), className)}
     >
       {label}
     </Badge>

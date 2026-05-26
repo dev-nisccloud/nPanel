@@ -2,28 +2,30 @@
 
 import * as React from "react";
 import {
-  CheckCircle,
-  XCircle,
   AlertTriangle,
-  Shield,
+  CheckCircle,
   Globe,
-  Code,
-  Database as DatabaseIcon,
-  HardDrive,
-  Cpu,
   Lock,
   RefreshCw,
-  FileText,
-  Zap
+  Shield,
+  XCircle,
+  Zap,
 } from "lucide-react";
 import { z } from "zod";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-
 import { OverviewQuickActions } from "@/components/wordpress/overview-quick-actions";
+import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
+import {
+  WpInfoGrid,
+  WpInfoItem,
+  WpKeyValueRow,
+  WpSection,
+  WpStatTile,
+} from "@/components/wordpress/wp-detail-primitives";
 import { wordpressInstallationSchema } from "./schema";
 
 interface WordPressOverviewProps {
@@ -73,11 +75,9 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
     );
   };
 
-  const getUpdatesCount = () => {
-    const pluginUpdates = wpData.features?.updates?.amountOfPluginsWithUpdates || 0;
-    const themeUpdates = wpData.features?.updates?.amountOfThemesWithUpdates || 0;
-    return pluginUpdates + themeUpdates;
-  };
+  const pluginUpdates = wpData.features?.updates?.amountOfPluginsWithUpdates || 0;
+  const themeUpdates = wpData.features?.updates?.amountOfThemesWithUpdates || 0;
+  const updatesCount = pluginUpdates + themeUpdates;
 
   const getInstallationUsagePercentage = () => {
     const used = wpData.domain?.installationsCount || 0;
@@ -85,352 +85,230 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
     return Math.round((used / limit) * 100);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* General Information & Status & Security - Side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* General Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              General Information
-            </CardTitle>
-            <CardDescription>Basic WordPress installation details</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Site Title</p>
-              <p className="text-base text-primary flex-1">{wpData.title || "Not Available"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Display Title</p>
-              <p className="text-base text-primary flex-1">{wpData.displayTitle || "Not Available"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Domain</p>
-              <p className="text-base text-primary flex-1">{wpData.domain?.name || "Not Available"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Owner</p>
-              <p className="text-base text-primary flex-1">{wpData.owner?.name || wpData.owner?.login || "Not Available"}</p>
-            </div>
-          </CardContent>
-        </Card>
+  const phpStatusBadge = () => {
+    if (wpData.features?.php?.eoled) return <Badge variant="destructive">End of life</Badge>;
+    if (wpData.features?.php?.unsupported) return <Badge variant="secondary">Unsupported</Badge>;
+    return <Badge variant="default">Supported</Badge>;
+  };
 
-        {/* Status & Security */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Status & Security
-            </CardTitle>
-            <CardDescription>Current status and security information</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Status:</span>
-              {getStatusBadge()}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Security:</span>
-              {getSecurityBadge()}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">SSL Certificate:</span>
-              {getSslBadge()}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Multisite:</span>
+  const featureFlags = [
+    { label: "File manager", on: wpData.features?.fileManager?.available },
+    { label: "Backups", on: wpData.features?.backups?.panelBackupsAvailable },
+    { label: "WP-CLI", on: wpData.features?.wpCli?.available },
+    { label: "Clone", on: wpData.features?.clone?.available },
+    { label: "Remote mgmt", on: wpData.features?.remoteManagement?.available },
+    { label: "Action log", on: wpData.features?.actionLog?.available },
+  ] as const;
+
+  return (
+    <div className={wpDetailLayout.sectionStack}>
+      <div className={wpDetailLayout.statGrid}>
+        <WpStatTile label="Status" value={getStatusBadge()} />
+        <WpStatTile
+          label="WordPress"
+          value={wpData.version || "Unknown"}
+          hint={
+            wpData.features?.updates?.autoUpdatesAvailable ? "Auto-updates available" : undefined
+          }
+        />
+        <WpStatTile
+          label="PHP"
+          value={wpData.features?.php?.handler?.version || "—"}
+          hint={wpData.features?.php?.handler?.name || undefined}
+        />
+        <WpStatTile
+          label="Updates"
+          value={updatesCount}
+          hint={`${pluginUpdates} plugins · ${themeUpdates} themes`}
+          icon={RefreshCw}
+          action={
+            updatesCount > 0 ? (
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={() => onNavigateToTab?.("updates")}
+              >
+                Review
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
+
+      {updatesCount > 0 ? (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {updatesCount} update{updatesCount === 1 ? "" : "s"} available — consider updating for
+            security and stability.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className={wpDetailLayout.sectionGrid}>
+        <WpSection title="Site" icon={Globe}>
+          <WpInfoGrid>
+            <WpInfoItem label="Site title">{wpData.title || "Not available"}</WpInfoItem>
+            <WpInfoItem label="Display title">{wpData.displayTitle || "Not available"}</WpInfoItem>
+            <WpInfoItem label="Domain">{wpData.domain?.name || "Not available"}</WpInfoItem>
+            <WpInfoItem label="Owner">
+              {wpData.owner?.name || wpData.owner?.login || "Not available"}
+            </WpInfoItem>
+          </WpInfoGrid>
+        </WpSection>
+
+        <WpSection title="Status & security" icon={Shield}>
+          <div className="space-y-2">
+            <WpKeyValueRow label="Runtime">{getStatusBadge()}</WpKeyValueRow>
+            <WpKeyValueRow label="Security">{getSecurityBadge()}</WpKeyValueRow>
+            <WpKeyValueRow label="SSL">{getSslBadge()}</WpKeyValueRow>
+            <WpKeyValueRow label="Multisite">
               <Badge variant={wpData.status?.multisite ? "default" : "secondary"}>
                 {wpData.status?.multisite ? "Yes" : "No"}
               </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Infected:</span>
+            </WpKeyValueRow>
+            <WpKeyValueRow label="Infected">
               <Badge variant={wpData.status?.infected ? "destructive" : "default"}>
                 {wpData.status?.infected ? "Yes" : "No"}
               </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Vulnerabilities:</span>
+            </WpKeyValueRow>
+            <WpKeyValueRow label="Vulnerabilities">
               <Badge variant={wpData.features?.vulnerability?.vulnerable ? "destructive" : "default"}>
                 {wpData.features?.vulnerability?.vulnerable ? "Found" : "None"}
               </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </WpKeyValueRow>
+          </div>
+        </WpSection>
 
-      {/* WordPress Version & Updates & PHP & Server Configuration - Together */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* WordPress Version & Updates */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Code className="h-5 w-5" />
-              WordPress Version & Updates
-            </CardTitle>
-            <CardDescription>Current version and available updates</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* WordPress Version */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">WordPress Version</p>
-                <p className="text-2xl font-bold">{wpData.version || "Unknown"}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-muted-foreground">Auto Updates</p>
-                <Badge variant={wpData.features?.updates?.autoUpdatesAvailable ? "default" : "secondary"}>
-                  {wpData.features?.updates?.autoUpdatesAvailable ? "Available" : "Not Available"}
-                </Badge>
-              </div>
-            </div>
+        <WpSection title="PHP & server" icon={Zap}>
+          <div className="space-y-2">
+            <WpInfoGrid>
+              <WpInfoItem label="PHP version">
+                {wpData.features?.php?.handler?.version || "Not available"}
+              </WpInfoItem>
+              <WpInfoItem label="Handler">
+                {wpData.features?.php?.handler?.name || "Not available"}
+              </WpInfoItem>
+            </WpInfoGrid>
+            <WpKeyValueRow label="PHP status">{phpStatusBadge()}</WpKeyValueRow>
+          </div>
+        </WpSection>
 
-            {/* Updates Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
-                    <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Plugin Updates</p>
-                    <p className="text-sm text-muted-foreground">Available updates</p>
-                  </div>
-                </div>
-                <div className="text-right flex flex-col items-end">
-                  <p className="text-2xl font-bold">{wpData.features?.updates?.amountOfPluginsWithUpdates || 0}</p>
-                  <Badge variant={wpData.features?.updates?.amountOfPluginsWithUpdates ? "destructive" : "default"}>
-                    {wpData.features?.updates?.amountOfPluginsWithUpdates ? "Updates Available" : "Up to Date"}
-                  </Badge>
-                  {(wpData.features?.updates?.amountOfPluginsWithUpdates || 0) > 0 && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-xs mt-2"
-                      onClick={() => onNavigateToTab?.("plugins")}
-                    >
-                      View Updates
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-full">
-                    <FileText className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Theme Updates</p>
-                    <p className="text-sm text-muted-foreground">Available updates</p>
-                  </div>
-                </div>
-                <div className="text-right flex flex-col items-end">
-                  <p className="text-2xl font-bold">{wpData.features?.updates?.amountOfThemesWithUpdates || 0}</p>
-                  <Badge variant={wpData.features?.updates?.amountOfThemesWithUpdates ? "destructive" : "default"}>
-                    {wpData.features?.updates?.amountOfThemesWithUpdates ? "Updates Available" : "Up to Date"}
-                  </Badge>
-                  {(wpData.features?.updates?.amountOfThemesWithUpdates || 0) > 0 && (
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0 text-xs mt-2"
-                      onClick={() => onNavigateToTab?.("themes")}
-                    >
-                      View Updates
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Total Updates */}
-            {getUpdatesCount() > 0 && (
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                    {getUpdatesCount()} total updates available
-                  </p>
-                </div>
-                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                  Consider updating your WordPress installation, plugins, and themes for better security and performance.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* PHP & Server Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Cpu className="h-5 w-5" />
-              PHP & Server Configuration
-            </CardTitle>
-            <CardDescription>Server environment and PHP settings</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">PHP Version</p>
-              <p className="text-lg font-semibold">{wpData.features?.php?.handler?.version || "Not Available"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">PHP Handler</p>
-              <p className="text-lg font-semibold">{wpData.features?.php?.handler?.name || "Not Available"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">PHP Status</p>
-              <div className="flex items-center gap-2">
-                {wpData.features?.php?.eoled ? (
-                  <Badge variant="destructive">End of Life</Badge>
-                ) : wpData.features?.php?.unsupported ? (
-                  <Badge variant="secondary">Unsupported</Badge>
+        <WpSection title="Updates" icon={RefreshCw}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-md border border-border/60 px-3 py-2">
+              <p className="text-xs text-muted-foreground">Plugin updates</p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <span className="text-lg font-semibold tabular-nums">{pluginUpdates}</span>
+                {pluginUpdates > 0 ? (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => onNavigateToTab?.("plugins")}
+                  >
+                    View
+                  </Button>
                 ) : (
-                  <Badge variant="default">Supported</Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Up to date
+                  </Badge>
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="rounded-md border border-border/60 px-3 py-2">
+              <p className="text-xs text-muted-foreground">Theme updates</p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <span className="text-lg font-semibold tabular-nums">{themeUpdates}</span>
+                {themeUpdates > 0 ? (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={() => onNavigateToTab?.("themes")}
+                  >
+                    View
+                  </Button>
+                ) : (
+                  <Badge variant="outline" className="text-xs">
+                    Up to date
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </WpSection>
+
+        <WpSection title="Installation limits" icon={Globe}>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">WordPress installations</span>
+              <span className="tabular-nums">
+                {wpData.domain?.installationsCount || 0} / {wpData.domain?.installationsLimit || 0}
+              </span>
+            </div>
+            <Progress value={getInstallationUsagePercentage()} className="h-1.5" />
+            <p className="text-xs text-muted-foreground">{getInstallationUsagePercentage()}% used</p>
+          </div>
+        </WpSection>
+
+        <WpSection title="Capabilities" icon={Zap}>
+          <div className="flex flex-wrap gap-1.5">
+            {featureFlags.map(({ label, on }) => (
+              <Badge key={label} variant={on ? "default" : "secondary"} className="text-xs font-normal">
+                {label}
+              </Badge>
+            ))}
+          </div>
+        </WpSection>
       </div>
 
       <OverviewQuickActions
+        className={wpDetailLayout.cardFullWidth}
         onNavigateToTab={onNavigateToTab}
         highlights={{
           vulnerable: wpData.features?.vulnerability?.vulnerable,
           maintenance: wpData.features?.maintenance?.status,
           debug: wpData.features?.debug?.status,
-          updatesCount: getUpdatesCount(),
+          updatesCount,
         }}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Installation Limits */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DatabaseIcon className="h-5 w-5" />
-              Installation Limits
-            </CardTitle>
-            <CardDescription>Current usage and limits for WordPress installations</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">WordPress Installations</span>
-                <span className="text-sm text-muted-foreground">
-                  {wpData.domain?.installationsCount || 0} / {wpData.domain?.installationsLimit || 0}
-                </span>
-              </div>
-              <Progress value={getInstallationUsagePercentage()} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">
-                {getInstallationUsagePercentage()}% used
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Features & Capabilities */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Features & Capabilities
-            </CardTitle>
-            <CardDescription>Available WordPress features and management capabilities</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">File Manager:</span>
-              <Badge variant={wpData.features?.fileManager?.available ? "default" : "secondary"}>
-                {wpData.features?.fileManager?.available ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Backups:</span>
-              <Badge variant={wpData.features?.backups?.panelBackupsAvailable ? "default" : "secondary"}>
-                {wpData.features?.backups?.panelBackupsAvailable ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">WP CLI:</span>
-              <Badge variant={wpData.features?.wpCli?.available ? "default" : "secondary"}>
-                {wpData.features?.wpCli?.available ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Clone:</span>
-              <Badge variant={wpData.features?.clone?.available ? "default" : "secondary"}>
-                {wpData.features?.clone?.available ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Remote Management:</span>
-              <Badge variant={wpData.features?.remoteManagement?.available ? "default" : "secondary"}>
-                {wpData.features?.remoteManagement?.available ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Action Log:</span>
-              <Badge variant={wpData.features?.actionLog?.available ? "default" : "secondary"}>
-                {wpData.features?.actionLog?.available ? "Available" : "Not Available"}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* SSL Certificate Details - On its own */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
-            SSL Certificate Details
-          </CardTitle>
-          <CardDescription>SSL certificate configuration and status</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">SSL Enabled:</span>
+      <WpSection title="SSL certificate" icon={Lock} className={wpDetailLayout.cardFullWidth}>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <WpKeyValueRow label="SSL enabled">
             <Badge variant={wpData.domain?.ssl?.enabled ? "default" : "destructive"}>
               {wpData.domain?.ssl?.enabled ? "Yes" : "No"}
             </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Certificate Installed:</span>
+          </WpKeyValueRow>
+          <WpKeyValueRow label="Certificate installed">
             <Badge variant={wpData.domain?.ssl?.certificate?.installed ? "default" : "destructive"}>
               {wpData.domain?.ssl?.certificate?.installed ? "Yes" : "No"}
             </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">HTTPS Redirect:</span>
+          </WpKeyValueRow>
+          <WpKeyValueRow label="HTTPS redirect">
             <Badge variant={wpData.domain?.ssl?.redirectToHttpsEnabled ? "default" : "secondary"}>
               {wpData.domain?.ssl?.redirectToHttpsEnabled ? "Enabled" : "Disabled"}
             </Badge>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Certificate Issuer</p>
-            <p className="text-lg font-semibold">{wpData.domain?.ssl?.certificate?.issuerName || "Not Available"}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Self-Signed:</span>
+          </WpKeyValueRow>
+          <WpInfoItem label="Issuer">
+            {wpData.domain?.ssl?.certificate?.issuerName || "Not available"}
+          </WpInfoItem>
+          <WpKeyValueRow label="Self-signed">
             <Badge variant={wpData.domain?.ssl?.certificate?.selfSigned ? "secondary" : "default"}>
               {wpData.domain?.ssl?.certificate?.selfSigned ? "Yes" : "No"}
             </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Suitable for Domain:</span>
-            <Badge variant={wpData.domain?.ssl?.certificate?.suitableForDomain ? "default" : "destructive"}>
+          </WpKeyValueRow>
+          <WpKeyValueRow label="Suitable for domain">
+            <Badge
+              variant={wpData.domain?.ssl?.certificate?.suitableForDomain ? "default" : "destructive"}
+            >
               {wpData.domain?.ssl?.certificate?.suitableForDomain ? "Yes" : "No"}
             </Badge>
-          </div>
-        </CardContent>
-      </Card>
+          </WpKeyValueRow>
+        </div>
+      </WpSection>
     </div>
   );
 }
-
