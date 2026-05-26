@@ -6,7 +6,7 @@ import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
 import { buildReportEntityScope, resolveReportReadScope } from "./access";
-import { invoiceIssuedInPeriod } from "./metrics";
+import { invoiceIssuedInPeriod, INVOICE_REPORT_STATUSES } from "./metrics";
 
 export const niscInvoicesRouter = router({
   // ─── I-01 Status Summary ───────────────────────────────────────────────────
@@ -45,7 +45,7 @@ export const niscInvoicesRouter = router({
         map.set(r.status, e);
       }
 
-      const allStatuses = ["DRAFT", "SENT", "PAID", "OVERDUE", "PARTIALLY_PAID", "CANCELLED", "CREDITED"];
+      const allStatuses = [...INVOICE_REPORT_STATUSES];
       return allStatuses.map(status => ({
         status,
         count:  map.get(status)?.count  ?? 0,
@@ -308,14 +308,30 @@ export const niscInvoicesRouter = router({
       });
       const offset = (page - 1) * pageSize;
 
+      const bucketWhere = and(
+        invoiceIssuedInPeriod(from, to),
+        buildReportEntityScope({
+          teamColumn: invoice.teamId,
+          teamIds: scope.teamIds,
+        }),
+      );
+
+      const bucketRows = await db
+        .select({ status: invoice.status, kraStatus: invoice.kraStatus })
+        .from(invoice)
+        .where(bucketWhere);
+
+      const buckets = { VERIFIED: 0, PENDING: 0, FAILED: 0, NOT_SUBMITTED: 0 };
+      for (const r of bucketRows) {
+        if (r.status === "CANCELLED") continue;
+        if (r.kraStatus === "VERIFIED") buckets.VERIFIED += 1;
+        else if (r.kraStatus === "PENDING") buckets.PENDING += 1;
+        else if (r.kraStatus === "FAILED" || r.kraStatus === "ERROR") buckets.FAILED += 1;
+        else buckets.NOT_SUBMITTED += 1;
+      }
+
       const rows = await db.query.invoice.findMany({
-        where: and(
-          invoiceIssuedInPeriod(from, to),
-          buildReportEntityScope({
-            teamColumn: invoice.teamId,
-            teamIds: scope.teamIds,
-          }),
-        ),
+        where: bucketWhere,
         with: { team: { columns: { name: true } } },
         columns: {
           id: true, invoiceNumber: true, amount: true, currency: true,
@@ -326,15 +342,6 @@ export const niscInvoicesRouter = router({
         limit: pageSize,
         offset,
       });
-
-      const buckets = { VERIFIED: 0, PENDING: 0, FAILED: 0, NOT_SUBMITTED: 0 };
-      for (const r of rows) {
-        if (r.status === "CANCELLED") continue;
-        if (r.kraStatus === "VERIFIED") buckets.VERIFIED += 1;
-        else if (r.kraStatus === "PENDING") buckets.PENDING += 1;
-        else if (r.kraStatus === "FAILED" || r.kraStatus === "ERROR") buckets.FAILED += 1;
-        else buckets.NOT_SUBMITTED += 1;
-      }
 
       return {
         rows: rows.map(r => ({

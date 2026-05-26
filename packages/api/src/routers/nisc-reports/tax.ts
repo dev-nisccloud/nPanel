@@ -5,7 +5,7 @@ import { invoice } from "@npanel/db/schema/invoicing";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { buildReportEntityScope, resolveReportReadScope } from "./access";
-import { OPEN_AR_STATUSES } from "./metrics";
+import { invoiceIssuedInPeriod, OPEN_AR_STATUSES } from "./metrics";
 
 export const niscTaxRouter = router({
   // ─── T-01 Tax Summary ─────────────────────────────────────────────────────
@@ -56,6 +56,7 @@ export const niscTaxRouter = router({
         .from(invoice)
         .where(and(
           inArray(invoice.status, [...OPEN_AR_STATUSES, "DRAFT"]),
+          invoiceIssuedInPeriod(from, to),
           buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,

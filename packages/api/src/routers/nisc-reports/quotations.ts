@@ -3,7 +3,7 @@ import { and, count, desc, eq, gte, inArray, lte } from "@npanel/db";
 import { db } from "@npanel/db";
 import { quotation } from "@npanel/db/schema/quotations";
 import { protectedProcedure, router } from "../../trpc";
-import { reportFiltersSchema, toNum } from "./filters";
+import { normalizeQuotationStatus, quotationReportAmount, reportFiltersSchema } from "./filters";
 import { differenceInDays } from "date-fns";
 import { resolveReportReadScope } from "./access";
 
@@ -15,7 +15,7 @@ export const niscQuotationsRouter = router({
       inPreparation:       z.number(), // DRAFT value
       activePipeline:      z.number(), // SENT value
       wonValue:            z.number(), // ACCEPTED
-      lostValue:           z.number(), // REJECTED
+      lostValue:           z.number(), // DECLINED
       expiredValue:        z.number(), // EXPIRED
       winRate:             z.number(),
       avgQuoteValue:       z.number(),
@@ -34,6 +34,7 @@ export const niscQuotationsRouter = router({
         .select({
           status:    quotation.status,
           amount:    quotation.amount,
+          subtotal:  quotation.subtotal,
           createdAt: quotation.createdAt,
           updatedAt: quotation.updatedAt,
           issueDate: quotation.issueDate,
@@ -51,38 +52,39 @@ export const niscQuotationsRouter = router({
       const acceptedAmounts: number[] = [];
 
       for (const q of rows) {
-        const amt = toNum(q.amount);
-        const e = byStatusMap.get(q.status) ?? { count: 0, amount: 0 };
+        const amt = quotationReportAmount(q);
+        const status = normalizeQuotationStatus(q.status);
+        const e = byStatusMap.get(status) ?? { count: 0, amount: 0 };
         e.count += 1; e.amount += amt;
-        byStatusMap.set(q.status, e);
+        byStatusMap.set(status, e);
 
-        if (q.status === "DRAFT") inPreparation += amt;
-        else if (q.status === "SENT") activePipeline += amt;
-        else if (q.status === "ACCEPTED") {
+        if (status === "DRAFT") inPreparation += amt;
+        else if (status === "SENT") activePipeline += amt;
+        else if (status === "ACCEPTED") {
           wonValue += amt;
           acceptedAmounts.push(amt);
           const ref = q.issueDate ?? q.createdAt;
           decisionDays.push(differenceInDays(q.updatedAt, ref));
         }
-        else if (q.status === "REJECTED") {
+        else if (status === "DECLINED") {
           lostValue += amt;
           const ref = q.issueDate ?? q.createdAt;
           decisionDays.push(differenceInDays(q.updatedAt, ref));
         }
-        else if (q.status === "EXPIRED") {
+        else if (status === "EXPIRED") {
           expiredValue += amt;
         }
       }
 
       const decisions = (byStatusMap.get("ACCEPTED")?.count ?? 0) +
-                        (byStatusMap.get("REJECTED")?.count ?? 0) +
+                        (byStatusMap.get("DECLINED")?.count ?? 0) +
                         (byStatusMap.get("EXPIRED")?.count ?? 0);
       const accepted = byStatusMap.get("ACCEPTED")?.count ?? 0;
       const winRate = decisions > 0 ? (accepted / decisions) * 100 : 0;
       const avgDecision = decisionDays.length > 0 ? decisionDays.reduce((a, b) => a + b, 0) / decisionDays.length : 0;
       const avgAccepted = acceptedAmounts.length > 0 ? acceptedAmounts.reduce((a, b) => a + b, 0) / acceptedAmounts.length : 0;
 
-      const allStatuses = ["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"];
+      const allStatuses = ["DRAFT", "SENT", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"];
       const byStatus = allStatuses.map(s => ({
         status: s,
         count:  byStatusMap.get(s)?.count ?? 0,
@@ -120,7 +122,7 @@ export const niscQuotationsRouter = router({
       });
 
       const rows = await db
-        .select({ status: quotation.status, amount: quotation.amount })
+        .select({ status: quotation.status, amount: quotation.amount, subtotal: quotation.subtotal })
         .from(quotation)
         .where(and(
           gte(quotation.createdAt, from),
@@ -131,13 +133,15 @@ export const niscQuotationsRouter = router({
         DRAFT: { count: 0, amount: 0 },
         SENT:  { count: 0, amount: 0 },
         ACCEPTED: { count: 0, amount: 0 },
-        REJECTED: { count: 0, amount: 0 },
+        DECLINED: { count: 0, amount: 0 },
         EXPIRED:  { count: 0, amount: 0 },
+        CANCELLED: { count: 0, amount: 0 },
       };
 
       for (const q of rows) {
-        const s = stages[q.status];
-        if (s) { s.count += 1; s.amount += toNum(q.amount); }
+        const status = normalizeQuotationStatus(q.status);
+        const s = stages[status];
+        if (s) { s.count += 1; s.amount += quotationReportAmount(q); }
       }
 
       const total = Object.values(stages).reduce((s, v) => s + v.count, 0);
@@ -183,7 +187,7 @@ export const niscQuotationsRouter = router({
         ),
         columns: {
           id: true, quotationNumber: true, customerName: true, customerEmail: true,
-          amount: true, currency: true, status: true, issueDate: true,
+          amount: true, subtotal: true, currency: true, status: true, issueDate: true,
           createdBy: true, createdAt: true,
         },
         orderBy: [desc(quotation.createdAt)],
@@ -201,7 +205,11 @@ export const niscQuotationsRouter = router({
         ));
 
       return {
-        rows: rows.map(r => ({ ...r, amount: toNum(r.amount) })),
+        rows: rows.map(r => ({
+          ...r,
+          status: normalizeQuotationStatus(r.status),
+          amount: quotationReportAmount(r),
+        })),
         total: Number(cntRow?.c ?? 0),
       };
     }),

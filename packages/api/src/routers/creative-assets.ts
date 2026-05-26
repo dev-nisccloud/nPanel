@@ -245,6 +245,7 @@ const creativeAssetAiAnalysisListItemSchema = z.object({
 	processingStartedAt: z.date().nullable(),
 	createdAt: z.date(),
 	completedAt: z.date().nullable(),
+	userContext: z.string().nullable(),
 	detail: creativeAssetAiDetailSchema.nullable(),
 });
 
@@ -426,8 +427,18 @@ function coerceDecimalLikeToNumber(val: unknown): number | null {
 
 function coerceDetailFromResultJson(row: CreativeAiAnalysisDbRow): z.infer<typeof creativeAssetAiDetailSchema> | null {
 	if (row.status !== "COMPLETED" || row.result == null || typeof row.result !== "object") return null;
-	const parsed = creativeAssetAiDetailSchema.safeParse(row.result);
+	const raw = row.result as Record<string, unknown>;
+	const { userContext: _ctx, ...detailPayload } = raw;
+	const parsed = creativeAssetAiDetailSchema.safeParse(detailPayload);
 	return parsed.success ? parsed.data : null;
+}
+
+function extractUserContextFromResult(row: CreativeAiAnalysisDbRow): string | null {
+	if (row.result == null || typeof row.result !== "object") return null;
+	const raw = (row.result as Record<string, unknown>).userContext;
+	if (typeof raw !== "string") return null;
+	const trimmed = raw.trim();
+	return trimmed.length > 0 ? trimmed : null;
 }
 
 function mapCreativeAiAnalysisRow(row: CreativeAiAnalysisDbRow): z.infer<typeof creativeAssetAiAnalysisListItemSchema> {
@@ -448,6 +459,7 @@ function mapCreativeAiAnalysisRow(row: CreativeAiAnalysisDbRow): z.infer<typeof 
 		processingStartedAt: row.processingStartedAt ?? null,
 		createdAt: row.createdAt,
 		completedAt: row.completedAt ?? null,
+		userContext: extractUserContextFromResult(row),
 		detail,
 	};
 }
@@ -2457,6 +2469,11 @@ export const creativeAssetsRouter = router({
 		.input(
 			z.object({
 				creativeAssetVersionId: z.string(),
+				userContext: z
+					.string()
+					.trim()
+					.max(4000, "Context must be at most 4000 characters")
+					.optional(),
 			}),
 		)
 		.output(runCreativeAssetAiImageAnalysisOutputSchema)
@@ -2535,6 +2552,7 @@ export const creativeAssetsRouter = router({
 			});
 
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+			const trimmedContext = input.userContext?.trim() || null;
 
 			try {
 				const { detail } = await invokeCreativeAssetImageAnalysis({
@@ -2543,6 +2561,7 @@ export const creativeAssetsRouter = router({
 					fileName: version.fileName,
 					mimeType: version.mimeType,
 					internalVersionNumber: version.internalVersionNumber,
+					userContext: trimmedContext,
 				});
 
 				const completedAt = new Date();
@@ -2562,7 +2581,10 @@ export const creativeAssetsRouter = router({
 						overallRatingReason: detail.overallRatingReason,
 						overallRatingBand: detail.overallRatingBand ?? null,
 						confidenceScore: confidenceStr,
-						result: detail as unknown,
+						result: {
+							...detail,
+							...(trimmedContext ? { userContext: trimmedContext } : {}),
+						} as unknown,
 						errorMessage: null,
 						completedAt,
 					})

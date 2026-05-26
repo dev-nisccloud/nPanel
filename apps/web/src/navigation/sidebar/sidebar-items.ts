@@ -473,7 +473,7 @@ export const agencysidebarItems: NavGroup[] = [
       //   ],
       // },
       {
-        title: "Nisc Reporting",
+        title: "Reporting",
         url: "/agency/nisc-reports",
         icon: (props: any) => React.createElement(Icons.Reports, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },

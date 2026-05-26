@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { DualPriceRangeSlider } from "@/components/dual-price-range-slider";
 import type { VpsPlan } from "../schema";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -83,58 +84,6 @@ export function applyVpsPlanFilter(
 		return true;
 	});
 }
-
-// ─── Dual Range Slider ────────────────────────────────────────────────────────
-
-const DualRangeSlider = React.memo(function DualRangeSlider({
-	min,
-	max,
-	valueMin,
-	valueMax,
-	onChange,
-	formatLabel,
-}: {
-	min: number;
-	max: number;
-	valueMin: number;
-	valueMax: number;
-	onChange: (min: number, max: number) => void;
-	formatLabel: (v: number) => string;
-}) {
-	const toPercent = (v: number) => Math.round(((v - min) / (max - min)) * 100);
-	const leftPct = toPercent(valueMin);
-	const rightPct = toPercent(valueMax);
-
-	return (
-		<div className="px-1">
-			<div className="relative h-2 rounded-full bg-muted">
-				<div className="absolute top-0 h-2 rounded-full bg-primary" style={{ left: `${leftPct}%`, right: `${100 - rightPct}%` }} />
-				<input
-					type="range" min={min} max={max}
-					step={Math.max(1, Math.round((max - min) / 100))}
-					value={valueMin}
-					onChange={(e) => { const v = Number(e.target.value); onChange(Math.min(v, valueMax - 1), valueMax); }}
-					className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-					style={{ zIndex: valueMin > max - (max - min) * 0.1 ? 5 : 3 }}
-				/>
-				<input
-					type="range" min={min} max={max}
-					step={Math.max(1, Math.round((max - min) / 100))}
-					value={valueMax}
-					onChange={(e) => { const v = Number(e.target.value); onChange(valueMin, Math.max(v, valueMin + 1)); }}
-					className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-					style={{ zIndex: 4 }}
-				/>
-				<div className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-primary bg-background shadow-sm pointer-events-none" style={{ left: `calc(${leftPct}% - 8px)` }} />
-				<div className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-primary bg-background shadow-sm pointer-events-none" style={{ left: `calc(${rightPct}% - 8px)` }} />
-			</div>
-			<div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-				<span className="font-medium text-foreground">{formatLabel(valueMin)}</span>
-				<span className="font-medium text-foreground">{formatLabel(valueMax)}</span>
-			</div>
-		</div>
-	);
-});
 
 // ─── Filter Bar ───────────────────────────────────────────────────────────────
 
@@ -309,9 +258,9 @@ export const VpsPlanFilter = React.memo(function VpsPlanFilter({
 
 				{/* Price Range */}
 				{priceRange.max > priceRange.min && (
-					<div className="flex flex-col gap-2 flex-1 min-w-[200px] max-w-xs">
+					<div className="flex flex-col gap-2 flex-1 min-w-[220px] max-w-sm">
 						<label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Monthly Price</label>
-						<DualRangeSlider
+						<DualPriceRangeSlider
 							min={priceRange.min} max={priceRange.max}
 							valueMin={effectiveMin} valueMax={effectiveMax}
 							onChange={handlePriceChange}

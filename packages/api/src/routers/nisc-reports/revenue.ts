@@ -221,6 +221,7 @@ export const niscRevenueRouter = router({
           status: invoice.status,
           dueDate: invoice.dueDate,
           creditedAmount: invoice.creditedAmount,
+          paidAt: invoice.paidAt,
           id: invoice.id,
         })
         .from(invoice)
@@ -229,7 +230,11 @@ export const niscRevenueRouter = router({
       const paidByInvoice = await fetchCompletedPaymentsByInvoice(invoices.map(i => i.id));
 
       const txRows = await db
-        .select({ amount: invoiceTransaction.amount, paidAt: invoiceTransaction.paidAt })
+        .select({
+          invoiceId: invoiceTransaction.invoiceId,
+          amount: invoiceTransaction.amount,
+          paidAt: invoiceTransaction.paidAt,
+        })
         .from(invoiceTransaction)
         .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
         .where(and(
@@ -288,11 +293,24 @@ export const niscRevenueRouter = router({
         buckets.set(key, b);
       }
 
+      const txTotalsByInvoice = new Map<string, number>();
       for (const tx of txRows) {
         if (!tx.paidAt) continue;
         const key = getKey(tx.paidAt);
         const b = buckets.get(key) ?? { invoiced: 0, collected: 0, overdue: 0, draft: 0, creditNotes: 0, invoiceCount: 0 };
         b.collected += toNum(tx.amount);
+        buckets.set(key, b);
+        txTotalsByInvoice.set(tx.invoiceId, (txTotalsByInvoice.get(tx.invoiceId) ?? 0) + toNum(tx.amount));
+      }
+
+      for (const inv of invoices) {
+        if (inv.status !== "PAID" || !inv.paidAt || inv.paidAt < from || inv.paidAt > to) continue;
+        const txPaid = txTotalsByInvoice.get(inv.id) ?? 0;
+        const gap = Math.max(0, toNum(inv.amount) - txPaid);
+        if (gap <= 0) continue;
+        const key = getKey(inv.paidAt);
+        const b = buckets.get(key) ?? { invoiced: 0, collected: 0, overdue: 0, draft: 0, creditNotes: 0, invoiceCount: 0 };
+        b.collected += gap;
         buckets.set(key, b);
       }
 
@@ -354,6 +372,21 @@ export const niscRevenueRouter = router({
           tx.invoiceId,
           (collectedInPeriodByInvoice.get(tx.invoiceId) ?? 0) + toNum(tx.amount),
         );
+      }
+
+      for (const inv of invoices) {
+        if (
+          inv.status === "PAID" &&
+          inv.paidAt &&
+          inv.paidAt >= from &&
+          inv.paidAt <= to
+        ) {
+          const txCol = collectedInPeriodByInvoice.get(inv.id) ?? 0;
+          const full = toNum(inv.amount);
+          if (txCol < full) {
+            collectedInPeriodByInvoice.set(inv.id, full);
+          }
+        }
       }
 
       const clientMap = new Map<string, {
