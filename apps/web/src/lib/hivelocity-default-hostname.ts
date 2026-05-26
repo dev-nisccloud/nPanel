@@ -34,6 +34,21 @@ export function generateDefaultHivelocityHostname(
 	return `${label}.${HIVELOCITY_DEFAULT_HOSTNAME_DOMAIN}`;
 }
 
+/** Hostname label (first dot-separated segment), e.g. `abc-vps` from `abc-vps.example.com`. */
+export function getHostnameLabelFromFqdn(fqdn: string): string {
+	const trimmed = fqdn.trim().toLowerCase();
+	const dot = trimmed.indexOf(".");
+	return dot === -1 ? trimmed : trimmed.slice(0, dot);
+}
+
+/** Keep auto-generated label; swap zone for a domain from the user's subscription. */
+export function buildHostnameWithCustomDomain(defaultFqdn: string, domain: string): string {
+	const label = getHostnameLabelFromFqdn(defaultFqdn);
+	const zone = domain.trim().toLowerCase().replace(/^\.+|\.+$/g, "");
+	if (!label || !zone) return defaultFqdn;
+	return `${label}.${zone}`;
+}
+
 export function isHostnameUnderDefaultDomain(hostname: string): boolean {
 	const trimmed = hostname.trim().toLowerCase();
 	const domain = HIVELOCITY_DEFAULT_HOSTNAME_DOMAIN.toLowerCase();

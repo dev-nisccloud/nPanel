@@ -54,8 +54,15 @@ import type { UseMutationResult } from "@tanstack/react-query";
 import { toast } from "@/components/ui/sonner";
 import { useCartStore } from "@/stores/cart-store";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
+import { useLocation } from "react-router";
 import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import { HivelocityInvoiceBreakdown } from "@/components/hivelocity-invoice-breakdown";
+import {
+	HivelocityOsSelectionTable,
+	type HivelocityOsTableRow,
+} from "@/components/hivelocity-os-selection-table";
+import { HivelocityHostnameSection } from "@/components/hivelocity-hostname-section";
 import {
   buildHivelocityInvoiceBreakdown,
   formatNextBillingDate,
@@ -72,15 +79,20 @@ import {
 } from "@/lib/mpesa-account-reference";
 import {
   generateDefaultHivelocityHostname,
-  HIVELOCITY_DEFAULT_HOSTNAME_DOMAIN,
 } from "@/lib/hivelocity-default-hostname";
 import {
   collectHivelocityOptionTags,
   dedupeExclusiveGroupOptionIds,
-  getOptionExpressionIncompatibilityReason,
+  getHivelocityAddonDisabledDetails,
+  groupHasOptOutOption,
+  isHivelocityOptionalSingleSelectGroup,
   isHivelocityOptionGroupMultiSelect,
   validateHivelocityOptionSelection,
 } from "@/lib/hivelocity-option-compatibility";
+import {
+  HivelocityAddonNoSelectionRow,
+  HivelocityAddonOptionRow,
+} from "@/components/hivelocity-addon-option-row";
 import { ceilConvertedPrice, computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
 
 export interface ServicePlanDetails {
@@ -117,6 +129,8 @@ interface BuyNowDialogProps {
   plan: ServicePlanDetails | null;
   /** When true, show "Connect your domain" step before review (e.g. when opened from hosting/emails) */
   requireDomainStep?: boolean;
+  /** Team route slug (customer portal) — used to load domain subscriptions for hostname. */
+  teamSlug?: string;
   /** Team ID used to load domains for the dropdown (required when requireDomainStep is true) */
   teamId?: string;
   /** When set, show a "Need a domain? Buy one" CTA in the domain step (e.g. `/${teamSlug}/domains`) */
@@ -224,6 +238,7 @@ export function BuyNowDialog({
   onOpenChange,
   plan,
   requireDomainStep = false,
+  teamSlug,
   teamId,
   buyDomainHref,
   intent = "buy_now",
@@ -266,6 +281,13 @@ export function BuyNowDialog({
           : "review";
 
   const { addHivelocity } = useCartStore();
+  const location = useLocation();
+  const { data: session } = authClient.useSession();
+  const isAgencySide = React.useMemo(() => {
+    const user = session?.user as { role?: string; agencyRoleId?: string | null } | undefined;
+    const role = String(user?.role ?? "");
+    return location.pathname.startsWith("/agency") || role.toUpperCase().includes("AGENCY") || !!user?.agencyRoleId;
+  }, [location.pathname, session?.user]);
 
   const [currentStep, setCurrentStep] = React.useState<Step>(initialStep);
   const [couponCode, setCouponCode] = React.useState("");
@@ -346,6 +368,7 @@ export function BuyNowDialog({
 
   // Hivelocity configuration step state
   const [hostname, setHostname] = React.useState("");
+  const [defaultHostname, setDefaultHostname] = React.useState("");
   const defaultHostnameRef = React.useRef("");
   const [selectedOsId, setSelectedOsId] = React.useState<string>("");
   const [selectedOptionIds, setSelectedOptionIds] = React.useState<string[]>([]);
@@ -524,59 +547,22 @@ export function BuyNowDialog({
     return all.filter((opt: any) => selectedOptionIds.includes(String(opt.id)));
   }, [hivelocityOptionsQuery.data, selectedOptionIds]);
 
-  const getAddonOsCompatibilityReason = React.useCallback(
-    (addon: any, groupName?: string) => {
-      if (!selectedOs) return null; // until OS is selected, don't guess compatibility here
-
-      // Managed services: Windows detection based on OS name (no distro list).
-      const g = String(groupName ?? "").trim().toLowerCase();
-      if (g.includes("managed service")) {
-        const osName = String(selectedOs?.name ?? "").toLowerCase();
-        const isWindowsOs = osName.includes("windows");
-        const addonName = String(addon?.name ?? "").toLowerCase();
-        const isWindowsAddon = addonName.includes("windows");
-
-        if (isWindowsOs && !isWindowsAddon) {
-          return `Unavailable for ${selectedOs?.name ?? "Windows OS"}: only managed services with “Windows” in the name are supported.`;
-        }
-        if (!isWindowsOs && isWindowsAddon) {
-          return `Unavailable for ${selectedOs?.name ?? "selected OS"}: Windows managed services require a Windows OS.`;
-        }
-      }
-
-      const req = (addon?.operatingSystemFeatures ?? null) as
-        | { sshKey?: boolean; postInstall?: boolean; cloudInit?: boolean }
-        | null;
-      if (!req) return null;
-
-      const osF = selectedOsFeatures ?? {};
-      const missing: string[] = [];
-
-      if (req.sshKey === true && osF.sshKey !== true) missing.push("SSH keys");
-      if (req.cloudInit === true && osF.cloudInit !== true) missing.push("Cloud-init");
-      if (req.postInstall === true && osF.postInstall !== true) missing.push("Post-install scripts");
-
-      if (!missing.length) return null;
-
-      const osName = String(selectedOs?.name ?? "selected OS");
-      return `Unavailable for ${osName}: requires ${missing.join(", ")} support.`;
-    },
-    [selectedOs, selectedOsFeatures],
-  );
-
-  const getAddonDisabledReason = React.useCallback(
+  const getAddonDisabledDetails = React.useCallback(
     (addon: any, groupName?: string, includeInTagSet = false) => {
-      const osReason = getAddonOsCompatibilityReason(addon, groupName);
-      if (osReason) return osReason;
-
       const addonId = String(addon?.id ?? "");
       const otherSelected = includeInTagSet
         ? selectedOptions
         : selectedOptions.filter((o) => String(o?.id ?? "") !== addonId);
       const tagsForCheck = collectHivelocityOptionTags(selectedOs, otherSelected);
-      return getOptionExpressionIncompatibilityReason(addon, tagsForCheck);
+      return getHivelocityAddonDisabledDetails({
+        addon,
+        groupName,
+        os: selectedOs,
+        osFeatures: selectedOsFeatures,
+        selectedTags: tagsForCheck,
+      });
     },
-    [getAddonOsCompatibilityReason, selectedOptions, selectedOs],
+    [selectedOptions, selectedOs, selectedOsFeatures],
   );
 
   const hivelocitySelectionValidation = React.useMemo(
@@ -586,8 +572,9 @@ export function BuyNowDialog({
         allOptions: allProductOptions,
         selectedOptionIds,
         groupedOptions: groupedProductOptions,
+        osFeatures: selectedOsFeatures,
       }),
-    [allProductOptions, groupedProductOptions, selectedOptionIds, selectedOs],
+    [allProductOptions, groupedProductOptions, selectedOptionIds, selectedOs, selectedOsFeatures],
   );
 
   const getGroupSelectionMode = React.useCallback((groupName: string, _rows?: any[]) => {
@@ -621,7 +608,7 @@ export function BuyNowDialog({
       if (!id) continue;
       if (!selectedOptionIds.includes(id)) continue;
       const groupName = optionGroupById.get(id);
-      const reason = getAddonDisabledReason(opt, groupName, true);
+      const reason = getAddonDisabledDetails(opt, groupName, true);
       if (reason) incompatible.add(id);
     }
 
@@ -633,7 +620,7 @@ export function BuyNowDialog({
     });
   }, [
     allProductOptions,
-    getAddonDisabledReason,
+    getAddonDisabledDetails,
     isHivelocityPlan,
     open,
     optionGroupById,
@@ -692,6 +679,31 @@ export function BuyNowDialog({
     },
     [plan?.currency, periodPriceSuffix],
   );
+
+  const osTableRows = React.useMemo((): HivelocityOsTableRow[] => {
+    return filteredOs.map((os) => {
+      const id = String(os.id);
+      const priceUsd = encodeNumber(os.monthlyPrice);
+      const periodUsd = getOptionUsdForBillingPeriod(priceUsd, hivelocityPeriod);
+      const displayAmount = convertOptionUsdToDisplay(priceUsd, "os");
+      const original = formatOriginalUsdAndKes(periodUsd);
+      const isFree = !Number.isFinite(displayAmount) || displayAmount <= 0;
+
+      return {
+        id,
+        name: String(os.name ?? "Operating system"),
+        displayPriceLabel: isFree ? "Free" : formatPeriodPrice(displayAmount),
+        originalUsdLabel: priceUsd > 0 ? original.usd : null,
+        originalKesLabel: priceUsd > 0 ? original.kes : null,
+      };
+    });
+  }, [
+    filteredOs,
+    hivelocityPeriod,
+    convertOptionUsdToDisplay,
+    formatOriginalUsdAndKes,
+    formatPeriodPrice,
+  ]);
 
   // Payment state
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string | null>(null);
@@ -811,6 +823,7 @@ export function BuyNowDialog({
       defaultHostnameRef.current = plan.hivelocity
         ? generateDefaultHivelocityHostname(plan.hivelocity.productType)
         : "";
+      setDefaultHostname(defaultHostnameRef.current);
       setHostname(defaultHostnameRef.current);
       setSelectedOsId("");
       setSelectedOptionIds([]);
@@ -1558,157 +1571,29 @@ export function BuyNowDialog({
               </div>
             </div>
 
+            <HivelocityOsSelectionTable
+              searchQuery={osSearch}
+              onSearchChange={setOsSearch}
+              rows={osTableRows}
+              selectedId={selectedOsId}
+              onSelect={setSelectedOsId}
+              isLoading={hivelocityOsQuery.isLoading}
+              isError={hivelocityOsQuery.isError}
+              priceColumnHint={periodPriceSuffix.trim() || undefined}
+            />
+
+            <HivelocityHostnameSection
+              enabled={open && currentStep === "hivelocity_config"}
+              hostname={hostname}
+              onHostnameChange={setHostname}
+              defaultHostname={defaultHostname}
+              isAgencySide={isAgencySide}
+              teamSlug={teamSlug}
+              teamId={teamId}
+              buyDomainHref={buyDomainHref}
+            />
+
             <div className="rounded-xl border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">Operating system</p>
-                    <p className="text-xs text-muted-foreground">Choose one to continue</p>
-                  </div>
-                  <div className="w-48">
-                    <Input
-                      placeholder="Search OS..."
-                      value={osSearch}
-                      onChange={(e) => setOsSearch(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {hivelocityOsQuery.isLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Spinner variant="ellipsis" size={36} className="text-primary" />
-                  </div>
-                ) : hivelocityOsQuery.isError ? (
-                  <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                    Failed to load operating systems.
-                  </div>
-                ) : (
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {filteredOs.map((os) => {
-                      const id = String(os.id);
-                      const active = id === selectedOsId;
-                      const priceUsd = encodeNumber(os.monthlyPrice);
-                      const periodUsd = getOptionUsdForBillingPeriod(priceUsd, hivelocityPeriod);
-                      const displayAmount = convertOptionUsdToDisplay(priceUsd, "os");
-                      const marginedPeriodUsd = applyMarginFor("os", periodUsd);
-                      const features = os.operatingSystemFeatures ?? {};
-                      const tags: string[] = Array.isArray((os as any)?.tags) ? ((os as any).tags as string[]) : [];
-                      const showOriginal = hivelocityMarkupFlags.os && Math.abs(marginedPeriodUsd - periodUsd) > 1e-9;
-                      const original = formatOriginalUsdAndKes(periodUsd);
-                      return (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => setSelectedOsId(id)}
-                          className={[
-                            "text-left rounded-xl border p-3 transition",
-                            active ? "border-primary bg-primary/5" : "hover:border-primary/40",
-                          ].join(" ")}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold line-clamp-1">{os.name}</p>
-                              <p className="text-sm font-semibold text-primary mt-1">
-                                {formatPeriodPrice(displayAmount)}
-                              </p>
-                              {priceUsd > 0 && showOriginal ? (
-                                <div className="mt-1 text-[11px] text-emerald-600">
-                                  <div>Original: {original.usd}</div>
-                                  {original.kes ? <div>Original (KES): {original.kes}</div> : null}
-                                </div>
-                              ) : null}
-                            </div>
-                            {active ? (
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                                ✓
-                              </div>
-                            ) : (
-                              <div className="h-6 w-6 rounded-full border bg-muted/40" />
-                            )}
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {renderProvisioningFeatureBadges(features)}
-                          </div>
-
-                          {tags.length ? (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {tags.slice(0, 6).map((t) => (
-                                <Badge key={t} variant="outline" className="rounded-full">
-                                  {t}
-                                </Badge>
-                              ))}
-                              {tags.length > 6 ? (
-                                <Badge variant="outline" className="rounded-full">
-                                  +{tags.length - 6} more
-                                </Badge>
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-xl border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">Hostname</p>
-                    <p className="text-xs text-muted-foreground">
-                      A fully qualified domain name (FQDN). We assign a default one for you if you do not have your own yet.
-                    </p>
-                  </div>
-                  {defaultHostnameRef.current ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 h-8 text-xs"
-                      onClick={() => setHostname(defaultHostnameRef.current)}
-                    >
-                      Use default
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="mt-3 relative">
-                  <Input
-                    id="hivelocity-hostname"
-                    type="text"
-                    placeholder={`e.g. server.${HIVELOCITY_DEFAULT_HOSTNAME_DOMAIN}`}
-                    value={hostname}
-                    onChange={(e) => setHostname(e.target.value)}
-                    className={`pr-10 ${hostname.trim() ? (hostnameValid ? "border-green-500 focus-visible:ring-green-500" : "border-destructive focus-visible:ring-destructive") : ""}`}
-                  />
-                  {hostname.trim() ? (
-                    hostnameValid ? (
-                      <CheckCircle2 className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" aria-hidden />
-                    ) : (
-                      <XCircle className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-destructive" aria-hidden />
-                    )
-                  ) : null}
-                </div>
-                {!hostname.trim() ? (
-                  <p className="text-xs text-muted-foreground mt-2">Required for provisioning.</p>
-                ) : hostnameValid ? (
-                  <p className="text-xs text-green-600 mt-2">Looks good.</p>
-                ) : (
-                  <p className="text-xs text-destructive mt-2">Enter a valid FQDN (e.g. server.example.com)</p>
-                )}
-
-                <p className="text-xs text-muted-foreground mt-3">
-                  Have your own domain?{" "}
-                  <Link
-                    to={buyDomainHref ?? "/agency/domains"}
-                    className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-                  >
-                    Buy a domain
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
-                </p>
-              </div>
-
-              <div className="rounded-xl border p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold">Add-ons (optional)</p>
@@ -1748,7 +1633,21 @@ export function BuyNowDialog({
                           </AccordionTrigger>
                           <AccordionContent className="px-3 pb-3">
                             <div className="space-y-2">
-                              {rows.map((opt: any) => {
+                              {selectionMode === "single" &&
+                              isHivelocityOptionalSingleSelectGroup(group) &&
+                              !groupHasOptOutOption(rows as any[]) ? (
+                                <HivelocityAddonNoSelectionRow
+                                  checked={selectedInGroupCount === 0}
+                                  onSelect={() =>
+                                    setSelectedOptionIds((prev) =>
+                                      prev.filter((id) => !groupOptionIds.has(id)),
+                                    )
+                                  }
+                                  label="No selection"
+                                  description={`Skip ${group} — nothing from this category will be added.`}
+                                />
+                              ) : null}
+                              {(rows as any[]).map((opt: any) => {
                                 const optionId = String(opt.id);
                                 const checked = selectedOptionIds.includes(optionId);
                                 const priceUsd = encodeNumber(opt.monthlyPrice);
@@ -1756,131 +1655,79 @@ export function BuyNowDialog({
                                 const displayAmount = convertOptionUsdToDisplay(priceUsd, "addons");
                                 const marginedPeriodUsd = applyMarginFor("addons", periodUsd);
                                 const tags: string[] = Array.isArray(opt?.tags) ? (opt.tags as string[]) : [];
-                                const expressions: string[] = Array.isArray(opt?.expressions) ? (opt.expressions as string[]) : [];
+                                const expressions: string[] = Array.isArray(opt?.expressions)
+                                  ? (opt.expressions as string[])
+                                  : [];
                                 const features = opt?.operatingSystemFeatures ?? null;
-                                const showOriginal = hivelocityMarkupFlags.addons && Math.abs(marginedPeriodUsd - periodUsd) > 1e-9;
+                                const showOriginal =
+                                  hivelocityMarkupFlags.addons &&
+                                  Math.abs(marginedPeriodUsd - periodUsd) > 1e-9;
                                 const original = formatOriginalUsdAndKes(periodUsd);
-                                const disabledReason = checked
+                                const disabledDetails = checked
                                   ? null
-                                  : getAddonDisabledReason(opt, group);
-                                const disabled = Boolean(disabledReason);
+                                  : getAddonDisabledDetails(opt, group);
+                                const disabled = Boolean(disabledDetails);
                                 const optNameLower = String(opt?.name ?? "").toLowerCase();
-                                const isManagedServices = String(group ?? "").toLowerCase().includes("managed service");
-                                const isCpanelOrWhm = optNameLower.includes("cpanel") || optNameLower.includes("c-panel") || optNameLower.includes("whm");
-                                return (
-                                  <button
-                                    key={optionId}
-                                    type="button"
-                                    onClick={() =>
-                                      {
-                                        if (disabled) {
-                                          toast.error("Add-on unavailable", { description: disabledReason ?? "Not compatible with selected OS." });
-                                          return;
-                                        }
-                                        setSelectedOptionIds((prev) => {
-                                          if (selectionMode === "single") {
-                                            // Unselect other options in this group, then toggle this one.
-                                            const withoutGroup = prev.filter((id) => !groupOptionIds.has(id));
-                                            return checked ? withoutGroup : [...withoutGroup, optionId];
-                                          }
-                                          if (isManagedServices && isCpanelOrWhm) {
-                                            // Within Managed Services, cPanel/WHM options are mutually exclusive.
-                                            const cpanelWhmIds = new Set(
-                                              (rows as any[])
-                                                .filter((r) => {
-                                                  const n = String((r as any)?.name ?? "").toLowerCase();
-                                                  return n.includes("cpanel") || n.includes("c-panel") || n.includes("whm");
-                                                })
-                                                .map((r) => String((r as any)?.id ?? ""))
-                                                .filter(Boolean),
-                                            );
-                                            const withoutCpanelWhm = prev.filter((id) => !cpanelWhmIds.has(id));
-                                            return checked ? withoutCpanelWhm : [...withoutCpanelWhm, optionId];
-                                          }
-                                          return prev.includes(optionId) ? prev.filter((id) => id !== optionId) : [...prev, optionId];
-                                        });
-                                      }
+                                const isManagedServices = String(group ?? "")
+                                  .toLowerCase()
+                                  .includes("managed service");
+                                const isCpanelOrWhm =
+                                  optNameLower.includes("cpanel") ||
+                                  optNameLower.includes("c-panel") ||
+                                  optNameLower.includes("whm");
+
+                                const handleToggle = () => {
+                                  if (disabled) {
+                                    toast.error("Add-on unavailable", {
+                                      description: disabledDetails?.fix ?? disabledDetails?.reason,
+                                    });
+                                    return;
+                                  }
+                                  setSelectedOptionIds((prev) => {
+                                    if (selectionMode === "single") {
+                                      const withoutGroup = prev.filter((id) => !groupOptionIds.has(id));
+                                      return checked ? withoutGroup : [...withoutGroup, optionId];
                                     }
-                                    className={[
-                                      "w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition",
-                                      disabled
-                                        ? "opacity-50 cursor-not-allowed"
-                                        : checked
-                                          ? "border-primary bg-primary/5"
-                                          : "hover:border-primary/40",
-                                    ].join(" ")}
+                                    if (isManagedServices && isCpanelOrWhm) {
+                                      const cpanelWhmIds = new Set(
+                                        (rows as any[])
+                                          .filter((r) => {
+                                            const n = String((r as any)?.name ?? "").toLowerCase();
+                                            return (
+                                              n.includes("cpanel") ||
+                                              n.includes("c-panel") ||
+                                              n.includes("whm")
+                                            );
+                                          })
+                                          .map((r) => String((r as any)?.id ?? ""))
+                                          .filter(Boolean),
+                                      );
+                                      const withoutCpanelWhm = prev.filter((id) => !cpanelWhmIds.has(id));
+                                      return checked ? withoutCpanelWhm : [...withoutCpanelWhm, optionId];
+                                    }
+                                    return prev.includes(optionId)
+                                      ? prev.filter((id) => id !== optionId)
+                                      : [...prev, optionId];
+                                  });
+                                };
+
+                                return (
+                                  <HivelocityAddonOptionRow
+                                    key={optionId}
+                                    name={String(opt.name ?? optionId)}
+                                    checked={checked}
                                     disabled={disabled}
-                                    title={disabledReason ?? undefined}
-                                  >
-                                    <span className="min-w-0">
-                                      <span className="block font-medium line-clamp-1">{opt.name}</span>
-                                      <span className="block text-sm font-semibold text-primary mt-1">
-                                        {formatPeriodPrice(displayAmount)}
-                                      </span>
-                                      {priceUsd > 0 && showOriginal ? (
-                                        <span className="block mt-1 text-[11px] text-emerald-600">
-                                          <span className="block">Original: {original.usd}</span>
-                                          {original.kes ? <span className="block">Original (KES): {original.kes}</span> : null}
-                                        </span>
-                                      ) : null}
-
-                                      {features ? (
-                                        <span className="block mt-2">
-                                          <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
-                                            Provisioning features
-                                          </span>
-                                          <span className="mt-1 flex flex-wrap gap-2">
-                                            {renderProvisioningFeatureBadges(features)}
-                                          </span>
-                                        </span>
-                                      ) : null}
-
-                                      {disabledReason ? (
-                                        <span className="block mt-2 text-xs text-muted-foreground">
-                                          {disabledReason}
-                                        </span>
-                                      ) : null}
-
-                                      {tags.length || expressions.length ? (
-                                        <span className="block mt-2">
-                                          <span className="block text-[11px] uppercase tracking-wide text-muted-foreground">
-                                            Tags & rules
-                                          </span>
-                                          <span className="mt-1 flex flex-wrap gap-2">
-                                            {tags.slice(0, 6).map((t) => (
-                                              <Badge key={`t:${t}`} variant="outline" className="rounded-full">
-                                                {t}
-                                              </Badge>
-                                            ))}
-                                            {expressions.slice(0, 3).map((e) => (
-                                              <Badge key={`e:${e}`} variant="secondary" className="rounded-full" title={e}>
-                                                Expr
-                                              </Badge>
-                                            ))}
-                                            {tags.length > 6 ? (
-                                              <Badge variant="outline" className="rounded-full">
-                                                +{tags.length - 6} tags
-                                              </Badge>
-                                            ) : null}
-                                            {expressions.length > 3 ? (
-                                              <Badge variant="secondary" className="rounded-full">
-                                                +{expressions.length - 3} expr
-                                              </Badge>
-                                            ) : null}
-                                          </span>
-                                        </span>
-                                      ) : null}
-                                    </span>
-                                    <span className="flex items-center gap-2 shrink-0">
-                                      {checked ? (
-                                        <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-                                          <ShieldCheck className="h-4 w-4" /> Added
-                                        </span>
-                                      ) : (
-                                        <span className="text-xs text-muted-foreground">Add</span>
-                                      )}
-                                    </span>
-                                  </button>
+                                    disabledDetails={disabledDetails}
+                                    displayPriceLabel={formatPeriodPrice(displayAmount)}
+                                    originalUsdLabel={priceUsd > 0 && showOriginal ? original.usd : null}
+                                    originalKesLabel={priceUsd > 0 && showOriginal ? original.kes : null}
+                                    showOriginal={priceUsd > 0 && showOriginal}
+                                    features={features}
+                                    tags={tags}
+                                    expressions={expressions}
+                                    renderFeatureBadges={renderProvisioningFeatureBadges}
+                                    onSelect={handleToggle}
+                                  />
                                 );
                               })}
                             </div>
