@@ -1,11 +1,12 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { z } from 'zod';
+import { AI_DOMAIN_SUGGESTION_COUNT } from '@npanel/api/lib/ai-domain-search-constants';
 
 // Input validation schema
 const generateDomainsSchema = z.object({
   businessDescription: z.string().min(10, 'Business description must be at least 10 characters'),
-  count: z.number().min(1).max(10).default(6),
+  count: z.number().min(1).max(AI_DOMAIN_SUGGESTION_COUNT).default(AI_DOMAIN_SUGGESTION_COUNT),
 });
 
 export async function POST(request: Request) {
@@ -60,7 +61,13 @@ Do not include any other text or explanation.`,
         'digitalhub',
         'nexus',
         'pinnacle',
-        'vertex'
+        'vertex',
+        'launchpad',
+        'brightpath',
+        'corestack',
+        'flowstate',
+        'northline',
+        'sparkworks',
       ].slice(0, count);
     }
 
@@ -93,4 +100,3 @@ Do not include any other text or explanation.`,
     );
   }
 }
-
