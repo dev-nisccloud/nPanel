@@ -51,6 +51,10 @@ export const approveBuildSchema = z.object({
 	designId: z.string(),
 });
 
+export const retryHtmlBuildSchema = z.object({
+	designId: z.string(),
+});
+
 export const restoreVersionSchema = z.object({
 	designId: z.string(),
 	versionId: z.string(),

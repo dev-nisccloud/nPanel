@@ -131,6 +131,9 @@ export async function handleNiscEmailBuilder(c: Context) {
 			if (!design.creativeDesignUrl) {
 				throw new Error("Creative design must be approved before building HTML");
 			}
+			const buildTrigger =
+				(job.input as { buildTrigger?: "INITIAL" | "BUILD_RETRY" })?.buildTrigger ??
+				"INITIAL";
 			const result = await runNebBuildEmail({
 				jobId,
 				designId: design.id,
@@ -141,6 +144,7 @@ export async function handleNiscEmailBuilder(c: Context) {
 				creativeDesignUrl: design.creativeDesignUrl,
 				designNotes: designNotesFromMetadata(design.metadata),
 				webContext,
+				buildTrigger,
 			});
 			await appendAssistant(
 				`${result.assistantText}\n\nYour HTML email is ready in the **Email preview** tab.`,

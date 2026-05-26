@@ -18,6 +18,10 @@ import {
 	buildChatOrchestratorSystemPrompt,
 } from "./prompts-creative";
 import { buildBrandContext } from "./prompts";
+import {
+	buildNanoBananaLogoDirective,
+	mirrorNebBriefLogoIfNeeded,
+} from "./logo";
 import { runAnthropicOnReplicate } from "./replicate-llm";
 import type { NebBrief } from "./types";
 
@@ -96,11 +100,25 @@ export async function runNebCreativeDesign(
 
 		const directed = parseJsonFromModel(directorRaw, creativeDirectorSchema);
 
+		const { brief: briefWithLogo, replicateLogoUrl } =
+			await mirrorNebBriefLogoIfNeeded(params.brief, params.brandKit);
+		if (briefWithLogo.logoUrl !== params.brief.logoUrl) {
+			await db
+				.update(nebDesign)
+				.set({ brief: briefWithLogo, updatedAt: new Date() })
+				.where(eq(nebDesign.id, params.designId));
+		}
+
+		const imagePrompt = replicateLogoUrl
+			? `${directed.image_prompt}${buildNanoBananaLogoDirective(replicateLogoUrl)}`
+			: directed.image_prompt;
+
 		const { fileUrl, storageKey } = await generateNanoBananaPro(replicate, {
-			prompt: directed.image_prompt,
+			prompt: imagePrompt,
 			resolution: "2K",
 			aspectRatio: "9:16",
 			outputFormat: "png",
+			imageInput: replicateLogoUrl ? [replicateLogoUrl] : undefined,
 		});
 
 		const assetId = randomUUID();

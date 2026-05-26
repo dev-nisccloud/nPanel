@@ -6,11 +6,13 @@ import {
 	stripCodeFences,
 } from "./json-parse";
 import type {
+	NebCompAnalysisOutput,
 	NebHtmlArchitectOutput,
 	NebPlannerOutput,
 	NebRevisionOutput,
 } from "./types";
 import {
+	compAnalysisOutputSchema,
 	htmlArchitectOutputSchema,
 	imageSlotSchema,
 	plannerOutputSchema,
@@ -166,6 +168,39 @@ function tryExtractHtmlFromBrokenJson(
 	}
 
 	return { html: doc, change_summary, assistant_text };
+}
+
+export function parseCompAnalysisResponse(raw: string): NebCompAnalysisOutput {
+	const stripped = stripCodeFences(raw);
+	try {
+		return parseJsonFromModel(stripped, compAnalysisOutputSchema);
+	} catch (firstErr) {
+		const obj = extractFirstJsonObject(stripped);
+		if (obj) {
+			try {
+				return compAnalysisOutputSchema.parse(JSON.parse(obj));
+			} catch {
+				/* fall through */
+			}
+		}
+		const preview = stripped.slice(0, 300).replace(/\s+/g, " ");
+		throw new Error(
+			`Comp analyzer: could not parse JSON. ${firstErr instanceof Error ? firstErr.message : ""} Preview: ${preview}…`,
+		);
+	}
+}
+
+export function compAnalysisToPlan(comp: NebCompAnalysisOutput): NebPlannerOutput {
+	return {
+		archetype: "promotional",
+		subject: comp.exact_copy.subject || "Your update",
+		preheader: comp.exact_copy.preheader || "",
+		assistant_summary: `Faithful HTML implementation of the approved creative comp (${comp.sections.length} sections).`,
+		image_slots: comp.image_slots ?? [],
+		copy_strategy: [comp.layout_blueprint, comp.typography]
+			.filter(Boolean)
+			.join("\n\n"),
+	};
 }
 
 export function parsePlannerResponse(raw: string): NebPlannerOutput {

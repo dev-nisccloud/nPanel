@@ -20,11 +20,10 @@ export function buildBrandContext(brief: NebBrief, brandKit?: {
 			: brandKit?.colors
 				? JSON.stringify(brandKit.colors)
 				: "Choose a purposeful palette matching the brief";
-	const logo = brief.logoUrl
-		? `Logo URL (use in header <img>, preserve aspect ratio): ${brief.logoUrl}`
-		: brandKit?.logoUrl
-			? `Logo URL (use in header): ${brandKit.logoUrl}`
-			: "No logo URL — use a text wordmark from company name";
+	const resolvedLogo = brief.logoUrl ?? brandKit?.logoUrl ?? null;
+	const logo = resolvedLogo
+		? `Logo URL (MANDATORY — use this exact URL in header <img src="...">, preserve aspect ratio, max-height 48px; NEVER use a placeholder or invented logo): ${resolvedLogo}`
+		: "No logo URL — use a text wordmark from company name";
 	const footer = brandKit?.footerLegal
 		? `Footer legal: ${brandKit.footerLegal}`
 		: "Include standard unsubscribe line with {{UNSUBSCRIBE_URL}} placeholder";
@@ -87,6 +86,11 @@ Produce the planner JSON. Be specific to this brand — reference real products,
 export function buildHtmlArchitectSystemPrompt(): string {
 	return `You are the HTML ARCHITECT for the AI Email Builder.
 You produce bulletproof, pixel-perfect, FULLY RESPONSIVE marketing email HTML — Stripe/Linear/Airbnb tier.
+
+YOUR PRIMARY JOB: Implement the APPROVED CREATIVE MOCKUP with 100% visual fidelity.
+The comp analysis JSON is authoritative. Do NOT redesign, simplify, or "improve" the layout.
+Match section order, colors, copy, spacing, images, icons, and CTA exactly.
+
 ${HTML_DELIMITER_INSTRUCTION}
 
 ━━━ MANDATORY EMAIL HTML RULES ━━━
@@ -138,14 +142,20 @@ Rules for applying responsive classes:
 - CTA button container: add class="cta-button".
 - The outer <table> body wrapper must have align="center" and style="margin:0 auto".
 
-━━━ DESIGN QUALITY ━━━
-- Clear visual hierarchy: one dominant heading per section, F-pattern reading flow.
-- Brand colours applied consistently: primary for headline accents and CTA.
-- CTA label: action-oriented and specific.
+━━━ DESIGN QUALITY — COMP FIDELITY (NON-NEGOTIABLE) ━━━
+- Follow sections[] from COMP ANALYSIS in exact order — one HTML table section per comp section.
+- Use EXACT hex colors from colors{} and each section's backgroundColor/textColor.
+- Use EXACT copy from exact_copy — headlines, body, CTA labels, footer. Never paraphrase.
+- Implement every icon as <img src="{{NEB_IMG:icon_*}}"> — never emoji, Unicode symbols, or inline SVG icons.
+- NEVER use emoji characters anywhere in the HTML.
 - Logo: if URL provided, render in <img> at top — max-height 48px, width auto, max-width:100%.
+- Match padding and alignment from comp sections (paddingTopPx, paddingBottomPx, alignment).
+- CTA buttons: exact label, background color, text color, and approximate size from comp.
+- If the comp shows a full-width color band, reproduce it as a full-width <td> with that hex.
+- Zero creative deviation. You are a implementer, not a designer.
 
 IMAGE PLACEHOLDERS:
-For each image slot key K, use src="${imagePlaceholder("K")}" exactly (replace K with the actual key from the plan).`;
+For each image slot key K, use src="${imagePlaceholder("K")}" exactly (replace K with the actual key from the plan). Place each image at the same position and width as in the comp.`;
 }
 
 export function buildHtmlArchitectUserPrompt(params: {

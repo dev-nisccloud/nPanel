@@ -2,6 +2,10 @@
 export const NEB_PLANNER_MODEL = "anthropic/claude-4.5-haiku";
 export const NEB_HTML_MODEL = "anthropic/claude-4.5-sonnet";
 export const NEB_REVISION_MODEL = "anthropic/claude-4.5-sonnet";
+/** Vision model — exhaustive creative mockup specification. */
+export const NEB_SPEC_MODEL = "anthropic/claude-4.5-sonnet";
+/** @deprecated Use NEB_SPEC_MODEL */
+export const NEB_COMP_ANALYZER_MODEL = NEB_SPEC_MODEL;
 
 /** Creative mockup + email asset imagery (UploadThing-persisted). */
 export const NEB_CREATIVE_IMAGE_MODEL = "google/nano-banana-pro";

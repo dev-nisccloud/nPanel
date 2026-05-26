@@ -20,6 +20,8 @@ type PreviewTabsProps = {
 	htmlContent: string | null | undefined;
 	isDesigning: boolean;
 	isBuilding: boolean;
+	/** True when image slots are being generated (HYDRATING_IMAGES). */
+	isHydratingImages?: boolean;
 	previewWidth: "desktop" | "mobile";
 	onPreviewWidthChange: (w: "desktop" | "mobile") => void;
 	variations?: DesignVariation[];
@@ -27,6 +29,9 @@ type PreviewTabsProps = {
 	onSelectVariation?: (variationId: string) => void;
 	onGenerateVariation?: () => void;
 	isGeneratingVariation?: boolean;
+	/** Regenerate HTML from approved creative (when email already exists). */
+	onRetryHtmlBuild?: () => void;
+	isRetryingHtml?: boolean;
 };
 
 const DESIGN_PHRASES = [
@@ -89,30 +94,75 @@ function DesigningLoader() {
 	);
 }
 
-function BuildingLoader() {
+const BUILD_PHRASES = [
+	"Documenting every section of your design…",
+	"Capturing exact colors, spacing, and copy…",
+	"Mapping icons and images from your comp…",
+	"Building responsive HTML tables…",
+	"Matching layout to your creative mockup…",
+	"Generating icon and photo assets…",
+];
+
+function BuildingLoader({
+	creativeDesignUrl,
+	isHydratingImages,
+}: {
+	creativeDesignUrl?: string | null;
+	isHydratingImages?: boolean;
+}) {
+	const [phraseIdx, setPhraseIdx] = React.useState(0);
+
+	React.useEffect(() => {
+		const t = setInterval(() => {
+			setPhraseIdx((i) => (i + 1) % BUILD_PHRASES.length);
+		}, 2800);
+		return () => clearInterval(t);
+	}, []);
+
+	const phrase = isHydratingImages
+		? "Generating images from your creative design…"
+		: BUILD_PHRASES[phraseIdx];
+
 	return (
-		<div className="flex flex-col items-center gap-5 py-16 max-w-sm">
-			<div className="w-[260px] rounded-xl border bg-background shadow-lg overflow-hidden opacity-70">
-				<div className="h-10 bg-muted/60 flex items-center justify-center">
-					<Skeleton className="h-3 w-20" />
+		<div className="flex flex-col items-center gap-6 py-12 max-w-md w-full px-4">
+			{creativeDesignUrl ? (
+				<div className="relative w-full max-w-[220px] rounded-xl border bg-white shadow-md overflow-hidden opacity-90">
+					<img
+						src={creativeDesignUrl}
+						alt="Approved creative"
+						className="w-full h-auto max-h-[280px] object-cover object-top"
+					/>
+					<div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent pointer-events-none" />
+					<div className="absolute bottom-2 left-0 right-0 flex justify-center">
+						<span className="text-[10px] font-medium bg-background/90 border rounded-full px-2 py-0.5 text-muted-foreground">
+							Approved design
+						</span>
+					</div>
 				</div>
-				<div className="p-4 space-y-2">
-					<Skeleton className="h-3 w-3/4" />
-					<Skeleton className="h-3 w-full" />
-					<Skeleton className="h-3 w-5/6" />
-					<Skeleton className="h-7 w-24 rounded-md mt-1" />
+			) : (
+				<div className="w-[260px] rounded-xl border bg-background shadow-lg overflow-hidden opacity-70">
+					<div className="h-10 bg-muted/60 flex items-center justify-center">
+						<Skeleton className="h-3 w-20" />
+					</div>
+					<div className="p-4 space-y-2">
+						<Skeleton className="h-3 w-3/4" />
+						<Skeleton className="h-3 w-full" />
+						<Skeleton className="h-7 w-24 rounded-md mt-1" />
+					</div>
 				</div>
-				<div className="h-6 bg-muted/40 flex items-center justify-center">
-					<Skeleton className="h-2 w-28" />
-				</div>
-			</div>
-			<div className="flex flex-col items-center gap-2">
+			)}
+
+			<div className="flex flex-col items-center gap-2 text-center">
 				<div className="flex items-center gap-2">
-					<Spinner size={14} className="text-primary" />
-					<p className="text-sm font-medium">Assembling your HTML email…</p>
+					<Spinner size={16} className="text-primary shrink-0" />
+					<p key={phrase} className="text-sm font-medium text-foreground">
+						{phrase}
+					</p>
 				</div>
-				<p className="text-xs text-muted-foreground text-center">
-					Adding live links, images, and brand styling.
+				<p className="text-xs text-muted-foreground max-w-xs">
+					{isHydratingImages
+						? "Creating photo assets that match your mockup pixel-for-pixel."
+						: "Converting your creative mockup into a live, send-ready HTML email."}
 				</p>
 			</div>
 		</div>
@@ -265,6 +315,7 @@ export function PreviewTabs({
 	htmlContent,
 	isDesigning,
 	isBuilding,
+	isHydratingImages,
 	previewWidth,
 	onPreviewWidthChange,
 	variations = [],
@@ -272,13 +323,21 @@ export function PreviewTabs({
 	onSelectVariation,
 	onGenerateVariation,
 	isGeneratingVariation,
+	onRetryHtmlBuild,
+	isRetryingHtml,
 }: PreviewTabsProps) {
 	const hasHtml = Boolean(htmlContent?.trim());
+	const showEmailLoader = isBuilding;
 	const [tab, setTab] = React.useState(hasHtml ? "email" : "creative");
 
 	React.useEffect(() => {
 		if (hasHtml) setTab("email");
 	}, [hasHtml]);
+
+	// Switch to email preview as soon as HTML build starts
+	React.useEffect(() => {
+		if (isBuilding) setTab("email");
+	}, [isBuilding]);
 
 	// Show toolbar if there is at least one design (even while the first is generating,
 	// we might already have a prior one), or if we have a creativeDesignUrl at all.
@@ -298,12 +357,32 @@ export function PreviewTabs({
 							</span>
 						)}
 					</TabsTrigger>
-					<TabsTrigger value="email" className="gap-1.5" disabled={!hasHtml}>
+					<TabsTrigger
+						value="email"
+						className="gap-1.5"
+						disabled={!hasHtml && !isBuilding}
+					>
 						<Mail className="size-3.5" />
 						Email preview
+						{isBuilding ? (
+							<Spinner size={10} className="ml-0.5 text-primary" />
+						) : null}
 					</TabsTrigger>
 				</TabsList>
-				{hasHtml && (
+				<div className="flex items-center gap-2">
+					{hasHtml && onRetryHtmlBuild && creativeDesignUrl ? (
+						<Button
+							variant="outline"
+							size="sm"
+							className="gap-1.5 h-8 text-xs"
+							disabled={isBuilding || isRetryingHtml}
+							onClick={onRetryHtmlBuild}
+						>
+							{isBuilding ? <Spinner size={12} /> : <Sparkles className="size-3.5" />}
+							{isBuilding ? "Rebuilding…" : "Regenerate HTML"}
+						</Button>
+					) : null}
+					{(hasHtml || showEmailLoader) && !isBuilding ? (
 					<div className="flex gap-1">
 						<Button
 							variant={previewWidth === "desktop" ? "secondary" : "ghost"}
@@ -320,7 +399,8 @@ export function PreviewTabs({
 							Mobile
 						</Button>
 					</div>
-				)}
+					) : null}
+				</div>
 			</div>
 
 			{/* ── creative tab ── */}
@@ -372,9 +452,12 @@ export function PreviewTabs({
 
 			{/* ── email tab ── */}
 			<TabsContent value="email" className="flex-1 m-0 min-h-0 data-[state=inactive]:hidden">
-				<div className="flex-1 overflow-auto p-6 flex justify-center bg-zinc-100 dark:bg-zinc-900 h-full">
-					{isBuilding && !hasHtml ? (
-						<BuildingLoader />
+				<div className="flex-1 overflow-auto p-6 flex justify-center items-start bg-zinc-100 dark:bg-zinc-900 min-h-full">
+					{showEmailLoader ? (
+						<BuildingLoader
+							creativeDesignUrl={creativeDesignUrl}
+							isHydratingImages={isHydratingImages}
+						/>
 					) : hasHtml ? (
 						<iframe
 							title="Email preview"
@@ -385,7 +468,12 @@ export function PreviewTabs({
 							)}
 							sandbox="allow-same-origin"
 						/>
-					) : null}
+					) : (
+						<div className="text-center text-sm text-muted-foreground py-20 max-w-sm">
+							<Mail className="size-10 mx-auto mb-3 opacity-40" />
+							<p>Approve your creative design to generate the HTML email preview.</p>
+						</div>
+					)}
 				</div>
 			</TabsContent>
 		</Tabs>

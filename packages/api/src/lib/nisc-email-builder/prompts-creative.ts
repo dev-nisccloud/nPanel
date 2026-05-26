@@ -76,6 +76,9 @@ PHOTOGRAPHY STYLE (for image areas):
 • The CTA button must be large, prominent, and have a specific label.
 • Footer: small, clean, unclutter — unsubscribe text, brand name. 
 • The design must look FINISHED — like a real email that's about to be sent.
+• When a brand logo URL is provided in the brief: the logo will be supplied to the image
+  generator via image_input. Your image_prompt MUST instruct rendering that EXACT logo in the
+  header — never a placeholder box, generic icon, or invented wordmark.
 
 ━━━ OUTPUT FORMAT ━━━
 Output ONLY valid JSON — no markdown fences, no commentary before or after:
@@ -117,8 +120,11 @@ export function buildCreativeDirectorUserPrompt(
 		.join("\n");
 
 	const logoNote = brief.logoUrl
-		? `Logo present at: ${brief.logoUrl} — render clearly in header. Use actual logo design, not a placeholder rectangle.`
-		: "No logo — use a bold typographic wordmark of the company name in the header, large and brand-coloured.";
+		? `Official brand logo at: ${brief.logoUrl}
+This logo will be passed to the image generator as image_input[0].
+MANDATORY: reproduce this EXACT logo in the email header — same colours, shape, and proportions.
+NEVER use a placeholder rectangle, generic icon, or invented wordmark when this logo is available.`
+		: "No logo detected — use a bold typographic wordmark of the company name in the header, large and brand-coloured.";
 
 	return `${brandBlock}
 

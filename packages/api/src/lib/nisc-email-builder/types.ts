@@ -24,6 +24,7 @@ const aspectRatios = ["1:1", "3:2", "16:9", "4:3", "9:16"] as const;
 
 export const imageSlotSchema = z.object({
 	key: z.string(),
+	kind: z.enum(["photo", "icon", "hero"]).optional().default("photo"),
 	prompt: z.string(),
 	alt: z.string(),
 	aspectRatio: z
@@ -69,6 +70,71 @@ export const revisionOutputSchema = z.object({
 });
 
 export type NebRevisionOutput = z.infer<typeof revisionOutputSchema>;
+
+const compSectionElementSchema = z.object({
+	kind: z.string(),
+	text: z.string().optional(),
+	color: z.string().optional(),
+	fontSizePx: z.number().optional(),
+	fontWeight: z.string().optional(),
+	alignment: z.string().optional(),
+	imageKey: z.string().optional(),
+	iconHtml: z.string().optional(),
+});
+
+const compSectionSchema = z.object({
+	id: z.string(),
+	order: z.number(),
+	type: z.string(),
+	backgroundColor: z.string().optional(),
+	textColor: z.string().optional(),
+	paddingTopPx: z.number().optional(),
+	paddingBottomPx: z.number().optional(),
+	elements: z.array(compSectionElementSchema).default([]),
+});
+
+export const compAnalysisOutputSchema = z.object({
+	analysis_thinking: z.string().optional(),
+	layout_blueprint: z.string(),
+	exact_copy: z.object({
+		subject: z.string(),
+		preheader: z.string(),
+		headlines: z.array(z.string()).default([]),
+		subheadlines: z.array(z.string()).default([]),
+		bodyParagraphs: z.array(z.string()).default([]),
+		ctaLabels: z.array(z.string()).default([]),
+		footerText: z.string().optional(),
+	}),
+	colors: z
+		.object({
+			pageBackground: z.string().optional(),
+			sectionBackgrounds: z
+				.array(z.object({ section: z.string(), color: z.string() }))
+				.optional(),
+			primaryText: z.string().optional(),
+			secondaryText: z.string().optional(),
+			accent: z.string().optional(),
+			ctaBackground: z.string().optional(),
+			ctaText: z.string().optional(),
+		})
+		.optional(),
+	typography: z.string().optional(),
+	sections: z.array(compSectionSchema).default([]),
+	image_slots: z.array(imageSlotSchema).default([]),
+	icons: z
+		.array(
+			z.object({
+				key: z.string(),
+				description: z.string(),
+				htmlHint: z.string(),
+				sectionId: z.string().optional(),
+			}),
+		)
+		.default([]),
+	fidelity_checklist: z.array(z.string()).default([]),
+});
+
+export type NebCompAnalysisOutput = z.infer<typeof compAnalysisOutputSchema>;
 
 export type NebValidationReport = {
 	ok: boolean;
