@@ -229,6 +229,8 @@ export default function VpsPage() {
 					plan={selectedPlan}
 					requireDomainStep={false}
 					intent={dialogIntent}
+					teamSlug={slug || undefined}
+					buyDomainHref={slug ? `/${slug}/domains` : undefined}
 				/>
 			) : null}
 		</div>

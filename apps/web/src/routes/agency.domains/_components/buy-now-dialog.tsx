@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/utils/trpc";
+import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
 import { toast } from "@/components/ui/sonner";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
@@ -177,9 +178,14 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
   const subtotal = basePrice + addonsTotal + hostingTotal;
   
   const taxRate = 0.16;
-  const taxes = Math.max(0, subtotal * taxRate);
+  const { vatAmount: taxes, totalIncVat: total } = computeCeilVatTotals(subtotal, taxRate);
   const couponDiscount = 0;
-  const total = Math.max(0, subtotal + taxes - couponDiscount);
+
+  React.useEffect(() => {
+    if (open && currentStep === "payment") {
+      setPaymentAmount(paymentTotalString(total));
+    }
+  }, [open, currentStep, total]);
 
   const handleAddonToggle = (addonId: string) => {
     setSelectedAddons(prev => 
@@ -241,8 +247,7 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
       setCurrentStep("review");
     } else if (currentStep === "review") {
       setCurrentStep("payment");
-      // Initialize payment amount with total
-      setPaymentAmount(total.toString());
+      setPaymentAmount(paymentTotalString(total));
       // Generate account reference - max 12 chars, alphanumeric only
       // Format: DOM{timestamp} (e.g., DOM123456)
       const timestamp = Date.now().toString().slice(-9); // Last 9 digits

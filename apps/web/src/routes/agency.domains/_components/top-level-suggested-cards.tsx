@@ -248,7 +248,7 @@ export function TopLevelSuggestedCards({
 			.then((converted) => {
 				if (cancelled || !converted?.length) return;
 				const totalBaseKes = (converted as Array<{ convertedAmount: number }>).reduce((sum, c) => sum + (c.convertedAmount ?? 0), 0);
-				setBundleTotalKes(Math.round(totalBaseKes * 1.15 * 100) / 100);
+				setBundleTotalKes(Math.ceil(totalBaseKes * 1.15));
 			})
 			.catch(() => {
 				if (!cancelled) setBundleTotalKes(null);

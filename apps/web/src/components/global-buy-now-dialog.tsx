@@ -3,6 +3,7 @@
 import * as React from "react";
 import { HelpCircle, Check, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import {
   Dialog,
@@ -485,7 +486,7 @@ export function GlobalBuyNowDialog() {
       }
       if (item.type === "hivelocity") {
         const hv = item as HivelocityCartItem;
-        const b = Number(hv.totalPrice ?? 0) || 0;
+        const b = Number(hv.subtotalExVat ?? hv.totalPrice ?? 0) || 0;
         const key = `cart-hivelocity:${item.id}`;
         const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) : null;
         return sum + (o ?? b);
@@ -533,8 +534,10 @@ export function GlobalBuyNowDialog() {
     : isCartMode
       ? effectiveCartSubtotal
       : effectiveProductFlowSubtotal;
-  const effectiveTaxes = effectiveSubtotal * VAT_RATE;
-  const effectiveTotal = effectiveSubtotal + effectiveTaxes;
+  const { vatAmount: effectiveTaxes, totalIncVat: effectiveTotal } = computeCeilVatTotals(
+    effectiveSubtotal,
+    VAT_RATE,
+  );
 
   const patchPriceOverride = React.useCallback((key: string, value: string) => {
     setPriceOverrideByKey((prev) => ({ ...prev, [key]: value }));
@@ -1084,7 +1087,7 @@ export function GlobalBuyNowDialog() {
 
   const openForPayment = () => {
     setCurrentStep("payment");
-    setPaymentAmount(effectiveTotal.toString());
+    setPaymentAmount(paymentTotalString(effectiveTotal));
     const ts = Date.now().toString().slice(-9);
     setAccountReference(isCartMode ? `CART${ts}`.slice(0, 12) : isTransferMode && transferContext
       ? (transferContext.domain.replace(/\./g, "").slice(0, 3).toUpperCase() || "TRF") + ts
@@ -1093,6 +1096,12 @@ export function GlobalBuyNowDialog() {
     setPhoneError("");
     setAmountError("");
   };
+
+  React.useEffect(() => {
+    if (currentStep === "payment") {
+      setPaymentAmount(paymentTotalString(effectiveTotal));
+    }
+  }, [currentStep, effectiveTotal]);
 
   const goToRegistrantStep = () => {
     setRegistrantStepCompleted(false);
@@ -1713,7 +1722,7 @@ export function GlobalBuyNowDialog() {
                       const hv = item as HivelocityCartItem;
                       overrideKey = `cart-hivelocity:${item.id}`;
                       overrideCurrency = hv.currency || primaryCurrency;
-                      catalogExVat = Number(hv.totalPrice ?? 0) || 0;
+                      catalogExVat = Number(hv.subtotalExVat ?? hv.totalPrice ?? 0) || 0;
                     } else {
                       overrideKey = `cart:${item.type}:${item.id}`;
                       overrideCurrency = (item as { currency?: string }).currency ?? primaryCurrency;

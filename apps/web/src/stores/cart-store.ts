@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { computeCeilVatTotals } from '@npanel/api/lib/convert-price';
 
 // Base item interface that all cart items must have
 interface BaseCartItem {
@@ -203,7 +204,7 @@ export const useCartStore = create<CartStore>()(
             const nextAddons = hv.addons.filter((a) => a.id !== addonId);
             const nextInvoiceLines = hv.invoiceLines.filter((l) => l.id !== `addon-${addonId}`);
             const subtotalExVat = nextInvoiceLines.reduce((s, l) => s + l.amountExVat, 0);
-            const vatAmount = subtotalExVat * 0.16;
+            const { vatAmount } = computeCeilVatTotals(subtotalExVat);
             return {
               ...hv,
               addons: nextAddons,
