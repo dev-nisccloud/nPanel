@@ -4,7 +4,6 @@ import { Gauge, Search, Clock } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
 import { trpc } from "@/utils/trpc";
@@ -46,7 +45,7 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
   });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <>
       <WpFeatureCard
         title="Search engine indexing"
         description="When disabled, search engines are discouraged from indexing the site."
@@ -56,8 +55,8 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
           variant: features?.indexing?.status ? "default" : "secondary",
         }}
       >
-        <div className="flex items-center justify-between gap-4">
-          <Label className="text-sm font-medium">Allow indexing</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm">Allow indexing</Label>
           <Switch
             checked={features?.indexing?.status ?? false}
             disabled={toggleIndexing.isPending}
@@ -76,8 +75,8 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
           variant: features?.nginxCaching?.status ? "default" : "secondary",
         }}
       >
-        <div className="flex items-center justify-between gap-4">
-          <Label className="text-sm font-medium">Enable caching</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm">Enable caching</Label>
           <Switch
             checked={features?.nginxCaching?.status ?? false}
             disabled={toggleNginx.isPending || features?.nginxCaching?.available === false}
@@ -96,18 +95,16 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
           variant: cron?.status ? "default" : "secondary",
         }}
       >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <Label className="text-sm font-medium">Takeover enabled</Label>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <Label className="text-sm">Takeover enabled</Label>
             <Switch
               checked={cron?.status ?? false}
               disabled={updateCron.isPending || cron?.available === false}
-              onCheckedChange={(val) =>
-                updateCron.mutate({ installationId: id, status: val })
-              }
+              onCheckedChange={(val) => updateCron.mutate({ installationId: id, status: val })}
             />
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-3">
             <Label className="text-sm font-normal text-muted-foreground">
               Replace wp-cron.php in web requests
             </Label>
@@ -121,6 +118,6 @@ export function WordPressPerformanceTab({ installationId }: { installationId: st
           </div>
         </div>
       </WpFeatureCard>
-    </div>
+    </>
   );
 }

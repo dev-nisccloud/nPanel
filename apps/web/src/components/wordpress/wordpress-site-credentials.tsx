@@ -113,14 +113,14 @@ function CredentialRow({
   const displayValue = masked && !isMasked ? "••••••••••••••••" : value;
 
   return (
-    <div className="group rounded-lg border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/30">
-      <div className="flex gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background">
-          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
+    <div className="group rounded-md border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/30">
+      <div className="flex gap-2.5">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background">
+          <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
         </div>
-        <div className="min-w-0 flex-1 space-y-2">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <div>
-            <p className="text-sm font-medium text-foreground">{label}</p>
+            <p className="text-sm font-medium">{label}</p>
             {description ? (
               <p className="text-xs text-muted-foreground">{description}</p>
             ) : null}
@@ -128,7 +128,7 @@ function CredentialRow({
           <div className="flex items-center gap-1.5">
             <p
               className={cn(
-                "min-w-0 flex-1 truncate rounded-md border border-border/50 bg-background px-3 py-2 text-sm text-foreground",
+                "min-w-0 flex-1 truncate rounded-md border border-border/50 bg-background px-2.5 py-1.5 text-sm",
                 masked && "font-mono tracking-wider"
               )}
               title={masked && !isMasked ? undefined : value}
@@ -358,38 +358,32 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Card className="overflow-hidden shadow-sm">
-          <div className="border-b bg-muted/30 px-6 py-6 md:px-8 md:py-7">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
-                  <Shield className="h-6 w-6 text-primary" aria-hidden />
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                      WordPress admin access
-                    </h2>
-                    <Badge variant="secondary" className="font-normal">
-                      {credentials.login}
-                    </Badge>
-                  </div>
-                  <p className="max-w-xl text-sm text-muted-foreground leading-relaxed">
-                    Open your dashboard in one click, or copy credentials when you need them elsewhere.
-                  </p>
-                </div>
+          <div className="flex flex-col gap-3 border-b bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
+                <Shield className="h-4 w-4 text-primary" aria-hidden />
               </div>
-              <div className="lg:shrink-0">
-                <Button onClick={handleLoginToWordPress}>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Log in to WordPress
-                </Button>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-sm font-semibold">WordPress admin access</h2>
+                  <Badge variant="secondary" className="font-normal text-xs">
+                    {credentials.login}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Log in directly or copy credentials below.
+                </p>
               </div>
             </div>
+            <Button size="sm" className="shrink-0" onClick={handleLoginToWordPress}>
+              <LogIn className="mr-2 h-4 w-4" />
+              Log in to WordPress
+            </Button>
           </div>
 
-          <CardContent className="space-y-3 p-6 md:p-8">
+          <CardContent className="grid grid-cols-1 gap-2 p-4 @md/main:grid-cols-2 @xl/main:grid-cols-3">
             <CredentialRow
               label="Administrator login"
               description="Username for wp-admin"
@@ -441,15 +435,15 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
             <CollapsibleTrigger asChild>
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-muted/40 md:px-8"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
               >
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/30">
-                    <Settings2 className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-muted/30">
+                    <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Account settings</p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
+                    <p className="text-sm font-medium">Account settings</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       Update login, password, email, or site language
                       {currentLanguageLabel ? ` · ${currentLanguageLabel}` : ""}
                     </p>
@@ -466,9 +460,9 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
 
             <CollapsibleContent>
               <Separator />
-              <CardContent className="p-6 md:p-8">
+              <CardContent className="p-4">
                 {isAccountLoading ? (
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-2">
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-16 w-full" />
                     <Skeleton className="h-16 w-full" />
@@ -486,9 +480,9 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
                   </div>
                 ) : !account ? null : (
                   <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleUpdateAccount)} className="space-y-6">
-                      <div className="rounded-lg border border-border/60 bg-muted/20 p-4 md:p-6">
-                        <div className="grid gap-5 md:grid-cols-2">
+                    <form onSubmit={form.handleSubmit(handleUpdateAccount)} className="space-y-4">
+                      <div className="rounded-md border border-border/60 bg-muted/20 p-3 md:p-4">
+                        <div className="grid gap-4 md:grid-cols-2">
                           <FormField
                             control={form.control}
                             name="login"

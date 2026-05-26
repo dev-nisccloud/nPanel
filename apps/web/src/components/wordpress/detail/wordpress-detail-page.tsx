@@ -26,14 +26,14 @@ import { WordPressSecurityTab } from "@/components/wordpress/tabs/security-tab";
 import { WordPressSiteSettingsTab } from "@/components/wordpress/tabs/site-settings-tab";
 import { WordPressUpdatesTab } from "@/components/wordpress/tabs/updates-tab";
 import { WordPressBackupsTab } from "@/components/wordpress/tabs/backups-tab";
+import { wpDetailLayout, DETAIL_TAB_TRIGGER_CLASS, DETAIL_TABS_LIST_CLASS } from "@/components/wordpress/wp-detail-layout";
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 import { useWordPressDetailBatched } from "@/routes/$slug.wordpress/_components/use-wordpress-detail-batched";
 import { WordPressOverview } from "@/routes/$slug.wordpress/_components/wordpress-overview";
 import { WordPressPlugins } from "@/routes/$slug.wordpress/_components/wordpress-plugins";
 import { WordPressThemes } from "@/routes/$slug.wordpress/_components/wordpress-themes";
 
-const TAB_TRIGGER_CLASS =
-  "group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]";
+const TAB_TRIGGER_CLASS = DETAIL_TAB_TRIGGER_CLASS;
 
 interface TabDef {
   value: string;
@@ -61,17 +61,17 @@ export interface WordPressDetailPageProps {
 
 function WordPressDetailSkeleton() {
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="w-full max-w-7xl mx-auto">
+    <div className={wpDetailLayout.page}>
+      <div className={wpDetailLayout.container}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Skeleton className="h-8 w-20" />
             <div>
-              <Skeleton className="h-8 w-48 mb-2" />
-              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-5 w-48 mb-2" />
+              <Skeleton className="h-3 w-32" />
             </div>
           </div>
-          <Skeleton className="h-6 w-16" />
+          <Skeleton className="h-5 w-16" />
         </div>
         <div className="mt-6 space-y-4">
           <div className="flex gap-2">
@@ -98,8 +98,8 @@ function WordPressDetailError({
   backLabel: string;
 }) {
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="w-full max-w-7xl mx-auto">
+    <div className={wpDetailLayout.page}>
+      <div className={wpDetailLayout.container}>
         <div className="flex items-center gap-4">
           <Link to={backTo}>
             <Button variant="ghost" size="sm">
@@ -113,7 +113,7 @@ function WordPressDetailError({
           </div>
         </div>
         <div className="mt-6 flex flex-col items-center justify-center py-12 text-center">
-          <h3 className="mb-2 text-lg font-semibold">Failed to load installation</h3>
+          <h3 className="mb-2 text-base font-semibold">Failed to load installation</h3>
           <p className="mb-4 text-sm text-muted-foreground">
             {error.message || "An error occurred while fetching WordPress installation details."}
           </p>
@@ -166,10 +166,10 @@ export function WordPressDetailPage({
   };
 
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 min-w-0">
+    <div className={wpDetailLayout.page}>
+      <div className={wpDetailLayout.container}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <Link to={backTo}>
               <Button variant="ghost" size="sm" className="shrink-0">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -189,7 +189,7 @@ export function WordPressDetailPage({
         <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
+              <TabsList className={DETAIL_TABS_LIST_CLASS}>
                 {TABS.map((tab) => {
                   const Icon = tab.icon;
                   return (

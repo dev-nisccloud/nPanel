@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { WpCardGrid, WpCardGridItem } from "@/components/wordpress/wp-detail-primitives";
 import { HotlinkProtectionSheet } from "@/components/wordpress/hotlink-protection-sheet";
 import { PasswordProtectionDialog } from "@/components/wordpress/password-protection-dialog";
 import { SecurityMeasuresCard } from "@/components/wordpress/security-measures-card";
@@ -41,8 +42,8 @@ export function WordPressSecurityTab({ installationId }: { installationId: strin
     integrityTasks.length > 0;
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+    <>
+      <WpCardGrid>
         <WpFeatureCard
           title="Hotlink protection"
           description="Block other sites from embedding your images and media."
@@ -53,8 +54,8 @@ export function WordPressSecurityTab({ installationId }: { installationId: strin
             variant: features?.hotlinkProtection?.status ? "default" : "secondary",
           }}
         >
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <Label className="text-sm font-medium">Enabled</Label>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Label className="text-sm">Enabled</Label>
             <div className="flex items-center gap-2">
               <Switch
                 checked={features?.hotlinkProtection?.status ?? false}
@@ -88,54 +89,58 @@ export function WordPressSecurityTab({ installationId }: { installationId: strin
             Configure credentials
           </Button>
         </WpFeatureCard>
-      </div>
 
-      <WpFeatureCard
-        title="WordPress integrity"
-        description="Core file integrity status and active reinstall tasks."
-        icon={ShieldCheck}
-      >
-        {integrityLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : hasIntegrityContent ? (
-          <div className="space-y-4">
-            {integrity?.status ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <WpStatusBadge label={String(integrity.status)} />
-              </div>
-            ) : null}
-            {integrity?.message ? (
-              <p className="text-sm text-muted-foreground">{integrity.message}</p>
-            ) : null}
-            {integrityTasks.length > 0 ? (
-              <ul className="text-sm space-y-0 rounded-lg border border-border/60 divide-y divide-border/60">
-                {integrityTasks.map((task) => (
-                  <li key={task.code} className="flex justify-between gap-3 px-3 py-2.5">
-                    <span className="text-muted-foreground truncate">
-                      {task.title ?? task.code}
-                    </span>
-                    <WpStatusBadge label={task.status ?? "pending"} />
-                  </li>
-                ))}
-              </ul>
-            ) : integrity?.status ? (
-              <p className="text-sm text-muted-foreground">No active integrity tasks.</p>
-            ) : null}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Integrity check data is not available for this installation.
-          </p>
-        )}
-      </WpFeatureCard>
+        <VulnerabilitiesCard installationId={id} />
+        <SecurityPoliciesCard installationId={id} />
 
-      <VulnerabilitiesCard installationId={id} />
-      <SecurityPoliciesCard installationId={id} />
-      <SecurityMeasuresCard installationId={id} />
+        <WpFeatureCard
+          title="WordPress integrity"
+          description="Core file integrity status and active reinstall tasks."
+          icon={ShieldCheck}
+          span="full"
+        >
+          {integrityLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : hasIntegrityContent ? (
+            <div className="space-y-3">
+              {integrity?.status ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Status</span>
+                  <WpStatusBadge label={String(integrity.status)} />
+                </div>
+              ) : null}
+              {integrity?.message ? (
+                <p className="text-sm text-muted-foreground">{integrity.message}</p>
+              ) : null}
+              {integrityTasks.length > 0 ? (
+                <ul className="divide-y divide-border/60 rounded-md border border-border/60 text-sm">
+                  {integrityTasks.map((task) => (
+                    <li key={task.code} className="flex justify-between gap-3 px-3 py-2">
+                      <span className="truncate text-muted-foreground">
+                        {task.title ?? task.code}
+                      </span>
+                      <WpStatusBadge label={task.status ?? "pending"} />
+                    </li>
+                  ))}
+                </ul>
+              ) : integrity?.status ? (
+                <p className="text-sm text-muted-foreground">No active integrity tasks.</p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Integrity check data is not available for this installation.
+            </p>
+          )}
+        </WpFeatureCard>
+
+        <WpCardGridItem fullWidth>
+          <SecurityMeasuresCard installationId={id} />
+        </WpCardGridItem>
+      </WpCardGrid>
 
       <HotlinkProtectionSheet open={hotlinkOpen} onOpenChange={setHotlinkOpen} installationId={id} />
       <PasswordProtectionDialog open={passwordOpen} onOpenChange={setPasswordOpen} installationId={id} />
-    </div>
+    </>
   );
 }
