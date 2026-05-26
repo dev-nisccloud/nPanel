@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { convertPriceWithCeil } from "@npanel/api/lib/convert-price";
 import { trpc } from "@/utils/trpc";
 
 // Supported currencies (limited set for efficiency)
@@ -113,7 +114,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
           rate = usdToTarget / usdToSource;
         }
 
-        const convertedAmount = Math.round(amount * rate * 100) / 100;
+        const convertedAmount = convertPriceWithCeil(amount, currency, targetCurrency, rate);
         return {
           originalAmount: amount,
           convertedAmount,

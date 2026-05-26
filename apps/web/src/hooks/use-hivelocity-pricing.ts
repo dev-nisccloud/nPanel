@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ceilConvertedPrice } from "@npanel/api/lib/convert-price";
 import { trpc } from "@/utils/trpc";
 
 export type HivelocityProductType = "DEDICATED_SERVERS" | "VPS" | "VDS";
@@ -112,7 +113,7 @@ export function useHivelocityPricing(productType: HivelocityProductType) {
   const toKes = React.useCallback(
     (amountUsd: number) => {
       if (!Number.isFinite(amountUsd) || usdToKesRate === null) return null;
-      return Math.round(amountUsd * usdToKesRate * 100) / 100;
+      return ceilConvertedPrice(amountUsd * usdToKesRate);
     },
     [usdToKesRate],
   );

@@ -3,6 +3,8 @@
  * OS and add-ons bill under the main nisc product but appear as separate invoice lines.
  */
 
+import { computeCeilVatTotals } from "@npanel/api/lib/convert-price";
+
 export type HivelocityProductType = "DEDICATED_SERVERS" | "VPS" | "VDS";
 
 export type HivelocityPeriod =
@@ -228,8 +230,7 @@ export function buildHivelocityInvoiceBreakdown(input: {
 	}
 
 	const subtotalExVat = lines.reduce((sum, line) => sum + line.amountExVat, 0);
-	const vatAmount = subtotalExVat * vatRate;
-	const totalIncVat = subtotalExVat + vatAmount;
+	const { vatAmount, totalIncVat } = computeCeilVatTotals(subtotalExVat, vatRate);
 
 	return { lines, subtotalExVat, vatRate, vatAmount, totalIncVat };
 }

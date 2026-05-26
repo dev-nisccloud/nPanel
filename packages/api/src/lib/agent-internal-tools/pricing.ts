@@ -13,6 +13,7 @@
 
 import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
+import { convertPriceWithCeil } from "../convert-price";
 import { tldSettings } from "@npanel/db/schema/nameservers";
 import { getRedisClient } from "../redis";
 
@@ -236,7 +237,7 @@ export async function toRetailPrice(
 	}
 
 	const rate = computeRate(rates, fromCurrency, finalCurrency);
-	const amount = Math.round(afterMargin * rate * 100) / 100;
+	const amount = convertPriceWithCeil(afterMargin, fromCurrency, finalCurrency, rate);
 	return { amount, currency: finalCurrency, formatted: formatRetailPrice(amount, finalCurrency) };
 }
 

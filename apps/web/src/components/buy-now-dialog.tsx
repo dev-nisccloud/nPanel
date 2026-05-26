@@ -81,6 +81,7 @@ import {
   isHivelocityOptionGroupMultiSelect,
   validateHivelocityOptionSelection,
 } from "@/lib/hivelocity-option-compatibility";
+import { ceilConvertedPrice, computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
 
 export interface ServicePlanDetails {
   planId: string;
@@ -398,7 +399,9 @@ export function BuyNowDialog({
 
   const formatUsdOrKes = React.useCallback(
     (usdAmount: number) => {
-      if (plan?.currency === "KES" && usdToKesRate) return formatPrice(usdAmount * usdToKesRate, "KES");
+      if (plan?.currency === "KES" && usdToKesRate) {
+        return formatPrice(ceilConvertedPrice(usdAmount * usdToKesRate), "KES");
+      }
       return formatPrice(usdAmount, "USD");
     },
     [plan?.currency, usdToKesRate],
@@ -407,7 +410,9 @@ export function BuyNowDialog({
   const formatOriginalUsdAndKes = React.useCallback(
     (usdAmount: number) => {
       const usd = formatPrice(usdAmount, "USD");
-      const kes = usdToKesRate ? formatPrice(usdAmount * usdToKesRate, "KES") : null;
+      const kes = usdToKesRate
+        ? formatPrice(ceilConvertedPrice(usdAmount * usdToKesRate), "KES")
+        : null;
       return { usd, kes };
     },
     [usdToKesRate],
@@ -674,7 +679,7 @@ export function BuyNowDialog({
       const periodUsd = getOptionUsdForBillingPeriod(monthlyPriceUsd, hivelocityPeriod);
       const margined = applyMarginFor(bucket, periodUsd);
       if (!Number.isFinite(margined) || margined <= 0) return 0;
-      if (plan?.currency === "KES" && usdToKesRate) return margined * usdToKesRate;
+      if (plan?.currency === "KES" && usdToKesRate) return ceilConvertedPrice(margined * usdToKesRate);
       return margined;
     },
     [hivelocityPeriod, applyMarginFor, plan?.currency, usdToKesRate],
@@ -774,18 +779,15 @@ export function BuyNowDialog({
     }
 
     const basePrice = plan?.price || 0;
-    const taxes = basePrice * 0.16;
-    const couponDiscount = 0;
-    const subtotal = basePrice - couponDiscount;
-    const total = subtotal + taxes;
+    const { subtotalExVat, vatAmount, totalIncVat } = computeCeilVatTotals(basePrice);
     const displayCurrency = plan?.currency || "KES";
 
     return {
       basePrice,
-      taxes,
-      couponDiscount,
-      subtotal,
-      total,
+      taxes: vatAmount,
+      couponDiscount: 0,
+      subtotal: subtotalExVat,
+      total: totalIncVat,
       displayCurrency,
       invoiceBreakdown: null as ReturnType<typeof buildHivelocityInvoiceBreakdown> | null,
     };
@@ -836,17 +838,17 @@ export function BuyNowDialog({
       setSelectedAgencyTeamId("");
       setSelectedAgencyUserId("");
 
-      // Calculate total and set payment amount
-      const planPrice = plan.price || 0;
-      const taxes = planPrice * 0.16; // 16% VAT
-      const total = planPrice + taxes;
-      setPaymentAmount(total.toString());
-
       const ref = generateMpesaAccountReference(plan.planName);
       setAccountReference(ref);
       setAccountRefError(validateMpesaAccountReference(ref));
     }
   }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep, agencyPortfolioCheckout]);
+
+  // Keep M-Pesa amount aligned with ceiled checkout total on the payment step
+  React.useEffect(() => {
+    if (!open || !plan || currentStep !== "payment") return;
+    setPaymentAmount(paymentTotalString(pricing.total));
+  }, [open, plan, currentStep, pricing.total]);
 
   // Helper function to get user-friendly error messages
   const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
@@ -975,8 +977,8 @@ export function BuyNowDialog({
       productPlanId: null,
       billingCycle: mapHivelocityPeriodToBillingCycle(hivelocityPeriod),
       description: `${plan.planName} @ ${plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName}`,
-      itemPrice: String(Math.round(hivelocityInvoiceBreakdown.totalIncVat)),
-      itemSubtotal: String(Math.round(hivelocityInvoiceBreakdown.subtotalExVat)),
+      itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+      itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
       metadata: {
         hivelocityProductId: Number(plan.hivelocity.hivelocityProductId),
         hivelocityLocationName: plan.hivelocity.locationName,
@@ -991,8 +993,8 @@ export function BuyNowDialog({
           plan.hivelocity.baseUsdByPeriod?.[hivelocityPeriod] ?? plan.hivelocity.baseMonthlyUsd,
         osPriceUsd,
         addonsPriceUsd,
-        subtotalKes: Math.round(hivelocityInvoiceBreakdown.subtotalExVat),
-        totalKes: Math.round(hivelocityInvoiceBreakdown.totalIncVat),
+        subtotalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.subtotalExVat),
+        totalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.totalIncVat),
         usdToKesRate: usdToKesRate ?? undefined,
         invoiceLines: hivelocityInvoiceBreakdown.lines,
         productType: plan.hivelocity.productType,
@@ -1271,7 +1273,7 @@ export function BuyNowDialog({
           invoiceLines: hivelocityInvoiceBreakdown.lines,
           subtotalExVat: hivelocityInvoiceBreakdown.subtotalExVat,
           vatAmount: hivelocityInvoiceBreakdown.vatAmount,
-          totalPrice: hivelocityInvoiceBreakdown.totalIncVat,
+          totalPrice: hivelocityInvoiceBreakdown.subtotalExVat,
           selectedOptionIds: selectedOptions
             .map((o: any) => Number(o?.id))
             .filter((n) => Number.isFinite(n)),
@@ -1285,7 +1287,7 @@ export function BuyNowDialog({
       }
 
       setCurrentStep("payment");
-      setPaymentAmount(pricing.total.toString());
+      setPaymentAmount(paymentTotalString(pricing.total));
       hivelocityCheckoutSnapshotRef.current = buildHivelocityPaymentItem();
       const ref = generateMpesaAccountReference(plan.planName);
       setAccountReference(ref);
