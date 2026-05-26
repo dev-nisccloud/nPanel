@@ -24,6 +24,7 @@ import { formatFileSize } from "./utils";
 import { CustomDocumentViewer } from "./document-viewers/custom-document-viewer";
 import { CommentsSheet } from "./comments-sheet";
 import { VersionAiAnalysisSheet } from "./version-ai-analysis-sheet";
+import { AiAnalysisContextDialog } from "./ai-analysis-context-dialog";
 
 function isImageMimeType(mimeType: string | undefined | null): boolean {
 	if (!mimeType) return false;
@@ -43,6 +44,7 @@ export function VersionDetailSheet({
 }: VersionDetailSheetProps) {
 	const [isCommentsOpen, setIsCommentsOpen] = React.useState(false);
 	const [aiAnalysisSheetOpen, setAiAnalysisSheetOpen] = React.useState(false);
+	const [contextDialogOpen, setContextDialogOpen] = React.useState(false);
 
 	const utils = trpc.useUtils();
 
@@ -73,17 +75,36 @@ export function VersionDetailSheet({
 	React.useEffect(() => {
 		if (!open) {
 			setAiAnalysisSheetOpen(false);
+			setContextDialogOpen(false);
 		}
 	}, [open]);
 
 	const handleOpenAiAnalysis = React.useCallback(() => {
 		if (!supportsAiImageAnalysis) return;
+		if (!hasCompletedAnalysis) {
+			setContextDialogOpen(true);
+			return;
+		}
 		setAiAnalysisSheetOpen(true);
-	}, [supportsAiImageAnalysis]);
+	}, [supportsAiImageAnalysis, hasCompletedAnalysis]);
 
-	const handleRunAiAnalysisAgain = React.useCallback(() => {
-		runAiAnalysisMutation.mutate({ creativeAssetVersionId: version.id });
-	}, [version.id, runAiAnalysisMutation]);
+	const handleRunAiAnalysisAgain = React.useCallback(
+		(userContext?: string) => {
+			runAiAnalysisMutation.mutate({
+				creativeAssetVersionId: version.id,
+				userContext,
+			});
+		},
+		[version.id, runAiAnalysisMutation],
+	);
+
+	const handleContextDialogRun = React.useCallback(
+		(userContext?: string) => {
+			setAiAnalysisSheetOpen(true);
+			handleRunAiAnalysisAgain(userContext);
+		},
+		[handleRunAiAnalysisAgain],
+	);
 
 	const handleDownload = React.useCallback(async () => {
 		if (!version.fileUrl) return;
@@ -285,6 +306,13 @@ export function VersionDetailSheet({
 				versionId={version.id}
 				internalVersionNumber={version.internalVersionNumber}
 				fileName={version.fileName}
+			/>
+
+			<AiAnalysisContextDialog
+				open={contextDialogOpen}
+				onOpenChange={setContextDialogOpen}
+				onRun={handleContextDialogRun}
+				isLoading={runAiAnalysisMutation.isPending}
 			/>
 
 			<CommentsSheet

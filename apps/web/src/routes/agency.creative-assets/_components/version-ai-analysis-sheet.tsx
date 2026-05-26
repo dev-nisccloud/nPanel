@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 import { cn } from "@/lib/utils";
+import { AiAnalysisContextDialog } from "./ai-analysis-context-dialog";
 
 type AiAnalysisListRow = RouterOutputs["creativeAssets"]["listAiImageAnalyses"][number];
 
@@ -91,6 +92,7 @@ function mapToHistoryRow(row: AiAnalysisListRow, internalVersionNumber: number):
     overallRatingValue: row.overallRatingValue ?? undefined,
     overallRatingScaleMax: row.overallRatingScaleMax,
     overallRatingBand: row.overallRatingBand,
+    userContext: row.userContext,
     analysisDetail,
   };
 }
@@ -180,9 +182,32 @@ function OverallStarRating({ value, scaleMax, compact }: OverallStarRatingProps)
   );
 }
 
-function AiAnalysisDetailContent({ latest }: { latest: CreativeAssetAiAnalysisDetailView }) {
+function AiAnalysisUserContextCard({ userContext }: { userContext: string }) {
+  return (
+    <Card className="border-border/80 bg-muted/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">Context provided for this run</CardTitle>
+        <CardDescription className="text-xs">
+          This was shared with the AI when scoring and writing recommendations.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{userContext}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AiAnalysisDetailContent({
+  latest,
+  userContext,
+}: {
+  latest: CreativeAssetAiAnalysisDetailView;
+  userContext?: string | null;
+}) {
   return (
     <div className="space-y-5 pb-8">
+      {userContext ? <AiAnalysisUserContextCard userContext={userContext} /> : null}
       <div>
         <h3 className="text-base font-semibold leading-tight">{latest.headline}</h3>
         <p className="text-xs text-muted-foreground mt-1">{latest.modelLabel}</p>
@@ -315,7 +340,7 @@ export interface VersionAiAnalysisSheetProps {
   /** True while Replicate/analysis mutation is in flight */
   isLoading: boolean;
   /** Starts another analysis pass — must call API mutation in parent */
-  onRunNewAnalysis?: () => void;
+  onRunNewAnalysis?: (userContext?: string) => void;
   versionId: string;
   internalVersionNumber: number;
   fileName: string;
@@ -337,6 +362,12 @@ export function VersionAiAnalysisSheet({
 
   const apiRows = analysesQuery.data ?? [];
   const latestDetail = React.useMemo(() => pickLatestCompletedDetail(apiRows), [apiRows]);
+  const latestCompletedRow = React.useMemo(() => {
+    for (const row of apiRows) {
+      if (row.status === "COMPLETED") return row;
+    }
+    return null;
+  }, [apiRows]);
   const historyRows = React.useMemo(
     () => apiRows.map((row) => mapToHistoryRow(row, internalVersionNumber)),
     [apiRows, internalVersionNumber],
@@ -348,22 +379,32 @@ export function VersionAiAnalysisSheet({
   const [historyDetailOpen, setHistoryDetailOpen] = React.useState(false);
   const [historyDetailRow, setHistoryDetailRow] = React.useState<CreativeAssetAiHistoryRowView | null>(null);
   const [mainTab, setMainTab] = React.useState<"analysis" | "history" | "new-run">("analysis");
+  const [contextDialogOpen, setContextDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) {
       setHistoryDetailOpen(false);
       setHistoryDetailRow(null);
       setMainTab("analysis");
+      setContextDialogOpen(false);
     }
   }, [open]);
 
   const versionBadge = `Internal v${internalVersionNumber}`;
 
-  const handleRunNewAnalysisClick = React.useCallback(() => {
+  const openRunAnalysisDialog = React.useCallback(() => {
     if (!onRunNewAnalysis || isLoading) return;
-    setMainTab("analysis");
-    onRunNewAnalysis();
+    setContextDialogOpen(true);
   }, [onRunNewAnalysis, isLoading]);
+
+  const handleConfirmRunAnalysis = React.useCallback(
+    (userContext?: string) => {
+      if (!onRunNewAnalysis) return;
+      setMainTab("analysis");
+      onRunNewAnalysis(userContext);
+    },
+    [onRunNewAnalysis],
+  );
 
   function openHistoryRun(row: CreativeAssetAiHistoryRowView) {
     setHistoryDetailRow(row);
@@ -460,13 +501,19 @@ export function VersionAiAnalysisSheet({
                           saved so you can compare over time in History.
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="space-y-4">
                         <p className="text-sm text-muted-foreground">
                           If a run failed, check History for the error message, fix the file or try again.
                         </p>
                         {onRunNewAnalysis ? (
                           <div className="flex flex-wrap gap-2">
-                            <Button type="button" variant="default" className="gap-2" disabled={isLoading} onClick={onRunNewAnalysis}>
+                            <Button
+                              type="button"
+                              variant="default"
+                              className="gap-2"
+                              disabled={isLoading}
+                              onClick={openRunAnalysisDialog}
+                            >
                               <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
                               Run analysis
                             </Button>
@@ -478,7 +525,10 @@ export function VersionAiAnalysisSheet({
                       </CardContent>
                     </Card>
                   ) : (
-                    <AiAnalysisDetailContent latest={latestDetail} />
+                    <AiAnalysisDetailContent
+                      latest={latestDetail}
+                      userContext={latestCompletedRow?.userContext}
+                    />
                   )}
                 </div>
               </ScrollArea>
@@ -516,10 +566,7 @@ export function VersionAiAnalysisSheet({
                           variant="default"
                           className="mt-6 gap-2"
                           disabled={isLoading}
-                          onClick={() => {
-                            setMainTab("new-run");
-                            onRunNewAnalysis();
-                          }}
+                          onClick={openRunAnalysisDialog}
                         >
                           <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
                           Run first analysis
@@ -621,13 +668,14 @@ export function VersionAiAnalysisSheet({
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          Analysis can take up to a few minutes. Leave this panel open while the request completes.
+                          Analysis can take up to a few minutes. Leave this panel open while the request completes. You
+                          can add optional context before each run to improve channel-fit scoring.
                         </p>
                         <Button
                           type="button"
                           disabled={isLoading}
                           className="w-full gap-2 sm:w-auto"
-                          onClick={handleRunNewAnalysisClick}
+                          onClick={openRunAnalysisDialog}
                         >
                           <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
                           Run analysis now
@@ -648,7 +696,7 @@ export function VersionAiAnalysisSheet({
               variant="default"
               className="gap-2"
               disabled={isLoading}
-              onClick={handleRunNewAnalysisClick}
+              onClick={openRunAnalysisDialog}
             >
               <RotateCw className="h-4 w-4 shrink-0" aria-hidden />
               Run new analysis
@@ -664,6 +712,13 @@ export function VersionAiAnalysisSheet({
         </div>
       </SheetContent>
     </Sheet>
+
+    <AiAnalysisContextDialog
+      open={contextDialogOpen}
+      onOpenChange={setContextDialogOpen}
+      onRun={handleConfirmRunAnalysis}
+      isLoading={isLoading}
+    />
 
     <Sheet
       open={historyDetailOpen}
@@ -734,7 +789,10 @@ export function VersionAiAnalysisSheet({
                 </CardContent>
               </Card>
             ) : historyDetailRow.analysisDetail ? (
-              <AiAnalysisDetailContent latest={historyDetailRow.analysisDetail} />
+              <AiAnalysisDetailContent
+                latest={historyDetailRow.analysisDetail}
+                userContext={historyDetailRow.userContext}
+              />
             ) : (
               <Card className="border-border/80">
                 <CardHeader className="pb-2">

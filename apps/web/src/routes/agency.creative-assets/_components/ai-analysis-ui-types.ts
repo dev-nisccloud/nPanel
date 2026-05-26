@@ -34,5 +34,6 @@ export type CreativeAssetAiHistoryRowView = {
   overallRatingValue?: number;
   overallRatingScaleMax?: number;
   overallRatingBand?: string | null;
+  userContext?: string | null;
   analysisDetail?: CreativeAssetAiAnalysisDetailView | null;
 };

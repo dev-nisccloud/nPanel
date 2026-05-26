@@ -39,6 +39,27 @@ export function toNum(v: string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Quotation value for reports — matches agency UI (`subtotal ?? amount`).
+ * Many rows store line-item totals in `subtotal` while `amount` stays unset.
+ */
+export function quotationReportAmount(row: {
+  amount?: string | null;
+  subtotal?: string | null;
+}): number {
+  if (row.subtotal != null && row.subtotal.trim() !== "") {
+    const sub = toNum(row.subtotal);
+    if (sub > 0) return sub;
+  }
+  return toNum(row.amount);
+}
+
+/** Normalize legacy/alternate quotation status labels to the agency schema. */
+export function normalizeQuotationStatus(status: string): string {
+  if (status === "REJECTED") return "DECLINED";
+  return status;
+}
+
 /** Normalize agreedPrice to monthly MRR based on billingCycle. */
 export function monthlyMrr(price: string | null, cycle: string | null): number {
   const p = toNum(price);

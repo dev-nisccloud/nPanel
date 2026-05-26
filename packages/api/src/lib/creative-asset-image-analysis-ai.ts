@@ -117,6 +117,7 @@ export function buildCreativeAssetImageAnalysisSystemPrompt(): string {
 	return [
 		"You are a senior creative director and performance marketer who reviews individual static image creatives for ads, landing pages, and brand materials.",
 		"You receive the image visually (vision) plus light file metadata.",
+		"When the user supplies optional context (campaign, channel, audience, brand, intended placement), treat it as ground truth for channel fit, messaging, and scoring — weigh it heavily in overallRatingReason and recommendations.",
 		"",
 		"## HARD OUTPUT RULE",
 		"Respond with one JSON object only. No Markdown, no commentary, no text before or after the JSON.",
@@ -140,17 +141,28 @@ export function buildCreativeAssetImageAnalysisUserPrompt(ctx: {
 	fileName: string;
 	mimeType: string;
 	internalVersionNumber: number;
+	userContext?: string | null;
 }): string {
-	return [
+	const lines = [
 		"Analyze this creative asset IMAGE for readiness in digital marketing workflows.",
 		"",
 		"## METADATA",
 		`- File name: ${ctx.fileName}`,
 		`- MIME type: ${ctx.mimeType}`,
 		`- Internal version number: ${ctx.internalVersionNumber}`,
-		"",
-		"Return ONLY the JSON object specified in your system prompt.",
-	].join("\n");
+	];
+
+	const context = ctx.userContext?.trim();
+	if (context) {
+		lines.push(
+			"",
+			"## USER CONTEXT (use this to tailor channel fit, audience, and recommendations)",
+			context,
+		);
+	}
+
+	lines.push("", "Return ONLY the JSON object specified in your system prompt.");
+	return lines.join("\n");
 }
 
 /** Coerce LLM quirks (array bodies, nested bullets, numeric strings) before Zod. */
@@ -329,6 +341,7 @@ export async function invokeCreativeAssetImageAnalysis(params: {
 	fileName: string;
 	mimeType: string;
 	internalVersionNumber: number;
+	userContext?: string | null;
 	maxMs?: number;
 }): Promise<{ rawText: string; detail: CreativeAssetImageAnalysisDetail }> {
 	const system_prompt = buildCreativeAssetImageAnalysisSystemPrompt();
@@ -336,6 +349,7 @@ export async function invokeCreativeAssetImageAnalysis(params: {
 		fileName: params.fileName,
 		mimeType: params.mimeType,
 		internalVersionNumber: params.internalVersionNumber,
+		userContext: params.userContext,
 	});
 
 	const output = await runReplicateWithTimeout(

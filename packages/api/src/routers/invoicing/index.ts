@@ -20,6 +20,7 @@ import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
+import { resolveInvoicePaymentMethod } from "../../lib/invoice-payment-method";
 import {
 	activityLogSchema,
 	creditNoteInputSchema,
@@ -900,6 +901,7 @@ export const invoicingRouter = router({
 					status: invoice.status,
 					amount: invoice.amount,
 					currency: invoice.currency,
+					paymentDetails: invoice.paymentDetails,
 				})
 				.from(invoice)
 				.where(eq(invoice.id, input.invoiceId))
@@ -940,11 +942,12 @@ export const invoicingRouter = router({
 				}
 
 				const transactionId = crypto.randomUUID();
+				const paymentMethod = resolveInvoicePaymentMethod(null, inv.paymentDetails);
 				await tx.insert(invoiceTransaction).values({
 					id: transactionId,
 					invoiceId: input.invoiceId,
 					status: "COMPLETED",
-					method: "OTHER",
+					method: paymentMethod,
 					amount: amountToRecord,
 					currency: inv.currency ?? "KES",
 					paidAt: now,

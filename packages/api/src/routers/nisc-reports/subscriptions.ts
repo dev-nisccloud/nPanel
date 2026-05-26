@@ -7,7 +7,7 @@ import {
   niscProduct,
 } from "@npanel/db/schema/products";
 import { protectedProcedure, router } from "../../trpc";
-import { reportFiltersSchema } from "./filters";
+import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
 import { buildReportEntityScope, resolveReportReadScope } from "./access";
 import {
@@ -321,7 +321,7 @@ export const niscSubscriptionsRouter = router({
           teamName: (s as any).team?.name ?? null,
           productName: (s as any).product?.name ?? null,
           pricingModel: s.pricingModel,
-          agreedPrice: subscriptionMrr(s),
+          agreedPrice: toNum(s.agreedPrice),
           billingCycle: s.billingCycle,
           status: s.status,
           subscriptionDate: s.subscriptionDate,
@@ -440,7 +440,7 @@ export const niscSubscriptionsRouter = router({
           id: s.id,
           teamName: (s as any).team?.name ?? null,
           productName: (s as any).product?.name ?? null,
-          agreedPrice: subscriptionMrr(s),
+          agreedPrice: toNum(s.agreedPrice),
           billingCycle: s.billingCycle,
           subscriptionDate: s.subscriptionDate,
           churnDate: s.updatedAt,

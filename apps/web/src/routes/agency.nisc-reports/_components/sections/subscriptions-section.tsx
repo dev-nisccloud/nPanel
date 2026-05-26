@@ -59,7 +59,7 @@ export function SubscriptionsSection() {
               </NiscChartCard>
               <NiscChartCard title="Subscription status" isLoading={statuses.isLoading}>
                 <StatusPieChart
-                  data={(statuses.data ?? []).map((s) => ({ name: s.status, value: s.mrr }))}
+                  data={(statuses.data ?? []).map((s) => ({ name: s.status, value: s.count }))}
                 />
               </NiscChartCard>
             </div>
