@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
 import { RefreshCw } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 
@@ -33,7 +34,13 @@ const defaultSettings = {
   },
 };
 
-export function AutoUpdateSettingsCard({ installationId }: { installationId: number }) {
+export function AutoUpdateSettingsCard({
+  installationId,
+  shell = "card",
+}: {
+  installationId: number;
+  shell?: "card" | "none";
+}) {
   const utils = trpc.useUtils();
   const { data, isLoading } = trpc.plesk.wpUpdatesSettings.get.useQuery({ installationId });
 
@@ -77,6 +84,97 @@ export function AutoUpdateSettingsCard({ installationId }: { installationId: num
     setSettings((s) => ({ ...s, themes: { ...s.themes, [key]: val } }));
   };
 
+  const content = isLoading ? (
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  ) : (
+    <div className="space-y-4">
+      <div className="grid gap-4 @md/main:grid-cols-2">
+        <div className="space-y-2">
+          <Label>WordPress core</Label>
+          <Select
+            value={settings.core}
+            onValueChange={(v) =>
+              setSettings((s) => ({ ...s, core: v as "major" | "minor" | "none" }))
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="major">Major updates</SelectItem>
+              <SelectItem value="minor">Minor updates</SelectItem>
+              <SelectItem value="none">Disabled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-between gap-4 rounded-md border border-border/60 p-3">
+          <Label className="font-normal">Safe update</Label>
+          <Switch
+            checked={settings.safeUpdate}
+            onCheckedChange={(v) => setSettings((s) => ({ ...s, safeUpdate: v }))}
+          />
+        </div>
+      </div>
+
+      <div className={wpDetailLayout.innerGrid}>
+        <div className="space-y-2 rounded-md border border-border/60 p-3">
+          <p className="text-sm font-medium">Plugins</p>
+          {(
+            [
+              ["forceUpdates", "Force update all plugins"],
+              ["newlyInstalledUpdates", "Auto-update newly installed"],
+              ["updateVulnerable", "Update vulnerable plugins"],
+              ["deactivateVulnerable", "Deactivate vulnerable plugins"],
+            ] as const
+          ).map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between gap-4 py-1">
+              <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
+              <Switch
+                checked={settings.plugins[key]}
+                onCheckedChange={(v) => togglePlugin(key, v)}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-2 rounded-md border border-border/60 p-3">
+          <p className="text-sm font-medium">Themes</p>
+          {(
+            [
+              ["forceUpdates", "Force update all themes"],
+              ["newlyInstalledUpdates", "Auto-update newly installed"],
+              ["updateVulnerable", "Update vulnerable themes"],
+            ] as const
+          ).map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between gap-4 py-1">
+              <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
+              <Switch
+                checked={settings.themes[key]}
+                onCheckedChange={(v) => toggleTheme(key, v)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        size="sm"
+        disabled={updateMutation.isPending || unavailable}
+        onClick={() => updateMutation.mutate({ installationId, settings })}
+      >
+        {updateMutation.isPending ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="mr-2 h-4 w-4" />
+        )}
+        Save auto-update settings
+      </Button>
+    </div>
+  );
+
+  if (shell === "none") return content;
+
   return (
     <WpFeatureCard
       title="Automatic updates"
@@ -84,91 +182,7 @@ export function AutoUpdateSettingsCard({ installationId }: { installationId: num
       icon={RefreshCw}
       unavailable={unavailable}
     >
-      {isLoading ? (
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      ) : (
-        <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>WordPress core</Label>
-              <Select
-                value={settings.core}
-                onValueChange={(v) =>
-                  setSettings((s) => ({ ...s, core: v as "major" | "minor" | "none" }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="major">Major updates</SelectItem>
-                  <SelectItem value="minor">Minor updates</SelectItem>
-                  <SelectItem value="none">Disabled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 p-3">
-              <Label className="font-normal">Safe update</Label>
-              <Switch
-                checked={settings.safeUpdate}
-                onCheckedChange={(v) => setSettings((s) => ({ ...s, safeUpdate: v }))}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Plugins</p>
-            {(
-              [
-                ["forceUpdates", "Force update all plugins"],
-                ["newlyInstalledUpdates", "Auto-update newly installed"],
-                ["updateVulnerable", "Update vulnerable plugins"],
-                ["deactivateVulnerable", "Deactivate vulnerable plugins"],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="flex items-center justify-between gap-4">
-                <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
-                <Switch
-                  checked={settings.plugins[key]}
-                  onCheckedChange={(v) => togglePlugin(key, v)}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Themes</p>
-            {(
-              [
-                ["forceUpdates", "Force update all themes"],
-                ["newlyInstalledUpdates", "Auto-update newly installed"],
-                ["updateVulnerable", "Update vulnerable themes"],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="flex items-center justify-between gap-4">
-                <Label className="text-sm font-normal text-muted-foreground">{label}</Label>
-                <Switch
-                  checked={settings.themes[key]}
-                  onCheckedChange={(v) => toggleTheme(key, v)}
-                />
-              </div>
-            ))}
-          </div>
-
-          <Button
-            type="button"
-            disabled={updateMutation.isPending || unavailable}
-            onClick={() => updateMutation.mutate({ installationId, settings })}
-          >
-            {updateMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            Save auto-update settings
-          </Button>
-        </div>
-      )}
+      {content}
     </WpFeatureCard>
   );
 }

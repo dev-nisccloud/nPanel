@@ -13,7 +13,13 @@ import { trpc } from "@/utils/trpc";
 type Measure = { id: string; title: string; description?: string };
 type MeasureStatus = { id: string; status?: boolean; available?: boolean };
 
-export function SecurityMeasuresCard({ installationId }: { installationId: number }) {
+export function SecurityMeasuresCard({
+  installationId,
+  shell = "card",
+}: {
+  installationId: number;
+  shell?: "card" | "none";
+}) {
   const [taskUrl, setTaskUrl] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const utils = trpc.useUtils();
@@ -75,18 +81,8 @@ export function SecurityMeasuresCard({ installationId }: { installationId: numbe
     });
   };
 
-  return (
-    <WpFeatureCard
-      title="Security measures"
-      description="Harden WordPress with recommended security fixes from WP Toolkit."
-      icon={ShieldCheck}
-      badge={
-        installStatus?.securityStatus
-          ? { label: String(installStatus.securityStatus), variant: "secondary" }
-          : undefined
-      }
-    >
-      <div className="space-y-4">
+  const content = (
+    <div className="space-y-4">
         {taskUrl ? (
           <WpTaskProgress
             taskUrl={taskUrl}
@@ -149,6 +145,22 @@ export function SecurityMeasuresCard({ installationId }: { installationId: numbe
           })}
         </ul>
       </div>
+  );
+
+  if (shell === "none") return content;
+
+  return (
+    <WpFeatureCard
+      title="Security measures"
+      description="Harden WordPress with recommended security fixes from WP Toolkit."
+      icon={ShieldCheck}
+      badge={
+        installStatus?.securityStatus
+          ? { label: String(installStatus.securityStatus), variant: "secondary" }
+          : undefined
+      }
+    >
+      {content}
     </WpFeatureCard>
   );
 }

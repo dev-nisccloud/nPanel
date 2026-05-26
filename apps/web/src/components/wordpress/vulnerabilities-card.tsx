@@ -10,7 +10,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { trpc } from "@/utils/trpc";
 
@@ -21,7 +23,13 @@ type Vuln = {
   fixedIn?: string;
 };
 
-export function VulnerabilitiesCard({ installationId }: { installationId: number }) {
+export function VulnerabilitiesCard({
+  installationId,
+  shell = "card",
+}: {
+  installationId: number;
+  shell?: "card" | "panel" | "none";
+}) {
   const [taskUrl, setTaskUrl] = React.useState<string | null>(null);
 
   const { data, refetch } = trpc.plesk.wpFeatures.getVulnerabilities.useQuery({
@@ -48,17 +56,14 @@ export function VulnerabilitiesCard({ installationId }: { installationId: number
 
   const total = coreVulns.length + pluginVulns.length;
 
-  return (
-    <WpFeatureCard
-      title="Vulnerability scan"
-      description="Scan core, plugins, and themes for known security issues."
-      icon={AlertTriangle}
-      badge={{
-        label: row?.vulnerable ? `${total} found` : "None",
-        variant: row?.vulnerable ? "destructive" : "outline",
-      }}
-    >
-      <div className="space-y-4">
+  const badge = (
+    <Badge variant={row?.vulnerable ? "destructive" : "outline"} className="text-xs">
+      {row?.vulnerable ? `${total} found` : "None"}
+    </Badge>
+  );
+
+  const content = (
+    <div className="space-y-3">
         {taskUrl ? (
           <WpTaskProgress
             taskUrl={taskUrl}
@@ -94,6 +99,28 @@ export function VulnerabilitiesCard({ installationId }: { installationId: number
           </div>
         )}
       </div>
+  );
+
+  if (shell === "none") return content;
+  if (shell === "panel") {
+    return (
+      <WpPanel title="Scan results" description="Core, plugins, and themes" badge={badge}>
+        {content}
+      </WpPanel>
+    );
+  }
+
+  return (
+    <WpFeatureCard
+      title="Vulnerability scan"
+      description="Scan core, plugins, and themes for known security issues."
+      icon={AlertTriangle}
+      badge={{
+        label: row?.vulnerable ? `${total} found` : "None",
+        variant: row?.vulnerable ? "destructive" : "outline",
+      }}
+    >
+      {content}
     </WpFeatureCard>
   );
 }

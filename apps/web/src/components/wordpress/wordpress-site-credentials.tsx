@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -366,12 +365,7 @@ export function WordPressSiteCredentials({ installationId }: WordPressSiteCreden
                 <Shield className="h-4 w-4 text-primary" aria-hidden />
               </div>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-sm font-semibold">WordPress admin access</h2>
-                  <Badge variant="secondary" className="font-normal text-xs">
-                    {credentials.login}
-                  </Badge>
-                </div>
+                <h2 className="text-sm font-semibold">WordPress admin access</h2>
                 <p className="text-xs text-muted-foreground">
                   Log in directly or copy credentials below.
                 </p>

@@ -4,20 +4,24 @@ import * as React from "react";
 import { ExternalLink, Sparkles, Check, X } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
 import { trpc } from "@/utils/trpc";
 
 export function SmartUpdateResultCard({
   installationId,
   enabled,
+  shell = "card",
 }: {
   installationId: number;
   enabled?: boolean;
+  shell?: "card" | "panel" | "none";
 }) {
   const utils = trpc.useUtils();
   const { data, isLoading, refetch } = trpc.plesk.wpFeatures.getSmartUpdateResult.useQuery(
@@ -49,21 +53,14 @@ export function SmartUpdateResultCard({
   const details = Array.isArray(result?.details) ? result.details : [];
   const hasResult = taskStatus && taskStatus !== "none";
 
-  return (
-    <WpFeatureCard
-      title="Smart Update test result"
-      description="Review the clone test before applying updates to your live site."
-      icon={Sparkles}
-      badge={taskStatus ? { label: taskStatus, variant: "outline" } : undefined}
-    >
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading result…</p>
-      ) : !hasResult ? (
-        <p className="text-sm text-muted-foreground">
-          No Smart Update test in progress. Run Smart Update to generate a test clone.
-        </p>
-      ) : (
-        <div className="space-y-4">
+  const content = isLoading ? (
+    <p className="text-sm text-muted-foreground">Loading result…</p>
+  ) : !hasResult ? (
+    <p className="text-sm text-muted-foreground">
+      No Smart Update test in progress. Run Smart Update to generate a test clone.
+    </p>
+  ) : (
+    <div className="space-y-3">
           {cloneUrl ? (
             <Button type="button" variant="outline" size="sm" asChild>
               <a href={cloneUrl} target="_blank" rel="noopener noreferrer">
@@ -118,7 +115,31 @@ export function SmartUpdateResultCard({
             </Button>
           </div>
         </div>
-      )}
+  );
+
+  const badge = taskStatus ? (
+    <Badge variant="outline" className="text-xs capitalize">
+      {taskStatus}
+    </Badge>
+  ) : undefined;
+
+  if (shell === "none") return content;
+  if (shell === "panel") {
+    return (
+      <WpPanel title="Test result" description="Review before applying to live site" badge={badge}>
+        {content}
+      </WpPanel>
+    );
+  }
+
+  return (
+    <WpFeatureCard
+      title="Smart Update test result"
+      description="Review the clone test before applying updates to your live site."
+      icon={Sparkles}
+      badge={taskStatus ? { label: taskStatus, variant: "outline" } : undefined}
+    >
+      {content}
     </WpFeatureCard>
   );
 }

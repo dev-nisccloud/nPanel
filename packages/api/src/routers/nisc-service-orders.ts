@@ -1,6 +1,7 @@
 import * as crypto from "crypto";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
 
 import { db } from "@npanel/db";
@@ -128,6 +129,68 @@ async function canAccessOrderMutation(orderId: string, userId: string, role: str
 }
 
 export const niscServiceOrdersRouter = router({
+	getSummary: protectedProcedure
+		.output(
+			z.object({
+				total: z.number(),
+				completed: z.number(),
+				failed: z.number(),
+				pending: z.number(),
+			}),
+		)
+		.query(async ({ ctx }) => {
+			const userId = ctx.session?.user?.id;
+			const userRole = ctx.session?.user?.role;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "You must be logged in to view Nisc order summary",
+				});
+			}
+
+			const whereClause = isAgencyUserRole(userRole)
+				? undefined
+				: eq(niscOrder.userId, userId);
+
+			const [totalRows, completedRows, failedRows, pendingRows] = await Promise.all([
+				db
+					.select({ c: count() })
+					.from(niscOrder)
+					.where(whereClause ?? sql`true`),
+				db
+					.select({ c: count() })
+					.from(niscOrder)
+					.where(
+						whereClause
+							? and(whereClause, eq(niscOrder.status, "COMPLETED"))
+							: eq(niscOrder.status, "COMPLETED"),
+					),
+				db
+					.select({ c: count() })
+					.from(niscOrder)
+					.where(
+						whereClause
+							? and(whereClause, eq(niscOrder.status, "FAILED"))
+							: eq(niscOrder.status, "FAILED"),
+					),
+				db
+					.select({ c: count() })
+					.from(niscOrder)
+					.where(
+						whereClause
+							? and(whereClause, inArray(niscOrder.status, ["PENDING", "PROCESSING", "PARTIAL"]))
+							: inArray(niscOrder.status, ["PENDING", "PROCESSING", "PARTIAL"]),
+					),
+			]);
+
+			return {
+				total: Number(totalRows[0]?.c ?? 0),
+				completed: Number(completedRows[0]?.c ?? 0),
+				failed: Number(failedRows[0]?.c ?? 0),
+				pending: Number(pendingRows[0]?.c ?? 0),
+			};
+		}),
+
 	getAll: protectedProcedure
 		.input(getAllNiscOrdersInputSchema)
 		.query(async ({ ctx, input }) => {

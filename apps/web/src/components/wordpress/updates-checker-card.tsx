@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Badge } from "@/components/ui/badge";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { trpc } from "@/utils/trpc";
 
@@ -17,7 +18,13 @@ type UpdateInfo = {
   themes?: Array<{ title?: string; availableVersion?: string }>;
 };
 
-export function UpdatesCheckerCard({ installationId }: { installationId: number }) {
+export function UpdatesCheckerCard({
+  installationId,
+  shell = "card",
+}: {
+  installationId: number;
+  shell?: "card" | "none";
+}) {
   const [taskUrl, setTaskUrl] = React.useState<string | null>(null);
   const utils = trpc.useUtils();
 
@@ -46,13 +53,8 @@ export function UpdatesCheckerCard({ installationId }: { installationId: number 
   const themeCount = info?.themes?.filter((t) => t.availableVersion)?.length ?? 0;
   const coreUpdate = info?.core?.availableVersion;
 
-  return (
-    <WpFeatureCard
-      title="Available updates"
-      description="Scan this installation for WordPress core, plugin, and theme updates."
-      icon={Search}
-    >
-      <div className="space-y-4">
+  const content = (
+    <div className="space-y-3">
         {taskUrl ? (
           <WpTaskProgress
             taskUrl={taskUrl}
@@ -106,6 +108,17 @@ export function UpdatesCheckerCard({ installationId }: { installationId: number 
           </div>
         ) : null}
       </div>
+  );
+
+  if (shell === "none") return content;
+
+  return (
+    <WpFeatureCard
+      title="Available updates"
+      description="Scan this installation for WordPress core, plugin, and theme updates."
+      icon={Search}
+    >
+      {content}
     </WpFeatureCard>
   );
 }

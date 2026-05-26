@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
-import { WpCardGrid } from "@/components/wordpress/wp-detail-primitives";
+import { Separator } from "@/components/ui/separator";
+import { WpSection } from "@/components/wordpress/wp-detail-primitives";
 import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { RestoreBackupDialog } from "@/components/wordpress/restore-backup-dialog";
@@ -71,14 +71,14 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
         />
       ) : null}
 
-      <WpCardGrid>
-        <WpFeatureCard
-          title="Create backup"
-          description="WP Toolkit backups include files and database."
-          icon={Database}
-        >
-          <div className="space-y-3">
-            <div className="space-y-1.5">
+      <WpSection
+        title="Backups"
+        description="WP Toolkit backups include files and database"
+        icon={Database}
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 @md/main:flex-row @md/main:items-end">
+            <div className="min-w-0 flex-1 space-y-1.5">
               <Label htmlFor="backup-desc" className="text-sm">
                 Description (optional)
               </Label>
@@ -92,6 +92,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
             <Button
               type="button"
               size="sm"
+              className="shrink-0"
               disabled={createBackup.isPending}
               onClick={() =>
                 createBackup.mutate({
@@ -105,26 +106,31 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
               Create backup
             </Button>
           </div>
-        </WpFeatureCard>
 
-        <WpFeatureCard
-          title="Backup history"
-          description="Restore or remove WP Toolkit backup archives."
-          icon={Database}
-          span="full"
-        >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Label htmlFor="show-all" className="text-sm font-normal">
-              Show all backups in directory
-            </Label>
-            <Switch id="show-all" checked={showAll} onCheckedChange={setShowAll} />
+          <Separator />
+
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Backup history</p>
+              <p className="text-xs text-muted-foreground">
+                Restore or remove WP Toolkit backup archives
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Label htmlFor="show-all" className="text-xs font-normal text-muted-foreground">
+                Show all in directory
+              </Label>
+              <Switch id="show-all" checked={showAll} onCheckedChange={setShowAll} />
+            </div>
           </div>
+
           {list.length > 0 && data?.dirName ? (
-            <p className="mb-2 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {list.length} backup{list.length === 1 ? "" : "s"}
               {data.dirName ? ` in ${data.dirName}` : ""}.
             </p>
           ) : null}
+
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading backups…</p>
           ) : list.length === 0 ? (
@@ -168,8 +174,8 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
               ))}
             </ul>
           )}
-        </WpFeatureCard>
-      </WpCardGrid>
+        </div>
+      </WpSection>
 
       {restoreFile ? (
         <RestoreBackupDialog
