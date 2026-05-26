@@ -13,8 +13,17 @@ import { trpc } from "@/utils/trpc";
 import {
 	BriefForm,
 	type BriefFormValues,
+	getResolvedBriefAudience,
+	getResolvedBriefGoal,
 } from "./agency.nisc-email-builder/_components/brief-form";
 import { padBrandColors } from "./agency.nisc-email-builder/_components/brand-color-editor";
+import {
+	inferAudienceSelection,
+	inferGoalSelection,
+	NEB_BRIEF_OTHER,
+	NEB_EMAIL_AUDIENCES,
+	NEB_EMAIL_GOALS,
+} from "@npanel/api/lib/nisc-email-builder/brief-options";
 import { ChatPanel } from "./agency.nisc-email-builder/_components/chat-panel";
 import {
 	PreviewTabs,
@@ -139,8 +148,10 @@ export default function NiscEmailBuilderEditorPage() {
 	const [chatInput, setChatInput] = React.useState("");
 	const [brief, setBrief] = React.useState<BriefFormValues>({
 		companyName: "",
-		goal: "",
-		audience: "",
+		goalPreset: NEB_EMAIL_GOALS[0].value,
+		goalCustom: "",
+		audiencePreset: NEB_EMAIL_AUDIENCES[0].value,
+		audienceCustom: "",
 		tone: "Professional",
 		emailType: "promotional",
 		instructions: "",
@@ -179,7 +190,7 @@ export default function NiscEmailBuilderEditorPage() {
 					description: data.brandPreview.warnings.join(" "),
 				});
 			} else if (data.brandPreview?.logoUrl || data.brandPreview?.brandColors?.length) {
-				toast.success("Brand applied — generating your creative design…");
+				toast.success("Brand applied, generating your creative design…");
 			} else {
 				toast.success("Generating your creative design…");
 			}
@@ -206,6 +217,14 @@ export default function NiscEmailBuilderEditorPage() {
 	const approveBuild = trpc.niscEmailBuilder.chat.approveBuild.useMutation({
 		onSuccess: () => {
 			toast.success("Building your HTML email from the approved design…");
+			void utils.niscEmailBuilder.design.get.invalidate({ designId });
+		},
+		onError: (e) => toast.error(e.message),
+	});
+
+	const retryHtmlBuild = trpc.niscEmailBuilder.chat.retryHtmlBuild.useMutation({
+		onSuccess: () => {
+			toast.success("Regenerating HTML from your creative design…");
 			void utils.niscEmailBuilder.design.get.invalidate({ designId });
 		},
 		onError: (e) => toast.error(e.message),
@@ -255,11 +274,21 @@ export default function NiscEmailBuilderEditorPage() {
 		if (!showBrief || briefHydratedRef.current || !design?.brief) return;
 		const b = design.brief as Record<string, unknown>;
 		briefHydratedRef.current = true;
+		const goalSel =
+			typeof b.goal === "string"
+				? inferGoalSelection(b.goal)
+				: { preset: NEB_EMAIL_GOALS[0].value, custom: "" };
+		const audienceSel =
+			typeof b.audience === "string"
+				? inferAudienceSelection(b.audience)
+				: { preset: NEB_EMAIL_AUDIENCES[0].value, custom: "" };
 		setBrief((prev) => ({
 			...prev,
 			companyName: typeof b.companyName === "string" ? b.companyName : prev.companyName,
-			goal: typeof b.goal === "string" ? b.goal : prev.goal,
-			audience: typeof b.audience === "string" ? b.audience : prev.audience,
+			goalPreset: goalSel.preset,
+			goalCustom: goalSel.custom,
+			audiencePreset: audienceSel.preset,
+			audienceCustom: audienceSel.custom,
 			tone: typeof b.tone === "string" ? b.tone : prev.tone,
 			emailType: typeof b.emailType === "string" ? b.emailType : prev.emailType,
 			instructions: typeof b.instructions === "string" ? b.instructions : prev.instructions,
@@ -286,16 +315,30 @@ export default function NiscEmailBuilderEditorPage() {
 	}, [design?.brief, design?.metadata, showBrief]);
 
 	const handleStartBrief = () => {
-		if (!brief.goal.trim() || !brief.audience.trim()) {
-			toast.error("Goal and audience are required");
+		const goal = getResolvedBriefGoal(brief);
+		const audience = getResolvedBriefAudience(brief);
+		if (!goal.trim()) {
+			toast.error(
+				brief.goalPreset === NEB_BRIEF_OTHER
+					? "Enter a custom campaign goal"
+					: "Select a campaign goal",
+			);
+			return;
+		}
+		if (!audience.trim()) {
+			toast.error(
+				brief.audiencePreset === NEB_BRIEF_OTHER
+					? "Enter a custom target audience"
+					: "Select a target audience",
+			);
 			return;
 		}
 		startBuild.mutate({
 			designId,
 			brief: {
 				companyName: brief.companyName || undefined,
-				goal: brief.goal,
-				audience: brief.audience,
+				goal,
+				audience,
 				tone: brief.tone,
 				emailType: brief.emailType,
 				instructions: brief.instructions || undefined,
@@ -429,6 +472,7 @@ export default function NiscEmailBuilderEditorPage() {
 						htmlContent={design.htmlContent}
 						isDesigning={phase === "DESIGNING" || (isBusy && !hasCreative)}
 						isBuilding={phase === "BUILDING" || design.aiStatus === "HYDRATING_IMAGES"}
+						isHydratingImages={design.aiStatus === "HYDRATING_IMAGES"}
 						previewWidth={previewWidth}
 						onPreviewWidthChange={setPreviewWidth}
 						variations={designVariations}
@@ -436,6 +480,12 @@ export default function NiscEmailBuilderEditorPage() {
 						onSelectVariation={handleSelectVariation}
 						onGenerateVariation={handleGenerateVariation}
 						isGeneratingVariation={generateVariation.isPending}
+						onRetryHtmlBuild={
+							hasCreative && hasHtml
+								? () => retryHtmlBuild.mutate({ designId })
+								: undefined
+						}
+						isRetryingHtml={retryHtmlBuild.isPending}
 					/>
 				</main>
 			</div>

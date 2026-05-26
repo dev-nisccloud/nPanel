@@ -11,36 +11,18 @@ import {
 import Replicate from "replicate";
 import { env } from "@npanel/env/server";
 
-import {
-	NEB_HTML_MODEL,
-	NEB_PLANNER_MODEL,
-	NEB_REVISION_MODEL,
-} from "./constants";
+import { NEB_HTML_MODEL, NEB_REVISION_MODEL } from "./constants";
+import { generateCreativeDesignSpec } from "./creative-spec";
 import { generateNanoBananaPro } from "./nano-banana";
 import type { NanoBananaAspectRatio } from "./nano-banana";
-import {
-	parseHtmlAgentResponse,
-	parsePlannerResponse,
-} from "./parse-responses";
-import {
-	patchImagePlaceholders,
-	processEmailHtml,
-} from "./pipeline";
-import {
-	buildBrandContext,
-	buildHtmlArchitectSystemPrompt,
-	buildHtmlArchitectUserPrompt,
-	buildPlannerSystemPrompt,
-	buildPlannerUserPrompt,
-	buildRevisionSystemPrompt,
-	buildRevisionUserPrompt,
-} from "./prompts";
+import { parseHtmlAgentResponse } from "./parse-responses";
+import { patchImagePlaceholders, processEmailHtml } from "./pipeline";
+import { buildBrandContext, buildHtmlArchitectSystemPrompt, buildRevisionSystemPrompt, buildRevisionUserPrompt } from "./prompts";
+import { buildHtmlContinuationPrompt, buildHtmlFromSpecPrompt } from "./prompts-build";
+import { mirrorNebBriefLogoIfNeeded } from "./logo";
 import { runAnthropicOnReplicate } from "./replicate-llm";
-import type { NebBrief, NebHtmlArchitectOutput } from "./types";
-import {
-	htmlArchitectOutputSchema,
-	revisionOutputSchema,
-} from "./types";
+import type { NebBrief, NebHtmlArchitectOutput, NebImageSlot } from "./types";
+import { htmlArchitectOutputSchema, revisionOutputSchema } from "./types";
 
 export type RunNebBuildParams = {
 	jobId: string;
@@ -110,19 +92,18 @@ async function saveVersion(params: {
 	return versionId;
 }
 
+function isIconSlot(slot: NebImageSlot): boolean {
+	return slot.kind === "icon" || slot.key.startsWith("icon_");
+}
+
 async function hydrateImages(params: {
 	designId: string;
 	userId: string;
 	teamId?: string | null;
 	html: string;
-	slots: Array<{
-		key: string;
-		prompt: string;
-		alt: string;
-		aspectRatio: "1:1" | "3:2" | "16:9" | "4:3" | "9:16";
-		imageSize?: "1K" | "2K";
-	}>;
+	slots: NebImageSlot[];
 	replicate: Replicate;
+	creativeDesignUrl?: string | null;
 }): Promise<string> {
 	const slots = params.slots ?? [];
 	if (!slots.length) return params.html;
@@ -133,14 +114,25 @@ async function hydrateImages(params: {
 		.where(eq(nebDesign.id, params.designId));
 
 	const replacements: Record<string, string> = {};
+	const compRef = params.creativeDesignUrl?.trim();
 
 	for (const slot of slots) {
-		const aspect = (slot.aspectRatio ?? "16:9") as NanoBananaAspectRatio;
+		const isIcon = isIconSlot(slot);
+		const aspect = (isIcon ? "1:1" : (slot.aspectRatio ?? "16:9")) as NanoBananaAspectRatio;
+		const compRefLine = compRef
+			? `\nReference image_input[0] is the approved email comp. Recreate the "${slot.key}" element exactly as shown.`
+			: "";
+
+		const slotPrompt = isIcon
+			? `${slot.prompt}${compRefLine}\nIsolated icon only on plain white background. NO TEXT. NO EMOJI. Flat line-art style matching the comp.`
+			: `${slot.prompt}${compRefLine}`;
+
 		const { fileUrl, storageKey } = await generateNanoBananaPro(params.replicate, {
-			prompt: slot.prompt,
+			prompt: slotPrompt,
 			resolution: slot.imageSize === "1K" ? "1K" : "2K",
 			aspectRatio: aspect,
-			outputFormat: "jpg",
+			outputFormat: isIcon ? "png" : "jpg",
+			imageInput: compRef ? [compRef] : undefined,
 		});
 		replacements[slot.key] = fileUrl;
 
@@ -149,10 +141,10 @@ async function hydrateImages(params: {
 			userId: params.userId,
 			teamId: params.teamId ?? null,
 			designId: params.designId,
-			kind: slot.key === "hero" ? "HERO" : "INLINE",
+			kind: isIcon ? "INLINE" : slot.key === "hero" ? "HERO" : "INLINE",
 			fileUrl,
 			storageKey: storageKey ?? null,
-			mimeType: "image/jpeg",
+			mimeType: isIcon ? "image/png" : "image/jpeg",
 			altText: slot.alt,
 			prompt: slot.prompt,
 			createdAt: new Date(),
@@ -162,10 +154,71 @@ async function hydrateImages(params: {
 	return patchImagePlaceholders(params.html, replacements);
 }
 
+const MAX_HTML_CONTINUATIONS = 2;
+
+async function buildHtmlFromSpec(params: {
+	replicate: Replicate;
+	designSpecification: string;
+	specMetaJson: string;
+	brandBlock: string;
+	creativeDesignUrl: string;
+}): Promise<NebHtmlArchitectOutput> {
+	const htmlUserPrompt = buildHtmlFromSpecPrompt({
+		designSpecification: params.designSpecification,
+		specMetaJson: params.specMetaJson,
+		brandBlock: params.brandBlock,
+		creativeDesignUrl: params.creativeDesignUrl,
+	});
+
+	let htmlRaw = await runAnthropicOnReplicate({
+		replicate: params.replicate,
+		model: NEB_HTML_MODEL,
+		systemPrompt: buildHtmlArchitectSystemPrompt(),
+		userPrompt: htmlUserPrompt,
+		maxTokens: 24000,
+	});
+
+	let built = parseHtmlAgentResponse(
+		htmlRaw,
+		htmlArchitectOutputSchema,
+		"HTML architect",
+	) as NebHtmlArchitectOutput;
+
+	for (let i = 0; i < MAX_HTML_CONTINUATIONS && !built.html.includes("</html>"); i++) {
+		const contRaw = await runAnthropicOnReplicate({
+			replicate: params.replicate,
+			model: NEB_HTML_MODEL,
+			systemPrompt: buildHtmlArchitectSystemPrompt(),
+			userPrompt: buildHtmlContinuationPrompt({
+				designSpecification: params.designSpecification,
+				specMetaJson: params.specMetaJson,
+				brandBlock: params.brandBlock,
+				partialHtml: built.html,
+			}),
+			maxTokens: 24000,
+		});
+		const cont = parseHtmlAgentResponse(
+			contRaw,
+			htmlArchitectOutputSchema,
+			"HTML architect (continuation)",
+		) as NebHtmlArchitectOutput;
+		built = {
+			...cont,
+			html: built.html + cont.html,
+			change_summary: cont.change_summary || built.change_summary,
+			assistant_text: cont.assistant_text || built.assistant_text,
+		};
+	}
+
+	return built;
+}
+
 export type RunNebBuildEmailParams = RunNebBuildParams & {
 	creativeDesignUrl: string;
 	designNotes?: string;
 	webContext?: string | null;
+	/** INITIAL first build, BUILD_RETRY regeneration from approved creative */
+	buildTrigger?: "INITIAL" | "BUILD_RETRY";
 };
 
 export async function runNebBuildEmail(params: RunNebBuildEmailParams): Promise<{
@@ -174,6 +227,20 @@ export async function runNebBuildEmail(params: RunNebBuildEmailParams): Promise<
 	preheader: string;
 }> {
 	const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+	const buildTrigger = params.buildTrigger ?? "INITIAL";
+
+	const { brief: briefWithLogo } = await mirrorNebBriefLogoIfNeeded(
+		params.brief,
+		params.brandKit,
+	);
+	if (briefWithLogo.logoUrl !== params.brief.logoUrl) {
+		await db
+			.update(nebDesign)
+			.set({ brief: briefWithLogo, updatedAt: new Date() })
+			.where(eq(nebDesign.id, params.designId));
+	}
+	params = { ...params, brief: briefWithLogo };
+
 	const brandBlock = buildBrandContext(params.brief, params.brandKit);
 
 	await db
@@ -191,66 +258,45 @@ export async function runNebBuildEmail(params: RunNebBuildEmailParams): Promise<
 		.where(eq(nebDesign.id, params.designId));
 
 	try {
-		const creativeContext = `APPROVED CREATIVE MOCKUP URL: ${params.creativeDesignUrl}
-DESIGN NOTES FROM CREATIVE PHASE:
-${params.designNotes ?? "Match the approved mockup layout, colors, and hierarchy."}
-Implement the email to faithfully match this visual comp.`;
-
-		// Agent 1: Planner (uses approved creative as guideline)
-		const plannerRaw = await runAnthropicOnReplicate({
+		// Step 1: Single vision call — exhaustive design specification (+ continuation if truncated)
+		const creativeSpec = await generateCreativeDesignSpec({
 			replicate,
-			model: NEB_PLANNER_MODEL,
-			systemPrompt: buildPlannerSystemPrompt(),
-			userPrompt: `${creativeContext}\n\n${buildPlannerUserPrompt(params.brief, brandBlock, params.webContext)}`,
-			maxTokens: 4096,
+			brief: params.brief,
+			brandBlock,
+			creativeDesignUrl: params.creativeDesignUrl,
+			designNotes: params.designNotes,
+			webContext: params.webContext,
 		});
-		const plan = parsePlannerResponse(plannerRaw);
+
+		const specMetaJson = JSON.stringify({
+			subject: creativeSpec.subject,
+			preheader: creativeSpec.preheader,
+			image_slots: creativeSpec.imageSlots,
+		});
 
 		await db
 			.update(nebDesign)
-			.set({ designPlan: plan, updatedAt: new Date() })
+			.set({
+				designPlan: {
+					subject: creativeSpec.subject,
+					preheader: creativeSpec.preheader,
+					image_slots: creativeSpec.imageSlots,
+					designSpecification: creativeSpec.designSpecification,
+				},
+				subject: creativeSpec.subject,
+				preheader: creativeSpec.preheader,
+				updatedAt: new Date(),
+			})
 			.where(eq(nebDesign.id, params.designId));
 
-		// Agent 2: HTML architect
-		const htmlRaw = await runAnthropicOnReplicate({
+		// Step 2: HTML from specification only (no vision — spec is the source of truth)
+		const built = await buildHtmlFromSpec({
 			replicate,
-			model: NEB_HTML_MODEL,
-			systemPrompt: buildHtmlArchitectSystemPrompt(),
-			userPrompt: buildHtmlArchitectUserPrompt({
-				planJson: JSON.stringify(plan),
-				brandBlock,
-				brief: params.brief,
-				creativeContext,
-				webContext: params.webContext,
-			}),
-			maxTokens: 16000,
+			designSpecification: creativeSpec.designSpecification,
+			specMetaJson,
+			brandBlock,
+			creativeDesignUrl: params.creativeDesignUrl,
 		});
-		let built = parseHtmlAgentResponse(
-			htmlRaw,
-			htmlArchitectOutputSchema,
-			"HTML architect",
-		) as NebHtmlArchitectOutput;
-
-		if (!built.html.includes("</html>")) {
-			const repairRaw = await runAnthropicOnReplicate({
-				replicate,
-				model: NEB_HTML_MODEL,
-				systemPrompt: buildHtmlArchitectSystemPrompt(),
-				userPrompt: `Your previous response was incomplete (missing closing </html>). Re-emit the COMPLETE email using the delimiter format.\n\n${buildHtmlArchitectUserPrompt({
-					planJson: JSON.stringify(plan),
-					brandBlock,
-					brief: params.brief,
-					creativeContext,
-					webContext: params.webContext,
-				})}`,
-				maxTokens: 16000,
-			});
-			built = parseHtmlAgentResponse(
-				repairRaw,
-				htmlArchitectOutputSchema,
-				"HTML architect (repair)",
-			) as NebHtmlArchitectOutput;
-		}
 
 		const processed = processEmailHtml(built.html);
 		if (!processed.validation.ok) {
@@ -259,15 +305,15 @@ Implement the email to faithfully match this visual comp.`;
 
 		let html = processed.html;
 
-		const planImageSlots = plan.image_slots ?? [];
-		if (planImageSlots.length > 0) {
+		if (creativeSpec.imageSlots.length > 0) {
 			html = await hydrateImages({
 				designId: params.designId,
 				userId: params.userId,
 				teamId: params.teamId,
 				html,
-				slots: planImageSlots,
+				slots: creativeSpec.imageSlots,
 				replicate,
+				creativeDesignUrl: params.creativeDesignUrl,
 			});
 		}
 
@@ -281,7 +327,7 @@ Implement the email to faithfully match this visual comp.`;
 			designId: params.designId,
 			html: finalProcessed.html,
 			text: finalProcessed.text,
-			trigger: "INITIAL",
+			trigger: buildTrigger,
 			changeSummary: built.change_summary,
 			messageId: job?.messageId ?? undefined,
 			validationReport: finalProcessed.validation,
@@ -290,8 +336,8 @@ Implement the email to faithfully match this visual comp.`;
 		await db
 			.update(nebDesign)
 			.set({
-				subject: plan.subject,
-				preheader: plan.preheader,
+				subject: creativeSpec.subject,
+				preheader: creativeSpec.preheader,
 				brief: params.brief,
 				workflowPhase: "READY",
 				aiStatus: "IDLE",
@@ -303,15 +349,18 @@ Implement the email to faithfully match this visual comp.`;
 			.update(nebGenerationJob)
 			.set({
 				status: "SUCCEEDED",
-				output: { plan, changeSummary: built.change_summary },
+				output: {
+					subject: creativeSpec.subject,
+					changeSummary: built.change_summary,
+				},
 				completedAt: new Date(),
 			})
 			.where(eq(nebGenerationJob.id, params.jobId));
 
 		return {
-			assistantText: built.assistant_text || plan.assistant_summary,
-			subject: plan.subject,
-			preheader: plan.preheader,
+			assistantText: built.assistant_text,
+			subject: creativeSpec.subject,
+			preheader: creativeSpec.preheader,
 		};
 	} catch (e) {
 		const msg = e instanceof Error ? e.message : String(e);

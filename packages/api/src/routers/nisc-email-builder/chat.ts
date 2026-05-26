@@ -21,6 +21,7 @@ import {
 	approveBuildSchema,
 	designIdSchema,
 	generateVariationSchema,
+	retryHtmlBuildSchema,
 	selectVariationSchema,
 	sendChatSchema,
 	startBuildSchema,
@@ -249,6 +250,77 @@ export const nebChatRouter = router({
 
 		return { jobId };
 	}),
+
+	/** Regenerate HTML from the approved creative mockup (new build variation). */
+	retryHtmlBuild: protectedProcedure
+		.input(retryHtmlBuildSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+			const design = await assertDesignAccess({
+				designId: input.designId,
+				userId,
+				userRole: ctx.session?.user?.role,
+			});
+
+			if (!design.creativeDesignUrl) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No approved creative design to build from",
+				});
+			}
+
+			if (isBusy(design)) {
+				throw new TRPCError({ code: "CONFLICT", message: "Wait for the current job to finish" });
+			}
+
+			const session = await db.query.nebSession.findFirst({
+				where: eq(nebSession.designId, input.designId),
+			});
+			if (!session) throw new TRPCError({ code: "NOT_FOUND" });
+
+			const now = new Date();
+			const userMessageId = randomUUID();
+
+			await db.insert(nebMessage).values({
+				id: userMessageId,
+				sessionId: session.id,
+				role: "user",
+				content: "Regenerate the HTML email from the approved creative design.",
+				createdAt: now,
+			});
+
+			await db
+				.update(nebDesign)
+				.set({
+					aiStatus: "GENERATING",
+					workflowPhase: "BUILDING",
+					updatedAt: now,
+				})
+				.where(eq(nebDesign.id, input.designId));
+
+			const meta =
+				design.metadata && typeof design.metadata === "object"
+					? (design.metadata as Record<string, unknown>)
+					: {};
+			const storedWebContext =
+				typeof meta.brandWebContext === "string" ? meta.brandWebContext : null;
+
+			const jobId = await enqueueJob({
+				designId: input.designId,
+				sessionId: session.id,
+				type: "BUILD_EMAIL",
+				input: {
+					brief: design.brief,
+					webContext: storedWebContext,
+					buildTrigger: "BUILD_RETRY",
+				},
+				userMessageId,
+			});
+
+			return { jobId };
+		}),
 
 	/** Zeepo-style chat — routes by workflow phase */
 	sendMessage: protectedProcedure.input(sendChatSchema).mutation(async ({ ctx, input }) => {

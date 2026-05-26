@@ -4,6 +4,13 @@ import * as React from "react";
 import { Globe, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+	NEB_BRIEF_OTHER,
+	NEB_EMAIL_AUDIENCES,
+	NEB_EMAIL_GOALS,
+	resolveBriefAudience,
+	resolveBriefGoal,
+} from "@npanel/api/lib/nisc-email-builder/brief-options";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,8 +39,10 @@ const TONES = ["Professional", "Friendly", "Witty", "Urgent", "Luxury"] as const
 
 export type BriefFormValues = {
 	companyName: string;
-	goal: string;
-	audience: string;
+	goalPreset: string;
+	goalCustom: string;
+	audiencePreset: string;
+	audienceCustom: string;
 	tone: string;
 	emailType: string;
 	instructions: string;
@@ -44,6 +53,14 @@ export type BriefFormValues = {
 	companyContext: string;
 	webSearchFound: boolean;
 };
+
+export function getResolvedBriefGoal(values: BriefFormValues): string {
+	return resolveBriefGoal(values.goalPreset, values.goalCustom);
+}
+
+export function getResolvedBriefAudience(values: BriefFormValues): string {
+	return resolveBriefAudience(values.audiencePreset, values.audienceCustom);
+}
 
 type BriefFormProps = {
 	values: BriefFormValues;
@@ -201,24 +218,62 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 				) : null}
 			</div>
 
-			<div className="space-y-2">
+			<div className="space-y-2 w-full">
 				<Label htmlFor="neb-goal">Goal *</Label>
-				<Input
-					id="neb-goal"
-					placeholder="e.g. Drive sign-ups for our webinar"
-					value={values.goal}
-					onChange={(e) => onChange({ goal: e.target.value })}
-				/>
+				<Select
+					value={values.goalPreset}
+					onValueChange={(v) => onChange({ goalPreset: v })}
+				>
+					<SelectTrigger id="neb-goal" className="w-full">
+						<SelectValue placeholder="Select a campaign goal" />
+					</SelectTrigger>
+					<SelectContent className="w-[var(--radix-select-trigger-width)]">
+						{NEB_EMAIL_GOALS.map((g) => (
+							<SelectItem key={g.value} value={g.value}>
+								{g.label}
+							</SelectItem>
+						))}
+						<SelectItem value={NEB_BRIEF_OTHER}>Other — specify manually</SelectItem>
+					</SelectContent>
+				</Select>
+				{values.goalPreset === NEB_BRIEF_OTHER ? (
+					<Input
+						id="neb-goal-custom"
+						className="w-full"
+						placeholder="Describe your campaign goal…"
+						value={values.goalCustom}
+						onChange={(e) => onChange({ goalCustom: e.target.value })}
+					/>
+				) : null}
 			</div>
 
-			<div className="space-y-2">
+			<div className="space-y-2 w-full">
 				<Label htmlFor="neb-audience">Audience *</Label>
-				<Input
-					id="neb-audience"
-					placeholder="e.g. SMB owners in Kenya"
-					value={values.audience}
-					onChange={(e) => onChange({ audience: e.target.value })}
-				/>
+				<Select
+					value={values.audiencePreset}
+					onValueChange={(v) => onChange({ audiencePreset: v })}
+				>
+					<SelectTrigger id="neb-audience" className="w-full">
+						<SelectValue placeholder="Select a target audience" />
+					</SelectTrigger>
+					<SelectContent className="w-[var(--radix-select-trigger-width)]">
+						{NEB_EMAIL_AUDIENCES.map((a) => (
+							<SelectItem key={a.value} value={a.value}>
+								{a.label}
+							</SelectItem>
+						))}
+						<SelectItem value={NEB_BRIEF_OTHER}>Other — specify manually</SelectItem>
+					</SelectContent>
+				</Select>
+				{values.audiencePreset === NEB_BRIEF_OTHER ? (
+					<Input
+						id="neb-audience-custom"
+						className="w-full"
+						placeholder="e.g. SMB owners in Kenya"
+						value={values.audienceCustom}
+						onChange={(e) => onChange({ audienceCustom: e.target.value })}
+					/>
+				) : null}
 			</div>
 
 			<div className="grid grid-cols-2 gap-3">
