@@ -24,6 +24,19 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+/** WP Toolkit often wraps scalars as `{ value, meta }`. */
+export function readMetaScalar(field: unknown): string | number | boolean | undefined {
+  if (field == null) return undefined;
+  if (typeof field === "string" || typeof field === "number" || typeof field === "boolean") {
+    return field;
+  }
+  const rec = asRecord(field);
+  if (!rec || !("value" in rec)) return undefined;
+  const v = rec.value;
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return v;
+  return undefined;
+}
+
 /** Extract string list from meta value arrays like [{ value: "gif", meta: {} }, ...] */
 export function parseMetaStringList(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -89,23 +102,66 @@ export function parseHotlinkSettingsFlat(data: unknown): {
 export function extractTaskFromResponse(data: unknown): WpTaskPayload | null {
   const root = asRecord(data);
   if (!root) return null;
-  const task = asRecord(root.task) ?? (root.id != null || root.code ? root : null);
+
+  const dataBlock = asRecord(root.data);
+  const task =
+    asRecord(root.task) ??
+    asRecord(dataBlock?.task) ??
+    asRecord(dataBlock?.value) ??
+    (root.id != null || root.code ? root : null);
+
   if (!task) return null;
+
+  const statusRaw = readMetaScalar(task.status);
+  const progressRaw = readMetaScalar(task.progress);
+  const stepsSource = Array.isArray(task.steps) ? task.steps : undefined;
+
   return {
-    id: typeof task.id === "number" ? task.id : undefined,
-    code: typeof task.code === "string" ? task.code : undefined,
-    title: typeof task.title === "string" ? task.title : undefined,
-    status: typeof task.status === "string" ? task.status : undefined,
-    progress: typeof task.progress === "number" ? task.progress : undefined,
-    steps: Array.isArray(task.steps)
-      ? task.steps.map((s) => {
+    id:
+      typeof task.id === "number"
+        ? task.id
+        : typeof readMetaScalar(task.id) === "number"
+          ? (readMetaScalar(task.id) as number)
+          : undefined,
+    code:
+      typeof task.code === "string"
+        ? task.code
+        : typeof readMetaScalar(task.code) === "string"
+          ? (readMetaScalar(task.code) as string)
+          : undefined,
+    title:
+      typeof task.title === "string"
+        ? task.title
+        : typeof readMetaScalar(task.title) === "string"
+          ? (readMetaScalar(task.title) as string)
+          : undefined,
+    status: typeof statusRaw === "string" ? statusRaw : undefined,
+    progress: typeof progressRaw === "number" ? progressRaw : undefined,
+    steps: stepsSource
+      ? stepsSource.map((s) => {
           const step = asRecord(s);
+          if (!step) return {};
           return {
-            code: typeof step?.code === "string" ? step.code : undefined,
-            title: typeof step?.title === "string" ? step.title : undefined,
-            status: typeof step?.status === "string" ? step.status : undefined,
-            progress: typeof step?.progress === "number" ? step.progress : undefined,
-            hint: typeof step?.hint === "string" ? step.hint : undefined,
+            code:
+              typeof readMetaScalar(step.code) === "string"
+                ? (readMetaScalar(step.code) as string)
+                : undefined,
+            title:
+              typeof readMetaScalar(step.title) === "string"
+                ? (readMetaScalar(step.title) as string)
+                : undefined,
+            status:
+              typeof readMetaScalar(step.status) === "string"
+                ? (readMetaScalar(step.status) as string)
+                : undefined,
+            progress:
+              typeof readMetaScalar(step.progress) === "number"
+                ? (readMetaScalar(step.progress) as number)
+                : undefined,
+            hint:
+              typeof readMetaScalar(step.hint) === "string"
+                ? (readMetaScalar(step.hint) as string)
+                : undefined,
           };
         })
       : undefined,

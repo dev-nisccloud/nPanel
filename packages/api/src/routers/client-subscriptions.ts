@@ -13,6 +13,7 @@ import {
 } from "@npanel/db/schema/products";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
+import { getTeamLiveDomainsSummary } from "../lib/team-live-domains-summary";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -1147,6 +1148,151 @@ export const clientSubscriptionsRouter = router({
                 expiryDate: sub.expiryDate,
                 status: sub.status as SubscriptionStatus,
             }));
+        }),
+
+    /** Live domain metrics for a team (OpenProvider + KENIC), scoped to accessible domain subscriptions. */
+    getTeamLiveDomainsSummary: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.object({
+                total: z.number(),
+                active: z.number(),
+                expired: z.number(),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view domains",
+                });
+            }
+
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            return getTeamLiveDomainsSummary(teamId);
+        }),
+
+    /** Subscription status counts for a team from NiscClientSubscription. */
+    getTeamSubscriptionSummary: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.object({
+                total: z.number(),
+                active: z.number(),
+                other: z.number(),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: eq(niscClientSubscription.teamId, teamId),
+                columns: { status: true },
+            });
+
+            const total = subs.length;
+            const active = subs.filter((sub) => sub.status === "ACTIVE").length;
+            return { total, active, other: total - active };
+        }),
+
+    /** Web hosting subscription counts for a team from NiscClientSubscription. */
+    getTeamHostingSummary: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.object({
+                total: z.number(),
+                active: z.number(),
+                other: z.number(),
+            }),
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view hosting",
+                });
+            }
+
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const hostingProducts = await db
+                .select({ id: niscProduct.id })
+                .from(niscProduct)
+                .where(
+                    and(
+                        eq(niscProduct.isActive, true),
+                        or(
+                            ilike(niscProduct.name, "%web hosting%"),
+                            ilike(niscProduct.name, "%website hosting%"),
+                        ),
+                    ),
+                );
+            const productIds = hostingProducts.map((p) => p.id);
+            if (productIds.length === 0) {
+                return { total: 0, active: 0, other: 0 };
+            }
+
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: and(
+                    eq(niscClientSubscription.teamId, teamId),
+                    inArray(niscClientSubscription.productId, productIds),
+                ),
+                columns: { status: true },
+            });
+
+            const total = subs.length;
+            const active = subs.filter((sub) => sub.status === "ACTIVE").length;
+            return { total, active, other: total - active };
         }),
 
     /** Get a single subscription by ID */

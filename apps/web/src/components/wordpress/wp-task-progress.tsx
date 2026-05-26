@@ -5,7 +5,10 @@ import { Loader2, XCircle, CheckCircle2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { isWpTaskTerminal, useWpBackgroundTask } from "@/components/wordpress/use-wp-background-task";
+import {
+  isWpTaskSuccess,
+  useWpBackgroundTask,
+} from "@/components/wordpress/use-wp-background-task";
 import { normalizeWpToolkitTaskUrl } from "@/lib/wp-task-url";
 
 interface WpTaskProgressProps {
@@ -16,23 +19,41 @@ interface WpTaskProgressProps {
 }
 
 export function WpTaskProgress({ taskUrl, onComplete, onDismiss, className }: WpTaskProgressProps) {
-  const { task, isLoading, isRunning, cancel, isCancelling, cancelResult } = useWpBackgroundTask(taskUrl);
+  const {
+    task,
+    taskGone,
+    isLoading,
+    isRunning,
+    isComplete,
+    isFailed,
+    displayProgress,
+    cancel,
+    isCancelling,
+    cancelResult,
+    terminal,
+  } = useWpBackgroundTask(taskUrl);
+
   const completedRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (!task?.status || completedRef.current) return;
-    if (isWpTaskTerminal(task.status)) {
+    if (completedRef.current) return;
+    if (terminal) {
       completedRef.current = true;
       onComplete?.();
     }
-  }, [task?.status, onComplete]);
+  }, [terminal, onComplete]);
 
   if (!taskUrl) return null;
 
-  const progress = typeof task?.progress === "number" && task.progress >= 0 ? task.progress : undefined;
   const status = task?.status?.toLowerCase();
-  const failed = status === "failed" || status === "error" || (task?.errors?.length ?? 0) > 0;
-  const done = status === "done" || status === "finished" || status === "completed";
+  const failed =
+    isFailed ||
+    status === "failed" ||
+    status === "error" ||
+    (task?.errors?.length ?? 0) > 0;
+  const done = isComplete || taskGone || (status ? isWpTaskSuccess(status) : false);
+  const showDeterminateProgress = displayProgress != null && displayProgress > 0;
+  const showIndeterminate = isRunning && !showDeterminateProgress;
 
   return (
     <div
@@ -45,7 +66,7 @@ export function WpTaskProgress({ taskUrl, onComplete, onDismiss, className }: Wp
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          {isLoading && !task ? (
+          {isLoading && !task && !taskGone ? (
             <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
           ) : failed ? (
             <XCircle className="h-5 w-5 shrink-0 text-destructive" />
@@ -56,10 +77,16 @@ export function WpTaskProgress({ taskUrl, onComplete, onDismiss, className }: Wp
           )}
           <div className="min-w-0 space-y-0.5">
             <p className="text-sm font-medium leading-snug">
-              {task?.title ?? "Running operation"}
+              {taskGone
+                ? "Operation completed"
+                : (task?.title ?? "Running operation")}
             </p>
             {task?.code ? (
               <p className="text-xs text-muted-foreground truncate">{task.code}</p>
+            ) : showIndeterminate ? (
+              <p className="text-xs text-muted-foreground">In progress…</p>
+            ) : done ? (
+              <p className="text-xs text-muted-foreground">Completed</p>
             ) : null}
           </div>
         </div>
@@ -84,11 +111,17 @@ export function WpTaskProgress({ taskUrl, onComplete, onDismiss, className }: Wp
         </div>
       </div>
 
-      {progress != null ? (
+      {showDeterminateProgress ? (
         <div className="space-y-1.5">
-          <Progress value={Math.min(100, Math.max(0, progress))} className="h-1.5" />
-          <p className="text-xs text-muted-foreground text-right">{progress}%</p>
+          <Progress value={Math.min(100, Math.max(0, displayProgress))} className="h-1.5" />
+          <p className="text-xs text-muted-foreground text-right">{displayProgress}%</p>
         </div>
+      ) : showIndeterminate ? (
+        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
+          <div className="absolute inset-y-0 w-1/3 animate-pulse rounded-full bg-primary" />
+        </div>
+      ) : done && !failed ? (
+        <Progress value={100} className="h-1.5" />
       ) : null}
 
       {task?.steps && task.steps.length > 0 ? (
@@ -117,7 +150,7 @@ export function WpTaskProgress({ taskUrl, onComplete, onDismiss, className }: Wp
   );
 }
 
-/** Store task URL from a mutation that returns { url, task } or Plesk { data: { url } } */
+/** Store task URL from a mutation that returns { url, taskUrl, task } or Plesk { data: { url } } */
 export function extractTaskUrl(response: unknown): string | null {
   if (!response || typeof response !== "object") return null;
   const root = response as Record<string, unknown>;
@@ -128,6 +161,17 @@ export function extractTaskUrl(response: unknown): string | null {
   const data = root.data;
   if (data && typeof data === "object" && typeof (data as { url?: string }).url === "string") {
     candidates.push((data as { url: string }).url);
+  }
+
+  const task = root.task;
+  if (task && typeof task === "object") {
+    const t = task as Record<string, unknown>;
+    if (typeof t.url === "string") candidates.push(t.url);
+    const code = typeof t.code === "string" ? t.code : undefined;
+    const id = typeof t.id === "number" ? t.id : undefined;
+    if (code && id != null) {
+      candidates.push(`/v1/background-tasks/${code}/${id}`);
+    }
   }
 
   for (const raw of candidates) {

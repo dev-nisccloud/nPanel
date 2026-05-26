@@ -1,6 +1,7 @@
 "use client";
 
-import { useLocation } from "react-router";
+import { Link, useLocation } from "react-router";
+import { ArrowUpRight } from "lucide-react";
 
 import {
 	Card,
@@ -10,7 +11,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardMetricStats } from "@/components/dashboard-metric-stats";
 import { trpc } from "@/utils/trpc";
+
+const REALTIME_QUERY_OPTIONS = {
+	placeholderData: (prev: unknown) => prev,
+	refetchOnWindowFocus: false,
+	refetchOnMount: true,
+} as const;
 
 function SectionCardsSkeleton() {
 	return (
@@ -31,83 +39,91 @@ function SectionCardsSkeleton() {
 	);
 }
 
+function MetricCardLink({ href, label }: { href: string; label: string }) {
+	return (
+		<Link
+			to={href}
+			className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+		>
+			{label}
+			<ArrowUpRight className="h-3.5 w-3.5" />
+		</Link>
+	);
+}
+
 export function SectionCards() {
 	const { pathname } = useLocation();
 	const teamSlug = pathname?.split("/")[1] ?? "";
 
+	const { data: domainsSummary, isLoading: isDomainsLoading } =
+		trpc.clientSubscriptions.getTeamLiveDomainsSummary.useQuery(
+			{ teamSlug },
+			{ ...REALTIME_QUERY_OPTIONS, enabled: !!teamSlug },
+		);
+
 	const { data: teamData, isLoading: isTeamLoading } =
 		trpc.teams.getTeamIdBySlug.useQuery(
 			{ slug: teamSlug },
-			{ enabled: !!teamSlug, staleTime: 5 * 60 * 1000 }
+			{ enabled: !!teamSlug, staleTime: 5 * 60 * 1000 },
 		);
 
 	const teamId = teamData?.id;
 
-	const { data: domains, isLoading: isDomainsLoading } =
-		trpc.domains.getByTeam.useQuery(
-			{ teamId: teamId ?? "" },
-			{ enabled: !!teamId }
-		);
-
-	const { data: invoiceData, isLoading: isInvoicesLoading } =
+	const { data: scopedInvoiceData, isLoading: isScopedInvoicesLoading } =
 		trpc.invoicing.list.useQuery(
 			{ teamId: teamId ?? undefined, limit: 100 },
-			{ enabled: !!teamId }
+			{ ...REALTIME_QUERY_OPTIONS, enabled: !!teamId },
 		);
 
-	const { data: ordersSummary, isLoading: isOrdersLoading } =
-		trpc.orders.getSummaryByTeam.useQuery(
-			{ teamId: teamId ?? "" },
-			{ enabled: !!teamId }
+	const { data: hostingSummary, isLoading: isHostingLoading } =
+		trpc.clientSubscriptions.getTeamHostingSummary.useQuery(
+			{ teamSlug },
+			{ ...REALTIME_QUERY_OPTIONS, enabled: !!teamSlug },
 		);
 
-	const { data: subscriptions, isLoading: isSubsLoading } =
-		trpc.serviceSubscriptions.getAll.useQuery(
-			{ teamId: teamId ?? undefined },
-			{ enabled: !!teamId }
+	const { data: subscriptionSummary, isLoading: isSubsLoading } =
+		trpc.clientSubscriptions.getTeamSubscriptionSummary.useQuery(
+			{ teamSlug },
+			{ ...REALTIME_QUERY_OPTIONS, enabled: !!teamSlug },
 		);
 
 	const isLoading =
 		isTeamLoading ||
 		isDomainsLoading ||
-		isInvoicesLoading ||
-		isOrdersLoading ||
+		isScopedInvoicesLoading ||
+		isHostingLoading ||
 		isSubsLoading;
 
 	if (isLoading) {
 		return <SectionCardsSkeleton />;
 	}
 
-	const now = new Date();
+	const domainsTotal = domainsSummary?.total ?? 0;
+	const domainsActive = domainsSummary?.active ?? 0;
+	const domainsExpired = domainsSummary?.expired ?? 0;
 
-	// Domains: total, active (not expired), expired
-	const domainsTotal = domains?.length ?? 0;
-	const domainsActive =
-		domains?.filter(
-			(d) => !d.expirationDate || new Date(d.expirationDate) > now
-		).length ?? 0;
-	const domainsExpired = domainsTotal - domainsActive;
-
-	// Invoices: total, paid (PAID), unpaid (rest)
-	const invoices = invoiceData?.invoices ?? [];
-	const invoicesTotal = invoiceData?.total ?? 0;
+	const invoices = scopedInvoiceData?.invoices ?? [];
+	const invoicesTotal = scopedInvoiceData?.total ?? 0;
 	const invoicesPaid = invoices.filter((i) => i.status === "PAID").length;
 	const invoicesUnpaid = invoicesTotal - invoicesPaid;
 
-	// Orders: total, completed, failed (agency layout uses "processed" = completed)
-	const ordersTotal = ordersSummary?.total ?? 0;
-	const ordersCompleted = ordersSummary?.completed ?? 0;
-	const ordersFailed = ordersSummary?.failed ?? 0;
+	const hostingTotal = hostingSummary?.total ?? 0;
+	const hostingActive = hostingSummary?.active ?? 0;
+	const hostingOther = hostingSummary?.other ?? 0;
 
-	// Subscriptions: total, active (ACTIVE), pending/expired (rest)
-	const subsTotal = subscriptions?.length ?? 0;
-	const subsActive =
-		subscriptions?.filter((s) => s.status === "ACTIVE").length ?? 0;
-	const subsOther = subsTotal - subsActive;
+	const subsTotal = subscriptionSummary?.total ?? 0;
+	const subsActive = subscriptionSummary?.active ?? 0;
+	const subsOther = subscriptionSummary?.other ?? 0;
+
+	const cardLinks = [
+		{ label: "Domains", href: `/${teamSlug}/domains-portfolio` },
+		{ label: "Invoices", href: `/${teamSlug}/invoices` },
+		{ label: "Hosting", href: `/${teamSlug}/hosting` },
+		{ label: "Subscriptions", href: `/${teamSlug}/subscriptions` },
+	] as const;
 
 	return (
 		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-			{/* 1. Domains – like agency dashboard */}
 			<Card className="@container/card">
 				<CardHeader>
 					<CardDescription>Domains</CardDescription>
@@ -116,16 +132,18 @@ export function SectionCards() {
 					</CardTitle>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<div className="line-clamp-1 flex gap-2 font-medium">
-						Active <span className="text-green-600 dark:text-green-400">{domainsActive}</span>
-						<span className="text-muted-foreground"> ·</span>
-						Expired <span className="text-red-600 dark:text-red-400">{domainsExpired}</span>
+					<DashboardMetricStats
+						items={[
+							{ label: "Active", value: domainsActive, variant: "positive" },
+							{ label: "Expired", value: domainsExpired, variant: "negative" },
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...cardLinks[0]} />
 					</div>
-					<div className="text-muted-foreground">Total domains for this company</div>
 				</CardFooter>
 			</Card>
 
-			{/* 2. Invoices */}
 			<Card className="@container/card">
 				<CardHeader>
 					<CardDescription>Invoices</CardDescription>
@@ -134,34 +152,38 @@ export function SectionCards() {
 					</CardTitle>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<div className="line-clamp-1 flex gap-2 font-medium">
-						Paid <span className="text-green-600 dark:text-green-400">{invoicesPaid}</span>
-						<span className="text-muted-foreground"> ·</span>
-						Unpaid <span className="text-red-600 dark:text-red-400">{invoicesUnpaid}</span>
+					<DashboardMetricStats
+						items={[
+							{ label: "Paid", value: invoicesPaid, variant: "positive" },
+							{ label: "Unpaid", value: invoicesUnpaid, variant: "negative" },
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...cardLinks[1]} />
 					</div>
-					<div className="text-muted-foreground">Total invoices for this company</div>
 				</CardFooter>
 			</Card>
 
-			{/* 3. Orders – agency layout: processed / failed */}
 			<Card className="@container/card">
 				<CardHeader>
-					<CardDescription>Orders</CardDescription>
+					<CardDescription>Hosting</CardDescription>
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{ordersTotal}
+						{hostingTotal}
 					</CardTitle>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<div className="line-clamp-1 flex gap-2 font-medium">
-						Processed <span className="text-green-600 dark:text-green-400">{ordersCompleted}</span>
-						<span className="text-muted-foreground"> ·</span>
-						Failed <span className="text-red-600 dark:text-red-400">{ordersFailed}</span>
+					<DashboardMetricStats
+						items={[
+							{ label: "Active", value: hostingActive, variant: "positive" },
+							{ label: "Inactive", value: hostingOther, variant: "negative" },
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...cardLinks[2]} />
 					</div>
-					<div className="text-muted-foreground">Order status for this company</div>
 				</CardFooter>
 			</Card>
 
-			{/* 4. Subscriptions – agency-style layout, same visual as other cards */}
 			<Card className="@container/card">
 				<CardHeader>
 					<CardDescription>Subscriptions</CardDescription>
@@ -170,12 +192,15 @@ export function SectionCards() {
 					</CardTitle>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<div className="line-clamp-1 flex gap-2 font-medium">
-						Active <span className="text-green-600 dark:text-green-400">{subsActive}</span>
-						<span className="text-muted-foreground"> ·</span>
-						Pending/Expired <span className="text-red-600 dark:text-red-400">{subsOther}</span>
+					<DashboardMetricStats
+						items={[
+							{ label: "Active", value: subsActive, variant: "positive" },
+							{ label: "Pending/Expired", value: subsOther, variant: "negative" },
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...cardLinks[3]} />
 					</div>
-					<div className="text-muted-foreground">Service subscriptions for this company</div>
 				</CardFooter>
 			</Card>
 		</div>

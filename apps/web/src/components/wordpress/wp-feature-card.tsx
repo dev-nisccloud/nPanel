@@ -34,7 +34,7 @@ export function WpFeatureCard({
   return (
     <article
       className={cn(
-        "flex h-full min-h-0 flex-col rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm",
+        "rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm",
         unavailable && "opacity-75",
         span === "full" && wpDetailLayout.cardFullWidth,
         className,

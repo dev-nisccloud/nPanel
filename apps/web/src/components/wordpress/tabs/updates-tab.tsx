@@ -1,13 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, Sparkles } from "lucide-react";
+import { RefreshCw, Search, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
-import { WpCardGrid, WpCardGridItem } from "@/components/wordpress/wp-detail-primitives";
+import {
+  WpInnerGrid,
+  WpPanel,
+  WpSection,
+} from "@/components/wordpress/wp-detail-primitives";
 import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { AutoUpdateSettingsCard } from "@/components/wordpress/auto-update-settings-card";
@@ -65,51 +69,70 @@ export function WordPressUpdatesTab({
         />
       ) : null}
 
-      <WpCardGrid>
-        <UpdatesCheckerCard installationId={id} />
+      <WpSection
+        title="Available updates"
+        description="Scan for WordPress core, plugin, and theme updates"
+        icon={Search}
+      >
+        <UpdatesCheckerCard installationId={id} shell="none" />
+      </WpSection>
 
-        <WpFeatureCard
-          title="Smart Update"
-          description="Test updates on a clone before applying them to your live site."
-          icon={Sparkles}
-          badge={{
-            label: smart?.status ? "Enabled" : "Disabled",
-            variant: smart?.status ? "default" : "secondary",
-          }}
-          unavailable={smart?.available === false}
-        >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label className="text-sm">Enable Smart Update</Label>
-              <Switch
-                checked={smart?.status ?? false}
-                disabled={toggleSmart.isPending || smart?.available === false}
-                onCheckedChange={(val) => toggleSmart.mutate({ installationId: id, status: val })}
-              />
+      <WpSection
+        title="Smart updates"
+        description="Test updates on a clone before applying to your live site"
+        icon={Sparkles}
+      >
+        <WpInnerGrid columns={3}>
+          <WpPanel
+            title="Smart Update"
+            description="Enable and run clone tests"
+            badge={
+              <Badge
+                variant={smart?.status ? "default" : "secondary"}
+                className="text-xs"
+              >
+                {smart?.status ? "Enabled" : "Disabled"}
+              </Badge>
+            }
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-sm">Enable Smart Update</Label>
+                <Switch
+                  checked={smart?.status ?? false}
+                  disabled={toggleSmart.isPending || smart?.available === false}
+                  onCheckedChange={(val) => toggleSmart.mutate({ installationId: id, status: val })}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                disabled={runSmartUpdate.isPending || smart?.available === false}
+                onClick={() => runSmartUpdate.mutate({ installationId: id })}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Run Smart Update test
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              disabled={runSmartUpdate.isPending}
-              onClick={() => runSmartUpdate.mutate({ installationId: id })}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Run Smart Update test
-            </Button>
-          </div>
-        </WpFeatureCard>
+          </WpPanel>
 
-        <SmartUpdateResultCard
-          installationId={id}
-          enabled={Boolean(smart?.applicable ?? smart?.available)}
-        />
-        <SmartPhpUpdateCard installationId={id} available={smartPhp?.available} />
+          <SmartUpdateResultCard
+            installationId={id}
+            enabled={Boolean(smart?.applicable ?? smart?.available)}
+            shell="panel"
+          />
+          <SmartPhpUpdateCard installationId={id} available={smartPhp?.available} shell="panel" />
+        </WpInnerGrid>
+      </WpSection>
 
-        <WpCardGridItem fullWidth>
-          <AutoUpdateSettingsCard installationId={id} />
-        </WpCardGridItem>
-      </WpCardGrid>
+      <WpSection
+        title="Automatic updates"
+        description="How core, plugins, and themes update automatically"
+        icon={RefreshCw}
+      >
+        <AutoUpdateSettingsCard installationId={id} shell="none" />
+      </WpSection>
     </div>
   );
 }

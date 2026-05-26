@@ -24,8 +24,58 @@ export function WpCardGridItem({
   className?: string;
 }) {
   return (
-    <div className={cn("min-w-0 h-full [&>*]:h-full", fullWidth && wpDetailLayout.cardFullWidth, className)}>
+    <div className={cn("min-w-0", fullWidth && wpDetailLayout.cardFullWidth, className)}>
       {children}
+    </div>
+  );
+}
+
+export function WpInnerGrid({
+  children,
+  className,
+  columns = 2,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  columns?: 2 | 3;
+}) {
+  return (
+    <div
+      className={cn(
+        columns === 3 ? wpDetailLayout.innerGridThree : wpDetailLayout.innerGrid,
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function WpPanel({
+  title,
+  description,
+  badge,
+  children,
+  className,
+}: {
+  title: string;
+  description?: string;
+  badge?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("rounded-md border border-border/60 bg-muted/10", className)}>
+      <div className="flex items-start justify-between gap-2 border-b border-border/60 px-3 py-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium leading-none">{title}</p>
+          {description ? (
+            <p className="mt-1 text-xs text-muted-foreground leading-snug">{description}</p>
+          ) : null}
+        </div>
+        {badge ? <div className="shrink-0">{badge}</div> : null}
+      </div>
+      <div className="p-3">{children}</div>
     </div>
   );
 }
@@ -48,7 +98,7 @@ export function WpSection({
   return (
     <section
       className={cn(
-        "flex h-full min-h-0 flex-col rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm",
+        "rounded-lg border border-border/60 bg-card text-card-foreground shadow-sm",
         className,
       )}
     >

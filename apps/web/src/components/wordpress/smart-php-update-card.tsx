@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
+import { Badge } from "@/components/ui/badge";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { trpc } from "@/utils/trpc";
 
@@ -33,9 +35,11 @@ function parsePhpChoices(stub: unknown): Array<{ value: string; title: string }>
 export function SmartPhpUpdateCard({
   installationId,
   available,
+  shell = "card",
 }: {
   installationId: number;
   available?: boolean;
+  shell?: "card" | "panel" | "none";
 }) {
   const [taskUrl, setTaskUrl] = React.useState<string | null>(null);
   const [phpHandler, setPhpHandler] = React.useState<string>("");
@@ -83,15 +87,8 @@ export function SmartPhpUpdateCard({
     onError: (e) => toast.error(e.message),
   });
 
-  return (
-    <WpFeatureCard
-      title="Smart PHP Update"
-      description="Test a PHP version on a clone before switching production."
-      icon={Cpu}
-      unavailable={available === false}
-      badge={phpStatus ? { label: phpStatus, variant: "outline" } : undefined}
-    >
-      <div className="space-y-4">
+  const content = (
+    <div className="space-y-3">
         {taskUrl ? (
           <WpTaskProgress
             taskUrl={taskUrl}
@@ -160,6 +157,32 @@ export function SmartPhpUpdateCard({
           </div>
         ) : null}
       </div>
+  );
+
+  const badge = phpStatus ? (
+    <Badge variant="outline" className="text-xs capitalize">
+      {phpStatus}
+    </Badge>
+  ) : undefined;
+
+  if (shell === "none") return content;
+  if (shell === "panel") {
+    return (
+      <WpPanel title="Smart PHP Update" description="Test PHP on a clone first" badge={badge}>
+        {content}
+      </WpPanel>
+    );
+  }
+
+  return (
+    <WpFeatureCard
+      title="Smart PHP Update"
+      description="Test a PHP version on a clone before switching production."
+      icon={Cpu}
+      unavailable={available === false}
+      badge={phpStatus ? { label: phpStatus, variant: "outline" } : undefined}
+    >
+      {content}
     </WpFeatureCard>
   );
 }

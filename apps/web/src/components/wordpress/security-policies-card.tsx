@@ -8,9 +8,17 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save } from "lucide-react";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
+import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
+import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
 import { trpc } from "@/utils/trpc";
 
-export function SecurityPoliciesCard({ installationId }: { installationId: number }) {
+export function SecurityPoliciesCard({
+  installationId,
+  shell = "card",
+}: {
+  installationId: number;
+  shell?: "card" | "panel" | "none";
+}) {
   const utils = trpc.useUtils();
   const { data, isLoading } = trpc.plesk.wpFeatures.getSecurityPolicies.useQuery({
     installationId,
@@ -71,17 +79,12 @@ export function SecurityPoliciesCard({ installationId }: { installationId: numbe
   const setThemes = (key: keyof typeof local.themes, v: boolean) =>
     setLocal((s) => ({ ...s, themes: { ...s.themes, [key]: v } }));
 
-  return (
-    <WpFeatureCard
-      title="Vulnerability policies"
-      description="Automated responses when vulnerabilities are detected on this site."
-      icon={Shield}
-    >
-      {isLoading ? (
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      ) : (
-        <div className="space-y-6">
-          <PolicyGroup title="Core">
+  const content = isLoading ? (
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  ) : (
+    <div className="space-y-4">
+      <div className={wpDetailLayout.innerGridThree}>
+        <PolicyGroup title="Core">
             <PolicySwitch
               label="Update vulnerable core"
               checked={local.core.updateVulnerable}
@@ -122,33 +125,49 @@ export function SecurityPoliciesCard({ installationId }: { installationId: numbe
               onChange={(v) => setThemes("applyVirtualPatches", v)}
             />
           </PolicyGroup>
+      </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              disabled={updateMutation.isPending}
-              onClick={() => updateMutation.mutate({ installationId, ...local })}
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              Save policies
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={patchMutation.isPending}
-              onClick={() =>
-                patchMutation.mutate({ installationId, status: true })
-              }
-            >
-              Enable virtual patching
-            </Button>
-          </div>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          disabled={updateMutation.isPending}
+          onClick={() => updateMutation.mutate({ installationId, ...local })}
+        >
+          {updateMutation.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          Save policies
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={patchMutation.isPending}
+          onClick={() => patchMutation.mutate({ installationId, status: true })}
+        >
+          Enable virtual patching
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (shell === "none") return content;
+  if (shell === "panel") {
+    return (
+      <WpPanel title="Automated policies" description="Responses when issues are detected">
+        {content}
+      </WpPanel>
+    );
+  }
+
+  return (
+    <WpFeatureCard
+      title="Vulnerability policies"
+      description="Automated responses when vulnerabilities are detected on this site."
+      icon={Shield}
+    >
+      {content}
     </WpFeatureCard>
   );
 }

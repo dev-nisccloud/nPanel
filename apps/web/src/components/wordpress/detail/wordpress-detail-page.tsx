@@ -26,7 +26,7 @@ import { WordPressSecurityTab } from "@/components/wordpress/tabs/security-tab";
 import { WordPressSiteSettingsTab } from "@/components/wordpress/tabs/site-settings-tab";
 import { WordPressUpdatesTab } from "@/components/wordpress/tabs/updates-tab";
 import { WordPressBackupsTab } from "@/components/wordpress/tabs/backups-tab";
-import { wpDetailLayout, DETAIL_TAB_TRIGGER_CLASS, DETAIL_TABS_LIST_CLASS } from "@/components/wordpress/wp-detail-layout";
+import { wpDetailLayout, DETAIL_TAB_TRIGGER_CLASS, DETAIL_TABS_LIST_CLASS, DETAIL_TABS_SCROLL_CLASS, DETAIL_TAB_CONTENT_CLASS } from "@/components/wordpress/wp-detail-layout";
 import { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
 import { useWordPressDetailBatched } from "@/routes/$slug.wordpress/_components/use-wordpress-detail-batched";
 import { WordPressOverview } from "@/routes/$slug.wordpress/_components/wordpress-overview";
@@ -187,8 +187,8 @@ export function WordPressDetailPage({
         </div>
 
         <div className="mt-8">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-0">
+            <ScrollArea className={DETAIL_TABS_SCROLL_CLASS}>
               <TabsList className={DETAIL_TABS_LIST_CLASS}>
                 {TABS.map((tab) => {
                   const Icon = tab.icon;
@@ -209,28 +209,28 @@ export function WordPressDetailPage({
               <ScrollBar orientation="horizontal" className="flex" />
             </ScrollArea>
 
-            <TabsContent value="overview" className="mt-10">
+            <TabsContent value="overview" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressOverview wpData={wp} onNavigateToTab={setActiveTab} />
             </TabsContent>
-            <TabsContent value="site-credentials" className="mt-10">
+            <TabsContent value="site-credentials" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressSiteCredentials installationId={String(wp.id)} />
             </TabsContent>
-            <TabsContent value="plugins" className="mt-10">
+            <TabsContent value="plugins" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressPlugins installationId={String(wp.id)} />
             </TabsContent>
-            <TabsContent value="themes" className="mt-10">
+            <TabsContent value="themes" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressThemes installationId={String(wp.id)} />
             </TabsContent>
-            <TabsContent value="security" className="mt-10">
+            <TabsContent value="security" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressSecurityTab installationId={String(wp.id)} />
             </TabsContent>
-            <TabsContent value="site-settings" className="mt-10">
+            <TabsContent value="site-settings" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressSiteSettingsTab installationId={String(wp.id)} />
             </TabsContent>
-            <TabsContent value="updates" className="mt-10">
+            <TabsContent value="updates" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressUpdatesTab installationId={String(wp.id)} wpData={wp} />
             </TabsContent>
-            <TabsContent value="backups" className="mt-10">
+            <TabsContent value="backups" className={DETAIL_TAB_CONTENT_CLASS}>
               <WordPressBackupsTab installationId={String(wp.id)} />
             </TabsContent>
           </Tabs>
