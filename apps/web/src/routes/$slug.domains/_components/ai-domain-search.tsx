@@ -17,6 +17,7 @@ import { useDomainSearch } from "./use-domain-search";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
+import { AI_DOMAIN_SUGGESTION_COUNT } from "@npanel/api/lib/ai-domain-search-constants";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 const MIN_DESCRIPTION_LENGTH = 40;
@@ -393,8 +394,8 @@ function AiDomainSearchInner() {
             <div className="text-center space-y-1">
               <h2 className="text-base font-semibold tracking-tight">AI Domain Search</h2>
               <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
-                Describe your business in detail. We will suggest brand names, check domain
-                availability across multiple extensions, and show live pricing.
+                Describe your business in detail. We will suggest {AI_DOMAIN_SUGGESTION_COUNT} brand
+                names, check domain availability across multiple extensions, and show live pricing.
               </p>
             </div>
 
@@ -527,7 +528,7 @@ function AiDomainSearchInner() {
 
           {generateIdeas.isPending ? (
             <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 list-none p-0 m-0">
-              {Array.from({ length: 12 }, (_, i) => (
+              {Array.from({ length: AI_DOMAIN_SUGGESTION_COUNT }, (_, i) => (
                 <li key={i} className="min-w-0">
                   {CARD_SKELETON}
                 </li>

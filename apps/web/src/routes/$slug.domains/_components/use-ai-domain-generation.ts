@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { AI_DOMAIN_SUGGESTION_COUNT } from "@npanel/api/lib/ai-domain-search-constants";
 
 interface AISuggestion {
   name: string;
@@ -43,7 +44,7 @@ export function useAIDomainGeneration() {
         },
         body: JSON.stringify({
           businessDescription: businessDescription.trim(),
-          count: 12,
+          count: AI_DOMAIN_SUGGESTION_COUNT,
         }),
       });
 
@@ -74,8 +75,14 @@ export function useAIDomainGeneration() {
         { name: "digitalhub", description: "Digital platform", confidence: 0.8 },
         { name: "nexus", description: "Connection point", confidence: 0.75 },
         { name: "pinnacle", description: "Peak performance", confidence: 0.7 },
-        { name: "vertex", description: "Strategic point", confidence: 0.65 }
-      ];
+        { name: "vertex", description: "Strategic point", confidence: 0.65 },
+        { name: "launchpad", description: "Growth launch", confidence: 0.6 },
+        { name: "brightpath", description: "Clear direction", confidence: 0.55 },
+        { name: "corestack", description: "Tech foundation", confidence: 0.5 },
+        { name: "flowstate", description: "Smooth operations", confidence: 0.45 },
+        { name: "northline", description: "Guidance brand", confidence: 0.4 },
+        { name: "sparkworks", description: "Creative energy", confidence: 0.35 },
+      ].slice(0, AI_DOMAIN_SUGGESTION_COUNT);
       setAiSuggestions(fallbackSuggestions);
       setTotalCount(fallbackSuggestions.length);
       setCheckingCount(0);

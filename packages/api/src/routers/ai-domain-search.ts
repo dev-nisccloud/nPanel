@@ -6,10 +6,12 @@ import { callBraveLlmContext } from "../lib/brave-search";
 import { agentCheckDomainAvailability } from "../lib/agent-internal-tools/domains";
 import { protectedProcedure, router } from "../trpc";
 
+import { AI_DOMAIN_SUGGESTION_COUNT } from "../lib/ai-domain-search-constants";
+
 export const AI_DOMAIN_SEARCH_MODEL = "anthropic/claude-4.5-haiku";
 
-/** Number of name ideas returned per generation request. */
-export const AI_DOMAIN_SUGGESTION_COUNT = 12;
+/** @deprecated Import from `@npanel/api/lib/ai-domain-search-constants` */
+export { AI_DOMAIN_SUGGESTION_COUNT };
 
 // ---------- constants ----------
 
