@@ -17,14 +17,25 @@ import {
 	Package,
 	Building2,
 	User,
-	Calendar,
 	PauseCircle,
 	PlayCircle,
 	XCircle,
 	Mail,
+	Server,
 } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { HostingSubscriptionSuspendDialog } from "@/routes/agency.hosting/_components/hosting-subscription-suspend-dialog";
+import { useHostingSubscriptionSuspend } from "@/routes/agency.hosting/_components/use-hosting-subscription-suspend";
+import {
+	getPleskSubscriptionDisplayName,
+	getPleskSubscriptionId,
+	isPleskLinkedSubscription,
+} from "./plesk-subscription-utils";
+import {
+	SubscriptionStatusConfirmDialog,
+	type SubscriptionStatusConfirmAction,
+} from "./subscription-status-confirm-dialog";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -82,13 +93,22 @@ export function SubscriptionViewSheet({
 		{ enabled: open && !!subscriptionId },
 	);
 
-	const updateStatus = trpc.clientSubscriptions.update.useMutation({
+	const syncNiscStatus = trpc.clientSubscriptions.update.useMutation({
 		onSuccess: () => {
 			utils.clientSubscriptions.getById.invalidate({ id: subscriptionId! });
 			utils.clientSubscriptions.listForAgency.invalidate();
-			toast.success("Status updated");
 		},
 		onError: (e) => toast.error(e.message),
+	});
+
+	const pleskSuspendActions = useHostingSubscriptionSuspend({
+		onSuccess: ({ action }) => {
+			if (!subscriptionId) return;
+			syncNiscStatus.mutate({
+				id: subscriptionId,
+				status: action === "suspend" ? "SUSPENDED" : "ACTIVE",
+			});
+		},
 	});
 
 	const cancelSubscription = trpc.clientSubscriptions.cancel.useMutation({
@@ -112,7 +132,59 @@ export function SubscriptionViewSheet({
 	const canSuspend = sub?.status === "ACTIVE" || sub?.status === "PENDING";
 	const canCancel = sub?.status !== "CANCELLED" && sub?.status !== "EXPIRED";
 
+	const hostingServiceId = sub ? getPleskSubscriptionId(sub) : null;
+	const isHostingLinked = sub ? isPleskLinkedSubscription(sub) : false;
+	const hostingDisplayName = sub ? getPleskSubscriptionDisplayName(sub) : "this subscription";
+	const subscriptionDisplayName =
+		sub?.name?.trim() ||
+		sub?.primaryDomain?.trim() ||
+		serviceName(productName, productPlanName) ||
+		"this subscription";
+
+	const [statusConfirmAction, setStatusConfirmAction] =
+		React.useState<SubscriptionStatusConfirmAction | null>(null);
+
+	const isActionPending =
+		syncNiscStatus.isPending || pleskSuspendActions.isPending || cancelSubscription.isPending;
+
+	const handleSuspend = () => {
+		if (!sub) return;
+		if (hostingServiceId) {
+			pleskSuspendActions.requestSuspend(hostingServiceId, hostingDisplayName);
+			return;
+		}
+		setStatusConfirmAction("suspend");
+	};
+
+	const handleReactivate = () => {
+		if (!sub) return;
+		if (hostingServiceId) {
+			pleskSuspendActions.requestUnsuspend(hostingServiceId, hostingDisplayName);
+			return;
+		}
+		setStatusConfirmAction("reactivate");
+	};
+
+	const confirmStatusChange = () => {
+		if (!sub || !statusConfirmAction) return;
+		const status = statusConfirmAction === "suspend" ? "SUSPENDED" : "ACTIVE";
+		syncNiscStatus.mutate(
+			{ id: sub.id, status },
+			{
+				onSuccess: () => {
+					setStatusConfirmAction(null);
+					toast.success(
+						statusConfirmAction === "suspend"
+							? "Subscription suspended"
+							: "Subscription reactivated",
+					);
+				},
+			},
+		);
+	};
+
 	return (
+		<>
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent className="w-full sm:max-w-2xl overflow-hidden flex flex-col p-0">
 				<SheetHeader className="px-6 pt-6 pb-2 flex-shrink-0">
@@ -164,6 +236,13 @@ export function SubscriptionViewSheet({
 											<span className="text-muted-foreground">Owner</span>
 											<span className="font-medium">{displayOwner}</span>
 										</div>
+										{isHostingLinked && hostingServiceId ? (
+											<div className="flex items-center gap-2 text-sm">
+												<Server className="h-4 w-4 text-muted-foreground shrink-0" />
+												<span className="text-muted-foreground">Hosting service</span>
+												<span className="font-medium">Linked</span>
+											</div>
+										) : null}
 									</div>
 								</section>
 
@@ -224,10 +303,10 @@ export function SubscriptionViewSheet({
 						<SheetFooter className="flex-shrink-0 flex-wrap gap-2 px-6 py-4 border-t bg-muted/30">
 							{canSuspend && (
 								<Button
-									variant="outline"
+									variant={hostingServiceId ? "destructive" : "outline"}
 									size="sm"
-									onClick={() => updateStatus.mutate({ id: sub.id, status: "SUSPENDED" })}
-									disabled={updateStatus.isPending}
+									onClick={handleSuspend}
+									disabled={isActionPending}
 								>
 									<PauseCircle className="mr-2 h-4 w-4" />
 									Suspend
@@ -237,7 +316,7 @@ export function SubscriptionViewSheet({
 								variant="outline"
 								size="sm"
 								onClick={() => onSendRenewalEmail?.(sub.id)}
-								disabled={(!sub.teamId && !sub.userId) || !onSendRenewalEmail}
+								disabled={(!sub.teamId && !sub.userId) || !onSendRenewalEmail || isActionPending}
 							>
 								<Mail className="mr-2 h-4 w-4" />
 								Send renewal email
@@ -246,8 +325,8 @@ export function SubscriptionViewSheet({
 								<Button
 									variant="outline"
 									size="sm"
-									onClick={() => updateStatus.mutate({ id: sub.id, status: "ACTIVE" })}
-									disabled={updateStatus.isPending}
+									onClick={handleReactivate}
+									disabled={isActionPending}
 								>
 									<PlayCircle className="mr-2 h-4 w-4" />
 									Re-activate
@@ -258,7 +337,7 @@ export function SubscriptionViewSheet({
 									variant="outline"
 									size="sm"
 									onClick={() => cancelSubscription.mutate({ id: sub.id })}
-									disabled={cancelSubscription.isPending}
+									disabled={isActionPending}
 									className="text-destructive border-destructive/50 hover:bg-destructive/10"
 								>
 									<XCircle className="mr-2 h-4 w-4" />
@@ -274,5 +353,25 @@ export function SubscriptionViewSheet({
 				)}
 			</SheetContent>
 		</Sheet>
+
+		<HostingSubscriptionSuspendDialog
+			dialog={pleskSuspendActions.dialog}
+			isPending={pleskSuspendActions.isPending}
+			onOpenChange={pleskSuspendActions.setDialogOpen}
+			onConfirm={pleskSuspendActions.confirm}
+			context="subscription"
+		/>
+
+		<SubscriptionStatusConfirmDialog
+			open={statusConfirmAction !== null}
+			action={statusConfirmAction}
+			subscriptionName={subscriptionDisplayName}
+			isPending={syncNiscStatus.isPending}
+			onOpenChange={(open) => {
+				if (!open) setStatusConfirmAction(null);
+			}}
+			onConfirm={confirmStatusChange}
+		/>
+		</>
 	);
 }
