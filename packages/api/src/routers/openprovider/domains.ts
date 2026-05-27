@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, protectedProcedure } from '../../trpc';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
+import { submitTransferFoaConfirmation } from '../../lib/openprovider-transfer-foa';
 import { getRedisClient } from '../../lib/redis';
 import type { 
   OpenProviderDomainCheckRequest,
@@ -31,6 +32,12 @@ const OPENPROVIDER_TOKEN_KEY = 'openprovider:auth-token';
 const OPENPROVIDER_TOKEN_TTL_SEC = 47 * 60 * 60; // 47 hours
 const OPENPROVIDER_TRANSIENT_RETRY_DELAY_MS = 400;
 const DOMAIN_CHECK_CACHE_TTL_SEC = 600; // 10 min for domain availability
+
+const TransferFoaConfirmationSchema = z.object({
+  domainId: z.string().min(1, 'Domain ID is required').max(32),
+  authCode: z.string().min(1, 'Authorization code is required').max(128),
+  approve: z.enum(['yes', 'no']),
+});
 
 // Validation schemas
 const DomainCheckRequestSchema = z.object({
@@ -1546,6 +1553,38 @@ export const openProviderDomainsRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Internal server error',
+        });
+      }
+    }),
+
+  /**
+   * Public ICANN FOA transfer confirmation callback (branded confirmation page).
+   * Relays approve/decline to OpenProvider using domainId + authCode from the FOA email link.
+   */
+  completeTransferFoaConfirmation: publicProcedure
+    .input(TransferFoaConfirmationSchema)
+    .mutation(async ({ input }) => {
+      try {
+        const result = await submitTransferFoaConfirmation({
+          domainId: input.domainId,
+          authCode: input.authCode,
+          approve: input.approve,
+        });
+
+        return {
+          success: result.status === 'Ok' || result.status === 'Rejected',
+          status: result.status,
+          message: result.message,
+        };
+      } catch (error) {
+        console.error('OpenProvider transfer FOA callback error:', error);
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Failed to process transfer confirmation',
         });
       }
     }),

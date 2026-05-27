@@ -18,3 +18,25 @@ export function joinPublicAppPath(path: string): string {
 	if (!base) return normalizedPath;
 	return `${base}${normalizedPath}`;
 }
+
+/**
+ * Branded OpenProvider gTLD contact verification landing page.
+ * Configure in OpenProvider RCP as:
+ * `{origin}/verify-contact?email=%%email%%&authCode=%%authCode%%`
+ */
+export function getContactVerificationConfirmUrl(): string {
+	return joinPublicAppPath(
+		"/verify-contact?email=%%email%%&authCode=%%authCode%%",
+	);
+}
+
+/**
+ * Branded OpenProvider FOA (transfer confirmation) landing page.
+ * Configure in OpenProvider RCP under Account > Settings > FOA branding as:
+ * `{origin}/confirm-transfer?domainId=%%domainId%%&authCode=%%authCode%%&domain=%%domain%%`
+ */
+export function getTransferFoaConfirmUrl(): string {
+	return joinPublicAppPath(
+		"/confirm-transfer?domainId=%%domainId%%&authCode=%%authCode%%&domain=%%domain%%",
+	);
+}

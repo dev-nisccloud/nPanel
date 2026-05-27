@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CheckCircle2, ExternalLink, RefreshCw, XCircle } from "lucide-react";
-import { Link } from "react-router";
+import { CheckCircle2, ExternalLink, Globe, RefreshCw, XCircle } from "lucide-react";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,8 +159,11 @@ export function HivelocityHostnameSection({
 		}
 	};
 
-	const domainsBrowseHref =
-		buyDomainHref ?? (isAgencySide ? "/agency/domains" : teamSlug ? `/${teamSlug}/domains` : undefined);
+	const domainsBrowseHref = isAgencySide
+		? "/agency/domains"
+		: buyDomainHref ?? (teamSlug ? `/${teamSlug}/domains` : undefined);
+
+	const domainsCtaLabel = "Browse domains";
 
 	return (
 		<div className="rounded-xl border bg-card p-4 space-y-4">
@@ -215,10 +217,15 @@ export function HivelocityHostnameSection({
 						</p>
 						{domainsBrowseHref ? (
 							<Button type="button" variant="outline" size="sm" asChild>
-								<Link to={domainsBrowseHref} className="inline-flex items-center gap-1.5">
-									Browse domains
+								<a
+									href={domainsBrowseHref}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="inline-flex items-center gap-1.5"
+								>
+									{domainsCtaLabel}
 									<ExternalLink className="h-3.5 w-3.5" />
-								</Link>
+								</a>
 							</Button>
 						) : null}
 					</div>
@@ -280,6 +287,33 @@ export function HivelocityHostnameSection({
 					<p className="text-xs text-destructive">Enter a valid FQDN (e.g. server.example.com)</p>
 				)}
 			</div>
+
+			{domainsBrowseHref ? (
+				<div className="rounded-lg border border-dashed bg-muted/20 px-4 py-3">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex items-start gap-2 min-w-0">
+							<Globe className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+							<div>
+								<p className="text-sm font-medium text-foreground">Need a domain for this hostname?</p>
+								<p className="text-xs text-muted-foreground mt-0.5">
+									Register or manage domains, then return here to pick one.
+								</p>
+							</div>
+						</div>
+						<Button type="button" variant="outline" size="sm" className="shrink-0" asChild>
+							<a
+								href={domainsBrowseHref}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1.5"
+							>
+								{domainsCtaLabel}
+								<ExternalLink className="h-3.5 w-3.5" />
+							</a>
+						</Button>
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }

@@ -29,6 +29,7 @@ import {
   Layers,
   Hexagon,
   LayoutDashboard,
+  Frame,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,10 @@ import { toast } from "sonner";
 import { uploadErrorMessage, uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
 import { RotatingText } from "@/components/rotating-text";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
+import {
+  buildComposeHandoffState,
+  startViewTransitionNavigate,
+} from "./_agency.zeepo-ai-agent/nav-state";
 
 type Attachment = { url: string; name: string; mimeType: string };
 
@@ -72,6 +77,35 @@ Global craft rules: consistent lighting logic per frame; real-world proportions;
     bg: "bg-yellow-500/10",
     title: "Premium logo design",
     prompt: `Design a premium, print-ready logo for "Vertex Advisory" — a financial consulting firm serving high-net-worth individuals and family offices across Africa. Use the design-specialist model. Deliver four outputs: (1) Primary logo — a refined geometric symbol (a clean upward-pointing abstract form suggesting precision, growth, and altitude) paired with an elegant serif wordmark, rendered in deep navy (#0B1F4F) and brushed gold (#C9A84C) on white; (2) Reversed version — identical mark on a deep navy background with the symbol in gold and wordmark in white; (3) Symbol-only monogram — the geometric mark isolated, suitable for app icon, embossed letterhead, and stamp seal; (4) Horizontal lockup — symbol left, wordmark right, proportionally balanced for email signatures and document headers. Design constraints: no gradients in the primary symbol — solid, geometric, timeless. The result must read as credible and authoritative at both 16px favicon size and large-format print. Ultra-high fidelity, boardroom-quality output, not generic.`,
+  },
+  {
+    icon: Frame,
+    color: "text-green-600",
+    bg: "bg-green-600/10",
+    title: "Brand mockup suite",
+    prompt: `You are a senior brand designer and mockup specialist. Create a cohesive, photorealistic brand mockup suite for "Kora Brew Co." — a specialty cold-brew coffee brand targeting urban professionals in Nairobi and the diaspora. Use the design-specialist / high-graphics model only. Every output must read as a real photographed or studio-rendered mockup (correct perspective, believable materials, natural shadows, subtle imperfections, no flat paste-on graphics, no AI slop, no watermarks, no stock-photo clichés).
+
+Brand system (lock across all mockups): wordmark "KORA" in bold condensed sans + subline "Brew Co."; primary palette deep espresso brown #3B2314, warm cream #F5F0E8, accent copper #C4713B; secondary sage #8A9A7B for botanical accents; typography = modern geometric sans for headlines, clean humanist sans for body; tone = premium, calm, craft-forward, African urban sophistication.
+
+Deliver 8 separate mockup images — each a distinct real-world application (adapt subject matter freely: packaging, apparel, signage, digital, print, environment, vehicle, merch — anything a brand would actually need):
+
+(1) Product packaging mockup — 3D standing pouch or bottle on a styled surface: matte kraft + copper foil stamp logo, "Cold Brew · 12hr Steep" callout, origin line "Nairobi Roast", soft side lighting, shallow depth of field, marble or walnut surface with scattered coffee beans and a folded linen napkin; camera angle ~15° hero three-quarter view.
+
+(2) Mobile app UI device mockup — latest smartphone in hand or on desk, screen showing a minimal app home: Kora logo, "Order Pickup", subscription card, copper CTA button; realistic screen glare, bezel reflections, UI aligned to safe areas; lifestyle desk context (ceramic cup, notebook) blurred in background.
+
+(3) Storefront / signage mockup — exterior café fascia or window vinyl: large KORA wordmark, hours, "Specialty Cold Brew" tagline; shot at golden hour on a contemporary African street (clean architecture, subtle pedestrians motion-blurred); believable glass reflections and sign mounting hardware.
+
+(4) Merchandise apparel mockup — premium heavyweight tee or tote flat-lay or on invisible mannequin: centered chest print (logo + small copper line icon), fabric texture visible, natural wrinkles, neutral cream background; optional second item (cap) partially in frame for depth.
+
+(5) Out-of-home billboard mockup — urban roadside hoarding at dusk: dramatic product pour visual or hero bottle, headline "Slow Brew. Fast City.", logo lockup bottom-right; correct forced perspective on the board, city skyline bokeh, car light trails optional.
+
+(6) Business stationery mockup — top-down flat-lay: letterhead, business card stack (foil edge), branded envelope, copper wax seal or sticker; precise alignment grid, soft even studio light, cream paper stock texture.
+
+(7) Vehicle / delivery mockup — compact delivery van or scooter panel wrap: logo wrap follows body lines, phone number and QR placeholder legible, parked outside a café; overcast soft light, realistic paint and vinyl wrap curvature.
+
+(8) Social + web composite mockup — MacBook on desk showing landing page hero (same brand system) beside phone with Instagram grid preview; consistent photography style across devices; shallow DOF, warm interior lifestyle setting.
+
+Global craft rules: one unified campaign world (same lighting family, colour grading, and prop styling); accurate scale and perspective per mockup type; logos applied with correct curvature on curved surfaces; all text spelled correctly and legible; outputs must feel client-ready for a brand guidelines PDF or Behance case study. If I ask for a different brand, product, or category later, swap the name and category but keep this mockup rigor and deliver the same breadth of applications.`,
   },
   {
     icon: LayoutDashboard,
@@ -175,6 +209,7 @@ export default function ZeepoAiAgentIndexPage() {
   const [pendingAttachments, setPendingAttachments] = React.useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [isHandingOff, setIsHandingOff] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -215,16 +250,24 @@ export default function ZeepoAiAgentIndexPage() {
       const res = await createSession.mutateAsync({});
       void utils.zeepoAgent.sessions.list.invalidate();
       const id = res.data?.id;
-      if (id) {
-        navigate(`/agency/zeepo-ai-agent/${id}`, {
-          state: {
-            initialMessage: message,
-            initialSkillId: opts?.skillId,
-            initialAttachments: attachments.length ? attachments : undefined,
-          },
+      const created = res.data;
+      if (id && created) {
+        utils.zeepoAgent.sessions.get.setData(
+          { id },
+          { data: { ...created, messages: [] } },
+        );
+        setIsHandingOff(true);
+        const handoffState = buildComposeHandoffState({
+          message,
+          skillId: opts?.skillId,
+          attachments: attachments.length ? attachments : undefined,
+        });
+        startViewTransitionNavigate(() => {
+          navigate(`/agency/zeepo-ai-agent/${id}`, { state: handoffState });
         });
       }
     } catch (e: unknown) {
+      setIsHandingOff(false);
       toast.error(e instanceof Error ? e.message : "Failed to create chat");
     }
   };
@@ -307,9 +350,14 @@ export default function ZeepoAiAgentIndexPage() {
           box-shadow: 0 0 18px 4px rgba(124,58,237,0.3) !important;
         }
       `}} />
-      <div className="w-full max-w-[760px] flex flex-col items-center gap-7 pt-10">
+      <div
+        className={cn(
+          "w-full max-w-[760px] flex flex-col items-center gap-7 pt-10 transition-all duration-300 ease-out",
+          isHandingOff && "pointer-events-none opacity-0 -translate-y-3 scale-[0.99]",
+        )}
+      >
         {/* Heading */}
-        <div className="flex w-full flex-col items-center gap-3">
+        <div className="zeepo-hero-surface flex w-full flex-col items-center gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
             <ZeepoMascot />
             <h1
@@ -337,7 +385,7 @@ export default function ZeepoAiAgentIndexPage() {
         </div>
 
         {/* Compose box */}
-        <div className="zeepo-compose-wrap bg-card shadow-sm">
+        <div className="zeepo-compose-wrap zeepo-compose-surface bg-card shadow-sm">
           {/* Pending attachment thumbnails */}
           {pendingAttachments.length > 0 && (
             <div className="flex flex-wrap gap-2 px-4 pt-3">
@@ -439,7 +487,7 @@ export default function ZeepoAiAgentIndexPage() {
         </div>
 
         {/* ── Sample prompt cards ─────────────────────────────── */}
-        <div className="w-full">
+        <div className="zeepo-hero-surface w-full">
           <div className="mb-3">
             <p className="text-xs font-medium text-muted-foreground">Sample prompts</p>
           </div>

@@ -10,7 +10,8 @@ import {
 	zeepoAgentSession,
 } from "@npanel/db/schema/zeepo-agent";
 import { env } from "@npanel/env/server";
-import { protectedProcedure, router } from "../../trpc";
+import { router } from "../../trpc";
+import { zeepoAgentProcedure } from "./procedures";
 import {
 	editTextSchema,
 	eraseObjectSchema,
@@ -163,7 +164,7 @@ export const zeepoAgentImageEditsRouter = router({
 	/**
 	 * Return the full edit history for a given generation, oldest first.
 	 */
-	listEditHistory: protectedProcedure
+	listEditHistory: zeepoAgentProcedure
 		.input(listImageEditHistorySchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -193,7 +194,7 @@ export const zeepoAgentImageEditsRouter = router({
 	 * Used by the frontend after the first time an image is opened in the panel
 	 * (creates the "original" snapshot) and after instruction edits via editImage.
 	 */
-	saveEditedImage: protectedProcedure
+	saveEditedImage: zeepoAgentProcedure
 		.input(saveEditedImageSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -220,7 +221,7 @@ export const zeepoAgentImageEditsRouter = router({
 	 * Apply a style preset or custom style to an image using flux-2-pro
 	 * image-to-image.
 	 */
-	styleTransfer: protectedProcedure
+	styleTransfer: zeepoAgentProcedure
 		.input(styleTransferSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -280,7 +281,7 @@ export const zeepoAgentImageEditsRouter = router({
 	 * white pixels indicate the region to erase.
 	 * Uses bria/eraser — trained on licensed data, commercial-safe.
 	 */
-	eraseObject: protectedProcedure
+	eraseObject: zeepoAgentProcedure
 		.input(eraseObjectSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -326,7 +327,7 @@ export const zeepoAgentImageEditsRouter = router({
 	 * Swap the background of an image to a new scene described by bgPrompt.
 	 * Uses bria/generate-background which handles foreground extraction internally.
 	 */
-	swapBackground: protectedProcedure
+	swapBackground: zeepoAgentProcedure
 		.input(swapBackgroundSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -381,7 +382,7 @@ export const zeepoAgentImageEditsRouter = router({
 	 * Upscale and sharpen an image using recraft-ai/recraft-crisp-upscale.
 	 * No prompt needed — simply pass the image URL.
 	 */
-	upscaleImage: protectedProcedure
+	upscaleImage: zeepoAgentProcedure
 		.input(upscaleImageSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -420,7 +421,7 @@ export const zeepoAgentImageEditsRouter = router({
 	 * Edit text visible in an image using qwen/qwen-image-edit-2511.
 	 * Prompt example: "Change 'GRAND OPENING' to 'SOLD OUT'"
 	 */
-	editText: protectedProcedure
+	editText: zeepoAgentProcedure
 		.input(editTextSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -463,7 +464,7 @@ export const zeepoAgentImageEditsRouter = router({
 	 * Generate 3 variations of the current image using flux-2-pro with
 	 * different seeds. Returns all three so the user can pick one.
 	 */
-	generateVariations: protectedProcedure
+	generateVariations: zeepoAgentProcedure
 		.input(generateVariationsSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;

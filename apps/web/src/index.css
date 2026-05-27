@@ -1,5 +1,6 @@
 @import "@npanel/ui/globals.css";
 @import "./styles/twitter.css";
+@import "./styles/zeepo-agent-transitions.css";
 
 @layer utilities {
   .animate-shimmer {

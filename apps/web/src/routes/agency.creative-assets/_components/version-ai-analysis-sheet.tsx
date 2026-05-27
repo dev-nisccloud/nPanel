@@ -414,7 +414,10 @@ export function VersionAiAnalysisSheet({
   return (
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="z-50 w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col gap-0" side="right">
+      <SheetContent
+        className="z-50 w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col gap-0 h-full overflow-hidden"
+        side="right"
+      >
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0 space-y-1 text-left">
           <SheetTitle className="flex flex-wrap items-center gap-2 pr-10">
             <Sparkles className="h-5 w-5 text-primary shrink-0" aria-hidden />
@@ -446,7 +449,7 @@ export function VersionAiAnalysisSheet({
           <Tabs
             value={mainTab}
             onValueChange={(v) => setMainTab(v as "analysis" | "history" | "new-run")}
-            className="flex flex-col flex-1 min-h-0"
+            className="flex flex-col flex-1 min-h-0 gap-0 overflow-hidden"
           >
             <div className="px-6 pt-4 pb-0 shrink-0 border-b">
               <TabsList
@@ -472,8 +475,12 @@ export function VersionAiAnalysisSheet({
               </TabsList>
             </div>
 
-            <TabsContent value="analysis" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
-              <ScrollArea className="h-[min(70vh,540px)] md:h-[min(75vh,620px)]">
+            <TabsContent
+              value="analysis"
+              className="flex flex-1 flex-col min-h-0 mt-0 overflow-hidden data-[state=inactive]:hidden"
+            >
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ScrollArea className="h-full">
                 <div className="px-6 py-5">
                   {listError ? (
                     <Card className="border-destructive/35 bg-destructive/5">
@@ -532,10 +539,15 @@ export function VersionAiAnalysisSheet({
                   )}
                 </div>
               </ScrollArea>
+              </div>
             </TabsContent>
 
-            <TabsContent value="history" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
-              <ScrollArea className="h-[min(70vh,540px)] md:h-[min(75vh,620px)]">
+            <TabsContent
+              value="history"
+              className="flex flex-1 flex-col min-h-0 mt-0 overflow-hidden data-[state=inactive]:hidden"
+            >
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ScrollArea className="h-full">
                 <div className="px-6 py-5 space-y-3 pb-8">
                   {listError ? (
                     <Card className="border-destructive/35 bg-destructive/5">
@@ -652,11 +664,16 @@ export function VersionAiAnalysisSheet({
                   )}
                 </div>
               </ScrollArea>
+              </div>
             </TabsContent>
 
             {onRunNewAnalysis ? (
-              <TabsContent value="new-run" className="flex-1 min-h-0 mt-0 data-[state=inactive]:hidden">
-                <ScrollArea className="h-[min(70vh,540px)] md:h-[min(75vh,620px)]">
+              <TabsContent
+                value="new-run"
+                className="flex flex-1 flex-col min-h-0 mt-0 overflow-hidden data-[state=inactive]:hidden"
+              >
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <ScrollArea className="h-full">
                   <div className="px-6 py-5 pb-8 space-y-4">
                     <Card className="border-primary/20 bg-gradient-to-br from-primary/6 via-transparent to-transparent">
                       <CardHeader className="pb-2">
@@ -684,12 +701,13 @@ export function VersionAiAnalysisSheet({
                     </Card>
                   </div>
                 </ScrollArea>
+                </div>
               </TabsContent>
             ) : null}
           </Tabs>
         )}
 
-        <div className="mt-auto border-t px-6 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="relative z-10 mt-auto border-t bg-background px-6 py-3 flex flex-wrap items-center justify-between gap-2 shrink-0">
           {onRunNewAnalysis ? (
             <Button
               type="button"
@@ -729,7 +747,7 @@ export function VersionAiAnalysisSheet({
     >
       <SheetContent
         side="right"
-        className="z-[70] w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col gap-0"
+        className="z-[70] w-full sm:max-w-xl md:max-w-2xl p-0 flex flex-col gap-0 h-full overflow-hidden"
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0 space-y-1 text-left">
           <SheetTitle className="flex flex-wrap items-center gap-2 pr-10">
@@ -756,7 +774,8 @@ export function VersionAiAnalysisSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 min-h-0 h-[min(70vh,540px)] md:h-[min(75vh,620px)]">
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full">
           <div className="px-6 py-5">
             {historyDetailRow == null ? (
               <p className="text-sm text-muted-foreground">Nothing selected.</p>
@@ -811,8 +830,9 @@ export function VersionAiAnalysisSheet({
             )}
           </div>
         </ScrollArea>
+        </div>
 
-        <div className="mt-auto border-t px-6 py-3 flex justify-end shrink-0">
+        <div className="mt-auto border-t bg-background px-6 py-3 flex justify-end shrink-0">
           <SheetClose asChild>
             <Button type="button" variant="outline">
               Close

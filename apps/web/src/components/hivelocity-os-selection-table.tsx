@@ -12,6 +12,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { nativePrimaryScrollbarClassName } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export type HivelocityOsTableRow = {
@@ -32,6 +33,8 @@ type HivelocityOsSelectionTableProps = {
 	isError?: boolean;
 	/** Appended to price column header, e.g. "/mo" */
 	priceColumnHint?: string;
+	/** Original USD/KES columns — agency users only */
+	showOriginalPriceColumns?: boolean;
 };
 
 export function HivelocityOsSelectionTable({
@@ -43,6 +46,7 @@ export function HivelocityOsSelectionTable({
 	isLoading = false,
 	isError = false,
 	priceColumnHint,
+	showOriginalPriceColumns = false,
 }: HivelocityOsSelectionTableProps) {
 	return (
 		<div className="rounded-xl border bg-card overflow-hidden">
@@ -78,7 +82,12 @@ export function HivelocityOsSelectionTable({
 					</p>
 				</div>
 			) : (
-				<div className="max-h-[min(280px,40vh)] overflow-y-auto overflow-x-auto overscroll-contain border-t">
+				<div
+					className={cn(
+						"h-[min(280px,40vh)] shrink-0 border-t bg-card",
+						nativePrimaryScrollbarClassName,
+					)}
+				>
 					<Table>
 						<TableHeader>
 							<TableRow className="hover:bg-transparent">
@@ -87,8 +96,12 @@ export function HivelocityOsSelectionTable({
 								<TableHead className="text-right sticky top-0 z-10 bg-card">
 									Price{priceColumnHint ? ` ${priceColumnHint}` : ""}
 								</TableHead>
-								<TableHead className="text-right sticky top-0 z-10 bg-card">Original (USD)</TableHead>
-								<TableHead className="text-right sticky top-0 z-10 bg-card">Original (KES)</TableHead>
+								{showOriginalPriceColumns ? (
+									<>
+										<TableHead className="text-right sticky top-0 z-10 bg-card">Original (USD)</TableHead>
+										<TableHead className="text-right sticky top-0 z-10 bg-card">Original (KES)</TableHead>
+									</>
+								) : null}
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -129,15 +142,19 @@ export function HivelocityOsSelectionTable({
 										<TableCell className="font-medium text-foreground whitespace-normal max-w-[200px] sm:max-w-none">
 											{row.name}
 										</TableCell>
-										<TableCell className="text-right text-base font-semibold text-primary tabular-nums">
+										<TableCell className="text-right font-bold text-primary tabular-nums">
 											{row.displayPriceLabel}
 										</TableCell>
-										<TableCell className="text-right text-sm text-green-600 dark:text-green-500 tabular-nums">
-											{row.originalUsdLabel ?? "—"}
-										</TableCell>
-										<TableCell className="text-right text-sm text-green-600 dark:text-green-500 tabular-nums">
-											{row.originalKesLabel ?? "—"}
-										</TableCell>
+										{showOriginalPriceColumns ? (
+											<>
+												<TableCell className="text-right text-sm text-green-600 dark:text-green-500 tabular-nums">
+													{row.originalUsdLabel ?? "—"}
+												</TableCell>
+												<TableCell className="text-right text-sm text-green-600 dark:text-green-500 tabular-nums">
+													{row.originalKesLabel ?? "—"}
+												</TableCell>
+											</>
+										) : null}
 									</TableRow>
 								);
 							})}

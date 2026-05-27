@@ -15,6 +15,7 @@ import {
   BarChart3,
   User,
   Users,
+  Receipt,
 } from "lucide-react";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import { Label } from "@/components/ui/label";
@@ -40,7 +41,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Accordion,
 	AccordionContent,
@@ -64,6 +65,12 @@ import {
 } from "@/components/hivelocity-os-selection-table";
 import { HivelocityHostnameSection } from "@/components/hivelocity-hostname-section";
 import {
+	HivelocityConfigSectionHeading,
+	HivelocityConfigSectionProgress,
+	HivelocityScrollForMoreHint,
+	useIsElementVisibleInScrollArea,
+} from "@/components/hivelocity-config-step-guide";
+import {
   buildHivelocityInvoiceBreakdown,
   formatNextBillingDate,
   getAvailableHivelocityPeriods,
@@ -83,6 +90,8 @@ import {
 import {
   collectHivelocityOptionTags,
   dedupeExclusiveGroupOptionIds,
+  filterGroupedOptionsExcludingOs,
+  filterGroupedOptionsForVpsVdsCheckout,
   getHivelocityAddonDisabledDetails,
   groupHasOptOutOption,
   isHivelocityOptionalSingleSelectGroup,
@@ -248,6 +257,8 @@ export function BuyNowDialog({
   agencyPortfolioCheckout = false,
 }: BuyNowDialogProps) {
   const isHivelocityPlan = Boolean(plan?.hivelocity);
+  const isVpsOrVdsPlan =
+    plan?.hivelocity?.productType === "VPS" || plan?.hivelocity?.productType === "VDS";
   const isSeoPlan = plan?.subType === "SEO";
   const showSeoConnectStep = Boolean(isSeoPlan);
   const portfolioDomainNormalized = React.useMemo(() => {
@@ -283,11 +294,14 @@ export function BuyNowDialog({
   const { addHivelocity } = useCartStore();
   const location = useLocation();
   const { data: session } = authClient.useSession();
-  const isAgencySide = React.useMemo(() => {
+  const isAgencyUser = React.useMemo(() => {
     const user = session?.user as { role?: string; agencyRoleId?: string | null } | undefined;
     const role = String(user?.role ?? "");
-    return location.pathname.startsWith("/agency") || role.toUpperCase().includes("AGENCY") || !!user?.agencyRoleId;
-  }, [location.pathname, session?.user]);
+    return role.toUpperCase().includes("AGENCY") || !!user?.agencyRoleId;
+  }, [session?.user]);
+  const isAgencySide = React.useMemo(() => {
+    return location.pathname.startsWith("/agency") || isAgencyUser;
+  }, [location.pathname, isAgencyUser]);
 
   const [currentStep, setCurrentStep] = React.useState<Step>(initialStep);
   const [couponCode, setCouponCode] = React.useState("");
@@ -528,6 +542,12 @@ export function BuyNowDialog({
       : {};
   }, [hivelocityOptionsQuery.data]);
 
+  const hivelocityDisplayGroupedOptions = React.useMemo(() => {
+    const withoutOs = filterGroupedOptionsExcludingOs(groupedProductOptions);
+    if (!isVpsOrVdsPlan) return withoutOs;
+    return filterGroupedOptionsForVpsVdsCheckout(withoutOs);
+  }, [groupedProductOptions, isVpsOrVdsPlan]);
+
   const optionGroupById = React.useMemo(() => {
     const map = new Map<string, string>();
     const data = hivelocityOptionsQuery.data?.success ? (hivelocityOptionsQuery.data.data as Record<string, any[]>) : {};
@@ -595,6 +615,30 @@ export function BuyNowDialog({
       return next;
     });
   }, [groupedProductOptions, isHivelocityPlan, open, selectedOptionIds.length]);
+
+  // VPS/VDS: drop selections from add-on groups we do not surface in the UI.
+  React.useEffect(() => {
+    if (!open || !isHivelocityPlan || !isVpsOrVdsPlan) return;
+    if (!selectedOptionIds.length) return;
+
+    const visibleIds = new Set(
+      Object.values(hivelocityDisplayGroupedOptions)
+        .flat()
+        .map((opt: any) => String(opt?.id ?? ""))
+        .filter(Boolean),
+    );
+
+    setSelectedOptionIds((prev) => {
+      const next = prev.filter((id) => visibleIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [
+    open,
+    isHivelocityPlan,
+    isVpsOrVdsPlan,
+    hivelocityDisplayGroupedOptions,
+    selectedOptionIds.length,
+  ]);
 
   // If OS or tag set changes, auto-remove add-ons that became incompatible.
   React.useEffect(() => {
@@ -715,6 +759,8 @@ export function BuyNowDialog({
   const [accountRefError, setAccountRefError] = React.useState<string>("");
   const [phoneError, setPhoneError] = React.useState<string>("");
   const [amountError, setAmountError] = React.useState<string>("");
+  const [manualTransactionReference, setManualTransactionReference] = React.useState("");
+  const [manualTransactionRefError, setManualTransactionRefError] = React.useState("");
 
   // Payment status
   const [checkoutRequestId, setCheckoutRequestId] = React.useState<string | null>(null);
@@ -730,6 +776,42 @@ export function BuyNowDialog({
   const hivelocityCheckoutSnapshotRef = React.useRef<
     RouterInputs["niscServiceOrders"]["createFromPayment"]["items"][number] | null
   >(null);
+  const dialogScrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const hivelocityHostnameSectionRef = React.useRef<HTMLDivElement>(null);
+
+  const hivelocityHostnameSectionVisible = useIsElementVisibleInScrollArea(
+    dialogScrollContainerRef,
+    hivelocityHostnameSectionRef,
+    open && currentStep === "hivelocity_config",
+  );
+
+  const scrollToHivelocityHostname = React.useCallback(() => {
+    hivelocityHostnameSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const handleHivelocityOsSelect = React.useCallback(
+    (id: string) => {
+      setSelectedOsId(id);
+      window.requestAnimationFrame(() => {
+        if (!hivelocityHostnameSectionRef.current) return;
+        const viewport = dialogScrollContainerRef.current?.querySelector(
+          '[data-slot="scroll-area-viewport"]',
+        ) as HTMLElement | null;
+        const target = hivelocityHostnameSectionRef.current;
+        if (!viewport) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+        const viewportRect = viewport.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const isVisible = targetRect.top >= viewportRect.top && targetRect.top <= viewportRect.bottom - 48;
+        if (!isVisible) {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    },
+    [],
+  );
 
   // Calculate pricing using useMemo to ensure proper reactivity
   const hivelocityInvoiceBreakdown = React.useMemo(() => {
@@ -837,6 +919,8 @@ export function BuyNowDialog({
       setAccountRefError("");
       setPhoneError("");
       setAmountError("");
+      setManualTransactionReference("");
+      setManualTransactionRefError("");
       setCheckoutRequestId(null);
       setPaymentError(null);
       setShouldStopPolling(false);
@@ -972,6 +1056,12 @@ export function BuyNowDialog({
       toast.error(err.message || "Order could not be created. Please contact support.");
     },
   }) as UseMutationResult<void, { message?: string }, CreateFromPaymentInput>;
+
+  const recordManualPayment = trpc.paymentTransactions.recordManual.useMutation({
+    onError: (err: { message?: string }) => {
+      toast.error(err.message || "Could not record payment.");
+    },
+  });
 
   const buildHivelocityPaymentItem = React.useCallback((): CreateFromPaymentInput["items"][number] | null => {
     if (!plan?.hivelocity || !hivelocityInvoiceBreakdown || !selectedOs) return null;
@@ -1222,6 +1312,58 @@ export function BuyNowDialog({
       transactionDesc,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
     });
+  };
+
+  const handleManualTransactionReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setManualTransactionReference(value);
+    if (!value.trim()) {
+      setManualTransactionRefError("Transaction reference is required");
+    } else if (value.trim().length < 3) {
+      setManualTransactionRefError("Reference must be at least 3 characters");
+    } else {
+      setManualTransactionRefError("");
+    }
+  };
+
+  const handleRecordManualPayment = async () => {
+    const ref = manualTransactionReference.trim();
+    if (!ref) {
+      setManualTransactionRefError("Transaction reference is required");
+      return;
+    }
+    if (ref.length < 3) {
+      setManualTransactionRefError("Reference must be at least 3 characters");
+      return;
+    }
+    const amount = parseFloat(paymentAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter a valid payment amount.");
+      return;
+    }
+
+    const transactionDesc = (`Purchase: ${plan?.planName || "Service Plan"}`).slice(0, 200);
+
+    try {
+      const result = await recordManualPayment.mutateAsync({
+        transactionReference: ref,
+        amount,
+        currency: plan?.currency ?? "KES",
+        accountReference: accountReference.trim() || undefined,
+        transactionDesc,
+        ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
+      });
+      setCheckoutRequestId(result.checkoutRequestId);
+      terminalStateDetectedRef.current = true;
+      setShouldStopPolling(true);
+      setPaymentError(null);
+      immediateStepRef.current = "success";
+      immediatePaymentErrorRef.current = null;
+      setCurrentStep("success");
+      toast.success("Payment recorded and order submitted.");
+    } catch {
+      // onError toast
+    }
   };
 
   const handleNext = () => {
@@ -1541,13 +1683,13 @@ export function BuyNowDialog({
         );
 
       case "hivelocity_config":
-        const groupedOptionsWithoutOs = Object.fromEntries(
-          Object.entries(groupedProductOptions).filter(
-            ([group]) => group.trim().toLowerCase() !== "operating system",
-          ),
-        );
         return (
           <div className="space-y-4">
+            <HivelocityConfigSectionProgress
+              status={{ os: Boolean(selectedOs), hostname: hostnameValid }}
+              addonCount={addonsCount}
+            />
+
             <div className="rounded-xl border bg-muted/20 p-4">
               <div className="flex items-start gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -1571,45 +1713,69 @@ export function BuyNowDialog({
               </div>
             </div>
 
-            <HivelocityOsSelectionTable
-              searchQuery={osSearch}
-              onSearchChange={setOsSearch}
-              rows={osTableRows}
-              selectedId={selectedOsId}
-              onSelect={setSelectedOsId}
-              isLoading={hivelocityOsQuery.isLoading}
-              isError={hivelocityOsQuery.isError}
-              priceColumnHint={periodPriceSuffix.trim() || undefined}
+            <div className="space-y-2">
+              <HivelocityConfigSectionHeading
+                step={1}
+                title="Operating system"
+                description="Choose one option from the list below."
+                required
+              />
+              <HivelocityOsSelectionTable
+                searchQuery={osSearch}
+                onSearchChange={setOsSearch}
+                rows={osTableRows}
+                selectedId={selectedOsId}
+                onSelect={handleHivelocityOsSelect}
+                isLoading={hivelocityOsQuery.isLoading}
+                isError={hivelocityOsQuery.isError}
+                priceColumnHint={periodPriceSuffix.trim() || undefined}
+                showOriginalPriceColumns={isAgencyUser}
+              />
+            </div>
+
+            <HivelocityScrollForMoreHint
+              visible={!hivelocityHostnameSectionVisible}
+              onScrollToNext={scrollToHivelocityHostname}
             />
 
-            <HivelocityHostnameSection
-              enabled={open && currentStep === "hivelocity_config"}
-              hostname={hostname}
-              onHostnameChange={setHostname}
-              defaultHostname={defaultHostname}
-              isAgencySide={isAgencySide}
-              teamSlug={teamSlug}
-              teamId={teamId}
-              buyDomainHref={buyDomainHref}
-            />
+            <div ref={hivelocityHostnameSectionRef} className="space-y-2 scroll-mt-4">
+              <HivelocityConfigSectionHeading
+                step={2}
+                title="Hostname"
+                description="Set the server FQDN used during provisioning."
+                required
+              />
+              <HivelocityHostnameSection
+                enabled={open && currentStep === "hivelocity_config"}
+                hostname={hostname}
+                onHostnameChange={setHostname}
+                defaultHostname={defaultHostname}
+                isAgencySide={isAgencySide}
+                teamSlug={teamSlug}
+                teamId={teamId}
+                buyDomainHref={buyDomainHref}
+              />
+            </div>
 
-            <div className="rounded-xl border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">Add-ons (optional)</p>
-                    <p className="text-xs text-muted-foreground">Select extras to reflect the true total</p>
-                  </div>
+            <div className="space-y-2 scroll-mt-4">
+              <HivelocityConfigSectionHeading
+                step={3}
+                title="Add-ons"
+                description="Optional extras — review these before continuing."
+              />
+              <div className="rounded-xl border p-4">
+                <div className="flex items-center justify-end gap-3">
                   <Badge variant="outline" className="rounded-full">{addonsCount} selected</Badge>
                 </div>
 
                 <div className="mt-3">
-                  {Object.entries(groupedOptionsWithoutOs).length === 0 ? (
+                  {Object.entries(hivelocityDisplayGroupedOptions).length === 0 ? (
                     <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
                       {hivelocityOptionsQuery.isLoading ? "Loading options..." : "No add-ons available for this product."}
                     </div>
                   ) : (
                     <Accordion type="multiple" className="w-full">
-                      {Object.entries(groupedOptionsWithoutOs).map(([group, rows]) => (
+                      {Object.entries(hivelocityDisplayGroupedOptions).map(([group, rows]) => (
                         (() => {
                           const selectionMode = getGroupSelectionMode(group, rows as any[]);
                           const groupOptionIds = new Set((rows as any[]).map((r) => String(r?.id ?? "")).filter(Boolean));
@@ -1740,6 +1906,7 @@ export function BuyNowDialog({
                   )}
                 </div>
               </div>
+            </div>
 
             {!canProceedFromHivelocityConfig ? (
                 <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
@@ -1904,7 +2071,7 @@ export function BuyNowDialog({
               </p>
             </div>
 
-            <ScrollArea className="h-[300px] w-full">
+            <ScrollArea className="h-[300px] w-full" thumbClassName="bg-primary">
               <div className="space-y-4 pr-4">
                 {plan.hivelocity ? (
                   <>
@@ -1976,7 +2143,6 @@ export function BuyNowDialog({
                   </div>
                 )}
               </div>
-              <ScrollBar orientation="vertical" />
             </ScrollArea>
 
             {/* Coupon Code */}
@@ -2185,6 +2351,108 @@ export function BuyNowDialog({
                     </AccordionContent>
                   </Card>
                 </AccordionItem>
+                {isAgencyUser ? (
+                  <AccordionItem value="manual" className="border rounded-lg">
+                    <Card className="border-0 shadow-none">
+                      <AccordionTrigger
+                        className="px-4 py-4 hover:no-underline"
+                        onClick={() =>
+                          setSelectedPaymentMethod(selectedPaymentMethod === "manual" ? null : "manual")
+                        }
+                      >
+                        <div className="flex items-center gap-4 w-full">
+                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                            <Receipt className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="font-semibold text-foreground">Record payment reference</div>
+                            <div className="text-sm text-muted-foreground">
+                              M-Pesa receipt, bank transfer, or other external payment
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="space-y-4 pt-2">
+                          <p className="text-xs text-muted-foreground">
+                            Enter the transaction reference from the payment provider. This creates a successful
+                            payment record and completes the order (same as a confirmed M-Pesa payment).
+                          </p>
+                          <div className="space-y-2">
+                            <label htmlFor="manual-transaction-ref" className="text-sm font-medium text-foreground">
+                              Transaction reference <span className="text-destructive">*</span>
+                            </label>
+                            <Input
+                              id="manual-transaction-ref"
+                              placeholder="e.g. SH12345678 or bank transfer ref"
+                              value={manualTransactionReference}
+                              onChange={handleManualTransactionReferenceChange}
+                              className={manualTransactionRefError ? "border-destructive" : ""}
+                              maxLength={64}
+                            />
+                            {manualTransactionRefError ? (
+                              <p className="text-xs text-destructive">{manualTransactionRefError}</p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Must be unique. Used as the payment checkout ID for this order.
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="manual-payment-amount" className="text-sm font-medium text-foreground">
+                              Amount ({pricing.displayCurrency}) <span className="text-destructive">*</span>
+                            </label>
+                            <Input
+                              id="manual-payment-amount"
+                              type="number"
+                              value={paymentAmount}
+                              onChange={handleAmountChange}
+                              className={amountError ? "border-destructive" : ""}
+                              min="1"
+                              step="1"
+                            />
+                            {amountError ? (
+                              <p className="text-xs text-destructive">{amountError}</p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                Order total: {formatPrice(pricing.total, pricing.displayCurrency)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor="manual-account-reference" className="text-sm font-medium text-foreground">
+                              Account reference
+                            </label>
+                            <Input
+                              id="manual-account-reference"
+                              value={accountReference}
+                              readOnly
+                              disabled
+                              className="w-full bg-muted/50 cursor-default text-foreground disabled:opacity-100"
+                              maxLength={12}
+                            />
+                          </div>
+                          <Button
+                            onClick={() => void handleRecordManualPayment()}
+                            disabled={
+                              recordManualPayment.isPending ||
+                              createOrderFromPayment.isPending ||
+                              !manualTransactionReference.trim() ||
+                              !!manualTransactionRefError ||
+                              !paymentAmount ||
+                              !!amountError
+                            }
+                            className="w-full"
+                          >
+                            {recordManualPayment.isPending || createOrderFromPayment.isPending
+                              ? "Processing…"
+                              : "Record payment & complete order"}
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </Card>
+                  </AccordionItem>
+                ) : null}
               </Accordion>
             </div>
 
@@ -2409,7 +2677,7 @@ export function BuyNowDialog({
                 : "Choose or enter the domain to use with this plan")}
             {currentStep === "agency_billing" &&
               "Choose whether this order is for your agency, a client team, or a specific user"}
-            {currentStep === "hivelocity_config" && "Select OS and required server details"}
+            {currentStep === "hivelocity_config" && "Choose OS, hostname, and optional add-ons — scroll through all sections"}
             {currentStep === "review" &&
               (intent === "add_to_cart" ? "Review your configuration and add it to cart" : "Review your order and proceed to checkout")}
             {currentStep === "payment" && "Complete your payment"}
@@ -2440,12 +2708,11 @@ export function BuyNowDialog({
           ) : null}
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 px-6 overflow-hidden">
-          <ScrollArea className="h-full">
+        <div ref={dialogScrollContainerRef} className="flex-1 min-h-0 px-6 overflow-hidden">
+          <ScrollArea className="h-full" thumbClassName="bg-primary">
             <div className="py-4 min-w-0 w-full pr-4">
               {renderStep()}
             </div>
-            <ScrollBar orientation="vertical" />
           </ScrollArea>
         </div>
 

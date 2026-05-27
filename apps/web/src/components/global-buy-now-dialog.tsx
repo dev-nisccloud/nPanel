@@ -30,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Accordion,
   AccordionContent,
@@ -226,9 +226,8 @@ function BuyNowStepScroll({
   className?: string;
 }) {
   return (
-    <ScrollArea className="h-[min(52vh,28rem)] w-full">
+    <ScrollArea className="h-[min(52vh,28rem)] w-full" thumbClassName="bg-primary">
       <div className={cn("px-1 py-2", className)}>{children}</div>
-      <ScrollBar orientation="vertical" />
     </ScrollArea>
   );
 }
@@ -1471,7 +1470,7 @@ export function GlobalBuyNowDialog() {
               </div>
             )}
             {addOnsData.length > 0 && (
-              <ScrollArea className="h-[280px] w-full">
+              <ScrollArea className="h-[280px] w-full" thumbClassName="bg-primary">
                 <div className="space-y-3 pr-4">
                   <h4 className="text-sm font-semibold text-foreground">Optional add-ons</h4>
                   {addOnsData.map(({ product, plans: addonPlans }) => {
@@ -1501,7 +1500,6 @@ export function GlobalBuyNowDialog() {
                     );
                   })}
                 </div>
-                <ScrollBar orientation="vertical" />
               </ScrollArea>
             )}
           </div>
@@ -1708,7 +1706,7 @@ export function GlobalBuyNowDialog() {
         if (isCartMode) {
           return (
             <div className="space-y-4">
-              <ScrollArea className="h-[200px] w-full">
+              <ScrollArea className="h-[200px] w-full" thumbClassName="bg-primary">
                 <div className="space-y-3 pr-4">
                   {items.map((item) => {
                     let overrideKey: string | null = null;
@@ -1737,7 +1735,6 @@ export function GlobalBuyNowDialog() {
                     );
                   })}
                 </div>
-                <ScrollBar orientation="vertical" />
               </ScrollArea>
               <div className="flex items-center gap-2">
                 <Input
@@ -1775,7 +1772,7 @@ export function GlobalBuyNowDialog() {
         }
         return (
           <div className="space-y-4">
-            <ScrollArea className="h-[300px] w-full">
+            <ScrollArea className="h-[300px] w-full" thumbClassName="bg-primary">
               <div className="space-y-4 pr-4">
                 {hasDomain && ctx?.domain && (
                   <div className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
@@ -1834,7 +1831,6 @@ export function GlobalBuyNowDialog() {
                   </div>
                 ))}
               </div>
-              <ScrollBar orientation="vertical" />
             </ScrollArea>
             <div className="flex items-center gap-2">
               <Input
@@ -2404,9 +2400,8 @@ export function GlobalBuyNowDialog() {
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 min-h-0 px-6 overflow-hidden">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full" thumbClassName="bg-primary">
             <div className="py-4">{renderStep()}</div>
-            <ScrollBar orientation="vertical" />
           </ScrollArea>
         </div>
         <DialogFooter className="gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t">

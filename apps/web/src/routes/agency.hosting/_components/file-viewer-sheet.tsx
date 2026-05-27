@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import type { FileManagerItem } from "./file-manager-schema";
+import { getFileManagerItemExtension } from "./file-manager-schema";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 
 interface FileViewerSheetProps {
@@ -43,7 +44,7 @@ interface FileViewerSheetProps {
 function isViewableFile(file: FileManagerItem): boolean {
   if (file.type !== "file") return false;
 
-  const extension = file.extension?.toLowerCase() || "";
+  const extension = getFileManagerItemExtension(file);
 
   // Text files
   const textExtensions = ['txt', 'md', 'log', 'csv', 'readme', 'license'];

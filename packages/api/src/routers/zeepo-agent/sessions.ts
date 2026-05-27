@@ -6,7 +6,8 @@ import {
 	zeepoAgentActivityLog,
 	zeepoAgentSession,
 } from "@npanel/db/schema/zeepo-agent";
-import { protectedProcedure, router } from "../../trpc";
+import { router } from "../../trpc";
+import { zeepoAgentProcedure } from "./procedures";
 import {
 	createSessionSchema,
 	deleteSessionSchema,
@@ -16,7 +17,7 @@ import {
 } from "./schemas";
 
 export const zeepoAgentSessionsRouter = router({
-	create: protectedProcedure
+	create: zeepoAgentProcedure
 		.input(createSessionSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -55,7 +56,7 @@ export const zeepoAgentSessionsRouter = router({
 			return { data: session };
 		}),
 
-	list: protectedProcedure
+	list: zeepoAgentProcedure
 		.input(listSessionsSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -89,7 +90,7 @@ export const zeepoAgentSessionsRouter = router({
 			};
 		}),
 
-	get: protectedProcedure
+	get: zeepoAgentProcedure
 		.input(getSessionSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -116,7 +117,7 @@ export const zeepoAgentSessionsRouter = router({
 			return { data: session };
 		}),
 
-	updateTitle: protectedProcedure
+	updateTitle: zeepoAgentProcedure
 		.input(updateSessionTitleSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -138,7 +139,7 @@ export const zeepoAgentSessionsRouter = router({
 			return { success: true as const, title: input.title };
 		}),
 
-	delete: protectedProcedure
+	delete: zeepoAgentProcedure
 		.input(deleteSessionSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;

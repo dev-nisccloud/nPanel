@@ -96,6 +96,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  hasComposeHandoff,
+  type ZeepoComposeHandoffState,
+} from "./_agency.zeepo-ai-agent/nav-state";
 
 function extractOutputPreview(outputs: unknown): string | null {
   if (outputs == null) return null;
@@ -986,16 +990,11 @@ type ZeepoAgentSkillRow = {
   description: string;
 };
 
-type InitialNavState = {
-  initialMessage?: string;
-  initialSkillId?: string;
-  initialAttachments?: Array<{ url: string; name: string; mimeType: string }>;
-} | null;
-
 export default function ZeepoAiAgentSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const isComposeHandoff = hasComposeHandoff(location.state);
   const { data: authSession, isPending: authPending } = authClient.useSession();
   const [draft, setDraft] = React.useState("");
   const [skillsOpen, setSkillsOpen] = React.useState(false);
@@ -1293,8 +1292,13 @@ export default function ZeepoAiAgentSessionPage() {
   const hasOptimisticUserBubble = messagesForThinking.some(
     (m: { id?: string }) => typeof m.id === "string" && m.id.startsWith("optimistic-user-"),
   );
+  const hasAssistantReply = (sessionQuery.data?.data?.messages ?? []).some(
+    (m: { role?: string }) => m.role === "assistant",
+  );
   const showAssistantThinking =
-    send.isPending || (sessionQuery.isFetching && hasOptimisticUserBubble);
+    send.isPending ||
+    (sessionQuery.isFetching && hasOptimisticUserBubble) ||
+    (isComposeHandoff && !hasAssistantReply);
 
   // True once the agent has emitted at least one assistant message in the current pending turn
   // (i.e. intermediate messages from tool iterations are already visible).
@@ -1529,8 +1533,8 @@ export default function ZeepoAiAgentSessionPage() {
   React.useEffect(() => {
     if (autoSentRef.current) return;
     if (!sessionId) return;
-    const navState = location.state as InitialNavState;
-    if (!navState) return;
+    const navState = location.state as ZeepoComposeHandoffState | null;
+    if (!navState?.fromCompose) return;
 
     const { initialMessage, initialSkillId, initialAttachments } = navState;
     // Wait until the session has loaded before sending
@@ -1704,7 +1708,9 @@ export default function ZeepoAiAgentSessionPage() {
     return <Navigate to="/agency/zeepo-ai-agent" replace />;
   }
 
-  const sessionLoading = sessionQuery.isPending || sessionQuery.isLoading;
+  const sessionLoading =
+    !sessionQuery.data?.data &&
+    (sessionQuery.isPending || sessionQuery.isLoading);
   const sessionError = sessionQuery.isError;
   const sessionErr = sessionQuery.error;
   const notFound =
@@ -1798,6 +1804,28 @@ export default function ZeepoAiAgentSessionPage() {
       return true;
     });
   })();
+
+  const composeHandoffUserMessage = (() => {
+    if (!isComposeHandoff) return null;
+    const nav = location.state as ZeepoComposeHandoffState;
+    const content = nav.initialMessage?.trim();
+    if (!content) return null;
+    if (messages.some((m) => m.role === "user")) return null;
+    return {
+      id: "compose-handoff-user",
+      role: "user" as const,
+      content,
+      createdAt: new Date(),
+      metadata: nav.initialAttachments?.length
+        ? { attachments: nav.initialAttachments }
+        : null,
+    };
+  })();
+
+  const displayMessages = composeHandoffUserMessage
+    ? [...messages, composeHandoffUserMessage]
+    : messages;
+
   const generations = genQuery.data?.data ?? [];
   const genLoading = genQuery.isPending || genQuery.isLoading;
   const genError = genQuery.isError;
@@ -2006,8 +2034,9 @@ export default function ZeepoAiAgentSessionPage() {
 
   return (
     <div className={cn(
-      "relative flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] w-full overflow-hidden transition-all duration-300",
+      "zeepo-chat-surface relative flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] w-full overflow-hidden transition-all duration-300",
       !activePanel && "max-w-3xl mx-auto",
+      isComposeHandoff && "animate-in fade-in duration-300",
     )}>
       {/* ── Chat-switching overlay ───────────────────────────── */}
       {isSwitchingChat && (
@@ -2117,7 +2146,7 @@ export default function ZeepoAiAgentSessionPage() {
 
       <ScrollArea className="min-h-0 flex-1 rounded-xl bg-muted/15 p-3 md:p-4">
         <div className="flex flex-col gap-4 pr-2">
-          {messages.length === 0 && !showAssistantThinking ? (
+          {displayMessages.length === 0 && !showAssistantThinking ? (
             <div className="flex justify-center px-2 py-8 sm:py-10">
               <div className="flex max-w-md items-start gap-3 px-2">
                 <ZeepoMascot className="h-11 w-11 shrink-0" />
@@ -2151,12 +2180,13 @@ export default function ZeepoAiAgentSessionPage() {
             </div>
           ) : null}
 
-          {messages.map(
+          {displayMessages.map(
             (m: {
               id: string;
               role: string;
               content: string | null;
               createdAt?: Date | string | null;
+              metadata?: unknown;
             }) => {
             if (m.role === "user") {
               const ts = formatChatBubbleTime(m.createdAt);
@@ -3073,7 +3103,7 @@ export default function ZeepoAiAgentSessionPage() {
               animation: zeepo-spark-float 2.5s ease-in-out infinite, zeepo-spark-hue 6s linear infinite;
             }
           `}} />
-          <div className="zeepo-input-wrap">
+          <div className="zeepo-input-wrap zeepo-compose-surface">
             <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 zeepo-spark">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3 L13.5 8.5 L19 10 L13.5 11.5 L12 17 L10.5 11.5 L5 10 L10.5 8.5 Z" />

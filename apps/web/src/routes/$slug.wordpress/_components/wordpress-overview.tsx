@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { OverviewQuickActions } from "@/components/wordpress/overview-quick-actions";
+import { WpInstallationStatusBadge } from "@/components/wordpress/wp-installation-status-badge";
 import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
 import {
   WpInfoGrid,
@@ -34,13 +35,6 @@ interface WordPressOverviewProps {
 }
 
 export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverviewProps) {
-  const getStatusBadge = () => {
-    if (wpData.status?.infected) return <Badge variant="destructive">Infected</Badge>;
-    if (wpData.status?.unsupported) return <Badge variant="secondary">Unsupported</Badge>;
-    if (wpData.status?.alive) return <Badge variant="default">Online</Badge>;
-    return <Badge variant="secondary">Offline</Badge>;
-  };
-
   const getSecurityBadge = () => {
     if (wpData.features?.security?.status === "secureRecommended") {
       return (
@@ -103,7 +97,7 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
   return (
     <div className={wpDetailLayout.sectionStack}>
       <div className={wpDetailLayout.statGrid}>
-        <WpStatTile label="Status" value={getStatusBadge()} />
+        <WpStatTile label="Status" value={<WpInstallationStatusBadge status={wpData.status} />} />
         <WpStatTile
           label="WordPress"
           value={wpData.version || "Unknown"}
@@ -160,7 +154,9 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
 
         <WpSection title="Status & security" icon={Shield}>
           <div className="space-y-2">
-            <WpKeyValueRow label="Runtime">{getStatusBadge()}</WpKeyValueRow>
+            <WpKeyValueRow label="Runtime">
+              <WpInstallationStatusBadge status={wpData.status} />
+            </WpKeyValueRow>
             <WpKeyValueRow label="Security">{getSecurityBadge()}</WpKeyValueRow>
             <WpKeyValueRow label="SSL">{getSslBadge()}</WpKeyValueRow>
             <WpKeyValueRow label="Multisite">

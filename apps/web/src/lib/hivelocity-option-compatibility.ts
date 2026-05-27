@@ -467,3 +467,48 @@ export function dedupeExclusiveGroupOptionIds(
 
 	return selectedOptionIds.filter((id) => keep.has(id));
 }
+
+function normalizeAddonGroupName(groupName: string): string {
+	return groupName.trim().toLowerCase();
+}
+
+/** VPS/VDS checkout: only Apps, Control Panel, and Data Center Location add-on groups. */
+export function isVpsVdsVisibleAddonGroup(groupName: string): boolean {
+	const g = normalizeAddonGroupName(groupName);
+	if (g.includes("operating system")) return false;
+	if (g.includes("app") || g.includes("application")) return true;
+	if (g.includes("control panel")) return true;
+	if (g.includes("data center")) return true;
+	return false;
+}
+
+export function getVpsVdsVisibleAddonGroupSortIndex(groupName: string): number {
+	const g = normalizeAddonGroupName(groupName);
+	if (g.includes("app") || g.includes("application")) return 0;
+	if (g.includes("control panel")) return 1;
+	if (g.includes("data center")) return 2;
+	return 99;
+}
+
+export function filterGroupedOptionsForVpsVdsCheckout<T>(
+	grouped: Record<string, readonly T[]>,
+): Record<string, readonly T[]> {
+	return Object.fromEntries(
+		Object.entries(grouped)
+			.filter(([group]) => isVpsVdsVisibleAddonGroup(group))
+			.sort(
+				([groupA], [groupB]) =>
+					getVpsVdsVisibleAddonGroupSortIndex(groupA) - getVpsVdsVisibleAddonGroupSortIndex(groupB),
+			),
+	);
+}
+
+export function filterGroupedOptionsExcludingOs<T>(
+	grouped: Record<string, readonly T[]>,
+): Record<string, readonly T[]> {
+	return Object.fromEntries(
+		Object.entries(grouped).filter(
+			([group]) => normalizeAddonGroupName(group) !== "operating system",
+		),
+	);
+}
