@@ -6,7 +6,8 @@ import { useNavigate } from "react-router";
 import { toast } from "@/components/ui/sonner";
 import { QueryClientContext } from "@tanstack/react-query";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { getInitials } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 
 export function NavUser() {
@@ -83,7 +83,11 @@ export function NavUser() {
     );
   }
 
-  const user = session.user;
+  const user = session.user as {
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+  };
 
   return (
     <SidebarMenu>
@@ -94,9 +98,13 @@ export function NavUser() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                name={user.name}
+                email={user.email}
+                image={user.image}
+                className="h-8 w-8 rounded-lg"
+                fallbackClassName="rounded-lg"
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 <span className="text-muted-foreground truncate text-xs">{user.email}</span>
@@ -112,9 +120,13 @@ export function NavUser() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg">{getInitials(user.name)}</AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  name={user.name}
+                  email={user.email}
+                  image={user.image}
+                  className="h-8 w-8 rounded-lg"
+                  fallbackClassName="rounded-lg"
+                />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
                   <span className="text-muted-foreground truncate text-xs">{user.email}</span>

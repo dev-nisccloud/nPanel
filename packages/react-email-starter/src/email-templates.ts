@@ -46,6 +46,19 @@ export async function renderEmailVerificationEmail({
   }));
 }
 
+export async function renderWelcomeEmail({
+  userFirstname,
+  loginLink,
+}: {
+  userFirstname: string;
+  loginLink: string;
+}) {
+  return render(WelcomeEmail({
+    userFirstname,
+    loginLink,
+  }));
+}
+
 export async function renderTeamInviteEmail({
   invitedUserEmail,
   inviterName,
