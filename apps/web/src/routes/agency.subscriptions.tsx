@@ -4,12 +4,15 @@ import * as React from "react";
 import { useSearchParams } from "react-router";
 import { SubscriptionsTable } from "./agency.subscriptions/_components/subscriptions-table";
 import { SubscriptionViewSheet } from "./agency.subscriptions/_components/subscription-view-sheet";
+import { SubscriptionEditSheet } from "./agency.subscriptions/_components/subscription-edit-sheet";
 import { SendRenewalEmailDialog } from "./agency.subscriptions/_components/send-renewal-email-dialog";
 
 export default function SubscriptionsPage() {
 	const [searchParams] = useSearchParams();
 	const [viewSubscriptionId, setViewSubscriptionId] = React.useState<string | null>(null);
 	const [sheetOpen, setSheetOpen] = React.useState(false);
+	const [editSubscriptionId, setEditSubscriptionId] = React.useState<string | null>(null);
+	const [editSheetOpen, setEditSheetOpen] = React.useState(false);
 	const [renewalEmailSubscriptionId, setRenewalEmailSubscriptionId] = React.useState<string | null>(null);
 
 	// Open view sheet when landing with ?subscriptionId=xxx (e.g. from hosting client subscriptions)
@@ -24,6 +27,11 @@ export default function SubscriptionsPage() {
 	const handleViewSubscription = (id: string) => {
 		setViewSubscriptionId(id);
 		setSheetOpen(true);
+	};
+
+	const handleEditSubscription = (id: string) => {
+		setEditSubscriptionId(id);
+		setEditSheetOpen(true);
 	};
 
 	const handleSendRenewalEmail = (id: string) => {
@@ -41,7 +49,10 @@ export default function SubscriptionsPage() {
 				</div>
 
 				<div className="mt-6">
-					<SubscriptionsTable onViewSubscription={handleViewSubscription} />
+					<SubscriptionsTable
+						onViewSubscription={handleViewSubscription}
+						onEditSubscription={handleEditSubscription}
+					/>
 				</div>
 			</div>
 
@@ -53,6 +64,15 @@ export default function SubscriptionsPage() {
 					if (!open) setViewSubscriptionId(null);
 				}}
 				onSendRenewalEmail={handleSendRenewalEmail}
+			/>
+
+			<SubscriptionEditSheet
+				subscriptionId={editSubscriptionId}
+				open={editSheetOpen}
+				onOpenChange={(open) => {
+					setEditSheetOpen(open);
+					if (!open) setEditSubscriptionId(null);
+				}}
 			/>
 
 			{renewalEmailSubscriptionId && (

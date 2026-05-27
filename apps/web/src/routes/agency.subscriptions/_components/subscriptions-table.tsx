@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, Search, Eye } from "lucide-react";
-import { Link } from "react-router";
+import { RefreshCw, Search, Eye, Pencil, MoreHorizontal } from "lucide-react";
+import { useNavigate } from "react-router";
 import {
 	Table,
 	TableBody,
@@ -13,6 +13,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
@@ -67,9 +73,11 @@ function teamOrUserName(userName: string | null, teamName: string | null): strin
 export interface SubscriptionsTableProps {
 	/** Optional: if provided, View link will use this instead of navigation */
 	onViewSubscription?: (subscriptionId: string) => void;
+	onEditSubscription?: (subscriptionId: string) => void;
 }
 
-export function SubscriptionsTable({ onViewSubscription }: SubscriptionsTableProps) {
+export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: SubscriptionsTableProps) {
+	const navigate = useNavigate();
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const {
 		data: list,
@@ -96,6 +104,17 @@ export function SubscriptionsTable({ onViewSubscription }: SubscriptionsTablePro
 				s.status.toLowerCase().includes(q)
 		);
 	}, [list, searchQuery]);
+
+	const handleViewSubscription = React.useCallback(
+		(subscriptionId: string) => {
+			if (onViewSubscription) {
+				onViewSubscription(subscriptionId);
+				return;
+			}
+			void navigate(`/agency/subscriptions?subscriptionId=${subscriptionId}`);
+		},
+		[onViewSubscription, navigate],
+	);
 
 	if (isLoading) {
 		return (
@@ -198,7 +217,7 @@ export function SubscriptionsTable({ onViewSubscription }: SubscriptionsTablePro
 								<TableHead>Subscription date</TableHead>
 								<TableHead>Expiry date</TableHead>
 							<TableHead>Status</TableHead>
-							<TableHead className="w-24">Actions</TableHead>
+							<TableHead className="w-12" />
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -211,7 +230,10 @@ export function SubscriptionsTable({ onViewSubscription }: SubscriptionsTablePro
 						) : (
 							filtered.map((sub) => (
 								<TableRow key={sub.id}>
-									<TableCell className="pl-6 font-medium">
+									<TableCell
+										className="pl-6 cursor-pointer font-medium hover:underline"
+										onClick={() => handleViewSubscription(sub.id)}
+									>
 										{displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName)}
 									</TableCell>
 									<TableCell>{teamOrUserName(sub.userName, sub.teamName)}</TableCell>
@@ -224,23 +246,31 @@ export function SubscriptionsTable({ onViewSubscription }: SubscriptionsTablePro
 										</Badge>
 									</TableCell>
 									<TableCell onClick={(e) => e.stopPropagation()}>
-										{onViewSubscription ? (
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={() => onViewSubscription(sub.id)}
-											>
-												<Eye className="mr-2 h-4 w-4" />
-												View
-											</Button>
-										) : (
-											<Button variant="ghost" size="sm" asChild>
-												<Link to={`/agency/subscriptions?subscriptionId=${sub.id}`}>
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="h-8 w-8"
+													onClick={(e) => e.stopPropagation()}
+												>
+													<MoreHorizontal className="h-4 w-4" />
+													<span className="sr-only">Open menu</span>
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end" className="w-40" onClick={(e) => e.stopPropagation()}>
+												<DropdownMenuItem onSelect={() => handleViewSubscription(sub.id)}>
 													<Eye className="mr-2 h-4 w-4" />
 													View
-												</Link>
-											</Button>
-										)}
+												</DropdownMenuItem>
+												{onEditSubscription ? (
+													<DropdownMenuItem onSelect={() => onEditSubscription(sub.id)}>
+														<Pencil className="mr-2 h-4 w-4" />
+														Edit
+													</DropdownMenuItem>
+												) : null}
+											</DropdownMenuContent>
+										</DropdownMenu>
 									</TableCell>
 								</TableRow>
 							))

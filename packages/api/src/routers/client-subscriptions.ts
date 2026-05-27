@@ -157,28 +157,32 @@ const createSubscriptionInputSchema = z
 
 const updateSubscriptionInputSchema = z.object({
     id: z.string(),
+    name: z.string().nullable().optional(),
+    userId: z.string().nullable().optional(),
+    teamId: z.string().nullable().optional(),
+    productPlanId: z.string().nullable().optional(),
     status: subscriptionStatusSchema.optional(),
-    subscriptionDate: z.coerce.date().optional(),
+    subscriptionDate: z.coerce.date().nullable().optional(),
     billingCycle: billingCycleSchema.optional(),
-    nextRenewalDate: z.coerce.date().optional(),
-    expiryDate: z.coerce.date().optional(),
+    nextRenewalDate: z.coerce.date().nullable().optional(),
+    expiryDate: z.coerce.date().nullable().optional(),
     autoRenew: z.boolean().optional(),
-    agreedPrice: z.string().optional(),
+    agreedPrice: z.string().nullable().optional(),
     agreedCurrency: z.string().optional(),
-    agreedCommissionRate: z.number().positive().optional(),
-    agreedCommissionBase: z.string().optional(),
-    primaryDomain: z.string().optional(),
+    agreedCommissionRate: z.number().positive().nullable().optional(),
+    agreedCommissionBase: z.string().nullable().optional(),
+    primaryDomain: z.string().nullable().optional(),
     pleskFilterId: z.string().optional(),
     pleskOwnerId: z.string().optional(),
     pleskFtpLogin: z.string().optional(),
     pleskFtpPassword: z.string().optional(),
-    hostingType: hostingTypeSchema.optional(),
+    hostingType: hostingTypeSchema.nullable().optional(),
     openProviderId: z.number().int().optional(),
     domainAuthCode: z.string().optional(),
     nameserverGroupId: z.string().optional(),
     wpInstallationId: z.number().int().optional(),
     serviceRefs: serviceRefsSchema,
-    notes: z.string().optional(),
+    notes: z.string().nullable().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -365,6 +369,7 @@ const seoProductForSubscriptionOutputSchema = z.object({
 
 const subscriptionOutputSchema = z.object({
     id: z.string(),
+    name: z.string().nullable(),
     userId: z.string().nullable(),
     teamId: z.string().nullable(),
     productId: z.string(),
@@ -426,6 +431,7 @@ const commissionEntryOutputSchema = z.object({
 function mapSubscription(sub: any): z.infer<typeof subscriptionOutputSchema> {
     return {
         id: sub.id,
+        name: sub.name ?? null,
         userId: sub.userId ?? null,
         teamId: sub.teamId ?? null,
         productId: sub.productId,
@@ -564,7 +570,7 @@ function canMutateSubscription(
     userId: string,
     role: string | null | undefined,
 ) {
-    if (isAgencySuperAdminRole(role)) return true;
+    if (isAgencyUserRole(role)) return true;
     return subscription.userId === userId || subscription.recordedBy === userId;
 }
 
@@ -2312,11 +2318,35 @@ export const clientSubscriptionsRouter = router({
 
             const { id, ...rest } = input;
             const patch: Record<string, unknown> = {};
+            if (rest.name !== undefined) patch.name = rest.name ?? null;
+            if (rest.userId !== undefined) patch.userId = rest.userId ?? null;
+            if (rest.teamId !== undefined) patch.teamId = rest.teamId ?? null;
+            if (rest.productPlanId !== undefined) {
+                if (rest.productPlanId) {
+                    const [plan] = await db
+                        .select({ id: niscProductPlan.id })
+                        .from(niscProductPlan)
+                        .where(
+                            and(
+                                eq(niscProductPlan.id, rest.productPlanId),
+                                eq(niscProductPlan.productId, existing.productId),
+                            ),
+                        )
+                        .limit(1);
+                    if (!plan) {
+                        throw new TRPCError({
+                            code: "NOT_FOUND",
+                            message: "Plan not found or does not belong to this subscription's product",
+                        });
+                    }
+                }
+                patch.productPlanId = rest.productPlanId ?? null;
+            }
             if (rest.status !== undefined) patch.status = rest.status;
-            if (rest.subscriptionDate !== undefined) patch.subscriptionDate = rest.subscriptionDate;
+            if (rest.subscriptionDate !== undefined) patch.subscriptionDate = rest.subscriptionDate ?? null;
             if (rest.billingCycle !== undefined) patch.billingCycle = rest.billingCycle;
-            if (rest.nextRenewalDate !== undefined) patch.nextRenewalDate = rest.nextRenewalDate;
-            if (rest.expiryDate !== undefined) patch.expiryDate = rest.expiryDate;
+            if (rest.nextRenewalDate !== undefined) patch.nextRenewalDate = rest.nextRenewalDate ?? null;
+            if (rest.expiryDate !== undefined) patch.expiryDate = rest.expiryDate ?? null;
             if (rest.autoRenew !== undefined) patch.autoRenew = rest.autoRenew;
             if (rest.agreedPrice !== undefined) patch.agreedPrice = rest.agreedPrice ?? null;
             if (rest.agreedCurrency !== undefined) patch.agreedCurrency = rest.agreedCurrency;

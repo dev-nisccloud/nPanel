@@ -18,9 +18,12 @@ const closedDialog: HostingSuspendDialogState = {
   subscriptionName: "",
 };
 
-export function useHostingSubscriptionSuspend(options?: { onSuccess?: () => void }) {
+export function useHostingSubscriptionSuspend(options?: {
+  onSuccess?: (params: { action: HostingSuspendDialogAction; pleskSubscriptionId: number }) => void;
+}) {
   const utils = trpc.useUtils();
   const [dialog, setDialog] = React.useState<HostingSuspendDialogState>(closedDialog);
+  const pendingActionRef = React.useRef<HostingSuspendDialogAction>("suspend");
 
   const invalidateSubscriptions = React.useCallback(() => {
     void utils.plesk.subscriptions.getAll.invalidate();
@@ -35,7 +38,10 @@ export function useHostingSubscriptionSuspend(options?: { onSuccess?: () => void
       void utils.hosting.getDetailWithSubscription.invalidate({
         subscriptionId: String(variables.id),
       });
-      options?.onSuccess?.();
+      options?.onSuccess?.({
+        action: pendingActionRef.current,
+        pleskSubscriptionId: variables.id,
+      });
     },
     onError: (err) => {
       toast.error(err.message || "Failed to suspend subscription");
@@ -50,7 +56,10 @@ export function useHostingSubscriptionSuspend(options?: { onSuccess?: () => void
       void utils.hosting.getDetailWithSubscription.invalidate({
         subscriptionId: String(variables.id),
       });
-      options?.onSuccess?.();
+      options?.onSuccess?.({
+        action: pendingActionRef.current,
+        pleskSubscriptionId: variables.id,
+      });
     },
     onError: (err) => {
       toast.error(err.message || "Failed to reactivate subscription");
@@ -86,6 +95,7 @@ export function useHostingSubscriptionSuspend(options?: { onSuccess?: () => void
   const confirm = React.useCallback(() => {
     if (!dialog.subscriptionId) return;
 
+    pendingActionRef.current = dialog.action;
     if (dialog.action === "suspend") {
       suspendMutation.mutate({ id: dialog.subscriptionId });
     } else {

@@ -13,6 +13,21 @@ if (!API_TARGET) {
   process.exit(1);
 }
 
+const BACKEND_ORIGIN = new URL(API_TARGET);
+const PROXY_TIMEOUT_MS = 55_000;
+
+const HOP_BY_HOP_HEADERS = new Set([
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "proxy-connection",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+]);
+
 const STATIC_ROOT = join(import.meta.dir, "build/client");
 // Cloud Run injects PORT at runtime — do not set PORT in deploy env_vars or secrets.
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
@@ -68,13 +83,30 @@ function serveStatic(pathname: string): Response {
   });
 }
 
+function buildProxyHeaders(request: Request, incoming: URL): Headers {
+  const headers = new Headers();
+
+  for (const [key, value] of request.headers.entries()) {
+    if (HOP_BY_HOP_HEADERS.has(key.toLowerCase())) continue;
+    if (key.toLowerCase() === "host") continue;
+    headers.set(key, value);
+  }
+
+  // Cloud Run routes by the backend service hostname — forwarding the web Host breaks upstream.
+  headers.set("host", BACKEND_ORIGIN.host);
+  headers.set("x-forwarded-host", incoming.host);
+  headers.set("x-forwarded-proto", incoming.protocol.replace(":", ""));
+  if (!headers.has("x-forwarded-for")) {
+    headers.set("x-forwarded-for", incoming.host);
+  }
+
+  return headers;
+}
+
 async function proxyToBackend(request: Request): Promise<Response> {
   const incoming = new URL(request.url);
   const target = `${API_TARGET}${incoming.pathname}${incoming.search}`;
-
-  const headers = new Headers(request.headers);
-  // Keep the browser Host (frontend origin). Matches Vite dev proxy `changeOrigin: false`
-  // so Better Auth Set-Cookie values attach to the SPA origin, not the API host.
+  const headers = buildProxyHeaders(request, incoming);
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
 
@@ -83,9 +115,12 @@ async function proxyToBackend(request: Request): Promise<Response> {
     headers,
     body: hasBody ? request.body : undefined,
     redirect: "manual",
+    signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
     ...(hasBody ? { duplex: "half" as const } : {}),
   });
 
+  // Browser still sees this response as same-origin (web URL). Set-Cookie without Domain
+  // attaches to the SPA host, which is what Better Auth OAuth needs.
   return new Response(backendResponse.body, {
     status: backendResponse.status,
     statusText: backendResponse.statusText,
@@ -103,11 +138,17 @@ Bun.serve({
   async fetch(request) {
     const { pathname } = new URL(request.url);
 
+    // Lightweight probe for the web container itself (no backend hop).
+    if (pathname === "/health" || pathname === "/healthz") {
+      return Response.json({ status: "ok", service: "npanel-web" });
+    }
+
     if (pathname.startsWith("/api/")) {
       try {
         return await proxyToBackend(request);
       } catch (error) {
-        console.error("[web-server] API proxy error:", error);
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[web-server] API proxy error:", message);
         return new Response("Bad Gateway", { status: 502 });
       }
     }
