@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 interface HotlinkProtectionSheetProps {
@@ -69,6 +70,11 @@ export function HotlinkProtectionSheet({
     onError: (e) => toast.error(e.message),
   });
 
+  const [ResetHotlinkDialog, confirmResetHotlink] = useConfirm(
+    "Reset hotlink protection on server?",
+    "This removes your custom hotlink rules from the server and restores WP Toolkit defaults. Allowed domains and file extensions will change.",
+  );
+
   const addDomain = () => {
     const v = domainInput.trim();
     if (!v) return;
@@ -92,6 +98,7 @@ export function HotlinkProtectionSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
+      <ResetHotlinkDialog />
       <SheetContent className="flex flex-col">
         <SheetHeader className="mb-6 flex-shrink-0 flex justify-between items-center flex-row">
           <div className="flex items-center gap-3 mb-2">
@@ -251,7 +258,11 @@ export function HotlinkProtectionSheet({
               variant="ghost"
               className="flex-1"
               disabled={resetMutation.isPending}
-              onClick={() => resetMutation.mutate({ installationId })}
+              onClick={async () => {
+                const ok = await confirmResetHotlink();
+                if (!ok) return;
+                resetMutation.mutate({ installationId });
+              }}
             >
               Reset on server
             </Button>

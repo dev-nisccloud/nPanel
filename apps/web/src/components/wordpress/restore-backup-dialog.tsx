@@ -3,16 +3,15 @@
 import * as React from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/utils/trpc";
@@ -54,15 +53,17 @@ export function RestoreBackupDialog({
   });
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Restore backup</AlertDialogTitle>
-          <AlertDialogDescription className="break-all">
-            Restore <span className="font-medium text-foreground">{fileName}</span>? This may
-            overwrite site files and database content.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Restore backup?</DialogTitle>
+          <DialogDescription className="break-all">
+            You are about to restore{" "}
+            <span className="font-medium text-foreground">{fileName}</span>. This will replace
+            current site files and database content with the backup. Any changes made after this
+            backup was created will be lost.
+          </DialogDescription>
+        </DialogHeader>
 
         {taskUrl ? (
           <WpTaskProgress
@@ -101,30 +102,37 @@ export function RestoreBackupDialog({
           </div>
         )}
 
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={restoreMutation.isPending}>Cancel</AlertDialogCancel>
+        <DialogFooter className="pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={restoreMutation.isPending}
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
           {!taskUrl ? (
-            <AlertDialogAction
+            <Button
+              type="button"
               disabled={restoreMutation.isPending}
-              onClick={(e) => {
-                e.preventDefault();
+              onClick={() =>
                 restoreMutation.mutate({
                   installationId,
                   fileName,
                   clobber,
                   dropAllDatabaseTables: dropTables,
                   restoreSettings,
-                });
-              }}
+                })
+              }
             >
               {restoreMutation.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Restore
-            </AlertDialogAction>
+              Confirm restore
+            </Button>
           ) : null}
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -13,6 +13,7 @@ import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
 import { RestoreBackupDialog } from "@/components/wordpress/restore-backup-dialog";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 export function WordPressBackupsTab({ installationId }: { installationId: string }) {
@@ -21,6 +22,11 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
   const [description, setDescription] = React.useState("");
   const [showAll, setShowAll] = React.useState(true);
   const [restoreFile, setRestoreFile] = React.useState<string | null>(null);
+
+  const [DeleteBackupDialog, confirmDeleteBackup] = useConfirm(
+    "Delete backup?",
+    "This permanently removes the backup archive from the server. You will not be able to restore your site from this backup again.",
+  );
 
   const { data, isLoading, refetch } = trpc.plesk.wpFeatures.getBackupsList.useQuery({
     installationId: id,
@@ -58,8 +64,15 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const handleDeleteBackup = async (fileName: string) => {
+    const ok = await confirmDeleteBackup();
+    if (!ok) return;
+    deleteBackup.mutate({ installationId: id, fileName });
+  };
+
   return (
     <div className={wpDetailLayout.sectionStack}>
+      <DeleteBackupDialog />
       {taskUrl ? (
         <WpTaskProgress
           taskUrl={taskUrl}
@@ -165,7 +178,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
                       size="sm"
                       className="text-destructive hover:text-destructive"
                       disabled={deleteBackup.isPending}
-                      onClick={() => deleteBackup.mutate({ installationId: id, fileName: b.fileName })}
+                      onClick={() => handleDeleteBackup(b.fileName)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

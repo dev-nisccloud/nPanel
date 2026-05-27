@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/collapsible";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 export function SmartUpdateResultCard({
@@ -49,6 +50,15 @@ export function SmartUpdateResultCard({
     },
     onError: (e) => toast.error(e.message),
   });
+
+  const [ApplyDialog, confirmApply] = useConfirm(
+    "Apply updates to live site?",
+    "This applies the tested updates to your production WordPress site immediately. Your live site content and behavior may change.",
+  );
+  const [DiscardDialog, confirmDiscard] = useConfirm(
+    "Discard Smart Update test?",
+    "The test clone and comparison results will be removed. You can run a new Smart Update test later.",
+  );
 
   const details = Array.isArray(result?.details) ? result.details : [];
   const hasResult = taskStatus && taskStatus !== "none";
@@ -94,11 +104,17 @@ export function SmartUpdateResultCard({
           ) : null}
 
           <div className="flex flex-wrap gap-2 pt-2">
+            <ApplyDialog />
+            <DiscardDialog />
             <Button
               type="button"
               size="sm"
               disabled={applyMutation.isPending}
-              onClick={() => applyMutation.mutate({ installationId })}
+              onClick={async () => {
+                const ok = await confirmApply();
+                if (!ok) return;
+                applyMutation.mutate({ installationId });
+              }}
             >
               <Check className="mr-2 h-4 w-4" />
               Apply to live site
@@ -108,7 +124,11 @@ export function SmartUpdateResultCard({
               variant="outline"
               size="sm"
               disabled={discardMutation.isPending}
-              onClick={() => discardMutation.mutate({ installationId })}
+              onClick={async () => {
+                const ok = await confirmDiscard();
+                if (!ok) return;
+                discardMutation.mutate({ installationId });
+              }}
             >
               <X className="mr-2 h-4 w-4" />
               Discard test

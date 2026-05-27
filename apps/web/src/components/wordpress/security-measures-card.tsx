@@ -8,6 +8,7 @@ import { WpStatusBadge } from "@/components/wordpress/wp-status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 type Measure = { id: string; title: string; description?: string };
@@ -72,6 +73,11 @@ export function SecurityMeasuresCard({
     onError: (e) => toast.error(e.message),
   });
 
+  const [ApplyMeasuresDialog, confirmApplyMeasures] = useConfirm(
+    "Apply security measures?",
+    "Selected hardening changes will be applied to your WordPress installation. Some measures may change site behavior or file permissions.",
+  );
+
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -83,6 +89,7 @@ export function SecurityMeasuresCard({
 
   const content = (
     <div className="space-y-4">
+        <ApplyMeasuresDialog />
         {taskUrl ? (
           <WpTaskProgress
             taskUrl={taskUrl}
@@ -109,12 +116,14 @@ export function SecurityMeasuresCard({
             type="button"
             size="sm"
             disabled={selected.size === 0 || resolveMutation.isPending}
-            onClick={() =>
+            onClick={async () => {
+              const ok = await confirmApplyMeasures();
+              if (!ok) return;
               resolveMutation.mutate({
                 installationsIds: [installationId],
                 securityMeasures: Array.from(selected),
-              })
-            }
+              });
+            }}
           >
             <Wrench className="mr-2 h-4 w-4" />
             Apply selected ({selected.size})
