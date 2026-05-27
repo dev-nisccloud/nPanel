@@ -13,6 +13,12 @@ import {
   renderResetPasswordEmail,
 } from "react-email-starter/src/email-templates";
 import { sendTransactionalEmail } from "./transactional-email";
+import {
+  completeSignupSideEffects,
+  isGoogleOAuthCallbackPath,
+  isNewGoogleRegistration,
+  sendGoogleSignupWelcomeEmail,
+} from "./signup-side-effects";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -221,6 +227,7 @@ export const auth = betterAuth<BetterAuthOptions>({
             role: user.role,
             lastAccessedTeamId: user.lastAccessedTeamId,
             createdAt: user.createdAt,
+            image: user.image,
           })
           .from(user)
           .where(eq(user.id, sessionUser.id))
@@ -254,6 +261,7 @@ export const auth = betterAuth<BetterAuthOptions>({
             lastAccessedTeamId:
               userWithStatusRole.lastAccessedTeamId ?? sessionUser.lastAccessedTeamId,
             createdAt: userWithStatusRole.createdAt,
+            image: userWithStatusRole.image ?? sessionUser.image ?? null,
           };
 
           ctx.context.session.user = enrichedUser;
@@ -410,122 +418,51 @@ export const auth = betterAuth<BetterAuthOptions>({
       if (ctx.path.startsWith("/sign-up")) {
         const newSession = ctx.context.newSession;
         if (newSession) {
+          void completeSignupSideEffects({
+            userId: newSession.user.id,
+            sessionId: newSession.session?.id,
+            emailVerified: Boolean(newSession.user.emailVerified),
+            signupMethod: "email_password",
+            headers: ctx.headers,
+          }).catch((error) =>
+            console.error("Failed to log signup / create signup notification:", error),
+          );
+        }
+      }
+
+      if (isGoogleOAuthCallbackPath(ctx.path)) {
+        const newSession = ctx.context.newSession;
+        if (newSession?.user) {
           const signupUserId = newSession.user.id;
-          const signupEmailVerified = newSession.user.emailVerified;
-          const signupHeaders = ctx.headers;
-          void db
-            .transaction(async (tx) => {
-              await tx.insert(userActivityLog).values({
-                id: crypto.randomUUID(),
-                userId: signupUserId,
-                action: "SIGNUP_SUCCESS",
-                description: "User successfully signed up",
-                metadata: {
-                  signupMethod: "email_password",
-                  emailVerified: signupEmailVerified,
-                },
-                ipAddress:
-                  signupHeaders?.get("x-forwarded-for") ||
-                  signupHeaders?.get("x-real-ip") ||
-                  "unknown",
-                userAgent: signupHeaders?.get("user-agent") || "unknown",
-                createdAt: new Date(),
-              });
-              const ipAddress =
-                signupHeaders?.get("x-forwarded-for") ||
-                signupHeaders?.get("x-real-ip") ||
-                null;
-              const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
-              const message = `Your account was successfully created${ipDisplay}. Welcome to npanel!`;
-              const nid = crypto.randomUUID();
-              await tx.insert(notification).values({
-                id: nid,
-                userId: signupUserId,
-                teamId: null,
-                type: "SYSTEM",
-                priority: "NORMAL",
-                title: "Account Created",
-                message,
-                link: null,
-                metadata: { ipAddress, signupMethod: "email_password" },
-                seen: false,
-                readAt: null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              });
-              await tx.insert(notificationActivityLog).values({
-                id: crypto.randomUUID(),
-                notificationId: nid,
-                userId: signupUserId,
-                action: "CREATE",
-                description: "Signup notification created",
-                metadata: { ipAddress, signupMethod: "email_password" },
-                ipAddress,
-                userAgent: signupHeaders?.get("user-agent") || null,
-                createdAt: new Date(),
-              });
+          void (async () => {
+            const rows = await db
+              .select({ createdAt: user.createdAt })
+              .from(user)
+              .where(eq(user.id, signupUserId))
+              .limit(1);
 
-              const settingsRows = await tx
-                .select({ id: userMfaSettings.id })
-                .from(userMfaSettings)
-                .where(eq(userMfaSettings.userId, signupUserId))
-                .limit(1);
+            if (
+              !isNewGoogleRegistration(ctx.context.returned, rows[0]?.createdAt)
+            ) {
+              return;
+            }
 
-              if (settingsRows[0]) {
-                await tx
-                  .update(userMfaSettings)
-                  .set({
-                    setupRequired: true,
-                    emailOtpEnabled: false,
-                    preferredMethod: "EMAIL_OTP",
-                    updatedAt: new Date(),
-                  })
-                  .where(eq(userMfaSettings.userId, signupUserId));
-              } else {
-                await tx.insert(userMfaSettings).values({
-                  id: crypto.randomUUID(),
-                  userId: signupUserId,
-                  setupRequired: true,
-                  emailOtpEnabled: false,
-                  preferredMethod: "EMAIL_OTP",
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                });
-              }
+            await completeSignupSideEffects({
+              userId: signupUserId,
+              sessionId: newSession.session?.id,
+              emailVerified: Boolean(newSession.user.emailVerified),
+              signupMethod: "google",
+              headers: ctx.headers,
+            });
 
-              if (newSession.session?.id) {
-                const existingMfaSession = await tx
-                  .select({ id: userMfaSession.id })
-                  .from(userMfaSession)
-                  .where(eq(userMfaSession.sessionId, newSession.session.id))
-                  .limit(1);
-
-                if (!existingMfaSession[0]) {
-                  await tx.insert(userMfaSession).values({
-                    id: crypto.randomUUID(),
-                    userId: signupUserId,
-                    sessionId: newSession.session.id,
-                    requiredAt: new Date(),
-                    verifiedAt: null,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                  });
-                } else {
-                  await tx
-                    .update(userMfaSession)
-                    .set({
-                      userId: signupUserId,
-                      requiredAt: new Date(),
-                      verifiedAt: null,
-                      updatedAt: new Date(),
-                    })
-                    .where(eq(userMfaSession.sessionId, newSession.session.id));
-                }
-              }
-            })
-            .catch((error) =>
-              console.error("Failed to log signup / create signup notification:", error),
-            );
+            await sendGoogleSignupWelcomeEmail({
+              userId: signupUserId,
+              email: newSession.user.email,
+              name: newSession.user.name,
+            });
+          })().catch((error) =>
+            console.error("Failed Google signup side effects / welcome email:", error),
+          );
         }
       }
 
