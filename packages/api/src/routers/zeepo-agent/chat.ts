@@ -14,7 +14,13 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import { userProfile as userProfileTable } from "@npanel/db/schema/auth-extras";
 import { team as teamTable } from "@npanel/db/schema/teams";
 import { env } from "@npanel/env/server";
-import { protectedProcedure, router } from "../../trpc";
+import { router } from "../../trpc";
+import { zeepoAgentProcedure } from "./procedures";
+import {
+	formatZeepoAgentToolError,
+	resolveZeepoAgentOrchestrationClientMessage,
+	resolveZeepoAgentPublicMessage,
+} from "../../lib/zeepo-agent-errors";
 import { generateSessionTitleSchema, imageEditSchema, sendMessageSchema } from "./schemas";
 import { zeepoAgentImageEditHistory } from "@npanel/db/schema/zeepo-agent";
 import { UTApi } from "uploadthing/server";
@@ -146,7 +152,9 @@ async function fetchRecentGenerationSummaries(sessionId: string): Promise<Recent
 		modelId: g.modelId,
 		prompt: g.prompt,
 		previewUrl: firstHttpUrl(g.outputs),
-		errorMessage: g.errorMessage,
+		errorMessage: g.errorMessage
+			? resolveZeepoAgentPublicMessage(g.errorMessage)
+			: null,
 		createdAtIso: (g.createdAt instanceof Date
 			? g.createdAt
 			: new Date(g.createdAt)
@@ -218,7 +226,7 @@ function safeCapsArray(input: unknown): ZeepoCapabilityKey[] | undefined {
 }
 
 export const zeepoAgentChatRouter = router({
-	sendMessage: protectedProcedure
+	sendMessage: zeepoAgentProcedure
 		.input(sendMessageSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -229,7 +237,9 @@ export const zeepoAgentChatRouter = router({
 			if (!env.REPLICATE_API_TOKEN) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "REPLICATE_API_TOKEN is not configured",
+					message: resolveZeepoAgentPublicMessage(
+						"REPLICATE_API_TOKEN is not configured",
+					),
 				});
 			}
 
@@ -376,13 +386,10 @@ export const zeepoAgentChatRouter = router({
 					parseResult = r.parsed;
 					rawAttempts = r.rawAttempts;
 					repairUsed = r.repairUsed;
-				} catch (e: any) {
-					const msg = e?.message || "Orchestration failed";
+				} catch (e: unknown) {
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
-						message: msg.includes("timed out")
-							? "The assistant took too long to respond. Please try again."
-							: msg,
+						message: resolveZeepoAgentOrchestrationClientMessage(e),
 					});
 				}
 
@@ -511,9 +518,9 @@ export const zeepoAgentChatRouter = router({
 									status: "CREATED",
 									title: parsedArgs.data.title,
 								};
-							} catch (e: any) {
+							} catch (e: unknown) {
 								resultPayload = {
-									error: `Document creation failed: ${e?.message ?? "Unknown error"}`,
+									error: formatZeepoAgentToolError("Document creation failed", e),
 								};
 							}
 						}
@@ -555,9 +562,9 @@ export const zeepoAgentChatRouter = router({
 									title: parsedArgs.data.title,
 									slideCount: parsedArgs.data.slides.length,
 								};
-							} catch (e: any) {
+							} catch (e: unknown) {
 								resultPayload = {
-									error: `Presentation creation failed: ${e?.message ?? "Unknown error"}`,
+									error: formatZeepoAgentToolError("Presentation creation failed", e),
 								};
 							}
 						}
@@ -599,9 +606,12 @@ export const zeepoAgentChatRouter = router({
 									slideCount: parsedArgs.data.slides.length,
 									hasImages: parsedArgs.data.slides.some(s => Boolean(s.imageUrl)),
 								};
-							} catch (e: any) {
+							} catch (e: unknown) {
 								resultPayload = {
-									error: `Image presentation creation failed: ${e?.message ?? "Unknown error"}`,
+									error: formatZeepoAgentToolError(
+										"Image presentation creation failed",
+										e,
+									),
 								};
 							}
 						}
@@ -623,9 +633,9 @@ export const zeepoAgentChatRouter = router({
 										sessionCtx.team.baseCurrency ??
 										DEFAULT_DISPLAY_CURRENCY,
 								});
-							} catch (e: any) {
+							} catch (e: unknown) {
 								resultPayload = {
-									error: `Domain check failed: ${e?.message ?? "Unknown error"}`,
+									error: formatZeepoAgentToolError("Domain check failed", e),
 								};
 							}
 						}
@@ -653,9 +663,9 @@ export const zeepoAgentChatRouter = router({
 									// Return the grounding text directly so it reads naturally in the
 									// message history and the UI can detect it by prefix.
 									resultPayload = grounding;
-								} catch (e: any) {
+								} catch (e: unknown) {
 									resultPayload = {
-										error: `web_search failed: ${e?.message ?? "Unknown error"}. Proceed with your existing knowledge and note the limitation.`,
+										error: `${formatZeepoAgentToolError("Web search failed", e)} Proceed with your existing knowledge and note the limitation.`,
 									};
 								}
 							}
@@ -717,11 +727,11 @@ export const zeepoAgentChatRouter = router({
 								modelId: model.id,
 								category: model.category,
 							};
-						} catch (e: any) {
-								resultPayload = {
-									error: e?.message || "Failed to start generation",
+						} catch (e: unknown) {
+									resultPayload = {
+									error: formatZeepoAgentToolError("Failed to start generation", e),
 								};
-							}
+						}
 						}
 				} else if (tc.name === "get_user_session") {
 						// No meaningful args — validate defensively but always proceed.
@@ -781,9 +791,9 @@ export const zeepoAgentChatRouter = router({
 								profileComplete,
 								missingFields,
 							};
-						} catch (e: any) {
+						} catch (e: unknown) {
 							resultPayload = {
-								error: `get_user_session failed: ${e?.message ?? "Unknown error"}`,
+								error: formatZeepoAgentToolError("get_user_session failed", e),
 							};
 						}
 					} else {
@@ -840,7 +850,7 @@ export const zeepoAgentChatRouter = router({
 	 * Runs a lightweight direct Replicate call — does not go through the full
 	 * orchestration pipeline.
 	 */
-	generateTitle: protectedProcedure
+	generateTitle: zeepoAgentProcedure
 		.input(generateSessionTitleSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -941,7 +951,7 @@ export const zeepoAgentChatRouter = router({
 	 * input_images for image-to-image editing. When the user has drawn a mask,
 	 * the prompt is prefixed to target the brushed region.
 	 */
-	editImage: protectedProcedure
+	editImage: zeepoAgentProcedure
 		.input(imageEditSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;

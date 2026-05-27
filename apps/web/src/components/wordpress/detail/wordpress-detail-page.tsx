@@ -16,11 +16,11 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { WpInstallationStatusBadge } from "@/components/wordpress/wp-installation-status-badge";
 import { WordPressSiteCredentials } from "@/components/wordpress/wordpress-site-credentials";
 import { WordPressSecurityTab } from "@/components/wordpress/tabs/security-tab";
 import { WordPressSiteSettingsTab } from "@/components/wordpress/tabs/site-settings-tab";
@@ -158,13 +158,6 @@ export function WordPressDetailPage({
 
   const wp = wpData as z.infer<typeof wordpressInstallationSchema>;
 
-  const statusBadge = () => {
-    if (wp.status?.infected) return <Badge variant="destructive">Infected</Badge>;
-    if (wp.status?.unsupported) return <Badge variant="secondary">Unsupported</Badge>;
-    if (wp.status?.alive) return <Badge variant="default">Online</Badge>;
-    return <Badge variant="secondary">Offline</Badge>;
-  };
-
   return (
     <div className={wpDetailLayout.page}>
       <div className={wpDetailLayout.container}>
@@ -183,7 +176,7 @@ export function WordPressDetailPage({
               <p className="text-xs text-muted-foreground">WordPress installation</p>
             </div>
           </div>
-          {statusBadge()}
+          <WpInstallationStatusBadge status={wp.status} />
         </div>
 
         <div className="mt-8">

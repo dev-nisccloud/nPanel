@@ -8,7 +8,12 @@ import {
 	zeepoAgentGeneration,
 	zeepoAgentSession,
 } from "@npanel/db/schema/zeepo-agent";
-import { protectedProcedure, router } from "../../trpc";
+import { router } from "../../trpc";
+import { zeepoAgentProcedure } from "./procedures";
+import {
+	redactZeepoAgentGenerationRow,
+	resolveZeepoAgentStoredErrorMessage,
+} from "../../lib/zeepo-agent-errors";
 import { enqueueZeepoAgentGeneration } from "../../lib/qstash/zeepo-agent";
 import { redactReplicateHostedUrlsDeep } from "../../lib/replicate-hosted-url";
 import { getGenerationSchema } from "./schemas";
@@ -72,8 +77,7 @@ export async function insertAndEnqueueAgentGeneration(params: {
 			.update(zeepoAgentGeneration)
 			.set({
 				status: "FAILED",
-				errorMessage:
-					err instanceof Error ? err.message : "Failed to enqueue job",
+				errorMessage: resolveZeepoAgentStoredErrorMessage(err),
 				updatedAt: new Date(),
 			})
 			.where(eq(zeepoAgentGeneration.id, generationId));
@@ -95,7 +99,7 @@ export async function insertAndEnqueueAgentGeneration(params: {
 }
 
 export const zeepoAgentGenerateRouter = router({
-	getGeneration: protectedProcedure
+	getGeneration: zeepoAgentProcedure
 		.input(getGenerationSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -114,14 +118,14 @@ export const zeepoAgentGenerateRouter = router({
 				});
 			}
 
-			const safe = {
+			const safe = redactZeepoAgentGenerationRow({
 				...(generation as Record<string, unknown>),
 				outputs: redactReplicateHostedUrlsDeep((generation as { outputs?: unknown }).outputs),
-			};
+			});
 			return { data: safe as any };
 		}),
 
-	listBySession: protectedProcedure
+	listBySession: zeepoAgentProcedure
 		.input(z.object({ sessionId: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
@@ -142,10 +146,13 @@ export const zeepoAgentGenerateRouter = router({
 				limit: 50,
 			});
 
-			const sanitized = (rows as { outputs?: unknown }[]).map((row) => ({
-				...row,
-				outputs: redactReplicateHostedUrlsDeep(row.outputs),
-			}));
+			const sanitized = (rows as { outputs?: unknown; errorMessage?: string | null }[]).map(
+				(row) =>
+					redactZeepoAgentGenerationRow({
+						...row,
+						outputs: redactReplicateHostedUrlsDeep(row.outputs),
+					}),
+			);
 			return { data: sanitized as any[] };
 		}),
 });

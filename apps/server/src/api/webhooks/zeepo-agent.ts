@@ -5,6 +5,7 @@ import {
 	persistReplicateOutputToUploadThing,
 	ReplicatePersistError,
 } from "../lib/replicate-uploadthing-persist";
+import { resolveZeepoAgentStoredErrorMessage } from "@npanel/api/lib/zeepo-agent-errors";
 
 export async function handleZeepoAgentWebhook(c: Context) {
 	try {
@@ -50,12 +51,6 @@ export async function handleZeepoAgentWebhook(c: Context) {
 					})
 					.where(eq(zeepoAgentGeneration.id, generationId));
 			} catch (persistErr) {
-				const msg =
-					persistErr instanceof ReplicatePersistError
-						? persistErr.message
-						: persistErr instanceof Error
-							? persistErr.message
-							: "UploadThing persistence failed";
 				console.error(
 					"[Webhook][ZeepoAgent] Persist failed; marking generation FAILED (no Replicate URLs stored):",
 					persistErr,
@@ -64,7 +59,7 @@ export async function handleZeepoAgentWebhook(c: Context) {
 					.update(zeepoAgentGeneration)
 					.set({
 						status: "FAILED",
-						errorMessage: msg.slice(0, 500),
+						errorMessage: resolveZeepoAgentStoredErrorMessage(persistErr),
 						completedAt: now,
 						updatedAt: now,
 					})
@@ -72,11 +67,12 @@ export async function handleZeepoAgentWebhook(c: Context) {
 			}
 		} else if (status === "failed" || status === "canceled") {
 			const error = body.error || `Prediction ${status}`;
+			console.error("[Webhook][ZeepoAgent] Replicate prediction failed:", error);
 			await db
 				.update(zeepoAgentGeneration)
 				.set({
 					status: "FAILED",
-					errorMessage: String(error).slice(0, 500),
+					errorMessage: resolveZeepoAgentStoredErrorMessage(error),
 					completedAt: now,
 					updatedAt: now,
 				})

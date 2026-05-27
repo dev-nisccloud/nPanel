@@ -4,6 +4,7 @@ import { db, eq } from "@npanel/db";
 import { zeepoAgentGeneration } from "@npanel/db/schema";
 import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
 import { buildReplicateInput } from "@npanel/api/lib/replicate-model-input";
+import { resolveZeepoAgentStoredErrorMessage } from "@npanel/api/lib/zeepo-agent-errors";
 import Replicate from "replicate";
 import { verifySignature } from "../../lib/qstash-verify";
 
@@ -102,20 +103,12 @@ export async function handleZeepoAgent(c: Context) {
 			})
 			.where(eq(zeepoAgentGeneration.id, generationId));
 	} catch (err) {
-		let msg = err instanceof Error ? err.message : "Unknown error";
-		if (
-			msg.includes("429") ||
-			msg.toLowerCase().includes("too many requests") ||
-			msg.toLowerCase().includes("throttled")
-		) {
-			msg =
-				"Replicate rate limit hit (HTTP 429). Please wait a few seconds or add credit, then try again.";
-		}
+		console.error("[Worker][ZeepoAgent] Replicate prediction create failed:", err);
 		await db
 			.update(zeepoAgentGeneration)
 			.set({
 				status: "FAILED",
-				errorMessage: msg.slice(0, 500),
+				errorMessage: resolveZeepoAgentStoredErrorMessage(err),
 				updatedAt: new Date(),
 			})
 			.where(eq(zeepoAgentGeneration.id, generationId));

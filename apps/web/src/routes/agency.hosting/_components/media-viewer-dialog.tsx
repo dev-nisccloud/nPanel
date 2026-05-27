@@ -15,6 +15,7 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import type { FileManagerItem } from "./file-manager-schema";
+import { getFileManagerItemExtension } from "./file-manager-schema";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 
 // Max file size for preview (100MB) - larger files show "too large" message
@@ -46,7 +47,7 @@ const VIDEO_EXTENSIONS = [
 
 export function isViewableMediaFile(file: FileManagerItem): boolean {
   if (file.type !== "file") return false;
-  const ext = file.extension?.toLowerCase() ?? "";
+  const ext = getFileManagerItemExtension(file);
   return (
     IMAGE_EXTENSIONS.includes(ext) || VIDEO_EXTENSIONS.includes(ext)
   );
@@ -54,12 +55,12 @@ export function isViewableMediaFile(file: FileManagerItem): boolean {
 
 function isImageFile(file: FileManagerItem): boolean {
   if (file.type !== "file") return false;
-  return IMAGE_EXTENSIONS.includes(file.extension?.toLowerCase() ?? "");
+  return IMAGE_EXTENSIONS.includes(getFileManagerItemExtension(file));
 }
 
 function isVideoFile(file: FileManagerItem): boolean {
   if (file.type !== "file") return false;
-  return VIDEO_EXTENSIONS.includes(file.extension?.toLowerCase() ?? "");
+  return VIDEO_EXTENSIONS.includes(getFileManagerItemExtension(file));
 }
 
 interface MediaViewerDialogProps {

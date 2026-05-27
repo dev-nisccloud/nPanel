@@ -1,0 +1,61 @@
+/* Smooth landing → chat transitions for Zeepo AI Agent */
+
+.zeepo-agent-layout {
+  view-transition-name: zeepo-agent-root;
+}
+
+.zeepo-compose-surface {
+  view-transition-name: zeepo-compose-surface;
+}
+
+.zeepo-hero-surface {
+  view-transition-name: zeepo-hero-surface;
+}
+
+.zeepo-chat-surface {
+  view-transition-name: zeepo-chat-surface;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(zeepo-compose-surface),
+  ::view-transition-new(zeepo-compose-surface) {
+    animation-duration: 0.4s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  ::view-transition-old(zeepo-hero-surface) {
+    animation: zeepo-hero-exit 0.28s cubic-bezier(0.4, 0, 1, 1) both;
+  }
+
+  ::view-transition-new(zeepo-chat-surface) {
+    animation: zeepo-chat-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  ::view-transition-old(zeepo-agent-root),
+  ::view-transition-new(zeepo-agent-root) {
+    animation-duration: 0.3s;
+    animation-timing-function: ease-out;
+  }
+}
+
+@keyframes zeepo-hero-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
+}
+
+@keyframes zeepo-chat-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

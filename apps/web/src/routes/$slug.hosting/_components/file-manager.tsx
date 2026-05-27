@@ -47,7 +47,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Icons } from "@/components/icons";
-import { type FileManagerData, type FileManagerItem } from "./file-manager-schema";
+import { type FileManagerData, type FileManagerItem, sortFileManagerItems } from "./file-manager-schema";
 import { useFtpFileManager } from "./use-ftp-file-manager";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { z } from "zod";
@@ -204,8 +204,10 @@ export function FileManager({ hostingData }: FileManagerProps) {
     isDownloading,
   } = useFtpFileManager(getFtpCredentials(), "/"); // Start at root directory
 
-  const filteredItems = (data?.items || []).filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredItems = sortFileManagerItems(
+    (data?.items || []).filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   const formatFileSize = (bytes?: number) => {
@@ -265,6 +267,26 @@ export function FileManager({ hostingData }: FileManagerProps) {
     return item.type === "file" &&
       (item.extension?.toLowerCase() === "zip" ||
         item.name.toLowerCase().endsWith(".zip"));
+  };
+
+  const handleItemActivate = (item: FileManagerItem) => {
+    if (item.type === "folder") {
+      navigateToPath(item.path);
+      return;
+    }
+    if (isViewableMediaFile(item)) {
+      setViewingMediaFile(item);
+      setMediaViewerOpen(true);
+      return;
+    }
+    if (isViewableFile(item)) {
+      setViewingFile(item);
+      setFileViewerOpen(true);
+      return;
+    }
+    if (isZipFile(item)) {
+      handleExtractClick(item);
+    }
   };
 
   // Check if selected items include a zip file
@@ -363,12 +385,16 @@ export function FileManager({ hostingData }: FileManagerProps) {
         {filteredItems.map((item) => (
           <Card
             key={item.id}
-            className={`transition-all hover:shadow-md ${selectedItems.includes(item.id) ? "ring-2 ring-primary" : ""
+            className={`cursor-pointer transition-all hover:shadow-md ${selectedItems.includes(item.id) ? "ring-2 ring-primary" : ""
               }`}
+            onClick={() => handleItemActivate(item)}
           >
             <CardContent className="p-1.5">
               {/* Header with checkbox and actions */}
-              <div className="flex items-start justify-between mb-2">
+              <div
+                className="flex items-start justify-between mb-2"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Checkbox
                   checked={selectedItems.includes(item.id)}
                   onCheckedChange={(checked) => {
@@ -430,23 +456,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </div>
 
               {/* Icon - Centered and bigger */}
-              <div
-                className="flex justify-center mb-2 cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (item.type === "folder") {
-                    navigateToPath(item.path);
-                  } else if (isViewableMediaFile(item)) {
-                    setViewingMediaFile(item);
-                    setMediaViewerOpen(true);
-                  } else if (isViewableFile(item)) {
-                    setViewingFile(item);
-                    setFileViewerOpen(true);
-                  } else {
-                    handleSelectItem(item.id, !selectedItems.includes(item.id));
-                  }
-                }}
-              >
+              <div className="flex justify-center mb-2">
                 {item.type === "folder" ? (
                   <Icons.Folder className="h-24 w-24 text-muted-foreground" />
                 ) : (
@@ -455,23 +465,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </div>
 
               {/* File/Folder name - Left aligned */}
-              <div
-                className="mb-2 cursor-pointer hover:underline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (item.type === "folder") {
-                    navigateToPath(item.path);
-                  } else if (isViewableMediaFile(item)) {
-                    setViewingMediaFile(item);
-                    setMediaViewerOpen(true);
-                  } else if (isViewableFile(item)) {
-                    setViewingFile(item);
-                    setFileViewerOpen(true);
-                  } else {
-                    handleSelectItem(item.id, !selectedItems.includes(item.id));
-                  }
-                }}
-              >
+              <div className="mb-2">
                 <h3 className="font-medium text-sm truncate" title={item.name}>
                   {item.name}
                 </h3>
@@ -522,10 +516,11 @@ export function FileManager({ hostingData }: FileManagerProps) {
           {filteredItems.map((item) => (
             <TableRow
               key={item.id}
-              className={`${selectedItems.includes(item.id) ? "bg-muted/50" : ""
+              className={`cursor-pointer ${selectedItems.includes(item.id) ? "bg-muted/50" : ""
                 }`}
+              onClick={() => handleItemActivate(item)}
             >
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   checked={selectedItems.includes(item.id)}
                   onCheckedChange={(checked) => {
@@ -534,23 +529,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
                 />
               </TableCell>
               <TableCell className="pl-6">
-                <div
-                  className="flex items-center space-x-2 cursor-pointer hover:underline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (item.type === "folder") {
-                      navigateToPath(item.path);
-                    } else if (isViewableMediaFile(item)) {
-                      setViewingMediaFile(item);
-                      setMediaViewerOpen(true);
-                    } else if (isViewableFile(item)) {
-                      setViewingFile(item);
-                      setFileViewerOpen(true);
-                    } else {
-                      handleSelectItem(item.id, !selectedItems.includes(item.id));
-                    }
-                  }}
-                >
+                <div className="flex items-center space-x-2">
                   {item.type === "folder" ? (
                     <Icons.Folder className="h-4 w-4 text-muted-foreground" />
                   ) : (
@@ -571,7 +550,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </TableCell>
               <TableCell>{formatFileSize(item.size)}</TableCell>
               <TableCell>{format(new Date(item.modified), "MMM dd, yyyy HH:mm")}</TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button

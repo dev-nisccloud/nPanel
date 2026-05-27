@@ -1,8 +1,8 @@
 "use client";
 
 import { useContext, useState } from "react";
-import { EllipsisVertical, CircleUser, CreditCard, MessageSquareDot, LogOut } from "lucide-react";
-import { useNavigate } from "react-router";
+import { EllipsisVertical, CircleUser, LogOut } from "lucide-react";
+import { useNavigate, useParams } from "react-router";
 import { toast } from "@/components/ui/sonner";
 import { QueryClientContext } from "@tanstack/react-query";
 
@@ -24,6 +24,8 @@ import { authClient } from "@/lib/auth-client";
 export function NavUser() {
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
+  const params = useParams();
+  const teamSlug = typeof params.slug === "string" ? params.slug : "";
   const queryClient = useContext(QueryClientContext);
   const { data: session, isPending } = authClient.useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -133,21 +135,16 @@ export function NavUser() {
                 </div>
               </div>
             </DropdownMenuLabel>
-            {/* <DropdownMenuSeparator />
+            <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => void navigate(`/${teamSlug}/my-profile`)}
+                disabled={!teamSlug}
+              >
                 <CircleUser />
-                Account
+                My Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <MessageSquareDot />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup> */}
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
               {isLoggingOut ? (

@@ -24,3 +24,21 @@ export const fileManagerSchema = z.object({
 });
 
 export type FileManagerData = z.infer<typeof fileManagerSchema>;
+
+export function sortFileManagerItems(items: FileManagerItem[]): FileManagerItem[] {
+  return [...items].sort((a, b) => {
+    if (a.type !== b.type) {
+      return a.type === "folder" ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+}
+
+export function getFileManagerItemExtension(item: FileManagerItem): string {
+  if (item.type !== "file") return "";
+  const fromExtension = item.extension?.toLowerCase().trim();
+  if (fromExtension) return fromExtension;
+  const dotIndex = item.name.lastIndexOf(".");
+  if (dotIndex <= 0 || dotIndex === item.name.length - 1) return "";
+  return item.name.slice(dotIndex + 1).toLowerCase();
+}

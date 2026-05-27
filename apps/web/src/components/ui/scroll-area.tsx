@@ -7,18 +7,20 @@ import { cn } from "@/lib/utils"
 
 interface ScrollAreaProps extends React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> {
   viewportClassName?: string
+  thumbClassName?: string
 }
 
 function ScrollArea({
   className,
   children,
   viewportClassName,
+  thumbClassName,
   ...props
 }: ScrollAreaProps) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn("relative", className)}
+      className={cn("relative overflow-hidden", className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
@@ -30,7 +32,7 @@ function ScrollArea({
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
+      <ScrollBar thumbClassName={thumbClassName} />
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )
@@ -70,3 +72,7 @@ function ScrollBar({
 }
 
 export { ScrollArea, ScrollBar }
+
+/** Use on native overflow containers when Radix ScrollArea is not needed. */
+export const nativePrimaryScrollbarClassName =
+	"overflow-y-auto overflow-x-auto overscroll-contain [scrollbar-color:var(--primary)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary";
