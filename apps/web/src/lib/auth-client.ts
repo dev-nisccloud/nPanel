@@ -7,24 +7,16 @@ function normalizeOrigin(value: string | undefined): string | undefined {
   return trimmed.replace(/\/+$/, "");
 }
 
-// In dev, baseURL is undefined   Vite's proxy handles /api.
-// In production, use the build-time API origin injected via VITE_SERVER_URL.
-const baseURL = import.meta.env.DEV
-  ? undefined
-  : normalizeOrigin(import.meta.env.VITE_SERVER_URL);
+// Always use same-origin `/api/*`. Vite (dev) and apps/web/server.ts (prod) proxy to the API.
+// Direct cross-origin calls to the Cloud Run server break OAuth state cookies (state_mismatch).
+const baseURL = undefined;
 
-if (import.meta.env.PROD && !baseURL) {
-  console.error(
-    "[auth-client] Missing VITE_SERVER_URL at build time. Set --build-arg VITE_SERVER_URL=<api-origin> in the web image build.",
-  );
-}
-
-/** The resolved server origin (HTTPS only)   `undefined` in dev. */
-export const serverBaseURL: string | undefined = baseURL;
+/** Direct API origin — only for WebSockets and other non-proxied backend connections. */
+export const serverBaseURL: string | undefined = normalizeOrigin(import.meta.env.VITE_SERVER_URL);
 
 export function apiUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return serverBaseURL ? `${serverBaseURL}${normalizedPath}` : normalizedPath;
+  return normalizedPath;
 }
 
 export const authClient = createAuthClient({

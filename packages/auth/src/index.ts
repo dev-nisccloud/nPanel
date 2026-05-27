@@ -95,13 +95,24 @@ const frontendBaseUrl = () => {
   return raw.replace(/\/+$/, "");
 };
 
+/** User-facing origin for OAuth callbacks and redirects (must match the SPA / proxy origin). */
+const authBaseUrl = () => {
+  const raw =
+    process.env.CORS_ORIGIN ||
+    process.env.APP_URL ||
+    process.env.VITE_PUBLIC_APP_URL ||
+    env.CORS_ORIGIN ||
+    env.BETTER_AUTH_URL;
+  return raw.replace(/\/+$/, "");
+};
+
 export const auth = betterAuth<BetterAuthOptions>({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: authSchema,
   }),
   trustedOrigins: resolvedTrustedOrigins,
-  baseURL: undefined,
+  baseURL: authBaseUrl(),
   secret: env.BETTER_AUTH_SECRET,
   socialProviders: {
     google: {
