@@ -98,14 +98,15 @@ This is the page users see when they click "Continue with Google".
 
    | Environment | URI |
    |-------------|-----|
-   | Local dev | `http://localhost:3002/api/auth/callback/google` |
-   | Staging (Cloud Run server) | `https://<your-npanel-server-staging-url>/api/auth/callback/google` |
-   | Production (Cloud Run server) | `https://<your-npanel-server-production-url>/api/auth/callback/google` |
+   | Local dev | `http://localhost:5173/api/auth/callback/google` (or your Vite dev port) |
+   | Staging (Cloud Run web) | `https://<your-npanel-web-staging-url>/api/auth/callback/google` |
+   | Production (Cloud Run web) | `https://<your-npanel-web-production-url>/api/auth/callback/google` |
    | Custom domain (if you have one) | `https://<your-custom-domain>/api/auth/callback/google` |
 
-   > The callback goes to **npanel-server**, not npanel-web, because Better Auth  
-   > is mounted on the server (`/api/auth/[...all]`).  
-   > Find your Cloud Run server URLs in: **Cloud Run → Services → npanel-server-staging** (and `-production`).
+   > The callback must use the **user-facing web origin** (`npanel-web`), not `npanel-server`.
+   > Production proxies `/api/*` on the web service to the API so OAuth state cookies stay
+   > first-party (see [Better Auth cookies / cross-domain](https://www.better-auth.com/docs/concepts/cookies)).
+   > Set `BETTER_AUTH_URL` / `CORS_ORIGIN` to the **web** URL (no trailing slash).
 
 6. Under **Authorized JavaScript origins** (optional but good practice), add:
    - `http://localhost:3002`
@@ -178,7 +179,7 @@ env_vars: |
   DATABASE_URL=${{ secrets.DATABASE_URL }}
   HOSTNAME=0.0.0.0
   BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
-  BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
+  BETTER_AUTH_URL=${{ secrets.CORS_ORIGIN }}
   CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
   GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
   GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -264,13 +265,15 @@ GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-Make sure `BETTER_AUTH_URL` in your local `.env` points to your local server:
+Make sure `BETTER_AUTH_URL` in your local server `.env` matches the **frontend** origin (the URL in the browser), not the API port alone:
 
 ```env
-BETTER_AUTH_URL=http://localhost:3002
+BETTER_AUTH_URL=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173
 ```
 
-This must match the redirect URI you added in Step 1.4 (`http://localhost:3002/api/auth/callback/google`).
+Vite proxies `/api/*` to the server; OAuth callbacks must stay on the same origin as the SPA.
+Redirect URI in GCP: `http://localhost:5173/api/auth/callback/google`.
 
 > Do not commit `.env` files. They should already be in `.gitignore`.
 
@@ -327,7 +330,8 @@ This is optional for the initial release but good to add before going to product
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `redirect_uri_mismatch` error on Google | The callback URI used at runtime doesn't match what's registered in GCP | Check `BETTER_AUTH_URL` is set to the server origin (no trailing slash); ensure `/api/auth/callback/google` is in Authorized Redirect URIs |
+| `state_mismatch` on server URL (`/?error=state_mismatch`) | OAuth state cookie blocked: frontend calls API cross-origin; `BETTER_AUTH_URL` pointed at server | Proxy `/api` through web; set `BETTER_AUTH_URL` to web URL (`CORS_ORIGIN`); register Google redirect URI on **web** origin |
+| `redirect_uri_mismatch` error on Google | Callback URI at runtime doesn't match GCP | Set `BETTER_AUTH_URL` to the **web** origin (no trailing slash); add `https://<web-domain>/api/auth/callback/google` in GCP |
 | `invalid_client` error | Wrong Client ID or Secret | Re-copy from GCP Credentials; check for extra spaces or quotes in the env var |
 | Button does nothing | `onClick` not wired, or `authClient.signIn.social` import path wrong | Check browser console for errors; confirm `authClient` import path |
 | "Access blocked: this app is in testing" | Consent screen is still in Testing mode | Either add the user's email as a test user, or publish the consent screen (Step 1.6) |

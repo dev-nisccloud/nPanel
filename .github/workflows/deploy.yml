@@ -135,7 +135,7 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
             HOSTNAME=0.0.0.0
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
-            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
+            BETTER_AUTH_URL=${{ secrets.CORS_ORIGIN }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -252,8 +252,6 @@ jobs:
             NODE_ENV=production
             HOSTNAME=0.0.0.0
             VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
-            BETTER_AUTH_URL=${{ steps.resolve-server-url.outputs.server_url }}
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
   # Production (manual approval via GitHub Environment protection)
@@ -335,7 +333,7 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
             HOSTNAME=0.0.0.0
             BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
-            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
+            BETTER_AUTH_URL=${{ secrets.CORS_ORIGIN_PRODUCTION }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID_PRODUCTION }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET_PRODUCTION }}
@@ -437,8 +435,6 @@ jobs:
             NODE_ENV=production
             HOSTNAME=0.0.0.0
             VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
-            BETTER_AUTH_URL=${{ steps.resolve-server-url.outputs.server_url }}
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
 
 
