@@ -15,6 +15,8 @@ const PUBLIC_PREFIXES = [
   "/auth",
   "/api",
   "/accept-invite",
+  "/verify-contact",
+  "/confirm-transfer",
   "/create-team",
   "/account-status",
   "/unauthorized",
