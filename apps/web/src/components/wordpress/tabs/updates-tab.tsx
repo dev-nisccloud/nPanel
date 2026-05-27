@@ -19,6 +19,7 @@ import { UpdatesCheckerCard } from "@/components/wordpress/updates-checker-card"
 import { SmartUpdateResultCard } from "@/components/wordpress/smart-update-result-card";
 import { SmartPhpUpdateCard } from "@/components/wordpress/smart-php-update-card";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 import type { z } from "zod";
 import type { wordpressInstallationSchema } from "@/routes/$slug.wordpress/_components/schema";
@@ -55,8 +56,14 @@ export function WordPressUpdatesTab({
     onError: (e) => toast.error(e.message),
   });
 
+  const [RunSmartUpdateDialog, confirmRunSmartUpdate] = useConfirm(
+    "Run Smart Update test?",
+    "This creates a clone of your site and tests available updates before applying them to production. The test may take several minutes.",
+  );
+
   return (
     <div className={wpDetailLayout.sectionStack}>
+      <RunSmartUpdateDialog />
       {taskUrl ? (
         <WpTaskProgress
           taskUrl={taskUrl}
@@ -109,7 +116,11 @@ export function WordPressUpdatesTab({
                 variant="default"
                 size="sm"
                 disabled={runSmartUpdate.isPending || smart?.available === false}
-                onClick={() => runSmartUpdate.mutate({ installationId: id })}
+                onClick={async () => {
+                  const ok = await confirmRunSmartUpdate();
+                  if (!ok) return;
+                  runSmartUpdate.mutate({ installationId: id });
+                }}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Run Smart Update test

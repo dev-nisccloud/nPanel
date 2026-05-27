@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 const passwordProtectionSchema = z.object({
@@ -77,6 +78,11 @@ export function PasswordProtectionDialog({
     onError: (error) => toast.error(error.message || "Failed to update password protection"),
   });
 
+  const [DisableProtectionDialog, confirmDisableProtection] = useConfirm(
+    "Disable password protection?",
+    "Visitors will no longer need a username and password to access this site. The site will become publicly accessible.",
+  );
+
   const onSubmit = (values: z.infer<typeof passwordProtectionSchema>) => {
     updateMutation.mutate({
       installationId,
@@ -86,7 +92,9 @@ export function PasswordProtectionDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+      <DisableProtectionDialog />
+      <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Password protection</DialogTitle>
@@ -145,9 +153,11 @@ export function PasswordProtectionDialog({
                     variant="outline"
                     className="w-full"
                     disabled={updateMutation.isPending}
-                    onClick={() =>
-                      updateMutation.mutate({ installationId, status: false })
-                    }
+                    onClick={async () => {
+                      const ok = await confirmDisableProtection();
+                      if (!ok) return;
+                      updateMutation.mutate({ installationId, status: false });
+                    }}
                   >
                     Disable protection
                   </Button>
@@ -161,5 +171,6 @@ export function PasswordProtectionDialog({
         )}
       </DialogContent>
     </Dialog>
+    </>
   );
 }

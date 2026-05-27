@@ -16,6 +16,7 @@ import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
 import { Badge } from "@/components/ui/badge";
 import { WpTaskProgress, extractTaskUrl } from "@/components/wordpress/wp-task-progress";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 function parsePhpChoices(stub: unknown): Array<{ value: string; title: string }> {
@@ -87,8 +88,24 @@ export function SmartPhpUpdateCard({
     onError: (e) => toast.error(e.message),
   });
 
+  const [RunTestDialog, confirmRunTest] = useConfirm(
+    "Start Smart PHP Update test?",
+    "This creates a clone of your site and tests the selected PHP version. The test may take several minutes.",
+  );
+  const [ApplyPhpDialog, confirmApplyPhp] = useConfirm(
+    "Apply PHP update to live site?",
+    "This switches your production site to the tested PHP version. Incompatible plugins or themes may break your site.",
+  );
+  const [DiscardPhpDialog, confirmDiscardPhp] = useConfirm(
+    "Discard Smart PHP Update test?",
+    "The test results will be removed without changing the PHP version on your live site.",
+  );
+
   const content = (
     <div className="space-y-3">
+        <RunTestDialog />
+        <ApplyPhpDialog />
+        <DiscardPhpDialog />
         {taskUrl ? (
           <WpTaskProgress
             taskUrl={taskUrl}
@@ -123,12 +140,14 @@ export function SmartPhpUpdateCard({
           variant="outline"
           size="sm"
           disabled={runMutation.isPending || available === false}
-          onClick={() =>
+          onClick={async () => {
+            const ok = await confirmRunTest();
+            if (!ok) return;
             runMutation.mutate({
               installationId,
               php: phpHandler || undefined,
-            })
-          }
+            });
+          }}
         >
           Start test run
         </Button>
@@ -139,7 +158,11 @@ export function SmartPhpUpdateCard({
               type="button"
               size="sm"
               disabled={acceptMutation.isPending}
-              onClick={() => acceptMutation.mutate({ installationId })}
+              onClick={async () => {
+                const ok = await confirmApplyPhp();
+                if (!ok) return;
+                acceptMutation.mutate({ installationId });
+              }}
             >
               <Check className="mr-2 h-4 w-4" />
               Apply PHP update
@@ -149,7 +172,11 @@ export function SmartPhpUpdateCard({
               variant="outline"
               size="sm"
               disabled={discardMutation.isPending}
-              onClick={() => discardMutation.mutate({ installationId })}
+              onClick={async () => {
+                const ok = await confirmDiscardPhp();
+                if (!ok) return;
+                discardMutation.mutate({ installationId });
+              }}
             >
               <X className="mr-2 h-4 w-4" />
               Discard

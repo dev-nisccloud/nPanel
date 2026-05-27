@@ -10,6 +10,7 @@ import { Loader2, Save } from "lucide-react";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { WpPanel } from "@/components/wordpress/wp-detail-primitives";
 import { wpDetailLayout } from "@/components/wordpress/wp-detail-layout";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 export function SecurityPoliciesCard({
@@ -72,6 +73,11 @@ export function SecurityPoliciesCard({
     onError: (e) => toast.error(e.message),
   });
 
+  const [EnablePatchingDialog, confirmEnablePatching] = useConfirm(
+    "Enable virtual patching?",
+    "Virtual patches will be applied to vulnerable core, plugins, and themes. This modifies how WordPress handles known vulnerabilities and may affect site behavior.",
+  );
+
   const setCore = (key: keyof typeof local.core, v: boolean) =>
     setLocal((s) => ({ ...s, core: { ...s.core, [key]: v } }));
   const setPlugins = (key: keyof typeof local.plugins, v: boolean) =>
@@ -83,6 +89,7 @@ export function SecurityPoliciesCard({
     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
   ) : (
     <div className="space-y-4">
+      <EnablePatchingDialog />
       <div className={wpDetailLayout.innerGridThree}>
         <PolicyGroup title="Core">
             <PolicySwitch
@@ -144,7 +151,11 @@ export function SecurityPoliciesCard({
           type="button"
           variant="outline"
           disabled={patchMutation.isPending}
-          onClick={() => patchMutation.mutate({ installationId, status: true })}
+          onClick={async () => {
+            const ok = await confirmEnablePatching();
+            if (!ok) return;
+            patchMutation.mutate({ installationId, status: true });
+          }}
         >
           Enable virtual patching
         </Button>

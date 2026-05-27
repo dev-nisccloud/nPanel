@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 export function WordPressDevelopmentTab({ installationId }: { installationId: string }) {
@@ -32,10 +33,17 @@ export function WordPressDevelopmentTab({ installationId }: { installationId: st
     onError: (e) => toast.error(e.message),
   });
 
+  const [EnableDebugDialog, confirmEnableDebug] = useConfirm(
+    "Enable debug mode?",
+    "Debug mode can expose sensitive errors and data to visitors. Only enable this temporarily while troubleshooting.",
+  );
+
   const debugOn = features?.debug?.status ?? false;
 
   return (
-    <WpFeatureCard
+    <>
+      <EnableDebugDialog />
+      <WpFeatureCard
       title="WordPress debug"
       description="Control WP_DEBUG and related constants. Disable on production when finished troubleshooting."
       icon={Terminal}
@@ -47,7 +55,13 @@ export function WordPressDevelopmentTab({ installationId }: { installationId: st
           <Switch
             checked={debugOn}
             disabled={updateDebug.isPending}
-            onCheckedChange={(val) => updateDebug.mutate({ installationId: id, status: val })}
+            onCheckedChange={async (val) => {
+              if (val) {
+                const ok = await confirmEnableDebug();
+                if (!ok) return;
+              }
+              updateDebug.mutate({ installationId: id, status: val });
+            }}
           />
         </div>
 
@@ -82,5 +96,6 @@ export function WordPressDevelopmentTab({ installationId }: { installationId: st
         ) : null}
       </div>
     </WpFeatureCard>
+    </>
   );
 }

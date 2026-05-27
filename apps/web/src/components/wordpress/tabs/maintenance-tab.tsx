@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { WpFeatureCard } from "@/components/wordpress/wp-feature-card";
 import { useWpInstallationSummary } from "@/components/wordpress/use-wp-installation-summary";
 import { MaintenanceModeDialog } from "@/routes/$slug.wordpress/_components/maintenance-mode-dialog";
+import { useConfirm } from "@/hooks/use-confirm";
 import { trpc } from "@/utils/trpc";
 
 export function WordPressMaintenanceTab({ installationId }: { installationId: string }) {
@@ -24,8 +25,14 @@ export function WordPressMaintenanceTab({ installationId }: { installationId: st
     onError: (e) => toast.error(e.message),
   });
 
+  const [EnableMaintenanceDialog, confirmEnableMaintenance] = useConfirm(
+    "Enable maintenance mode?",
+    "Visitors will see a maintenance page instead of your site until you turn this off.",
+  );
+
   return (
     <>
+      <EnableMaintenanceDialog />
       <WpFeatureCard
         title="Maintenance mode"
         description="Show a maintenance page to visitors while you work on the site."
@@ -41,7 +48,13 @@ export function WordPressMaintenanceTab({ installationId }: { installationId: st
             <Switch
               checked={features?.maintenance?.status ?? false}
               disabled={toggleMaintenance.isPending}
-              onCheckedChange={(val) => toggleMaintenance.mutate({ installationId: id, status: val })}
+              onCheckedChange={async (val) => {
+                if (val) {
+                  const ok = await confirmEnableMaintenance();
+                  if (!ok) return;
+                }
+                toggleMaintenance.mutate({ installationId: id, status: val });
+              }}
             />
             <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(true)}>
               <Settings2 className="h-4 w-4" />
