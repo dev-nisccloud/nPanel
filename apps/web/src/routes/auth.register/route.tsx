@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { Globe } from "lucide-react";
@@ -13,6 +13,7 @@ import { GoogleButton } from "@/routes/auth/_components/social-auth/google-butto
 
 export default function RegisterPage() {
   const [searchParams] = useSearchParams();
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -20,6 +21,10 @@ export default function RegisterPage() {
 
     if (error && message) {
       toast.error(decodeURIComponent(message));
+    } else if (error === "oauth_failed") {
+      toast.error("Google sign-up failed", {
+        description: "Please try again or use email registration.",
+      });
     }
   }, [searchParams]);
 
@@ -41,11 +46,19 @@ export default function RegisterPage() {
           <p className="text-muted-foreground text-sm">Please enter your details to register.</p>
         </div>
         <div className="space-y-4">
-          <GoogleButton className="w-full" />
+          <RegisterForm
+            termsAccepted={termsAccepted}
+            onTermsAcceptedChange={setTermsAccepted}
+          />
           <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
             <span className="bg-background text-muted-foreground relative z-10 px-2">Or continue with</span>
           </div>
-          <RegisterForm />
+          <GoogleButton
+            className="w-full"
+            mode="signup"
+            termsAccepted={termsAccepted}
+            disabled={!termsAccepted}
+          />
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Already have an account? </span>
             <Link className="text-primary hover:underline" to="/auth/login">

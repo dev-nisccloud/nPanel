@@ -89,6 +89,7 @@ import {
   ZeepoUserMessage,
   ZEEPO_AGENCY_PAGE_CONTENT,
   ZEEPO_AGENCY_PAGE_SHELL,
+  ZEEPO_CHAT_COMPOSE_COLUMN,
 } from "@/components/zeepo/zeepo-chat-ui";
 import { ZeepoGenerationsPanel } from "@/components/zeepo/zeepo-generations-panel";
 import { ZeepoSessionTitle } from "@/components/zeepo/zeepo-session-title";
@@ -2314,7 +2315,7 @@ export default function ZeepoAiAgentSessionPage() {
               const domainResult = parseDomainCheckResult(m.content);
               if (domainResult) {
                 return (
-                  <div key={m.id} className="flex flex-col gap-3">
+                  <div key={m.id} className="flex w-full min-w-0 flex-col gap-3">
                     <ZeepoAgentIdentity />
                     <ZeepoDomainPurchaseCard result={domainResult} />
                   </div>
@@ -2327,7 +2328,7 @@ export default function ZeepoAiAgentSessionPage() {
           })}
 
           {showAssistantThinking ? (
-            <div aria-live="polite" aria-busy="true" className="flex flex-col gap-3">
+            <div aria-live="polite" aria-busy="true" className="flex w-full min-w-0 flex-col gap-3">
               <ZeepoThinkingBlock
                 label={lastUserSnippet}
                 showIntermediate={hasIntermediateReplies}
@@ -2344,7 +2345,7 @@ export default function ZeepoAiAgentSessionPage() {
           ) : null}
 
           {!showAssistantThinking && pendingGenerations.length > 0 && inlineProgressTitle ? (
-            <div className="flex flex-col gap-3">
+            <div className="flex w-full min-w-0 flex-col gap-3">
               <ZeepoStepIndicator label={inlineProgressTitle} />
               <ZeepoGenerationProgressCard
                 title={inlineProgressTitle}
@@ -2361,11 +2362,15 @@ export default function ZeepoAiAgentSessionPage() {
 
       <div
         className={cn(
-          "zeepo-compose-anchor z-10 shrink-0 bg-background pt-2",
+          "zeepo-compose-anchor z-10 flex shrink-0 justify-center pt-2",
           activePanel || useAgencyPageLayout ? "px-0" : "px-3 md:px-4",
         )}
       >
-      <form className="flex w-full flex-col gap-3"
+      <form
+        className={cn(
+          "flex w-full flex-col gap-3 border-t border-border bg-background pt-2",
+          ZEEPO_CHAT_COMPOSE_COLUMN,
+        )}
         onSubmit={(e) => {
           e.preventDefault();
           sendCurrentDraft();
@@ -2377,7 +2382,7 @@ export default function ZeepoAiAgentSessionPage() {
           if (!currentQ) return null;
           const total = pendingQuestionsInfo.questions.length;
           return (
-            <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] animate-in fade-in slide-in-from-bottom-2 duration-200 dark:bg-card dark:border-border">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
               {/* Header: nav arrows + progress dots + step counter + dismiss */}
               <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-muted/40">
                 {/* Back arrow */}

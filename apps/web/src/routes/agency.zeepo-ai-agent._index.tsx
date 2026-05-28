@@ -5,6 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import { Link, Navigate, useNavigate } from "react-router";
 import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import {
   ArrowUpRight,
@@ -40,8 +41,9 @@ import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import {
   ZeepoFloatingDock,
   ZeepoComposer,
-  ZEEPO_AGENCY_PAGE_CONTENT,
-  ZEEPO_AGENCY_PAGE_SHELL,
+  ZEEPO_AGENCY_LANDING_CONTENT,
+  ZEEPO_AGENCY_LANDING_PAGE,
+  ZEEPO_AGENCY_LANDING_SCROLL,
 } from "@/components/zeepo/zeepo-chat-ui";
 import {
   buildComposeHandoffState,
@@ -321,28 +323,111 @@ export default function ZeepoAiAgentIndexPage() {
     !isUploading;
 
   return (
-    <div className="zeepo-chat-thread relative flex h-0 min-h-0 w-full flex-1 flex-col overflow-hidden">
-      <div className={cn(ZEEPO_AGENCY_PAGE_SHELL, "relative overflow-y-auto")}>
-        <div className={cn(ZEEPO_AGENCY_PAGE_CONTENT, "relative flex flex-col")}>
-      {/* History + Actions row — top right */}
-      <div className="absolute right-4 top-4 z-10 flex items-center gap-2 md:right-6 lg:right-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-muted-foreground hover:text-foreground"
-          onClick={() => setHistoryOpen(true)}
-        >
-          <Clock className="size-4" />
-          <span className="hidden sm:inline text-sm">Recent chats</span>
-        </Button>
-      </div>
+    <div className={ZEEPO_AGENCY_LANDING_PAGE}>
+      <div className={ZEEPO_AGENCY_LANDING_SCROLL}>
+        <div className={ZEEPO_AGENCY_LANDING_CONTENT}>
+          <div className="mb-2 flex justify-end">
+            <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                  aria-label="Recent chats"
+                >
+                  <Clock className="size-4" />
+                  <span className="hidden sm:inline text-sm">Recent chats</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[min(calc(100vw-2rem),20rem)] p-0"
+                align="end"
+                side="bottom"
+                sideOffset={8}
+                collisionPadding={16}
+              >
+                <div className="flex items-center justify-between border-b px-4 py-3">
+                  <h2 className="text-sm font-semibold">Recent chats</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    aria-label="Close"
+                    onClick={() => setHistoryOpen(false)}
+                  >
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
+                <div className="max-h-72 overflow-y-auto p-2">
+                  {listQuery.isPending ? (
+                    <div className="flex justify-center py-6">
+                      <Spinner size={20} className="text-muted-foreground" />
+                    </div>
+                  ) : rows.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      No chats yet
+                    </p>
+                  ) : (
+                    rows.map((s) => (
+                      <div
+                        key={s.id}
+                        className="group relative flex items-center rounded-xl transition-colors hover:bg-muted/50"
+                      >
+                        <Link
+                          to={`/agency/zeepo-ai-agent/${s.id}`}
+                          className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5"
+                          onClick={() => setHistoryOpen(false)}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium leading-tight">
+                              {s.title || "Untitled"}
+                            </p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(s.updatedAt), {
+                                addSuffix: true,
+                              })}
+                            </p>
+                          </div>
+                          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                        </Link>
+                        <button
+                          type="button"
+                          aria-label="Delete chat"
+                          disabled={deletingId === s.id}
+                          className={cn(
+                            "absolute right-2 flex size-6 items-center justify-center rounded-md text-muted-foreground",
+                            "opacity-0 transition-opacity group-hover:opacity-100",
+                            "hover:bg-destructive/10 hover:text-destructive",
+                            "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            "disabled:pointer-events-none",
+                          )}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDeletingId(s.id);
+                            deleteSession.mutate({ id: s.id });
+                          }}
+                        >
+                          {deletingId === s.id ? (
+                            <Spinner size={12} className="text-current" />
+                          ) : (
+                            <Trash2 className="size-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-      <div
-        className={cn(
-          "flex w-full flex-col items-center gap-8 pt-10 transition-all duration-300 ease-out",
-          isHandingOff && "pointer-events-none opacity-0 -translate-y-3 scale-[0.99]",
-        )}
-      >
+          <div
+            className={cn(
+              "flex w-full flex-col items-center gap-8 transition-all duration-300 ease-out",
+              isHandingOff && "pointer-events-none opacity-0 -translate-y-3 scale-[0.99]",
+            )}
+          >
         {/* Heading */}
         <div className="zeepo-hero-surface flex w-full flex-col items-center gap-3">
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
@@ -427,8 +512,8 @@ export default function ZeepoAiAgentIndexPage() {
                     setTimeout(() => textareaRef.current?.focus(), 50);
                   }}
                   className={cn(
-                    "group relative flex flex-col items-start gap-2.5 rounded-2xl border border-black/[0.06] bg-white p-3.5 text-left shadow-sm",
-                    "transition-all hover:border-black/10 hover:shadow-md dark:bg-card dark:border-border",
+                    "group relative flex flex-col items-start gap-2.5 rounded-2xl border border-border bg-card p-3.5 text-left shadow-sm",
+                    "transition-all hover:border-border/80 hover:shadow-md",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     "disabled:pointer-events-none disabled:opacity-50",
                   )}
@@ -445,100 +530,9 @@ export default function ZeepoAiAgentIndexPage() {
               );
             })}
           </div>
+          </div>
         </div>
       </div>
-
-      {/* ── History panel (popover on desktop) ────────────────── */}
-      {historyOpen && (
-        <>
-          {/* Backdrop for mobile */}
-          <div
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] sm:hidden"
-            onClick={() => setHistoryOpen(false)}
-          />
-          <div
-            className={cn(
-              "absolute right-4 top-14 z-50 w-[min(calc(100vw-2rem),20rem)]",
-              "rounded-2xl border bg-card shadow-xl",
-              "animate-in fade-in slide-in-from-top-2 duration-200",
-            )}
-          >
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <h2 className="text-sm font-semibold">Recent chats</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                onClick={() => setHistoryOpen(false)}
-              >
-                <X className="size-3.5" />
-              </Button>
-            </div>
-
-            <div className="max-h-72 overflow-y-auto">
-              <div className="p-2">
-                {listQuery.isPending ? (
-                  <div className="flex justify-center py-6">
-                    <Spinner size={20} className="text-muted-foreground" />
-                  </div>
-                ) : rows.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    No chats yet
-                  </p>
-                ) : (
-                  rows.map((s) => (
-                    <div key={s.id} className="group relative flex items-center rounded-xl hover:bg-muted/50 transition-colors">
-                      <Link
-                        to={`/agency/zeepo-ai-agent/${s.id}`}
-                        className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5"
-                        onClick={() => setHistoryOpen(false)}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium leading-tight">
-                            {s.title || "Untitled"}
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(s.updatedAt), {
-                              addSuffix: true,
-                            })}
-                          </p>
-                        </div>
-                        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground group-hover:opacity-0 transition-opacity" />
-                      </Link>
-                      <button
-                        type="button"
-                        aria-label="Delete chat"
-                        disabled={deletingId === s.id}
-                        className={cn(
-                          "absolute right-2 flex size-6 items-center justify-center rounded-md text-muted-foreground",
-                          "opacity-0 group-hover:opacity-100 transition-opacity",
-                          "hover:bg-destructive/10 hover:text-destructive",
-                          "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          "disabled:pointer-events-none",
-                        )}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDeletingId(s.id);
-                          deleteSession.mutate({ id: s.id });
-                        }}
-                      >
-                        {deletingId === s.id ? (
-                          <Spinner size={12} className="text-current" />
-                        ) : (
-                          <Trash2 className="size-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-        </div>
       </div>
     </div>
   );

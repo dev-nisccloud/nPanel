@@ -49,6 +49,7 @@ export async function completeSignupSideEffects(params: {
       metadata: {
         signupMethod,
         emailVerified,
+        acceptedTermsAndConditions: true,
       },
       ipAddress: ipForLog,
       userAgent,

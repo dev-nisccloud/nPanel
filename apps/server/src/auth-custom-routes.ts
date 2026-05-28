@@ -1,5 +1,6 @@
 import { auth } from "@npanel/auth";
 import { sendMfaEmailOtp } from "@npanel/auth/mfa-email";
+import { enforceSessionLifetimeById } from "@npanel/auth/session-enforcement";
 import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-target";
 import { and, db, desc, eq, gt, isNull } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
@@ -32,13 +33,23 @@ function generateOtpCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }
 
-async function getSessionUser(headers: Headers) {
+async function getActiveAuthSession(headers: Headers) {
   const session = await auth.api.getSession({ headers });
+  const sessionId = session?.session?.id;
+  if (typeof sessionId === "string" && sessionId.length > 0) {
+    const lifetime = await enforceSessionLifetimeById(sessionId);
+    if (lifetime === "expired") return null;
+  }
+  return session;
+}
+
+async function getSessionUser(headers: Headers) {
+  const session = await getActiveAuthSession(headers);
   return session?.user ?? null;
 }
 
 async function getSessionRecord(headers: Headers) {
-  const session = await auth.api.getSession({ headers });
+  const session = await getActiveAuthSession(headers);
   return session?.session ?? null;
 }
 

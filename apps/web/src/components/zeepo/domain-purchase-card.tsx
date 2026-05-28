@@ -55,7 +55,10 @@ function DomainRow({ entry }: { entry: AgentDomainCheckEntry }) {
     }
     if (isAvailable) {
       return (
-        <Badge className="gap-1 bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 shrink-0 border-green-200 dark:border-green-800">
+        <Badge
+          variant="outline"
+          className="gap-1 shrink-0 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+        >
           <CheckCircle2 className="h-3 w-3" />
           Available
         </Badge>
@@ -74,7 +77,7 @@ function DomainRow({ entry }: { entry: AgentDomainCheckEntry }) {
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors",
         isAvailable
-          ? "bg-green-50/60 dark:bg-green-950/20 hover:bg-green-50 dark:hover:bg-green-950/30"
+          ? "bg-emerald-500/5 hover:bg-emerald-500/10 dark:bg-emerald-500/10"
           : "bg-muted/30 opacity-70",
       )}
     >
@@ -130,7 +133,7 @@ export function ZeepoDomainPurchaseCard({ result }: ZeepoDomainPurchaseCardProps
   const unavailable = result.checked.filter((d) => !d.available);
 
   return (
-    <div className="w-full max-w-[min(85%,30rem)] rounded-2xl rounded-bl-md border bg-card shadow-sm overflow-hidden">
+    <div className="w-full rounded-2xl rounded-bl-md border bg-card shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-muted/30">
         <div className="flex items-center gap-2">

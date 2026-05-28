@@ -19,11 +19,21 @@ import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 
-/** Matches agency hosting detail page horizontal layout. */
-/** Horizontal gutters only — vertical spacing lives on agency wrapper + chat column. */
+/** Chat session: full width with hosting-detail gutters (max-w-7xl). */
 export const ZEEPO_AGENCY_PAGE_SHELL =
   "@container/main flex min-h-0 flex-1 flex-col overflow-hidden px-4 md:px-6 lg:px-8";
 export const ZEEPO_AGENCY_PAGE_CONTENT = "w-full max-w-7xl mx-auto";
+
+/** Session chat: centered floating compose dock (same width as landing). */
+export const ZEEPO_CHAT_COMPOSE_COLUMN = "mx-auto w-full max-w-3xl";
+
+/** Landing (/agency/zeepo-ai-agent): centered column; one scroll region for the whole page. */
+export const ZEEPO_AGENCY_LANDING_PAGE =
+  "zeepo-landing relative flex min-h-0 w-full flex-1 flex-col overflow-hidden";
+export const ZEEPO_AGENCY_LANDING_SCROLL =
+  "zeepo-landing-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain";
+export const ZEEPO_AGENCY_LANDING_CONTENT =
+  "relative mx-auto flex w-full max-w-3xl flex-col px-0 py-6 pb-10 md:py-8";
 
 /** Elapsed seconds while `active` is true (resets when inactive). */
 export function useElapsedSeconds(active: boolean) {
@@ -57,7 +67,7 @@ export function ZeepoAgentIdentity({
 }) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="size-7 shrink-0 overflow-hidden rounded-full ring-1 ring-black/5">
+      <div className="size-7 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
         <img src="/zepo.png" alt="" className="size-7 object-cover" width={28} height={28} />
       </div>
       <span className="text-sm font-semibold tracking-tight text-foreground">Zeepo</span>
@@ -92,7 +102,7 @@ export function ZeepoUserMessage({
                 href={a.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block overflow-hidden rounded-xl border border-black/5 shadow-sm transition-opacity hover:opacity-90"
+                className="block overflow-hidden rounded-xl border border-border shadow-sm transition-opacity hover:opacity-90"
               >
                 <img
                   src={a.url}
@@ -131,9 +141,9 @@ export function ZeepoAssistantMessage({
   timestamp?: string | null;
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex w-full min-w-0 flex-col gap-2">
       <ZeepoAgentIdentity />
-      <div className="max-w-[min(100%,44rem)] pl-0.5">
+      <div className="w-full min-w-0 pl-0.5">
         <AiMarkdownRenderer
           content={content}
           className="text-[15px] leading-relaxed text-foreground/95 prose-p:my-1.5 prose-headings:my-2.5"
@@ -179,7 +189,7 @@ export function ZeepoGenerationProgressCard({
   pending?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 shadow-sm">
+    <div className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 shadow-sm">
       <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
         <Sparkles className="size-4" aria-hidden />
       </div>
@@ -210,10 +220,10 @@ export function ZeepoThinkingBlock({
   showIntermediate?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex w-full min-w-0 flex-col gap-3">
       <ZeepoAgentIdentity />
       <ZeepoStepIndicator label={label} />
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
+      <div className="flex w-full items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
         <Spinner variant="ellipsis" className="size-4 text-muted-foreground" />
         <span className="text-sm text-muted-foreground">
           {showIntermediate ? "Still working on your request…" : "Zeepo is thinking…"}

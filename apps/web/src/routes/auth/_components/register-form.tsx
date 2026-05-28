@@ -11,6 +11,7 @@ import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { TermsAcceptanceField } from "@/routes/auth/_components/terms-acceptance-field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { redirectToTarget } from "@/lib/auth-redirect";
@@ -22,13 +23,23 @@ const FormSchema = z
     email: z.string().email({ message: "Please enter a valid email address." }),
     password: z.string().min(8, { message: "Password must be at least 8 characters." }),
     confirmPassword: z.string().min(8, { message: "Confirm Password must be at least 8 characters." }),
+    acceptTerms: z.boolean(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match.",
     path: ["confirmPassword"],
+  })
+  .refine((data) => data.acceptTerms === true, {
+    message: "You must accept the Terms and Conditions to create an account.",
+    path: ["acceptTerms"],
   });
 
-export function RegisterForm() {
+type RegisterFormProps = {
+  termsAccepted: boolean;
+  onTermsAcceptedChange: (accepted: boolean) => void;
+};
+
+export function RegisterForm({ termsAccepted, onTermsAcceptedChange }: RegisterFormProps) {
   const [searchParams] = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
   const redirectPath = searchParams.get("redirect");
@@ -48,8 +59,14 @@ export function RegisterForm() {
       email: "",
       password: "",
       confirmPassword: "",
+      acceptTerms: false,
     },
   });
+
+  const acceptTermsValue = form.watch("acceptTerms");
+  useEffect(() => {
+    onTermsAcceptedChange(acceptTermsValue === true);
+  }, [acceptTermsValue, onTermsAcceptedChange]);
 
   // Reset state on mount to ensure clean state when component remounts
   useEffect(() => {
@@ -80,7 +97,8 @@ export function RegisterForm() {
           email: data.email,
           password: data.password,
           name: data.name,
-        });
+          acceptedTermsAndConditions: true,
+        } as Parameters<typeof authClient.signUp.email>[0]);
       } catch (authError: unknown) {
         // Handle auth client errors
         console.error("Auth client error:", authError);
@@ -297,7 +315,18 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
-        <Button className="w-full" type="submit" disabled={isSubmitting}>
+        <FormField
+          control={form.control}
+          name="acceptTerms"
+          render={({ field }) => (
+            <TermsAcceptanceField field={field} id="register-accept-terms" />
+          )}
+        />
+        <Button
+          className="w-full"
+          type="submit"
+          disabled={isSubmitting || !termsAccepted}
+        >
           {isSubmitting ? (
             <div className="flex items-center gap-2">
               <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
