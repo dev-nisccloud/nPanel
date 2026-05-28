@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Mail, CheckCircle2 } from "lucide-react";
@@ -181,100 +180,117 @@ export function SecurityMfaForm() {
     }
   };
 
+  const showOtpPanel = isSetupMode || isDisableMode;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-4 w-4" />
-          Two-factor authentication
-        </CardTitle>
-        <CardDescription>
-          Protect your account with email OTP verification during sign-in.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="flex items-center gap-2">
-          <Badge variant={isEnabled ? "default" : "secondary"}>
-            {isEnabled ? "Enabled" : "Disabled"}
-          </Badge>
-          <span className="text-sm text-muted-foreground">
-            {isEnabled ? "Your account requires OTP at login." : "Enable MFA to secure your account."}
-          </span>
+    <div className="rounded-lg border bg-card">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+            <Shield className="h-4 w-4 text-primary" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium">Two-factor authentication</p>
+              <Badge
+                variant={isEnabled ? "default" : "secondary"}
+                className="h-5 px-1.5 text-[10px]"
+              >
+                {isEnabled ? "Enabled" : "Disabled"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isEnabled
+                ? "A one-time code is required when you sign in."
+                : "Add an email OTP step to protect your account at login."}
+            </p>
+          </div>
         </div>
 
-        {!isEnabled && !isSetupMode && (
-          <Button onClick={() => void sendSetupCode()} disabled={isLoading || isSending}>
-            <Mail className="mr-2 h-4 w-4" />
-            {isSending ? "Sending test OTP..." : "Enable with test OTP"}
-          </Button>
-        )}
-
-        {isSetupMode && (
-          <div className="space-y-3 rounded-md border p-4">
-            <div className="text-sm text-muted-foreground">
-              We sent a test OTP to your email. Enter it below to activate MFA.
-            </div>
-            <OtpExpiryCountdown expiresAt={otpExpiresAt} />
-            <Input
-              placeholder="Enter 6-digit OTP"
-              inputMode="numeric"
-              maxLength={6}
-              value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            />
-            <div className="flex gap-2">
-              <Button onClick={() => void verifySetupCode()} disabled={isVerifying || isSending}>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                {isVerifying ? "Verifying..." : "Verify and activate"}
+        {!showOtpPanel && (
+          <div className="shrink-0 sm:pt-0.5">
+            {!isEnabled ? (
+              <Button size="sm" onClick={() => void sendSetupCode()} disabled={isLoading || isSending}>
+                <Mail className="mr-1.5 h-3.5 w-3.5" />
+                {isSending ? "Sending..." : "Enable"}
               </Button>
+            ) : (
               <Button
+                size="sm"
                 variant="outline"
-                onClick={() => void sendSetupCode()}
-                disabled={isSending || isVerifying}
+                onClick={() => void sendDisableCode()}
+                disabled={isSending || isUpdating}
               >
-                {isSending ? "Resending..." : "Resend OTP"}
+                {isSending ? "Sending..." : "Disable"}
               </Button>
-            </div>
+            )}
           </div>
         )}
+      </div>
 
-        {isEnabled && !isDisableMode && (
-          <Button variant="outline" onClick={() => void sendDisableCode()} disabled={isSending || isUpdating}>
-            {isSending ? "Sending disable OTP..." : "Disable MFA"}
-          </Button>
-        )}
-
-        {isEnabled && isDisableMode && (
-          <div className="space-y-3 rounded-md border p-4">
-            <div className="text-sm text-muted-foreground">
-              Enter the OTP sent to your email to confirm disabling MFA.
-            </div>
-            <OtpExpiryCountdown expiresAt={otpExpiresAt} />
-            <Input
-              placeholder="Enter 6-digit OTP"
-              inputMode="numeric"
-              maxLength={6}
-              value={disableOtpCode}
-              onChange={(e) => setDisableOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            />
-            <div className="flex gap-2">
-              <Button onClick={() => void verifyDisableCode()} disabled={isUpdating || isSending}>
-                {isUpdating ? "Disabling..." : "Confirm disable"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsDisableMode(false);
-                  setDisableOtpCode("");
-                }}
-                disabled={isUpdating || isSending}
-              >
-                Cancel
-              </Button>
-            </div>
+      {isSetupMode && (
+        <div className="space-y-3 border-t bg-muted/20 px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            Enter the 6-digit code sent to your email to activate MFA.
+          </p>
+          <OtpExpiryCountdown expiresAt={otpExpiresAt} />
+          <Input
+            className="h-9 max-w-xs"
+            placeholder="6-digit code"
+            inputMode="numeric"
+            maxLength={6}
+            value={otpCode}
+            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => void verifySetupCode()} disabled={isVerifying || isSending}>
+              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+              {isVerifying ? "Verifying..." : "Verify & activate"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void sendSetupCode()}
+              disabled={isSending || isVerifying}
+            >
+              {isSending ? "Resending..." : "Resend code"}
+            </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+
+      {isEnabled && isDisableMode && (
+        <div className="space-y-3 border-t bg-muted/20 px-4 py-3">
+          <p className="text-xs text-muted-foreground">
+            Enter the code sent to your email to confirm disabling MFA.
+          </p>
+          <OtpExpiryCountdown expiresAt={otpExpiresAt} />
+          <Input
+            className="h-9 max-w-xs"
+            placeholder="6-digit code"
+            inputMode="numeric"
+            maxLength={6}
+            value={disableOtpCode}
+            onChange={(e) => setDisableOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => void verifyDisableCode()} disabled={isUpdating || isSending}>
+              {isUpdating ? "Disabling..." : "Confirm disable"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setIsDisableMode(false);
+                setDisableOtpCode("");
+              }}
+              disabled={isUpdating || isSending}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
-import { CountrySelect } from "../../$slug.my-profile/_components/country-select";
+import { CountrySelect } from "@/components/account-settings/country-select";
 
 const billingSchema = z.object({
   legalName: z.string().min(1, "Legal name is required"),
