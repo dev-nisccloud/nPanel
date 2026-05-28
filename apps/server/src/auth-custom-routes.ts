@@ -1,6 +1,6 @@
 import { auth } from "@npanel/auth";
 import { sendMfaEmailOtp } from "@npanel/auth/mfa-email";
-import { enforceSessionLifetimeById } from "@npanel/auth/session-enforcement";
+import { validateAndRefreshIdleSessionById } from "@npanel/auth/session-enforcement";
 import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-target";
 import { and, db, desc, eq, gt, isNull } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
@@ -37,8 +37,8 @@ async function getActiveAuthSession(headers: Headers) {
   const session = await auth.api.getSession({ headers });
   const sessionId = session?.session?.id;
   if (typeof sessionId === "string" && sessionId.length > 0) {
-    const lifetime = await enforceSessionLifetimeById(sessionId);
-    if (lifetime === "expired") return null;
+    const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+    if (lifetime.status === "expired") return null;
   }
   return session;
 }

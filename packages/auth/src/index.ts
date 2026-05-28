@@ -21,7 +21,7 @@ import {
 } from "./signup-side-effects";
 import {
   applyStandardSessionExpiryByToken,
-  enforceSessionLifetimeById,
+  validateAndRefreshIdleSessionById,
 } from "./session-enforcement";
 import {
   parseSignupTermsCookie,
@@ -29,7 +29,7 @@ import {
   rollbackSignupWithoutTerms,
   signupRequestAcceptsTerms,
 } from "./signup-terms";
-import { STANDARD_SESSION_MAX_AGE_SEC } from "./session-policy";
+import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS } from "./session-policy";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -138,10 +138,10 @@ export const auth = betterAuth<BetterAuthOptions>({
     },
   },
   session: {
-    // Fixed lifetime from login: always 30 minutes (no sliding refresh).
+    // 30-minute idle timeout; extended silently while the user is active.
     expiresIn: STANDARD_SESSION_MAX_AGE_SEC,
-    updateAge: 0,
-    disableSessionRefresh: true,
+    updateAge: SESSION_TOUCH_THROTTLE_MS / 1000,
+    disableSessionRefresh: false,
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
@@ -246,17 +246,29 @@ export const auth = betterAuth<BetterAuthOptions>({
 
         const sessionId = ctx.context.session?.session?.id;
         if (typeof sessionId === "string" && sessionId.length > 0) {
-          const lifetime = await enforceSessionLifetimeById(sessionId);
-          if (lifetime === "expired") {
+          const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+          if (lifetime.status === "expired") {
             ctx.context.session = null;
             const returned = ctx.context.returned as
-              | { session?: unknown; user?: unknown }
+              | { session?: { expiresAt?: Date | string } | null; user?: unknown }
               | undefined;
             if (returned && typeof returned === "object") {
               returned.session = null;
               returned.user = null;
             }
             return;
+          }
+
+          if (lifetime.extended) {
+            const returned = ctx.context.returned as
+              | { session?: { expiresAt?: Date | string } | null; user?: unknown }
+              | undefined;
+            if (returned?.session && typeof returned.session === "object") {
+              returned.session.expiresAt = lifetime.expiresAt;
+            }
+            if (ctx.context.session?.session) {
+              ctx.context.session.session.expiresAt = lifetime.expiresAt;
+            }
           }
         }
       }
@@ -380,7 +392,7 @@ export const auth = betterAuth<BetterAuthOptions>({
                 description: "User successfully logged in",
                 metadata: {
                   loginMethod: "email_password",
-                  sessionDuration: "30 minutes",
+                  sessionDuration: "30 minutes idle",
                 },
                 ipAddress:
                   ctx.headers?.get("x-forwarded-for") ||

@@ -364,6 +364,9 @@ export type ZeepoComposerProps = {
   skillsDisabled?: boolean;
   selectedSkillTitle?: string | null;
   onClearSkill?: () => void;
+  /** Sample-prompt category pill (shown after attach icon). */
+  promptCategory?: { label: string; className?: string } | null;
+  onClearPromptCategory?: () => void;
   pendingPreviews?: { previewUrl: string; name: string; onRemove: () => void }[];
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   showStop?: boolean;
@@ -387,6 +390,8 @@ export function ZeepoComposer({
   skillsDisabled,
   selectedSkillTitle,
   onClearSkill,
+  promptCategory,
+  onClearPromptCategory,
   pendingPreviews,
   textareaRef,
   showStop,
@@ -464,7 +469,7 @@ export function ZeepoComposer({
       />
 
       <div className="flex items-center justify-between gap-2 px-3 pb-3 pt-0.5">
-        <div className="flex items-center gap-0.5">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5">
           {onSkills ? (
             <button
               type="button"
@@ -492,6 +497,30 @@ export function ZeepoComposer({
             >
               {isUploading ? <Spinner size={16} /> : <Paperclip className="size-5" />}
             </button>
+          ) : null}
+          {promptCategory ? (
+            <span
+              className={cn(
+                "inline-flex max-w-[min(100%,10rem)] shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+                promptCategory.className,
+              )}
+            >
+              <span className="truncate">{promptCategory.label}</span>
+              {onClearPromptCategory ? (
+                <button
+                  type="button"
+                  aria-label="Clear prompt category"
+                  className="rounded-full p-0.5 opacity-70 transition-opacity hover:opacity-100"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClearPromptCategory?.();
+                  }}
+                >
+                  <X className="size-3 shrink-0" />
+                </button>
+              ) : null}
+            </span>
           ) : null}
         </div>
 

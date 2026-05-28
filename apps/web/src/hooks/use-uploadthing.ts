@@ -7,16 +7,11 @@ import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
 import { apiUrl } from "@/lib/auth-client";
 
 /**
- * UploadThing route handler lives on the API server (Hono), not the static web app.
- * In dev, apiUrl("/api/uploadthing") stays relative and Vite proxies /api → server.
- * In production, apiUrl points at VITE_SERVER_URL so session cookies are sent (same as tRPC/auth).
+ * UploadThing route handler lives on the API server (Hono), proxied at `/api/uploadthing`.
+ * Same-origin requests send session cookies by default (no custom fetch — avoids breaking ingest XHR).
  */
-const uploadthingUrl = apiUrl("/api/uploadthing");
-
 const uploadthingInit = {
-  url: uploadthingUrl,
-  fetch: ((input, init) =>
-    fetch(input, { ...init, credentials: "include" })) as typeof fetch,
+  url: apiUrl("/api/uploadthing"),
 };
 
 export const { useUploadThing: useUploadThingOriginal, uploadFiles } =
@@ -38,7 +33,61 @@ export function uploadThingFileUrl(file: {
 
 export function uploadErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const msg = (error as { message: unknown }).message;
+    if (typeof msg === "string" && msg) return msg;
+  }
   return "Upload failed. Please try again.";
+}
+
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  avif: "image/avif",
+  heic: "image/heic",
+  heif: "image/heif",
+};
+
+/** Windows/some browsers leave `file.type` empty — normalize before UploadThing signs the upload. */
+export function normalizeImageFilesForUpload(files: File[]): File[] {
+  return files.map((file) => {
+    const type = file.type?.trim();
+    if (type && type !== "application/octet-stream") return file;
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    const resolved = ext ? IMAGE_MIME_BY_EXT[ext] : undefined;
+    if (!resolved) return file;
+    return new File([file], file.name, { type: resolved, lastModified: file.lastModified });
+  });
+}
+
+type UploadFilesOptions = NonNullable<Parameters<typeof uploadFiles>[1]>;
+
+/**
+ * Zeepo chat attachments — uses the same `creativeAsset` blob route as creative-assets version uploads
+ * (one file per request; that route is maxFileCount: 1).
+ */
+export async function uploadZeepoAgentFiles(
+  options: UploadFilesOptions & { files: File[] },
+): Promise<Awaited<ReturnType<typeof uploadFiles>>> {
+  const files = normalizeImageFilesForUpload(options.files);
+  const { onUploadBegin, onUploadProgress, ...rest } = options;
+  const uploaded: Awaited<ReturnType<typeof uploadFiles>> = [];
+
+  for (const file of files) {
+    onUploadBegin?.({ file });
+    const batch = await uploadFiles(UPLOAD_ENDPOINTS.CREATIVE_ASSET, {
+      ...rest,
+      files: [file],
+      onUploadProgress,
+    });
+    uploaded.push(...batch);
+  }
+
+  return uploaded;
 }
 
 interface UseUploadThingOptions {

@@ -161,8 +161,8 @@ export const ourFileRouter = {
       return { uploadedBy: metadata.userId };
     }),
 
-  // Zeepo Agent chat attachments (images users attach to messages / answer questions with)
-  zeepoAgentAttachment: f({ image: { maxFileSize: "16MB", maxFileCount: 4 } })
+  // Zeepo Agent chat attachments — blob (same as creative assets) for reliable image uploads
+  zeepoAgentAttachment: f({ blob: { maxFileSize: "16MB", maxFileCount: 4 } })
     .middleware(async ({ req }) => {
       const session = await auth.api.getSession({
         headers: req.headers,
