@@ -237,9 +237,9 @@ export function registerAuthCustomRoutes(app: Hono) {
       const sessionRecord = await getSessionRecord(c.req.raw.headers);
       if (sessionRecord?.id && sessionRecord.userId) {
         const mfaState = await getMfaStateForUser(sessionRecord.userId);
-        if (mfaState.enabled || mfaState.setupRequired) {
+        if (mfaState.enabled) {
           const verified = await isSessionMfaVerified(sessionRecord.id);
-          if (!verified || mfaState.setupRequired) {
+          if (!verified) {
             const preferredPostMfaTarget =
               (typeof requestedRedirect === "string" && requestedRedirect.trim()
                 ? requestedRedirect.trim()
@@ -317,7 +317,7 @@ export function registerAuthCustomRoutes(app: Hono) {
       }
 
       const mfaState = await getMfaStateForUser(sessionUser.id);
-      if (!mfaState.enabled && !mfaState.setupRequired) {
+      if (!mfaState.enabled) {
         return c.json({
           required: false,
           verified: true,
@@ -330,8 +330,8 @@ export function registerAuthCustomRoutes(app: Hono) {
       return c.json({
         required: true,
         verified,
-        enabled: mfaState.enabled,
-        setupRequired: mfaState.setupRequired,
+        enabled: true,
+        setupRequired: false,
       });
     } catch (error: unknown) {
       return c.json(

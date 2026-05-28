@@ -3,9 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { toast } from "@/components/ui/sonner";
 
@@ -14,8 +14,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { redirectToTarget } from "@/lib/auth-redirect";
+import { fetchRedirectTarget, goToRedirectTarget } from "@/lib/auth-redirect";
+import {
+  fetchMfaStatus,
+  mfaIntentFromStatus,
+  mfaVerificationRequired,
+} from "@/lib/mfa-auth";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { MfaVerifyStep } from "@/routes/auth/_components/mfa-verify-step";
+import type { MfaIntent } from "@/lib/mfa-auth";
 
 const FormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -23,12 +30,29 @@ const FormSchema = z.object({
   remember: z.boolean().optional(),
 });
 
-export function LoginForm() {
+export type LoginAuthStep = "credentials" | "mfa";
+
+type LoginFormProps = {
+  onStepChange?: (step: LoginAuthStep) => void;
+};
+
+export function LoginForm({ onStepChange }: LoginFormProps) {
+  const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
+  const [step, setStep] = useState<LoginAuthStep>("credentials");
+  const [mfaIntent, setMfaIntent] = useState<MfaIntent>("LOGIN");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [redirectFailed, setRedirectFailed] = useState(false);
+
+  const setAuthStep = useCallback(
+    (next: LoginAuthStep) => {
+      setStep(next);
+      onStepChange?.(next);
+    },
+    [onStepChange],
+  );
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -39,38 +63,67 @@ export function LoginForm() {
     },
   });
 
-  // Reset state on mount to ensure clean state when component remounts
   useEffect(() => {
     setIsSubmitting(false);
-    setIsSuccess(false);
     setRedirectFailed(false);
   }, []);
 
+  const completeSignIn = useCallback(async () => {
+    const target = await fetchRedirectTarget(50);
+    const didRedirect = goToRedirectTarget(target, navigate);
+    if (!didRedirect) {
+      setRedirectFailed(true);
+    }
+  }, [navigate]);
+
+  const beginMfaStep = useCallback(
+    async (intent: MfaIntent) => {
+      setMfaIntent(intent);
+      setAuthStep("mfa");
+    },
+    [setAuthStep],
+  );
+
+  const resolvePostCredentials = useCallback(async () => {
+    try {
+      const status = await fetchMfaStatus();
+      if (mfaVerificationRequired(status)) {
+        await beginMfaStep(mfaIntentFromStatus(status));
+        return;
+      }
+      await completeSignIn();
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Could not continue sign-in.";
+      toast.error("Sign-in error", { description: message });
+    } finally {
+      setIsSubmitting(false);
+      setIsCheckingSession(false);
+    }
+  }, [beginMfaStep, completeSignIn]);
+
   // Redirect if user is already authenticated
   useEffect(() => {
-    if (!isPending && session) {
-      redirectToTarget(0).then((didRedirect) => {
-        if (!didRedirect) setRedirectFailed(true);
-      }).catch(() => {
-        setRedirectFailed(true);
+    if (!isPending && session && step === "credentials") {
+      setIsCheckingSession(true);
+      void resolvePostCredentials().finally(() => {
+        setIsCheckingSession(false);
       });
     }
-  }, [session, isPending]);
+  }, [session, isPending, step, resolvePostCredentials]);
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
     try {
       setIsSubmitting(true);
 
-      // Wrap the auth call in its own try-catch to ensure errors are caught
       let result;
       try {
         result = await authClient.signIn.email({
           email: data.email,
           password: data.password,
-          rememberMe: data.remember, // Pass remember preference to backend
+          rememberMe: data.remember,
         });
       } catch (authError: unknown) {
-        // Handle auth client errors
         console.error("Auth client error:", authError);
 
         let errorMessage = "Please check your credentials and try again.";
@@ -95,15 +148,11 @@ export function LoginForm() {
       }
 
       if (result?.data) {
-        setIsSuccess(true);
-        const didRedirect = await redirectToTarget(200);
-        if (!didRedirect) {
-          // redirect-target endpoint failed   fall back to root which has its own redirect logic
-          window.location.replace("/");
-        }
+        await resolvePostCredentials();
         return;
-      } else if (result?.error) {
-        // Handle error response from auth
+      }
+
+      if (result?.error) {
         const errorMessage = result.error.message || "Invalid credentials. Please try again.";
         toast.error("Login failed", {
           description: errorMessage,
@@ -131,18 +180,29 @@ export function LoginForm() {
     }
   };
 
-  // Show loading only when submitting, just logged in, or actively redirecting.
-  // If the redirect failed (e.g. redirect-target endpoint unreachable), fall through
-  // and show the form so the user isn't stuck forever.
-  const isRedirecting = session && !isPending && !redirectFailed;
-  if (isSuccess || isSubmitting || isRedirecting) {
+  const isRedirecting = session && !isPending && !redirectFailed && step === "credentials";
+  if (isSubmitting || isCheckingSession || isRedirecting) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
         <p className="text-sm text-muted-foreground">
-          {isSuccess || isSubmitting ? "Signing you in…" : "Redirecting…"}
+          {isSubmitting ? "Signing you in…" : "Redirecting…"}
         </p>
       </div>
+    );
+  }
+
+  if (step === "mfa") {
+    return (
+      <MfaVerifyStep
+        initialIntent={mfaIntent}
+        onBack={() => {
+          void authClient.signOut().finally(() => {
+            setAuthStep("credentials");
+          });
+        }}
+        onVerified={completeSignIn}
+      />
     );
   }
 
@@ -155,7 +215,6 @@ export function LoginForm() {
           form.handleSubmit(
             onSubmit,
             (errors) => {
-              // Handle validation errors
               console.log("Form validation errors:", errors);
               const errorMessages = Object.values(errors)
                 .map((error) => error?.message)

@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
 import { apiKey } from "@npanel/db/schema/auth-extras";
 import { user } from "@npanel/db/schema/auth";
-import { and, isNull, or } from "@npanel/db";
+import { and, isNull } from "@npanel/db";
 import { userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
 
 type AuthSessionNonNull = NonNullable<
@@ -166,26 +166,18 @@ export async function createContext({
     const mfaRows = await db
       .select({
         id: userMfaSettings.id,
-        setupRequired: userMfaSettings.setupRequired,
       })
       .from(userMfaSettings)
       .where(
         and(
           eq(userMfaSettings.userId, sessionUserId),
-          or(
-            eq(userMfaSettings.emailOtpEnabled, true),
-            eq(userMfaSettings.setupRequired, true),
-          ),
+          eq(userMfaSettings.emailOtpEnabled, true),
         ),
       )
       .limit(1);
 
     mfaRequired = Boolean(mfaRows[0]);
-    mfaSetupRequired = mfaRows[0]?.setupRequired === true;
-
-    if (!mfaRequired && mfaSetupRequired) {
-      mfaRequired = true;
-    }
+    mfaSetupRequired = false;
 
     if (mfaRequired) {
       const pendingRows = await db
