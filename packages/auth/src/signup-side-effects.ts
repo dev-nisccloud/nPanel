@@ -1,6 +1,5 @@
-import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
-import { userActivityLog, userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
+import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import {
   notification,
   notificationActivityLog,
@@ -30,7 +29,7 @@ function requestMeta(headers: Headers | undefined) {
   };
 }
 
-/** Shared DB side effects for new accounts (notification, MFA defaults, activity log). */
+/** Shared DB side effects for new accounts (notification, activity log). MFA is opt-in from account settings. */
 export async function completeSignupSideEffects(params: {
   userId: string;
   sessionId: string | undefined;
@@ -38,7 +37,7 @@ export async function completeSignupSideEffects(params: {
   signupMethod: SignupMethod;
   headers: Headers | undefined;
 }) {
-  const { userId, sessionId, emailVerified, signupMethod, headers } = params;
+  const { userId, emailVerified, signupMethod, headers } = params;
   const { ipAddress, ipDisplay, userAgent, ipForLog } = requestMeta(headers);
 
   await db.transaction(async (tx) => {
@@ -85,63 +84,6 @@ export async function completeSignupSideEffects(params: {
       createdAt: new Date(),
     });
 
-    const settingsRows = await tx
-      .select({ id: userMfaSettings.id })
-      .from(userMfaSettings)
-      .where(eq(userMfaSettings.userId, userId))
-      .limit(1);
-
-    if (settingsRows[0]) {
-      await tx
-        .update(userMfaSettings)
-        .set({
-          setupRequired: true,
-          emailOtpEnabled: false,
-          preferredMethod: "EMAIL_OTP",
-          updatedAt: new Date(),
-        })
-        .where(eq(userMfaSettings.userId, userId));
-    } else {
-      await tx.insert(userMfaSettings).values({
-        id: crypto.randomUUID(),
-        userId,
-        setupRequired: true,
-        emailOtpEnabled: false,
-        preferredMethod: "EMAIL_OTP",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    }
-
-    if (sessionId) {
-      const existingMfaSession = await tx
-        .select({ id: userMfaSession.id })
-        .from(userMfaSession)
-        .where(eq(userMfaSession.sessionId, sessionId))
-        .limit(1);
-
-      if (!existingMfaSession[0]) {
-        await tx.insert(userMfaSession).values({
-          id: crypto.randomUUID(),
-          userId,
-          sessionId,
-          requiredAt: new Date(),
-          verifiedAt: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      } else {
-        await tx
-          .update(userMfaSession)
-          .set({
-            userId,
-            requiredAt: new Date(),
-            verifiedAt: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(userMfaSession.sessionId, sessionId));
-      }
-    }
   });
 }
 
