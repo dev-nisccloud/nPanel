@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-import { isSessionLifetimeExpired } from "@npanel/auth/session-policy";
+import {
+  isSessionLifetimeExpired,
+  SESSION_TOUCH_THROTTLE_MS,
+} from "@npanel/auth/session-policy";
 import { authClient } from "@/lib/auth-client";
 import { isPublicPath } from "@/lib/session-gate";
 
-const SESSION_REFETCH_MS = 60_000;
+const SESSION_POLL_MS = 60_000;
 
 function redirectToLoginAfterExpiry() {
   if (typeof window === "undefined" || isPublicPath(window.location.pathname)) {
@@ -16,12 +19,46 @@ function redirectToLoginAfterExpiry() {
 }
 
 /**
- * Periodically re-validates the session and signs out when the 30-minute
- * window from session creation has elapsed.
+ * Keeps idle sessions alive while the user is active and signs out after
+ * 30 minutes of inactivity.
  */
 export function SessionLifetimeGuard() {
+  const lastActivityTouchRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const touchSession = () => {
+      if (document.visibilityState === "hidden") return;
+      if (isPublicPath(window.location.pathname)) return;
+
+      const now = Date.now();
+      if (now - lastActivityTouchRef.current < SESSION_TOUCH_THROTTLE_MS) return;
+      lastActivityTouchRef.current = now;
+      void authClient.getSession();
+    };
+
+    const events: Array<keyof WindowEventMap> = [
+      "mousemove",
+      "keydown",
+      "click",
+      "scroll",
+      "touchstart",
+    ];
+
+    for (const event of events) {
+      window.addEventListener(event, touchSession, { passive: true });
+    }
+
+    return () => {
+      for (const event of events) {
+        window.removeEventListener(event, touchSession);
+      }
+    };
+  }, []);
+
   const { data, isPending } = authClient.useSession({
-    refetchInterval: SESSION_REFETCH_MS,
+    refetchInterval: SESSION_POLL_MS,
     refetchOnWindowFocus: true,
   });
 
@@ -29,15 +66,12 @@ export function SessionLifetimeGuard() {
     if (isPending) return;
 
     const record = data?.session;
-    if (!record?.createdAt || !record?.expiresAt) return;
+    if (!record?.expiresAt) return;
 
-    const createdAt = new Date(record.createdAt);
     const expiresAt = new Date(record.expiresAt);
-    if (!Number.isFinite(createdAt.getTime()) || !Number.isFinite(expiresAt.getTime())) {
-      return;
-    }
+    if (!Number.isFinite(expiresAt.getTime())) return;
 
-    if (!isSessionLifetimeExpired(createdAt, expiresAt)) return;
+    if (!isSessionLifetimeExpired(expiresAt)) return;
 
     void authClient.signOut().finally(redirectToLoginAfterExpiry);
   }, [data, isPending]);

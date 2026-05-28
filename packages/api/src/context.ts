@@ -1,5 +1,5 @@
 import { auth } from "@npanel/auth";
-import { enforceSessionLifetimeById } from "@npanel/auth/session-enforcement";
+import { validateAndRefreshIdleSessionById } from "@npanel/auth/session-enforcement";
 import type { Context as HonoContext } from "hono";
 import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
@@ -159,8 +159,8 @@ export async function createContext({
 
   const sessionId = session?.session?.id;
   if (typeof sessionId === "string" && sessionId.length > 0) {
-    const lifetime = await enforceSessionLifetimeById(sessionId);
-    if (lifetime === "expired") {
+    const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+    if (lifetime.status === "expired") {
       session = null;
     }
   }
