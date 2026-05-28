@@ -5,10 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
-import { CreditCard, Edit, Plus, Mail, Phone, MapPin } from "lucide-react";
+import { CreditCard, Edit, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -34,6 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 import { CountrySelect } from "@/components/account-settings/country-select";
+import { SettingsSection } from "@/components/account-settings/settings-section";
 
 const billingSchema = z.object({
   legalName: z.string().min(1, "Legal name is required"),
@@ -53,6 +53,19 @@ type BillingFormValues = z.infer<typeof billingSchema>;
 
 interface BillingSettingsSectionProps {
   teamId: string;
+}
+
+function BillingSkeleton() {
+  return (
+    <div className="space-y-5 rounded-lg border bg-card p-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="space-y-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) {
@@ -144,24 +157,8 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
     });
   };
 
-  const handleDelete = () => {
-    deleteMutation.mutate({ teamId });
-  };
-
   if (isLoading) {
-    return (
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <CardHeader className="px-6 pt-6 pb-4">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-72" />
-        </CardHeader>
-        <CardContent className="space-y-6 px-6 pb-6">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </CardContent>
-      </div>
-    );
+    return <BillingSkeleton />;
   }
 
   const hasBilling = !!billingSettings;
@@ -169,90 +166,93 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
   if (hasBilling && !isEditMode) {
     return (
       <>
-        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6 pb-4">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                Billing Settings
-              </CardTitle>
-              <CardDescription>
-                Company billing details used for invoices and receipts
-              </CardDescription>
+        <div className="rounded-lg border bg-card">
+          <div className="flex items-start justify-between gap-3 border-b bg-muted/20 px-4 py-3">
+            <div className="flex gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <CreditCard className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Billing details</p>
+                <p className="text-xs text-muted-foreground">
+                  Used for invoices and receipts
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 gap-2">
               <Button size="sm" variant="outline" onClick={() => setIsEditMode(true)}>
-                <Edit className="mr-2 h-4 w-4" />
+                <Edit className="mr-1.5 h-3.5 w-3.5" />
                 Edit
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setDeleteDialogOpen(true)}
                 className="text-destructive hover:text-destructive"
               >
                 Remove
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="px-6 pb-6">
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Legal Name</p>
-                  <p className="text-sm">{billingSettings.legalName}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Billing Email</p>
-                  <p className="text-sm">{billingSettings.billingEmail}</p>
-                </div>
-                {billingSettings.billingPhone && (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Billing Phone</p>
-                    <p className="text-sm">{billingSettings.billingPhone}</p>
-                  </div>
-                )}
+          </div>
+
+          <div className="space-y-4 p-4 text-sm">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="text-xs text-muted-foreground">Legal name</p>
+                <p className="mt-0.5 font-medium">{billingSettings.legalName}</p>
               </div>
-              <Separator />
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Address</p>
-                <p className="text-sm">
-                  {billingSettings.addressLine1}
-                  {billingSettings.addressLine2 ? `, ${billingSettings.addressLine2}` : ""}
-                </p>
-                <p className="text-sm">
-                  {billingSettings.city}
-                  {billingSettings.state ? `, ${billingSettings.state}` : ""}{" "}
-                  {billingSettings.postalCode ?? ""}
-                </p>
-                <p className="text-sm">{billingSettings.country}</p>
+              <div>
+                <p className="text-xs text-muted-foreground">Billing email</p>
+                <p className="mt-0.5 font-medium">{billingSettings.billingEmail}</p>
               </div>
-              {billingSettings.taxId && (
-                <>
-                  <Separator />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Tax ID</p>
-                    <p className="text-sm">{billingSettings.taxId}</p>
-                  </div>
-                </>
-              )}
-              {billingSettings.additionalNotes && (
-                <>
-                  <Separator />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Additional Notes</p>
-                    <p className="text-sm">{billingSettings.additionalNotes}</p>
-                  </div>
-                </>
+              {billingSettings.billingPhone && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Billing phone</p>
+                  <p className="mt-0.5 font-medium">{billingSettings.billingPhone}</p>
+                </div>
               )}
             </div>
-          </CardContent>
+
+            <Separator />
+
+            <div>
+              <p className="text-xs text-muted-foreground">Address</p>
+              <p className="mt-0.5">
+                {billingSettings.addressLine1}
+                {billingSettings.addressLine2 ? `, ${billingSettings.addressLine2}` : ""}
+              </p>
+              <p className="text-muted-foreground">
+                {billingSettings.city}
+                {billingSettings.state ? `, ${billingSettings.state}` : ""}{" "}
+                {billingSettings.postalCode ?? ""}
+              </p>
+              <p>{billingSettings.country}</p>
+            </div>
+
+            {(billingSettings.taxId || billingSettings.additionalNotes) && (
+              <>
+                <Separator />
+                {billingSettings.taxId && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Tax ID</p>
+                    <p className="mt-0.5 font-medium">{billingSettings.taxId}</p>
+                  </div>
+                )}
+                {billingSettings.additionalNotes && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Notes</p>
+                    <p className="mt-0.5">{billingSettings.additionalNotes}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Remove Billing Settings</AlertDialogTitle>
+              <AlertDialogTitle>Remove billing settings</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to remove billing settings for this company? You can add them
                 again later.
@@ -261,18 +261,11 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
             <AlertDialogFooter>
               <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleDelete}
+                onClick={() => deleteMutation.mutate({ teamId })}
                 disabled={deleteMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteMutation.isPending ? (
-                  <>
-                    <Spinner size={16} className="mr-2" />
-                    Removing...
-                  </>
-                ) : (
-                  "Remove"
-                )}
+                {deleteMutation.isPending ? "Removing..." : "Remove"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -282,135 +275,91 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <CardHeader className="px-6 pt-6 pb-4">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
-          {hasBilling ? "Edit Billing Settings" : "Billing Settings"}
-        </CardTitle>
-        <CardDescription>
-          {hasBilling
-            ? "Update company billing details used for invoices and receipts"
-            : "Add company billing details for invoices and receipts"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="px-6 pb-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="legalName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Legal Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Company Legal Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+    <div className="rounded-lg border bg-card">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="divide-y">
+          <div className="space-y-5 p-4">
+            <SettingsSection
+              title={hasBilling ? "Edit billing details" : "Billing details"}
+              description="Company information used for invoices and receipts"
+            >
+              <FormField
+                control={form.control}
+                name="legalName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Legal name</FormLabel>
+                    <FormControl>
+                      <Input className="h-9" placeholder="Company Legal Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="billingEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Billing Email
-                    </FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="billing@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="billingPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      Billing Phone
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="tel"
-                        placeholder="+254 700 000 000"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value || null)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="billingEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Billing email</FormLabel>
+                      <FormControl>
+                        <Input className="h-9" type="email" placeholder="billing@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="billingPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Billing phone</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="h-9"
+                          type="tel"
+                          placeholder="+254 700 000 000"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </SettingsSection>
 
             <Separator />
 
-            <FormField
-              control={form.control}
-              name="addressLine1"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Address Line 1
-                  </FormLabel>
-                  <FormControl>
-                    <Input placeholder="Street Address" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="addressLine2"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address Line 2</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Apartment, Suite, etc."
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value || null)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid gap-6 md:grid-cols-3">
+            <SettingsSection title="Address">
               <FormField
                 control={form.control}
-                name="city"
+                name="addressLine1"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel className="text-xs">Address line 1</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nairobi" {...field} />
+                      <Input className="h-9" placeholder="Street address" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="state"
+                name="addressLine2"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>State/Province</FormLabel>
+                    <FormLabel className="text-xs">Address line 2</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="State or Province"
+                        className="h-9"
+                        placeholder="Apartment, suite, etc."
                         value={field.value ?? ""}
                         onChange={(e) => field.onChange(e.target.value || null)}
                       />
@@ -419,116 +368,155 @@ export function BillingSettingsSection({ teamId }: BillingSettingsSectionProps) 
                   </FormItem>
                 )}
               />
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">City</FormLabel>
+                      <FormControl>
+                        <Input className="h-9" placeholder="Nairobi" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">State / province</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="h-9"
+                          placeholder="State or province"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="postalCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Postal code</FormLabel>
+                      <FormControl>
+                        <Input
+                          className="h-9"
+                          placeholder="00100"
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="postalCode"
+                name="country"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Postal Code</FormLabel>
+                    <FormLabel className="text-xs">Country</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="00100"
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value || null)}
+                      <CountrySelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="Select country..."
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Country</FormLabel>
-                  <FormControl>
-                    <CountrySelect
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Select country..."
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            </SettingsSection>
 
             <Separator />
 
-            <FormField
-              control={form.control}
-              name="taxId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tax ID</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Tax Identification Number"
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value || null)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="additionalNotes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Additional Notes</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Any additional billing information..."
-                      className="resize-none"
-                      rows={3}
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value || null)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-2">
-              {hasBilling && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    form.reset();
-                    setIsEditMode(false);
-                  }}
-                  disabled={upsertMutation.isPending}
-                >
-                  Cancel
-                </Button>
-              )}
-              <Button type="submit" disabled={upsertMutation.isPending}>
-                {upsertMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
-                    <span>{hasBilling ? "Saving..." : "Adding..."}</span>
-                  </div>
-                ) : hasBilling ? (
-                  "Save Changes"
-                ) : (
-                  <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Billing Settings
-                  </>
+            <SettingsSection title="Additional">
+              <FormField
+                control={form.control}
+                name="taxId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Tax ID</FormLabel>
+                    <FormControl>
+                      <Input
+                        className="h-9"
+                        placeholder="Tax identification number"
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
                 )}
+              />
+
+              <FormField
+                control={form.control}
+                name="additionalNotes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Notes</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Any additional billing information..."
+                        className="min-h-[72px] resize-none"
+                        rows={3}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsSection>
+          </div>
+
+          <div className="flex justify-end gap-2 bg-muted/30 px-4 py-3">
+            {hasBilling && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  form.reset();
+                  setIsEditMode(false);
+                }}
+                disabled={upsertMutation.isPending}
+              >
+                Cancel
               </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
+            )}
+            <Button type="submit" size="sm" disabled={upsertMutation.isPending}>
+              {upsertMutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <Spinner variant="ellipsis" className="text-primary-foreground" size="sm" />
+                  {hasBilling ? "Saving..." : "Adding..."}
+                </span>
+              ) : hasBilling ? (
+                "Save changes"
+              ) : (
+                <>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add billing
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }

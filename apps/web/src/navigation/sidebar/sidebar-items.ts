@@ -79,9 +79,9 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/dedicated-servers",
         icon: (props: any) => React.createElement(Icons.DedicatedServers, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "Dedicated Servers", url: "/dashboard/dedicated-servers", },
           { title: "VPS Hosting", url: "/dashboard/vps", },
           { title: "VDS Hosting", url: "/dashboard/vds", },
+          { title: "Dedicated Servers", url: "/dashboard/dedicated-servers", },
         ],
       },
       // {

@@ -4,7 +4,6 @@ import * as React from "react";
 import { Users, MoreHorizontal, UserMinus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -22,12 +21,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 
 interface MembersSectionProps {
   teamId: string;
+}
+
+function MembersSkeleton() {
+  return (
+    <div className="divide-y rounded-lg border bg-card">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3">
+          <Skeleton className="h-8 w-8 rounded-md" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function MembersSection({ teamId }: MembersSectionProps) {
@@ -63,79 +78,75 @@ export function MembersSection({ teamId }: MembersSectionProps) {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">People who have access to this company.</p>
+        <MembersSkeleton />
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <CardHeader className="px-6 pt-6 pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Members
-          </CardTitle>
-          <CardDescription>People who have access to this company</CardDescription>
-        </CardHeader>
-        <CardContent className="px-6 pb-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner size={24} />
-            </div>
-          ) : !members || members.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-              <Users className="h-10 w-10 mb-2 opacity-20" />
-              <p className="text-sm">No members in this company.</p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {members.map((member) => {
-                const memberName =
-                  member.userName ?? member.userEmail ?? "Unknown";
-                return (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between rounded-lg border bg-muted/20 p-3"
-                  >
-                    <div className="space-y-0.5">
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">People who have access to this company.</p>
+
+        {members && members.length > 0 ? (
+          <div className="divide-y overflow-hidden rounded-lg border bg-card">
+            {members.map((member) => {
+              const memberName = member.userName ?? member.userEmail ?? "Unknown";
+              return (
+                <div key={member.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <p className="text-sm font-medium">{memberName}</p>
-                      {member.userEmail && (
-                        <p className="text-xs text-muted-foreground">{member.userEmail}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Joined: {new Date(member.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                         {member.role}
                       </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              setRemoveMemberDialog({
-                                open: true,
-                                memberId: member.id,
-                                memberName,
-                              });
-                            }}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <UserMinus className="mr-2 h-4 w-4" />
-                            Remove member
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {member.userEmail ? `${member.userEmail} · ` : ""}
+                      Joined {new Date(member.createdAt).toLocaleDateString()}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setRemoveMemberDialog({
+                            open: true,
+                            memberId: member.id,
+                            memberName,
+                          });
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <UserMinus className="mr-2 h-4 w-4" />
+                        Remove member
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed px-4 py-8 text-center">
+            <p className="text-sm text-muted-foreground">No members in this company.</p>
+          </div>
+        )}
       </div>
 
       <AlertDialog
@@ -155,9 +166,7 @@ export function MembersSection({ teamId }: MembersSectionProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={removeMemberMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={removeMemberMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveMember}
               disabled={removeMemberMutation.isPending}

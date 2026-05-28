@@ -1,10 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Mail, UserPlus, MoreHorizontal, Trash2, Clock, CheckCircle2, XCircle, Ban, Calendar, Globe } from "lucide-react";
+import {
+  Mail,
+  UserPlus,
+  MoreHorizontal,
+  Trash2,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Ban,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -22,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { useUsersLookup } from "@/hooks/use-user-lookup";
@@ -41,17 +49,36 @@ function getInviteStatusBadge(status: string) {
     CANCELLED: "outline",
   };
   const icons: Record<string, React.ReactNode> = {
-    PENDING: <Clock className="h-3 w-3 mr-1" />,
-    ACCEPTED: <CheckCircle2 className="h-3 w-3 mr-1" />,
-    DECLINED: <XCircle className="h-3 w-3 mr-1" />,
-    EXPIRED: <Ban className="h-3 w-3 mr-1" />,
-    CANCELLED: <Ban className="h-3 w-3 mr-1" />,
+    PENDING: <Clock className="h-2.5 w-2.5" />,
+    ACCEPTED: <CheckCircle2 className="h-2.5 w-2.5" />,
+    DECLINED: <XCircle className="h-2.5 w-2.5" />,
+    EXPIRED: <Ban className="h-2.5 w-2.5" />,
+    CANCELLED: <Ban className="h-2.5 w-2.5" />,
   };
   return (
-    <Badge variant={variants[status] ?? "secondary"} className="flex items-center gap-1">
+    <Badge
+      variant={variants[status] ?? "secondary"}
+      className="flex h-5 items-center gap-0.5 px-1.5 text-[10px]"
+    >
       {icons[status]}
       {status}
     </Badge>
+  );
+}
+
+function InvitationsSkeleton() {
+  return (
+    <div className="divide-y rounded-lg border bg-card">
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3">
+          <Skeleton className="h-8 w-8 rounded-md" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -99,96 +126,81 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
 
   return (
     <>
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6 pb-4">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Active Invitations
-            </CardTitle>
-            <CardDescription>Pending and recent company invitations</CardDescription>
-          </div>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Pending and recent company invitations.
+          </p>
           <Button size="sm" onClick={() => setInviteDialogOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
+            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
             Invite
           </Button>
-        </CardHeader>
-        <CardContent className="px-6 pb-6">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner size={24} />
-            </div>
-          ) : !invites || invites.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-              <Mail className="h-10 w-10 mb-2 opacity-20" />
-              <p className="text-sm">No pending invitations.</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => setInviteDialogOpen(true)}
-              >
-                <UserPlus className="mr-2 h-4 w-4" />
-                Invite a member
-              </Button>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {invites.map((invite) => {
-                const inviter = usersMap.get(invite.invitedById);
-                return (
-                  <div
-                    key={invite.id}
-                    className="flex items-center justify-between rounded-lg border bg-muted/20 p-3"
-                  >
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-medium">{invite.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Invited by: {inviter?.name ?? inviter?.email ?? "Unknown"}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1">
-                          <Globe className="h-3 w-3" />
-                          Role: {invite.role}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          Expires: {new Date(invite.expiresAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getInviteStatusBadge(invite.status)}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              setDeleteInviteDialog({
-                                open: true,
-                                inviteId: invite.id,
-                                inviteEmail: invite.email,
-                              });
-                            }}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete invite
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+        </div>
+
+        {isLoading ? (
+          <InvitationsSkeleton />
+        ) : invites && invites.length > 0 ? (
+          <div className="divide-y overflow-hidden rounded-lg border bg-card">
+            {invites.map((invite) => {
+              const inviter = usersMap.get(invite.invitedById);
+              return (
+                <div key={invite.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <p className="text-sm font-medium">{invite.email}</p>
+                      {getInviteStatusBadge(invite.status)}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {invite.role} · Invited by {inviter?.name ?? inviter?.email ?? "Unknown"} ·
+                      Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 shrink-0 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setDeleteInviteDialog({
+                            open: true,
+                            inviteId: invite.id,
+                            inviteEmail: invite.email,
+                          });
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete invite
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed px-4 py-8 text-center">
+            <p className="text-sm text-muted-foreground">No pending invitations.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => setInviteDialogOpen(true)}
+            >
+              <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+              Invite a member
+            </Button>
+          </div>
+        )}
       </div>
 
       <InviteMemberDialog
@@ -215,9 +227,7 @@ export function ActiveInvitationsSection({ teamId }: ActiveInvitationsSectionPro
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteInviteMutation.isPending}>
-              Cancel
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteInviteMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteInvite}
               disabled={deleteInviteMutation.isPending}
