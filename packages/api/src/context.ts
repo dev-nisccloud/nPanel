@@ -1,4 +1,5 @@
 import { auth } from "@npanel/auth";
+import { enforceSessionLifetimeById } from "@npanel/auth/session-enforcement";
 import type { Context as HonoContext } from "hono";
 import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
@@ -152,16 +153,24 @@ export async function createContext({
     }
   }
 
-  const session = await auth.api.getSession({
+  let session = await auth.api.getSession({
     headers: context.req.raw.headers,
   });
+
+  const sessionId = session?.session?.id;
+  if (typeof sessionId === "string" && sessionId.length > 0) {
+    const lifetime = await enforceSessionLifetimeById(sessionId);
+    if (lifetime === "expired") {
+      session = null;
+    }
+  }
+
   const ipAddress = context.req.raw.headers.get("x-forwarded-for") ?? null;
 
   let mfaRequired = false;
   let mfaVerified = true;
   let mfaSetupRequired = false;
   const sessionUserId = session?.user?.id;
-  const sessionId = session?.session?.id;
   if (typeof sessionUserId === "string" && sessionUserId.length > 0 && sessionId) {
     const mfaRows = await db
       .select({

@@ -18,6 +18,7 @@ import { sessionGateClientMiddleware } from "@/middleware/session-gate.client";
 import { GlobalBuyNowDialogWrapper } from "@/components/global-buy-now-dialog-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
+import { SessionLifetimeGuard } from "@/components/session-lifetime-guard";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
@@ -84,6 +85,7 @@ export default function App() {
   return (
     <NuqsAdapter>
       <QueryProvider>
+        <SessionLifetimeGuard />
         <ThemeProvider
           attribute="class"
           defaultTheme={DEFAULT_THEME_MODE}

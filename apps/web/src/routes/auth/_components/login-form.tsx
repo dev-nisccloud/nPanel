@@ -12,7 +12,6 @@ import { GoogleButton } from "@/routes/auth/_components/social-auth/google-butto
 import { toast } from "@/components/ui/sonner";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
@@ -29,7 +28,6 @@ import type { MfaIntent } from "@/lib/mfa-auth";
 const FormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  remember: z.boolean().optional(),
 });
 
 type LoginAuthStep = "credentials" | "mfa";
@@ -53,7 +51,6 @@ export function LoginForm() {
     defaultValues: {
       email: "",
       password: "",
-      remember: false,
     },
   });
 
@@ -115,7 +112,6 @@ export function LoginForm() {
         result = await authClient.signIn.email({
           email: data.email,
           password: data.password,
-          rememberMe: data.remember,
         });
       } catch (authError: unknown) {
         console.error("Auth client error:", authError);
@@ -286,25 +282,6 @@ export function LoginForm() {
             Forgot your password?
           </Link>
         </div>
-        <FormField
-          control={form.control}
-          name="remember"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center">
-              <FormControl>
-                <Checkbox
-                  id="login-remember"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  className="size-4"
-                />
-              </FormControl>
-              <FormLabel htmlFor="login-remember" className="text-muted-foreground ml-1 text-sm font-medium">
-                Remember me for 30 days
-              </FormLabel>
-            </FormItem>
-          )}
-        />
         <Button className="w-full" type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <div className="flex items-center gap-2">

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { authClient } from "@/lib/auth-client";
+import { setSignupTermsCookie } from "@/lib/signup-terms-cookie";
 import { cn } from "@/lib/utils";
 
 function GoogleColorIcon({ className }: { className?: string }) {
@@ -34,15 +35,41 @@ function GoogleColorIcon({ className }: { className?: string }) {
   );
 }
 
-export function GoogleButton({ className, ...props }: React.ComponentProps<typeof Button>) {
+type GoogleButtonProps = React.ComponentProps<typeof Button> & {
+  mode?: "login" | "signup";
+  termsAccepted?: boolean;
+};
+
+export function GoogleButton({
+  className,
+  mode = "login",
+  termsAccepted = true,
+  ...props
+}: GoogleButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
+    if (mode === "signup" && !termsAccepted) {
+      toast.error("Terms required", {
+        description: "Please accept the Terms and Conditions before continuing with Google.",
+      });
+      return;
+    }
+
     setIsLoading(true);
+    if (mode === "signup") {
+      setSignupTermsCookie();
+    }
+
+    const errorCallbackURL =
+      mode === "signup"
+        ? `${window.location.origin}/auth/register?error=oauth_failed`
+        : `${window.location.origin}/auth/login?error=oauth_failed`;
+
     const { error } = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${window.location.origin}/`,
-      errorCallbackURL: `${window.location.origin}/auth/login?error=oauth_failed`,
+      errorCallbackURL,
     });
     // signIn.social navigates the browser away on success; we only reach here on error.
     if (error) {

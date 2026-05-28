@@ -19,6 +19,17 @@ import {
   isNewGoogleRegistration,
   sendGoogleSignupWelcomeEmail,
 } from "./signup-side-effects";
+import {
+  applyStandardSessionExpiryByToken,
+  enforceSessionLifetimeById,
+} from "./session-enforcement";
+import {
+  parseSignupTermsCookie,
+  recordTermsAcceptance,
+  rollbackSignupWithoutTerms,
+  signupRequestAcceptsTerms,
+} from "./signup-terms";
+import { STANDARD_SESSION_MAX_AGE_SEC } from "./session-policy";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -127,7 +138,8 @@ export const auth = betterAuth<BetterAuthOptions>({
     },
   },
   session: {
-    expiresIn: 60 * 60 * 2,
+    // Fixed lifetime from login: always 30 minutes (no sliding refresh).
+    expiresIn: STANDARD_SESSION_MAX_AGE_SEC,
     updateAge: 0,
     disableSessionRefresh: true,
   },
@@ -151,6 +163,15 @@ export const auth = betterAuth<BetterAuthOptions>({
                 "No account found with this email address. The email may be invalid or not registered. Please check the address or sign up for an account.",
             });
           }
+        }
+      }
+
+      if (ctx.path.startsWith("/sign-up")) {
+        if (!signupRequestAcceptsTerms(ctx.body)) {
+          throw new APIError("BAD_REQUEST", {
+            message:
+              "You must accept the Terms and Conditions before creating an account.",
+          });
         }
       }
 
@@ -188,6 +209,15 @@ export const auth = betterAuth<BetterAuthOptions>({
       }
     }),
     after: createAuthMiddleware(async (ctx) => {
+      const newSessionToken = ctx.context.newSession?.session?.token;
+      if (typeof newSessionToken === "string" && newSessionToken.length > 0) {
+        try {
+          await applyStandardSessionExpiryByToken(newSessionToken);
+        } catch (error) {
+          console.error("Failed to apply standard session expiry:", error);
+        }
+      }
+
       const isGetSession =
         // Better Auth may call with different mount-relative paths depending on setup.
         // We just need to reliably detect the "get-session" endpoint.
@@ -212,6 +242,22 @@ export const auth = betterAuth<BetterAuthOptions>({
             sessionUserRole: sessionUser ? (sessionUser as any).role : null,
             sessionUserAgencyRoleId: sessionUser ? (sessionUser as any).agencyRoleId : null,
           });
+        }
+
+        const sessionId = ctx.context.session?.session?.id;
+        if (typeof sessionId === "string" && sessionId.length > 0) {
+          const lifetime = await enforceSessionLifetimeById(sessionId);
+          if (lifetime === "expired") {
+            ctx.context.session = null;
+            const returned = ctx.context.returned as
+              | { session?: unknown; user?: unknown }
+              | undefined;
+            if (returned && typeof returned === "object") {
+              returned.session = null;
+              returned.user = null;
+            }
+            return;
+          }
         }
       }
 
@@ -279,20 +325,8 @@ export const auth = betterAuth<BetterAuthOptions>({
       if (ctx.path === "/sign-in/email" || ctx.path.endsWith("/sign-in/email")) {
         const newSession = ctx.context.newSession;
         if (newSession) {
-          const rememberMe =
-            (ctx.body as { rememberMe?: boolean } | undefined)?.rememberMe === true;
           try {
             await db.transaction(async (tx) => {
-              if (rememberMe && newSession.session?.token) {
-                const thirtyDaysFromNow = new Date(
-                  Date.now() + 60 * 60 * 24 * 30 * 1000,
-                );
-                await tx
-                  .update(session)
-                  .set({ expiresAt: thirtyDaysFromNow })
-                  .where(eq(session.token, newSession.session.token));
-              }
-
               await tx
                 .update(user)
                 .set({ lastLoginAt: new Date() })
@@ -346,8 +380,7 @@ export const auth = betterAuth<BetterAuthOptions>({
                 description: "User successfully logged in",
                 metadata: {
                   loginMethod: "email_password",
-                  rememberMe,
-                  sessionDuration: rememberMe ? "30 days" : "2 hours",
+                  sessionDuration: "30 minutes",
                 },
                 ipAddress:
                   ctx.headers?.get("x-forwarded-for") ||
@@ -417,7 +450,12 @@ export const auth = betterAuth<BetterAuthOptions>({
 
       if (ctx.path.startsWith("/sign-up")) {
         const newSession = ctx.context.newSession;
-        if (newSession) {
+        if (newSession?.user?.id) {
+          try {
+            await recordTermsAcceptance(newSession.user.id);
+          } catch (error) {
+            console.error("Failed to record terms acceptance on sign-up:", error);
+          }
           void completeSignupSideEffects({
             userId: newSession.user.id,
             sessionId: newSession.session?.id,
@@ -445,6 +483,27 @@ export const auth = betterAuth<BetterAuthOptions>({
               !isNewGoogleRegistration(ctx.context.returned, rows[0]?.createdAt)
             ) {
               return;
+            }
+
+            if (!parseSignupTermsCookie(ctx.headers?.get("cookie"))) {
+              try {
+                await rollbackSignupWithoutTerms(
+                  signupUserId,
+                  newSession.session?.id,
+                );
+              } catch (error) {
+                console.error("Failed to rollback Google sign-up without terms:", error);
+              }
+              throw new APIError("BAD_REQUEST", {
+                message:
+                  "You must accept the Terms and Conditions before signing up with Google.",
+              });
+            }
+
+            try {
+              await recordTermsAcceptance(signupUserId);
+            } catch (error) {
+              console.error("Failed to record terms acceptance for Google sign-up:", error);
             }
 
             await completeSignupSideEffects({
