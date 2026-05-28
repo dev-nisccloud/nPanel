@@ -44,7 +44,7 @@ export function AgencyContentInner({ children }: { children: React.ReactNode }) 
   return (
     <div
       className={cn(
-        isZeepoAgent ? "bg-white dark:bg-white" : "bg-[#f8fafb] dark:bg-background",
+        isZeepoAgent ? "bg-background" : "bg-[#f8fafb] dark:bg-background",
         isImageGenStudioEditor
           ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0"
           : isZeepoAgent
