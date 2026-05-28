@@ -39,6 +39,7 @@ export const UPLOAD_ENDPOINTS = {
   CREATIVE_ASSET_VERSION: "creativeAssetVersion",
   CREATIVE_ASSET: "creativeAsset",
   CONTENT_CALENDAR_MEDIA: "contentCalendarMedia",
+  ZEEPO_AGENT_ATTACHMENT: "zeepoAgentAttachment",
 } as const;
 
 /**

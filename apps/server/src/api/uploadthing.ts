@@ -106,8 +106,8 @@ export const ourFileRouter: FileRouter = {
       return { uploadedBy: metadata.userId };
     }),
 
-  // Zeepo Agent chat attachments (images users attach to messages or clarifying questions)
-  zeepoAgentAttachment: f({ image: { maxFileSize: "16MB", maxFileCount: 4 } })
+  // Zeepo Agent chat attachments — blob (same as creative assets) so JPEG/PNG with empty MIME still upload
+  zeepoAgentAttachment: f({ blob: { maxFileSize: "16MB", maxFileCount: 4 } })
     .middleware(async ({ req }) => {
       const session = await auth.api.getSession({ headers: req.headers });
       if (!session?.user) throw new Error("Unauthorized");

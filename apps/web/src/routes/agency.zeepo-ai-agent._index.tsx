@@ -35,7 +35,11 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import { uploadErrorMessage, uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
+import {
+  uploadErrorMessage,
+  uploadThingFileUrl,
+  uploadZeepoAgentFiles,
+} from "@/hooks/use-uploadthing";
 import { RotatingText } from "@/components/rotating-text";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import {
@@ -213,7 +217,8 @@ export default function ZeepoAiAgentIndexPage() {
   const utils = trpc.useUtils();
 
   const [draft, setDraft] = React.useState("");
-  const [pendingAttachments, setPendingAttachments] = React.useState<Attachment[]>([]);
+  type PendingFile = { file: File; previewUrl: string; name: string; mimeType: string };
+  const [pendingFiles, setPendingFiles] = React.useState<PendingFile[]>([]);
   const [isUploading, setIsUploading] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [isHandingOff, setIsHandingOff] = React.useState(false);
@@ -250,57 +255,75 @@ export default function ZeepoAiAgentIndexPage() {
     attachments?: Attachment[];
   }) => {
     const message = opts?.message ?? draft.trim();
-    const attachments = opts?.attachments ?? pendingAttachments;
-    if (!message && attachments.length === 0) return;
+    const staged = [...pendingFiles];
+    const presetAttachments = opts?.attachments ?? [];
+    if (!message && staged.length === 0 && presetAttachments.length === 0) return;
 
-    try {
-      const res = await createSession.mutateAsync({});
-      void utils.zeepoAgent.sessions.list.invalidate();
-      const id = res.data?.id;
-      const created = res.data;
-      if (id && created) {
-        utils.zeepoAgent.sessions.get.setData(
-          { id },
-          { data: { ...created, messages: [] } },
-        );
-        setIsHandingOff(true);
-        const handoffState = buildComposeHandoffState({
-          message,
-          skillId: opts?.skillId,
-          attachments: attachments.length ? attachments : undefined,
-        });
-        startViewTransitionNavigate(() => {
-          navigate(`/agency/zeepo-ai-agent/${id}`, { state: handoffState });
-        });
+    const finishHandoff = async (attachments: Attachment[]) => {
+      const content = message || (attachments.length ? "See attached." : "");
+      try {
+        const res = await createSession.mutateAsync({});
+        void utils.zeepoAgent.sessions.list.invalidate();
+        const id = res.data?.id;
+        const created = res.data;
+        if (id && created) {
+          utils.zeepoAgent.sessions.get.setData(
+            { id },
+            { data: { ...created, messages: [] } },
+          );
+          setIsHandingOff(true);
+          setDraft("");
+          staged.forEach((f) => URL.revokeObjectURL(f.previewUrl));
+          setPendingFiles([]);
+          const handoffState = buildComposeHandoffState({
+            message: content,
+            skillId: opts?.skillId,
+            attachments: attachments.length ? attachments : undefined,
+          });
+          startViewTransitionNavigate(() => {
+            navigate(`/agency/zeepo-ai-agent/${id}`, { state: handoffState });
+          });
+        }
+      } catch (e: unknown) {
+        setIsHandingOff(false);
+        toast.error(e instanceof Error ? e.message : "Failed to create chat");
       }
-    } catch (e: unknown) {
-      setIsHandingOff(false);
-      toast.error(e instanceof Error ? e.message : "Failed to create chat");
+    };
+
+    if (staged.length) {
+      setIsUploading(true);
+      try {
+        const results = await uploadZeepoAgentFiles({ files: staged.map((f) => f.file) });
+        const uploaded: Attachment[] = results.map((r, i) => ({
+          url: uploadThingFileUrl(r),
+          name: staged[i]?.name ?? r.name ?? "attachment",
+          mimeType: staged[i]?.mimeType ?? "image/*",
+        }));
+        await finishHandoff([...presetAttachments, ...uploaded]);
+      } catch (e) {
+        toast.error(uploadErrorMessage(e));
+      } finally {
+        setIsUploading(false);
+      }
+      return;
     }
+
+    await finishHandoff(presetAttachments);
   };
 
-
-  const handleFileSelect = async (files: FileList | null) => {
+  /** Stage locally — upload runs on Send (same as session chat). */
+  const handleFileSelect = (files: FileList | null) => {
     if (!files?.length) return;
-    setIsUploading(true);
-    try {
-      const fileArray = Array.from(files);
-      const results = await uploadFiles("zeepoAgentAttachment", { files: fileArray });
-      setPendingAttachments((prev) =>
-        [
-          ...prev,
-          ...results.map((r, i) => ({
-            url: uploadThingFileUrl(r),
-            name: fileArray[i]?.name ?? r.name ?? "attachment",
-            mimeType: fileArray[i]?.type ?? "image/*",
-          })),
-        ].slice(0, 4),
-      );
-    } catch (e) {
-      toast.error(uploadErrorMessage(e));
-    } finally {
-      setIsUploading(false);
-    }
+    const room = 4 - pendingFiles.length;
+    if (room <= 0) return;
+    const incoming = Array.from(files).slice(0, room);
+    const staged: PendingFile[] = incoming.map((f) => ({
+      file: f,
+      previewUrl: URL.createObjectURL(f),
+      name: f.name,
+      mimeType: f.type || "image/*",
+    }));
+    setPendingFiles((prev) => [...prev, ...staged]);
   };
 
 
@@ -318,7 +341,7 @@ export default function ZeepoAiAgentIndexPage() {
 
   const rows = listQuery.data?.data ?? [];
   const canSend =
-    (draft.trim().length > 0 || pendingAttachments.length > 0) &&
+    (draft.trim().length > 0 || pendingFiles.length > 0) &&
     !createSession.isPending &&
     !isUploading;
 
@@ -480,13 +503,15 @@ export default function ZeepoAiAgentIndexPage() {
                 isSending={createSession.isPending || isUploading}
                 canSend={canSend}
                 onAttach={() => fileInputRef.current?.click()}
-                attachDisabled={isUploading || createSession.isPending}
+                attachDisabled={createSession.isPending || pendingFiles.length >= 4}
                 isUploading={isUploading}
-                pendingPreviews={pendingAttachments.map((a, i) => ({
-                  previewUrl: a.url,
-                  name: a.name,
-                  onRemove: () =>
-                    setPendingAttachments((p) => p.filter((_, idx) => idx !== i)),
+                pendingPreviews={pendingFiles.map((f, i) => ({
+                  previewUrl: f.previewUrl,
+                  name: f.name,
+                  onRemove: () => {
+                    URL.revokeObjectURL(f.previewUrl);
+                    setPendingFiles((p) => p.filter((_, idx) => idx !== i));
+                  },
                 }))}
                 textareaRef={textareaRef}
               />

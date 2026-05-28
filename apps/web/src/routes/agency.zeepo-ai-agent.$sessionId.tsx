@@ -93,7 +93,11 @@ import {
 } from "@/components/zeepo/zeepo-chat-ui";
 import { ZeepoGenerationsPanel } from "@/components/zeepo/zeepo-generations-panel";
 import { ZeepoSessionTitle } from "@/components/zeepo/zeepo-session-title";
-import { uploadErrorMessage, uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
+import {
+  uploadErrorMessage,
+  uploadThingFileUrl,
+  uploadZeepoAgentFiles,
+} from "@/hooks/use-uploadthing";
 import { formatDistanceToNow } from "date-fns";
 import {
   Command,
@@ -1410,7 +1414,7 @@ export default function ZeepoAiAgentSessionPage() {
     if (onUploaded) {
       setIsUploading(true);
       try {
-        const results = await uploadFiles("zeepoAgentAttachment", { files: Array.from(files) });
+        const results = await uploadZeepoAgentFiles({ files: Array.from(files) });
         const uploaded: Attachment[] = results.map((r, i) => ({
           url: uploadThingFileUrl(r),
           name: files[i]?.name ?? r.name ?? "attachment",
@@ -1442,17 +1446,16 @@ export default function ZeepoAiAgentSessionPage() {
 
   const sendCurrentDraft = React.useCallback(() => {
     const t = draft.trim();
-    if (!t || showAssistantThinking || isUploading || !sessionId) return;
     const stagedFiles = pendingFiles.length ? [...pendingFiles] : [];
     const alreadyUploaded = pendingAttachments.length ? [...pendingAttachments] : [];
-    setDraft("");
-    setPendingFiles((prev) => { prev.forEach((f) => URL.revokeObjectURL(f.previewUrl)); return []; });
-    setPendingAttachments([]);
+    const hasContent = Boolean(t) || stagedFiles.length > 0 || alreadyUploaded.length > 0;
+    if (!hasContent || showAssistantThinking || isUploading || !sessionId) return;
+    const messageText = t || (stagedFiles.length || alreadyUploaded.length ? "See attached." : "");
 
-    // If there are staged local files, upload them now then send.
+    // Upload staged files on Send, then persist message with returned URLs.
     if (stagedFiles.length) {
       setIsUploading(true);
-      uploadFiles("zeepoAgentAttachment", { files: stagedFiles.map((f) => f.file) })
+      uploadZeepoAgentFiles({ files: stagedFiles.map((f) => f.file) })
         .then((results) => {
           const uploaded: Attachment[] = results.map((r, i) => ({
             url: uploadThingFileUrl(r),
@@ -1460,9 +1463,15 @@ export default function ZeepoAiAgentSessionPage() {
             mimeType: stagedFiles[i]?.mimeType ?? "image/*",
           }));
           const allAttachments = [...alreadyUploaded, ...uploaded];
+          setDraft("");
+          setPendingFiles((prev) => {
+            prev.forEach((f) => URL.revokeObjectURL(f.previewUrl));
+            return [];
+          });
+          setPendingAttachments([]);
           send.mutate({
             sessionId: sessionId!,
-            content: t,
+            content: messageText,
             ...(selectedSkill ? { skillId: selectedSkill.id } : {}),
             ...(allAttachments.length ? { attachments: allAttachments } : {}),
           });
@@ -1474,12 +1483,12 @@ export default function ZeepoAiAgentSessionPage() {
       return;
     }
 
-    // No staged files — send immediately.
-    // Let React commit the cleared controlled textarea before the mutation runs.
+    setDraft("");
+    setPendingAttachments([]);
     queueMicrotask(() => {
       send.mutate({
         sessionId: sessionId!,
-        content: t,
+        content: messageText,
         ...(selectedSkill ? { skillId: selectedSkill.id } : {}),
         ...(alreadyUploaded.length ? { attachments: alreadyUploaded } : {}),
       });
@@ -2522,7 +2531,7 @@ export default function ZeepoAiAgentSessionPage() {
                             );
                             e.target.value = "";
                             try {
-                              const results = await uploadFiles("zeepoAgentAttachment", {
+                              const results = await uploadZeepoAgentFiles({
                                 files: [file],
                               });
                               const uploaded: Attachment = {
@@ -2816,7 +2825,9 @@ export default function ZeepoAiAgentSessionPage() {
                 }
                 isSending={send.isPending || isUploading}
                 canSend={
-                  draft.trim().length > 0 &&
+                  (draft.trim().length > 0 ||
+                    pendingFiles.length > 0 ||
+                    pendingAttachments.length > 0) &&
                   !showAssistantThinking &&
                   !isUploading &&
                   !Boolean(pendingQuestionsInfo && questionFlow)
