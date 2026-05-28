@@ -17,6 +17,7 @@ export function AgencyContentArea({
 }) {
   const { pathname } = useLocation();
   const isImageGenStudioEditor = pathname?.includes(IMAGE_GEN_STUDIO_EDITOR_PATH);
+  const isZeepoAgent = pathname?.startsWith(ZEEPO_AGENT_PATH);
 
   return (
     <SidebarInset
@@ -24,6 +25,8 @@ export function AgencyContentArea({
       className={cn(
         "data-[content-layout=centered]:!mx-auto data-[content-layout=centered]:max-w-screen-2xl",
         "max-[113rem]:peer-data-[variant=inset]:!mr-2 min-[101rem]:peer-data-[variant=inset]:peer-data-[state=collapsed]:!mr-auto",
+        (isImageGenStudioEditor || isZeepoAgent) &&
+          "min-h-0 max-h-svh overflow-hidden",
         isImageGenStudioEditor &&
           "!max-w-none h-svh max-h-svh min-h-0 min-w-0 overflow-hidden"
       )}
@@ -42,7 +45,11 @@ export function AgencyContentInner({ children }: { children: React.ReactNode }) 
     <div
       className={cn(
         isZeepoAgent ? "bg-white dark:bg-white" : "bg-[#f8fafb] dark:bg-background",
-        isImageGenStudioEditor ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0" : "h-full p-4 md:p-6"
+        isImageGenStudioEditor
+          ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0"
+          : isZeepoAgent
+            ? "flex h-[calc(100svh-theme(spacing.12))] max-h-[calc(100svh-theme(spacing.12))] min-h-0 flex-col overflow-hidden px-4 pt-3 pb-4 md:px-6 md:pt-4 md:pb-6"
+            : "h-full p-4 md:p-6"
       )}
     >
       {children}

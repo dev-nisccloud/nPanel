@@ -12,6 +12,19 @@ import {
   type AgentDomainCheckResult,
 } from "@/stores/zeepo-payment-store";
 
+/** Whole-number prices — aligned with agency /domains and agent toRetailPrice. */
+function formatDomainPrice(amount: number, currency: string): string {
+  const whole = Math.ceil(amount);
+  const symbols: Record<string, string> = {
+    USD: "$",
+    KES: "KSh",
+    EUR: "€",
+    GBP: "£",
+  };
+  const symbol = symbols[currency] ?? currency;
+  return `${symbol} ${whole.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 function formatCheckedAt(isoString: string): string {
   try {
     return new Intl.DateTimeFormat(undefined, {
@@ -87,7 +100,7 @@ function DomainRow({ entry }: { entry: AgentDomainCheckEntry }) {
 
         {isAvailable && entry.price && (
           <span className="text-xs font-semibold text-foreground tabular-nums">
-            {entry.price.formatted}
+            {formatDomainPrice(entry.price.amount, entry.price.currency)}
           </span>
         )}
 

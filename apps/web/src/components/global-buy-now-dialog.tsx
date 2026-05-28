@@ -32,12 +32,12 @@ import {
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Card } from "@/components/ui/card";
+  MpesaPayButton,
+  PaymentMethodAccordion,
+  PaymentMethodContent,
+  PaymentMethodOption,
+  PaymentMethodTrigger,
+} from "@/components/payment-method-accordion";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
@@ -1867,34 +1867,30 @@ export function GlobalBuyNowDialog() {
               <h3 className="text-lg font-semibold text-foreground">Choose payment method</h3>
               <p className="text-sm text-muted-foreground">Select your preferred method</p>
             </div>
-            <div className="flex flex-col gap-4">
-            <Accordion
-              type="single"
-              collapsible
-              className="flex w-full flex-col gap-4 [&>[data-slot=accordion-item]]:border-b-0"
-              value={selectedPaymentMethod ?? undefined}
+            <PaymentMethodAccordion
+              value={selectedPaymentMethod}
+              onValueChange={setSelectedPaymentMethod}
             >
-              <AccordionItem value="mpesa" className="rounded-lg border overflow-hidden shrink-0">
-                <Card className="border-0 shadow-none">
-                  <AccordionTrigger className="px-5 py-4 hover:no-underline" onClick={() => setSelectedPaymentMethod(selectedPaymentMethod === "mpesa" ? null : "mpesa")}>
-                    <div className="flex items-center gap-4 w-full">
-                      <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                        <img src="/mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-semibold text-foreground">M-Pesa</div>
-                        <div className="text-sm text-muted-foreground">Secured by Nisc Cloud</div>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-5 pb-4">
+              <PaymentMethodOption
+                value="mpesa"
+                variant="mpesa"
+                trigger={
+                  <PaymentMethodTrigger
+                    variant="mpesa"
+                    icon={<img src="/mpesa.png" alt="M-Pesa" className="h-full w-full object-contain" />}
+                    title="M-Pesa"
+                    description="Pay instantly from your phone — secured by Nisc Cloud"
+                  />
+                }
+              >
+                <PaymentMethodContent>
                     {showPaymentWaiting ? (
                       <div className="py-8 flex flex-col items-center">
                         <Spinner variant="ellipsis" size={48} className="mb-4 text-primary" />
                         <p className="text-sm font-medium">Waiting for payment confirmation...</p>
                       </div>
                     ) : (
-                      <div className="space-y-4 pt-2">
+                      <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Phone number *</label>
                           <Input placeholder="0712345678 or 254712345678" value={mpesaPhoneNumber} onChange={handlePhoneNumberChange} className={phoneError ? "border-destructive" : ""} />
@@ -1910,41 +1906,31 @@ export function GlobalBuyNowDialog() {
                           <Input placeholder="Account reference" value={accountReference} onChange={handleAccountReferenceChange} className={accountRefError ? "border-destructive" : ""} maxLength={12} />
                           {accountRefError && <p className="text-xs text-destructive">{accountRefError}</p>}
                         </div>
-                        <Button
-                          onClick={handleMpesaPayment}
-                          disabled={initiateMpesaPayment.isPending || !mpesaPhoneNumber || !paymentAmount || !accountReference || !!accountRefError || !!phoneError || !!amountError}
-                          className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        >
-                          {initiateMpesaPayment.isPending ? "Processing..." : "Pay with M-Pesa"}
-                        </Button>
+                        <div className="flex justify-end pt-1">
+                          <MpesaPayButton
+                            onClick={handleMpesaPayment}
+                            disabled={initiateMpesaPayment.isPending || !mpesaPhoneNumber || !paymentAmount || !accountReference || !!accountRefError || !!phoneError || !!amountError}
+                          >
+                            {initiateMpesaPayment.isPending ? "Processing..." : "Pay with M-Pesa"}
+                          </MpesaPayButton>
+                        </div>
                       </div>
                     )}
-                  </AccordionContent>
-                </Card>
-              </AccordionItem>
+                </PaymentMethodContent>
+              </PaymentMethodOption>
               {isAgencyUser ? (
-                <AccordionItem value="manual" className="rounded-lg border overflow-hidden">
-                  <Card className="border-0 shadow-none">
-                    <AccordionTrigger
-                      className="px-5 py-4 hover:no-underline"
-                      onClick={() =>
-                        setSelectedPaymentMethod(selectedPaymentMethod === "manual" ? null : "manual")
-                      }
-                    >
-                      <div className="flex items-center gap-4 w-full">
-                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                          <Receipt className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <div className="font-semibold text-foreground">Record payment reference</div>
-                          <div className="text-sm text-muted-foreground">
-                            M-Pesa receipt, bank transfer, or other external payment
-                          </div>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-5 pb-4">
-                      <div className="space-y-4 pt-2">
+                <PaymentMethodOption
+                  value="manual"
+                  trigger={
+                    <PaymentMethodTrigger
+                      icon={<Receipt className="size-7 text-foreground" />}
+                      title="Record payment reference"
+                      description="M-Pesa receipt, bank transfer, or other external payment"
+                    />
+                  }
+                >
+                  <PaymentMethodContent>
+                      <div className="space-y-4">
                         <p className="text-xs text-muted-foreground">
                           Enter the transaction reference from the payment provider. This creates a successful
                           payment record and completes the order (same as a confirmed M-Pesa payment).
@@ -1988,29 +1974,28 @@ export function GlobalBuyNowDialog() {
                           />
                           {accountRefError && <p className="text-xs text-destructive">{accountRefError}</p>}
                         </div>
-                        <Button
-                          onClick={() => void handleRecordManualPayment()}
-                          disabled={
-                            recordManualPayment.isPending ||
-                            createOrderFromPayment.isPending ||
-                            !manualTransactionReference.trim() ||
-                            !!manualTransactionRefError ||
-                            !paymentAmount ||
-                            !!amountError
-                          }
-                          className="w-full"
-                        >
-                          {recordManualPayment.isPending || createOrderFromPayment.isPending
-                            ? "Processing…"
-                            : "Record payment & complete order"}
-                        </Button>
+                        <div className="flex justify-end pt-1">
+                          <Button
+                            onClick={() => void handleRecordManualPayment()}
+                            disabled={
+                              recordManualPayment.isPending ||
+                              createOrderFromPayment.isPending ||
+                              !manualTransactionReference.trim() ||
+                              !!manualTransactionRefError ||
+                              !paymentAmount ||
+                              !!amountError
+                            }
+                          >
+                            {recordManualPayment.isPending || createOrderFromPayment.isPending
+                              ? "Processing…"
+                              : "Record payment & complete order"}
+                          </Button>
+                        </div>
                       </div>
-                    </AccordionContent>
-                  </Card>
-                </AccordionItem>
+                  </PaymentMethodContent>
+                </PaymentMethodOption>
               ) : null}
-            </Accordion>
-            </div>
+            </PaymentMethodAccordion>
             <div className="border-t pt-4 mt-8 space-y-2">
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(effectiveSubtotal, primaryCurr)}</span></div>
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Taxes</span><span>{formatPrice(effectiveTaxes, primaryCurr)}</span></div>
