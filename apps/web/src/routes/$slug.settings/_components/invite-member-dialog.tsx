@@ -136,7 +136,7 @@ export function InviteMemberDialog({
               )}
             />
 
-            <DialogFooter className="gap-2 pt-4 sm:gap-0">
+            <DialogFooter className="pt-4">
               <Button
                 type="button"
                 variant="outline"
