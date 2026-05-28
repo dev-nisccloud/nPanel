@@ -242,7 +242,7 @@ export const agencysidebarItems: NavGroup[] = [
         subItems: [
           { title: "VPS Hosting", url: "/agency/vps", },
           { title: "VDS Hosting", url: "/agency/vds", },
-          // { title: "Dedicated Servers", url: "/agency/dedicated-servers", },
+          { title: "Dedicated Servers", url: "/agency/dedicated-servers", },
         ],
       },
       // {

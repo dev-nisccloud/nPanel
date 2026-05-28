@@ -24,9 +24,15 @@ interface CountrySelectProps {
   value?: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
+  className?: string;
 }
 
-export function CountrySelect({ value, onValueChange, placeholder = "Select country..." }: CountrySelectProps) {
+export function CountrySelect({
+  value,
+  onValueChange,
+  placeholder = "Select country...",
+  className,
+}: CountrySelectProps) {
   const [open, setOpen] = React.useState(false);
 
   const selectedCountry = countries.find((country) => country.name === value);
@@ -38,11 +44,11 @@ export function CountrySelect({ value, onValueChange, placeholder = "Select coun
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className={cn("h-9 w-full justify-between", className)}
         >
           {selectedCountry ? (
             <div className="flex items-center gap-2">
-              <span className="text-lg">{selectedCountry.emoji}</span>
+              <span className="text-base">{selectedCountry.emoji}</span>
               <span>{selectedCountry.name}</span>
             </div>
           ) : (
@@ -54,24 +60,22 @@ export function CountrySelect({ value, onValueChange, placeholder = "Select coun
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]" 
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0 z-[100]"
         align="start"
         onPointerDownOutside={(e) => {
-          // Prevent closing when clicking inside the command list
           const target = e.target as HTMLElement;
-          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+          if (target.closest("[cmdk-list]") || target.closest("[cmdk-item]") || target.closest("[cmdk-input]")) {
             e.preventDefault();
           }
         }}
         onInteractOutside={(e) => {
-          // Prevent closing when interacting with command items
           const target = e.target as HTMLElement;
-          if (target.closest('[cmdk-list]') || target.closest('[cmdk-item]') || target.closest('[cmdk-input]')) {
+          if (target.closest("[cmdk-list]") || target.closest("[cmdk-item]") || target.closest("[cmdk-input]")) {
             e.preventDefault();
           }
         }}
-        style={{ pointerEvents: 'auto' }}
+        style={{ pointerEvents: "auto" }}
       >
         <Command>
           <CommandInput placeholder="Search countries..." />

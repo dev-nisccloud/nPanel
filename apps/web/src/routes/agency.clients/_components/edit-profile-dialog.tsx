@@ -30,7 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
-import { CountrySelect } from "@/routes/agency.my-account/_components/country-select";
+import { CountrySelect } from "@/components/account-settings/country-select";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
