@@ -7,7 +7,6 @@ import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import {
-  ArrowUp,
   ArrowUpRight,
   Plus,
   ChevronRight,
@@ -38,6 +37,12 @@ import { toast } from "sonner";
 import { uploadErrorMessage, uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
 import { RotatingText } from "@/components/rotating-text";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
+import {
+  ZeepoFloatingDock,
+  ZeepoComposer,
+  ZEEPO_AGENCY_PAGE_CONTENT,
+  ZEEPO_AGENCY_PAGE_SHELL,
+} from "@/components/zeepo/zeepo-chat-ui";
 import {
   buildComposeHandoffState,
   startViewTransitionNavigate,
@@ -316,9 +321,11 @@ export default function ZeepoAiAgentIndexPage() {
     !isUploading;
 
   return (
-    <div className="relative flex min-h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] flex-col items-center justify-start overflow-y-auto px-4 py-8">
+    <div className="zeepo-chat-thread relative flex h-0 min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <div className={cn(ZEEPO_AGENCY_PAGE_SHELL, "relative overflow-y-auto")}>
+        <div className={cn(ZEEPO_AGENCY_PAGE_CONTENT, "relative flex flex-col")}>
       {/* History + Actions row — top right */}
-      <div className="absolute right-4 top-4 flex items-center gap-2">
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-2 md:right-6 lg:right-8">
         <Button
           variant="ghost"
           size="sm"
@@ -330,29 +337,9 @@ export default function ZeepoAiAgentIndexPage() {
         </Button>
       </div>
 
-      {/* ── Main compose area ──────────────────────────────── */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes zeepo-compose-border {
-          0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 10px 2px rgba(124,58,237,0.2); }
-          33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 10px 2px rgba(37,99,235,0.2);  }
-          66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 10px 2px rgba(6,182,212,0.2);  }
-          100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 10px 2px rgba(124,58,237,0.2); }
-        }
-        .zeepo-compose-wrap {
-          position: relative;
-          width: 100%;
-          border-radius: 1rem;
-          border: 2px solid rgba(124,58,237,0.7);
-          animation: zeepo-compose-border 6s linear infinite;
-          overflow: hidden;
-        }
-        .zeepo-compose-wrap:focus-within {
-          box-shadow: 0 0 18px 4px rgba(124,58,237,0.3) !important;
-        }
-      `}} />
       <div
         className={cn(
-          "w-full max-w-[760px] flex flex-col items-center gap-7 pt-10 transition-all duration-300 ease-out",
+          "flex w-full flex-col items-center gap-8 pt-10 transition-all duration-300 ease-out",
           isHandingOff && "pointer-events-none opacity-0 -translate-y-3 scale-[0.99]",
         )}
       >
@@ -384,106 +371,42 @@ export default function ZeepoAiAgentIndexPage() {
           </p>
         </div>
 
-        {/* Compose box */}
-        <div className="zeepo-compose-wrap zeepo-compose-surface bg-card shadow-sm">
-          {/* Pending attachment thumbnails */}
-          {pendingAttachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 px-4 pt-3">
-              {pendingAttachments.map((a, i) => (
-                <div key={i} className="relative">
-                  <img
-                    src={a.url}
-                    alt={a.name}
-                    className="h-14 w-14 rounded-lg object-cover border border-border"
-                  />
-                  <button
-                    type="button"
-                    aria-label="Remove attachment"
-                    className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:scale-110 transition-transform"
-                    onClick={() =>
-                      setPendingAttachments((p) => p.filter((_, idx) => idx !== i))
-                    }
-                  >
-                    <X className="size-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void handleFileSelect(e.target.files);
+            e.target.value = "";
+          }}
+        />
 
-          {/* Textarea */}
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Assign a task or ask anything"
-            rows={2}
-            className="w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none min-h-[64px] max-h-[200px] overflow-y-auto leading-relaxed"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void handleSubmit();
-              }
-            }}
-            disabled={createSession.isPending}
-          />
-
-          {/* Bottom toolbar */}
-          <div className="flex items-center justify-between px-3 pb-3 pt-1">
-            {/* Left: attachment + (future: more tools) */}
-            <div className="flex items-center gap-1">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  void handleFileSelect(e.target.files);
-                  e.target.value = "";
-                }}
+        <div className="zeepo-compose-surface w-full">
+          <ZeepoFloatingDock
+            composer={
+              <ZeepoComposer
+                value={draft}
+                onChange={setDraft}
+                onSubmit={() => void handleSubmit()}
+                placeholder="Assign a task or ask anything"
+                disabled={createSession.isPending}
+                isSending={createSession.isPending || isUploading}
+                canSend={canSend}
+                onAttach={() => fileInputRef.current?.click()}
+                attachDisabled={isUploading || createSession.isPending}
+                isUploading={isUploading}
+                pendingPreviews={pendingAttachments.map((a, i) => ({
+                  previewUrl: a.url,
+                  name: a.name,
+                  onRemove: () =>
+                    setPendingAttachments((p) => p.filter((_, idx) => idx !== i)),
+                }))}
+                textareaRef={textareaRef}
               />
-              <button
-                type="button"
-                aria-label="Attach file"
-                disabled={isUploading || createSession.isPending}
-                className={cn(
-                  "flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors",
-                  "hover:bg-muted hover:text-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  "disabled:pointer-events-none disabled:opacity-40",
-                )}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {isUploading ? (
-                  <Spinner size={16} />
-                ) : (
-                  <Plus className="size-5" />
-                )}
-              </button>
-            </div>
-
-            {/* Right: send button */}
-            <button
-              type="button"
-              aria-label="Send"
-              disabled={!canSend}
-              className={cn(
-                "flex size-8 items-center justify-center rounded-full transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                canSend
-                  ? "bg-foreground text-background hover:bg-foreground/85"
-                  : "bg-muted text-muted-foreground cursor-not-allowed",
-              )}
-              onClick={() => void handleSubmit()}
-            >
-              {createSession.isPending ? (
-                <Spinner size={14} className="text-current" />
-              ) : (
-                <ArrowUp className="size-4" />
-              )}
-            </button>
-          </div>
+            }
+          />
         </div>
 
         {/* ── Sample prompt cards ─────────────────────────────── */}
@@ -504,8 +427,8 @@ export default function ZeepoAiAgentIndexPage() {
                     setTimeout(() => textareaRef.current?.focus(), 50);
                   }}
                   className={cn(
-                    "group relative flex flex-col items-start gap-2.5 rounded-xl border bg-card p-3.5 text-left shadow-sm",
-                    "transition-all hover:border-primary/40 hover:bg-accent hover:shadow-md",
+                    "group relative flex flex-col items-start gap-2.5 rounded-2xl border border-black/[0.06] bg-white p-3.5 text-left shadow-sm",
+                    "transition-all hover:border-black/10 hover:shadow-md dark:bg-card dark:border-border",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     "disabled:pointer-events-none disabled:opacity-50",
                   )}
@@ -615,6 +538,8 @@ export default function ZeepoAiAgentIndexPage() {
         </>
       )}
 
+        </div>
+      </div>
     </div>
   );
 }

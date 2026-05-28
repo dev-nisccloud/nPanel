@@ -28,25 +28,30 @@ export interface AgentDomainCheckResult {
 
 /** Maps an agent DomainCheckEntry price to the shape GlobalBuyNowDialog expects. */
 function domainCheckEntryToSearchResult(entry: AgentDomainCheckEntry): DomainSearchResult {
+  const retailAmount = entry.price
+    ? Math.ceil(entry.price.amount)
+    : undefined;
+
   return {
     domain: entry.domain,
     status: entry.status,
-    price: entry.price
-      ? {
-          product: { price: entry.price.amount, currency: entry.price.currency },
-          reseller: { price: entry.price.amount, currency: entry.price.currency },
-          calculated: {
-            originalPrice: entry.price.amount,
-            marginAmount: 0,
-            finalPrice: entry.price.amount,
-            currency: entry.price.currency,
-            marginType: null,
-            marginValue: null,
-            convertedPrice: entry.price.amount,
-            displayCurrency: entry.price.currency,
-          },
-        }
-      : undefined,
+    price:
+      retailAmount != null && entry.price
+        ? {
+            product: { price: retailAmount, currency: entry.price.currency },
+            reseller: { price: retailAmount, currency: entry.price.currency },
+            calculated: {
+              originalPrice: retailAmount,
+              marginAmount: 0,
+              finalPrice: retailAmount,
+              currency: entry.price.currency,
+              marginType: null,
+              marginValue: null,
+              convertedPrice: retailAmount,
+              displayCurrency: entry.price.currency,
+            },
+          }
+        : undefined,
   };
 }
 

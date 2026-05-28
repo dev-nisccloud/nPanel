@@ -13,7 +13,7 @@
 
 import { eq } from "@npanel/db";
 import { db } from "@npanel/db";
-import { convertPriceWithCeil } from "../convert-price";
+import { ceilConvertedPrice, convertPriceWithCeil } from "../convert-price";
 import { tldSettings } from "@npanel/db/schema/nameservers";
 import { getRedisClient } from "../redis";
 
@@ -176,11 +176,11 @@ function computeRate(
 // ---------------------------------------------------------------------------
 
 export interface RetailPrice {
-	/** Final display amount, rounded to 2 dp. */
+	/** Final display amount, rounded up to a whole number (matches agency /domains). */
 	amount: number;
 	/** ISO 4217 code for the display currency. */
 	currency: string;
-	/** Human-readable formatted string, e.g. "KES 1,450.00" or "$12.99". */
+	/** Human-readable formatted string, e.g. "KSh 1,450" or "$ 13". */
 	formatted: string;
 }
 
@@ -195,14 +195,19 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 	NGN: "₦",
 };
 
+/** Whole-number display — same policy as agency domains + buy-now dialog. */
 function formatRetailPrice(amount: number, currency: string): string {
-	const symbol = CURRENCY_SYMBOLS[currency] ?? currency + " ";
-	// Format with commas for readability
-	const formatted = amount.toLocaleString("en-US", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
+	const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
+	const whole = ceilConvertedPrice(amount);
+	const formatted = whole.toLocaleString("en-US", {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
 	});
-	return `${symbol}${formatted}`;
+	return `${symbol} ${formatted}`;
+}
+
+function finalizeRetailAmount(amount: number): number {
+	return ceilConvertedPrice(amount);
 }
 
 /**
@@ -226,18 +231,20 @@ export async function toRetailPrice(
 	const fromCurrency = resellerCurrency.toUpperCase();
 
 	if (fromCurrency === finalCurrency) {
-		const amount = Math.round(afterMargin * 100) / 100;
+		const amount = finalizeRetailAmount(afterMargin);
 		return { amount, currency: finalCurrency, formatted: formatRetailPrice(amount, finalCurrency) };
 	}
 
 	if (!rates) {
 		// Can't convert — return in original currency rather than nothing.
-		const amount = Math.round(afterMargin * 100) / 100;
+		const amount = finalizeRetailAmount(afterMargin);
 		return { amount, currency: fromCurrency, formatted: formatRetailPrice(amount, fromCurrency) };
 	}
 
 	const rate = computeRate(rates, fromCurrency, finalCurrency);
-	const amount = convertPriceWithCeil(afterMargin, fromCurrency, finalCurrency, rate);
+	const amount = finalizeRetailAmount(
+		convertPriceWithCeil(afterMargin, fromCurrency, finalCurrency, rate),
+	);
 	return { amount, currency: finalCurrency, formatted: formatRetailPrice(amount, finalCurrency) };
 }
 

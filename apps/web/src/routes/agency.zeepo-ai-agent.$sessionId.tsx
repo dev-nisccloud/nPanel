@@ -10,13 +10,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 import {
   ArrowLeftIcon,
   ArrowRight,
-  SendIcon,
   AlertCircle,
   RefreshCw,
   Plus,
@@ -77,6 +77,21 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
+import {
+  ZeepoAgentIdentity,
+  ZeepoAssistantMessage,
+  ZeepoEmptyThread,
+  ZeepoFloatingDock,
+  ZeepoComposer,
+  ZeepoGenerationProgressCard,
+  ZeepoStepIndicator,
+  ZeepoThinkingBlock,
+  ZeepoUserMessage,
+  ZEEPO_AGENCY_PAGE_CONTENT,
+  ZEEPO_AGENCY_PAGE_SHELL,
+} from "@/components/zeepo/zeepo-chat-ui";
+import { ZeepoGenerationsPanel } from "@/components/zeepo/zeepo-generations-panel";
+import { ZeepoSessionTitle } from "@/components/zeepo/zeepo-session-title";
 import { uploadErrorMessage, uploadFiles, uploadThingFileUrl } from "@/hooks/use-uploadthing";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -294,60 +309,6 @@ function sanitizeUserMessageForDisplay(content: string): string {
 }
 
 /**
- * Successful run_media_generation tool rows are persisted for the model but not shown
- * — the Generations strip is the user-facing surface.
- */
-function shouldHideZeepoAgentToolMessageForUi(content: string | null | undefined): boolean {
-  if (content == null || content.trim() === "") return false;
-
-  // Successful run_media_generation result — shown in Generations strip instead.
-  try {
-    const o = JSON.parse(content) as Record<string, unknown>;
-    if (o && typeof o === "object" && !Array.isArray(o) && !("error" in o)) {
-      const keys = Object.keys(o);
-      if (
-        keys.length === 4 &&
-        o.status === "QUEUED" &&
-        typeof o.generationId === "string" &&
-        typeof o.modelId === "string" &&
-        typeof o.category === "string"
-      ) {
-        return true;
-      }
-    }
-  } catch {
-    // Not JSON — check plain-text markers below.
-  }
-
-  // Successful web_search grounding — raw context for the model, not for users.
-  const trimmed = content.trimStart();
-  if (trimmed.startsWith("WEB SEARCH")) return true;
-
-  // Internal tool results the model synthesises into a reply — hide raw JSON.
-  try {
-    const o = JSON.parse(content) as Record<string, unknown>;
-    if (o && typeof o === "object" && !Array.isArray(o)) {
-      const tool = (o as Record<string, unknown>)._tool as string | undefined;
-      if (
-        tool === "check_domain_availability" ||
-        tool === "create_document" ||
-        tool === "create_presentation" ||
-        tool === "create_image_presentation" ||
-        tool === "get_user_session"
-      ) {
-        return true;
-      }
-      // create_document / create_presentation success without _tool marker (status: "CREATED")
-      if (o.status === "CREATED" && typeof o.title === "string") return true;
-    }
-  } catch {
-    // Not JSON.
-  }
-
-  return false;
-}
-
-/**
  * Parses a tool message content string and returns a DomainCheckResult if it
  * contains check_domain_availability data, or null otherwise.
  */
@@ -388,20 +349,16 @@ function formatChatBubbleTime(value: Date | string | undefined | null): string {
 
 function ChatLoadingSkeleton() {
   return (
-    <div className="flex flex-col gap-4 p-2" aria-busy="true" aria-label="Loading conversation">
-      <div className="flex justify-end gap-2">
-        <Skeleton className="h-12 w-[min(70%,18rem)] rounded-2xl rounded-br-md" />
+    <div className="flex w-full flex-col gap-8 py-4" aria-busy="true" aria-label="Loading conversation">
+      <div className="flex justify-end">
+        <Skeleton className="h-24 w-[min(70%,20rem)] rounded-2xl" />
       </div>
-      <div className="flex justify-start gap-2">
-        <Skeleton className="size-8 shrink-0 rounded-full" />
-        <Skeleton className="h-20 w-[min(80%,22rem)] rounded-2xl rounded-bl-md" />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-5 w-24 rounded-md" />
+        <Skeleton className="h-32 w-full max-w-md rounded-md" />
       </div>
-      <div className="flex justify-end gap-2">
-        <Skeleton className="h-10 w-[min(55%,14rem)] rounded-2xl rounded-br-md" />
-      </div>
-      <div className="flex justify-start gap-2">
-        <Skeleton className="size-8 shrink-0 rounded-full" />
-        <Skeleton className="h-16 w-[min(75%,20rem)] rounded-2xl rounded-bl-md" />
+      <div className="flex justify-end">
+        <Skeleton className="h-16 w-[min(55%,16rem)] rounded-2xl" />
       </div>
     </div>
   );
@@ -1006,10 +963,12 @@ export default function ZeepoAiAgentSessionPage() {
     | { type: "image-presentation"; data: ImagePresentationData }
     | null;
   const [activePanel, setActivePanel] = React.useState<ActivePanel>(null);
+  const { open: sidebarOpen, setOpen: setSidebarOpen, openMobile, setOpenMobile, isMobile } =
+    useSidebar();
   const [presentationSlideIndex, setPresentationSlideIndex] = React.useState(0);
   const [imagePresentationSlideIndex, setImagePresentationSlideIndex] = React.useState(0);
   const [docCopied, setDocCopied] = React.useState(false);
-  const [generationsOpen, setGenerationsOpen] = React.useState(true);
+  const [generationsOpen, setGenerationsOpen] = React.useState(false);
 
   // ── Image-edit panel state ──────────────────────────────────────────────
   /** The image currently shown in the panel (may differ from activePanel.url after edits). */
@@ -1059,6 +1018,7 @@ export default function ZeepoAiAgentSessionPage() {
   const [chatHistoryOpen, setChatHistoryOpen] = React.useState(false);
   const [isSwitchingChat, setIsSwitchingChat] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const threadScrollRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   /** Used only inside the question flow for per-question uploads */
@@ -1607,8 +1567,31 @@ export default function ZeepoAiAgentSessionPage() {
   }, [sessionId]);
 
   React.useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const el = threadScrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [sessionQuery.data?.data?.messages?.length, showAssistantThinking]);
+
+  // Collapse the agency nav sidebar when any preview panel opens (only if currently expanded).
+  const isPreviewPanelOpen = Boolean(activePanel);
+  const isImageEditPanelOpen =
+    activePanel?.type === "media" && activePanel.kind === "image";
+
+  React.useEffect(() => {
+    if (!isPreviewPanelOpen) return;
+    if (isMobile) {
+      if (openMobile) setOpenMobile(false);
+      return;
+    }
+    if (sidebarOpen) setSidebarOpen(false);
+  }, [
+    isPreviewPanelOpen,
+    isMobile,
+    sidebarOpen,
+    openMobile,
+    setSidebarOpen,
+    setOpenMobile,
+  ]);
 
   // Reset image-edit state whenever we open a new image in the panel.
   React.useEffect(() => {
@@ -1719,22 +1702,24 @@ export default function ZeepoAiAgentSessionPage() {
 
   if (sessionLoading) {
     return (
-      <div className="flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] max-w-3xl mx-auto w-full flex-col px-4 py-2 md:px-6">
-        <div className="mb-2 flex items-center gap-0.5">
-          <Button variant="ghost" size="icon" className="size-8 shrink-0" asChild>
-            <Link to="/agency/zeepo-ai-agent" aria-label="Back">
-              <ArrowLeftIcon className="size-4" />
-            </Link>
-          </Button>
-          <Skeleton className="h-7 flex-1 rounded-md" />
-          <div className="size-8 shrink-0" />
+      <div className={cn("flex h-full min-h-0 w-full flex-col overflow-hidden", ZEEPO_AGENCY_PAGE_SHELL)}>
+        <div
+          className={cn(
+            "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden",
+            ZEEPO_AGENCY_PAGE_CONTENT,
+          )}
+        >
+        <div className="mb-2 flex items-center gap-2">
+          <Skeleton className="size-8 shrink-0 rounded-md" />
+          <Skeleton className="h-8 min-w-0 flex-1 rounded-md" />
+          <Skeleton className="size-8 shrink-0 rounded-md" />
         </div>
-        <div className="min-h-0 flex-1 rounded-md border bg-muted/15 p-3">
+        <div className="zeepo-chat-thread min-h-0 overflow-y-auto">
           <ChatLoadingSkeleton />
         </div>
-        <div className="mt-3 flex gap-2 opacity-50">
-          <Skeleton className="h-[44px] flex-1 rounded-md" />
-          <Skeleton className="h-[44px] w-[44px] rounded-md" />
+        <div className="w-full opacity-50">
+          <Skeleton className="h-[120px] w-full rounded-2xl" />
+        </div>
         </div>
       </div>
     );
@@ -1742,7 +1727,8 @@ export default function ZeepoAiAgentSessionPage() {
 
   if (sessionError || !sessionQuery.data?.data) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-8 md:px-6">
+      <div className={cn("flex w-full flex-col gap-4", ZEEPO_AGENCY_PAGE_SHELL)}>
+        <div className={cn("flex flex-col gap-4", ZEEPO_AGENCY_PAGE_CONTENT)}>
         <Button variant="ghost" size="sm" className="w-fit gap-2" asChild>
           <Link to="/agency/zeepo-ai-agent">
             <ArrowLeftIcon className="size-4" />
@@ -1772,6 +1758,7 @@ export default function ZeepoAiAgentSessionPage() {
             ) : null}
           </AlertDescription>
         </Alert>
+        </div>
       </div>
     );
   }
@@ -1830,6 +1817,78 @@ export default function ZeepoAiAgentSessionPage() {
   const genLoading = genQuery.isPending || genQuery.isLoading;
   const genError = genQuery.isError;
   const genErrorMessage = genQuery.error?.message ?? "Could not load generations.";
+
+  const skillTitleById = new Map<string, string>();
+  for (const s of skillsQuery.data?.data ?? []) {
+    skillTitleById.set(s.id, s.title);
+  }
+
+  const pendingGenerations = generations.filter(
+    (g: { status: string }) => g.status === "QUEUED" || g.status === "PROCESSING",
+  );
+  const activityDockActive = showAssistantThinking || pendingGenerations.length > 0;
+
+  const lastUserMsg = [...displayMessages].reverse().find((m) => m.role === "user");
+  const lastUserText = (lastUserMsg?.content ?? "").trim();
+  const lastUserSnippet = !lastUserText
+    ? "Working on your request"
+    : lastUserText.length > 56
+    ? `${lastUserText.slice(0, 56)}…`
+    : lastUserText;
+
+  const activityTaskLabel = showAssistantThinking
+    ? lastUserSnippet
+    : pendingGenerations.length > 0
+    ? (() => {
+        const g = pendingGenerations[0] as { modelCategory?: string };
+        const cat = g.modelCategory ?? "output";
+        const labels: Record<string, string> = {
+          image: "Generating image",
+          video: "Generating video",
+          audio: "Generating audio",
+          document: "Writing document",
+          presentation: "Building presentation",
+          "image-presentation": "Building slide deck",
+        };
+        return labels[cat] ?? "Creating output";
+      })()
+    : "Zeepo";
+
+  const activityDetail =
+    pendingGenerations.length > 1
+      ? `Generating ${pendingGenerations.length} items`
+      : showAssistantThinking && pendingGenerations.length > 0
+      ? "Planning and generating"
+      : showAssistantThinking
+      ? hasIntermediateReplies
+        ? "Refining response"
+        : "Analyzing your request"
+      : pendingGenerations.length === 1
+      ? "In progress"
+      : undefined;
+
+  const activityThumbnail = (() => {
+    const completed = [...generations].reverse().find(
+      (g: { status: string; outputs: unknown; modelCategory: string }) => {
+        if (g.status !== "COMPLETED") return false;
+        return Boolean(firstMediaUrl(g.outputs));
+      },
+    );
+    if (!completed) return null;
+    return firstMediaUrl((completed as { outputs: unknown }).outputs);
+  })();
+
+  const primaryPendingGen = pendingGenerations[0] as
+    | { modelCategory?: string; status?: string }
+    | undefined;
+
+  const inlineProgressTitle = primaryPendingGen
+    ? activityTaskLabel
+    : null;
+  const inlineProgressSubtitle =
+    pendingGenerations.length > 1
+      ? `${pendingGenerations.length} outputs in total`
+      : "This may take a moment";
 
   // ── Canvas drawing handlers ──────────────────────────────────────────────
   const getCanvasPos = (e: React.MouseEvent<HTMLCanvasElement>) => ({
@@ -2031,11 +2090,18 @@ export default function ZeepoAiAgentSessionPage() {
   };
 
   const chatSessions = chatHistoryQuery.data?.data ?? [];
+  const useAgencyPageLayout = !activePanel;
+  /** Breathing room between chat content and the preview / image-edit panel. */
+  const splitColumnPadding = activePanel
+    ? cn(
+        "px-4 md:px-5",
+        isImageEditPanelOpen ? "lg:pl-5 lg:pr-8" : "lg:px-6",
+      )
+    : "";
 
   return (
     <div className={cn(
-      "zeepo-chat-surface relative flex h-[calc(100vh-theme(spacing.12)-theme(spacing.8))] w-full overflow-hidden transition-all duration-300",
-      !activePanel && "max-w-3xl mx-auto",
+      "zeepo-chat-surface relative flex h-full min-h-0 w-full overflow-hidden transition-all duration-300",
       isComposeHandoff && "animate-in fade-in duration-300",
     )}>
       {/* ── Chat-switching overlay ───────────────────────────── */}
@@ -2048,136 +2114,163 @@ export default function ZeepoAiAgentSessionPage() {
 
       {/* ── Chat column ──────────────────────────────────────── */}
       <div className={cn(
-        "flex min-w-0 flex-col py-2 transition-all duration-300 ease-in-out",
+        "flex min-h-0 min-w-0 flex-col overflow-hidden transition-all duration-300 ease-in-out",
         activePanel
-          ? "hidden md:flex md:w-[48%] xl:w-[52%] shrink-0 px-3 md:px-4 border-r"
-          : "flex-1 px-4 md:px-6",
+          ? "hidden md:flex md:h-full md:w-[48%] md:shrink-0 xl:w-[52%] border-r border-border"
+          : "h-full flex-1",
       )}>
-      {/* ── Compact header ─────────────────────────────────── */}
-      <div className="mb-2 flex items-center gap-0.5">
-        {/* Back */}
+      <div
+        className={cn(
+          "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
+          splitColumnPadding,
+          useAgencyPageLayout && ZEEPO_AGENCY_PAGE_SHELL,
+        )}
+      >
+      <div
+        className={cn(
+          "grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden",
+          useAgencyPageLayout && ZEEPO_AGENCY_PAGE_CONTENT,
+        )}
+      >
+      {/* ── Header: back · title · history (single row) ───── */}
+      <div
+        className={cn(
+          "mb-2 flex shrink-0 items-center gap-1",
+          activePanel || useAgencyPageLayout ? "px-0" : "px-3 md:px-4",
+        )}
+      >
         <Button variant="ghost" size="icon" className="size-8 shrink-0 text-muted-foreground" asChild>
           <Link to="/agency/zeepo-ai-agent" aria-label="Back to chats">
             <ArrowLeftIcon className="size-4" />
           </Link>
         </Button>
 
-        {/* Chat title dropdown */}
-        <Popover open={chatHistoryOpen} onOpenChange={setChatHistoryOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              className="min-w-0 flex-1 justify-start gap-1.5 px-2 h-8 text-sm font-semibold hover:bg-muted/60"
-              aria-label="Open chat history"
-            >
-              <span className="truncate">
-                {generateTitle.isPending ? "Naming…" : (sessionRes.title || "New chat")}
-              </span>
-              <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-[min(calc(100vw-2rem),22rem)] p-0"
-            align="start"
-            side="bottom"
-            sideOffset={4}
-            collisionPadding={12}
-          >
-            <Command>
-              <CommandInput placeholder="Search chats…" className="h-9" />
-              <CommandList className="max-h-72">
-                <CommandEmpty className="py-4 text-center text-sm text-muted-foreground">
-                  No chats found.
-                </CommandEmpty>
-                <CommandGroup>
-                  {chatHistoryQuery.isPending ? (
-                    <div className="space-y-1.5 p-2">
-                      {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-9 w-full rounded-md" />
-                      ))}
-                    </div>
-                  ) : (
-                    chatSessions
-                      .filter((s: { id: string }) => s.id !== sessionId)
-                      .map((s: { id: string; title?: string | null; updatedAt: Date | string }) => (
-                        <CommandItem
-                          key={s.id}
-                          value={`${s.title ?? "New chat"} ${s.id}`}
-                          onSelect={() => {
-                            setChatHistoryOpen(false);
-                            setIsSwitchingChat(true);
-                            navigate(`/agency/zeepo-ai-agent/${s.id}`);
-                          }}
-                          className="flex items-center gap-2 px-3 py-2 cursor-pointer"
-                        >
-                          <div className="min-w-0 flex-1 overflow-hidden">
-                            <p className="truncate text-sm font-medium leading-tight">
-                              {s.title || "New chat"}
-                            </p>
-                          </div>
-                          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                            {formatDistanceToNow(new Date(s.updatedAt), { addSuffix: true })}
-                          </span>
-                        </CommandItem>
-                      ))
-                  )}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+        <ZeepoSessionTitle
+          sessionId={sessionId!}
+          title={sessionRes.title || "New chat"}
+          isAutoNaming={generateTitle.isPending}
+          disabled={isSwitchingChat}
+          inline
+          className="min-w-0 flex-1"
+        />
 
-        {/* New chat */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 shrink-0 text-muted-foreground"
-          aria-label="New chat"
-          disabled={createSession.isPending}
-          onClick={() => void handleNewChat()}
-        >
-          {createSession.isPending ? (
-            <Spinner size={14} className="text-muted-foreground" />
-          ) : (
-            <Plus className="size-4" />
-          )}
-        </Button>
+        <Popover open={chatHistoryOpen} onOpenChange={setChatHistoryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0 text-muted-foreground"
+                  aria-label="Chat history"
+                >
+                  <Clock className="size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[min(calc(100vw-2rem),22rem)] p-0"
+                align="end"
+                side="bottom"
+                sideOffset={6}
+                collisionPadding={12}
+              >
+                <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+                  <p className="text-sm font-semibold text-foreground">Recent chats</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 px-2 text-xs text-muted-foreground"
+                    disabled={createSession.isPending}
+                    onClick={() => {
+                      setChatHistoryOpen(false);
+                      void handleNewChat();
+                    }}
+                  >
+                    {createSession.isPending ? (
+                      <Spinner size={12} />
+                    ) : (
+                      <Plus className="size-3.5" />
+                    )}
+                    New
+                  </Button>
+                </div>
+                <Command>
+                  <CommandInput placeholder="Search chats…" className="h-9" />
+                  <CommandList className="max-h-72">
+                    <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                      No other chats yet
+                    </CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value={`current ${sessionRes.title ?? ""} ${sessionId}`}
+                        className="flex items-center gap-2 px-3 py-2.5 bg-muted/50"
+                        onSelect={() => setChatHistoryOpen(false)}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{sessionRes.title || "New chat"}</p>
+                          <p className="text-[11px] text-muted-foreground">Current chat</p>
+                        </div>
+                      </CommandItem>
+                      {chatHistoryQuery.isPending ? (
+                        <div className="space-y-1.5 p-2">
+                          {[1, 2, 3].map((i) => (
+                            <Skeleton key={i} className="h-9 w-full rounded-md" />
+                          ))}
+                        </div>
+                      ) : (
+                        chatSessions
+                          .filter((s: { id: string }) => s.id !== sessionId)
+                          .map((s: { id: string; title?: string | null; updatedAt: Date | string }) => (
+                            <CommandItem
+                              key={s.id}
+                              value={`${s.title ?? "New chat"} ${s.id}`}
+                              onSelect={() => {
+                                setChatHistoryOpen(false);
+                                setIsSwitchingChat(true);
+                                navigate(`/agency/zeepo-ai-agent/${s.id}`);
+                              }}
+                              className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+                            >
+                              <div className="min-w-0 flex-1 overflow-hidden">
+                                <p className="truncate text-sm font-medium leading-tight">
+                                  {s.title || "New chat"}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                                {formatDistanceToNow(new Date(s.updatedAt), { addSuffix: true })}
+                              </span>
+                            </CommandItem>
+                          ))
+                      )}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+        </Popover>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 rounded-xl bg-muted/15 p-3 md:p-4">
-        <div className="flex flex-col gap-4 pr-2">
+      <div
+        ref={threadScrollRef}
+        className="zeepo-chat-thread min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain"
+      >
+        <div className="flex w-full flex-col gap-8 py-2 md:py-4">
           {displayMessages.length === 0 && !showAssistantThinking ? (
-            <div className="flex justify-center px-2 py-8 sm:py-10">
-              <div className="flex max-w-md items-start gap-3 px-2">
-                <ZeepoMascot className="h-11 w-11 shrink-0" />
-                <div className="min-w-0 flex flex-col gap-1.5 text-left">
-                  <p className="text-sm font-medium text-foreground">
-                    {selectedSkill ? selectedSkill.title : "Your AI agent, ready to work"}
-                  </p>
-                  {selectedSkill ? (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Tell me what you need and I'll take it from here — ask follow-up questions, refine, and deliver.
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      I can{" "}
-                      <RotatingText
-                        texts={[
-                          "write strategies, plans, and proposals",
-                          "check domain availability and buy instantly",
-                          "generate images, video, and audio",
-                          "research anything with live web search",
-                          "build brand assets and creative copy",
-                          "create slide decks and presentations",
-                          "handle operational planning and briefs",
-                        ]}
-                        className="font-medium text-foreground"
-                      />
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+            <ZeepoEmptyThread
+              skillTitle={selectedSkill?.title}
+              rotatingCapability={
+                <RotatingText
+                  texts={[
+                    "write strategies, plans, and proposals",
+                    "check domain availability and buy instantly",
+                    "generate images, video, and audio",
+                    "research anything with live web search",
+                    "build brand assets and creative copy",
+                    "create slide decks and presentations",
+                    "handle operational planning and briefs",
+                  ]}
+                  className="font-medium text-foreground"
+                />
+              }
+            />
           ) : null}
 
           {displayMessages.map(
@@ -2192,50 +2285,16 @@ export default function ZeepoAiAgentSessionPage() {
               const ts = formatChatBubbleTime(m.createdAt);
               const msgMeta = (m.metadata ?? {}) as Record<string, unknown>;
               const msgAttachments = (msgMeta.attachments ?? []) as Attachment[];
+              const skillId = typeof msgMeta.skillId === "string" ? msgMeta.skillId : null;
+              const skillLabel = skillId ? skillTitleById.get(skillId) ?? null : null;
               return (
-                <div key={m.id} className="flex justify-end gap-2">
-                  <div className="flex max-w-[min(85%,28rem)] flex-col items-end gap-1">
-                    {/* Attachment thumbnails above the text bubble */}
-                    {msgAttachments.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 justify-end">
-                        {msgAttachments.map((a, i) => (
-                          <a
-                            key={i}
-                            href={a.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block rounded-xl overflow-hidden border border-white/20 shadow-sm hover:opacity-90 transition-opacity"
-                          >
-                            <img
-                              src={a.url}
-                              alt={a.name}
-                              className="h-[5.5rem] w-auto max-w-[8rem] object-cover"
-                            />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                    <div
-                      className={cn(
-                        "w-full rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm",
-                        "bg-primary text-primary-foreground",
-                      )}
-                    >
-                      <AiMarkdownRenderer
-                        content={sanitizeUserMessageForDisplay(m.content || "")}
-                        className="text-primary-foreground prose-headings:text-primary-foreground prose-p:text-primary-foreground prose-li:text-primary-foreground prose-strong:text-primary-foreground prose-a:text-primary-foreground/90 prose-code:bg-white/20 prose-code:text-primary-foreground prose-pre:bg-white/15"
-                      />
-                    </div>
-                    {ts ? (
-                      <time
-                        dateTime={typeof m.createdAt === "string" ? m.createdAt : m.createdAt?.toISOString()}
-                        className="px-1 text-[10px] tabular-nums text-muted-foreground"
-                      >
-                        {ts}
-                      </time>
-                    ) : null}
-                  </div>
-                </div>
+                <ZeepoUserMessage
+                  key={m.id}
+                  content={sanitizeUserMessageForDisplay(m.content || "")}
+                  skillLabel={skillLabel}
+                  attachments={msgAttachments}
+                  timestamp={ts}
+                />
               );
             }
 
@@ -2243,29 +2302,11 @@ export default function ZeepoAiAgentSessionPage() {
               const ts = formatChatBubbleTime(m.createdAt);
               const displayContent = sanitizeZeepoAgentAssistantDisplayMarkdown(m.content || "");
               return (
-                <div key={m.id} className="flex justify-start gap-2">
-                  <div className="mb-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
-                    <img src="/zepo.png" alt="" className="size-8 object-cover" width={32} height={32} />
-                  </div>
-                  <div className="flex min-w-0 max-w-[min(85%,28rem)] flex-1 flex-col items-start gap-1">
-                    <div
-                      className={cn(
-                        "w-full rounded-2xl rounded-bl-md border bg-card px-4 py-2.5 shadow-sm",
-                        "text-foreground",
-                      )}
-                    >
-                      <AiMarkdownRenderer content={displayContent} />
-                    </div>
-                    {ts ? (
-                      <time
-                        dateTime={typeof m.createdAt === "string" ? m.createdAt : m.createdAt?.toISOString()}
-                        className="px-1 text-[10px] tabular-nums text-muted-foreground"
-                      >
-                        {ts}
-                      </time>
-                    ) : null}
-                  </div>
-                </div>
+                <ZeepoAssistantMessage
+                  key={m.id}
+                  content={displayContent}
+                  timestamp={ts}
+                />
               );
             }
 
@@ -2273,333 +2314,58 @@ export default function ZeepoAiAgentSessionPage() {
               const domainResult = parseDomainCheckResult(m.content);
               if (domainResult) {
                 return (
-                  <div key={m.id} className="flex justify-start gap-2">
-                    <div className="mb-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
-                      <img src="/zepo.png" alt="" className="size-8 object-cover" width={32} height={32} />
-                    </div>
+                  <div key={m.id} className="flex flex-col gap-3">
+                    <ZeepoAgentIdentity />
                     <ZeepoDomainPurchaseCard result={domainResult} />
                   </div>
                 );
               }
-              if (shouldHideZeepoAgentToolMessageForUi(m.content)) {
-                return null;
-              }
-              const ts = formatChatBubbleTime(m.createdAt);
-              return (
-                <div key={m.id} className="flex justify-center px-1">
-                  <div className="flex max-w-full flex-col items-center gap-1">
-                    <div
-                      className={cn(
-                        "w-full rounded-xl border border-dashed bg-muted/50 px-3 py-2 text-left",
-                        "font-mono text-xs text-muted-foreground",
-                      )}
-                    >
-                      <span className="mb-0.5 block text-[10px] font-sans font-medium uppercase tracking-wide text-muted-foreground/80">
-                        Tool result
-                      </span>
-                      <span className="whitespace-pre-wrap break-all">{m.content}</span>
-                    </div>
-                    {ts ? (
-                      <time
-                        dateTime={typeof m.createdAt === "string" ? m.createdAt : m.createdAt?.toISOString()}
-                        className="text-[10px] tabular-nums text-muted-foreground"
-                      >
-                        {ts}
-                      </time>
-                    ) : null}
-                  </div>
-                </div>
-              );
+              return null;
             }
 
             return null;
           })}
 
           {showAssistantThinking ? (
-            <div className="flex justify-start gap-2" aria-live="polite" aria-busy="true">
-              <div className="mb-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border">
-                <img src="/zepo.png" alt="" className="size-8 object-cover" width={32} height={32} />
-              </div>
-              <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border bg-card px-4 py-3 shadow-sm">
-                <Spinner variant="ellipsis" className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  {hasIntermediateReplies ? "Still working…" : "Zeepo is thinking…"}
-                </span>
-              </div>
+            <div aria-live="polite" aria-busy="true" className="flex flex-col gap-3">
+              <ZeepoThinkingBlock
+                label={lastUserSnippet}
+                showIntermediate={hasIntermediateReplies}
+              />
+              {inlineProgressTitle ? (
+                <ZeepoGenerationProgressCard
+                  title={inlineProgressTitle}
+                  subtitle={inlineProgressSubtitle}
+                  pending
+                  thumbnailUrl={activityThumbnail}
+                />
+              ) : null}
+            </div>
+          ) : null}
+
+          {!showAssistantThinking && pendingGenerations.length > 0 && inlineProgressTitle ? (
+            <div className="flex flex-col gap-3">
+              <ZeepoStepIndicator label={inlineProgressTitle} />
+              <ZeepoGenerationProgressCard
+                title={inlineProgressTitle}
+                subtitle={inlineProgressSubtitle}
+                pending
+                thumbnailUrl={activityThumbnail}
+              />
             </div>
           ) : null}
 
           <div ref={scrollRef} />
         </div>
-      </ScrollArea>
-
-      <div className="mt-2 shrink-0">
-        {generations.length > 0 || genLoading || genError ? (
-          <div className="rounded-xl border bg-card shadow-sm">
-            {/* ── Accordion toggle header ── */}
-            <button
-              type="button"
-              onClick={() => setGenerationsOpen(o => !o)}
-              className="flex w-full items-center justify-between px-3 py-2.5 transition-colors hover:bg-muted/40 rounded-t-xl"
-              aria-expanded={generationsOpen}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">Generations</span>
-                {(genLoading && generations.length === 0) && (
-                  <Spinner variant="ellipsis" className="size-3.5 text-muted-foreground" />
-                )}
-                {generations.length > 0 && (
-                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary leading-none">
-                    {generations.length}
-                  </span>
-                )}
-              </div>
-              <ChevronDown
-                className={cn(
-                  "size-4 text-muted-foreground transition-transform duration-200",
-                  generationsOpen ? "rotate-0" : "-rotate-90",
-                )}
-              />
-            </button>
-
-            {/* ── Collapsible content ── */}
-            {generationsOpen && (
-              <div className="px-2 pb-2">
-            {genError ? (
-              <Alert variant="destructive" className="mb-2 py-2">
-                <AlertCircle className="size-4" />
-                <AlertTitle className="text-sm">Could not refresh</AlertTitle>
-                <AlertDescription className="flex min-w-0 flex-wrap items-center gap-2 text-xs">
-                  <span className="min-w-0 max-w-full break-words">{genErrorMessage}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => void genQuery.refetch()}
-                  >
-                    Retry
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            <div className="-mx-1 overflow-x-auto overflow-y-hidden px-1 pb-1">
-              <div className="flex min-h-[7.25rem] w-max max-w-none gap-2 pb-1">
-                {genLoading && generations.length === 0 && !genError
-                  ? [0, 1, 2].map((i) => (
-                      <Skeleton
-                        key={`gen-skel-${i}`}
-                        className="h-[7rem] w-[7rem] shrink-0 rounded-xl"
-                        aria-busy="true"
-                        aria-label="Loading generations"
-                      />
-                    ))
-                  : null}
-                {generations.map(
-                  (g: {
-                    id: string;
-                    status: string;
-                    modelCategory: string;
-                    outputs: unknown;
-                    errorMessage: string | null;
-                  }) => {
-                    const pending = g.status === "QUEUED" || g.status === "PROCESSING";
-                    const failed = g.status === "FAILED";
-                    const completed = g.status === "COMPLETED";
-
-                    if (pending) {
-                      return (
-                        <div
-                          key={g.id}
-                          className="relative h-[7rem] w-[7rem] shrink-0 overflow-hidden rounded-xl border bg-muted/25"
-                          aria-busy="true"
-                          aria-label="Generation in progress"
-                        >
-                          <Skeleton className="absolute inset-0 rounded-xl" />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Spinner variant="ellipsis" className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    if (failed) {
-                      return (
-                        <div
-                          key={g.id}
-                          className="flex h-[7rem] w-[7rem] min-w-0 shrink-0 flex-col overflow-hidden rounded-xl border border-destructive/30 bg-destructive/5 p-1.5"
-                          title={g.errorMessage ?? "Failed"}
-                        >
-                          <AlertCircle
-                            className="mb-0.5 size-4 shrink-0 self-center text-destructive"
-                            aria-hidden
-                          />
-                          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
-                            <p className="break-words text-left text-[10px] leading-snug text-destructive [overflow-wrap:anywhere]">
-                              {g.errorMessage || "Failed"}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    if (completed) {
-                      // Document card — no media URL, just markdown content.
-                      if (g.modelCategory === "document") {
-                        const doc = extractDocument(g.outputs);
-                        return (
-                          <button
-                            key={g.id}
-                            type="button"
-                            className="relative flex h-[7rem] w-[7rem] shrink-0 flex-col overflow-hidden rounded-xl border bg-primary/5 p-2 text-left ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            onClick={() =>
-                              doc &&
-                              setActivePanel({
-                                type: "document",
-                                title: doc.title,
-                                content: doc.content,
-                              })
-                            }
-                          >
-                            <FileText className="mb-1 size-4 shrink-0 text-primary" aria-hidden />
-                            <p className="line-clamp-5 flex-1 overflow-hidden text-[10px] font-medium leading-snug text-foreground/80 [overflow-wrap:anywhere]">
-                              {doc?.title ?? "Document"}
-                            </p>
-                          </button>
-                        );
-                      }
-
-                      // Text presentation card
-                      if (g.modelCategory === "presentation") {
-                        const pres = extractPresentation(g.outputs);
-                        return (
-                          <button
-                            key={g.id}
-                            type="button"
-                            className="relative flex h-[7rem] w-[7rem] shrink-0 flex-col overflow-hidden rounded-xl border bg-indigo-500/10 p-2 text-left ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            onClick={() => {
-                              if (pres) {
-                                setPresentationSlideIndex(0);
-                                setActivePanel({ type: "presentation", data: pres });
-                              }
-                            }}
-                          >
-                            <Presentation className="mb-1 size-4 shrink-0 text-indigo-500" aria-hidden />
-                            <p className="line-clamp-3 flex-1 overflow-hidden text-[10px] font-medium leading-snug text-foreground/80 [overflow-wrap:anywhere]">
-                              {pres?.title ?? "Presentation"}
-                            </p>
-                            {pres && (
-                              <p className="text-[9px] text-muted-foreground mt-auto">
-                                {pres.slides.length} slides
-                              </p>
-                            )}
-                          </button>
-                        );
-                      }
-
-                      // Image presentation card
-                      if (g.modelCategory === "image-presentation") {
-                        const pres = extractImagePresentation(g.outputs);
-                        const ready = pres?.slides.filter(s => s.imageUrl).length ?? 0;
-                        const total = pres?.slides.length ?? 0;
-                        const coverUrl = pres?.slides.find(s => s.imageUrl)?.imageUrl;
-                        return (
-                          <button
-                            key={g.id}
-                            type="button"
-                            className="relative flex h-[7rem] w-[7rem] shrink-0 flex-col overflow-hidden rounded-xl border text-left ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            style={{ background: coverUrl ? "none" : "linear-gradient(135deg,#312e81,#4f46e5)" }}
-                            onClick={() => {
-                              if (pres) {
-                                setImagePresentationSlideIndex(0);
-                                setActivePanel({ type: "image-presentation", data: pres });
-                              }
-                            }}
-                          >
-                            {coverUrl && (
-                              <img src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                            <div className="relative flex h-full flex-col justify-end p-2">
-                              <ImageIcon className="mb-1 size-3.5 shrink-0 text-white/80" aria-hidden />
-                              <p className="line-clamp-2 text-[10px] font-medium leading-snug text-white [overflow-wrap:anywhere]">
-                                {pres?.title ?? "Image Deck"}
-                              </p>
-                              <p className="text-[9px] text-white/60 mt-0.5">
-                                {ready}/{total} ready
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      }
-
-                      const mediaUrl = firstMediaUrl(g.outputs);
-                      const textPreview = extractOutputPreview(g.outputs);
-
-                      if (mediaUrl) {
-                        const kind = guessMediaKind(mediaUrl, g.modelCategory);
-                        // Images used as slide assets are hidden from the strip — they live inside the slide deck
-                        if (kind === "image" && slideImageUrls.has(mediaUrl)) return null;
-                        return (
-                          <button
-                            key={g.id}
-                            type="button"
-                            className="relative h-[7rem] w-[7rem] shrink-0 overflow-hidden rounded-xl border bg-muted ring-offset-background transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            onClick={() =>
-                              setActivePanel({
-                                type: "media",
-                                url: mediaUrl,
-                                kind,
-                                generationId: g.id,
-                              })
-                            }
-                          >
-                            {kind === "image" ? (
-                              <img src={mediaUrl} alt="" className="size-full object-cover" loading="lazy" />
-                            ) : kind === "video" ? (
-                              <video
-                                src={mediaUrl}
-                                className="size-full object-cover"
-                                muted
-                                playsInline
-                                preload="metadata"
-                              />
-                            ) : (
-                              <div className="flex size-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-muted to-muted/70">
-                                <Headphones className="size-9 text-muted-foreground" aria-hidden />
-                              </div>
-                            )}
-                          </button>
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={g.id}
-                          className="flex h-[7rem] w-[7rem] shrink-0 flex-col rounded-xl border bg-muted/40 p-2"
-                          title={textPreview ?? ""}
-                        >
-                          <ImageIcon className="mb-1 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                          <p className="line-clamp-6 flex-1 overflow-hidden text-[10px] leading-snug text-muted-foreground whitespace-pre-wrap">
-                            {textPreview || "—"}
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    return null;
-                  },
-                )}
-              </div>
-            </div>
-            </div>
-          )}
-          </div>
-        ) : null}
       </div>
 
-      <form
-        className="mt-3 flex flex-col gap-2"
+      <div
+        className={cn(
+          "zeepo-compose-anchor z-10 shrink-0 bg-background pt-2",
+          activePanel || useAgencyPageLayout ? "px-0" : "px-3 md:px-4",
+        )}
+      >
+      <form className="flex w-full flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           sendCurrentDraft();
@@ -2611,7 +2377,7 @@ export default function ZeepoAiAgentSessionPage() {
           if (!currentQ) return null;
           const total = pendingQuestionsInfo.questions.length;
           return (
-            <div className="rounded-xl border bg-card shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] animate-in fade-in slide-in-from-bottom-2 duration-200 dark:bg-card dark:border-border">
               {/* Header: nav arrows + progress dots + step counter + dismiss */}
               <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-muted/40">
                 {/* Back arrow */}
@@ -2907,58 +2673,6 @@ export default function ZeepoAiAgentSessionPage() {
           );
         })()}
 
-        {selectedSkill ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border bg-muted/40 px-2.5 py-1 text-xs text-foreground">
-              <Zap className="size-3 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="min-w-0 truncate font-medium">{selectedSkill.title}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={() => setSelectedSkill(null)}
-                disabled={showAssistantThinking}
-                aria-label="Remove skill"
-              >
-                <X className="size-3.5" />
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Pending attachment thumbnails — local previews, not yet uploaded */}
-        {pendingFiles.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {pendingFiles.map((f, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <div className="relative">
-                  <img
-                    src={f.previewUrl}
-                    alt={f.name}
-                    className="h-16 w-16 rounded-lg object-cover border border-border shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    aria-label="Remove attachment"
-                    className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background shadow-sm hover:scale-110 transition-transform"
-                    onClick={() => {
-                      URL.revokeObjectURL(f.previewUrl);
-                      setPendingFiles((prev) => prev.filter((_, idx) => idx !== i));
-                    }}
-                  >
-                    <X className="size-3" />
-                  </button>
-                </div>
-                <span className="max-w-[4rem] truncate text-[10px] text-muted-foreground leading-tight">
-                  {f.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Hidden file input for the main chat upload */}
         <input
           ref={fileInputRef}
           type="file"
@@ -2971,180 +2685,170 @@ export default function ZeepoAiAgentSessionPage() {
           }}
         />
 
-        <div className="flex gap-2 items-end">
-          {/* Attach image button */}
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-[44px] w-[44px] shrink-0"
-            disabled={
-              showAssistantThinking ||
-              Boolean(pendingQuestionsInfo && questionFlow) ||
-              isUploading ||
-              pendingAttachments.length >= 4
-            }
-            aria-label="Attach image"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {isUploading ? <Spinner className="size-4" /> : <Paperclip className="size-5" />}
-          </Button>
-
-          <Popover open={skillsOpen} onOpenChange={setSkillsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-[44px] w-[44px] shrink-0"
-                disabled={showAssistantThinking || skillsQuery.isPending}
-                aria-label="Choose a skill"
-                aria-expanded={skillsOpen}
-              >
-                <Plus className="size-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[min(calc(100vw-2rem),26rem)] p-0"
-              side="top"
-              align="start"
-              sideOffset={8}
-              collisionPadding={16}
-            >
-              <div className="flex items-center gap-2 border-b px-4 py-3">
-                <Zap className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="text-sm font-semibold">All skills</span>
-              </div>
-              <ScrollArea className="h-[min(50vh,360px)]">
-                <div className="space-y-1 p-2 pb-4">
-                  {skillsQuery.isPending ? (
-                    <div className="space-y-3 p-2" aria-busy="true">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-14 w-full rounded-lg" />
-                      <Skeleton className="h-14 w-full rounded-lg" />
-                    </div>
-                  ) : skillsQuery.isError ? (
-                    <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-                      Could not load skills. Try again later.
-                    </p>
-                  ) : (
-                    skillsByCategory.map(([category, skills]) => (
-                      <div key={category}>
-                        <p className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {category}
+        <ZeepoFloatingDock
+          activity={
+            activityDockActive || generations.length > 0 || genLoading || genError ? (
+              <ZeepoGenerationsPanel
+                active={activityDockActive}
+                taskLabel={activityTaskLabel}
+                detail={activityDetail}
+                progressCurrent={
+                  pendingGenerations.length > 0
+                    ? generations.filter((g: { status: string }) => g.status === "COMPLETED").length + 1
+                    : 0
+                }
+                progressTotal={
+                  pendingGenerations.length > 0 ? generations.length : 0
+                }
+                thumbnailUrl={activityThumbnail}
+                expanded={generationsOpen}
+                onToggleExpanded={() => setGenerationsOpen((o) => !o)}
+                generations={generations}
+                genLoading={genLoading}
+                genError={genError}
+                genErrorMessage={genErrorMessage}
+                onRetry={() => void genQuery.refetch()}
+                slideImageUrls={slideImageUrls}
+                firstMediaUrl={firstMediaUrl}
+                extractOutputPreview={extractOutputPreview}
+                extractDocument={extractDocument}
+                extractPresentation={extractPresentation}
+                extractImagePresentation={extractImagePresentation}
+                guessMediaKind={guessMediaKind}
+                onOpenPanel={setActivePanel}
+                onPresentationOpen={(pres) => {
+                  setPresentationSlideIndex(0);
+                  setActivePanel({ type: "presentation", data: pres });
+                }}
+                onImagePresentationOpen={(pres) => {
+                  setImagePresentationSlideIndex(0);
+                  setActivePanel({ type: "image-presentation", data: pres });
+                }}
+              />
+            ) : null
+          }
+          composer={
+            <>
+              <Popover open={skillsOpen} onOpenChange={setSkillsOpen}>
+                <PopoverTrigger asChild>
+                  <span className="sr-only" aria-hidden tabIndex={-1} />
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[min(calc(100vw-2rem),26rem)] p-0"
+                  side="top"
+                  align="start"
+                  sideOffset={8}
+                  collisionPadding={16}
+                >
+                  <div className="flex items-center gap-2 border-b px-4 py-3">
+                    <Zap className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <span className="text-sm font-semibold">All skills</span>
+                  </div>
+                  <ScrollArea className="h-[min(50vh,360px)]">
+                    <div className="space-y-1 p-2 pb-4">
+                      {skillsQuery.isPending ? (
+                        <div className="space-y-3 p-2" aria-busy="true">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-14 w-full rounded-lg" />
+                          <Skeleton className="h-14 w-full rounded-lg" />
+                        </div>
+                      ) : skillsQuery.isError ? (
+                        <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                          Could not load skills. Try again later.
                         </p>
-                        <ul className="space-y-0.5">
-                          {skills.map((s) => (
-                            <li key={s.id}>
-                              <button
-                                type="button"
-                                className={cn(
-                                  "flex w-full gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors",
-                                  "hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                                )}
-                                onClick={() => {
-                                  setSelectedSkill(s);
-                                  setSkillsOpen(false);
-                                  queueMicrotask(() => textareaRef.current?.focus());
-                                }}
-                              >
-                                <Zap className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-semibold leading-snug">{s.title}</div>
-                                  <div className="mt-0.5 text-xs leading-snug text-muted-foreground">
-                                    {s.description}
-                                  </div>
-                                </div>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </PopoverContent>
-          </Popover>
+                      ) : (
+                        skillsByCategory.map(([category, skills]) => (
+                          <div key={category}>
+                            <p className="px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              {category}
+                            </p>
+                            <ul className="space-y-0.5">
+                              {skills.map((s) => (
+                                <li key={s.id}>
+                                  <button
+                                    type="button"
+                                    className={cn(
+                                      "flex w-full gap-3 rounded-lg px-2.5 py-2.5 text-left transition-colors",
+                                      "hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                    )}
+                                    onClick={() => {
+                                      setSelectedSkill(s);
+                                      setSkillsOpen(false);
+                                      queueMicrotask(() => textareaRef.current?.focus());
+                                    }}
+                                  >
+                                    <Zap className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-sm font-semibold leading-snug">{s.title}</div>
+                                      <div className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                                        {s.description}
+                                      </div>
+                                    </div>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+              <ZeepoComposer
+                value={draft}
+                onChange={setDraft}
+                onSubmit={sendCurrentDraft}
+                placeholder={
+                  pendingQuestionsInfo && questionFlow
+                    ? "Answer the question above first…"
+                    : selectedSkill
+                    ? `Add details for “${selectedSkill.title}”…`
+                    : "Message Zeepo"
+                }
+                disabled={
+                  showAssistantThinking || Boolean(pendingQuestionsInfo && questionFlow)
+                }
+                isSending={send.isPending || isUploading}
+                canSend={
+                  draft.trim().length > 0 &&
+                  !showAssistantThinking &&
+                  !isUploading &&
+                  !Boolean(pendingQuestionsInfo && questionFlow)
+                }
+                onAttach={() => fileInputRef.current?.click()}
+                attachDisabled={
+                  showAssistantThinking ||
+                  Boolean(pendingQuestionsInfo && questionFlow) ||
+                  isUploading ||
+                  pendingFiles.length + pendingAttachments.length >= 4
+                }
+                isUploading={isUploading}
+                onSkills={() => setSkillsOpen(true)}
+                skillsDisabled={showAssistantThinking || skillsQuery.isPending}
+                selectedSkillTitle={selectedSkill?.title}
+                onClearSkill={() => setSelectedSkill(null)}
+                pendingPreviews={pendingFiles.map((f, i) => ({
+                  previewUrl: f.previewUrl,
+                  name: f.name,
+                  onRemove: () => {
+                    URL.revokeObjectURL(f.previewUrl);
+                    setPendingFiles((prev) => prev.filter((_, idx) => idx !== i));
+                  },
+                }))}
+                textareaRef={textareaRef}
+              />
+            </>
+          }
+        />
 
-          <style dangerouslySetInnerHTML={{ __html: `
-            @keyframes zeepo-input-border {
-              0%   { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.25); }
-              33%  { border-color: rgba(37,99,235,0.7);  box-shadow: 0 0 8px 1px rgba(37,99,235,0.25);  }
-              66%  { border-color: rgba(6,182,212,0.7);  box-shadow: 0 0 8px 1px rgba(6,182,212,0.25);  }
-              100% { border-color: rgba(124,58,237,0.7); box-shadow: 0 0 8px 1px rgba(124,58,237,0.25); }
-            }
-            @keyframes zeepo-spark-float {
-              0%, 100% { transform: translateY(0) scale(1);    }
-              50%       { transform: translateY(-3px) scale(1.2); }
-            }
-            @keyframes zeepo-spark-hue {
-              0%   { color: #7c3aed; }
-              33%  { color: #2563eb; }
-              66%  { color: #06b6d4; }
-              100% { color: #7c3aed; }
-            }
-            .zeepo-input-wrap {
-              position: relative;
-              flex: 1 1 0%;
-              border-radius: 10px;
-              border: 2px solid rgba(124,58,237,0.7);
-              animation: zeepo-input-border 6s linear infinite;
-            }
-            .zeepo-input-wrap:focus-within {
-              box-shadow: 0 0 14px 3px rgba(124,58,237,0.35) !important;
-            }
-            .zeepo-input-wrap textarea {
-              border: none !important;
-              box-shadow: none !important;
-              border-radius: 8px;
-            }
-            .zeepo-spark {
-              animation: zeepo-spark-float 2.5s ease-in-out infinite, zeepo-spark-hue 6s linear infinite;
-            }
-          `}} />
-          <div className="zeepo-input-wrap zeepo-compose-surface">
-            <div className="pointer-events-none absolute bottom-2.5 right-2.5 z-10 zeepo-spark">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3 L13.5 8.5 L19 10 L13.5 11.5 L12 17 L10.5 11.5 L5 10 L10.5 8.5 Z" />
-                <path d="M19 3 L19.8 5.2 L22 6 L19.8 6.8 L19 9 L18.2 6.8 L16 6 L18.2 5.2 Z" />
-              </svg>
-            </div>
-            <Textarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder={
-              pendingQuestionsInfo && questionFlow
-                ? "Answer the question above first…"
-                : selectedSkill
-                ? `Add details for “${selectedSkill.title}”…`
-                : "Describe what you want… (or attach an image)"
-            }
-            className="min-h-[44px] w-full resize-none pr-8"
-            rows={2}
-            disabled={showAssistantThinking || Boolean(pendingQuestionsInfo && questionFlow)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendCurrentDraft();
-              }
-            }}
-          />
-          </div>
-          <Button type="submit" size="icon" className="h-[44px] w-[44px] shrink-0" disabled={showAssistantThinking || isUploading || Boolean(pendingQuestionsInfo && questionFlow)}>
-            {send.isPending || isUploading ? (
-              <Spinner variant="ellipsis" className="h-4 w-4 text-primary-foreground" />
-            ) : (
-              <SendIcon className="size-4" />
-            )}
-          </Button>
-        </div>
-
-        <p className="text-center text-[11px] leading-relaxed text-muted-foreground px-1">
+        <p className="text-center text-[11px] leading-relaxed text-muted-foreground px-1 pt-1">
           Agents can make mistakes. Verify important info. Don&apos;t share sensitive data.
         </p>
       </form>
+      </div>
+      </div>
+      </div>
       </div>
 
       {/* ── Side panel (sibling to chat column) ─────────────── */}

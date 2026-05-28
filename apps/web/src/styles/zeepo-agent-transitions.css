@@ -1,5 +1,12 @@
 /* Smooth landing → chat transitions for Zeepo AI Agent */
 
+/* Lock app chrome scroll — only .zeepo-chat-thread scrolls */
+:has(.zeepo-agent-layout) [data-slot="sidebar-wrapper"] {
+  height: 100svh;
+  max-height: 100svh;
+  overflow: hidden;
+}
+
 .zeepo-agent-layout {
   view-transition-name: zeepo-agent-root;
 }
@@ -14,6 +21,26 @@
 
 .zeepo-chat-surface {
   view-transition-name: zeepo-chat-surface;
+}
+
+/* Manus-inspired chat thread surface — sole vertical scroll region in session view */
+.zeepo-chat-thread {
+  background: hsl(var(--muted) / 0.35);
+  -webkit-overflow-scrolling: touch;
+}
+
+.zeepo-compose-anchor {
+  overflow: hidden;
+}
+
+.dark .zeepo-chat-thread {
+  background: hsl(var(--muted) / 0.2);
+}
+
+.zeepo-floating-dock-shadow {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 12px 40px rgba(0, 0, 0, 0.06);
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
-  Server,
   ShieldCheck,
   Trash2,
   Globe,
@@ -48,7 +47,13 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Card } from "@/components/ui/card";
+import {
+  MpesaPayButton,
+  PaymentMethodAccordion,
+  PaymentMethodContent,
+  PaymentMethodOption,
+  PaymentMethodTrigger,
+} from "@/components/payment-method-accordion";
 import { Badge } from "@/components/ui/badge";
 import { trpc, type RouterInputs } from "@/utils/trpc";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -66,7 +71,6 @@ import {
 import { HivelocityHostnameSection } from "@/components/hivelocity-hostname-section";
 import {
 	HivelocityConfigSectionHeading,
-	HivelocityConfigSectionProgress,
 	HivelocityScrollForMoreHint,
 	useIsElementVisibleInScrollArea,
 } from "@/components/hivelocity-config-step-guide";
@@ -1685,34 +1689,6 @@ export function BuyNowDialog({
       case "hivelocity_config":
         return (
           <div className="space-y-4">
-            <HivelocityConfigSectionProgress
-              status={{ os: Boolean(selectedOs), hostname: hostnameValid }}
-              addonCount={addonsCount}
-            />
-
-            <div className="rounded-xl border bg-muted/20 p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Server className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold line-clamp-1">{plan.planName}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-1">{plan.planType}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge variant="outline" className="rounded-full">
-                      {plan.hivelocity?.locationDisplayName ?? plan.hivelocity?.locationName}
-                    </Badge>
-                    <Badge variant="destructive" className="rounded-full">
-                      OS required
-                    </Badge>
-                    <Badge variant="outline" className="rounded-full">
-                      Hostname required
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="space-y-2">
               <HivelocityConfigSectionHeading
                 step={1}
@@ -2220,27 +2196,23 @@ export function BuyNowDialog({
               </p>
             </div>
 
-            <div className="space-y-3">
-              <Accordion type="single" collapsible className="w-full" value={selectedPaymentMethod || undefined}>
-                <AccordionItem value="mpesa" className="border rounded-lg">
-                  <Card className="border-0 shadow-none">
-                    <AccordionTrigger
-                      className="px-4 py-4 hover:no-underline"
-                      onClick={() => setSelectedPaymentMethod(selectedPaymentMethod === "mpesa" ? null : "mpesa")}
-                    >
-                      <div className="flex items-center gap-4 w-full">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/20 overflow-hidden">
-                          <img src="/mpesa.png" alt="M-Pesa" className="w-full h-full object-contain" />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <div className="font-semibold text-foreground">M-Pesa</div>
-                          <div className="text-sm text-muted-foreground">
-                            Secured by Nisc Cloud
-                          </div>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
+            <PaymentMethodAccordion
+              value={selectedPaymentMethod}
+              onValueChange={setSelectedPaymentMethod}
+            >
+              <PaymentMethodOption
+                value="mpesa"
+                variant="mpesa"
+                trigger={
+                  <PaymentMethodTrigger
+                    variant="mpesa"
+                    icon={<img src="/mpesa.png" alt="M-Pesa" className="h-full w-full object-contain" />}
+                    title="M-Pesa"
+                    description="Pay instantly from your phone — secured by Nisc Cloud"
+                  />
+                }
+              >
+                <PaymentMethodContent>
                       {(initiateMpesaPayment.isPending || (checkoutRequestId && (immediateStepRef.current === "payment" || currentStep === "payment") && !immediatePaymentErrorRef.current && !paymentError && !shouldStopPolling && !terminalStateDetectedRef.current)) ? (
                         <div className="space-y-4 pt-2">
                           <div className="flex flex-col items-center justify-center py-8">
@@ -2328,52 +2300,43 @@ export function BuyNowDialog({
                             )}
                           </div>
 
-                          <Button
-                            onClick={handleMpesaPayment}
-                            disabled={
-                              initiateMpesaPayment.isPending ||
-                              !mpesaPhoneNumber ||
-                              !paymentAmount ||
-                              !accountReference ||
-                              !!accountRefError ||
-                              !!phoneError ||
-                              !!amountError ||
-                              terminalStateDetectedRef.current ||
-                              immediateStepRef.current === "error" ||
-                              immediateStepRef.current === "success"
-                            }
-                            className="w-full bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
-                          >
-                            {initiateMpesaPayment.isPending ? "Processing..." : "Pay with M-Pesa"}
-                          </Button>
+                          <div className="flex justify-end pt-1">
+                            <MpesaPayButton
+                              onClick={handleMpesaPayment}
+                              disabled={
+                                initiateMpesaPayment.isPending ||
+                                !mpesaPhoneNumber ||
+                                !paymentAmount ||
+                                !accountReference ||
+                                !!accountRefError ||
+                                !!phoneError ||
+                                !!amountError ||
+                                terminalStateDetectedRef.current ||
+                                immediateStepRef.current === "error" ||
+                                immediateStepRef.current === "success"
+                              }
+                              className="disabled:opacity-50"
+                            >
+                              {initiateMpesaPayment.isPending ? "Processing..." : "Pay with M-Pesa"}
+                            </MpesaPayButton>
+                          </div>
                         </div>
                       )}
-                    </AccordionContent>
-                  </Card>
-                </AccordionItem>
-                {isAgencyUser ? (
-                  <AccordionItem value="manual" className="border rounded-lg">
-                    <Card className="border-0 shadow-none">
-                      <AccordionTrigger
-                        className="px-4 py-4 hover:no-underline"
-                        onClick={() =>
-                          setSelectedPaymentMethod(selectedPaymentMethod === "manual" ? null : "manual")
-                        }
-                      >
-                        <div className="flex items-center gap-4 w-full">
-                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                            <Receipt className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className="font-semibold text-foreground">Record payment reference</div>
-                            <div className="text-sm text-muted-foreground">
-                              M-Pesa receipt, bank transfer, or other external payment
-                            </div>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4">
-                        <div className="space-y-4 pt-2">
+                </PaymentMethodContent>
+              </PaymentMethodOption>
+              {isAgencyUser ? (
+                <PaymentMethodOption
+                  value="manual"
+                  trigger={
+                    <PaymentMethodTrigger
+                      icon={<Receipt className="size-7 text-foreground" />}
+                      title="Record payment reference"
+                      description="M-Pesa receipt, bank transfer, or other external payment"
+                    />
+                  }
+                >
+                  <PaymentMethodContent>
+                        <div className="space-y-4">
                           <p className="text-xs text-muted-foreground">
                             Enter the transaction reference from the payment provider. This creates a successful
                             payment record and completes the order (same as a confirmed M-Pesa payment).
@@ -2432,29 +2395,28 @@ export function BuyNowDialog({
                               maxLength={12}
                             />
                           </div>
-                          <Button
-                            onClick={() => void handleRecordManualPayment()}
-                            disabled={
-                              recordManualPayment.isPending ||
-                              createOrderFromPayment.isPending ||
-                              !manualTransactionReference.trim() ||
-                              !!manualTransactionRefError ||
-                              !paymentAmount ||
-                              !!amountError
-                            }
-                            className="w-full"
-                          >
-                            {recordManualPayment.isPending || createOrderFromPayment.isPending
-                              ? "Processing…"
-                              : "Record payment & complete order"}
-                          </Button>
+                          <div className="flex justify-end pt-1">
+                            <Button
+                              onClick={() => void handleRecordManualPayment()}
+                              disabled={
+                                recordManualPayment.isPending ||
+                                createOrderFromPayment.isPending ||
+                                !manualTransactionReference.trim() ||
+                                !!manualTransactionRefError ||
+                                !paymentAmount ||
+                                !!amountError
+                              }
+                            >
+                              {recordManualPayment.isPending || createOrderFromPayment.isPending
+                                ? "Processing…"
+                                : "Record payment & complete order"}
+                            </Button>
+                          </div>
                         </div>
-                      </AccordionContent>
-                    </Card>
-                  </AccordionItem>
-                ) : null}
-              </Accordion>
-            </div>
+                  </PaymentMethodContent>
+                </PaymentMethodOption>
+              ) : null}
+            </PaymentMethodAccordion>
 
             {/* Order Summary */}
             <div className="border-t pt-4 mt-4">
