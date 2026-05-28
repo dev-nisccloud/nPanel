@@ -3,9 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router";
+
+import { GoogleButton } from "@/routes/auth/_components/social-auth/google-button";
 
 import { toast } from "@/components/ui/sonner";
 
@@ -30,13 +32,9 @@ const FormSchema = z.object({
   remember: z.boolean().optional(),
 });
 
-export type LoginAuthStep = "credentials" | "mfa";
+type LoginAuthStep = "credentials" | "mfa";
 
-type LoginFormProps = {
-  onStepChange?: (step: LoginAuthStep) => void;
-};
-
-export function LoginForm({ onStepChange }: LoginFormProps) {
+export function LoginForm() {
   const navigate = useNavigate();
   const { data: session, isPending } = authClient.useSession();
   const [step, setStep] = useState<LoginAuthStep>("credentials");
@@ -46,13 +44,9 @@ export function LoginForm({ onStepChange }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [redirectFailed, setRedirectFailed] = useState(false);
 
-  const setAuthStep = useCallback(
-    (next: LoginAuthStep) => {
-      setStep(next);
-      onStepChange?.(next);
-    },
-    [onStepChange],
-  );
+  const setAuthStep = useCallback((next: LoginAuthStep) => {
+    setStep(next);
+  }, []);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -181,8 +175,13 @@ export function LoginForm({ onStepChange }: LoginFormProps) {
   };
 
   const isRedirecting = session && !isPending && !redirectFailed && step === "credentials";
+  const showCredentialsChrome =
+    step === "credentials" && !isSubmitting && !isCheckingSession && !isRedirecting;
+
+  let stepContent: ReactNode;
+
   if (isSubmitting || isCheckingSession || isRedirecting) {
-    return (
+    stepContent = (
       <div className="flex flex-col items-center justify-center space-y-4 p-8">
         <Spinner variant="ellipsis" className="text-primary" />
         <p className="text-sm text-muted-foreground">
@@ -190,10 +189,8 @@ export function LoginForm({ onStepChange }: LoginFormProps) {
         </p>
       </div>
     );
-  }
-
-  if (step === "mfa") {
-    return (
+  } else if (step === "mfa") {
+    stepContent = (
       <MfaVerifyStep
         initialIntent={mfaIntent}
         onBack={() => {
@@ -204,9 +201,8 @@ export function LoginForm({ onStepChange }: LoginFormProps) {
         onVerified={completeSignIn}
       />
     );
-  }
-
-  return (
+  } else {
+    stepContent = (
     <Form {...form}>
       <form
         onSubmit={(e) => {
@@ -321,5 +317,38 @@ export function LoginForm({ onStepChange }: LoginFormProps) {
         </Button>
       </form>
     </Form>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {showCredentialsChrome ? (
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-medium">Login to your account</h1>
+          <p className="text-muted-foreground text-sm">Please enter your details to login.</p>
+        </div>
+      ) : null}
+      <div className="space-y-4">
+        {showCredentialsChrome ? (
+          <>
+            <GoogleButton className="w-full" />
+            <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+              <span className="bg-background text-muted-foreground relative z-10 px-2">
+                Or continue with
+              </span>
+            </div>
+          </>
+        ) : null}
+        {stepContent}
+        {showCredentialsChrome ? (
+          <div className="text-center text-sm">
+            <span className="text-muted-foreground">Don&apos;t have an account? </span>
+            <Link className="text-primary hover:underline" to="/auth/register">
+              Register
+            </Link>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
