@@ -1,5 +1,6 @@
 "use client";
 
+import debounce from "lodash.debounce";
 import * as React from "react";
 
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,29 @@ export function LayoutPanel({
 	const [applyAll, setApplyAll] = React.useState(true);
 	const [width, setWidth] = React.useState(snapshot.width || "");
 	const [height, setHeight] = React.useState(snapshot.height || "");
+	const widthRef = React.useRef(width);
+	const heightRef = React.useRef(height);
+	widthRef.current = width;
+	heightRef.current = height;
+
+	const applyImageDimensions = React.useCallback(
+		(nextWidth: string, nextHeight: string) => {
+			if (variant !== "image") return;
+			applyDimensions(element, { width: nextWidth, height: nextHeight });
+			onChange();
+		},
+		[element, onChange, variant],
+	);
+
+	const debouncedApplyImageDims = React.useMemo(
+		() =>
+			debounce((w: string, h: string) => {
+				applyImageDimensions(w, h);
+			}, 400),
+		[applyImageDimensions],
+	);
+
+	React.useEffect(() => () => debouncedApplyImageDims.cancel(), [debouncedApplyImageDims]);
 
 	React.useEffect(() => {
 		setPad({
@@ -97,10 +121,21 @@ export function LayoutPanel({
 									<Input
 										className="h-9 pr-7"
 										value={width}
-										onChange={(e) => setWidth(e.target.value)}
+										onChange={(e) => {
+											const v = e.target.value;
+											setWidth(v);
+											debouncedApplyImageDims(v, heightRef.current);
+										}}
 										onBlur={() => {
-											applyDimensions(element, { width });
-											onChange();
+											debouncedApplyImageDims.cancel();
+											applyImageDimensions(widthRef.current, heightRef.current);
+										}}
+										onKeyDown={(e) => {
+											if (e.key === "Enter") {
+												debouncedApplyImageDims.cancel();
+												applyImageDimensions(widthRef.current, heightRef.current);
+												(e.target as HTMLInputElement).blur();
+											}
 										}}
 									/>
 									<span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
@@ -114,10 +149,21 @@ export function LayoutPanel({
 									<Input
 										className="h-9 pr-7"
 										value={height}
-										onChange={(e) => setHeight(e.target.value)}
+										onChange={(e) => {
+											const v = e.target.value;
+											setHeight(v);
+											debouncedApplyImageDims(widthRef.current, v);
+										}}
 										onBlur={() => {
-											applyDimensions(element, { height });
-											onChange();
+											debouncedApplyImageDims.cancel();
+											applyImageDimensions(widthRef.current, heightRef.current);
+										}}
+										onKeyDown={(e) => {
+											if (e.key === "Enter") {
+												debouncedApplyImageDims.cancel();
+												applyImageDimensions(widthRef.current, heightRef.current);
+												(e.target as HTMLInputElement).blur();
+											}
 										}}
 									/>
 									<span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">

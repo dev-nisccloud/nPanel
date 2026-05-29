@@ -232,8 +232,11 @@ export function EmailEditView({
 
 	const handleSave = () => {
 		debouncedAutoSave.cancel();
-		const html = captureFromIframe() ?? draftHtml;
-		void flushSave(html, false);
+		// Let blur handlers on dimension inputs apply before we serialize.
+		requestAnimationFrame(() => {
+			const html = captureFromIframe() ?? draftHtml;
+			void flushSave(html, false);
+		});
 	};
 
 	const handleUndo = () => {

@@ -98,6 +98,31 @@ function pxFromComputed(value: string): string {
 	return value.endsWith("px") ? value.replace("px", "") : value;
 }
 
+/** Parse a dimension string from inspector input or attributes (digits only). */
+function normalizeDimensionInput(value: string): string {
+	return value.replace(/px$/i, "").trim();
+}
+
+/**
+ * Read authored image dimensions (HTML attrs + inline style), not rendered/computed size.
+ * Generated emails use `.fluid { width:100% !important }` which makes computed width misleading.
+ */
+function readImageDimensionPx(img: HTMLImageElement, axis: "width" | "height"): string {
+	const attr = img.getAttribute(axis);
+	if (attr && attr !== "auto") {
+		const n = parseFloat(attr);
+		if (!Number.isNaN(n) && n > 0) return String(Math.round(n));
+	}
+
+	const stylePx = img.style.getPropertyValue(axis);
+	const styleMatch = stylePx.match(/(\d+(?:\.\d+)?)\s*px/i);
+	if (styleMatch) return String(Math.round(Number(styleMatch[1])));
+
+	const win = img.ownerDocument?.defaultView;
+	const computed = win?.getComputedStyle(img)?.[axis] ?? "";
+	return pxFromComputed(computed);
+}
+
 export function snapshotElement(el: HTMLElement, doc: Document): NebElementSnapshot {
 	const win = doc.defaultView;
 	const computed = win ? win.getComputedStyle(el) : null;
@@ -136,8 +161,14 @@ export function snapshotElement(el: HTMLElement, doc: Document): NebElementSnaps
 		paddingRight: pxFromComputed(padComputed?.paddingRight ?? "0"),
 		paddingBottom: pxFromComputed(padComputed?.paddingBottom ?? "0"),
 		paddingLeft: pxFromComputed(padComputed?.paddingLeft ?? "0"),
-		width: pxFromComputed(computed?.width ?? "0"),
-		height: pxFromComputed(computed?.height ?? "0"),
+		width:
+			el.tagName.toLowerCase() === "img"
+				? readImageDimensionPx(el as HTMLImageElement, "width")
+				: pxFromComputed(computed?.width ?? "0"),
+		height:
+			el.tagName.toLowerCase() === "img"
+				? readImageDimensionPx(el as HTMLImageElement, "height")
+				: pxFromComputed(computed?.height ?? "0"),
 		objectFit: computed?.objectFit ?? "fill",
 		verticalAlign: layoutComputed?.verticalAlign ?? "top",
 		horizontalAlign: layoutComputed?.textAlign ?? "left",
@@ -159,21 +190,33 @@ export function applyDimensions(
 	if (el.tagName.toLowerCase() === "img") {
 		const img = el as HTMLImageElement;
 		if (dims.width !== undefined) {
-			const w = dims.width.replace(/px$/i, "").trim();
+			const w = normalizeDimensionInput(dims.width);
 			if (w) {
 				img.setAttribute("width", w);
-				img.style.width = `${w}px`;
+				img.classList.remove("fluid");
+				img.style.setProperty("width", `${w}px`, "important");
+				img.style.setProperty("max-width", `${w}px`, "important");
 			} else {
 				img.removeAttribute("width");
-				img.style.width = "";
+				img.style.removeProperty("width");
+				img.style.removeProperty("max-width");
+				if (!img.classList.contains("fluid")) {
+					img.classList.add("fluid");
+				}
 			}
 		}
 		if (dims.height !== undefined) {
-			const h = dims.height.replace(/px$/i, "").trim();
+			const h = normalizeDimensionInput(dims.height);
 			if (h) {
-				img.style.height = `${h}px`;
+				img.setAttribute("height", h);
+				img.classList.remove("fluid");
+				img.style.setProperty("height", `${h}px`, "important");
 			} else {
-				img.style.height = "";
+				img.removeAttribute("height");
+				img.style.removeProperty("height");
+				if (dims.width === undefined) {
+					img.style.setProperty("height", "auto", "important");
+				}
 			}
 		}
 		return;

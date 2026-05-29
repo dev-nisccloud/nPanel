@@ -28,6 +28,7 @@ import {
 } from "./prompts-build";
 import { mirrorNebBriefLogoIfNeeded } from "./logo";
 import { saveToNebMediaLibrary } from "./media-library-persist";
+import { buildIconImagePrompt } from "./icon-image-prompt";
 import { runAnthropicOnReplicate } from "./replicate-llm";
 import { pickTemplates, loadTemplateHtml } from "./template-picker";
 import {
@@ -157,10 +158,12 @@ async function hydrateImages(params: {
 			? `\nReference image_input[0] is the approved email comp. Recreate the "${slot.key}" element exactly as shown.`
 			: "";
 
-		// For icons, use the slot's backgroundColor so the generated asset blends with the email section
-		const iconBg = slot.backgroundColor?.trim() || "#FFFFFF";
 		const slotPrompt = isIcon
-			? `${slot.prompt}${compRefLine}\nIsolated icon only on solid ${iconBg} background — the exact background color of the email section where this icon appears. NO TEXT. NO EMOJI. NO border. Flat line-art or solid style icon, perfectly centred.`
+			? buildIconImagePrompt({
+					prompt: slot.prompt,
+					backgroundColorHex: slot.backgroundColor,
+					compRefLine: compRefLine || undefined,
+				})
 			: `${slot.prompt}${compRefLine}`;
 
 		let fileUrl: string;

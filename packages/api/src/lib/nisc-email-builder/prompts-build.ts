@@ -59,7 +59,7 @@ CRITICAL RULES:
 - Copy must be EXACT — every headline, subhead, body line, CTA, footer line as shown.
 - NEVER suggest emoji for icons. Every icon in the mockup MUST appear in image_slots with kind "icon".
 - Photo regions (hero, product cards, split layouts) use kind "photo".
-- image_slots prompts for icons: isolated icon only, flat line-art or solid style matching the comp, NO TEXT.
+- image_slots prompts for icons: isolated icon only, flat line-art or solid style matching the comp, NO TEXT. Put section bg hex only in backgroundColor, never in prompt.
 - image_slots prompts for photos: end with NO TEXT, NO LOGOS, NO WATERMARKS.
 - Include the maroon/orange decorative border if present, split hero with yellow block, dark CTA footer, etc.
 - Be obsessively specific about hex colors, px sizes, and element placement.`;
@@ -263,8 +263,8 @@ In the meta JSON "image_slots" array, describe each slot precisely.
 
 image_slots rules:
 - kind "photo": lifestyle / product photograph. Prompt must end with: NO TEXT, NO LOGOS, NO WATERMARKS.
-- kind "icon": flat isolated icon. Prompt must describe the icon style and subject only (no scene, no background). NO TEXT. NO EMOJI.
-- CRITICAL for icons: always include "backgroundColor" set to the EXACT hex of the <td> or section background where this icon appears in the HTML (e.g. "#FFFFFF" for white, "#1E293B" for dark navy). The icon will be rendered on that background — it must match perfectly.
+- kind "icon": flat isolated icon. Prompt must describe ONLY the icon shape, stroke/fill style, and subject — never the section background. NO TEXT. NO EMOJI. Never put hex codes in the icon prompt (models may render them as visible text).
+- CRITICAL for icons: include "backgroundColor" as metadata — the EXACT hex of the <td> or section behind the icon (e.g. "#F3F4F6"). Used server-side only to match the fill; do NOT mention this hex in the prompt string.
 - NEVER use emoji characters, Unicode symbols, or inline SVG for icons anywhere in the HTML.
 - Each key in image_slots must exactly match the key used in the {{NEB_IMG:key}} placeholder in the HTML.`;
 }
