@@ -7,7 +7,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import {
@@ -25,6 +24,10 @@ import {
 	NEB_EMAIL_GOALS,
 } from "@npanel/api/lib/nisc-email-builder/brief-options";
 import { ChatPanel } from "./agency.nisc-email-builder/_components/chat-panel";
+import {
+	ChatBootstrapPanel,
+	NebSpinner,
+} from "./agency.nisc-email-builder/_components/neb-loading";
 import { ImageLibrarySheet } from "./agency.nisc-email-builder/_components/image-library-sheet";
 import {
 	PreviewTabs,
@@ -292,14 +295,20 @@ export default function NiscEmailBuilderEditorPage() {
 		onError: (e) => toast.error(e.message),
 	});
 
-	// Show the brief form only when the session has no messages AND no build is running/pending.
-	// Once startBuild fires, the session immediately gains a user message (on data refresh).
-	const showBrief =
-		safeMessages.length === 0 &&
-		!hasCreative &&
-		!hasHtml &&
-		!isBusy &&
-		!startBuild.isPending;
+	const hasStartedBuild =
+		startBuild.isPending ||
+		isBusy ||
+		phase !== "BRIEF" ||
+		hasCreative ||
+		hasHtml ||
+		safeMessages.length > 0;
+
+	// Brief form only before the user has kicked off a build.
+	const showBrief = !hasStartedBuild;
+
+	// After submit, messages may lag behind — avoid an empty chat column.
+	const showChatBootstrap =
+		hasStartedBuild && safeMessages.length === 0 && !showBrief;
 
 	// Extract variations from design metadata
 	const designVariations: DesignVariation[] = React.useMemo(() => {
@@ -440,7 +449,7 @@ export default function NiscEmailBuilderEditorPage() {
 	if (designQuery.isLoading) {
 		return (
 			<div className="flex h-[60vh] items-center justify-center">
-				<Spinner size={24} />
+				<NebSpinner context="page" size={28} className="text-primary" />
 			</div>
 		);
 	}
@@ -516,6 +525,10 @@ export default function NiscEmailBuilderEditorPage() {
 								isSubmitting={startBuild.isPending || isBusy}
 							/>
 						</div>
+					) : showChatBootstrap ? (
+						<ChatBootstrapPanel
+							isHydratingImages={design.aiStatus === "HYDRATING_IMAGES"}
+						/>
 					) : (
 						<ChatPanel
 							messages={safeMessages}
@@ -555,8 +568,14 @@ export default function NiscEmailBuilderEditorPage() {
 					creativeDesignUrl={design.creativeDesignUrl}
 					htmlContent={design.htmlContent}
 					canEdit={hasHtml && phase === "READY" && !isBusy}
-					isDesigning={phase === "DESIGNING"}
-					isBuilding={phase === "BUILDING"}
+					isDesigning={
+						phase === "DESIGNING" ||
+						(startBuild.isPending && !hasCreative)
+					}
+					isBuilding={
+						phase === "BUILDING" ||
+						(startBuild.isPending && !hasHtml)
+					}
 					isAiRevising={isAiRevising}
 					isHydratingImages={design.aiStatus === "HYDRATING_IMAGES"}
 					onLatestHtmlChange={(html) => {

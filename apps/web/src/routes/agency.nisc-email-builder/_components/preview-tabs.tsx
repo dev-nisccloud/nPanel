@@ -17,12 +17,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 import { ChatRevisionOverlay } from "./chat-revision-overlay";
+import { NebRotatingPhrase, NebSpinner } from "./neb-loading";
 import { buildNoScrollSrcDoc } from "./edit-mode/email-edit-canvas";
 import { EmailEditView } from "./edit-mode/email-edit-view";
 
@@ -65,15 +65,6 @@ const DESIGN_PHRASES = [
 ];
 
 function DesigningLoader() {
-	const [phraseIdx, setPhraseIdx] = React.useState(0);
-
-	React.useEffect(() => {
-		const t = setInterval(() => {
-			setPhraseIdx((i) => (i + 1) % DESIGN_PHRASES.length);
-		}, 2600);
-		return () => clearInterval(t);
-	}, []);
-
 	return (
 		<div className="flex flex-col items-center gap-6 py-16 max-w-sm">
 			<div className="w-[260px] rounded-xl border bg-background shadow-lg overflow-hidden">
@@ -103,10 +94,8 @@ function DesigningLoader() {
 			</div>
 			<div className="flex flex-col items-center gap-2">
 				<div className="flex items-center gap-2">
-					<Spinner size={14} className="text-primary" />
-					<p key={phraseIdx} className="text-sm font-medium text-foreground">
-						{DESIGN_PHRASES[phraseIdx]}
-					</p>
+					<NebSpinner context="ai" size={14} className="text-primary shrink-0" />
+					<NebRotatingPhrase phrases={DESIGN_PHRASES} />
 				</div>
 				<p className="text-xs text-muted-foreground text-center">
 					Your personalised design will appear here when ready.
@@ -117,12 +106,12 @@ function DesigningLoader() {
 }
 
 const BUILD_PHRASES = [
-	"Analysing your brief and selecting design templates…",
-	"Crafting a bespoke layout for your campaign…",
-	"Applying your brand colours and typography…",
-	"Building responsive HTML tables and sections…",
-	"Writing on-brand copy and placing image slots…",
-	"Polishing every detail of your email template…",
+	"Analysing your brief and campaign goal…",
+	"Crafting a bespoke layout for your brand…",
+	"Applying your colours and typography…",
+	"Building responsive sections and structure…",
+	"Writing on-brand copy and visual hierarchy…",
+	"Polishing every detail of your email…",
 ];
 
 type BuildStep = {
@@ -147,7 +136,7 @@ function StepBadge({ step }: { step: BuildStep }) {
 		>
 			<span className="shrink-0">
 				{step.status === "done" && <Check className="size-3" />}
-				{step.status === "active" && <Spinner size={11} />}
+				{step.status === "active" && <NebSpinner context="step" size={11} />}
 				{step.status === "pending" && step.icon}
 			</span>
 			<span>{step.label}</span>
@@ -162,18 +151,9 @@ function BuildingLoader({
 	creativeDesignUrl?: string | null;
 	isHydratingImages?: boolean;
 }) {
-	const [phraseIdx, setPhraseIdx] = React.useState(0);
-
-	React.useEffect(() => {
-		const t = setInterval(() => {
-			setPhraseIdx((i) => (i + 1) % BUILD_PHRASES.length);
-		}, 2800);
-		return () => clearInterval(t);
-	}, []);
-
 	const phrase = isHydratingImages
 		? "Generating and uploading your image assets…"
-		: BUILD_PHRASES[phraseIdx];
+		: null;
 
 	const steps: BuildStep[] = [
 		{
@@ -235,15 +215,17 @@ function BuildingLoader({
 			{/* Current action */}
 			<div className="flex flex-col items-center gap-1.5 text-center">
 				<div className="flex items-center gap-2">
-					<Spinner size={14} className="text-primary shrink-0" />
-					<p key={phrase} className="text-sm font-medium text-foreground">
-						{phrase}
-					</p>
+					<NebSpinner context="ai" size={14} className="text-primary shrink-0" />
+					{phrase ? (
+						<p className="text-sm font-medium text-foreground">{phrase}</p>
+					) : (
+						<NebRotatingPhrase phrases={BUILD_PHRASES} />
+					)}
 				</div>
 				<p className="text-xs text-muted-foreground max-w-xs">
 					{isHydratingImages
-						? "Generating image assets and uploading them to your email template."
-						: "Building your production-ready HTML email from your brief and brand."}
+						? "Generating and placing your image assets."
+						: "Building your production-ready email from your brief and brand."}
 				</p>
 			</div>
 		</div>
@@ -346,7 +328,7 @@ function VariationToolbar({
 				{/* Ghost thumbnail while a new variation is generating */}
 				{isDesigning && (
 					<div className="shrink-0 w-10 h-14 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/30">
-						<Spinner size={10} className="text-muted-foreground" />
+						<NebSpinner context="inline" size={10} className="text-muted-foreground" />
 					</div>
 				)}
 			</div>
@@ -381,7 +363,7 @@ function VariationToolbar({
 				title="Ask AI for a different creative direction"
 			>
 				{isBusy ? (
-					<Spinner size={10} />
+					<NebSpinner context="button" size={10} />
 				) : (
 					<Sparkles className="size-3" />
 				)}
@@ -561,7 +543,7 @@ export function PreviewTabs({
 						<Mail className="size-3.5" />
 						Email preview
 						{isBuilding ? (
-							<Spinner size={10} className="ml-0.5 text-primary" />
+							<NebSpinner context="inline" size={10} className="ml-0.5 text-primary" />
 						) : null}
 					</TabsTrigger>
 				</TabsList>
@@ -599,7 +581,11 @@ export function PreviewTabs({
 							disabled={isBuilding || isRetryingHtml}
 							onClick={onRetryHtmlBuild}
 						>
-							{isBuilding ? <Spinner size={12} /> : <Sparkles className="size-3.5" />}
+							{isBuilding ? (
+								<NebSpinner context="button" size={12} />
+							) : (
+								<Sparkles className="size-3.5" />
+							)}
 							{isBuilding ? "Rebuilding…" : "Regenerate HTML"}
 						</Button>
 					) : null}

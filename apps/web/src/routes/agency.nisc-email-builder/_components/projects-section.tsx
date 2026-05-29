@@ -26,7 +26,7 @@ import {
 import { Table, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/hooks/use-confirm";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { NebSpinner } from "./neb-loading";
 
 export const ProjectsSection = () => {
 	const [ConfirmDialog, confirm] = useConfirm(
@@ -85,7 +85,7 @@ export const ProjectsSection = () => {
 			<div className="space-y-4 mt-8">
 				<h3 className="font-semibold text-lg">Recent designs</h3>
 				<div className="flex flex-col gap-y-4 items-center justify-center h-32">
-					<Spinner size={32} />
+					<NebSpinner context="page" size={32} className="text-primary" />
 				</div>
 			</div>
 		);
@@ -199,7 +199,7 @@ export const ProjectsSection = () => {
 											<TableCell className="flex items-center justify-end py-4">
 												{isRowBusy ? (
 													<div className="flex items-center justify-center w-8 h-8">
-														<Spinner size={16} />
+														<NebSpinner context="inline" size={16} />
 													</div>
 												) : (
 													<DropdownMenu modal={false}>

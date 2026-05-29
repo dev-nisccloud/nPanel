@@ -6,7 +6,7 @@ import { Cloud, CloudOff, Redo2, Save, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { NebSpinner } from "../neb-loading";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
@@ -288,7 +288,7 @@ export function EmailEditView({
 					<div className="flex items-center gap-1.5 text-xs text-muted-foreground min-h-4">
 						{saveStatus === "saving" ? (
 							<>
-								<Spinner size={12} />
+								<NebSpinner context="inline" size={12} />
 								<span>Saving…</span>
 							</>
 						) : saveStatus === "saved" ? (
@@ -337,7 +337,7 @@ export function EmailEditView({
 							onClick={handleSave}
 						>
 							{saveMutation.isPending && !saveMutation.variables?.inPlace ? (
-								<Spinner size={14} />
+								<NebSpinner context="button" size={14} />
 							) : (
 								<Save className="size-4" />
 							)}

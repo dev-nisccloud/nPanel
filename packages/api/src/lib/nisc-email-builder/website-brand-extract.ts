@@ -940,6 +940,26 @@ export async function enrichWebsiteBrand(
 	return enrichment;
 }
 
+/** User provided at least one non-empty brand color in the brief. */
+export function nebBriefHasUserBrandColors(brandColors?: string[]): boolean {
+	return (brandColors ?? []).some((c) => typeof c === "string" && c.trim().length > 0);
+}
+
+export function nebBriefHasUserCompanyName(companyName?: string): boolean {
+	return Boolean(companyName?.trim());
+}
+
+export function nebBriefHasUserCompanyContext(companyContext?: string): boolean {
+	return Boolean(companyContext?.trim());
+}
+
+export function nebBriefHasUserLogo(logoUrl?: string): boolean {
+	return Boolean(logoUrl?.trim());
+}
+
+/**
+ * Fill gaps from website detection only — never overwrite values the user set in the brief form.
+ */
 export function mergeBrandEnrichment(
 	brief: {
 		companyName?: string;
@@ -953,20 +973,25 @@ export function mergeBrandEnrichment(
 		ctaUrl?: string;
 		websiteUrl?: string;
 		logoUrl?: string;
+		companyContext?: string;
+		webSearchFound?: boolean;
 	},
 	enrichment: WebsiteBrandEnrichment,
 ): typeof brief {
 	const merged = { ...brief, websiteUrl: enrichment.websiteUrl };
 
-	if (enrichment.logoUrl && !brief.logoUrl) {
+	if (enrichment.logoUrl && !nebBriefHasUserLogo(brief.logoUrl)) {
 		merged.logoUrl = enrichment.logoUrl;
 	}
 
-	if (enrichment.brandColors.length) {
+	if (
+		enrichment.brandColors.length &&
+		!nebBriefHasUserBrandColors(brief.brandColors)
+	) {
 		merged.brandColors = enrichment.brandColors;
 	}
 
-	if (enrichment.siteName) {
+	if (enrichment.siteName && !nebBriefHasUserCompanyName(brief.companyName)) {
 		merged.companyName = enrichment.siteName;
 	}
 
@@ -974,10 +999,14 @@ export function mergeBrandEnrichment(
 		merged.ctaUrl = enrichment.websiteUrl;
 	}
 
-	if (enrichment.companyContext) {
+	if (nebBriefHasUserCompanyContext(brief.companyContext)) {
+		merged.webSearchFound = brief.webSearchFound ?? true;
+	} else if (enrichment.companyContext) {
 		merged.companyContext = enrichment.companyContext;
+		merged.webSearchFound = enrichment.webSearchFound;
+	} else {
+		merged.webSearchFound = brief.webSearchFound ?? enrichment.webSearchFound;
 	}
-	merged.webSearchFound = enrichment.webSearchFound;
 
 	return merged;
 }
