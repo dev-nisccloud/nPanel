@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ImageIcon, Loader2, Search, Upload } from "lucide-react";
+import { Check, ImageIcon, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,9 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { nativePrimaryScrollbarClassName } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { NebSpinner } from "../neb-loading";
 import {
 	normalizeImageFilesForUpload,
 	uploadErrorMessage,
@@ -25,17 +25,13 @@ import {
 } from "@/hooks/use-uploadthing";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
-import { trpc } from "@/utils/trpc";
 
 import { useCreateNebMediaLibraryItem } from "../../_api/use-create-email-builder-library-item";
-
-type LibraryItem = {
-	id: string;
-	fileName: string;
-	fileUrl: string;
-	mimeType: string;
-	createdAt: Date | string;
-};
+import {
+	useNebMediaLibraryItems,
+	type NebMediaLibraryItem,
+} from "../../_api/use-neb-media-library-items";
+import { MediaLibraryGrid } from "../media-library-grid";
 
 type ImageLibraryDialogProps = {
 	open: boolean;
@@ -53,64 +49,37 @@ export function ImageLibraryDialog({
 }: ImageLibraryDialogProps) {
 	const [tab, setTab] = React.useState<"library" | "upload">("library");
 	const [search, setSearch] = React.useState("");
-	const [debouncedSearch, setDebouncedSearch] = React.useState("");
-	const [page, setPage] = React.useState(1);
-	const [allItems, setAllItems] = React.useState<LibraryItem[]>([]);
-	const [selected, setSelected] = React.useState<LibraryItem | null>(null);
+	const [selected, setSelected] = React.useState<NebMediaLibraryItem | null>(null);
 	const [uploading, setUploading] = React.useState(false);
 	const [dragOver, setDragOver] = React.useState(false);
 	const fileRef = React.useRef<HTMLInputElement>(null);
 
+	const {
+		items,
+		status,
+		page,
+		setPage,
+		hasMore,
+		isFetchingMore,
+		errorMessage,
+		refetch,
+		prependItem,
+	} = useNebMediaLibraryItems({ enabled: open, search });
+
 	const createLibraryItem = useCreateNebMediaLibraryItem();
 
 	React.useEffect(() => {
-		const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
-		return () => clearTimeout(t);
-	}, [search]);
-
-	React.useEffect(() => {
 		if (!open) return;
-		setPage(1);
-		setAllItems([]);
 		setSelected(null);
 		setTab("library");
 		setSearch("");
-		setDebouncedSearch("");
 	}, [open]);
 
 	React.useEffect(() => {
-		setPage(1);
-		setAllItems([]);
-	}, [debouncedSearch]);
-
-	const listQuery = trpc.niscEmailBuilder.mediaLibrary.list.useQuery(
-		{
-			page,
-			limit: 40,
-			onlyImages: true,
-			search: debouncedSearch || undefined,
-		},
-		{ enabled: open && tab === "library" },
-	);
-
-	React.useEffect(() => {
-		if (!listQuery.data?.data) return;
-		setAllItems((prev) => {
-			if (page === 1) return listQuery.data.data;
-			const ids = new Set(prev.map((i) => i.id));
-			const merged = [...prev];
-			for (const item of listQuery.data.data) {
-				if (!ids.has(item.id)) merged.push(item);
-			}
-			return merged;
-		});
-	}, [listQuery.data, page]);
-
-	React.useEffect(() => {
 		if (!open || !currentSrc || selected) return;
-		const match = allItems.find((i) => i.fileUrl === currentSrc);
+		const match = items.find((i) => i.fileUrl === currentSrc);
 		if (match) setSelected(match);
-	}, [open, currentSrc, allItems, selected]);
+	}, [open, currentSrc, items, selected]);
 
 	const handleUseImage = () => {
 		if (!selected) return;
@@ -139,9 +108,10 @@ export function ImageLibraryDialog({
 			});
 
 			const item = created.data;
-			setAllItems((prev) => [item, ...prev.filter((i) => i.id !== item.id)]);
+			prependItem(item);
 			setSelected(item);
 			setTab("library");
+			setPage(1);
 			toast.success("Image added to your library");
 		} catch (e) {
 			toast.error(uploadErrorMessage(e));
@@ -159,12 +129,10 @@ export function ImageLibraryDialog({
 		void persistUpload(file);
 	};
 
-	const hasMore = listQuery.data?.nextPage != null;
-
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
-				<DialogHeader className="px-6 pt-6 pb-2 shrink-0">
+			<DialogContent className="sm:max-w-xl max-h-[min(90dvh,720px)] grid grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0">
+				<DialogHeader className="px-6 pt-6 pb-2">
 					<DialogTitle>Choose image</DialogTitle>
 					<DialogDescription>
 						Pick from your library or upload a new image. Your library is shared across
@@ -175,7 +143,7 @@ export function ImageLibraryDialog({
 				<Tabs
 					value={tab}
 					onValueChange={(v) => setTab(v as "library" | "upload")}
-					className="flex min-h-0 flex-1 flex-col overflow-hidden px-6"
+					className="flex h-full min-h-0 flex-col gap-2 overflow-hidden px-6 pb-2"
 				>
 					<TabsList className="w-full grid grid-cols-2 shrink-0">
 						<TabsTrigger value="library" className="gap-1.5">
@@ -190,9 +158,9 @@ export function ImageLibraryDialog({
 
 					<TabsContent
 						value="library"
-						className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+						className="mt-1 flex min-h-0 flex-1 flex-col overflow-hidden outline-none data-[state=inactive]:hidden"
 					>
-						<div className="relative shrink-0 mb-3">
+						<div className="relative mb-3 shrink-0">
 							<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
 							<Input
 								placeholder="Search by file name…"
@@ -202,34 +170,24 @@ export function ImageLibraryDialog({
 							/>
 						</div>
 
-						<ScrollArea className="h-0 min-h-0 flex-1">
-							<div className="pr-3">
-							{listQuery.isLoading && page === 1 ? (
-								<div className="flex items-center justify-center py-16">
-									<Spinner size={20} />
-								</div>
-							) : allItems.length === 0 ? (
-								<div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-									<ImageIcon className="size-10 text-muted-foreground/40" />
-									<div className="space-y-1">
-										<p className="text-sm font-medium">No images yet</p>
-										<p className="text-xs text-muted-foreground max-w-xs">
-											Upload an image to build your library. You can reuse it in any
-											email.
-										</p>
-									</div>
-									<Button
-										type="button"
-										size="sm"
-										variant="secondary"
-										onClick={() => setTab("upload")}
-									>
-										Upload image
-									</Button>
-								</div>
-							) : (
-								<div className="grid grid-cols-4 gap-2 pb-2">
-									{allItems.map((item) => {
+						<div
+							className={cn(
+								"min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1",
+								nativePrimaryScrollbarClassName,
+							)}
+						>
+							<div className="pr-2 pb-2">
+								<MediaLibraryGrid
+									items={items}
+									status={status}
+									columns={4}
+									errorMessage={errorMessage}
+									onRetry={refetch}
+									onUploadClick={() => setTab("upload")}
+									hasMore={hasMore}
+									isFetchingMore={isFetchingMore}
+									onLoadMore={() => setPage(page + 1)}
+									renderItem={(item) => {
 										const isSelected = selected?.id === item.id;
 										return (
 											<button
@@ -257,28 +215,10 @@ export function ImageLibraryDialog({
 												) : null}
 											</button>
 										);
-									})}
-								</div>
-							)}
+									}}
+								/>
 							</div>
-						</ScrollArea>
-
-						{hasMore ? (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								className="w-full shrink-0 mt-2"
-								disabled={listQuery.isFetching}
-								onClick={() => setPage((p) => p + 1)}
-							>
-								{listQuery.isFetching ? (
-									<Loader2 className="size-3.5 animate-spin" />
-								) : (
-									"Load more"
-								)}
-							</Button>
-						) : null}
+						</div>
 					</TabsContent>
 
 					<TabsContent
@@ -322,7 +262,7 @@ export function ImageLibraryDialog({
 							/>
 							{uploading ? (
 								<>
-									<Spinner size={24} />
+									<NebSpinner context="upload" size={24} className="text-primary" />
 									<p className="text-sm text-muted-foreground">Uploading…</p>
 								</>
 							) : (
@@ -345,7 +285,7 @@ export function ImageLibraryDialog({
 					</TabsContent>
 				</Tabs>
 
-				<DialogFooter className="px-6 py-4 border-t shrink-0 gap-2 sm:gap-2">
+				<DialogFooter className="px-6 py-4 border-t gap-2 sm:gap-2">
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 						Cancel
 					</Button>

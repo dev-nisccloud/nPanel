@@ -22,9 +22,13 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { NebSpinner } from "./neb-loading";
 import { trpc } from "@/utils/trpc";
-import { BrandColorEditor, padBrandColors } from "./brand-color-editor";
+import {
+	BrandColorEditor,
+	compactBrandColors,
+	padBrandColors,
+} from "./brand-color-editor";
 import { CompanyResearchAccordion } from "./company-research-accordion";
 
 const EMAIL_TYPES = [
@@ -94,17 +98,25 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 		const patch: Partial<BriefFormValues> = {
 			websiteUrl: data.websiteUrl,
 		};
-		if (data.logoUrl) patch.logoUrl = data.logoUrl;
-		if (data.brandColors.length) {
+		// Only fill fields the user has not set — manual edits always win.
+		if (data.logoUrl && !values.logoUrl.trim()) {
+			patch.logoUrl = data.logoUrl;
+		}
+		if (
+			data.brandColors.length &&
+			compactBrandColors(padBrandColors(values.brandColors)).length === 0
+		) {
 			patch.brandColors = padBrandColors(data.brandColors);
 		}
-		if (data.siteName) {
+		if (data.siteName && !values.companyName.trim()) {
 			patch.companyName = data.siteName;
 		}
 		if (data.webSearchFound && data.companyContext) {
-			patch.companyContext = data.companyContext;
-			patch.webSearchFound = true;
-		} else {
+			if (!values.companyContext.trim()) {
+				patch.companyContext = data.companyContext;
+				patch.webSearchFound = true;
+			}
+		} else if (!values.companyContext.trim()) {
 			patch.webSearchFound = false;
 			patch.companyContext = "";
 		}
@@ -128,6 +140,10 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 		previewQuery.data,
 		previewQuery.dataUpdatedAt,
 		onChange,
+		values.logoUrl,
+		values.brandColors,
+		values.companyName,
+		values.companyContext,
 	]);
 
 	React.useEffect(() => {
@@ -180,7 +196,10 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 						disabled={isDetecting || isSubmitting}
 						onClick={handleDetect}
 					>
-						{isDetecting ? <Spinner size={14} /> : "Detect brand"}
+						{isDetecting ? (
+							<NebSpinner context="inline" size={14} className="mr-1.5" />
+						) : null}
+						Detect brand
 					</Button>
 				</div>
 			</div>
@@ -324,8 +343,12 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 			</div>
 
 			<Button className="w-full" disabled={isSubmitting} onClick={onSubmit}>
-				<Sparkles className="size-4 mr-2" />
-				Generate creative design
+				{isSubmitting ? (
+					<NebSpinner context="button" size={16} className="mr-2" />
+				) : (
+					<Sparkles className="size-4 mr-2" />
+				)}
+				{isSubmitting ? "Starting build…" : "Generate creative design"}
 			</Button>
 		</div>
 	);

@@ -2,6 +2,9 @@ import { buildNebGoogleFontsStylesheetUrls } from "./email-fonts";
 
 export const NEB_EDITOR_STYLE_ID = "neb-editor-styles";
 
+/** Hover/selection outline in edit mode (nPanel primary). */
+export const NEB_EDITOR_ACCENT_HEX = "#38b6ff";
+
 /** Stable element ids for edit mode; works on HTTP and older browsers. */
 function generateNebElementId(): string {
 	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -50,8 +53,8 @@ export function injectEditorStyles(doc: Document): void {
 	style.id = NEB_EDITOR_STYLE_ID;
 	style.textContent = `
     [data-neb-id].neb-editable { cursor: pointer; }
-    [data-neb-id].neb-editable-hover { outline: 2px dashed rgba(139, 92, 246, 0.45) !important; outline-offset: 1px; }
-    [data-neb-id].neb-selected { outline: 2px solid rgb(139, 92, 246) !important; outline-offset: 2px; }
+    [data-neb-id].neb-editable-hover { outline: 2px dashed rgba(56, 182, 255, 0.55) !important; outline-offset: 1px; }
+    [data-neb-id].neb-selected { outline: 2px solid ${NEB_EDITOR_ACCENT_HEX} !important; outline-offset: 2px; }
   `;
 	doc.head.appendChild(style);
 }

@@ -12,6 +12,7 @@ import type {
 	NebPlannerOutput,
 	NebRevisionOutput,
 } from "./types";
+import { sanitizeNebAssistantTextForUser } from "./user-messages";
 import {
 	compAnalysisOutputSchema,
 	directBuildOutputSchema,
@@ -281,7 +282,7 @@ ${META_START}
   "subject": "under 60 chars — specific, compelling email subject line",
   "preheader": "under 90 chars — preview text that extends the subject",
   "change_summary": "one line summary of what was built",
-  "assistant_text": "friendly 1-2 sentence message to the user",
+  "assistant_text": "2-3 warm sentences about the finished email for the user — campaign angle and highlights only; never mention templates, reference files, or internal build details",
   "image_slots": [
     {
       "key": "hero",
@@ -310,7 +311,8 @@ Rules:
 - image_slots: include one entry per {{NEB_IMG:key}} placeholder used in the HTML.
 - For icons (kind "icon"): set backgroundColor to the EXACT hex of the section <td> background behind the icon (metadata only — never repeat that hex in the prompt). Icon prompt describes ONLY the icon — no background, no scene, no text, no hex codes.
 - For photos (kind "photo"): lifestyle/product scene prompt, end with NO TEXT, NO LOGOS, NO WATERMARKS.
-- Do not output anything else outside these blocks.`;
+- Do not output anything else outside these blocks.
+- assistant_text is shown directly to the user: no template names, no .html filenames, no references to internal design libraries.`;
 
 /** Parse the extended direct-build output (includes subject, preheader, image_slots). */
 export function parseDirectBuildResponse(raw: string): NebDirectBuildOutput {
@@ -329,7 +331,7 @@ export function parseDirectBuildResponse(raw: string): NebDirectBuildOutput {
 
 	const defaults: Omit<NebDirectBuildOutput, "html"> = {
 		change_summary: "Email generated",
-		assistant_text: "Your email is ready in the preview tab.",
+		assistant_text: "",
 		subject: undefined,
 		preheader: undefined,
 		image_slots: [],
@@ -346,10 +348,11 @@ export function parseDirectBuildResponse(raw: string): NebDirectBuildOutput {
 					typeof parsed.change_summary === "string"
 						? parsed.change_summary
 						: defaults.change_summary,
-				assistant_text:
+				assistant_text: sanitizeNebAssistantTextForUser(
 					typeof parsed.assistant_text === "string"
 						? parsed.assistant_text
 						: defaults.assistant_text,
+				),
 				subject: typeof parsed.subject === "string" ? parsed.subject : undefined,
 				preheader: typeof parsed.preheader === "string" ? parsed.preheader : undefined,
 				image_slots: Array.isArray(parsed.image_slots)

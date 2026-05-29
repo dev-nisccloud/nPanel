@@ -1,4 +1,5 @@
 import { HTML_DIRECT_BUILD_DELIMITER_INSTRUCTION } from "./parse-responses";
+import { NEB_ASSISTANT_TEXT_USER_RULES } from "./user-messages";
 import type { NebBrief } from "./types";
 import { imagePlaceholder } from "./types";
 
@@ -175,9 +176,9 @@ You produce bulletproof, pixel-perfect, FULLY RESPONSIVE marketing email HTML �
 
 YOUR PRIMARY JOB:
 Create a stunning, production-ready HTML email perfectly tailored to the user's brief and brand.
-You have been provided with 1-2 reference templates that demonstrate the expected design quality and HTML patterns.
+You have been provided with 1-2 internal design benchmarks (never mention these to the user) that demonstrate expected quality and HTML patterns.
 
-STUDY THE REFERENCE TEMPLATES:
+STUDY THE DESIGN BENCHMARKS (internal — do not reference by name in user-facing text):
 - Learn from their layout structure, CSS organization, table nesting, and responsive patterns
 - Absorb their design thinking: color application, spacing rhythm, typography hierarchy, CTA prominence
 - Note how they handle hero sections, content blocks, icons, product grids, and footers
@@ -266,7 +267,9 @@ image_slots rules:
 - kind "icon": flat isolated icon. Prompt must describe ONLY the icon shape, stroke/fill style, and subject — never the section background. NO TEXT. NO EMOJI. Never put hex codes in the icon prompt (models may render them as visible text).
 - CRITICAL for icons: include "backgroundColor" as metadata — the EXACT hex of the <td> or section behind the icon (e.g. "#F3F4F6"). Used server-side only to match the fill; do NOT mention this hex in the prompt string.
 - NEVER use emoji characters, Unicode symbols, or inline SVG for icons anywhere in the HTML.
-- Each key in image_slots must exactly match the key used in the {{NEB_IMG:key}} placeholder in the HTML.`;
+- Each key in image_slots must exactly match the key used in the {{NEB_IMG:key}} placeholder in the HTML.
+
+${NEB_ASSISTANT_TEXT_USER_RULES}`;
 }
 
 export function buildDirectHtmlUserPrompt(params: {
@@ -289,7 +292,7 @@ export function buildDirectHtmlUserPrompt(params: {
 	const templateSection = params.templateRefs
 		.map(
 			(t, i) =>
-				`### Reference Template ${i + 1}: ${t.name} (${t.filename})\n\`\`\`html\n${t.html}\n\`\`\``,
+				`### Design benchmark ${i + 1}: ${t.name}\n\`\`\`html\n${t.html}\n\`\`\``,
 		)
 		.join("\n\n");
 
@@ -299,14 +302,14 @@ ${params.webContext ? `\n${params.webContext}\n` : ""}
 ━━━ CAMPAIGN BRIEF ━━━
 ${briefLines}
 
-━━━ REFERENCE TEMPLATE(S) — DESIGN QUALITY BENCHMARK ━━━
-Study the following template(s) to understand the expected design quality, HTML structure, and patterns.
-Use their sophistication as your benchmark. Create something NEW tailored to the brief above — do NOT copy their content.
+━━━ DESIGN BENCHMARKS (internal quality reference — never name these in assistant_text) ━━━
+Study the following examples for layout sophistication, HTML structure, and visual rhythm.
+Create something NEW tailored to the brief above — do NOT copy their content or branding.
 
 ${templateSection}
 
 ━━━ YOUR TASK ━━━
-Using the reference template(s) above as your quality and structural benchmark:
+Using the benchmarks above as your quality and structural guide:
 1. Design and build a complete, production-ready HTML email for the brief above
 2. Write all copy fresh — specific, on-brand, and tailored to the company/goal
 3. Structure sections to best serve the campaign objective

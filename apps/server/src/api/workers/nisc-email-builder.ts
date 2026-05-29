@@ -16,6 +16,7 @@ import {
 	runNebDirectBuild,
 	runNebRevision,
 } from "@npanel/api/lib/nisc-email-builder/run-build";
+import { buildNebHtmlReadyChatMessage } from "@npanel/api/lib/nisc-email-builder/user-messages";
 import {
 	runNebChatDuringApproval,
 	runNebCreativeDesign,
@@ -125,13 +126,9 @@ export async function handleNiscEmailBuilder(c: Context) {
 				teamId: design.teamId,
 				webContext,
 			});
-			const templateNote =
-				result.selectedTemplates.length > 0
-					? `\n\n*Built using design references: ${result.selectedTemplates.join(", ")}*`
-					: "";
 			await appendAssistant(
-				`${result.assistantText}\n\nYour HTML email is ready in the **Email preview** tab.${templateNote}`,
-				{ subject: result.subject, selectedTemplates: result.selectedTemplates },
+				buildNebHtmlReadyChatMessage(result.assistantText, { variant: "ready" }),
+				{ subject: result.subject },
 			);
 		} else if (job.type === "CREATIVE_DESIGN" || job.type === "FULL_BUILD") {
 			// Legacy path: creative mockup + approval flow
@@ -169,7 +166,7 @@ export async function handleNiscEmailBuilder(c: Context) {
 				buildTrigger,
 			});
 			await appendAssistant(
-				`${result.assistantText}\n\nYour HTML email is ready in the **Email preview** tab.`,
+				buildNebHtmlReadyChatMessage(result.assistantText, { variant: "ready" }),
 			);
 		} else if (job.type === "CHAT") {
 			const message = (job.input as { message?: string })?.message ?? "";
@@ -213,7 +210,7 @@ export async function handleNiscEmailBuilder(c: Context) {
 				await enqueueNebBuildJob(regenJobId);
 			} else if (chat.action === "ready_to_build") {
 				await appendAssistant(
-					`${chat.assistant_text}\n\nClick **Approve & build email** when you're ready — I'll implement the HTML template.`,
+					`${chat.assistant_text}\n\nClick **Approve & build email** when you're ready — I'll turn this into your HTML email.`,
 					{ action: chat.action },
 				);
 			} else {
@@ -261,12 +258,8 @@ export async function handleNiscEmailBuilder(c: Context) {
 				userMessage: input.message ?? "",
 				previousHtml,
 			});
-			const templateNote =
-				result.selectedTemplates.length > 0
-					? `\n\n*Built using design references: ${result.selectedTemplates.join(", ")}*`
-					: "";
 			await appendAssistant(
-				`${result.assistantText}\n\nYour email has been fully rebuilt in the **Email preview** tab.${templateNote}`,
+				buildNebHtmlReadyChatMessage(result.assistantText, { variant: "rebuilt" }),
 				{ action: "full_revamp", subject: result.subject },
 			);
 		} else {

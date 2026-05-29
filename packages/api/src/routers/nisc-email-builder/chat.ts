@@ -105,23 +105,20 @@ export const nebChatRouter = router({
 			brief = mergeBrandEnrichment(brief, brandEnrichment) as NebBrief;
 		}
 
-		const webContext = brandEnrichment?.webContext
-			? brandEnrichment.webContext
-			: brandEnrichment
-				? buildBrandAgentContext(brief, brandEnrichment)
-				: null;
+		// Always derive agent context from the merged brief (user edits win over detection).
+		const webContext = buildBrandAgentContext(brief, brandEnrichment);
 
+		const colorLine =
+			brief.brandColors?.filter((c) => c.trim()).join(", ") ?? "";
 		const userContent = [
-			input.brief.companyName && `Company: ${input.brief.companyName}`,
-			brief.companyName &&
-				brief.companyName !== input.brief.companyName &&
-				`Company (from site): ${brief.companyName}`,
-			input.brief.goal && `Goal: ${input.brief.goal}`,
-			input.brief.audience && `Audience: ${input.brief.audience}`,
-			input.brief.tone && `Tone: ${input.brief.tone}`,
-			input.brief.emailType && `Type: ${input.brief.emailType}`,
+			brief.companyName && `Company: ${brief.companyName}`,
+			brief.goal && `Goal: ${brief.goal}`,
+			brief.audience && `Audience: ${brief.audience}`,
+			brief.tone && `Tone: ${brief.tone}`,
+			brief.emailType && `Type: ${brief.emailType}`,
 			brief.websiteUrl && `Website: ${brief.websiteUrl}`,
-			input.brief.instructions,
+			colorLine && `Brand colors: ${colorLine}`,
+			brief.instructions,
 		]
 			.filter(Boolean)
 			.join("\n");
@@ -159,8 +156,14 @@ export const nebChatRouter = router({
 				metadata: {
 					...prevMeta,
 					brandWebContext: webContext,
-					companyContext: brandEnrichment?.companyContext ?? prevMeta.companyContext,
-					webSearchFound: brandEnrichment?.webSearchFound ?? prevMeta.webSearchFound,
+					companyContext:
+						brief.companyContext ??
+						brandEnrichment?.companyContext ??
+						prevMeta.companyContext,
+					webSearchFound:
+						brief.webSearchFound ??
+						brandEnrichment?.webSearchFound ??
+						prevMeta.webSearchFound,
 					brandEnrichment: brandEnrichment
 						? {
 								logoSource: brandEnrichment.logoSource,
@@ -187,10 +190,10 @@ export const nebChatRouter = router({
 			jobId,
 			brandPreview: brandEnrichment
 				? {
-						logoUrl: brandEnrichment.logoUrl,
-						brandColors: brandEnrichment.brandColors,
-						companyContext: brandEnrichment.companyContext,
-						webSearchFound: brandEnrichment.webSearchFound,
+						logoUrl: brief.logoUrl ?? brandEnrichment.logoUrl,
+						brandColors: brief.brandColors ?? brandEnrichment.brandColors,
+						companyContext: brief.companyContext ?? brandEnrichment.companyContext,
+						webSearchFound: brief.webSearchFound ?? brandEnrichment.webSearchFound,
 						warnings: brandEnrichment.warnings,
 					}
 				: null,
@@ -231,7 +234,7 @@ export const nebChatRouter = router({
 			id: userMessageId,
 			sessionId: session.id,
 			role: "user",
-			content: "Approved — please build the HTML email template.",
+			content: "Approved — please build the HTML email.",
 			createdAt: now,
 		});
 

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Search, Trash2, Upload } from "lucide-react";
+import { Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { NebSpinner } from "./neb-loading";
 import {
 	normalizeImageFilesForUpload,
 	uploadErrorMessage,
@@ -27,12 +27,8 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 import { useCreateNebMediaLibraryItem } from "../_api/use-create-email-builder-library-item";
-
-type LibraryItem = {
-	id: string;
-	fileName: string;
-	fileUrl: string;
-};
+import { useNebMediaLibraryItems } from "../_api/use-neb-media-library-items";
+import { MediaLibraryGrid } from "./media-library-grid";
 
 type ImageLibrarySheetProps = {
 	open: boolean;
@@ -42,64 +38,36 @@ type ImageLibrarySheetProps = {
 export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps) {
 	const [tab, setTab] = React.useState<"library" | "upload">("library");
 	const [search, setSearch] = React.useState("");
-	const [debouncedSearch, setDebouncedSearch] = React.useState("");
-	const [page, setPage] = React.useState(1);
-	const [allItems, setAllItems] = React.useState<LibraryItem[]>([]);
 	const [uploading, setUploading] = React.useState(false);
 	const fileRef = React.useRef<HTMLInputElement>(null);
 
-	const utils = trpc.useUtils();
+	const {
+		items,
+		status,
+		page,
+		setPage,
+		hasMore,
+		isFetchingMore,
+		errorMessage,
+		refetch,
+		prependItem,
+		removeItem,
+	} = useNebMediaLibraryItems({ enabled: open, search });
+
 	const createLibraryItem = useCreateNebMediaLibraryItem();
 	const deleteItem = trpc.niscEmailBuilder.mediaLibrary.delete.useMutation({
 		onSuccess: (_data, variables) => {
-			setAllItems((prev) => prev.filter((i) => i.id !== variables.id));
-			void utils.niscEmailBuilder.mediaLibrary.list.invalidate();
+			removeItem(variables.id);
 			toast.success("Image removed from library");
 		},
 		onError: (e) => toast.error(e.message),
 	});
 
 	React.useEffect(() => {
-		const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
-		return () => clearTimeout(t);
-	}, [search]);
-
-	React.useEffect(() => {
 		if (!open) return;
-		setPage(1);
-		setAllItems([]);
 		setTab("library");
 		setSearch("");
-		setDebouncedSearch("");
 	}, [open]);
-
-	React.useEffect(() => {
-		setPage(1);
-		setAllItems([]);
-	}, [debouncedSearch]);
-
-	const listQuery = trpc.niscEmailBuilder.mediaLibrary.list.useQuery(
-		{
-			page,
-			limit: 40,
-			onlyImages: true,
-			search: debouncedSearch || undefined,
-		},
-		{ enabled: open },
-	);
-
-	React.useEffect(() => {
-		if (!listQuery.data?.data) return;
-		setAllItems((prev) => {
-			if (page === 1) return listQuery.data.data;
-			const ids = new Set(prev.map((i) => i.id));
-			const merged = [...prev];
-			for (const item of listQuery.data.data) {
-				if (!ids.has(item.id)) merged.push(item);
-			}
-			return merged;
-		});
-	}, [listQuery.data, page]);
 
 	const handleUpload = async (file: File) => {
 		setUploading(true);
@@ -109,7 +77,7 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 			});
 			const uploaded = res[0];
 			if (!uploaded) throw new Error("Upload failed");
-			await createLibraryItem.mutateAsync({
+			const created = await createLibraryItem.mutateAsync({
 				fileName: uploaded.name ?? file.name,
 				fileSize: uploaded.size ?? file.size,
 				mimeType: file.type || "image/png",
@@ -117,6 +85,7 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 				storageKey: uploaded.key ?? undefined,
 				metadata: { source: "nisc-email-builder" },
 			});
+			prependItem(created.data);
 			setTab("library");
 			setPage(1);
 			toast.success("Image uploaded");
@@ -166,62 +135,43 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 
 						<ScrollArea className="h-0 min-h-0 flex-1">
 							<div className="pr-3">
-								{listQuery.isLoading && page === 1 ? (
-									<div className="flex justify-center py-12">
-										<Spinner size={20} />
-									</div>
-								) : allItems.length === 0 ? (
-									<p className="py-12 text-center text-sm text-muted-foreground">
-										No images in your library yet.
-									</p>
-								) : (
-									<div className="grid grid-cols-3 gap-2 pb-2">
-										{allItems.map((item) => (
-											<div
-												key={item.id}
-												className="group relative aspect-square overflow-hidden rounded-lg border bg-muted/30"
+								<MediaLibraryGrid
+									items={items}
+									status={status}
+									errorMessage={errorMessage}
+									onRetry={refetch}
+									onUploadClick={() => setTab("upload")}
+									hasMore={hasMore}
+									isFetchingMore={isFetchingMore}
+									onLoadMore={() => setPage(page + 1)}
+									renderItem={(item) => (
+										<div
+											key={item.id}
+											className="group relative aspect-square overflow-hidden rounded-lg border bg-muted/30"
+										>
+											<img
+												src={item.fileUrl}
+												alt={item.fileName}
+												className="h-full w-full object-cover"
+												loading="lazy"
+											/>
+											<Button
+												type="button"
+												variant="destructive"
+												size="icon"
+												className="absolute top-1 right-1 size-7 opacity-0 transition-opacity group-hover:opacity-100"
+												disabled={deleteItem.isPending}
+												onClick={() => deleteItem.mutate({ id: item.id })}
 											>
-												<img
-													src={item.fileUrl}
-													alt={item.fileName}
-													className="h-full w-full object-cover"
-													loading="lazy"
-												/>
-												<Button
-													type="button"
-													variant="destructive"
-													size="icon"
-													className="absolute top-1 right-1 size-7 opacity-0 transition-opacity group-hover:opacity-100"
-													disabled={deleteItem.isPending}
-													onClick={() => deleteItem.mutate({ id: item.id })}
-												>
-													<Trash2 className="size-3.5" />
-												</Button>
-											</div>
-										))}
-									</div>
-								)}
+												<Trash2 className="size-3.5" />
+											</Button>
+										</div>
+									)}
+								/>
 							</div>
 						</ScrollArea>
 
-						{listQuery.data?.nextPage ? (
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								className="mb-4 mt-2 shrink-0"
-								disabled={listQuery.isFetching}
-								onClick={() => setPage((p) => p + 1)}
-							>
-								{listQuery.isFetching ? (
-									<Loader2 className="size-3.5 animate-spin" />
-								) : (
-									"Load more"
-								)}
-							</Button>
-						) : (
-							<div className="mb-4 shrink-0" />
-						)}
+						{!hasMore ? <div className="mb-4 shrink-0" /> : null}
 					</TabsContent>
 
 					<TabsContent
@@ -249,7 +199,7 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 								}}
 							/>
 							{uploading ? (
-								<Spinner size={22} />
+								<NebSpinner context="upload" size={22} className="text-primary" />
 							) : (
 								<>
 									<Upload className="size-7 text-muted-foreground" />

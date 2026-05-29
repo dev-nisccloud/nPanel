@@ -1,13 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Redo2, Send, Undo2 } from "lucide-react";
+import { Redo2, Send, Undo2 } from "lucide-react";
 
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
+import { NebSpinner } from "./neb-loading";
 
 export type NebChatMessage = {
 	id: string;
@@ -26,6 +28,15 @@ type ChatPanelProps = {
 	isSending?: boolean;
 	placeholder?: string;
 	footer?: React.ReactNode;
+	aiRevisionUndo?: {
+		available: boolean;
+		canUndo: boolean;
+		canRedo: boolean;
+		onUndo: () => void;
+		onRedo: () => void;
+		isUndoing: boolean;
+		isRedoing: boolean;
+	};
 };
 
 export function ChatPanel({
@@ -110,7 +121,7 @@ export function ChatPanel({
 							onClick={aiRevisionUndo.onUndo}
 						>
 							{aiRevisionUndo.isUndoing ? (
-								<Loader2 className="size-3.5 animate-spin" />
+								<NebSpinner context="button" size={14} />
 							) : (
 								<Undo2 className="size-3.5" />
 							)}
@@ -130,7 +141,7 @@ export function ChatPanel({
 							onClick={aiRevisionUndo.onRedo}
 						>
 							{aiRevisionUndo.isRedoing ? (
-								<Loader2 className="size-3.5 animate-spin" />
+								<NebSpinner context="button" size={14} />
 							) : (
 								<Redo2 className="size-3.5" />
 							)}
@@ -162,7 +173,7 @@ export function ChatPanel({
 						onClick={onSend}
 					>
 						{isSending ? (
-							<Loader2 className="size-4 animate-spin" />
+							<NebSpinner context="chat" size={16} />
 						) : (
 							<Send className="size-4" />
 						)}
