@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { HexColorPicker } from "react-colorful";
 
-import { Input } from "@/components/ui/input";
+import { ColorPickerPanel, normalizeHex } from "@/components/hex-color-picker";
 import { Label } from "@/components/ui/label";
 import {
 	Popover,
@@ -13,16 +12,6 @@ import {
 
 const ROLE_LABELS = ["Primary", "Accent", "Secondary"] as const;
 const ROLE_DEFAULTS = ["#2563eb", "#7c3aed", "#64748b"] as const;
-
-function normalizeHex(input: string): string | null {
-	const s = input.trim();
-	if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
-	if (/^#[0-9a-fA-F]{3}$/.test(s)) {
-		const h = s.slice(1);
-		return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`.toLowerCase();
-	}
-	return null;
-}
 
 /** Always three slots: primary, accent, secondary. */
 export function padBrandColors(colors: string[]): [string, string, string] {
@@ -83,21 +72,11 @@ export function BrandColorEditor({ colors, onChange }: BrandColorEditorProps) {
 										</span>
 									</button>
 								</PopoverTrigger>
-								<PopoverContent className="w-auto p-3" align="start">
-									<p className="text-xs font-medium mb-2">{label}</p>
-									<HexColorPicker
-										color={shown}
+								<PopoverContent className="w-auto p-0" align="start">
+									<ColorPickerPanel
+										title={label}
+										value={shown}
 										onChange={(v) => updateSlot(index, v)}
-										className="!w-[200px]"
-									/>
-									<Input
-										className="mt-2 font-mono text-xs h-8"
-										value={hex || shown}
-										onChange={(e) => {
-											const n = normalizeHex(e.target.value);
-											if (n) updateSlot(index, n);
-										}}
-										placeholder="#000000"
 									/>
 								</PopoverContent>
 							</Popover>

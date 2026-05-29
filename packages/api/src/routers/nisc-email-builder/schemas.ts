@@ -45,6 +45,9 @@ export const startBuildSchema = z.object({
 export const sendChatSchema = z.object({
 	designId: z.string(),
 	message: z.string().min(1),
+	/** Snapshot of the email HTML at send time (includes unsaved canvas edits). */
+	currentHtml: z.string().optional(),
+	intent: z.enum(["edit", "full_revamp"]).optional(),
 });
 
 export const approveBuildSchema = z.object({
@@ -67,6 +70,14 @@ export const generateVariationSchema = z.object({
 export const selectVariationSchema = z.object({
 	designId: z.string(),
 	variationId: z.string(),
+});
+
+export const saveHtmlSchema = z.object({
+	designId: z.string(),
+	html: z.string().min(1),
+	changeSummary: z.string().optional(),
+	/** When true, updates the current version row instead of creating a new version (auto-save). */
+	inPlace: z.boolean().optional(),
 });
 
 export const createBrandKitSchema = z.object({

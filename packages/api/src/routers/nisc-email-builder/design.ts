@@ -14,12 +14,15 @@ import {
 	isAgencySuperAdminRole,
 	isAgencyUserRole,
 } from "./access";
+import { stripEditorArtifactsFromHtml } from "../../lib/nisc-email-builder/html-sanitize-for-save";
+import { processEmailHtml } from "../../lib/nisc-email-builder/pipeline";
 import {
 	createDesignSchema,
 	designIdSchema,
 	listDesignsSchema,
 	nebDesignRefSchema,
 	restoreVersionSchema,
+	saveHtmlSchema,
 	updateDesignMetaSchema,
 } from "./schemas";
 
@@ -288,6 +291,106 @@ export const nebDesignRouter = router({
 
 			return { data: duplicated };
 		}),
+
+	saveHtml: protectedProcedure.input(saveHtmlSchema).mutation(async ({ ctx, input }) => {
+		const userId = ctx.session?.user?.id;
+		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+		const design = await assertDesignAccess({
+			designId: input.designId,
+			userId,
+			userRole: ctx.session?.user?.role,
+		});
+
+		const cleaned = stripEditorArtifactsFromHtml(input.html);
+		const processed = processEmailHtml(cleaned);
+		if (!processed.validation.ok) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: processed.validation.errors.join("; "),
+			});
+		}
+
+		const now = new Date();
+
+		if (input.inPlace && design.htmlContent === processed.html) {
+			return {
+				success: true,
+				skipped: true,
+				versionId: design.currentVersionId,
+				htmlContent: processed.html,
+				warnings: processed.validation.warnings,
+			};
+		}
+
+		if (input.inPlace && design.currentVersionId) {
+			await db
+				.update(nebDesignVersion)
+				.set({
+					htmlContent: processed.html,
+					textContent: processed.text,
+					changeSummary: input.changeSummary ?? "Auto-saved edits",
+				})
+				.where(eq(nebDesignVersion.id, design.currentVersionId));
+
+			await db
+				.update(nebDesign)
+				.set({
+					htmlContent: processed.html,
+					textContent: processed.text,
+					status: "DRAFT",
+					workflowPhase: "READY",
+					updatedAt: now,
+				})
+				.where(eq(nebDesign.id, input.designId));
+
+			return {
+				success: true,
+				skipped: false,
+				versionId: design.currentVersionId,
+				htmlContent: processed.html,
+				warnings: processed.validation.warnings,
+			};
+		}
+
+		const versionId = randomUUID();
+		const latest = await db.query.nebDesignVersion.findFirst({
+			where: eq(nebDesignVersion.designId, input.designId),
+			orderBy: [desc(nebDesignVersion.versionNumber)],
+		});
+		const versionNumber = (latest?.versionNumber ?? 0) + 1;
+
+		await db.insert(nebDesignVersion).values({
+			id: versionId,
+			designId: input.designId,
+			versionNumber,
+			htmlContent: processed.html,
+			textContent: processed.text,
+			changeSummary: input.changeSummary ?? "Manual edits",
+			trigger: "MANUAL_EDIT",
+			createdAt: now,
+		});
+
+		await db
+			.update(nebDesign)
+			.set({
+				htmlContent: processed.html,
+				textContent: processed.text,
+				currentVersionId: versionId,
+				status: "DRAFT",
+				workflowPhase: "READY",
+				updatedAt: now,
+			})
+			.where(eq(nebDesign.id, input.designId));
+
+		return {
+			success: true,
+			skipped: false,
+			versionId,
+			htmlContent: processed.html,
+			warnings: processed.validation.warnings,
+		};
+	}),
 
 	exportHtml: protectedProcedure.input(designIdSchema).query(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;

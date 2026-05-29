@@ -232,6 +232,36 @@ export const nebActivityLog = pgTable(
 	],
 );
 
+// --- NebMediaLibrary ---------------------------------------------------------
+// User-owned images for Nisc Email Builder — not tied to a design; reusable across projects.
+
+export const nebMediaLibrary = pgTable(
+	"neb_media_library",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		teamId: text("team_id").references(() => team.id, { onDelete: "set null" }),
+
+		fileName: text("file_name").notNull(),
+		fileSize: integer("file_size").notNull(),
+		mimeType: text("mime_type").notNull(),
+		fileUrl: text("file_url").notNull(),
+		storageKey: text("storage_key"),
+
+		description: text("description"),
+		metadata: jsonb("metadata"),
+
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => [
+		index("neb_media_library_userId_idx").on(table.userId),
+		index("neb_media_library_teamId_idx").on(table.teamId),
+		index("neb_media_library_createdAt_idx").on(table.createdAt),
+	],
+);
+
 // --- Relations ---------------------------------------------------------------
 
 export const nebDesignRelations = relations(nebDesign, ({ one, many }) => ({
@@ -283,4 +313,9 @@ export const nebAssetRelations = relations(nebAsset, ({ one }) => ({
 		fields: [nebAsset.designId],
 		references: [nebDesign.id],
 	}),
+}));
+
+export const nebMediaLibraryRelations = relations(nebMediaLibrary, ({ one }) => ({
+	user: one(user, { fields: [nebMediaLibrary.userId], references: [user.id] }),
+	team: one(team, { fields: [nebMediaLibrary.teamId], references: [team.id] }),
 }));

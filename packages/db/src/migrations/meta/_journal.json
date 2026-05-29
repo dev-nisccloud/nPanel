@@ -246,6 +246,13 @@
       "when": 1779527504974,
       "tag": "0034_demonic_wild_child",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1780048600646,
+      "tag": "0035_panoramic_spitfire",
+      "breakpoints": true
     }
   ]
 }

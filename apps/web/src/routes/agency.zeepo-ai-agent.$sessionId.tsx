@@ -3470,13 +3470,17 @@ export default function ZeepoAiAgentSessionPage() {
 
           {/* ── Edit history drawer (Sheet) ─────────────────── */}
           <Sheet open={showHistoryDrawer} onOpenChange={setShowHistoryDrawer}>
-            <SheetContent side="right" className="w-72 sm:w-80 flex flex-col p-0">
-              <SheetHeader className="border-b px-4 py-3">
+            <SheetContent
+              side="right"
+              className="flex h-full max-h-svh w-72 flex-col gap-0 overflow-hidden p-0 sm:w-80"
+            >
+              <SheetHeader className="shrink-0 border-b px-4 py-3">
                 <SheetTitle className="flex items-center gap-2 text-sm">
                   <Clock className="size-4 text-primary" /> Edit History
                 </SheetTitle>
               </SheetHeader>
-              <ScrollArea className="flex-1">
+              <ScrollArea className="h-0 min-h-0 flex-1">
+                <div className="pr-3">
                 {editHistoryQuery.isPending ? (
                   <div className="flex flex-col gap-2 p-4">
                     {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
@@ -3551,6 +3555,7 @@ export default function ZeepoAiAgentSessionPage() {
                     })}
                   </div>
                 )}
+                </div>
               </ScrollArea>
             </SheetContent>
           </Sheet>

@@ -13,4 +13,10 @@ export const NEB_CREATIVE_IMAGE_MODEL = "google/nano-banana-pro";
 export const NEB_CHAT_MODEL = "anthropic/claude-4.5-haiku";
 export const NEB_CREATIVE_DIRECTOR_MODEL = "anthropic/claude-4.5-sonnet";
 
+/** Lightweight model for template selection (use-case classification). */
+export const NEB_TEMPLATE_PICKER_MODEL = "anthropic/claude-4.5-haiku";
+
+/** Direct HTML build model — used when skipping the creative design step. */
+export const NEB_DIRECT_HTML_MODEL = "anthropic/claude-4.5-sonnet";
+
 export const NEB_DEFAULT_CTA = "https://example.com";

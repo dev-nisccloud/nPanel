@@ -2,7 +2,6 @@ import Replicate from "replicate";
 import { UTApi } from "uploadthing/server";
 
 import { isReplicateHostedMediaUrl } from "../replicate-hosted-url";
-import type { NebImageSlot } from "./types";
 
 const utapi = new UTApi();
 
@@ -44,21 +43,30 @@ function extractImageUrl(output: unknown): string {
 	throw new Error(`Unexpected Imagen output: ${JSON.stringify(output).slice(0, 200)}`);
 }
 
+export type Imagen4UltraInput = {
+	prompt: string;
+	imageSize?: "1K" | "2K";
+	aspectRatio?: string;
+	outputFormat?: "jpg" | "png";
+	safetyFilterLevel?: "block_low_and_above" | "block_medium_and_above" | "block_only_high";
+};
+
 /**
- * google/imagen-4-ultra via Replicate predictions API (matches product spec).
+ * google/imagen-4-ultra via Replicate predictions API.
+ * Used for icon assets (sharp, clean rendering on any background color).
  */
 export async function generateImagen4Ultra(
 	replicate: Replicate,
-	slot: NebImageSlot,
+	input: Imagen4UltraInput,
 ): Promise<{ fileUrl: string; storageKey?: string }> {
 	const prediction = await replicate.predictions.create({
 		model: "google/imagen-4-ultra",
 		input: {
-			prompt: slot.prompt,
-			image_size: slot.imageSize ?? "1K",
-			aspect_ratio: slot.aspectRatio ?? "16:9",
-			output_format: "jpg",
-			safety_filter_level: "block_only_high",
+			prompt: input.prompt,
+			image_size: input.imageSize ?? "1K",
+			aspect_ratio: input.aspectRatio ?? "1:1",
+			output_format: input.outputFormat ?? "png",
+			safety_filter_level: input.safetyFilterLevel ?? "block_only_high",
 		},
 	});
 

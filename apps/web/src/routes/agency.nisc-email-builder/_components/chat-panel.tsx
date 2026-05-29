@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Redo2, Send, Undo2 } from "lucide-react";
 
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export function ChatPanel({
 	isSending,
 	placeholder = "Ask for changes…",
 	footer,
+	aiRevisionUndo,
 }: ChatPanelProps) {
 	const bottomRef = React.useRef<HTMLDivElement>(null);
 
@@ -92,6 +93,53 @@ export function ChatPanel({
 
 			<div className="p-3 border-t space-y-2 shrink-0 bg-background">
 				{footer}
+				{aiRevisionUndo?.available ? (
+					<div className="flex items-center gap-1.5">
+						<Button
+							type="button"
+							variant="outline"
+							size="icon"
+							className="size-8"
+							disabled={
+								!aiRevisionUndo.canUndo ||
+								aiRevisionUndo.isUndoing ||
+								aiRevisionUndo.isRedoing ||
+								disabled
+							}
+							title="Undo last AI edit"
+							onClick={aiRevisionUndo.onUndo}
+						>
+							{aiRevisionUndo.isUndoing ? (
+								<Loader2 className="size-3.5 animate-spin" />
+							) : (
+								<Undo2 className="size-3.5" />
+							)}
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							size="icon"
+							className="size-8"
+							disabled={
+								!aiRevisionUndo.canRedo ||
+								aiRevisionUndo.isUndoing ||
+								aiRevisionUndo.isRedoing ||
+								disabled
+							}
+							title="Redo AI edit"
+							onClick={aiRevisionUndo.onRedo}
+						>
+							{aiRevisionUndo.isRedoing ? (
+								<Loader2 className="size-3.5 animate-spin" />
+							) : (
+								<Redo2 className="size-3.5" />
+							)}
+						</Button>
+						<span className="text-[10px] text-muted-foreground leading-tight">
+							Undo/redo AI edits (temporary, ~7 days)
+						</span>
+					</div>
+				) : null}
 				<div className="flex gap-2">
 					<Textarea
 						placeholder={placeholder}

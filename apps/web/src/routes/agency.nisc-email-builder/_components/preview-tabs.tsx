@@ -1,13 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { ImageIcon, Mail, Plus, CheckCircle2, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import {
+	ImageIcon,
+	Mail,
+	Pencil,
+	Eye,
+	Plus,
+	CheckCircle2,
+	ChevronLeft,
+	ChevronRight,
+	Sparkles,
+	Check,
+	ImagePlus,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+
+import { ChatRevisionOverlay } from "./chat-revision-overlay";
+import { buildNoScrollSrcDoc } from "./edit-mode/email-edit-canvas";
+import { EmailEditView } from "./edit-mode/email-edit-view";
 
 export type DesignVariation = {
 	id: string;
@@ -16,10 +33,12 @@ export type DesignVariation = {
 };
 
 type PreviewTabsProps = {
+	designId: string;
 	creativeDesignUrl: string | null | undefined;
 	htmlContent: string | null | undefined;
 	isDesigning: boolean;
 	isBuilding: boolean;
+	canEdit?: boolean;
 	/** True when image slots are being generated (HYDRATING_IMAGES). */
 	isHydratingImages?: boolean;
 	previewWidth: "desktop" | "mobile";
@@ -32,6 +51,9 @@ type PreviewTabsProps = {
 	/** Regenerate HTML from approved creative (when email already exists). */
 	onRetryHtmlBuild?: () => void;
 	isRetryingHtml?: boolean;
+	/** Chat AI is revising existing HTML — show overlay, not initial build loader */
+	isAiRevising?: boolean;
+	onLatestHtmlChange?: (html: string) => void;
 };
 
 const DESIGN_PHRASES = [
@@ -95,13 +117,43 @@ function DesigningLoader() {
 }
 
 const BUILD_PHRASES = [
-	"Documenting every section of your design…",
-	"Capturing exact colors, spacing, and copy…",
-	"Mapping icons and images from your comp…",
-	"Building responsive HTML tables…",
-	"Matching layout to your creative mockup…",
-	"Generating icon and photo assets…",
+	"Analysing your brief and selecting design templates…",
+	"Crafting a bespoke layout for your campaign…",
+	"Applying your brand colours and typography…",
+	"Building responsive HTML tables and sections…",
+	"Writing on-brand copy and placing image slots…",
+	"Polishing every detail of your email template…",
 ];
+
+type BuildStep = {
+	label: string;
+	sublabel?: string;
+	status: "done" | "active" | "pending";
+	icon: React.ReactNode;
+};
+
+function StepBadge({ step }: { step: BuildStep }) {
+	return (
+		<div
+			className={cn(
+				"flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+				step.status === "done" &&
+					"border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400",
+				step.status === "active" &&
+					"border-violet-200 bg-violet-50 text-violet-700 shadow-sm dark:border-violet-800 dark:bg-violet-950 dark:text-violet-300",
+				step.status === "pending" &&
+					"border-border bg-muted/40 text-muted-foreground",
+			)}
+		>
+			<span className="shrink-0">
+				{step.status === "done" && <Check className="size-3" />}
+				{step.status === "active" && <Spinner size={11} />}
+				{step.status === "pending" && step.icon}
+			</span>
+			<span>{step.label}</span>
+		</div>
+	);
+}
 
 function BuildingLoader({
 	creativeDesignUrl,
@@ -120,11 +172,39 @@ function BuildingLoader({
 	}, []);
 
 	const phrase = isHydratingImages
-		? "Generating images from your creative design…"
+		? "Generating and uploading your image assets…"
 		: BUILD_PHRASES[phraseIdx];
 
+	const steps: BuildStep[] = [
+		{
+			label: "Design concept ready",
+			status: "done",
+			icon: <Check className="size-3" />,
+		},
+		{
+			label: isHydratingImages ? "HTML built" : "Building HTML",
+			sublabel: isHydratingImages ? undefined : "Tables, copy & layout",
+			status: isHydratingImages ? "done" : "active",
+			icon: <Mail className="size-3 opacity-40" />,
+		},
+		{
+			label: isHydratingImages ? "Adding images" : "Image assets",
+			sublabel: isHydratingImages ? "Generating & uploading" : undefined,
+			status: isHydratingImages ? "active" : "pending",
+			icon: <ImagePlus className="size-3 opacity-40" />,
+		},
+	];
+
 	return (
-		<div className="flex flex-col items-center gap-6 py-12 max-w-md w-full px-4">
+		<div className="flex flex-col items-center gap-7 py-12 max-w-md w-full px-4">
+			{/* Step badges */}
+			<div className="flex flex-wrap justify-center gap-2">
+				{steps.map((step) => (
+					<StepBadge key={step.label} step={step} />
+				))}
+			</div>
+
+			{/* Skeleton preview */}
 			{creativeDesignUrl ? (
 				<div className="relative w-full max-w-[220px] rounded-xl border bg-white shadow-md overflow-hidden opacity-90">
 					<img
@@ -152,17 +232,18 @@ function BuildingLoader({
 				</div>
 			)}
 
-			<div className="flex flex-col items-center gap-2 text-center">
+			{/* Current action */}
+			<div className="flex flex-col items-center gap-1.5 text-center">
 				<div className="flex items-center gap-2">
-					<Spinner size={16} className="text-primary shrink-0" />
+					<Spinner size={14} className="text-primary shrink-0" />
 					<p key={phrase} className="text-sm font-medium text-foreground">
 						{phrase}
 					</p>
 				</div>
 				<p className="text-xs text-muted-foreground max-w-xs">
 					{isHydratingImages
-						? "Creating photo assets that match your mockup pixel-for-pixel."
-						: "Converting your creative mockup into a live, send-ready HTML email."}
+						? "Generating image assets and uploading them to your email template."
+						: "Building your production-ready HTML email from your brief and brand."}
 				</p>
 			</div>
 		</div>
@@ -310,11 +391,57 @@ function VariationToolbar({
 	);
 }
 
+/**
+ * Renders the email HTML in an iframe that automatically expands to fit the
+ * full content height — no empty gray space, no internal scroll bar.
+ */
+function AutoSizeIframe({ html, width }: { html: string; width: number }) {
+	const iframeRef = React.useRef<HTMLIFrameElement>(null);
+	const [height, setHeight] = React.useState(600);
+	const loadedHtmlRef = React.useRef(html);
+
+	const [srcDoc, setSrcDoc] = React.useState(() => buildNoScrollSrcDoc(html));
+	const [iframeKey, setIframeKey] = React.useState(0);
+
+	React.useEffect(() => {
+		if (html === loadedHtmlRef.current) return;
+		loadedHtmlRef.current = html;
+		setSrcDoc(buildNoScrollSrcDoc(html));
+		setIframeKey((k) => k + 1);
+	}, [html]);
+
+	const measure = React.useCallback(() => {
+		const doc = iframeRef.current?.contentDocument;
+		if (!doc) return;
+		const h = Math.max(
+			doc.documentElement?.scrollHeight ?? 0,
+			doc.body?.scrollHeight ?? 0,
+			400,
+		);
+		setHeight(h);
+	}, []);
+
+	return (
+		<iframe
+			key={iframeKey}
+			ref={iframeRef}
+			title="Email preview"
+			srcDoc={srcDoc}
+			onLoad={measure}
+			style={{ height: `${height}px`, width: `${width}px` }}
+			className="bg-white border shadow-sm rounded-sm block shrink-0"
+			sandbox="allow-same-origin"
+		/>
+	);
+}
+
 export function PreviewTabs({
+	designId,
 	creativeDesignUrl,
 	htmlContent,
 	isDesigning,
 	isBuilding,
+	canEdit = false,
 	isHydratingImages,
 	previewWidth,
 	onPreviewWidthChange,
@@ -325,10 +452,68 @@ export function PreviewTabs({
 	isGeneratingVariation,
 	onRetryHtmlBuild,
 	isRetryingHtml,
+	isAiRevising = false,
+	onLatestHtmlChange,
 }: PreviewTabsProps) {
 	const hasHtml = Boolean(htmlContent?.trim());
 	const showEmailLoader = isBuilding;
-	const [tab, setTab] = React.useState(hasHtml ? "email" : "creative");
+	const [emailViewMode, setEmailViewMode] = React.useState<"preview" | "edit">("preview");
+	const [editDirty, setEditDirty] = React.useState(false);
+	/** Live HTML from edit canvas — keeps preview tab in sync before refetch completes */
+	const [livePreviewHtml, setLivePreviewHtml] = React.useState<string | null>(null);
+	const previewHtml = livePreviewHtml ?? htmlContent ?? "";
+
+	React.useEffect(() => {
+		if (previewHtml.trim()) onLatestHtmlChange?.(previewHtml);
+	}, [previewHtml, onLatestHtmlChange]);
+	const {
+		open: sidebarOpen,
+		setOpen: setSidebarOpen,
+		openMobile,
+		setOpenMobile,
+		isMobile,
+	} = useSidebar();
+
+	const setViewMode = (mode: "preview" | "edit") => {
+		if (mode === "preview" && editDirty) {
+			const ok = window.confirm(
+				"You have unsaved edits. Discard them and switch to preview?",
+			);
+			if (!ok) return;
+		}
+		setEmailViewMode(mode);
+	};
+
+	React.useEffect(() => {
+		if (!canEdit) setEmailViewMode("preview");
+	}, [canEdit]);
+
+	React.useEffect(() => {
+		if (emailViewMode === "edit") return;
+		setLivePreviewHtml(null);
+	}, [emailViewMode, htmlContent]);
+
+	// Collapse agency nav sidebar in edit mode (same pattern as Zeepo preview panels).
+	React.useEffect(() => {
+		if (emailViewMode !== "edit") return;
+		if (isMobile) {
+			if (openMobile) setOpenMobile(false);
+			return;
+		}
+		if (sidebarOpen) setSidebarOpen(false);
+	}, [
+		emailViewMode,
+		isMobile,
+		sidebarOpen,
+		openMobile,
+		setSidebarOpen,
+		setOpenMobile,
+	]);
+
+	// Only show the Creative design tab for legacy designs that have (or are generating) a mockup
+	const showCreativeTab = isDesigning || Boolean(creativeDesignUrl) || variations.length > 0;
+
+	const [tab, setTab] = React.useState(showCreativeTab && !hasHtml ? "creative" : "email");
 
 	React.useEffect(() => {
 		if (hasHtml) setTab("email");
@@ -339,24 +524,35 @@ export function PreviewTabs({
 		if (isBuilding) setTab("email");
 	}, [isBuilding]);
 
+	// If creative tab is hidden and we somehow land on it, redirect to email
+	React.useEffect(() => {
+		if (!showCreativeTab && tab === "creative") setTab("email");
+	}, [showCreativeTab, tab]);
+
 	// Show toolbar if there is at least one design (even while the first is generating,
 	// we might already have a prior one), or if we have a creativeDesignUrl at all.
 	const showToolbar = variations.length > 0 || Boolean(creativeDesignUrl) || isDesigning;
 
 	return (
-		<Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
+		<Tabs
+			value={tab}
+			onValueChange={setTab}
+			className="flex min-h-0 flex-1 flex-col overflow-hidden"
+		>
 			{/* ── top bar ── */}
 			<div className="flex items-center justify-between border-b bg-background px-4 py-2 shrink-0">
 				<TabsList>
-					<TabsTrigger value="creative" className="gap-1.5">
-						<ImageIcon className="size-3.5" />
-						Creative design
-						{variations.length > 1 && (
-							<span className="ml-1 rounded-full bg-primary/15 text-primary text-[10px] font-semibold px-1.5 py-px leading-none">
-								{variations.length}
-							</span>
-						)}
-					</TabsTrigger>
+					{showCreativeTab && (
+						<TabsTrigger value="creative" className="gap-1.5">
+							<ImageIcon className="size-3.5" />
+							Creative design
+							{variations.length > 1 && (
+								<span className="ml-1 rounded-full bg-primary/15 text-primary text-[10px] font-semibold px-1.5 py-px leading-none">
+									{variations.length}
+								</span>
+							)}
+						</TabsTrigger>
+					)}
 					<TabsTrigger
 						value="email"
 						className="gap-1.5"
@@ -370,6 +566,31 @@ export function PreviewTabs({
 					</TabsTrigger>
 				</TabsList>
 				<div className="flex items-center gap-2">
+					{hasHtml && canEdit && !isBuilding ? (
+						<div className="flex gap-0.5 rounded-md border p-0.5 mr-1">
+							<Button
+								variant={emailViewMode === "preview" ? "secondary" : "ghost"}
+								size="sm"
+								className="h-7 gap-1.5 text-xs"
+								onClick={() => setViewMode("preview")}
+							>
+								<Eye className="size-3.5" />
+								Preview
+							</Button>
+							<Button
+								variant={emailViewMode === "edit" ? "secondary" : "ghost"}
+								size="sm"
+								className="h-7 gap-1.5 text-xs"
+								onClick={() => setViewMode("edit")}
+							>
+								<Pencil className="size-3.5" />
+								Edit
+								{editDirty ? (
+									<span className="size-1.5 rounded-full bg-amber-500" />
+								) : null}
+							</Button>
+						</div>
+					) : null}
 					{hasHtml && onRetryHtmlBuild && creativeDesignUrl ? (
 						<Button
 							variant="outline"
@@ -403,11 +624,11 @@ export function PreviewTabs({
 				</div>
 			</div>
 
-			{/* ── creative tab ── */}
-			<TabsContent
-				value="creative"
-				className="flex-1 m-0 min-h-0 data-[state=inactive]:hidden flex flex-col"
-			>
+		{/* ── creative tab — only rendered for legacy designs with a mockup ── */}
+		{showCreativeTab && <TabsContent
+			value="creative"
+			className="flex-1 m-0 min-h-0 data-[state=inactive]:hidden flex flex-col"
+		>
 				{/* Variation toolbar — always visible once any design exists */}
 				{showToolbar && (
 					<VariationToolbar
@@ -442,40 +663,62 @@ export function PreviewTabs({
 							)}
 						</div>
 					) : (
-						<div className="text-center text-sm text-muted-foreground py-20 max-w-sm">
-							<ImageIcon className="size-10 mx-auto mb-3 opacity-40" />
-							<p>Your creative design will appear here once you submit the brief.</p>
-						</div>
+					<div className="text-center text-sm text-muted-foreground py-20 max-w-sm">
+						<ImageIcon className="size-10 mx-auto mb-3 opacity-40" />
+						<p>Creative design previews appear here when generated from the legacy flow.</p>
+					</div>
 					)}
 				</div>
-			</TabsContent>
+		</TabsContent>}
 
-			{/* ── email tab ── */}
-			<TabsContent value="email" className="flex-1 m-0 min-h-0 data-[state=inactive]:hidden">
-				<div className="flex-1 overflow-auto p-6 flex justify-center items-start bg-zinc-100 dark:bg-zinc-900 min-h-full">
-					{showEmailLoader ? (
+		{/* ── email tab ── */}
+		<TabsContent
+			value="email"
+			className="flex-1 m-0 min-h-0 data-[state=inactive]:hidden flex flex-col relative"
+		>
+			{isAiRevising ? (
+				<ChatRevisionOverlay isHydratingImages={isHydratingImages} />
+			) : null}
+			{showEmailLoader ? (
+				<div className="flex-1 overflow-auto min-h-0">
+					<div className="min-h-full py-6 px-4 flex flex-col items-center bg-zinc-100 dark:bg-zinc-900">
 						<BuildingLoader
 							creativeDesignUrl={creativeDesignUrl}
 							isHydratingImages={isHydratingImages}
 						/>
-					) : hasHtml ? (
-						<iframe
-							title="Email preview"
-							srcDoc={htmlContent!}
-							className={cn(
-								"bg-white border shadow-sm rounded-sm min-h-[480px] h-full",
-								previewWidth === "desktop" ? "w-[640px]" : "w-[375px]",
-							)}
-							sandbox="allow-same-origin"
+					</div>
+				</div>
+			) : hasHtml && emailViewMode === "edit" && canEdit ? (
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+					<EmailEditView
+						designId={designId}
+						htmlContent={htmlContent!}
+						previewWidth={previewWidth}
+						onDirtyChange={setEditDirty}
+						onDraftHtmlChange={setLivePreviewHtml}
+						onSaved={() => setLivePreviewHtml(null)}
+					/>
+				</div>
+			) : hasHtml ? (
+				<div className="flex-1 overflow-auto min-h-0">
+					<div className="min-h-full py-6 px-4 flex flex-col items-center bg-zinc-100 dark:bg-zinc-900">
+						<AutoSizeIframe
+							html={previewHtml}
+							width={previewWidth === "desktop" ? 640 : 375}
 						/>
-					) : (
+					</div>
+				</div>
+			) : (
+				<div className="flex-1 overflow-auto min-h-0">
+					<div className="min-h-full py-6 px-4 flex flex-col items-center bg-zinc-100 dark:bg-zinc-900">
 						<div className="text-center text-sm text-muted-foreground py-20 max-w-sm">
 							<Mail className="size-10 mx-auto mb-3 opacity-40" />
-							<p>Approve your creative design to generate the HTML email preview.</p>
+							<p>Submit your brief to generate the HTML email preview.</p>
 						</div>
-					)}
+					</div>
 				</div>
-			</TabsContent>
+			)}
+		</TabsContent>
 		</Tabs>
 	);
 }

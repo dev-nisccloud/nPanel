@@ -10,6 +10,7 @@ import { env } from "@npanel/env/server";
 import { z } from "zod";
 
 import { NEB_CREATIVE_DIRECTOR_MODEL } from "./constants";
+import { saveToNebMediaLibrary } from "./media-library-persist";
 import { generateNanoBananaPro } from "./nano-banana";
 import { parseJsonFromModel } from "./json-parse";
 import {
@@ -134,6 +135,21 @@ export async function runNebCreativeDesign(
 			altText: "Email creative design",
 			prompt: directed.image_prompt,
 			createdAt: new Date(),
+		});
+
+		await saveToNebMediaLibrary({
+			userId: params.userId,
+			teamId: params.teamId,
+			fileName: `creative-mockup-${params.designId.slice(0, 8)}.png`,
+			fileSize: 0,
+			mimeType: "image/png",
+			fileUrl,
+			storageKey,
+			description: "Email creative design mockup",
+			metadata: {
+				source: "neb-creative-mockup",
+				designId: params.designId,
+			},
 		});
 
 		// Load existing metadata so we can append the variation without wiping other fields
