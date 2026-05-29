@@ -15,7 +15,9 @@ import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
@@ -24,15 +26,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmojiInsertPopover } from "../emoji-insert-popover";
 import { InspectorSection } from "../inspector-section";
 import {
+	FONT_WEIGHT_OPTIONS,
+	GOOGLE_EMAIL_FONTS,
+	GOOGLE_EMAIL_FONTS_BY_CATEGORY,
+	normalizeFontWeight,
+} from "../email-fonts";
+import {
 	applyInlineStyle,
 	applyTextContent,
 	ensureGoogleFontsLink,
-	GOOGLE_EMAIL_FONTS,
 	matchGoogleFontId,
 	type NebElementSnapshot,
 } from "../html-edit-client";
+import { FontFamilyPreview, useInspectorGoogleFonts } from "../font-picker-preview";
 import {
-	FontFamilyTrigger,
 	FONT_SIZE_OPTIONS,
 	IconToggleGroup,
 	InspectorControlRow,
@@ -56,6 +63,8 @@ function appendToElementText(element: HTMLElement, extra: string): void {
 }
 
 export function TextPanel({ element, snapshot, onChange }: TextPanelProps) {
+	useInspectorGoogleFonts();
+
 	const [text, setText] = React.useState(snapshot.textContent.trim());
 
 	React.useEffect(() => {
@@ -64,10 +73,12 @@ export function TextPanel({ element, snapshot, onChange }: TextPanelProps) {
 
 	const listStyle = listStyleFromHtml(snapshot.innerHTML);
 	const fontId = matchGoogleFontId(snapshot.fontFamily);
-	const fontLabel = GOOGLE_EMAIL_FONTS.find((f) => f.id === fontId)?.label ?? "Inter";
+	const selectedFont =
+		GOOGLE_EMAIL_FONTS.find((f) => f.id === fontId) ?? GOOGLE_EMAIL_FONTS[0]!;
+	const fontWeight = normalizeFontWeight(snapshot.fontWeight);
 
 	const toggleWeight = () => {
-		const bold = Number.parseInt(snapshot.fontWeight, 10) >= 600;
+		const bold = Number.parseInt(fontWeight, 10) >= 600;
 		applyInlineStyle(element, { fontWeight: bold ? "400" : "700" });
 		onChange();
 	};
@@ -109,7 +120,7 @@ export function TextPanel({ element, snapshot, onChange }: TextPanelProps) {
 
 	return (
 		<InspectorSection title="Text" sectionId="text">
-			<div className="space-y-4">
+			<div className="space-y-4 min-w-0">
 				<div className="space-y-2">
 					<Label>Content</Label>
 					<Textarea
@@ -130,7 +141,7 @@ export function TextPanel({ element, snapshot, onChange }: TextPanelProps) {
 					/>
 				</div>
 
-				<div className="grid grid-cols-2 gap-2">
+				<div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2 min-w-0">
 					<Select
 						value={fontId}
 						onValueChange={(id) => {
@@ -141,16 +152,30 @@ export function TextPanel({ element, snapshot, onChange }: TextPanelProps) {
 							onChange();
 						}}
 					>
-						<SelectTrigger className="h-9">
-							<SelectValue>
-								<FontFamilyTrigger label={fontLabel} />
+						<SelectTrigger className="h-10 w-full min-w-0 max-w-full items-center">
+							<SelectValue className="min-w-0">
+								<FontFamilyPreview font={selectedFont} variant="trigger" />
 							</SelectValue>
 						</SelectTrigger>
-						<SelectContent>
-							{GOOGLE_EMAIL_FONTS.map((f) => (
-								<SelectItem key={f.id} value={f.id}>
-									<span style={{ fontFamily: f.fontFamily }}>{f.label}</span>
-								</SelectItem>
+						<SelectContent
+							className="max-h-[min(360px,70vh)] w-[min(280px,calc(100vw-2rem))]"
+							position="popper"
+						>
+							{GOOGLE_EMAIL_FONTS_BY_CATEGORY.map((group) => (
+								<SelectGroup key={group.category}>
+									<SelectLabel className="font-sans text-[11px] uppercase tracking-wide">
+										{group.label}
+									</SelectLabel>
+									{group.fonts.map((f) => (
+										<SelectItem
+											key={f.id}
+											value={f.id}
+											className="py-2 pl-2 pr-8"
+										>
+											<FontFamilyPreview font={f} variant="item" />
+										</SelectItem>
+									))}
+								</SelectGroup>
 							))}
 						</SelectContent>
 					</Select>
@@ -162,10 +187,10 @@ export function TextPanel({ element, snapshot, onChange }: TextPanelProps) {
 							onChange();
 						}}
 					>
-						<SelectTrigger className="h-9">
+						<SelectTrigger className="h-9 w-full min-w-0 shrink-0">
 							<SelectValue />
 						</SelectTrigger>
-						<SelectContent>
+						<SelectContent className="max-h-[min(280px,60vh)]">
 							{FONT_SIZE_OPTIONS.map((size) => (
 								<SelectItem key={size} value={size}>
 									{size}px
@@ -175,14 +200,33 @@ export function TextPanel({ element, snapshot, onChange }: TextPanelProps) {
 					</Select>
 				</div>
 
+				<InspectorControlRow label="Font weight">
+					<Select
+						value={fontWeight}
+						onValueChange={(w) => {
+							applyInlineStyle(element, { fontWeight: w });
+							onChange();
+						}}
+					>
+						<SelectTrigger className="h-9 w-[11rem] min-w-0">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{FONT_WEIGHT_OPTIONS.map((opt) => (
+								<SelectItem key={opt.value} value={opt.value}>
+									{opt.label} ({opt.value})
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</InspectorControlRow>
+
 				<InspectorControlRow label="Formatting">
 					<div className="flex gap-0.5 rounded-lg border bg-muted/30 p-0.5">
 						<Button
 							type="button"
 							variant={
-								Number.parseInt(snapshot.fontWeight, 10) >= 600
-									? "secondary"
-									: "ghost"
+								Number.parseInt(fontWeight, 10) >= 600 ? "secondary" : "ghost"
 							}
 							size="icon"
 							className="size-7 rounded-md"

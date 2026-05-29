@@ -1,3 +1,5 @@
+import { buildNebGoogleFontsStylesheetUrls } from "./email-fonts";
+
 export const NEB_EDITOR_STYLE_ID = "neb-editor-styles";
 
 /** Stable element ids for edit mode; works on HTTP and older browsers. */
@@ -318,52 +320,45 @@ export function applyPadding(
 	});
 }
 
-/** Curated Google Fonts for the edit-mode picker (single combined stylesheet). */
-export const NEB_GOOGLE_FONTS_LINK =
-	"https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto:wght@400;500;700&family=Playfair+Display:wght@400;700&family=Lora:wght@400;600&family=Montserrat:wght@400;600;700&display=swap";
+export {
+	buildNebGoogleFontsStylesheetUrl,
+	buildNebGoogleFontsStylesheetUrls,
+	GOOGLE_EMAIL_FONTS,
+	GOOGLE_EMAIL_FONTS_BY_CATEGORY,
+	matchGoogleFontId,
+	normalizeFontWeight,
+	primaryGoogleFontName,
+	FONT_WEIGHT_OPTIONS,
+	NEB_GOOGLE_FONTS_LINK,
+	type GoogleEmailFont,
+} from "./email-fonts";
 
 export const NEB_GOOGLE_FONTS_LINK_ID = "neb-google-fonts";
 
-export type GoogleEmailFont = {
-	id: string;
-	label: string;
-	/** CSS font-family stack applied to the selected element */
-	fontFamily: string;
-};
-
-export const GOOGLE_EMAIL_FONTS: GoogleEmailFont[] = [
-	{ id: "inter", label: "Inter", fontFamily: '"Inter", Arial, sans-serif' },
-	{ id: "roboto", label: "Roboto", fontFamily: '"Roboto", Arial, sans-serif' },
-	{
-		id: "playfair",
-		label: "Playfair Display",
-		fontFamily: '"Playfair Display", Georgia, serif',
-	},
-	{ id: "lora", label: "Lora", fontFamily: '"Lora", Georgia, serif' },
-	{
-		id: "montserrat",
-		label: "Montserrat",
-		fontFamily: '"Montserrat", Arial, sans-serif',
-	},
-];
-
-/** Inject Google Fonts stylesheet into the edit iframe so previews match sent email. */
+/** Inject all curated Google Font stylesheets (edit iframe + inspector). */
 export function ensureGoogleFontsLink(doc: Document): void {
-	if (doc.getElementById(NEB_GOOGLE_FONTS_LINK_ID)) return;
-	const link = doc.createElement("link");
-	link.id = NEB_GOOGLE_FONTS_LINK_ID;
-	link.rel = "stylesheet";
-	link.href = NEB_GOOGLE_FONTS_LINK;
-	doc.head.appendChild(link);
-}
+	const hrefs = buildNebGoogleFontsStylesheetUrls();
+	const containerId = `${NEB_GOOGLE_FONTS_LINK_ID}-bundle`;
 
-/** Match computed font-family to one of our Google font options. */
-export function matchGoogleFontId(computedFontFamily: string): string {
-	const lower = computedFontFamily.toLowerCase();
-	for (const font of GOOGLE_EMAIL_FONTS) {
-		if (lower.includes(font.label.toLowerCase())) return font.id;
-		const primary = font.fontFamily.split(",")[0]?.replace(/['"]/g, "").trim().toLowerCase();
-		if (primary && lower.includes(primary)) return font.id;
+	let container = doc.getElementById(containerId);
+	if (!container) {
+		container = doc.createElement("div");
+		container.id = containerId;
+		container.setAttribute("aria-hidden", "true");
+		doc.head.appendChild(container);
 	}
-	return GOOGLE_EMAIL_FONTS[0].id;
+
+	const signature = hrefs.join("|");
+	if (container.getAttribute("data-neb-fonts") === signature) return;
+
+	container.setAttribute("data-neb-fonts", signature);
+	container.replaceChildren();
+
+	for (let i = 0; i < hrefs.length; i++) {
+		const link = doc.createElement("link");
+		link.id = i === 0 ? NEB_GOOGLE_FONTS_LINK_ID : `${NEB_GOOGLE_FONTS_LINK_ID}-${i}`;
+		link.rel = "stylesheet";
+		link.href = hrefs[i]!;
+		container.appendChild(link);
+	}
 }
