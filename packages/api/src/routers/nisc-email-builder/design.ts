@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, exists, isNull, or } from "@npanel/db";
+import { and, desc, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import {
 	nebDesign,
@@ -11,6 +11,7 @@ import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
 import {
 	assertDesignAccess,
+	buildNebDesignListWhere,
 	isAgencySuperAdminRole,
 	isAgencyUserRole,
 } from "./access";
@@ -78,41 +79,8 @@ export const nebDesignRouter = router({
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
 		const { page, limit, teamId } = input;
-		const isAgencyUser = isAgencyUserRole(userRole);
 
-		const baseWhere = teamId
-			? isAgencyUser
-				? eq(nebDesign.teamId, teamId)
-				: and(
-						eq(nebDesign.teamId, teamId),
-						exists(
-							db
-								.select()
-								.from(teamMember)
-								.where(
-									and(
-										eq(teamMember.teamId, teamId),
-										eq(teamMember.userId, userId),
-									),
-								),
-						),
-					)
-			: isAgencyUser
-				? undefined
-				: or(
-						and(eq(nebDesign.userId, userId), isNull(nebDesign.teamId)),
-						exists(
-							db
-								.select()
-								.from(teamMember)
-								.where(
-									and(
-										eq(teamMember.teamId, nebDesign.teamId),
-										eq(teamMember.userId, userId),
-									),
-								),
-						),
-					);
+		const baseWhere = buildNebDesignListWhere({ userId, userRole, teamId });
 
 		const rows = await db
 			.select({
@@ -128,7 +96,7 @@ export const nebDesignRouter = router({
 			})
 			.from(nebDesign)
 			.where(baseWhere ?? undefined)
-			.orderBy(asc(nebDesign.updatedAt))
+			.orderBy(desc(nebDesign.updatedAt))
 			.limit(limit)
 			.offset((page - 1) * limit);
 

@@ -308,7 +308,7 @@ Rules:
 - The HTML block is raw HTML only (no JSON escaping). ZERO emoji characters in the HTML.
 - The meta block is valid JSON with ALL fields populated.
 - image_slots: include one entry per {{NEB_IMG:key}} placeholder used in the HTML.
-- For icons (kind "icon"): set backgroundColor to the EXACT hex of the section <td> background behind the icon. Icon prompt describes ONLY the icon — no background, no scene, no text.
+- For icons (kind "icon"): set backgroundColor to the EXACT hex of the section <td> background behind the icon (metadata only — never repeat that hex in the prompt). Icon prompt describes ONLY the icon — no background, no scene, no text, no hex codes.
 - For photos (kind "photo"): lifestyle/product scene prompt, end with NO TEXT, NO LOGOS, NO WATERMARKS.
 - Do not output anything else outside these blocks.`;
 

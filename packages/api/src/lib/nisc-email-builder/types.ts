@@ -40,9 +40,8 @@ export const imageSlotSchema = z.object({
 		.optional()
 		.transform((v) => v ?? "1K"),
 	/**
-	 * Hex background color of the section where this image/icon will appear.
-	 * Used for icons so the generated asset blends seamlessly with the email background.
-	 * e.g. "#FFFFFF", "#1E293B", "#F8FAFC"
+	 * Hex background of the email section behind this icon (metadata only).
+	 * Server maps this to a plain-language fill for image gen — never put this hex in `prompt`.
 	 */
 	backgroundColor: z.string().optional(),
 });
