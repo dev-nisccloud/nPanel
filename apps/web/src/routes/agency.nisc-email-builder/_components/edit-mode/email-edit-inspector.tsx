@@ -84,7 +84,7 @@ export function EmailEditInspector({
 				key={`${selectedId}-${defaultOpenId}`}
 				defaultOpenId={defaultOpenId}
 			>
-				<div className="flex-1 overflow-y-auto">
+				<div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
 					{/* Text: Text → Colors → Styling → Add link → Layout */}
 					{isImage ? (
 						<ImagePanel
