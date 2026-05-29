@@ -7,12 +7,14 @@ import {
 } from "./json-parse";
 import type {
 	NebCompAnalysisOutput,
+	NebDirectBuildOutput,
 	NebHtmlArchitectOutput,
 	NebPlannerOutput,
 	NebRevisionOutput,
 } from "./types";
 import {
 	compAnalysisOutputSchema,
+	directBuildOutputSchema,
 	htmlArchitectOutputSchema,
 	imageSlotSchema,
 	plannerOutputSchema,
@@ -261,3 +263,118 @@ Rules:
 - The HTML block is raw HTML only (no JSON escaping).
 - The meta block is small valid JSON only (no markdown fences).
 - Do not output anything else outside these blocks.`;
+
+/**
+ * Extended delimiter format for direct builds — includes subject, preheader,
+ * and image_slots in the meta block so we don't need a separate spec step.
+ */
+export const HTML_DIRECT_BUILD_DELIMITER_INSTRUCTION = `
+OUTPUT FORMAT (mandatory — do NOT put HTML inside a JSON string):
+
+${HTML_START}
+<!DOCTYPE html>
+... your complete email document ...
+${HTML_END}
+
+${META_START}
+{
+  "subject": "under 60 chars — specific, compelling email subject line",
+  "preheader": "under 90 chars — preview text that extends the subject",
+  "change_summary": "one line summary of what was built",
+  "assistant_text": "friendly 1-2 sentence message to the user",
+  "image_slots": [
+    {
+      "key": "hero",
+      "kind": "photo",
+      "prompt": "detailed image generation prompt — subject, scene, mood, colors, NO TEXT, NO LOGOS, NO WATERMARKS",
+      "alt": "alt text",
+      "aspectRatio": "16:9",
+      "imageSize": "2K"
+    },
+    {
+      "key": "icon_checkmark",
+      "kind": "icon",
+      "prompt": "minimal flat checkmark icon, solid green stroke, no text, no background elements",
+      "alt": "Checkmark icon",
+      "aspectRatio": "1:1",
+      "imageSize": "1K",
+      "backgroundColor": "#F0FDF4"
+    }
+  ]
+}
+${META_END}
+
+Rules:
+- The HTML block is raw HTML only (no JSON escaping). ZERO emoji characters in the HTML.
+- The meta block is valid JSON with ALL fields populated.
+- image_slots: include one entry per {{NEB_IMG:key}} placeholder used in the HTML.
+- For icons (kind "icon"): set backgroundColor to the EXACT hex of the section <td> background behind the icon. Icon prompt describes ONLY the icon — no background, no scene, no text.
+- For photos (kind "photo"): lifestyle/product scene prompt, end with NO TEXT, NO LOGOS, NO WATERMARKS.
+- Do not output anything else outside these blocks.`;
+
+/** Parse the extended direct-build output (includes subject, preheader, image_slots). */
+export function parseDirectBuildResponse(raw: string): NebDirectBuildOutput {
+	const stripped = stripCodeFences(raw);
+
+	// Parse HTML block
+	const htmlFromDelim = extractHtmlDocument(stripped);
+
+	// Parse META block (extended with subject/preheader/image_slots)
+	const metaMatch = stripped.match(
+		new RegExp(
+			`${escapeRe(META_START)}\\s*([\\s\\S]*?)\\s*${escapeRe(META_END)}`,
+			"i",
+		),
+	);
+
+	const defaults: Omit<NebDirectBuildOutput, "html"> = {
+		change_summary: "Email generated",
+		assistant_text: "Your email is ready in the preview tab.",
+		subject: undefined,
+		preheader: undefined,
+		image_slots: [],
+	};
+
+	let meta = { ...defaults };
+
+	if (metaMatch?.[1]) {
+		try {
+			const jsonStr = extractFirstJsonObject(metaMatch[1].trim()) ?? metaMatch[1].trim();
+			const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+			meta = {
+				change_summary:
+					typeof parsed.change_summary === "string"
+						? parsed.change_summary
+						: defaults.change_summary,
+				assistant_text:
+					typeof parsed.assistant_text === "string"
+						? parsed.assistant_text
+						: defaults.assistant_text,
+				subject: typeof parsed.subject === "string" ? parsed.subject : undefined,
+				preheader: typeof parsed.preheader === "string" ? parsed.preheader : undefined,
+				image_slots: Array.isArray(parsed.image_slots)
+					? (parsed.image_slots as NebDirectBuildOutput["image_slots"])
+					: [],
+			};
+		} catch {
+			/* keep defaults */
+		}
+	}
+
+	if (htmlFromDelim && htmlFromDelim.length > 100) {
+		const candidate = { html: htmlFromDelim, ...meta };
+		const validated = directBuildOutputSchema.safeParse(candidate);
+		if (validated.success) return validated.data;
+		// Schema failed but we have HTML — return with defaults merged
+		return { html: htmlFromDelim, ...meta };
+	}
+
+	// Fallback: raw HTML document only
+	const doc = extractHtmlDocument(stripped);
+	if (doc && doc.length > 100) {
+		return { html: doc, ...meta };
+	}
+
+	const preview = stripped.slice(0, 400).replace(/\s+/g, " ");
+	throw new Error(`Direct build: could not parse model output. Preview: ${preview}…`);
+}

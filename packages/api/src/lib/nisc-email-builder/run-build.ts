@@ -11,17 +11,30 @@ import {
 import Replicate from "replicate";
 import { env } from "@npanel/env/server";
 
-import { NEB_HTML_MODEL, NEB_REVISION_MODEL } from "./constants";
+import { NEB_DIRECT_HTML_MODEL, NEB_HTML_MODEL, NEB_REVISION_MODEL } from "./constants";
 import { generateCreativeDesignSpec } from "./creative-spec";
+import { generateImagen4Ultra } from "./imagen";
 import { generateNanoBananaPro } from "./nano-banana";
 import type { NanoBananaAspectRatio } from "./nano-banana";
-import { parseHtmlAgentResponse } from "./parse-responses";
+import { parseDirectBuildResponse, parseHtmlAgentResponse } from "./parse-responses";
 import { patchImagePlaceholders, processEmailHtml } from "./pipeline";
 import { buildBrandContext, buildHtmlArchitectSystemPrompt, buildRevisionSystemPrompt, buildRevisionUserPrompt } from "./prompts";
-import { buildHtmlContinuationPrompt, buildHtmlFromSpecPrompt } from "./prompts-build";
+import {
+	buildDirectHtmlContinuationPrompt,
+	buildDirectHtmlSystemPrompt,
+	buildDirectHtmlUserPrompt,
+	buildHtmlContinuationPrompt,
+	buildHtmlFromSpecPrompt,
+} from "./prompts-build";
 import { mirrorNebBriefLogoIfNeeded } from "./logo";
+import { saveToNebMediaLibrary } from "./media-library-persist";
 import { runAnthropicOnReplicate } from "./replicate-llm";
-import type { NebBrief, NebHtmlArchitectOutput, NebImageSlot } from "./types";
+import { pickTemplates, loadTemplateHtml } from "./template-picker";
+import {
+	clearRevisionRedoStack,
+	pushRevisionUndoSnapshot,
+} from "./revision-cache";
+import type { NebBrief, NebDirectBuildOutput, NebHtmlArchitectOutput, NebImageSlot } from "./types";
 import { htmlArchitectOutputSchema, revisionOutputSchema } from "./types";
 
 export type RunNebBuildParams = {
@@ -46,6 +59,8 @@ export type RunNebRevisionParams = {
 	brandKit?: RunNebBuildParams["brandKit"];
 	userId: string;
 	teamId?: string | null;
+	sessionHistory: string;
+	intent: "edit" | "full_revamp";
 };
 
 async function nextVersionNumber(designId: string): Promise<number> {
@@ -96,6 +111,25 @@ function isIconSlot(slot: NebImageSlot): boolean {
 	return slot.kind === "icon" || slot.key.startsWith("icon_");
 }
 
+/** Returns a placehold.co URL sized to match the slot's aspect ratio and kind. */
+function getPlaceholderUrl(slot: NebImageSlot): string {
+	if (isIconSlot(slot)) {
+		return "https://placehold.co/56x56/e2e8f0/94a3b8?text=icon";
+	}
+	const ratioMap: Record<string, string> = {
+		"16:9":  "600x338",
+		"3:2":   "600x400",
+		"4:3":   "600x450",
+		"1:1":   "600x600",
+		"3:4":   "600x800",
+		"4:5":   "600x750",
+		"9:16":  "600x1067",
+		"2:3":   "600x900",
+	};
+	const dims = ratioMap[slot.aspectRatio ?? "16:9"] ?? "600x400";
+	return `https://placehold.co/${dims}/e2e8f0/94a3b8?text=image`;
+}
+
 async function hydrateImages(params: {
 	designId: string;
 	userId: string;
@@ -123,17 +157,50 @@ async function hydrateImages(params: {
 			? `\nReference image_input[0] is the approved email comp. Recreate the "${slot.key}" element exactly as shown.`
 			: "";
 
+		// For icons, use the slot's backgroundColor so the generated asset blends with the email section
+		const iconBg = slot.backgroundColor?.trim() || "#FFFFFF";
 		const slotPrompt = isIcon
-			? `${slot.prompt}${compRefLine}\nIsolated icon only on plain white background. NO TEXT. NO EMOJI. Flat line-art style matching the comp.`
+			? `${slot.prompt}${compRefLine}\nIsolated icon only on solid ${iconBg} background — the exact background color of the email section where this icon appears. NO TEXT. NO EMOJI. NO border. Flat line-art or solid style icon, perfectly centred.`
 			: `${slot.prompt}${compRefLine}`;
 
-		const { fileUrl, storageKey } = await generateNanoBananaPro(params.replicate, {
-			prompt: slotPrompt,
-			resolution: slot.imageSize === "1K" ? "1K" : "2K",
-			aspectRatio: aspect,
-			outputFormat: isIcon ? "png" : "jpg",
-			imageInput: compRef ? [compRef] : undefined,
-		});
+		let fileUrl: string;
+		let storageKey: string | undefined;
+
+		try {
+			let result: { fileUrl: string; storageKey?: string };
+
+			if (isIcon) {
+				// Icons use Imagen 4 Ultra for sharper, cleaner icon rendering
+				result = await generateImagen4Ultra(params.replicate, {
+					prompt: slotPrompt,
+					imageSize: slot.imageSize ?? "1K",
+					aspectRatio: "1:1",
+					outputFormat: "png",
+				});
+			} else {
+				// Photos and hero images use Nano Banana Pro
+				result = await generateNanoBananaPro(params.replicate, {
+					prompt: slotPrompt,
+					resolution: slot.imageSize === "1K" ? "1K" : "2K",
+					aspectRatio: aspect,
+					outputFormat: "jpg",
+					imageInput: compRef ? [compRef] : undefined,
+				});
+			}
+
+			fileUrl = result.fileUrl;
+			storageKey = result.storageKey;
+		} catch (imgErr) {
+			// A single slot failure must not crash the entire build — use a sized placeholder instead.
+			console.warn(
+				`[hydrateImages] Slot "${slot.key}" failed, using placeholder: ${
+					imgErr instanceof Error ? imgErr.message : String(imgErr)
+				}`,
+			);
+			fileUrl = getPlaceholderUrl(slot);
+			storageKey = undefined;
+		}
+
 		replacements[slot.key] = fileUrl;
 
 		await db.insert(nebAsset).values({
@@ -148,6 +215,25 @@ async function hydrateImages(params: {
 			altText: slot.alt,
 			prompt: slot.prompt,
 			createdAt: new Date(),
+		});
+
+		const mimeType = isIcon ? "image/png" : "image/jpeg";
+		const ext = isIcon ? "png" : "jpg";
+		await saveToNebMediaLibrary({
+			userId: params.userId,
+			teamId: params.teamId,
+			fileName: `email-${slot.key}.${ext}`,
+			fileSize: 0,
+			mimeType,
+			fileUrl,
+			storageKey,
+			description: slot.alt ?? null,
+			metadata: {
+				source: "neb-image-hydration",
+				designId: params.designId,
+				slotKey: slot.key,
+				kind: isIcon ? "icon" : slot.key === "hero" ? "hero" : "inline",
+			},
 		});
 	}
 
@@ -384,26 +470,259 @@ export async function runNebBuildEmail(params: RunNebBuildEmailParams): Promise<
 	}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DIRECT BUILD — skips creative design & vision spec, uses template references
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type RunNebDirectBuildParams = RunNebBuildParams & {
+	webContext?: string | null;
+};
+
+/**
+ * Directly build an HTML email from the user's brief using template references
+ * as the design quality benchmark. Skips creative mockup generation entirely.
+ *
+ * Flow:
+ *   1. Pick 1-2 reference templates via Haiku (fast, cheap)
+ *   2. Build HTML from brief + templates in a single Sonnet call
+ *   3. Hydrate image slots with Nano Banana
+ *   4. Save version and set READY
+ */
+export async function runNebDirectBuild(params: RunNebDirectBuildParams): Promise<{
+	assistantText: string;
+	subject: string;
+	preheader: string;
+	selectedTemplates: string[];
+}> {
+	const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+
+	const { brief: briefWithLogo } = await mirrorNebBriefLogoIfNeeded(
+		params.brief,
+		params.brandKit,
+	);
+	if (briefWithLogo.logoUrl !== params.brief.logoUrl) {
+		await db
+			.update(nebDesign)
+			.set({ brief: briefWithLogo, updatedAt: new Date() })
+			.where(eq(nebDesign.id, params.designId));
+	}
+	params = { ...params, brief: briefWithLogo };
+
+	const brandBlock = buildBrandContext(params.brief, params.brandKit);
+
+	await db
+		.update(nebGenerationJob)
+		.set({ status: "RUNNING" })
+		.where(eq(nebGenerationJob.id, params.jobId));
+
+	await db
+		.update(nebDesign)
+		.set({
+			aiStatus: "GENERATING",
+			workflowPhase: "BUILDING",
+			updatedAt: new Date(),
+		})
+		.where(eq(nebDesign.id, params.designId));
+
+	try {
+		// Step 1: Pick best-matching reference templates (Haiku — fast & cheap)
+		const selectedTemplateInfos = await pickTemplates(params.brief, replicate);
+		const templateRefs = loadTemplateHtml(selectedTemplateInfos);
+		const selectedTemplates = selectedTemplateInfos.map((t) => t.filename);
+
+		console.log(
+			`[DirectBuild] Using templates: ${selectedTemplates.join(", ")} for designId=${params.designId}`,
+		);
+
+		// Step 2: Generate HTML directly using template references
+		const userPrompt = buildDirectHtmlUserPrompt({
+			brief: params.brief,
+			brandBlock,
+			webContext: params.webContext,
+			templateRefs,
+		});
+
+		const htmlRaw = await runAnthropicOnReplicate({
+			replicate,
+			model: NEB_DIRECT_HTML_MODEL,
+			systemPrompt: buildDirectHtmlSystemPrompt(),
+			userPrompt,
+			maxTokens: 24000,
+		});
+
+		let built: NebDirectBuildOutput = parseDirectBuildResponse(htmlRaw);
+
+		// Continuation passes if HTML was truncated
+		const briefSummary = [
+			params.brief.companyName && `Company: ${params.brief.companyName}`,
+			params.brief.goal && `Goal: ${params.brief.goal}`,
+		]
+			.filter(Boolean)
+			.join(", ");
+
+		for (let i = 0; i < MAX_HTML_CONTINUATIONS && !built.html.includes("</html>"); i++) {
+			const contRaw = await runAnthropicOnReplicate({
+				replicate,
+				model: NEB_DIRECT_HTML_MODEL,
+				systemPrompt: buildDirectHtmlSystemPrompt(),
+				userPrompt: buildDirectHtmlContinuationPrompt({
+					briefSummary,
+					brandBlock,
+					partialHtml: built.html,
+				}),
+				maxTokens: 24000,
+			});
+			const cont = parseDirectBuildResponse(contRaw);
+			built = {
+				...cont,
+				html: built.html + cont.html,
+				change_summary: cont.change_summary || built.change_summary,
+				assistant_text: cont.assistant_text || built.assistant_text,
+				// Keep subject/preheader/slots from the initial parse if continuation omits them
+				subject: built.subject ?? cont.subject,
+				preheader: built.preheader ?? cont.preheader,
+				image_slots: (built.image_slots?.length ? built.image_slots : null) ?? cont.image_slots ?? [],
+			};
+		}
+
+		const processed = processEmailHtml(built.html);
+		if (!processed.validation.ok) {
+			throw new Error(processed.validation.errors.join("; "));
+		}
+
+		let html = processed.html;
+
+		// Step 3: Hydrate image slots
+		const imageSlots: NebImageSlot[] = built.image_slots ?? [];
+		if (imageSlots.length > 0) {
+			html = await hydrateImages({
+				designId: params.designId,
+				userId: params.userId,
+				teamId: params.teamId,
+				html,
+				slots: imageSlots,
+				replicate,
+			});
+		}
+
+		const finalProcessed = processEmailHtml(html);
+
+		const subject = built.subject?.trim() || `${params.brief.companyName ?? "Email"} Campaign`;
+		const preheader = built.preheader?.trim() ?? "";
+
+		await db
+			.update(nebDesign)
+			.set({
+				designPlan: {
+					subject,
+					preheader,
+					image_slots: imageSlots,
+					selectedTemplates,
+				},
+				subject,
+				preheader,
+				updatedAt: new Date(),
+			})
+			.where(eq(nebDesign.id, params.designId));
+
+		const job = await db.query.nebGenerationJob.findFirst({
+			where: eq(nebGenerationJob.id, params.jobId),
+		});
+
+		await saveVersion({
+			designId: params.designId,
+			html: finalProcessed.html,
+			text: finalProcessed.text,
+			trigger: "DIRECT_BUILD",
+			changeSummary: built.change_summary,
+			messageId: job?.messageId ?? undefined,
+			validationReport: finalProcessed.validation,
+		});
+
+		await db
+			.update(nebDesign)
+			.set({
+				subject,
+				preheader,
+				brief: params.brief,
+				workflowPhase: "READY",
+				aiStatus: "IDLE",
+				updatedAt: new Date(),
+			})
+			.where(eq(nebDesign.id, params.designId));
+
+		await db
+			.update(nebGenerationJob)
+			.set({
+				status: "SUCCEEDED",
+				output: { subject, changeSummary: built.change_summary, selectedTemplates },
+				completedAt: new Date(),
+			})
+			.where(eq(nebGenerationJob.id, params.jobId));
+
+		return {
+			assistantText: built.assistant_text,
+			subject,
+			preheader,
+			selectedTemplates,
+		};
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e);
+		await db
+			.update(nebDesign)
+			.set({
+				aiStatus: "FAILED",
+				workflowPhase: "FAILED",
+				updatedAt: new Date(),
+			})
+			.where(eq(nebDesign.id, params.designId));
+		await db
+			.update(nebGenerationJob)
+			.set({
+				status: "FAILED",
+				errorMessage: msg.slice(0, 500),
+				completedAt: new Date(),
+			})
+			.where(eq(nebGenerationJob.id, params.jobId));
+		throw e;
+	}
+}
+
+/** Full rebuild from brief + user revamp instructions; replaces current HTML. */
+export async function runNebChatFullRevamp(
+	params: RunNebDirectBuildParams & {
+		userMessage: string;
+		previousHtml: string;
+	},
+): Promise<{
+	assistantText: string;
+	subject: string;
+	preheader: string;
+	selectedTemplates: string[];
+}> {
+	if (params.previousHtml.trim()) {
+		await pushRevisionUndoSnapshot(params.designId, params.previousHtml);
+		await clearRevisionRedoStack(params.designId);
+	}
+
+	const mergedBrief: NebBrief = {
+		...params.brief,
+		instructions: [
+			params.brief.instructions,
+			`The user requested a complete email revamp (not a small edit). Rebuild the email accordingly:\n${params.userMessage}`,
+		]
+			.filter(Boolean)
+			.join("\n\n"),
+	};
+
+	return runNebDirectBuild({ ...params, brief: mergedBrief });
+}
+
 export async function runNebRevision(
 	params: RunNebRevisionParams,
 ): Promise<{ assistantText: string }> {
 	const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 	const brandBlock = buildBrandContext(params.brief, params.brandKit);
-
-	const session = await db.query.nebSession.findFirst({
-		where: eq(nebSession.designId, params.designId),
-	});
-	const recentMessages = session
-		? await db.query.nebMessage.findMany({
-				where: eq(nebMessage.sessionId, session.id),
-				orderBy: [desc(nebMessage.createdAt)],
-				limit: 8,
-			})
-		: [];
-	const transcript = [...recentMessages]
-		.reverse()
-		.map((m) => `[${m.role}]: ${m.content}`)
-		.join("\n");
 
 	await db
 		.update(nebGenerationJob)
@@ -424,7 +743,8 @@ export async function runNebRevision(
 				currentHtml: params.currentHtml,
 				userMessage: params.userMessage,
 				brandBlock,
-				recentTranscript: transcript,
+				sessionHistory: params.sessionHistory,
+				intent: params.intent,
 			}),
 			maxTokens: 12000,
 		});
@@ -452,6 +772,12 @@ export async function runNebRevision(
 		}
 
 		const finalProcessed = processEmailHtml(html);
+
+		if (params.currentHtml.trim()) {
+			await pushRevisionUndoSnapshot(params.designId, params.currentHtml);
+			await clearRevisionRedoStack(params.designId);
+		}
+
 		const job = await db.query.nebGenerationJob.findFirst({
 			where: eq(nebGenerationJob.id, params.jobId),
 		});

@@ -88,6 +88,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "catalog:",
     "embla-carousel-react": "^8.6.0",
+    "emoji-picker-react": "^4.19.1",
     "eslint-plugin-unicorn": "^63.0.0",
     "fabric": "^7.2.0",
     "file-saver": "^2.0.5",

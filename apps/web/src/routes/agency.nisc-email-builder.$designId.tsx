@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, Download, CheckCircle2, Pencil } from "lucide-react";
+import { ArrowLeft, Download, CheckCircle2, Images, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
 	NEB_EMAIL_GOALS,
 } from "@npanel/api/lib/nisc-email-builder/brief-options";
 import { ChatPanel } from "./agency.nisc-email-builder/_components/chat-panel";
+import { ImageLibrarySheet } from "./agency.nisc-email-builder/_components/image-library-sheet";
 import {
 	PreviewTabs,
 	type DesignVariation,
@@ -146,6 +147,7 @@ export default function NiscEmailBuilderEditorPage() {
 	const utils = trpc.useUtils();
 
 	const [chatInput, setChatInput] = React.useState("");
+	const [mediaLibraryOpen, setMediaLibraryOpen] = React.useState(false);
 	const [brief, setBrief] = React.useState<BriefFormValues>({
 		companyName: "",
 		goalPreset: NEB_EMAIL_GOALS[0].value,
@@ -163,6 +165,7 @@ export default function NiscEmailBuilderEditorPage() {
 	});
 	const [previewWidth, setPreviewWidth] = React.useState<"desktop" | "mobile">("desktop");
 	const [selectedVariationId, setSelectedVariationId] = React.useState<string | null>(null);
+	const latestHtmlRef = React.useRef("");
 
 	const designQuery = trpc.niscEmailBuilder.design.get.useQuery(
 		{ designId },
@@ -186,13 +189,13 @@ export default function NiscEmailBuilderEditorPage() {
 	const startBuild = trpc.niscEmailBuilder.chat.startBuild.useMutation({
 		onSuccess: (data) => {
 			if (data.brandPreview?.warnings?.length && !data.brandPreview.logoUrl) {
-				toast.message("Creative design started", {
+				toast.message("Building your email…", {
 					description: data.brandPreview.warnings.join(" "),
 				});
 			} else if (data.brandPreview?.logoUrl || data.brandPreview?.brandColors?.length) {
-				toast.success("Brand applied, generating your creative design…");
+				toast.success("Brand detected — building your email…");
 			} else {
-				toast.success("Generating your creative design…");
+				toast.success("Building your email…");
 			}
 			void utils.niscEmailBuilder.design.get.invalidate({ designId });
 		},
@@ -231,8 +234,11 @@ export default function NiscEmailBuilderEditorPage() {
 	});
 
 	const sendMessage = trpc.niscEmailBuilder.chat.sendMessage.useMutation({
-		onSuccess: () => {
+		onSuccess: (data) => {
 			setChatInput("");
+			if (data.intent === "full_revamp") {
+				toast.message("Rebuilding your email from the brief…");
+			}
 			void utils.niscEmailBuilder.design.get.invalidate({ designId });
 		},
 		onError: (e) => toast.error(e.message),
@@ -251,7 +257,49 @@ export default function NiscEmailBuilderEditorPage() {
 	const phase = design?.workflowPhase ?? "BRIEF";
 	const hasCreative = Boolean(design?.creativeDesignUrl);
 	const hasHtml = Boolean(design?.htmlContent?.trim());
-	const showBrief = safeMessages.length === 0 && !hasCreative && !isBusy;
+	const isAiRevising =
+		hasHtml && isBusy && phase === "READY";
+
+	React.useEffect(() => {
+		if (design?.htmlContent?.trim()) {
+			latestHtmlRef.current = design.htmlContent;
+		}
+	}, [design?.htmlContent]);
+
+	const revisionUndoState = trpc.niscEmailBuilder.chat.getRevisionUndoState.useQuery(
+		{ designId },
+		{
+			enabled: hasHtml,
+			refetchInterval: isBusy ? 2000 : false,
+		},
+	);
+
+	const undoAiRevision = trpc.niscEmailBuilder.chat.undoAiRevision.useMutation({
+		onSuccess: () => {
+			toast.success("Reverted to previous email");
+			void utils.niscEmailBuilder.design.get.invalidate({ designId });
+			void utils.niscEmailBuilder.chat.getRevisionUndoState.invalidate({ designId });
+		},
+		onError: (e) => toast.error(e.message),
+	});
+
+	const redoAiRevision = trpc.niscEmailBuilder.chat.redoAiRevision.useMutation({
+		onSuccess: () => {
+			toast.success("Restored newer version");
+			void utils.niscEmailBuilder.design.get.invalidate({ designId });
+			void utils.niscEmailBuilder.chat.getRevisionUndoState.invalidate({ designId });
+		},
+		onError: (e) => toast.error(e.message),
+	});
+
+	// Show the brief form only when the session has no messages AND no build is running/pending.
+	// Once startBuild fires, the session immediately gains a user message (on data refresh).
+	const showBrief =
+		safeMessages.length === 0 &&
+		!hasCreative &&
+		!hasHtml &&
+		!isBusy &&
+		!startBuild.isPending;
 
 	// Extract variations from design metadata
 	const designVariations: DesignVariation[] = React.useMemo(() => {
@@ -355,7 +403,13 @@ export default function NiscEmailBuilderEditorPage() {
 
 	const handleSend = () => {
 		if (!chatInput.trim()) return;
-		sendMessage.mutate({ designId, message: chatInput.trim() });
+		const currentHtml =
+			latestHtmlRef.current.trim() || design?.htmlContent?.trim() || "";
+		sendMessage.mutate({
+			designId,
+			message: chatInput.trim(),
+			...(currentHtml ? { currentHtml } : {}),
+		});
 	};
 
 	const handleSelectVariation = (variationId: string) => {
@@ -415,7 +469,7 @@ export default function NiscEmailBuilderEditorPage() {
 		) : null;
 
 	return (
-		<div className="flex flex-col h-[calc(100vh-3rem)] -m-4 md:-m-6">
+		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<header className="flex items-center gap-3 border-b px-4 py-3 shrink-0 bg-background">
 				<Button variant="ghost" size="icon" asChild>
 					<Link to="/agency/nisc-email-builder">
@@ -430,6 +484,15 @@ export default function NiscEmailBuilderEditorPage() {
 					variant="outline"
 					size="sm"
 					disabled={!hasHtml}
+					onClick={() => setMediaLibraryOpen(true)}
+				>
+					<Images className="size-3.5 mr-1.5" />
+					Media library
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={!hasHtml}
 					onClick={() => void handleDownloadHtml()}
 				>
 					<Download className="size-3.5 mr-1.5" />
@@ -437,8 +500,13 @@ export default function NiscEmailBuilderEditorPage() {
 				</Button>
 			</header>
 
-			<div className="flex flex-1 min-h-0">
-				<aside className="w-full max-w-md shrink-0 flex flex-col min-h-0">
+			<ImageLibrarySheet
+				open={mediaLibraryOpen}
+				onOpenChange={setMediaLibraryOpen}
+			/>
+
+			<div className="flex min-h-0 flex-1 overflow-hidden">
+				<aside className="flex min-h-0 w-full max-w-md shrink-0 flex-col overflow-hidden">
 					{showBrief ? (
 						<div className="p-4 overflow-y-auto flex-1">
 							<BriefForm
@@ -454,25 +522,46 @@ export default function NiscEmailBuilderEditorPage() {
 							chatInput={chatInput}
 							onChatInputChange={setChatInput}
 							onSend={handleSend}
-							disabled={isBusy || (!hasCreative && !hasHtml)}
+							disabled={isBusy || (!hasHtml && phase !== "AWAITING_APPROVAL")}
 							isSending={sendMessage.isPending}
 							placeholder={
 								phase === "AWAITING_APPROVAL"
 									? "Ask for changes to the design…"
-									: "Ask for changes to the email…"
+									: hasHtml
+										? "Describe edits to this email (e.g. change headline, add section)…"
+										: "Ask for changes to the email…"
 							}
 							footer={chatFooter}
+							aiRevisionUndo={
+								hasHtml && revisionUndoState.data
+									? {
+											available: revisionUndoState.data.available,
+											canUndo: revisionUndoState.data.canUndo,
+											canRedo: revisionUndoState.data.canRedo,
+											onUndo: () => undoAiRevision.mutate({ designId }),
+											onRedo: () => redoAiRevision.mutate({ designId }),
+											isUndoing: undoAiRevision.isPending,
+											isRedoing: redoAiRevision.isPending,
+										}
+									: undefined
+							}
 						/>
 					)}
 				</aside>
 
-				<main className="flex-1 flex flex-col min-w-0 min-h-0">
-					<PreviewTabs
-						creativeDesignUrl={design.creativeDesignUrl}
-						htmlContent={design.htmlContent}
-						isDesigning={phase === "DESIGNING" || (isBusy && !hasCreative)}
-						isBuilding={phase === "BUILDING" || design.aiStatus === "HYDRATING_IMAGES"}
-						isHydratingImages={design.aiStatus === "HYDRATING_IMAGES"}
+				<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+				<PreviewTabs
+					designId={designId}
+					creativeDesignUrl={design.creativeDesignUrl}
+					htmlContent={design.htmlContent}
+					canEdit={hasHtml && phase === "READY" && !isBusy}
+					isDesigning={phase === "DESIGNING"}
+					isBuilding={phase === "BUILDING"}
+					isAiRevising={isAiRevising}
+					isHydratingImages={design.aiStatus === "HYDRATING_IMAGES"}
+					onLatestHtmlChange={(html) => {
+						latestHtmlRef.current = html;
+					}}
 						previewWidth={previewWidth}
 						onPreviewWidthChange={setPreviewWidth}
 						variations={designVariations}

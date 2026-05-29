@@ -39,6 +39,12 @@ export const imageSlotSchema = z.object({
 		.enum(["1K", "2K"])
 		.optional()
 		.transform((v) => v ?? "1K"),
+	/**
+	 * Hex background color of the section where this image/icon will appear.
+	 * Used for icons so the generated asset blends seamlessly with the email background.
+	 * e.g. "#FFFFFF", "#1E293B", "#F8FAFC"
+	 */
+	backgroundColor: z.string().optional(),
 });
 
 export type NebImageSlot = z.infer<typeof imageSlotSchema>;
@@ -70,6 +76,18 @@ export const revisionOutputSchema = z.object({
 });
 
 export type NebRevisionOutput = z.infer<typeof revisionOutputSchema>;
+
+/** Output schema for the direct build path (template-guided, no vision spec). */
+export const directBuildOutputSchema = z.object({
+	html: z.string(),
+	change_summary: z.string(),
+	assistant_text: z.string(),
+	subject: z.string().optional(),
+	preheader: z.string().optional(),
+	image_slots: z.array(imageSlotSchema).optional().default([]),
+});
+
+export type NebDirectBuildOutput = z.infer<typeof directBuildOutputSchema>;
 
 const compSectionElementSchema = z.object({
 	kind: z.string(),

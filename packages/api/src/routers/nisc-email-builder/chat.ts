@@ -14,6 +14,20 @@ import {
 	enrichWebsiteBrand,
 	mergeBrandEnrichment,
 } from "../../lib/nisc-email-builder/website-brand-extract";
+import { classifyChatIntent } from "../../lib/nisc-email-builder/chat-intent";
+import {
+	isClearlyOffTopicChatMessage,
+	NEB_CHAT_REFUSAL_MESSAGE,
+} from "../../lib/nisc-email-builder/chat-scope";
+import {
+	getRevisionUndoRedoState,
+	popRevisionRedoSnapshot,
+	popRevisionUndoSnapshot,
+	pushRevisionRedoSnapshot,
+	pushRevisionUndoSnapshot,
+} from "../../lib/nisc-email-builder/revision-cache";
+import { applyRevisionHtmlToDesign } from "../../lib/nisc-email-builder/revision-apply";
+import { buildNebSessionHistoryContext } from "../../lib/nisc-email-builder/session-history";
 import type { NebBrief } from "../../lib/nisc-email-builder/types";
 import { protectedProcedure, router } from "../../trpc";
 import { assertDesignAccess } from "./access";
@@ -156,7 +170,7 @@ export const nebChatRouter = router({
 						: prevMeta.brandEnrichment,
 				},
 				aiStatus: "GENERATING",
-				workflowPhase: "DESIGNING",
+				workflowPhase: "BUILDING",
 				updatedAt: now,
 			})
 			.where(eq(nebDesign.id, input.designId));
@@ -164,7 +178,7 @@ export const nebChatRouter = router({
 		const jobId = await enqueueJob({
 			designId: input.designId,
 			sessionId: session.id,
-			type: "CREATIVE_DESIGN",
+			type: "DIRECT_BUILD",
 			input: { brief, webContext },
 			userMessageId,
 		});
@@ -346,6 +360,8 @@ export const nebChatRouter = router({
 		const now = new Date();
 		const brief = (design.brief ?? {}) as NebBrief;
 		const hasHtml = Boolean(design.htmlContent?.trim());
+		const currentHtml =
+			input.currentHtml?.trim() || design.htmlContent?.trim() || "";
 
 		await db.insert(nebMessage).values({
 			id: userMessageId,
@@ -355,15 +371,45 @@ export const nebChatRouter = router({
 			createdAt: now,
 		});
 
+		if (isClearlyOffTopicChatMessage(input.message)) {
+			await db.insert(nebMessage).values({
+				id: randomUUID(),
+				sessionId: session.id,
+				role: "assistant",
+				content: NEB_CHAT_REFUSAL_MESSAGE,
+				createdAt: new Date(),
+			});
+			return { jobId: null, refused: true as const };
+		}
+
 		let jobType: string;
+		let chatIntent: "edit" | "full_revamp" = "edit";
 		if (hasHtml) {
-			jobType = "REVISION";
+			if (!currentHtml) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "No email HTML to edit",
+				});
+			}
+			chatIntent = input.intent ?? classifyChatIntent(input.message);
+			jobType = chatIntent === "full_revamp" ? "FULL_REVAMP" : "REVISION";
 		} else if (design.workflowPhase === "AWAITING_APPROVAL") {
+			// Legacy path: creative mockup was generated, user is in approval chat
 			jobType = "CHAT";
-		} else {
+		} else if (
+			design.workflowPhase === "BRIEF" ||
+			design.workflowPhase === "READY" ||
+			design.workflowPhase === "FAILED"
+		) {
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Start with a creative brief first",
+			});
+		} else {
+			// During BUILDING phase without HTML — not ready for chat yet
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Your email is still being generated, please wait",
 			});
 		}
 
@@ -372,16 +418,106 @@ export const nebChatRouter = router({
 			.set({ aiStatus: "GENERATING", updatedAt: now })
 			.where(eq(nebDesign.id, input.designId));
 
+		const sessionHistory = hasHtml
+			? await buildNebSessionHistoryContext({
+					designId: input.designId,
+					sessionId: session.id,
+				})
+			: "";
+
+		const webContext =
+			design.metadata &&
+			typeof design.metadata === "object" &&
+			typeof (design.metadata as Record<string, unknown>).webContext === "string"
+				? ((design.metadata as Record<string, unknown>).webContext as string)
+				: null;
+
 		const jobId = await enqueueJob({
 			designId: input.designId,
 			sessionId: session.id,
 			type: jobType,
-			input: { message: input.message, brief },
+			input: {
+				message: input.message,
+				brief,
+				currentHtml: hasHtml ? currentHtml : undefined,
+				sessionHistory,
+				intent: chatIntent,
+				webContext,
+			},
 			userMessageId,
 		});
 
-		return { jobId };
+		return { jobId, intent: chatIntent };
 	}),
+
+	getRevisionUndoState: protectedProcedure
+		.input(designIdSchema)
+		.query(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			await assertDesignAccess({
+				designId: input.designId,
+				userId,
+				userRole: ctx.session?.user?.role,
+			});
+			return getRevisionUndoRedoState(input.designId);
+		}),
+
+	undoAiRevision: protectedProcedure
+		.input(designIdSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			const design = await assertDesignAccess({
+				designId: input.designId,
+				userId,
+				userRole: ctx.session?.user?.role,
+			});
+			const snapshot = await popRevisionUndoSnapshot(input.designId);
+			if (!snapshot) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Nothing to undo (revision history may have expired)",
+				});
+			}
+			if (design.htmlContent?.trim()) {
+				await pushRevisionRedoSnapshot(input.designId, design.htmlContent);
+			}
+			const applied = await applyRevisionHtmlToDesign({
+				designId: input.designId,
+				html: snapshot.html,
+				changeSummary: "Undo AI edit",
+			});
+			return { html: applied.html, success: true };
+		}),
+
+	redoAiRevision: protectedProcedure
+		.input(designIdSchema)
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.session?.user?.id;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+			const design = await assertDesignAccess({
+				designId: input.designId,
+				userId,
+				userRole: ctx.session?.user?.role,
+			});
+			const snapshot = await popRevisionRedoSnapshot(input.designId);
+			if (!snapshot) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Nothing to redo (revision history may have expired)",
+				});
+			}
+			if (design.htmlContent?.trim()) {
+				await pushRevisionUndoSnapshot(input.designId, design.htmlContent);
+			}
+			const applied = await applyRevisionHtmlToDesign({
+				designId: input.designId,
+				html: snapshot.html,
+				changeSummary: "Redo AI edit",
+			});
+			return { html: applied.html, success: true };
+		}),
 
 	/** Generate another design variation — reuses stored brief + webContext */
 	generateVariation: protectedProcedure

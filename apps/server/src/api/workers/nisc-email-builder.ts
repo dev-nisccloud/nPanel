@@ -12,6 +12,8 @@ import { getQStashSigningKeys } from "@npanel/api/lib/qstash/client";
 import { enqueueNebBuildJob } from "@npanel/api/lib/qstash/nisc-email-builder";
 import {
 	runNebBuildEmail,
+	runNebChatFullRevamp,
+	runNebDirectBuild,
 	runNebRevision,
 } from "@npanel/api/lib/nisc-email-builder/run-build";
 import {
@@ -112,7 +114,27 @@ export async function handleNiscEmailBuilder(c: Context) {
 	};
 
 	try {
-		if (job.type === "CREATIVE_DESIGN" || job.type === "FULL_BUILD") {
+		if (job.type === "DIRECT_BUILD") {
+			// New default path: skip creative design, go straight to HTML using template references
+			const result = await runNebDirectBuild({
+				jobId,
+				designId: design.id,
+				brief,
+				brandKit,
+				userId: design.userId,
+				teamId: design.teamId,
+				webContext,
+			});
+			const templateNote =
+				result.selectedTemplates.length > 0
+					? `\n\n*Built using design references: ${result.selectedTemplates.join(", ")}*`
+					: "";
+			await appendAssistant(
+				`${result.assistantText}\n\nYour HTML email is ready in the **Email preview** tab.${templateNote}`,
+				{ subject: result.subject, selectedTemplates: result.selectedTemplates },
+			);
+		} else if (job.type === "CREATIVE_DESIGN" || job.type === "FULL_BUILD") {
+			// Legacy path: creative mockup + approval flow
 			const feedback = (job.input as { userFeedback?: string })?.userFeedback;
 			const result = await runNebCreativeDesign({
 				jobId,
@@ -198,21 +220,55 @@ export async function handleNiscEmailBuilder(c: Context) {
 				await appendAssistant(chat.assistantText, { action: chat.action });
 			}
 		} else if (job.type === "REVISION") {
-			const fresh = await db.query.nebDesign.findFirst({
-				where: eq(nebDesign.id, design.id),
-			});
-			const message = (job.input as { message?: string })?.message ?? "";
+			const input = job.input as {
+				message?: string;
+				currentHtml?: string;
+				sessionHistory?: string;
+				intent?: "edit" | "full_revamp";
+			};
+			const message = input.message ?? "";
+			const currentHtml =
+				input.currentHtml?.trim() || design.htmlContent?.trim() || "";
 			const result = await runNebRevision({
 				jobId,
 				designId: design.id,
 				userMessage: message,
-				currentHtml: fresh?.htmlContent ?? design.htmlContent,
+				currentHtml,
 				brief,
 				brandKit,
 				userId: design.userId,
 				teamId: design.teamId,
+				sessionHistory: input.sessionHistory ?? "",
+				intent: input.intent ?? "edit",
 			});
-			await appendAssistant(result.assistantText);
+			await appendAssistant(result.assistantText, { action: "revision" });
+		} else if (job.type === "FULL_REVAMP") {
+			const input = job.input as {
+				message?: string;
+				currentHtml?: string;
+				webContext?: string | null;
+			};
+			const previousHtml =
+				input.currentHtml?.trim() || design.htmlContent?.trim() || "";
+			const result = await runNebChatFullRevamp({
+				jobId,
+				designId: design.id,
+				brief,
+				brandKit,
+				userId: design.userId,
+				teamId: design.teamId,
+				webContext: input.webContext ?? webContext,
+				userMessage: input.message ?? "",
+				previousHtml,
+			});
+			const templateNote =
+				result.selectedTemplates.length > 0
+					? `\n\n*Built using design references: ${result.selectedTemplates.join(", ")}*`
+					: "";
+			await appendAssistant(
+				`${result.assistantText}\n\nYour email has been fully rebuilt in the **Email preview** tab.${templateNote}`,
+				{ action: "full_revamp", subject: result.subject },
+			);
 		} else {
 			throw new Error(`Unsupported job type: ${job.type}`);
 		}

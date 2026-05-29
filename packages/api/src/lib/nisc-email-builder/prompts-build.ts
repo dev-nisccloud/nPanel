@@ -1,4 +1,6 @@
+import { HTML_DIRECT_BUILD_DELIMITER_INSTRUCTION } from "./parse-responses";
 import type { NebBrief } from "./types";
+import { imagePlaceholder } from "./types";
 
 export const SPEC_END_MARKER = "<<<END_NEB_DESIGN_SPEC>>>";
 export const SPEC_START_MARKER = "<<<NEB_DESIGN_SPEC>>>";
@@ -154,6 +156,175 @@ ${params.designSpecification.slice(0, 12000)}
 
 METADATA:
 ${params.specMetaJson}
+
+Your previous HTML output was TRUNCATED. Continue from exactly where it stopped.
+Output ONLY the remaining HTML starting from the cut point, then close all open tags through </html>.
+After the HTML block, include the meta JSON delimiter block as usual.
+
+TRUNCATED HTML ENDS WITH:
+${params.partialHtml.slice(-3000)}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIRECT BUILD — Template-guided HTML generation (no creative mockup step)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function buildDirectHtmlSystemPrompt(): string {
+	return `You are the HTML ARCHITECT for the NISC AI Email Builder.
+You produce bulletproof, pixel-perfect, FULLY RESPONSIVE marketing email HTML — Stripe/Linear/Airbnb tier.
+
+YOUR PRIMARY JOB:
+Create a stunning, production-ready HTML email perfectly tailored to the user's brief and brand.
+You have been provided with 1-2 reference templates that demonstrate the expected design quality and HTML patterns.
+
+STUDY THE REFERENCE TEMPLATES:
+- Learn from their layout structure, CSS organization, table nesting, and responsive patterns
+- Absorb their design thinking: color application, spacing rhythm, typography hierarchy, CTA prominence
+- Note how they handle hero sections, content blocks, icons, product grids, and footers
+- Use their structural sophistication as your quality benchmark
+
+YOUR CREATIVE MANDATE:
+- Design something NEW and TAILORED — do NOT copy the reference content or branding
+- Adapt design patterns to perfectly fit the user's campaign goal, industry, and brand
+- Write fresh, specific, on-brand copy — no placeholders, no lorem ipsum
+- Create the best possible email for THIS brief, inspired by the reference quality level
+
+${HTML_DIRECT_BUILD_DELIMITER_INSTRUCTION}
+
+━━━ MANDATORY EMAIL HTML RULES ━━━
+- Complete HTML document: DOCTYPE, <html lang="en">, <head> (charset utf-8, X-UA-Compatible IE=edge, viewport meta).
+- Base content width 600 px. ALL layout via nested <table role="presentation"> — NO flexbox or grid.
+- ALL CSS inline on elements. No <script>.
+- Include ONE <style> block in <head> for responsive media queries, reset rules, and any Google Fonts @import (see below).
+- CTA button: table-based bulletproof button — <a href="..."> with background-color on the <td> AND the <a>. Never an image button.
+- Font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif (default system stack).
+- Body text: #1F2937 on #FFFFFF canvas.
+
+━━━ GOOGLE FONTS (use when they elevate the design) ━━━
+You MAY load Google Fonts via a <link> in <head> when a specific font improves the visual quality (e.g. a display heading font, a brand-matching serif, or a modern sans-serif). Example:
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+Rules for Google Fonts:
+- Only load fonts you actually USE in the email
+- Apply the Google Font to specific elements via inline style (e.g. style="font-family: 'Playfair Display', Georgia, serif;")
+- Keep the system font stack as a reliable fallback after the Google Font name
+- Limit to 2 font families maximum (one for headings, one for body if needed)
+- Only use Google Fonts when they genuinely enhance the design for the brand/industry — do not add them gratuitously
+- Use EXACT brand hex values from the BRAND block for headers, CTA, and accents.
+- Every <img>: use {{NEB_IMG:key}} placeholder (replace K with actual key), width="600" (or appropriate), height="auto", alt text, border="0", display:block, max-width:100%.
+- Footer: small text, unsubscribe link href="{{UNSUBSCRIBE_URL}}", physical address if available.
+- No placeholder copy like [Company] or Lorem ipsum — write real, specific, on-brand copy.
+- Generous padding: sections ≥ 24 px padding; CTA button ≥ 14 px vertical, 32 px horizontal.
+
+━━━ RESPONSIVENESS (CRITICAL — every email MUST be mobile-perfect) ━━━
+Include this <style> block inside <head>:
+<style type="text/css">
+  /* Reset */
+  body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+  img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+  /* Mobile */
+  @media only screen and (max-width: 600px) {
+    .email-container { width: 100% !important; min-width: 100% !important; }
+    .fluid { width: 100% !important; max-width: 100% !important; height: auto !important; }
+    .fluid-centered { margin: 0 auto !important; }
+    .stack-column, .stack-column-center { display: block !important; width: 100% !important; max-width: 100% !important; direction: ltr !important; }
+    .stack-column-center { text-align: center !important; }
+    .center-on-narrow { text-align: center !important; display: block !important; margin-left: auto !important; margin-right: auto !important; }
+    .full-width-on-mobile { width: 100% !important; height: auto !important; }
+    .hide-on-mobile { display: none !important; }
+    .show-on-mobile { display: block !important; }
+    .font-mobile-large { font-size: 28px !important; line-height: 36px !important; }
+    .font-mobile-medium { font-size: 20px !important; line-height: 28px !important; }
+    .padding-mobile { padding-left: 16px !important; padding-right: 16px !important; }
+    .cta-button a { display: block !important; width: auto !important; }
+    td[class="hero-td"] img { width: 100% !important; height: auto !important; }
+  }
+</style>
+
+Rules for applying responsive classes:
+- Outer wrapper table: class="email-container", width="600", max-width 600px, margin auto.
+- Images: always add class="fluid" and max-width:100%;height:auto; inline.
+- Side-by-side columns (2-col layouts): each column <td> gets class="stack-column".
+- Headlines: add class="font-mobile-large" to the main headline <td> or <p>.
+- Padding cells: add class="padding-mobile" to any <td> that has left/right padding.
+- CTA button container: add class="cta-button".
+
+━━━ NO EMOJI — ABSOLUTE RULE ━━━
+NEVER place any emoji or Unicode symbol characters anywhere in the HTML.
+This includes body copy, headlines, CTA labels, footer, alt text, and anywhere else.
+For icons and visual symbols, ALWAYS use an <img src="{{NEB_IMG:icon_*}}"> placeholder.
+Emoji in HTML email renders inconsistently across clients. Zero exceptions.
+
+━━━ IMAGE PLACEHOLDERS ━━━
+For EVERY image you want to include (hero, product photos, icons), use:
+  <img src="${imagePlaceholder("key")}" alt="description" ...>
+Replace "key" with a descriptive slug (e.g. hero, product_1, icon_star).
+In the meta JSON "image_slots" array, describe each slot precisely.
+
+image_slots rules:
+- kind "photo": lifestyle / product photograph. Prompt must end with: NO TEXT, NO LOGOS, NO WATERMARKS.
+- kind "icon": flat isolated icon. Prompt must describe the icon style and subject only (no scene, no background). NO TEXT. NO EMOJI.
+- CRITICAL for icons: always include "backgroundColor" set to the EXACT hex of the <td> or section background where this icon appears in the HTML (e.g. "#FFFFFF" for white, "#1E293B" for dark navy). The icon will be rendered on that background — it must match perfectly.
+- NEVER use emoji characters, Unicode symbols, or inline SVG for icons anywhere in the HTML.
+- Each key in image_slots must exactly match the key used in the {{NEB_IMG:key}} placeholder in the HTML.`;
+}
+
+export function buildDirectHtmlUserPrompt(params: {
+	brief: NebBrief;
+	brandBlock: string;
+	webContext?: string | null;
+	templateRefs: Array<{ name: string; filename: string; html: string }>;
+}): string {
+	const briefLines = [
+		params.brief.goal && `Goal: ${params.brief.goal}`,
+		params.brief.audience && `Target audience: ${params.brief.audience}`,
+		params.brief.tone && `Tone: ${params.brief.tone}`,
+		params.brief.emailType && `Email type: ${params.brief.emailType}`,
+		params.brief.websiteUrl && `Website: ${params.brief.websiteUrl}`,
+		params.brief.instructions && `Special instructions: ${params.brief.instructions}`,
+	]
+		.filter(Boolean)
+		.join("\n");
+
+	const templateSection = params.templateRefs
+		.map(
+			(t, i) =>
+				`### Reference Template ${i + 1}: ${t.name} (${t.filename})\n\`\`\`html\n${t.html}\n\`\`\``,
+		)
+		.join("\n\n");
+
+	return `${params.brandBlock}
+${params.webContext ? `\n${params.webContext}\n` : ""}
+
+━━━ CAMPAIGN BRIEF ━━━
+${briefLines}
+
+━━━ REFERENCE TEMPLATE(S) — DESIGN QUALITY BENCHMARK ━━━
+Study the following template(s) to understand the expected design quality, HTML structure, and patterns.
+Use their sophistication as your benchmark. Create something NEW tailored to the brief above — do NOT copy their content.
+
+${templateSection}
+
+━━━ YOUR TASK ━━━
+Using the reference template(s) above as your quality and structural benchmark:
+1. Design and build a complete, production-ready HTML email for the brief above
+2. Write all copy fresh — specific, on-brand, and tailored to the company/goal
+3. Structure sections to best serve the campaign objective
+4. Use the brand colors, logo URL, and CTA URL from the BRAND block above
+5. Include appropriate image slots ({{NEB_IMG:key}}) for hero and supporting visuals
+6. Output using the delimiter format required by the system prompt
+
+Build the complete email now.`;
+}
+
+export function buildDirectHtmlContinuationPrompt(params: {
+	briefSummary: string;
+	brandBlock: string;
+	partialHtml: string;
+}): string {
+	return `${params.brandBlock}
+
+BRIEF SUMMARY: ${params.briefSummary}
 
 Your previous HTML output was TRUNCATED. Continue from exactly where it stopped.
 Output ONLY the remaining HTML starting from the cut point, then close all open tags through </html>.
