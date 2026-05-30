@@ -48,6 +48,17 @@ export interface PricingTableProps
   onPlanCardClick?: (plan: PricingPlan) => void
   defaultPlan?: PlanLevel
   defaultInterval?: "monthly" | "yearly"
+  /** Controlled selection (e.g. checkout upsell step) */
+  selectedPlanLevel?: PlanLevel
+  onSelectedPlanLevelChange?: (level: PlanLevel) => void
+  isYearly?: boolean
+  onIsYearlyChange?: (yearly: boolean) => void
+  /** Hide Popular / Recommended badges on plan cards */
+  hideBadges?: boolean
+  /** Compact layout for dialogs and embedded panels */
+  embedded?: boolean
+  /** Hide the primary CTA button (selection handled externally) */
+  hideActionButton?: boolean
   containerClassName?: string
   buttonClassName?: string
   currency?: string
@@ -153,6 +164,13 @@ export function PricingTable({
   onPlanCardClick,
   defaultPlan,
   defaultInterval = "monthly",
+  selectedPlanLevel: selectedPlanLevelProp,
+  onSelectedPlanLevelChange,
+  isYearly: isYearlyProp,
+  onIsYearlyChange,
+  hideBadges = false,
+  embedded = false,
+  hideActionButton = false,
   className,
   containerClassName,
   buttonClassName,
@@ -161,13 +179,30 @@ export function PricingTable({
   contactTelHref = CONTACT_TEL_HREF,
   ...props
 }: PricingTableProps) {
-  const [isYearly, setIsYearly] = React.useState(defaultInterval === "yearly")
-  const [selectedPlan, setSelectedPlan] = React.useState<PlanLevel>(
+  const isPlanControlled = selectedPlanLevelProp !== undefined
+  const isYearlyControlled = isYearlyProp !== undefined
+
+  const [internalIsYearly, setInternalIsYearly] = React.useState(defaultInterval === "yearly")
+  const [internalSelectedPlan, setInternalSelectedPlan] = React.useState<PlanLevel>(
     defaultPlan || plans[0]?.level || ""
   )
 
+  const isYearly = isYearlyControlled ? isYearlyProp! : internalIsYearly
+  const selectedPlan = isPlanControlled ? selectedPlanLevelProp! : internalSelectedPlan
+
+  const setIsYearly = (yearly: boolean) => {
+    if (!isYearlyControlled) setInternalIsYearly(yearly)
+    onIsYearlyChange?.(yearly)
+  }
+
+  const setSelectedPlan = (level: PlanLevel) => {
+    if (!isPlanControlled) setInternalSelectedPlan(level)
+    onSelectedPlanLevelChange?.(level)
+  }
+
   const handlePlanCardClick = (plan: PricingPlan) => {
     setSelectedPlan(plan.level)
+    onPlanCardClick?.(plan)
   }
 
   const useProductFeatures = productFeatures != null && productFeatures.length > 0
@@ -180,16 +215,26 @@ export function PricingTable({
     <section
       className={cn(
         "text-foreground",
-        "py-12 sm:py-16 md:py-20 px-4",
+        embedded ? "py-0 px-0" : "py-12 sm:py-16 md:py-20 px-4",
         className
       )}
       {...props}
     >
       <div
-        className={cn("w-full max-w-6xl mx-auto px-4", containerClassName)}
+        className={cn(
+          "w-full mx-auto",
+          embedded ? "max-w-none px-0" : "max-w-6xl px-4",
+          containerClassName
+        )}
       >
         {/* Billing toggle + CTA */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 sm:mb-10">
+        <div
+          className={cn(
+            "flex flex-col sm:flex-row items-center gap-4",
+            embedded ? "mb-4 justify-end" : "mb-8 sm:mb-10 justify-between",
+            hideActionButton && "sm:justify-end",
+          )}
+        >
           <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/80 border border-border/80 shadow-sm">
             <button
               type="button"
@@ -220,7 +265,7 @@ export function PricingTable({
             </button>
           </div>
 
-          {selectedPlanData && (onPlanSelect || contactTelHref) && (
+          {!hideActionButton && selectedPlanData && (onPlanSelect || contactTelHref) && (
             (() => {
               const displayPrice = isYearly ? selectedPlanData.price.yearly : selectedPlanData.price.monthly;
               const isContactUs = displayPrice === 0;
@@ -269,7 +314,12 @@ export function PricingTable({
         </div>
 
         {/* Plan selector cards */}
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mb-10">
+        <div
+          className={cn(
+            "flex flex-col sm:flex-row gap-4 sm:gap-5",
+            embedded ? "mb-4" : "mb-10",
+          )}
+        >
           {plans.map((plan) => {
             const isSelected = selectedPlan === plan.level;
             return (
@@ -278,7 +328,8 @@ export function PricingTable({
                 type="button"
                 onClick={() => handlePlanCardClick(plan)}
                 className={cn(
-                  "relative flex-1 p-5 sm:p-6 rounded-2xl text-left transition-all duration-200",
+                  "relative flex-1 rounded-2xl text-left transition-all duration-200",
+                  embedded ? "p-4" : "p-5 sm:p-6",
                   "border-2 bg-card/60 hover:bg-card/90",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                   isSelected
@@ -313,11 +364,11 @@ export function PricingTable({
                   ) : null}
                 </div>
 
-                <div className="flex items-center justify-between gap-2 mb-3 pr-20">
+                <div className={cn("flex items-center justify-between gap-2 mb-3", isSelected && "pr-20")}>
                   <span className="text-sm font-semibold tracking-tight text-foreground uppercase">
                     {plan.name}
                   </span>
-                  {(plan.popular || plan.recommended) && !isSelected && (
+                  {!hideBadges && (plan.popular || plan.recommended) && !isSelected && (
                     <span className="flex flex-wrap gap-1 justify-end shrink-0">
                       {plan.popular && (
                         <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full">
@@ -354,13 +405,15 @@ export function PricingTable({
                     </>
                   )}
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {isSelected
-                    ? (isYearly ? plan.price.yearly : plan.price.monthly) === 0
-                      ? "Click Contact us above to continue"
-                      : "Click Get started above to continue"
-                    : "Click to select this plan"}
-                </p>
+                {!embedded && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    {isSelected
+                      ? (isYearly ? plan.price.yearly : plan.price.monthly) === 0
+                        ? "Click Contact us above to continue"
+                        : "Click Get started above to continue"
+                      : "Click to select this plan"}
+                  </p>
+                )}
               </button>
             );
           })}
@@ -369,7 +422,7 @@ export function PricingTable({
         {/* Features table */}
         <div className="rounded-2xl border border-border overflow-hidden shadow-sm bg-card/30">
           <div className="overflow-x-auto">
-            <div className="min-w-[640px]">
+            <div className={cn(embedded ? "min-w-[520px]" : "min-w-[640px]")}>
               <div className="flex items-center px-4 sm:px-5 py-3.5 bg-muted/60 border-b border-border/80">
                 <div className="w-48 sm:w-64 flex-shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Features

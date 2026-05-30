@@ -24,7 +24,7 @@
 14. [Error Handling at Each Layer](#14-error-handling-at-each-layer)
 15. [Post-Provisioning: Servers Tab](#15-post-provisioning-servers-tab)
 16. [Hivelocity Account Prerequisites](#16-hivelocity-account-prerequisites)
-    - [16.1 Default hostname DNS — admin setup (do this now)](#161-default-hostname-dns--admin-setup-do-this-now)
+    - [16.1 Default hostname DNS - admin setup (do this now)](#161-default-hostname-dns--admin-setup-do-this-now)
 17. [Complete Data Object Reference](#17-complete-data-object-reference)
 
 ---
@@ -730,11 +730,11 @@ When calling `createFromPayment` after successful M-Pesa payment, the items arra
 
 ## 9. Step 6   Order Processor: Hivelocity Branch
 
-> **Implemented path:** `packages/api/src/lib/hivelocity-deployment.ts` — official **Deployment API** (3 steps), not `POST /compute/`.
+> **Implemented path:** `packages/api/src/lib/hivelocity-deployment.ts` - official **Deployment API** (3 steps), not `POST /compute/`.
 >
 > Step 3 (`POST /deploy/{deploymentId}`) per [OpenAPI](https://developers.hivelocity.net/reference/post_deployment_id_resource):
-> - **`billingInfo` (required)** — integer ID of Nisc's wholesale payment method on the Hivelocity account (`GET /billing-info/` or `HIVELOCITY_BILLING_INFO_ID`). This is **not** customer M-Pesa/checkout billing; customers never fill this in the UI.
-> - **`script` (optional)** — Cloud-Init or post-install script. Omit when none is configured (current checkout does not collect scripts).
+> - **`billingInfo` (required)** - integer ID of Nisc's wholesale payment method on the Hivelocity account (`GET /billing-info/` or `HIVELOCITY_BILLING_INFO_ID`). This is **not** customer M-Pesa/checkout billing; customers never fill this in the UI.
+> - **`script` (optional)** - Cloud-Init or post-install script. Omit when none is configured (current checkout does not collect scripts).
 
 ### 9.1 Add Service Types Constant
 
@@ -1153,9 +1153,9 @@ These are operational requirements outside the codebase. All must be satisfied b
 
 ---
 
-### 16.1 Default hostname DNS — admin setup (do this now)
+### 16.1 Default hostname DNS - admin setup (do this now)
 
-> **Audience:** Nisc ops / engineering — **not** shown to customers in the purchase UI.  
+> **Audience:** Nisc ops / engineering - **not** shown to customers in the purchase UI.  
 > Complete this **before** customers use default hostnames so provisioning does not leave servers without working DNS.
 
 When a customer does not have their own domain, the purchase dialog pre-fills a **random** hostname under **`nisccloud.com`** (override via `VITE_HIVELOCITY_DEFAULT_HOSTNAME_DOMAIN`). Format by product type:
@@ -1168,16 +1168,16 @@ When a customer does not have their own domain, the purchase dialog pre-fills a 
 
 Hivelocity accepts the hostname at order time. **Forward DNS must exist after the server gets a public IP** or customers will not reach the server by name. nPanel will create A records programmatically once the order processor is wired; **you must prepare the zone now** so that automation (or manual ops) can succeed.
 
-#### Wildcard DNS? **No — use individual A records**
+#### Wildcard DNS? **No - use individual A records**
 
 This setup is **not** wildcard DNS. Do **not** add `*.nisccloud.com → one IP`.
 
 | Approach | Record | Works for Hivelocity? |
 |---|---|---|
-| **Wildcard (wrong here)** | `*.nisccloud.com` A → `203.0.113.1` | **No** — every hostname would resolve to the **same** IP, but each server has its **own** IP |
-| **What we use (correct)** | `mpkxfyu852t7fgki-vps` A → `198.51.100.42` | **Yes** — one A record per hostname, pointing to **that** server's IP |
+| **Wildcard (wrong here)** | `*.nisccloud.com` A → `203.0.113.1` | **No** - every hostname would resolve to the **same** IP, but each server has its **own** IP |
+| **What we use (correct)** | `mpkxfyu852t7fgki-vps` A → `198.51.100.42` | **Yes** - one A record per hostname, pointing to **that** server's IP |
 
-**What you add in DNS today (before launch):** nothing per customer hostname — only prepare the zone (checklist below) and optionally a one-off smoke-test record.
+**What you add in DNS today (before launch):** nothing per customer hostname - only prepare the zone (checklist below) and optionally a one-off smoke-test record.
 
 **What gets added after each server provisions:** one **A record** for that hostname → that server's public IP (manual until automation ships, then via OpenProvider API).
 
@@ -1201,13 +1201,13 @@ When Hivelocity assigns e.g. `198.51.100.42` to hostname `mpkxfyu852t7fgki-vps.n
 |---|---|---|---|
 | A | `mpkxfyu852t7fgki-vps` | `198.51.100.42` | 3600 |
 
-- **Name** is only the subdomain label — not the full FQDN.
+- **Name** is only the subdomain label - not the full FQDN.
 - **Do not** use `@` or `*` for these hostnames.
 - Repeat for every new default hostname (automation will do this via API later).
 
-If your DNS UI is elsewhere (e.g. Cloudflare): same fields — Type **A**, Name **`mpkxfyu852t7fgki-vps`**, Content **server IP**, Proxy **DNS only** (grey cloud).
+If your DNS UI is elsewhere (e.g. Cloudflare): same fields - Type **A**, Name **`mpkxfyu852t7fgki-vps`**, Content **server IP**, Proxy **DNS only** (grey cloud).
 
-#### Checklist — set up on `nisccloud.com` today
+#### Checklist - set up on `nisccloud.com` today
 
 | # | Action | Why |
 |---|---|---|

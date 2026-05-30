@@ -1,5 +1,5 @@
 /**
- * Distinct chart colors (not theme chart tokens — those read too similar in the UI).
+ * Distinct chart colors (not theme chart tokens - those read too similar in the UI).
  */
 
 export const CHART_PALETTE = [

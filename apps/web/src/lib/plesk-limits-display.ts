@@ -25,16 +25,16 @@ export function finitePositiveCap(raw: unknown): number | null {
 
 export function formatPleskCountLimit(raw: unknown): string {
   const n = parseLimitNumber(raw);
-  if (n === undefined) return "—";
+  if (n === undefined) return "-";
   if (isUnlimitedPleskLimit(n)) return "Unlimited";
   return String(n);
 }
 
 export function formatPleskBytesLimit(raw: unknown, formatBytes: (b: number) => string): string {
   const n = parseLimitNumber(raw);
-  if (n === undefined) return "—";
+  if (n === undefined) return "-";
   if (isUnlimitedPleskLimit(n)) return "Unlimited";
-  if (!Number.isFinite(n) || n < 0) return "—";
+  if (!Number.isFinite(n) || n < 0) return "-";
   return formatBytes(n);
 }
 

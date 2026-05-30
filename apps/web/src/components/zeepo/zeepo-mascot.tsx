@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Small mascot for headings only — no background, no ring */
+/** Small mascot for headings only - no background, no ring */
 const MASCOT_CLASS = "h-9 w-9 sm:h-10 sm:w-10 object-contain";
 
 type ZeepoMascotProps = {

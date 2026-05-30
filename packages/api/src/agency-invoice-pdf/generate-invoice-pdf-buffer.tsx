@@ -1,5 +1,5 @@
 /**
- * Agency invoice PDF — same layout as agency.invoices.$id download (PdfDetails + buildInvoicePdfDetails).
+ * Agency invoice PDF - same layout as agency.invoices.$id download (PdfDetails + buildInvoicePdfDetails).
  */
 import React from "react";
 import { Document, Page, renderToBuffer } from "@react-pdf/renderer";

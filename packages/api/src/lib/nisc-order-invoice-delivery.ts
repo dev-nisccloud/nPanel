@@ -60,7 +60,7 @@ export type CreateAndEmailNiscOrderInvoiceInput = {
 
 /**
  * Creates invoice for a paid Nisc order (if not already created) and emails PDF to billing contact.
- * Never throws — callers should always continue provisioning.
+ * Never throws - callers should always continue provisioning.
  */
 export async function createAndEmailNiscOrderInvoice(
 	input: CreateAndEmailNiscOrderInvoiceInput,

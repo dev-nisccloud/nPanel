@@ -142,7 +142,7 @@ export function DomainSearchResults({
       {rawSearchQuery.trim().length > 0 && (
         <section className="mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Only mount ExactMatchSection when rawSearchQuery contains a dot — avoids mounting hooks for bare names. */}
+            {/* Only mount ExactMatchSection when rawSearchQuery contains a dot - avoids mounting hooks for bare names. */}
             {rawSearchQuery.trim().includes(".") && (
               <ExactMatchSection
                 rawSearchQuery={rawSearchQuery.trim()}

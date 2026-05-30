@@ -198,7 +198,7 @@ export function EmailEditView({
 
 	React.useEffect(() => () => debouncedAutoSave.cancel(), [debouncedAutoSave]);
 
-	// Flush once on unmount / tab close — stable effect (no save spam on re-renders).
+	// Flush once on unmount / tab close - stable effect (no save spam on re-renders).
 	React.useEffect(() => {
 		const onBeforeUnload = () => {
 			debouncedAutoSave.cancel();
@@ -299,7 +299,7 @@ export function EmailEditView({
 						) : saveStatus === "error" ? (
 							<>
 								<CloudOff className="size-3.5 text-destructive" />
-								<span className="text-destructive">Save failed — retry with Save</span>
+								<span className="text-destructive">Save failed - retry with Save</span>
 							</>
 						) : dirty ? (
 							<span>Editing…</span>

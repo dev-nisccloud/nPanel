@@ -819,7 +819,7 @@ export const hivelocityRouter = router({
 				});
 			}
 
-			// Search filter — match against updated field names (name, deviceType)
+			// Search filter - match against updated field names (name, deviceType)
 			if (search.length > 0) {
 				devices = devices.filter((d) => {
 					const loc = d.location as any;
@@ -854,7 +854,7 @@ export const hivelocityRouter = router({
 	 * Schema: VPS
 	 *
 	 * Note: This is a completely separate endpoint from /device/ with its own
-	 * schema — VPS instances are NOT returned by /device/.
+	 * schema - VPS instances are NOT returned by /device/.
 	 *
 	 * Supports:
 	 * - Free-text search (hostname, primaryIp, osName, id)

@@ -178,7 +178,7 @@ export async function runNebCreativeDesign(
 		const designVariations = [...existingVariations, newVariation];
 
 		const approvalAsk =
-			"\n\n---\n**Are you happy with this creative direction?** Click **Approve & build email** to implement it as a production HTML template, or ask for changes — I'll revise the design.";
+			"\n\n---\n**Are you happy with this creative direction?** Click **Approve & build email** to implement it as a production HTML template, or ask for changes - I'll revise the design.";
 		const assistantText = directed.assistant_text + approvalAsk;
 
 		await db

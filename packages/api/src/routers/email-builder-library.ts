@@ -156,7 +156,7 @@ export const emailBuilderLibraryRouter = router({
       if (teamId) {
         whereConditions.push(eq(emailBuilderLibrary.teamId, teamId));
       } else {
-        // Personal library — only assets this user uploaded
+        // Personal library - only assets this user uploaded
         whereConditions.push(eq(emailBuilderLibrary.userId, userId));
         if (!isAgencyUserRole(userRole)) {
           whereConditions.push(isNull(emailBuilderLibrary.teamId));

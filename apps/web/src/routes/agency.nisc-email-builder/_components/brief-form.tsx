@@ -98,7 +98,7 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 		const patch: Partial<BriefFormValues> = {
 			websiteUrl: data.websiteUrl,
 		};
-		// Only fill fields the user has not set — manual edits always win.
+		// Only fill fields the user has not set - manual edits always win.
 		if (data.logoUrl && !values.logoUrl.trim()) {
 			patch.logoUrl = data.logoUrl;
 		}
@@ -252,7 +252,7 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 								{g.label}
 							</SelectItem>
 						))}
-						<SelectItem value={NEB_BRIEF_OTHER}>Other — specify manually</SelectItem>
+						<SelectItem value={NEB_BRIEF_OTHER}>Other - specify manually</SelectItem>
 					</SelectContent>
 				</Select>
 				{values.goalPreset === NEB_BRIEF_OTHER ? (
@@ -281,7 +281,7 @@ export function BriefForm({ values, onChange, onSubmit, isSubmitting }: BriefFor
 								{a.label}
 							</SelectItem>
 						))}
-						<SelectItem value={NEB_BRIEF_OTHER}>Other — specify manually</SelectItem>
+						<SelectItem value={NEB_BRIEF_OTHER}>Other - specify manually</SelectItem>
 					</SelectContent>
 				</Select>
 				{values.audiencePreset === NEB_BRIEF_OTHER ? (

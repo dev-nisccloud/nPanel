@@ -12,7 +12,7 @@ import {
   type AgentDomainCheckResult,
 } from "@/stores/zeepo-payment-store";
 
-/** Whole-number prices — aligned with agency /domains and agent toRetailPrice. */
+/** Whole-number prices - aligned with agency /domains and agent toRetailPrice. */
 function formatDomainPrice(amount: number, currency: string): string {
   const whole = Math.ceil(amount);
   const symbols: Record<string, string> = {

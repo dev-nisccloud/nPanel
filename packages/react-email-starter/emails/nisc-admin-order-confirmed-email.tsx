@@ -200,7 +200,7 @@ NiscAdminOrderConfirmedEmail.PreviewProps = {
 			status: "PROVISIONED",
 		},
 		{
-			name: "Web Hosting — Business",
+			name: "Web Hosting - Business",
 			description: "Primary domain: clientsite.com",
 			price: "KES 4999",
 			status: "PROVISIONED",

@@ -95,7 +95,7 @@ export function SmartUpdateResultCard({
                   >
                     <p className="font-medium truncate">{d.pageUrl ?? `Page ${i + 1}`}</p>
                     <p className="text-muted-foreground mt-1">
-                      HTTP {d.before?.httpStatus ?? "—"} → {d.after?.httpStatus ?? "—"}
+                      HTTP {d.before?.httpStatus ?? "-"} → {d.after?.httpStatus ?? "-"}
                     </p>
                   </div>
                 ))}

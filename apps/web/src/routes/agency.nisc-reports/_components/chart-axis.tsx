@@ -1,4 +1,4 @@
-/** Full axis labels — no tick skipping or truncation helpers. */
+/** Full axis labels - no tick skipping or truncation helpers. */
 
 export function formatChartCategoryLabel(value: unknown) {
   return String(value ?? "").replace(/_/g, " ");

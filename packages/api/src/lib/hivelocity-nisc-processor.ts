@@ -112,7 +112,7 @@ export async function processHivelocityOrderItem(
 
 	const now = new Date();
 	const subId = randomUUID();
-	const subscriptionName = `${item.product.name} — ${hivelocityOsName} @ ${hivelocityLocationName}`;
+	const subscriptionName = `${item.product.name} - ${hivelocityOsName} @ ${hivelocityLocationName}`;
 	const hivelocityServiceType = resolveHivelocityServiceType(item.product.serviceType);
 	const hivelocityOrderId =
 		deploymentResult.orderId ??

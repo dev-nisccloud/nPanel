@@ -42,7 +42,7 @@ const PRODUCT = {
 		},
 	],
 	highlights: [
-		"Token-based usage — buy a plan or top up anytime",
+		"Token-based usage - buy a plan or top up anytime",
 		"Web search and domain checks included",
 		"Pay-as-you-go or monthly plans",
 	],
@@ -77,7 +77,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.starter,
 		name: "Starter",
-		description: "Monthly plan with 650 tokens — ideal for light use.",
+		description: "Monthly plan with 650 tokens - ideal for light use.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceUsd: "9.00",
@@ -89,7 +89,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.standard,
 		name: "Standard",
-		description: "Monthly plan with 1,400 tokens — best for regular workflows.",
+		description: "Monthly plan with 1,400 tokens - best for regular workflows.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceUsd: "19.00",
@@ -104,7 +104,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.pro,
 		name: "Pro",
-		description: "Monthly plan with 3,800 tokens — for power users and teams.",
+		description: "Monthly plan with 3,800 tokens - for power users and teams.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceUsd: "49.00",
@@ -115,7 +115,7 @@ const PLANS: PlanSeed[] = [
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.topUp500,
-		name: "Token Top-Up — 500",
+		name: "Token Top-Up - 500",
 		description: "One-time purchase of 500 tokens. Adds to your current balance.",
 		pricingModel: "FIXED",
 		billingCycle: "CUSTOM",
@@ -128,7 +128,7 @@ const PLANS: PlanSeed[] = [
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.topUp1500,
-		name: "Token Top-Up — 1,500",
+		name: "Token Top-Up - 1,500",
 		description: "One-time purchase of 1,500 tokens. Adds to your current balance.",
 		pricingModel: "FIXED",
 		billingCycle: "CUSTOM",
@@ -141,7 +141,7 @@ const PLANS: PlanSeed[] = [
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.topUp5000,
-		name: "Token Top-Up — 5,000",
+		name: "Token Top-Up - 5,000",
 		description: "One-time purchase of 5,000 tokens. Adds to your current balance.",
 		pricingModel: "FIXED",
 		billingCycle: "CUSTOM",

@@ -3,7 +3,7 @@
  * Docs: https://api.search.brave.com/app/documentation/llm-context/get-started
  *
  * Provides real-time web grounding optimised for LLM consumption.
- * The response is pre-extracted and chunked — no scraping needed.
+ * The response is pre-extracted and chunked - no scraping needed.
  */
 
 export type BraveSearchDepth = "quick" | "standard" | "deep";
@@ -48,21 +48,21 @@ const DEPTH_CONFIG: Record<
 		maximum_number_of_snippets: number;
 	}
 > = {
-	// Simple factual lookups — fast, low cost.
+	// Simple factual lookups - fast, low cost.
 	quick: {
 		count: 5,
 		maximum_number_of_tokens: 2048,
 		maximum_number_of_urls: 5,
 		maximum_number_of_snippets: 15,
 	},
-	// Standard queries — default for most tool calls.
+	// Standard queries - default for most tool calls.
 	standard: {
 		count: 20,
 		maximum_number_of_tokens: 8192,
 		maximum_number_of_urls: 10,
 		maximum_number_of_snippets: 40,
 	},
-	// Complex research — broader coverage.
+	// Complex research - broader coverage.
 	deep: {
 		count: 50,
 		maximum_number_of_tokens: 16384,
@@ -92,7 +92,7 @@ export async function callBraveLlmContext(
 	const cfg = DEPTH_CONFIG[depth];
 
 	// Only include country when Brave supports it; unsupported regions (e.g. most of Africa)
-	// cause a 422 — include geography in the query string instead.
+	// cause a 422 - include geography in the query string instead.
 	const safeCountry =
 		country && BRAVE_SUPPORTED_COUNTRIES.has(country.toUpperCase())
 			? country.toUpperCase()
@@ -167,7 +167,7 @@ function formatGroundingForLlm(
 		const age = meta?.age?.[0] ?? null;
 
 		lines.push(`[${i + 1}] ${entry.title}`);
-		lines.push(`    Source: ${hostname} — ${entry.url}`);
+		lines.push(`    Source: ${hostname} - ${entry.url}`);
 		if (age) lines.push(`    Published: ${age}`);
 
 		const snippets = entry.snippets.slice(0, 5);
@@ -183,5 +183,5 @@ function formatGroundingForLlm(
 	return lines.join("\n").trimEnd();
 }
 
-/** Identifier prefix in stored tool results — used by the UI to hide them. */
+/** Identifier prefix in stored tool results - used by the UI to hide them. */
 export const BRAVE_SEARCH_RESULT_PREFIX = "WEB SEARCH";

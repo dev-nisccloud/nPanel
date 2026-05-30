@@ -5,7 +5,7 @@
  * @see https://developers.hivelocity.net/reference/post_deployment_id_resource
  *
  * Step 3 `DeploymentStart` OpenAPI: `billingInfo` is required; `script` is optional.
- * Customer M-Pesa is handled in nPanel — billingInfo is Nisc's wholesale payment method on Hivelocity.
+ * Customer M-Pesa is handled in nPanel - billingInfo is Nisc's wholesale payment method on Hivelocity.
  */
 import { hivelocityRequest } from "./hivelocity-client";
 import { niscLog } from "./nisc-order-logger";

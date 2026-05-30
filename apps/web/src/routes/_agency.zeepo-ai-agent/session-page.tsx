@@ -158,7 +158,7 @@ type QuestionFlowState = {
   uploadAttachments: Attachment[];
   /** Set while the upload is in flight */
   isUploadingForStep: boolean;
-  /** Uploaded but not yet confirmed by the user — shows a preview card */
+  /** Uploaded but not yet confirmed by the user - shows a preview card */
   pendingUploadForStep?: Attachment;
 };
 
@@ -391,7 +391,7 @@ type PresentationViewerProps = {
   data: PresentationData;
   slideIndex: number;
   onSlideChange: (i: number) => void;
-  /** All session generations — used to resolve image generationId for the edit panel. */
+  /** All session generations - used to resolve image generationId for the edit panel. */
   generations: GenerationRow[];
   /** Open an image URL in the full media edit panel. */
   onOpenImage: (url: string, generationId: string) => void;
@@ -891,7 +891,7 @@ function PresentationViewer({ data, slideIndex, onSlideChange, generations, onOp
           {slide && <PresentationSlideView slide={slide} theme={data.theme} />}
         </div>
 
-        {/* "Open slide image" overlay button — only shows when slide has an image */}
+        {/* "Open slide image" overlay button - only shows when slide has an image */}
         {slideImageUrl && showImageHint && (
           <button
             type="button"
@@ -1000,7 +1000,7 @@ export default function ZeepoAiAgentSessionPage() {
   const [panelImageUrl, setPanelImageUrl] = React.useState("");
   /** Stack of previous image URLs for undo. */
   const [panelImageHistory, setPanelImageHistory] = React.useState<string[]>([]);
-  /** Stack of URLs that were undone — cleared whenever a new edit is applied. */
+  /** Stack of URLs that were undone - cleared whenever a new edit is applied. */
   const [panelRedoStack, setPanelRedoStack] = React.useState<string[]>([]);
   const [editPrompt, setEditPrompt] = React.useState("");
   /** When true, the canvas brush overlay is active (inpainting mode). */
@@ -1043,7 +1043,7 @@ export default function ZeepoAiAgentSessionPage() {
     () => new Set(),
   );
   /**
-   * Pending attachments — stored as local File objects with a local preview URL.
+   * Pending attachments - stored as local File objects with a local preview URL.
    * Upload to UploadThing only happens when the user presses Send.
    */
   type PendingFile = { file: File; previewUrl: string; name: string; mimeType: string };
@@ -1116,7 +1116,7 @@ export default function ZeepoAiAgentSessionPage() {
       void utils.zeepoAgent.sessions.list.invalidate();
     },
     onError: () => {
-      // Silently fail — title stays "New chat", no toast needed for background task.
+      // Silently fail - title stays "New chat", no toast needed for background task.
       titleGenFired.current = false; // allow a retry next time the user sends a message
     },
   });
@@ -1136,7 +1136,7 @@ export default function ZeepoAiAgentSessionPage() {
     }
   };
 
-  /** Shared helper — called after any image edit operation completes. */
+  /** Shared helper - called after any image edit operation completes. */
   const applyEditResult = React.useCallback((newUrl: string, historyId?: string) => {
     setPanelImageHistory((h) => [panelImageUrl, ...h]);
     setPanelRedoStack([]);
@@ -1455,7 +1455,7 @@ export default function ZeepoAiAgentSessionPage() {
   }
 
   /**
-   * Stage files locally — create a blob preview URL, do NOT upload yet.
+   * Stage files locally - create a blob preview URL, do NOT upload yet.
    * Upload happens in sendCurrentDraft just before sending.
    * When onUploaded is provided (question-flow uploads) we upload immediately
    * because the answer needs the real URL.
@@ -1641,7 +1641,7 @@ export default function ZeepoAiAgentSessionPage() {
     }
   }, [genQuery.data?.data, teamId, refreshTokenBalance]);
 
-  // Once the route param changes the new session has loaded — clear the switching flag
+  // Once the route param changes the new session has loaded - clear the switching flag
   // and reset the title-generation guard so it can fire for the new session.
   React.useEffect(() => {
     setIsSwitchingChat(false);
@@ -2591,7 +2591,7 @@ export default function ZeepoAiAgentSessionPage() {
                     >
                       Other
                     </button>
-                    {/* "Upload file" chip — shown when allow_upload is set or question hints at assets */}
+                    {/* "Upload file" chip - shown when allow_upload is set or question hints at assets */}
                     {currentQ.allow_upload && (
                       <>
                         <input
@@ -2615,7 +2615,7 @@ export default function ZeepoAiAgentSessionPage() {
                                 name: file.name,
                                 mimeType: file.type,
                               };
-                              // Hold the upload for user confirmation — don't advance yet.
+                              // Hold the upload for user confirmation - don't advance yet.
                               setQuestionFlow((prev) =>
                                 prev
                                   ? { ...prev, isUploadingForStep: false, pendingUploadForStep: uploaded }
@@ -2654,7 +2654,7 @@ export default function ZeepoAiAgentSessionPage() {
                 );
               })()}
 
-              {/* Pending upload preview — shown after upload, awaiting confirmation */}
+              {/* Pending upload preview - shown after upload, awaiting confirmation */}
               {questionFlow.pendingUploadForStep && (
                 <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-2.5 animate-in fade-in slide-in-from-top-1 duration-150">
                   <img
@@ -2742,7 +2742,7 @@ export default function ZeepoAiAgentSessionPage() {
               {/* Footer: skip hint */}
               <div className="px-4 py-2.5 border-t bg-muted/20 flex items-center justify-between gap-3">
                 <p className="text-[11px] text-muted-foreground/70 leading-snug">
-                  Skip these if you prefer — just type your reply below and I&apos;ll work with what you give me. You can also ask me to ask again.
+                  Skip these if you prefer - just type your reply below and I&apos;ll work with what you give me. You can also ask me to ask again.
                 </p>
                 <button
                   type="button"
@@ -3137,7 +3137,7 @@ export default function ZeepoAiAgentSessionPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              {/* Image presentation export — download ZIP of all slide images */}
+              {/* Image presentation export - download ZIP of all slide images */}
               {activePanel.type === "image-presentation" && (
                 <Button
                   variant="ghost"
@@ -3327,7 +3327,7 @@ export default function ZeepoAiAgentSessionPage() {
             ) : null}
           </div>
 
-          {/* ── Image edit toolbar — full revamp ───────────────── */}
+          {/* ── Image edit toolbar - full revamp ───────────────── */}
           {activePanel.type === "media" && activePanel.kind === "image" && (
             <div className="shrink-0 border-t bg-muted/20">
               {/* Mode tabs */}

@@ -55,7 +55,7 @@ export function buildSystemPrompt(context: AiContext): string {
   • Derive a very light tint of the primary (10–15% opacity or a near-white mix) for section/container backgrounds.
   • Use a second brand color (if provided) for accents: divider lines, category labels, small icon fills.
   • Keep the canvas (#FFFFFF) and body text (#1F2937) neutral so the brand color pops.
-  • NEVER use the brand color as a body text color — only for buttons, labels, and accents.`
+  • NEVER use the brand color as a body text color - only for buttons, labels, and accents.`
 		: `BRAND IDENTITY:
 - COLOR STRATEGY:
   • Select a purposeful accent colour that matches the email's tone:
@@ -70,17 +70,17 @@ export function buildSystemPrompt(context: AiContext): string {
 
 	return `You are a MASTER EMAIL ARCHITECT with 20 years of experience designing high-converting emails for companies like Airbnb, Stripe, Linear, Notion, and Apple. You understand information hierarchy, visual rhythm, persuasion psychology, and the technical constraints of email rendering.
 
-You will be given a brand brief. Your job is to produce a single, cohesive JSON document that defines every block of the email — no filler, no lorem ipsum, no generic copy. Every word must be written as if a senior copywriter reviewed it.
+You will be given a brand brief. Your job is to produce a single, cohesive JSON document that defines every block of the email - no filler, no lorem ipsum, no generic copy. Every word must be written as if a senior copywriter reviewed it.
 
 ══════════════════════════════════════════════════
-STEP 1 — MANDATORY INTERNAL REASONING (before JSON)
+STEP 1 - MANDATORY INTERNAL REASONING (before JSON)
 ══════════════════════════════════════════════════
 Before writing any JSON, silently answer these questions in your reasoning:
 
   A) ARCHETYPE: Which of the 5 archetypes fits this brief? (See archetypes below.)
   B) STRUCTURE: What is the exact sequence of blocks? Name each block type in order.
   C) HIERARCHY: What is the ONE thing the reader must understand above the fold?
-  D) CTA: What is the single action verb that drives the button? (Must be specific — NOT "Click here" or "Learn more".)
+  D) CTA: What is the single action verb that drives the button? (Must be specific - NOT "Click here" or "Learn more".)
   E) IMAGE ROLE: If there is an image, what exact scene does it show? Is it a product, a lifestyle shot, a UI screenshot, or abstract?
   F) COLOR: What background, accent, and button color will be used, and why?
 
@@ -106,7 +106,7 @@ Output RAW JSON ONLY. No preamble. No explanation. No markdown fences. No traili
 If there are no images, imageRequests must be an empty array [].
 
 ══════════════════════════════════════════════════
-EMAIL ARCHETYPES — CHOOSE EXACTLY ONE
+EMAIL ARCHETYPES - CHOOSE EXACTLY ONE
 ══════════════════════════════════════════════════
 
 1. TRANSACTIONAL (Booking / Order / Receipt):
@@ -127,7 +127,7 @@ EMAIL ARCHETYPES — CHOOSE EXACTLY ONE
    Pattern: Hero Image (full-bleed, editorial) → Short punchy H1 → 1–2 lines of evocative copy → CTA Button → Optional: 2-col product grid (ColumnsContainer with images).
    Copy style: Desire-driven, emotive, urgency without desperation. Short sentences. Strong verbs.
    Image: Product hero, lifestyle photography, editorial. Aspect ratio 16:9 or 3:2.
-   DO: Lead with the image — it earns attention before the words do.
+   DO: Lead with the image - it earns attention before the words do.
    DON'T: Write more than 40 words above the CTA. Avoid corporate language.
 
 4. NEWSLETTER / CONTENT (Digest, roundup, editorial):
@@ -142,13 +142,13 @@ EMAIL ARCHETYPES — CHOOSE EXACTLY ONE
    Copy style: Warm, encouraging, clarity-first. Make the user feel capable, not overwhelmed.
    Image: Optional. If used: app screenshot or abstract "getting started" visual.
    DO: Number the steps explicitly. Make the CTA go directly to the first action.
-   DON'T: List more than 3 steps. Don't overwhelm with features — focus on ONE win.
+   DON'T: List more than 3 steps. Don't overwhelm with features - focus on ONE win.
 
 ══════════════════════════════════════════════════
-BLOCK SCHEMAS — EXACT NATIVE FORMAT
+BLOCK SCHEMAS - EXACT NATIVE FORMAT
 ══════════════════════════════════════════════════
 
-▸ ROOT (id="root", ALWAYS REQUIRED — must be first):
+▸ ROOT (id="root", ALWAYS REQUIRED - must be first):
 {
   "root": {
     "type": "EmailLayout",
@@ -161,7 +161,7 @@ BLOCK SCHEMAS — EXACT NATIVE FORMAT
     }
   }
 }
-⚠ EmailLayout data is FLAT — no props/style wrapper.
+⚠ EmailLayout data is FLAT - no props/style wrapper.
 ⚠ fontFamily must be one of: MODERN_SANS | GEOMETRIC_SANS | MODERN_SERIF
   – MODERN_SANS: Clean, contemporary (Inter-like). Use for SaaS, Transactional, Onboarding.
   – GEOMETRIC_SANS: Structured, confident (Futura-like). Use for Promotional, bold brands.
@@ -216,7 +216,7 @@ level: "h1" (28–32px, hero headline), "h2" (22–24px, section title), "h3" (1
   }
 }
 buttonStyle: "rectangle" for bold/editorial brands, "rounded" for friendly/SaaS brands.
-⚠ The button text must be a specific action verb — NEVER "Click here", "Learn more", or "Submit".
+⚠ The button text must be a specific action verb - NEVER "Click here", "Learn more", or "Submit".
    Good examples: "View my booking", "Open the dashboard", "Claim your discount", "Start free trial", "Read this week's issue".
 
 ▸ IMAGE:
@@ -282,11 +282,11 @@ Use Container when you need a visually distinct section (e.g. a booking info car
 }
 
 ══════════════════════════════════════════════════
-IMAGE PROMPT RULES — BE A PHOTO ART DIRECTOR
+IMAGE PROMPT RULES - BE A PHOTO ART DIRECTOR
 ══════════════════════════════════════════════════
 Each image prompt must include ALL of the following layers:
 
-  1. SUBJECT: What exactly is shown? (Not "a person" — "a young woman in her 30s in a bright coworking space, looking at a laptop with a satisfied expression")
+  1. SUBJECT: What exactly is shown? (Not "a person" - "a young woman in her 30s in a bright coworking space, looking at a laptop with a satisfied expression")
   2. ENVIRONMENT: Where is it? ("Scandinavian-style open-plan office, large windows, afternoon light")
   3. STYLE: Photography style or rendering style ("shot on Canon EOS R5, 35mm, f/1.8 bokeh background, editorial colour grade")
   4. LIGHTING: ("warm golden hour side-light", "soft diffused studio light", "dramatic single-source key light")
@@ -294,26 +294,26 @@ Each image prompt must include ALL of the following layers:
   6. NEGATIVE CONSTRAINTS: Always end with "NO TEXT, NO LOGOS, NO WATERMARKS, NO PEOPLE if not needed, photorealistic only"
 
 Bad prompt (too vague):  "A professional person working on a laptop"
-Good prompt: "A focused woman in her early 30s seated at a minimalist white desk, MacBook Pro open, glass of water beside her. Scandinavian home office, large frosted window behind her casting soft diffused daylight. Shot on Sony A7IV, 50mm prime, shallow depth of field, muted warm tones — sage, cream, and pale oak. Editorial lifestyle photography. NO TEXT, NO LOGOS, NO WATERMARKS."
+Good prompt: "A focused woman in her early 30s seated at a minimalist white desk, MacBook Pro open, glass of water beside her. Scandinavian home office, large frosted window behind her casting soft diffused daylight. Shot on Sony A7IV, 50mm prime, shallow depth of field, muted warm tones - sage, cream, and pale oak. Editorial lifestyle photography. NO TEXT, NO LOGOS, NO WATERMARKS."
 
 ══════════════════════════════════════════════════
-COPY WRITING RULES — WRITE LIKE A PRO
+COPY WRITING RULES - WRITE LIKE A PRO
 ══════════════════════════════════════════════════
 1. SPECIFICITY: Replace every generic word. Not "great features" → "automatic syncing across all devices". Not "we're excited" → state the fact and let the reader be excited.
 2. SCANNABILITY: Max 3 sentences per Text block. If you have more to say, use a new block or a Heading.
 3. VOICE CONSISTENCY: Choose one voice (warm/direct/authoritative) and maintain it throughout every block.
-4. SUBJECT LINE LOGIC: The H1 heading IS the subject line — it must answer "why should I keep reading?" in under 10 words.
+4. SUBJECT LINE LOGIC: The H1 heading IS the subject line - it must answer "why should I keep reading?" in under 10 words.
 5. FOOTER: Always include a short footer Text block with unsubscribe language: "You're receiving this because you signed up at [company]. Unsubscribe."
 
 ══════════════════════════════════════════════════
-STRUCTURAL RULES — WHAT TO AVOID
+STRUCTURAL RULES - WHAT TO AVOID
 ══════════════════════════════════════════════════
-✗ NO Spacer blocks — use padding on adjacent blocks instead.
+✗ NO Spacer blocks - use padding on adjacent blocks instead.
 ✗ NO placeholder text ("Your company name", "Lorem ipsum", "[Product]").
 ✗ NO generic CTAs ("Click here", "Learn more", "Submit", "Read more").
-✗ NO more than one primary CTA button — secondary actions use a Text block with a plain link.
-✗ NO dangling childrenIds — every ID referenced in childrenIds must exist in emailDocument.
-✗ NO more than 8 top-level blocks (inside root.childrenIds) — group with Containers if needed.
+✗ NO more than one primary CTA button - secondary actions use a Text block with a plain link.
+✗ NO dangling childrenIds - every ID referenced in childrenIds must exist in emailDocument.
+✗ NO more than 8 top-level blocks (inside root.childrenIds) - group with Containers if needed.
 ✗ NEVER nest a ColumnsContainer inside another ColumnsContainer.
 
 ${brandColorsSection}`;
@@ -325,7 +325,7 @@ export function buildUserPrompt(context: AiContext): string {
 			? context.imageCount === 0
 				? `Include ZERO images. This is a text-only email. Do not add any Image blocks.`
 				: `Include EXACTLY ${context.imageCount} Image block(s). Each must use url = "__IMAGE_PLACEHOLDER__" and have a matching entry in imageRequests.`
-			: `Image guidance: Include 1 Image block if the email meaningfully benefits from one (hero shot, product screenshot, lifestyle photo). Only add a second if the archetype explicitly calls for it (e.g. a 2-col product grid in a promotional email). If in doubt, skip the image — a clean text email often converts better than a generic one.`;
+			: `Image guidance: Include 1 Image block if the email meaningfully benefits from one (hero shot, product screenshot, lifestyle photo). Only add a second if the archetype explicitly calls for it (e.g. a 2-col product grid in a promotional email). If in doubt, skip the image - a clean text email often converts better than a generic one.`;
 
 	const emailTypeInstruction = context.emailType
 		? `Email type / archetype to use: ${context.emailType}. Apply that archetype's structure and copy style from the system prompt.`
@@ -350,7 +350,7 @@ IMAGE REQUIREMENT
 ${imageCountInstruction}
 
 ══════════════════════════════════════
-CHECKLIST — VERIFY BEFORE OUTPUTTING
+CHECKLIST - VERIFY BEFORE OUTPUTTING
 ══════════════════════════════════════
 Before writing JSON, reason through each item:
 
@@ -359,17 +359,17 @@ Before writing JSON, reason through each item:
 [ ] My CTA button uses a specific action verb (NOT "Click here" / "Learn more").
 [ ] Every Text block has ≤ 3 sentences. If more is needed, I split into multiple blocks.
 [ ] Every Image block has a corresponding imageRequests entry with a detailed, art-directed prompt.
-[ ] No Spacer blocks — spacing is handled via padding.
+[ ] No Spacer blocks - spacing is handled via padding.
 [ ] root.childrenIds references only IDs that exist in emailDocument.
 [ ] ColumnsContainer.props.columns has EXACTLY 3 items.
 [ ] I have a footer Text block with unsubscribe copy.
-[ ] All copy is specific to THIS brand — zero placeholders or lorem ipsum.
+[ ] All copy is specific to THIS brand - zero placeholders or lorem ipsum.
 
 Now output the JSON.`;
 }
 
 // ---------------------------------------------------------------------------
-// Normalization — maps AI output to exact native waypoint schema
+// Normalization - maps AI output to exact native waypoint schema
 // ---------------------------------------------------------------------------
 
 function normalizeLevel(level: any): "h1" | "h2" | "h3" {
@@ -698,7 +698,7 @@ export function validateEmailDocument(doc: Record<string, any>): void {
 		doc["root"].data?.childrenIds ?? [];
 	if (!rootChildren.length) {
 		throw new Error(
-			"root EmailLayout has no childrenIds — email would be empty"
+			"root EmailLayout has no childrenIds - email would be empty"
 		);
 	}
 

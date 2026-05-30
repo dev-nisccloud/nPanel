@@ -12,7 +12,7 @@ function transformPleskDnsToComponent(
 ): z.infer<typeof dnsRecordSchema>[] {
   const records = pleskResponse.parsed.packet.dns["get_rec"].result;
 
-  // Empty zone: Plesk may return `{ status: "ok" }` with no `data` — do not show Unknown Host/Value rows.
+  // Empty zone: Plesk may return `{ status: "ok" }` with no `data` - do not show Unknown Host/Value rows.
   return records
     .filter((record) => {
       if (!record.data) return false;

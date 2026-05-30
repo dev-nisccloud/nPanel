@@ -1,6 +1,6 @@
 /* Smooth landing → chat transitions for Zeepo AI Agent */
 
-/* Lock app chrome scroll — session messages or landing page scroll internally */
+/* Lock app chrome scroll - session messages or landing page scroll internally */
 :has(.zeepo-agent-layout) [data-slot="sidebar-wrapper"] {
   height: 100svh;
   max-height: 100svh;
@@ -27,7 +27,7 @@
   view-transition-name: zeepo-chat-surface;
 }
 
-/* Session message list — sole vertical scroll region in chat view */
+/* Session message list - sole vertical scroll region in chat view */
 .zeepo-chat-thread {
   background: hsl(var(--muted) / 0.35);
   -webkit-overflow-scrolling: touch;

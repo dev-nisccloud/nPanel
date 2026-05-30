@@ -67,9 +67,9 @@ export function ProfitabilitySection() {
                 <tbody className="divide-y divide-border/40">
                   {(margin.data?.rows ?? []).map((r) => (
                     <tr key={r.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-2.5 truncate max-w-[140px]">{r.teamName ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-xs truncate">{r.productName ?? "—"}</td>
-                      <td className="px-4 py-2.5 text-xs">{r.category ?? "—"}</td>
+                      <td className="px-4 py-2.5 truncate max-w-[140px]">{r.teamName ?? "-"}</td>
+                      <td className="px-4 py-2.5 text-xs truncate">{r.productName ?? "-"}</td>
+                      <td className="px-4 py-2.5 text-xs">{r.category ?? "-"}</td>
                       <td className="px-4 py-2.5 font-mono">{fmtKes(r.revenue)}</td>
                       <td className="px-4 py-2.5 font-mono text-red-600">{fmtKes(r.cost)}</td>
                       <td className="px-4 py-2.5 font-mono text-emerald-600">{fmtKes(r.grossMargin)}</td>
@@ -102,8 +102,8 @@ export function ProfitabilitySection() {
               <tbody className="divide-y divide-border/40">
                 {(commission.data?.rows ?? []).map((r) => (
                   <tr key={r.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-2.5 truncate max-w-[160px]">{r.teamName ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-xs">{r.period ?? "—"}</td>
+                    <td className="px-4 py-2.5 truncate max-w-[160px]">{r.teamName ?? "-"}</td>
+                    <td className="px-4 py-2.5 text-xs">{r.period ?? "-"}</td>
                     <td className="px-4 py-2.5 font-mono">{fmtKes(r.baseAmount)}</td>
                     <td className="px-4 py-2.5 font-mono">{r.commissionRate.toFixed(2)}%</td>
                     <td className="px-4 py-2.5 font-mono text-emerald-600">{fmtKes(r.commissionAmount)}</td>

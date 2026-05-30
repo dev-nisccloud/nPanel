@@ -53,7 +53,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('selectedCurrency', selectedCurrency);
   }, [selectedCurrency]);
 
-  // Public rates — CurrencyProvider also mounts on auth via GlobalBuyNowDialogWrapper; protected currency.* would 401 and loop redirects.
+  // Public rates - CurrencyProvider also mounts on auth via GlobalBuyNowDialogWrapper; protected currency.* would 401 and loop redirects.
   const { data: exchangeRates, isLoading: isLoadingRates } = trpc.publicPricing.getExchangeRatesPublic.useQuery(
     { baseCurrency: 'USD' },
     {

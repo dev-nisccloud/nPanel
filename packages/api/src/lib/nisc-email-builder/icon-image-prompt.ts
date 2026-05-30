@@ -1,5 +1,5 @@
 /**
- * Builds Imagen prompts for email icons. backgroundColor hex is metadata only —
+ * Builds Imagen prompts for email icons. backgroundColor hex is metadata only -
  * never echoed as #RRGGBB in the prompt (models often render it as visible text).
  */
 
@@ -14,7 +14,7 @@ function parseHexRgb(hex: string): { r: number; g: number; b: number } | null {
 	};
 }
 
-/** Human-readable fill for image gen — no hex strings. */
+/** Human-readable fill for image gen - no hex strings. */
 export function hexToPlainBackgroundDescription(hex: string): string {
 	const rgb = parseHexRgb(hex);
 	if (!rgb) return "neutral light";

@@ -32,7 +32,7 @@ interface HostingOverviewProps {
 export function HostingOverview({ hostingData }: HostingOverviewProps) {
 
   const formatBytes = (bytes: number) => {
-    if (!Number.isFinite(bytes) || bytes < 0) return "—";
+    if (!Number.isFinite(bytes) || bytes < 0) return "-";
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];

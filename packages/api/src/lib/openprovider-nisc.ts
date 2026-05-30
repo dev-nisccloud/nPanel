@@ -293,7 +293,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		}
 
 		// Fire-and-forget: start email verification for ICANN compliance. Per OpenProvider docs,
-		// email verification is a post-registration step — do NOT block registration on it.
+		// email verification is a post-registration step - do NOT block registration on it.
 		client.startEmailVerification({ email: ownerUser.email ?? "", handle, language: "en" })
 			.then((r) => logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: r }))
 			.catch((e) => {
@@ -308,7 +308,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 			logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: (e as OpenProviderApiError).rawResponse ?? { error: String(e) } });
 		});
 
-	// Register domain — email verification is a post-registration ICANN compliance step per
+	// Register domain - email verification is a post-registration ICANN compliance step per
 	// OpenProvider REST API docs. Registration does NOT wait for email verification.
 	const lastDot = params.domainName.lastIndexOf(".");
 	if (lastDot <= 0) {
@@ -354,7 +354,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 	// Use with_price: true to get the full result including any `reason` field that would indicate
 	// soft-quarantine (domain previously dropped and still within the 40-day quarantine window).
 	// During quarantine the registry returns status:"free" on availability checks but rejects
-	// registration attempts with code 199 — we need `reason` to detect this early.
+	// registration attempts with code 199 - we need `reason` to detect this early.
 	const checkResp = await client.checkDomains({ domains: [{ name, extension }], with_price: true });
 	logOpenProviderResponse({
 		orderId: params.orderId,
@@ -380,7 +380,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 			);
 		}
 		if (checkResult && checkResult.status !== "free") {
-			// Domain is not free — check if we already own it in our OpenProvider account.
+			// Domain is not free - check if we already own it in our OpenProvider account.
 			const existingDomain = await findDomainInAccount(client, name, extension);
 			logOpenProviderResponse({
 				orderId: params.orderId,
@@ -458,7 +458,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		...(tldInfo?.tech_handle_supported !== false && {
 			tech_handle: integration.platformCustomerId!,
 		}),
-		// Strip IPs from out-of-bailiwick nameservers — sending glue-record IPs for nameservers that
+		// Strip IPs from out-of-bailiwick nameservers - sending glue-record IPs for nameservers that
 		// are not subdomains of the domain being registered causes registry rejection.
 		name_servers: toApiNameServers(params.domainName, params.nameServers),
 		autorenew: "default" as const,
@@ -478,7 +478,7 @@ export async function ensureOpenProviderAndRegisterDomain(params: {
 		rawResponse: regResponse,
 	});
 	if (regResponse.code !== 0) {
-		// Registration failed — before surfacing the error, check whether the domain was actually
+		// Registration failed - before surfacing the error, check whether the domain was actually
 		// created in OpenProvider (e.g. partial success: registry accepted but API returned code 199).
 		const existingAfter = await findDomainInAccount(client, name, extension);
 		logOpenProviderResponse({
@@ -738,7 +738,7 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 		}
 
 		// Fire-and-forget: start email verification for ICANN compliance.
-		// Per OpenProvider docs, email verification is post-transfer — do NOT block transfer on it.
+		// Per OpenProvider docs, email verification is post-transfer - do NOT block transfer on it.
 		client.startEmailVerification({ email: ownerUser.email ?? "", handle, language: "en" })
 			.then((r) => logOpenProviderResponse({ orderId: params.orderId, orderItemId: params.orderItemId, call: "startEmailVerification", rawResponse: r }))
 			.catch((e) => {
@@ -791,7 +791,7 @@ export async function ensureOpenProviderAndTransferDomain(params: {
 			tech_handle: integration.platformCustomerId!,
 		}),
 		period,
-		// Strip IPs from out-of-bailiwick nameservers — glue records only valid for in-bailiwick NSes.
+		// Strip IPs from out-of-bailiwick nameservers - glue records only valid for in-bailiwick NSes.
 		name_servers: toApiNameServers(params.domainName, params.nameServers),
 	};
 	void niscLog("processor_transfer_domain_request", {
@@ -901,12 +901,12 @@ function buildOpenProviderCustomerRequest(
 		areaCode = national.slice(0, 2);
 		subscriberNumber = national.slice(2) || "0000000";
 	} else if (phoneDigits.startsWith("0") && phoneDigits.length >= 9) {
-		// Local format with trunk prefix — strip the leading 0
+		// Local format with trunk prefix - strip the leading 0
 		const national = phoneDigits.slice(1);
 		areaCode = national.slice(0, 2);
 		subscriberNumber = national.slice(2) || "0000000";
 	} else if (phoneDigits.length >= 7) {
-		// No leading 0 and no country code — use as-is
+		// No leading 0 and no country code - use as-is
 		areaCode = phoneDigits.slice(0, 2);
 		subscriberNumber = phoneDigits.slice(2) || "0000000";
 	}

@@ -198,7 +198,7 @@ export default function NiscEmailBuilderEditorPage() {
 					description: data.brandPreview.warnings.join(" "),
 				});
 			} else if (data.brandPreview?.logoUrl || data.brandPreview?.brandColors?.length) {
-				toast.success("Brand detected — building your email…");
+				toast.success("Brand detected - building your email…");
 			} else {
 				toast.success("Building your email…");
 			}
@@ -308,7 +308,7 @@ export default function NiscEmailBuilderEditorPage() {
 	// Brief form only before the user has kicked off a build.
 	const showBrief = !hasStartedBuild;
 
-	// After submit, messages may lag behind — avoid an empty chat column.
+	// After submit, messages may lag behind - avoid an empty chat column.
 	const showChatBootstrap =
 		hasStartedBuild && safeMessages.length === 0 && !showBrief;
 

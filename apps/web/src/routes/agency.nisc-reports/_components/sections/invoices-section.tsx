@@ -65,14 +65,14 @@ export function InvoicesSection() {
                 <tbody className="divide-y divide-border/40">
                   {(invoiceList.data?.rows ?? []).map((inv) => (
                     <tr key={inv.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-2.5 font-mono text-xs">{inv.invoiceNumber ?? "—"}</td>
-                      <td className="px-4 py-2.5 truncate max-w-[140px]">{(inv as { teamName?: string }).teamName ?? "—"}</td>
+                      <td className="px-4 py-2.5 font-mono text-xs">{inv.invoiceNumber ?? "-"}</td>
+                      <td className="px-4 py-2.5 truncate max-w-[140px]">{(inv as { teamName?: string }).teamName ?? "-"}</td>
                       <td className="px-4 py-2.5 font-mono font-semibold">{fmtKes(inv.amount)}</td>
                       <td className="px-4 py-2.5"><StatusBadge status={inv.status} /></td>
-                      <td className="px-4 py-2.5 text-xs">{inv.issueDate ? format(inv.issueDate, "MMM dd") : "—"}</td>
-                      <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd") : "—"}</td>
-                      <td className="px-4 py-2.5 text-xs text-emerald-600">{inv.paidAt ? format(inv.paidAt, "MMM dd") : "—"}</td>
-                      <td className="px-4 py-2.5 text-xs">{inv.kraStatus ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-xs">{inv.issueDate ? format(inv.issueDate, "MMM dd") : "-"}</td>
+                      <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd") : "-"}</td>
+                      <td className="px-4 py-2.5 text-xs text-emerald-600">{inv.paidAt ? format(inv.paidAt, "MMM dd") : "-"}</td>
+                      <td className="px-4 py-2.5 text-xs">{inv.kraStatus ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -105,7 +105,7 @@ export function InvoicesSection() {
               </thead>
               <tbody className="divide-y divide-border/40">
                 {(creditNotes.data?.rows ?? []).map((cn) => (
-                  <tr key={cn.id}><td className="px-4 py-2.5 font-mono text-xs">{cn.creditNumber ?? "—"}</td><td className="px-4 py-2.5">{cn.teamName ?? "—"}</td><td className="px-4 py-2.5 font-mono">{fmtKes(cn.amount)}</td><td className="px-4 py-2.5 text-xs truncate max-w-[200px]">{cn.reason ?? "—"}</td><td className="px-4 py-2.5"><StatusBadge status={cn.status} /></td><td className="px-4 py-2.5 text-xs">{cn.issuedAt ? format(cn.issuedAt, "MMM dd") : "—"}</td></tr>
+                  <tr key={cn.id}><td className="px-4 py-2.5 font-mono text-xs">{cn.creditNumber ?? "-"}</td><td className="px-4 py-2.5">{cn.teamName ?? "-"}</td><td className="px-4 py-2.5 font-mono">{fmtKes(cn.amount)}</td><td className="px-4 py-2.5 text-xs truncate max-w-[200px]">{cn.reason ?? "-"}</td><td className="px-4 py-2.5"><StatusBadge status={cn.status} /></td><td className="px-4 py-2.5 text-xs">{cn.issuedAt ? format(cn.issuedAt, "MMM dd") : "-"}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -141,7 +141,7 @@ export function InvoicesSection() {
                   </thead>
                   <tbody className="divide-y divide-border/40">
                     {kra.data.rows.map((r) => (
-                      <tr key={r.id}><td className="px-4 py-2.5 font-mono text-xs">{r.invoiceNumber ?? "—"}</td><td className="px-4 py-2.5 truncate">{r.teamName ?? "—"}</td><td className="px-4 py-2.5 font-mono">{fmtKes(r.amount)}</td><td className="px-4 py-2.5 text-xs">{r.kraStatus ?? "Not Submitted"}</td><td className="px-4 py-2.5 font-mono text-xs">{r.kraInvoiceNumber ?? "—"}</td><td className="px-4 py-2.5 text-xs">{r.kraVerifiedDate ? format(r.kraVerifiedDate, "MMM dd") : "—"}</td></tr>
+                      <tr key={r.id}><td className="px-4 py-2.5 font-mono text-xs">{r.invoiceNumber ?? "-"}</td><td className="px-4 py-2.5 truncate">{r.teamName ?? "-"}</td><td className="px-4 py-2.5 font-mono">{fmtKes(r.amount)}</td><td className="px-4 py-2.5 text-xs">{r.kraStatus ?? "Not Submitted"}</td><td className="px-4 py-2.5 font-mono text-xs">{r.kraInvoiceNumber ?? "-"}</td><td className="px-4 py-2.5 text-xs">{r.kraVerifiedDate ? format(r.kraVerifiedDate, "MMM dd") : "-"}</td></tr>
                     ))}
                   </tbody>
                 </table>

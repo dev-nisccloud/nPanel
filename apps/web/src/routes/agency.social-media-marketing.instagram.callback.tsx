@@ -53,7 +53,7 @@ export default function InstagramCallbackPage() {
 		}
 
 		// Instagram appends `#_` to the redirect URI fragment. The code value
-		// from searchParams may therefore include a trailing `#_` — strip it.
+		// from searchParams may therefore include a trailing `#_` - strip it.
 		let code = searchParams.get("code");
 		if (code) {
 			// Remove any trailing fragment characters (e.g. "#_" Instagram appends)

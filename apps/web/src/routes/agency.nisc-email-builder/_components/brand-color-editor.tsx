@@ -68,7 +68,7 @@ export function BrandColorEditor({ colors, onChange }: BrandColorEditorProps) {
 											}}
 										/>
 										<span className="font-mono uppercase text-[10px]">
-											{hex || "Not set — click to pick"}
+											{hex || "Not set - click to pick"}
 										</span>
 									</button>
 								</PopoverTrigger>

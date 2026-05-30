@@ -1,4 +1,4 @@
-/** Short preview word in the font picker (sans/serif) — on-brand, reads well at small sizes. */
+/** Short preview word in the font picker (sans/serif) - on-brand, reads well at small sizes. */
 export const NEB_FONT_PREVIEW_SAMPLE = "nPanel";
 
 export type EmailFontCategory =
@@ -54,7 +54,7 @@ const handwriting = (
 	weights,
 });
 
-/** Curated Google Fonts — email-safe, web-hosted stacks with fallbacks. */
+/** Curated Google Fonts - email-safe, web-hosted stacks with fallbacks. */
 export const GOOGLE_EMAIL_FONTS: GoogleEmailFont[] = [
 	sans("inter", "Inter"),
 	sans("roboto", "Roboto"),
@@ -134,7 +134,7 @@ export const FONT_WEIGHT_OPTIONS = [
 	{ value: "800", label: "Extra bold" },
 ] as const;
 
-/** Google family name only — use for dropdown previews (no system fallbacks). */
+/** Google family name only - use for dropdown previews (no system fallbacks). */
 export function primaryGoogleFontName(font: GoogleEmailFont): string {
 	return font.fontFamily.split(",")[0]?.replace(/['"]/g, "").trim() ?? font.label;
 }

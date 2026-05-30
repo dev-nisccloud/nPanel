@@ -26,7 +26,7 @@ interface AiTabTriggerProps {
   label?: string;
 }
 
-/** AI Domain Search tab — sparkle icon only on this trigger; no animated border or color cycling. */
+/** AI Domain Search tab - sparkle icon only on this trigger; no animated border or color cycling. */
 export function AiTabTrigger({ value, label = "AI Domain Search" }: AiTabTriggerProps) {
   return (
     <TabsTrigger value={value} className="inline-flex items-center gap-1.5">

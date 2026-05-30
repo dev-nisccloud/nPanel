@@ -114,7 +114,7 @@ export const ACTIVE_DOMAIN_TRANSFER_REQUEST_STATUSES = [
 	"SUBMITTED_TO_PROVIDER",
 ] as const;
 
-/** Terminal outcomes — transfer requests in these statuses cannot be deleted. */
+/** Terminal outcomes - transfer requests in these statuses cannot be deleted. */
 export const NON_DELETABLE_DOMAIN_TRANSFER_REQUEST_STATUSES = [
 	"COMPLETED",
 	"FAILED",

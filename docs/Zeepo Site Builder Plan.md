@@ -1,4 +1,4 @@
-# Zeepo AI Website & App Builder — Feature Plan
+# Zeepo AI Website & App Builder - Feature Plan
 
 ## 1. What Zeepo Is Today (Architecture Summary)
 
@@ -11,12 +11,12 @@
 | `agency.zeepo-canvas._index.tsx` | Lists canvas image-editing projects |
 | `agency.zeepo-canvas.editor.$canvasId.tsx` | Image canvas editor |
 
-### 1.2 Backend — `packages/api/src/routers/zeepo-agent/`
+### 1.2 Backend - `packages/api/src/routers/zeepo-agent/`
 
 | File | Responsibility |
 |---|---|
 | `sessions.ts` | CRUD for sessions (create, list, get, delete) |
-| `chat.ts` | `sendMessage` mutation — the core orchestration loop |
+| `chat.ts` | `sendMessage` mutation - the core orchestration loop |
 | `generate.ts` | Inserts generation job → enqueues to QStash/Replicate |
 | `image-edits.ts` | Style transfer, erase, background swap, upscale, text-edit, variations |
 | `agent-tools.ts` | Zod schemas for all 5 tools the LLM can call |
@@ -52,11 +52,11 @@ sendMessage (tRPC mutation)
 
 ### 1.4 The 5 Tools Available Today
 
-1. **`create_document`** — saves a markdown document as a generation card  
-2. **`check_domain_availability`** — real-time OpenProvider + KENIC lookup  
-3. **`web_search`** — Brave Search grounding  
-4. **`list_models`** — catalog lookup by category/capability  
-5. **`run_media_generation`** — queue image / video / audio / text / bg-remover
+1. **`create_document`** - saves a markdown document as a generation card  
+2. **`check_domain_availability`** - real-time OpenProvider + KENIC lookup  
+3. **`web_search`** - Brave Search grounding  
+4. **`list_models`** - catalog lookup by category/capability  
+5. **`run_media_generation`** - queue image / video / audio / text / bg-remover
 
 ### 1.5 Media Categories & Model Catalog
 
@@ -79,11 +79,11 @@ Premade guided workflows injected as an extra system-message block. Current skil
 
 ### 1.8 Zeepo Canvas (separate product)
 
-A node/edge-based image canvas (`canvasJson: { nodes, edges }`) stored in `zeepoCanvasProject`. Currently used for image composition. **This is NOT the website builder** — it is a separate creative tool.
+A node/edge-based image canvas (`canvasJson: { nodes, edges }`) stored in `zeepoCanvasProject`. Currently used for image composition. **This is NOT the website builder** - it is a separate creative tool.
 
 ---
 
-## 2. The Gap — What's Missing
+## 2. The Gap - What's Missing
 
 Zeepo can generate text, images, video, and audio. It **cannot**:
 
@@ -97,7 +97,7 @@ Zeepo can generate text, images, video, and audio. It **cannot**:
 
 ## 3. Proposed Feature: **Zeepo Builder**
 
-A new section of nPanel that gives users **three ways to build** — AI chat, code view, and visual drag-and-drop — all editing the same underlying document.
+A new section of nPanel that gives users **three ways to build** - AI chat, code view, and visual drag-and-drop - all editing the same underlying document.
 
 ### 3.1 The Three Panes (Tabs)
 
@@ -188,7 +188,7 @@ Standard activity log (projectId, userId, action, description, ipAddress, userAg
 
 ---
 
-## 5. New tRPC Routers — `packages/api/src/routers/zeepo-builder/`
+## 5. New tRPC Routers - `packages/api/src/routers/zeepo-builder/`
 
 ```
 zeepo-builder/
@@ -225,7 +225,7 @@ The builder prompt extends the Zeepo identity prompt with:
 
 - Role: "You are Zeepo Builder, Nisc Cloud's AI website and app builder."
 - Coding standards: semantic HTML5, mobile-first CSS, accessible markup
-- File discipline: always use `write_file` or `patch_file` — never include code inline in chat replies
+- File discipline: always use `write_file` or `patch_file` - never include code inline in chat replies
 - Design system: inject the project's current color palette, font stack, and component library
 - Framework-specific rules (HTML-only / React / Next.js branches)
 - Block vocabulary (for visual mode compatibility)
@@ -245,7 +245,7 @@ agency.zeepo-builder.$projectId.visual.tsx ← Drag-and-drop visual editor
 agency.zeepo-builder.$projectId.preview.tsx← Sandboxed iframe preview
 ```
 
-### 6.1 Layout Route (`$projectId.tsx`) — Shared Shell
+### 6.1 Layout Route (`$projectId.tsx`) - Shared Shell
 
 ```
 ┌─ Project name (editable) ─────── [Chat] [Code] [Visual] [Preview] ──── [Publish ▾] ─┐
@@ -262,14 +262,14 @@ The layout route:
 
 ---
 
-## 7. Chat Pane — AI-Driven Development
+## 7. Chat Pane - AI-Driven Development
 
 ### 7.1 UX
 
 Identical to the existing Zeepo Agent chat (messages, thinking bubble, generations strip) but:
 - **No media generation** (image/video/audio tools disabled in builder mode)
 - **File change events** appear inline as collapsible diff cards (à la Bolt's "file modified" indicators)
-- Each AI response that modifies files shows: `✏ index.html — 12 lines changed`
+- Each AI response that modifies files shows: `✏ index.html - 12 lines changed`
 - User can accept or revert individual file changes
 
 ### 7.2 Starter Prompts (Builder Skills)
@@ -297,7 +297,7 @@ Same Q&A step-through widget as the existing agent, asking:
 
 ---
 
-## 8. Code Pane — Monaco Editor (like Lovable / v0 / Bolt)
+## 8. Code Pane - Monaco Editor (like Lovable / v0 / Bolt)
 
 ### 8.1 Features
 
@@ -321,7 +321,7 @@ Same Q&A step-through widget as the existing agent, asking:
 
 ---
 
-## 9. Visual Pane — Drag & Drop Editor (like WordPress / Webflow)
+## 9. Visual Pane - Drag & Drop Editor (like WordPress / Webflow)
 
 ### 9.1 Architecture
 
@@ -362,7 +362,7 @@ Divider         Table           Background      FAQ accordion
 
 "Hero (AI)" and similar AI-enhanced blocks prompt Zeepo to generate the copy and a matching image in one click.
 
-### 9.4 Property Panel (Right Sidebar — when a block is selected)
+### 9.4 Property Panel (Right Sidebar - when a block is selected)
 
 - **Content tab:** Editable text fields, image upload, link URL, button label
 - **Style tab:** Typography (font, size, weight, color), spacing (margin/padding sliders), background (color/gradient/image), border, border-radius, shadow
@@ -406,7 +406,7 @@ Visual editor receives updated block AST
 Canvas re-renders (non-destructive: preserves selection state)
 ```
 
-> **Important:** If the code contains patterns the parser doesn't understand, the visual editor shows a graceful "Custom code — visual editing unavailable for this section" placeholder, rather than crashing.
+> **Important:** If the code contains patterns the parser doesn't understand, the visual editor shows a graceful "Custom code - visual editing unavailable for this section" placeholder, rather than crashing.
 
 ---
 
@@ -452,7 +452,7 @@ When a team has a logo in `SESSION ASSETS` or has Zeepo-generated brand assets, 
 
 ### 11.5 Copy Rewriting
 
-"Rewrite all copy in this page for [audience]" — Zeepo reads all text nodes across the block AST and rewrites them in a single turn, then patches the file.
+"Rewrite all copy in this page for [audience]" - Zeepo reads all text nodes across the block AST and rewrites them in a single turn, then patches the file.
 
 ---
 
@@ -496,7 +496,7 @@ Add "Zeepo Builder" as a new sidebar item under the **Zeepo** group (alongside "
 
 ### 13.2 Cross-Product Integration
 
-- From the **AI Agent** chat, Zeepo can say: "I've built a draft website for you — open it in Zeepo Builder" (creates a builder project from the agent session's generated assets)
+- From the **AI Agent** chat, Zeepo can say: "I've built a draft website for you - open it in Zeepo Builder" (creates a builder project from the agent session's generated assets)
 - From the **Domains** page, after registering a domain, prompt: "Build a website for this domain with Zeepo Builder"
 - From the **Creative Assets** page, "Use this image in Zeepo Builder"
 
@@ -522,7 +522,7 @@ Add "Zeepo Builder" as a new sidebar item under the **Zeepo** group (alongside "
 
 ## 15. Phased Rollout
 
-### Phase 1 — AI Chat Builder (6–8 weeks)
+### Phase 1 - AI Chat Builder (6–8 weeks)
 - [ ] DB schema: `zeepo_builder_project`, `zeepo_builder_file`, `zeepo_builder_session`, `zeepo_builder_message`
 - [ ] tRPC routers: projects, files, sessions, chat
 - [ ] Builder-specific system prompt and tool definitions (`write_file`, `patch_file`, etc.)
@@ -531,14 +531,14 @@ Add "Zeepo Builder" as a new sidebar item under the **Zeepo** group (alongside "
 - [ ] Frontend: Preview pane (sandboxed iframe)
 - [ ] Publish: ZIP export + deploy to Nisc Cloud hosting
 
-### Phase 2 — Code Editor (3–4 weeks)
+### Phase 2 - Code Editor (3–4 weeks)
 - [ ] Monaco editor integration (`@monaco-editor/react`)
 - [ ] File tree sidebar
 - [ ] Diff view for AI-generated changes
 - [ ] Auto-save + Prettier formatting
 - [ ] File create/delete from UI
 
-### Phase 3 — Visual Drag & Drop Editor (8–10 weeks)
+### Phase 3 - Visual Drag & Drop Editor (8–10 weeks)
 - [ ] Block AST schema and type definitions
 - [ ] Block palette (left sidebar, 20+ block types)
 - [ ] Canvas rendering engine (blocks → HTML inside iframe)
@@ -549,7 +549,7 @@ Add "Zeepo Builder" as a new sidebar item under the **Zeepo** group (alongside "
 - [ ] Breakpoint switcher (Desktop / Tablet / Mobile)
 - [ ] Section-level AI editing (mini chat per block)
 
-### Phase 4 — Advanced AI Features (4–6 weeks)
+### Phase 4 - Advanced AI Features (4–6 weeks)
 - [ ] Image-to-Site (vision input → HTML generation)
 - [ ] Brand injection from agent session assets
 - [ ] AI inline code completion in Monaco
@@ -564,7 +564,7 @@ Add "Zeepo Builder" as a new sidebar item under the **Zeepo** group (alongside "
 > **Framework target:** Should the builder primarily target plain HTML/CSS (easiest to deploy anywhere, no build step) or React/Next.js (more powerful, requires Node.js hosting)? A dual-mode approach is possible but more complex.
 
 > [!IMPORTANT]
-> **Visual editor scope:** Should Phase 3 build the visual editor from scratch, or use an embeddable open-source builder like **GrapeJS** (MIT licensed, battle-tested) as a foundation? GrapeJS ships with a block palette, property panel, and DnD already built — we'd wrap it in our UI and connect it to the tRPC backend. This would cut Phase 3 from 8–10 weeks to ~3–4 weeks.
+> **Visual editor scope:** Should Phase 3 build the visual editor from scratch, or use an embeddable open-source builder like **GrapeJS** (MIT licensed, battle-tested) as a foundation? GrapeJS ships with a block palette, property panel, and DnD already built - we'd wrap it in our UI and connect it to the tRPC backend. This would cut Phase 3 from 8–10 weeks to ~3–4 weeks.
 
 > [!WARNING]
 > **Code ↔ Visual sync fidelity:** Bidirectional parsing is the hardest part. If a user writes complex custom CSS or JavaScript, the visual editor cannot faithfully represent it. The plan handles this with graceful fallback ("Custom code" placeholder). Confirm this tradeoff is acceptable.

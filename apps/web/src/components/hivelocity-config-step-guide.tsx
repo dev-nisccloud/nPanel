@@ -107,7 +107,7 @@ export function HivelocityConfigSectionProgress({
 export function HivelocityScrollForMoreHint({
 	visible,
 	onScrollToNext,
-	label = "Hostname and add-ons are below — scroll the dialog to continue",
+	label = "Hostname and add-ons are below - scroll the dialog to continue",
 }: {
 	visible: boolean;
 	onScrollToNext: () => void;

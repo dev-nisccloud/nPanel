@@ -40,7 +40,7 @@ export function toNum(v: string | null | undefined): number {
 }
 
 /**
- * Quotation value for reports — matches agency UI (`subtotal ?? amount`).
+ * Quotation value for reports - matches agency UI (`subtotal ?? amount`).
  * Many rows store line-item totals in `subtotal` while `amount` stays unset.
  */
 export function quotationReportAmount(row: {

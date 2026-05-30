@@ -278,7 +278,7 @@ const pickerResponseSchema = z.object({
 });
 
 /**
- * Keyword-based fallback picker — scores templates by how many
+ * Keyword-based fallback picker - scores templates by how many
  * tags appear in the brief text and returns the top 1-2.
  */
 function keywordPick(brief: NebBrief): TemplateInfo[] {
@@ -330,7 +330,7 @@ export async function pickTemplates(
 	replicate: Replicate,
 ): Promise<TemplateInfo[]> {
 	const catalogList = TEMPLATE_CATALOG.map(
-		(t) => `- ${t.filename}: ${t.name} — ${t.description} | ${t.useCases}`,
+		(t) => `- ${t.filename}: ${t.name} - ${t.description} | ${t.useCases}`,
 	).join("\n");
 
 	const briefText = [
@@ -350,13 +350,13 @@ export async function pickTemplates(
 			model: NEB_TEMPLATE_PICKER_MODEL,
 			systemPrompt: `You are a template selector for an AI email builder.
 Given a user's campaign brief, identify the best 1-3 reference templates from the catalog.
-These templates are given to the HTML generator as a combined design quality benchmark and structural reference — more templates give it richer pattern variety to draw from.
+These templates are given to the HTML generator as a combined design quality benchmark and structural reference - more templates give it richer pattern variety to draw from.
 
 Rules:
 - ALWAYS select at least 1 template (the single best match)
 - When a category has multiple templates (e.g. beauty has 3, ecommerce has 3, finance has 2), prefer selecting all templates from that category so the generator sees the full range of that style
 - Select templates from a second category ONLY when it adds meaningfully different layout patterns
-- If the brief doesn't perfectly match any template, pick the closest ones — the AI will adapt them
+- If the brief doesn't perfectly match any template, pick the closest ones - the AI will adapt them
 - Transactional emails (orders, receipts, notifications, account) → always include transactional_1.html
 - Finance/investment/banking → include both finance templates for range
 - E-commerce/retail/shopping → include the most relevant ecommerce templates (up to all 3)
@@ -387,7 +387,7 @@ Respond ONLY with valid JSON:
 		if (resolved.length === 0) throw new Error("No valid templates resolved");
 
 		console.log(
-			`[TemplatePicker] Selected: ${resolved.map((t) => t.filename).join(", ")} — ${parsed.reasoning}`,
+			`[TemplatePicker] Selected: ${resolved.map((t) => t.filename).join(", ")} - ${parsed.reasoning}`,
 		);
 
 		return resolved;

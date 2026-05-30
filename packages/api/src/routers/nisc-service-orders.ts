@@ -1084,7 +1084,7 @@ export const niscServiceOrdersRouter = router({
 						.set({ qstashMessageId })
 						.where(eq(niscOrder.id, order.id));
 				} catch (enqueueErr) {
-					// QStash unavailable (e.g. local dev without ngrok) — invoice then provision inline.
+					// QStash unavailable (e.g. local dev without ngrok) - invoice then provision inline.
 					const processResult = await processNiscOrderWithPreInvoice(order.id);
 					if (!processResult.ok) {
 						throw new TRPCError({
@@ -1234,7 +1234,7 @@ export const niscServiceOrdersRouter = router({
 			try {
 				await enqueueNiscOrderProcessing(order.id);
 			} catch (err) {
-				// Enqueue failed — roll back the status so the order doesn't get stuck in PENDING
+				// Enqueue failed - roll back the status so the order doesn't get stuck in PENDING
 				// without a worker running. Best-effort: ignore errors from this rollback.
 				await db
 					.update(niscOrder)

@@ -184,7 +184,7 @@ export const generateVariationsSchema = z.object({
 
 export const imageEditSchema = z.object({
 	sessionId: z.string(),
-	/** The generation this edit applies to — used to persist history. */
+	/** The generation this edit applies to - used to persist history. */
 	generationId: z.string().optional(),
 	/** The parent history entry this was derived from. */
 	parentId: z.string().optional(),

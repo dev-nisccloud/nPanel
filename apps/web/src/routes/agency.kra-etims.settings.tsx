@@ -33,7 +33,7 @@ export default function ETimsSettingsPage() {
         }
     });
 
-    // Note: token management is now handled internally by the server — no frontend exposure.
+    // Note: token management is now handled internally by the server - no frontend exposure.
 
     const [formData, setFormData] = React.useState({
         kraPin: "",

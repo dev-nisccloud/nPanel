@@ -1,4 +1,4 @@
-# Zeepo Builder — VPS Setup Guide
+# Zeepo Builder - VPS Setup Guide
 
 **Server:** Hivelocity VPS  
 **OS:** Ubuntu 24.04 LTS (Noble Numbat)  
@@ -14,21 +14,21 @@
 2. [System Update & Essential Packages](#2-system-update--essential-packages)
 3. [Create Admin User & Disable Root](#3-create-admin-user--disable-root)
 4. [SSH Hardening](#4-ssh-hardening)
-5. [Firewall — UFW](#5-firewall--ufw)
-6. [Fail2ban — Brute Force Protection](#6-fail2ban--brute-force-protection)
+5. [Firewall - UFW](#5-firewall--ufw)
+6. [Fail2ban - Brute Force Protection](#6-fail2ban--brute-force-protection)
 7. [Kernel & Network Hardening](#7-kernel--network-hardening)
 8. [Swap Configuration](#8-swap-configuration)
 9. [Automatic Security Updates](#9-automatic-security-updates)
 10. [Docker Engine Installation](#10-docker-engine-installation)
 11. [Docker Security Hardening](#11-docker-security-hardening)
-12. [Docker Images — Build astro-dev and nextjs-dev](#12-docker-images--build-astro-dev-and-nextjs-dev)
+12. [Docker Images - Build astro-dev and nextjs-dev](#12-docker-images--build-astro-dev-and-nextjs-dev)
 13. [Directory Structure & Permissions](#13-directory-structure--permissions)
 14. [Nginx Installation & Configuration](#14-nginx-installation--configuration)
-15. [Wildcard SSL Certificate — Let's Encrypt](#15-wildcard-ssl-certificate--lets-encrypt)
+15. [Wildcard SSL Certificate - Let's Encrypt](#15-wildcard-ssl-certificate--lets-encrypt)
 16. [DNS Records](#16-dns-records)
 17. [Bun Runtime Installation](#17-bun-runtime-installation)
 18. [Git Configuration](#18-git-configuration)
-19. [Builder Orchestrator — Service Setup](#19-builder-orchestrator--service-setup)
+19. [Builder Orchestrator - Service Setup](#19-builder-orchestrator--service-setup)
 20. [Log Management](#20-log-management)
 21. [Monitoring & Alerts](#21-monitoring--alerts)
 22. [Backup Strategy](#22-backup-strategy)
@@ -54,11 +54,11 @@ passwd
 # Enter a strong password (you will disable password auth entirely in Step 4)
 ```
 
-Record your VPS IP address — you will use it throughout this guide:
+Record your VPS IP address - you will use it throughout this guide:
 
 ```bash
 ip addr show
-# Look for the inet line under eth0 or ens3 — that is your public IP
+# Look for the inet line under eth0 or ens3 - that is your public IP
 ```
 
 ---
@@ -106,7 +106,7 @@ apt install -y \
   openssl
 
 # Set the server timezone to UTC
-# UTC is the standard for servers — avoids daylight saving confusion in logs
+# UTC is the standard for servers - avoids daylight saving confusion in logs
 timedatectl set-timezone UTC
 
 # Verify timezone
@@ -138,10 +138,10 @@ ssh root@YOUR_VPS_IP
 Running everything as root is dangerous. Create a dedicated admin user.
 
 ```bash
-# Create the user — replace 'nisc' with whatever username you want
+# Create the user - replace 'nisc' with whatever username you want
 adduser nisc
-# You will be prompted for a password — use a strong one
-# You will be asked for Full Name etc — press Enter to skip all of them
+# You will be prompted for a password - use a strong one
+# You will be asked for Full Name etc - press Enter to skip all of them
 
 # Add to the sudo group so this user can run administrative commands
 usermod -aG sudo nisc
@@ -158,7 +158,7 @@ chmod 600 /home/nisc/.ssh/authorized_keys
 Open a **second terminal window** and verify you can log in as `nisc` before proceeding:
 
 ```bash
-# In the second terminal window — do NOT close the first one yet
+# In the second terminal window - do NOT close the first one yet
 ssh nisc@YOUR_VPS_IP
 
 # Verify sudo works
@@ -184,7 +184,7 @@ sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.backup
 sudo nano /etc/ssh/sshd_config
 ```
 
-Find and set (or add) each of these lines. Some may already exist with different values — change them:
+Find and set (or add) each of these lines. Some may already exist with different values - change them:
 
 ```
 # Change the default port to reduce automated scanning
@@ -193,7 +193,7 @@ Port 2222
 # Disable root login completely
 PermitRootLogin no
 
-# Disable password login — SSH keys only
+# Disable password login - SSH keys only
 PasswordAuthentication no
 ChallengeResponseAuthentication no
 KbdInteractiveAuthentication no
@@ -219,7 +219,7 @@ X11Forwarding no
 # Disable TCP forwarding if you do not need it
 AllowTcpForwarding no
 
-# Log level — INFO is sufficient, use VERBOSE if debugging
+# Log level - INFO is sufficient, use VERBOSE if debugging
 LogLevel INFO
 
 # Keep alive settings to prevent stale connections
@@ -267,7 +267,7 @@ Then you can just type: `ssh niscbuilder`
 
 ---
 
-## 5. Firewall — UFW
+## 5. Firewall - UFW
 
 UFW (Uncomplicated Firewall) is the standard Ubuntu firewall frontend. The rule is simple: deny everything by default, then explicitly allow only what is needed.
 
@@ -312,16 +312,16 @@ To                         Action      From
 
 **Important:** Container preview ports (4321 for Astro, 3000 for Next.js, etc.) are NOT opened here. Nginx proxies all traffic internally. Containers are never directly exposed to the internet.
 
-The Builder Orchestrator listens on a port that is also NOT opened in UFW — it only accepts connections from the nPanel server (same internal network or via a private IP). If nPanel and the VPS are on different networks, add a specific rule:
+The Builder Orchestrator listens on a port that is also NOT opened in UFW - it only accepts connections from the nPanel server (same internal network or via a private IP). If nPanel and the VPS are on different networks, add a specific rule:
 
 ```bash
-# Only if nPanel server has a static IP — replace with actual IP
+# Only if nPanel server has a static IP - replace with actual IP
 sudo ufw allow from NPANEL_SERVER_IP to any port 7331 comment 'Builder Orchestrator internal'
 ```
 
 ---
 
-## 6. Fail2ban — Brute Force Protection
+## 6. Fail2ban - Brute Force Protection
 
 Fail2ban monitors log files and temporarily bans IP addresses that show signs of automated attack attempts.
 
@@ -347,13 +347,13 @@ findtime = 10m
 # Allow 5 failures before banning
 maxretry = 5
 
-# Email alerts — optional, fill in if you have an SMTP server
+# Email alerts - optional, fill in if you have an SMTP server
 # destemail = admin@nisccloud.app
 # sendername = Fail2ban
 # mta = sendmail
 # action = %(action_mwl)s
 
-# Ban action — uses ufw
+# Ban action - uses ufw
 banaction = ufw
 
 [sshd]
@@ -455,12 +455,12 @@ kernel.dmesg_restrict = 1
 # Disable core dumps for setuid programs
 fs.suid_dumpable = 0
 
-# Randomize memory layout (ASLR) — set to maximum
+# Randomize memory layout (ASLR) - set to maximum
 kernel.randomize_va_space = 2
 
 # ── Docker-specific networking ───────────────────────────────────────────────
 # Docker requires IP forwarding to route traffic to containers
-# This overrides the ip_forward=0 above — Docker sets this automatically
+# This overrides the ip_forward=0 above - Docker sets this automatically
 # but we document it here for clarity
 # net.ipv4.ip_forward = 1   ← Docker enables this itself
 ```
@@ -470,7 +470,7 @@ Apply immediately and persist across reboots:
 ```bash
 sudo sysctl -p /etc/sysctl.d/99-builder-hardening.conf
 
-# Note: Docker will re-enable ip_forward when it starts — that is expected and needed
+# Note: Docker will re-enable ip_forward when it starts - that is expected and needed
 ```
 
 ---
@@ -488,7 +488,7 @@ swapon --show
 # For an 8GB RAM VPS, 4GB swap is a reasonable safety net
 sudo fallocate -l 4G /swapfile
 
-# Secure the swap file — only root can read it
+# Secure the swap file - only root can read it
 sudo chmod 600 /swapfile
 
 # Mark it as swap space
@@ -500,7 +500,7 @@ sudo swapon /swapfile
 # Make it permanent across reboots
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
-# Tune swap usage — prefer RAM, only use swap when RAM is at 90%
+# Tune swap usage - prefer RAM, only use swap when RAM is at 90%
 echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.d/99-builder-hardening.conf
 echo 'vm.vfs_cache_pressure=50' | sudo tee -a /etc/sysctl.d/99-builder-hardening.conf
 
@@ -565,7 +565,7 @@ sudo unattended-upgrade --dry-run --debug
 
 ## 10. Docker Engine Installation
 
-Install the official Docker Engine from Docker's repository — not the Ubuntu snap or apt version, which are often outdated.
+Install the official Docker Engine from Docker's repository - not the Ubuntu snap or apt version, which are often outdated.
 
 ```bash
 # Remove any old Docker versions that might exist
@@ -608,7 +608,7 @@ sudo systemctl status docker
 # Enable Docker to start on boot
 sudo systemctl enable docker
 
-# Test — should print "Hello from Docker!"
+# Test - should print "Hello from Docker!"
 docker run --rm hello-world
 ```
 
@@ -673,7 +673,7 @@ docker info | grep -A5 "Security Options"
 # You should see: userns, seccomp, apparmor in the output
 ```
 
-**Additional security — seccomp profile:**
+**Additional security - seccomp profile:**
 
 Docker applies a default seccomp profile that blocks ~300 dangerous system calls. Verify it is active:
 
@@ -724,7 +724,7 @@ docker run \
 
 ---
 
-## 12. Docker Images — Build astro-dev and nextjs-dev
+## 12. Docker Images - Build astro-dev and nextjs-dev
 
 These images are built once and reused for every customer project. `node_modules` is pre-installed so there is no `npm install` wait per project.
 
@@ -758,7 +758,7 @@ COPY package.json astro.config.mjs tsconfig.json ./
 RUN npm install --prefer-offline --no-audit --no-fund && \
     chown -R builder:builder /app/node_modules
 
-# Create src directory — will be bind-mounted from host per project
+# Create src directory - will be bind-mounted from host per project
 RUN mkdir -p /app/src && chown builder:builder /app/src
 
 # Switch to non-root user
@@ -767,7 +767,7 @@ USER builder
 # Expose the Astro dev server port
 EXPOSE 4321
 
-# Start Astro dev server — bind to all interfaces so Nginx can reach it
+# Start Astro dev server - bind to all interfaces so Nginx can reach it
 CMD ["npx", "astro", "dev", "--host", "0.0.0.0", "--port", "4321"]
 ```
 
@@ -952,7 +952,7 @@ docker images | grep nextjs-dev
 # All project source files and git repos live here
 sudo mkdir -p /projects
 
-# Shared read-only node_modules — containers mount these instead of installing per project
+# Shared read-only node_modules - containers mount these instead of installing per project
 sudo mkdir -p /shared-modules/astro
 sudo mkdir -p /shared-modules/nextjs
 
@@ -968,7 +968,7 @@ sudo chown -R nisc:nisc /shared-modules
 sudo chown -R nisc:nisc /var/log/builder-orchestrator
 sudo chown -R nisc:nisc /opt/builder-orchestrator
 
-# Strict permissions on /projects — only the nisc user (orchestrator) can read/write
+# Strict permissions on /projects - only the nisc user (orchestrator) can read/write
 # No other system user can browse or access project files
 sudo chmod 700 /projects
 sudo chmod 755 /shared-modules
@@ -1140,7 +1140,7 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 
-    # Rate limiting — 60 requests per minute per IP
+    # Rate limiting - 60 requests per minute per IP
     limit_req zone=preview burst=20 nodelay;
     limit_conn addr 10;
 
@@ -1150,7 +1150,7 @@ server {
         proxy_pass http://builder_$projectid;
         proxy_http_version 1.1;
 
-        # WebSocket support — needed for HMR (hot module replacement)
+        # WebSocket support - needed for HMR (hot module replacement)
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
@@ -1179,13 +1179,13 @@ server {
 ```bash
 sudo ln -s /etc/nginx/sites-available/builder-preview /etc/nginx/sites-enabled/builder-preview
 
-# Test config — fix any errors before proceeding
+# Test config - fix any errors before proceeding
 sudo nginx -t
 ```
 
 ---
 
-## 15. Wildcard SSL Certificate — Let's Encrypt
+## 15. Wildcard SSL Certificate - Let's Encrypt
 
 Wildcard certificates (`*.preview.nisccloud.app`) require DNS-based validation, not HTTP validation. This section uses the Cloudflare DNS plugin. If your DNS is with a different provider, install the matching certbot plugin instead.
 
@@ -1202,13 +1202,13 @@ sudo nano /etc/letsencrypt/cloudflare.ini
 ```
 
 ```ini
-# Cloudflare API token — create one at dash.cloudflare.com
+# Cloudflare API token - create one at dash.cloudflare.com
 # Required permissions: Zone:DNS:Edit for your domain
 dns_cloudflare_api_token = YOUR_CLOUDFLARE_API_TOKEN_HERE
 ```
 
 ```bash
-# Lock down the credentials file — only root can read it
+# Lock down the credentials file - only root can read it
 sudo chmod 600 /etc/letsencrypt/cloudflare.ini
 ```
 
@@ -1239,7 +1239,7 @@ Set up automatic renewal:
 # Certbot installs a systemd timer automatically. Verify it:
 sudo systemctl status certbot.timer
 
-# Test renewal (dry run — does not actually renew)
+# Test renewal (dry run - does not actually renew)
 sudo certbot renew --dry-run
 ```
 
@@ -1332,7 +1332,7 @@ git config --global --list
 
 ---
 
-## 19. Builder Orchestrator — Service Setup
+## 19. Builder Orchestrator - Service Setup
 
 The Orchestrator is a Hono + Bun HTTP service that nPanel calls internally to manage Docker containers, sync files, run git commands, and trigger builds. It listens on a localhost port that is never exposed to the internet.
 
@@ -1341,7 +1341,7 @@ The Orchestrator is a Hono + Bun HTTP service that nPanel calls internally to ma
 The actual Orchestrator code lives in `apps/builder-orchestrator/` in the nPanel repository. To deploy it to the VPS:
 
 ```bash
-# On the VPS — create the app directory
+# On the VPS - create the app directory
 mkdir -p /opt/builder-orchestrator
 
 # Method 1: Pull from your git repository (recommended)
@@ -1382,7 +1382,7 @@ nano /opt/builder-orchestrator/.env
 # Port the orchestrator listens on (never exposed via UFW)
 PORT=7331
 
-# Secret token — nPanel server must send this in every request
+# Secret token - nPanel server must send this in every request
 # Generate with: openssl rand -hex 32
 ORCHESTRATOR_SECRET=YOUR_VERY_LONG_RANDOM_SECRET_HERE
 
@@ -1496,7 +1496,7 @@ sudo systemctl status builder-orchestrator
 sudo journalctl -u builder-orchestrator -f
 ```
 
-### Idle container cleanup — cron job
+### Idle container cleanup - cron job
 
 ```bash
 crontab -e
@@ -1505,7 +1505,7 @@ crontab -e
 Add:
 
 ```bash
-# Every 5 minutes — stop containers that have been idle for 20+ minutes
+# Every 5 minutes - stop containers that have been idle for 20+ minutes
 */5 * * * * curl -s -X POST http://localhost:7331/admin/cleanup-idle \
   -H "Authorization: Bearer YOUR_ORCHESTRATOR_SECRET" \
   >> /var/log/builder-orchestrator/cleanup.log 2>&1
@@ -1562,7 +1562,7 @@ crontab -e
 Add:
 
 ```bash
-# Every Sunday at 2am — remove stopped containers, dangling images, unused volumes
+# Every Sunday at 2am - remove stopped containers, dangling images, unused volumes
 0 2 * * 0 docker system prune -f >> /var/log/builder-orchestrator/docker-prune.log 2>&1
 ```
 
@@ -1652,7 +1652,7 @@ sudo ncdu /projects
 
 ## 22. Backup Strategy
 
-Project files are git repos — git itself is a backup mechanism. But you also want off-VPS backups for disaster recovery.
+Project files are git repos - git itself is a backup mechanism. But you also want off-VPS backups for disaster recovery.
 
 ### Backup script
 
@@ -1751,7 +1751,7 @@ docker info | grep -E "userns|icc|no-new-priv"
 # 6. Docker images present
 docker images | grep nisc
 
-# 7. Test container isolation — start two containers and verify they cannot ping each other
+# 7. Test container isolation - start two containers and verify they cannot ping each other
 docker run -d --name test1 --network none nisc/astro-dev:latest sleep 300
 docker run -d --name test2 --network none nisc/astro-dev:latest sleep 300
 docker exec test1 ping -c1 172.17.0.1 2>&1 | grep -q "Network unreachable" && echo "PASS: network isolation" || echo "FAIL"
@@ -1855,7 +1855,7 @@ sudo rm -rf /projects/{orphaned-project-id}
 
 ### Scaling beyond one VPS
 
-When the single VPS approaches capacity (monitor `docker stats` — when average CPU > 70% or RAM > 80%):
+When the single VPS approaches capacity (monitor `docker stats` - when average CPU > 70% or RAM > 80%):
 
 1. Provision a second VPS and repeat this entire guide on it
 2. Add a `VPS_HOST` field to the `zeepo_builder_project` DB table that records which VPS hosts each project's container
@@ -1865,7 +1865,7 @@ When the single VPS approaches capacity (monitor `docker stats` — when average
 
 ---
 
-## Quick Reference — Important Paths
+## Quick Reference - Important Paths
 
 | Path | Purpose |
 |---|---|
@@ -1885,7 +1885,7 @@ When the single VPS approaches capacity (monitor `docker stats` — when average
 | `/etc/docker/daemon.json` | Docker daemon security config |
 | `~/docker-images/` | Dockerfiles for the dev images |
 
-## Quick Reference — Important Commands
+## Quick Reference - Important Commands
 
 ```bash
 # SSH into VPS

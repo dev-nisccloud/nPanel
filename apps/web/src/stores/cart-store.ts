@@ -58,7 +58,7 @@ interface HivelocityCartItem extends BaseCartItem {
   type: "hivelocity";
   /** DEDICATED_SERVERS | VPS | VDS */
   productType: string;
-  /** nisc_product UUID — same product for base plan, OS, and add-ons */
+  /** nisc_product UUID - same product for base plan, OS, and add-ons */
   niscProductId?: string;
   planName: string;
   planType?: string;
@@ -92,7 +92,7 @@ interface HivelocityCartItem extends BaseCartItem {
     priceUsd?: number;
   }>;
 
-  /** Invoice-style lines (ex VAT) — OS and add-ons under main product */
+  /** Invoice-style lines (ex VAT) - OS and add-ons under main product */
   invoiceLines: Array<{
     id: string;
     kind: "base" | "os" | "addon";
@@ -105,7 +105,7 @@ interface HivelocityCartItem extends BaseCartItem {
   /** Subtotal ex VAT (base + os + addons) */
   subtotalExVat: number;
   vatAmount: number;
-  /** @deprecated use subtotalExVat — kept for persisted carts */
+  /** @deprecated use subtotalExVat - kept for persisted carts */
   totalPrice: number;
   selectedOptionIds: number[];
   basePriceUsdMonthly?: number;

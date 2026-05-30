@@ -191,7 +191,7 @@ export const MODELS: ZeepoModel[] = [
     label: "Nano Banana Pro",
     uiname: "Google / Nano Banana Pro",
     provider: "Google",
-    description: "Design-specialist image model — ideal for logos, business cards, flyers, banners, and professional graphic design with high fidelity.",
+    description: "Design-specialist image model - ideal for logos, business cards, flyers, banners, and professional graphic design with high fidelity.",
     category: "image",
     capabilities: { images: true, design: true },
   },

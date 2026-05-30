@@ -1,6 +1,6 @@
 /**
  * Grant new customers a free Starter Zeepo AI Agent subscription with welcome tokens.
- * No order or invoice — subscription is created directly at $0.
+ * No order or invoice - subscription is created directly at $0.
  */
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
@@ -29,7 +29,7 @@ async function findActiveZeepoSubscription(teamId: string) {
 	});
 }
 
-/** One signup welcome grant per customer — tied to the org they create at sign-up. */
+/** One signup welcome grant per customer - tied to the org they create at sign-up. */
 async function customerAlreadyReceivedSignupWelcome(userId: string): Promise<boolean> {
 	const rows = await db
 		.select({ metadata: niscClientSubscription.metadata })
@@ -97,7 +97,7 @@ export async function provisionZeepoCustomerSignupWelcome(params: {
 
 	if (!plan) {
 		console.warn(
-			"[ZeepoSignup] Starter plan not found — run apps/server seed:zeepo-ai-agent",
+			"[ZeepoSignup] Starter plan not found - run apps/server seed:zeepo-ai-agent",
 		);
 		return null;
 	}

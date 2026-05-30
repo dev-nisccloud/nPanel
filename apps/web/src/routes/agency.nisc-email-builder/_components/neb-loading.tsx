@@ -6,7 +6,7 @@ import { Sparkles } from "lucide-react";
 import { Spinner, type SpinnerProps } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 
-/** Spinner variants by context — matches patterns used elsewhere in nPanel (Zeepo, forms). */
+/** Spinner variants by context - matches patterns used elsewhere in nPanel (Zeepo, forms). */
 export const NEB_SPINNER = {
 	page: "ring",
 	panel: "circle-filled",
@@ -41,7 +41,7 @@ export function NebSpinner({
 const DEFAULT_ROTATE_MS = 5_500;
 
 /**
- * Cycles status copy on a calm interval. Avoid `key` remounts — they feel like rapid double flashes.
+ * Cycles status copy on a calm interval. Avoid `key` remounts - they feel like rapid double flashes.
  */
 export function useRotatingPhrase(
 	phrases: readonly string[],
@@ -121,7 +121,7 @@ export function ChatBootstrapPanel({ isHydratingImages }: ChatBootstrapPanelProp
 				</div>
 				<p className="text-xs text-muted-foreground leading-relaxed">
 					{isHydratingImages
-						? "Image slots are being filled — this usually takes a few minutes."
+						? "Image slots are being filled - this usually takes a few minutes."
 						: "Your conversation will appear here in a moment. The preview panel shows build progress."}
 				</p>
 			</div>

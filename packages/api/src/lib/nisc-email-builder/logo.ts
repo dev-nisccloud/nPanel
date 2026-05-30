@@ -27,7 +27,7 @@ export async function ensureNebLogoAccessible(
 		});
 	} catch (error) {
 		console.warn(
-			"[Neb] Logo mirror failed — Replicate will not receive image_input:",
+			"[Neb] Logo mirror failed - Replicate will not receive image_input:",
 			error instanceof Error ? error.message : error,
 		);
 		return null;
@@ -63,7 +63,7 @@ export function buildNanoBananaLogoDirective(logoUrl: string): string {
 		"",
 		"━━━ BRAND LOGO (MANDATORY) ━━━",
 		`The first image in image_input is the official brand logo (${logoUrl}).`,
-		"You MUST reproduce this exact logo in the email header — same shape, colours, and proportions.",
+		"You MUST reproduce this exact logo in the email header - same shape, colours, and proportions.",
 		"NEVER substitute a placeholder rectangle, generic icon, invented wordmark, or alternate logo.",
 	].join("\n");
 }

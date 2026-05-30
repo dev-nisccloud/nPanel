@@ -4,6 +4,10 @@ import * as React from "react";
 import { HelpCircle, Check, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
+import {
+  canonicalMpesaPaymentAmount,
+  resolveMpesaCheckoutPayment,
+} from "@/lib/mpesa-checkout-payment";
 import { Spinner } from "@/components/npanel-ui/spinner";
 import {
   Dialog,
@@ -38,6 +42,7 @@ import {
   PaymentMethodOption,
   PaymentMethodTrigger,
 } from "@/components/payment-method-accordion";
+import { MpesaPaymentFields } from "@/components/mpesa-payment-fields";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
@@ -56,9 +61,19 @@ import {
   type HostingPlanType,
   type UpsellBrowseTarget,
   type SelectedServiceUpsell,
-  type MarketingProductOffering,
-  type PricingPlanRow,
 } from "@/components/global-buy-now/hosting-steps";
+import { PurchaseAsBusinessOption } from "@/components/checkout/purchase-as-business-option";
+import {
+  CheckoutTeamBillingForm,
+  type CheckoutTeamBillingInitialData,
+} from "@/components/checkout/checkout-team-billing-form";
+import {
+  isTeamBillingComplete,
+  needsCheckoutTeamBillingStep,
+} from "@/lib/team-billing-completion";
+import { getCustomerTeamSlugFromPathname } from "@/lib/customer-team-slug";
+
+const CHECKOUT_TEAM_BILLING_FORM_ID = "checkout-team-billing-form";
 
 const formatPrice = (price?: number, currency?: string) => {
   if (price === undefined || price === null || isNaN(price) || !isFinite(price)) {
@@ -192,6 +207,7 @@ type Step =
   | "plan-selection"
   | "review"
   | "registrant_info"
+  | "team_billing"
   | "payment"
   | "success"
   | "error";
@@ -204,8 +220,7 @@ interface SelectedUpsellPlan {
   billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY";
   price: number;
   currency: string;
-  hostingType?: HostingPlanType;
-  upsellCategory?: "hosting" | "marketing";
+  hostingType: HostingPlanType;
 }
 
 interface SelectedAddOn {
@@ -217,7 +232,7 @@ interface SelectedAddOn {
   currency: string;
 }
 
-/** Scrollable step body — avoids dialog overflow on small viewports. */
+/** Scrollable step body - avoids dialog overflow on small viewports. */
 function BuyNowStepScroll({
   children,
   className,
@@ -226,8 +241,8 @@ function BuyNowStepScroll({
   className?: string;
 }) {
   return (
-    <ScrollArea className="h-[min(52vh,28rem)] w-full" thumbClassName="bg-primary">
-      <div className={cn("px-1 py-2", className)}>{children}</div>
+    <ScrollArea className="h-[min(52vh,28rem)] w-full max-w-[calc(100%-0.5rem)]" thumbClassName="bg-primary">
+      <div className={cn("py-2 pl-1 pr-4", className)}>{children}</div>
     </ScrollArea>
   );
 }
@@ -254,16 +269,17 @@ export function GlobalBuyNowDialog() {
   const [hostingBillingInterval, setHostingBillingInterval] = React.useState<"monthly" | "yearly">(
     DEFAULT_HOSTING_BILLING_INTERVAL,
   );
-  const [hostingBillingCyclesByPlanId, setHostingBillingCyclesByPlanId] = React.useState<
-    Record<string, "MONTHLY" | "YEARLY" | "BIENNIALLY">
-  >({});
   /** Domain checkout: registrant step finished; review before payment is allowed */
   const [registrantStepCompleted, setRegistrantStepCompleted] = React.useState(false);
+  const [purchaseAsBusiness, setPurchaseAsBusiness] = React.useState(false);
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<string | null>(null);
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
   const [paymentAmount, setPaymentAmount] = React.useState("");
   const [accountReference, setAccountReference] = React.useState("");
+  /** Canonical checkout values — STK push for customers always uses these, not form state. */
+  const intendedPaymentAmountRef = React.useRef("");
+  const intendedAccountReferenceRef = React.useRef("");
   const [accountRefError, setAccountRefError] = React.useState("");
   const [phoneError, setPhoneError] = React.useState("");
   const [amountError, setAmountError] = React.useState("");
@@ -334,20 +350,6 @@ export function GlobalBuyNowDialog() {
     trpc.products.getEmailHostingPlansForPricing.useQuery(undefined, {
       enabled: open && !isCartMode && isDomainProduct,
     });
-  const { data: digitalMarketingUpsell, isLoading: isLoadingDigitalMarketing } =
-    trpc.products.getDigitalMarketingPlansForUpsell.useQuery(undefined, {
-      enabled: open && !isCartMode && isDomainProduct,
-    });
-  const marketingOfferings: MarketingProductOffering[] = React.useMemo(
-    () =>
-      (digitalMarketingUpsell?.products ?? []).map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        plans: p.plans as PricingPlanRow[],
-      })),
-    [digitalMarketingUpsell?.products],
-  );
   const webFromPrice = getMinYearlyFromPlans(webHostingPricing?.plans ?? []);
   const emailFromPrice = getMinYearlyFromPlans(emailHostingPricing?.plans ?? []);
   const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
@@ -396,10 +398,26 @@ export function GlobalBuyNowDialog() {
     () => buildRegistrantOrderMetadata(registrantType, selectedExistingCustomer),
     [registrantType, selectedExistingCustomer],
   );
+  const customerTeamSlug = React.useMemo(
+    () => (isAgencySide ? undefined : getCustomerTeamSlugFromPathname(location.pathname)),
+    [location.pathname, isAgencySide],
+  );
+  const { data: checkoutTeamBySlug } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug: customerTeamSlug ?? "" },
+    { enabled: open && !!customerTeamSlug && !isAgencySide },
+  );
   const teamId = isTransferMode ? transferContext?.teamId : ctx?.teamId;
+  const checkoutTeamId = teamId ?? checkoutTeamBySlug?.id ?? undefined;
+  const showPurchaseAsBusinessOption = !isAgencySide && !!checkoutTeamId;
   const teamBillingQuery = trpc.teamBilling.getByTeam.useQuery(
-    { teamId: teamId ?? "" },
-    { enabled: open && isAgencySide && isDomainProduct && !!teamId }
+    { teamId: checkoutTeamId ?? "" },
+    {
+      enabled:
+        open &&
+        !!checkoutTeamId &&
+        !isAgencySide &&
+        (purchaseAsBusiness || currentStep === "team_billing"),
+    },
   );
 
   const userProfile = userInfoQuery.data?.profile;
@@ -423,16 +441,21 @@ export function GlobalBuyNowDialog() {
   );
 
   const teamBilling = teamBillingQuery.data;
-  const isTeamBillingComplete = React.useMemo(() => {
-    if (!teamBilling) return false;
-    const required = [
-      teamBilling.legalName,
-      teamBilling.billingEmail,
-      teamBilling.addressLine1,
-      teamBilling.city,
-      teamBilling.country,
-    ];
-    return required.every((f) => !!f && String(f).trim().length > 0);
+  const teamBillingInitialData = React.useMemo((): CheckoutTeamBillingInitialData | null => {
+    if (!teamBilling) return null;
+    return {
+      legalName: teamBilling.legalName,
+      billingEmail: teamBilling.billingEmail,
+      billingPhone: teamBilling.billingPhone ?? null,
+      addressLine1: teamBilling.addressLine1,
+      addressLine2: teamBilling.addressLine2 ?? null,
+      city: teamBilling.city,
+      state: teamBilling.state ?? null,
+      country: teamBilling.country,
+      postalCode: teamBilling.postalCode ?? null,
+      taxId: teamBilling.taxId ?? null,
+      additionalNotes: teamBilling.additionalNotes ?? null,
+    };
   }, [teamBilling]);
   const { data: planSelectionProduct } = trpc.products.getById.useQuery(
     { id: planSelectionProductId ?? "", includePlans: true },
@@ -722,7 +745,7 @@ export function GlobalBuyNowDialog() {
     selectedUpsellPlans,
   ]);
 
-  // Create order on payment success — called from poll callback to avoid useEffect latency
+  // Create order on payment success - called from poll callback to avoid useEffect latency
   const triggerOrderFromPayment = React.useCallback(
     (checkoutRequestIdParam: string) => {
       if (orderCreatedForCheckoutRef.current === checkoutRequestIdParam) return;
@@ -975,6 +998,7 @@ export function GlobalBuyNowDialog() {
   };
 
   const handleAccountReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAgencyUser) return;
     const value = e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
     setAccountReference(value);
     setAccountRefError(validateAccountReference(value));
@@ -984,14 +1008,23 @@ export function GlobalBuyNowDialog() {
     setPhoneError(validatePhoneNumber(e.target.value));
   };
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAgencyUser) return;
     setPaymentAmount(e.target.value);
     setAmountError(validateAmount(e.target.value));
   };
 
   const handleMpesaPayment = async () => {
-    const refErr = validateAccountReference(accountReference);
+    const resolved = resolveMpesaCheckoutPayment({
+      isAgencyUser,
+      formAmount: paymentAmount,
+      formAccountReference: accountReference,
+      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(effectiveTotal),
+      intendedAccountReference: intendedAccountReferenceRef.current,
+    });
+
+    const refErr = validateAccountReference(resolved.accountReference);
     const phoneErr = validatePhoneNumber(mpesaPhoneNumber);
-    const amtErr = validateAmount(paymentAmount);
+    const amtErr = validateAmount(resolved.amountString);
     setAccountRefError(refErr);
     setPhoneError(phoneErr);
     setAmountError(amtErr);
@@ -999,7 +1032,8 @@ export function GlobalBuyNowDialog() {
       toast.error("Please fix the errors in the form");
       return;
     }
-    const amount = parseFloat(paymentAmount);
+
+    const amount = resolved.amount;
     const timestamp = Date.now().toString().slice(-9);
     const transactionDesc = isCartMode ? `CART${timestamp}` : isTransferMode && transferContext
       ? (transferContext.domain.replace(/\./g, "").slice(0, 9).toUpperCase() || "TRF") + timestamp
@@ -1008,7 +1042,7 @@ export function GlobalBuyNowDialog() {
       await initiateMpesaPayment.mutateAsync({
         phoneNumber: mpesaPhoneNumber.trim(),
         amount,
-        accountReference: accountReference.trim(),
+        accountReference: resolved.accountReference,
         transactionDesc: transactionDesc.slice(0, 13),
       });
     } catch {
@@ -1051,7 +1085,14 @@ export function GlobalBuyNowDialog() {
       setManualTransactionRefError("Reference must be at least 3 characters");
       return;
     }
-    const amount = parseFloat(paymentAmount);
+    const resolved = resolveMpesaCheckoutPayment({
+      isAgencyUser,
+      formAmount: paymentAmount,
+      formAccountReference: accountReference,
+      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(effectiveTotal),
+      intendedAccountReference: intendedAccountReferenceRef.current,
+    });
+    const amount = resolved.amount;
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error("Enter a valid payment amount.");
       return;
@@ -1062,7 +1103,7 @@ export function GlobalBuyNowDialog() {
         transactionReference: ref,
         amount,
         currency: isCartMode ? primaryCurrency : displayCurrency,
-        accountReference: accountReference.trim() || undefined,
+        accountReference: resolved.accountReference || undefined,
         transactionDesc: isTransferMode && transferContext
           ? `Transfer ${transferContext.domain}`
           : isCartMode
@@ -1084,13 +1125,23 @@ export function GlobalBuyNowDialog() {
     }
   };
 
+  const buildCheckoutAccountReference = React.useCallback(() => {
+    const ts = Date.now().toString().slice(-9);
+    return isCartMode
+      ? `CART${ts}`.slice(0, 12)
+      : isTransferMode && transferContext
+        ? (transferContext.domain.replace(/\./g, "").slice(0, 3).toUpperCase() || "TRF") + ts
+        : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 3).toUpperCase() || "ORD") + ts;
+  }, [isCartMode, isTransferMode, transferContext, ctx?.domain?.domain]);
+
   const openForPayment = () => {
     setCurrentStep("payment");
-    setPaymentAmount(paymentTotalString(effectiveTotal));
-    const ts = Date.now().toString().slice(-9);
-    setAccountReference(isCartMode ? `CART${ts}`.slice(0, 12) : isTransferMode && transferContext
-      ? (transferContext.domain.replace(/\./g, "").slice(0, 3).toUpperCase() || "TRF") + ts
-      : (ctx?.domain?.domain?.replace(/\./g, "").slice(0, 3).toUpperCase() || "ORD") + ts);
+    const amountValue = canonicalMpesaPaymentAmount(effectiveTotal);
+    intendedPaymentAmountRef.current = amountValue;
+    setPaymentAmount(amountValue);
+    const ref = buildCheckoutAccountReference();
+    intendedAccountReferenceRef.current = ref;
+    setAccountReference(ref);
     setAccountRefError("");
     setPhoneError("");
     setAmountError("");
@@ -1104,11 +1155,16 @@ export function GlobalBuyNowDialog() {
     }
     const enteredPayment =
       currentStep === "payment" && prevGlobalStepRef.current !== "payment";
-    if (enteredPayment && !isCartMode) {
-      setPaymentAmount(paymentTotalString(effectiveTotal));
+    if (enteredPayment) {
+      const amountValue = canonicalMpesaPaymentAmount(effectiveTotal);
+      intendedPaymentAmountRef.current = amountValue;
+      setPaymentAmount(amountValue);
+      const ref = buildCheckoutAccountReference();
+      intendedAccountReferenceRef.current = ref;
+      setAccountReference(ref);
     }
     prevGlobalStepRef.current = currentStep;
-  }, [open, currentStep, effectiveTotal, isCartMode]);
+  }, [open, currentStep, effectiveTotal, buildCheckoutAccountReference]);
 
   const goToRegistrantStep = () => {
     setRegistrantStepCompleted(false);
@@ -1123,49 +1179,52 @@ export function GlobalBuyNowDialog() {
     openForPayment();
   };
 
-  const proceedFromReview = () => {
+  const continueToPayment = React.useCallback(() => {
     if (isDomainProduct && !registrantStepCompleted) {
       goToRegistrantStep();
       return;
     }
     openForPayment();
+  }, [isDomainProduct, registrantStepCompleted]);
+
+  const proceedFromReview = () => {
+    if (isDomainProduct && !registrantStepCompleted) {
+      goToRegistrantStep();
+      return;
+    }
+    if (purchaseAsBusiness && checkoutTeamId) {
+      if (teamBillingQuery.isLoading || teamBillingQuery.isFetching) {
+        toast.message("Checking company billing details…");
+        return;
+      }
+      if (needsCheckoutTeamBillingStep(purchaseAsBusiness, teamBilling)) {
+        setCurrentStep("team_billing");
+        return;
+      }
+    }
+    openForPayment();
   };
+
+  const handleTeamBillingSaved = React.useCallback(async () => {
+    const result = await teamBillingQuery.refetch();
+    if (isTeamBillingComplete(result.data)) {
+      continueToPayment();
+    }
+  }, [teamBillingQuery, continueToPayment]);
 
   const upsellToServiceSelected = React.useCallback(
     (plans: SelectedUpsellPlan[]): SelectedServiceUpsell[] =>
-      plans.map((p) => {
-        if (p.upsellCategory === "marketing" || p.hostingType == null) {
-          return {
-            category: "marketing" as const,
-            productId: p.productId,
-            productName: p.productName,
-            planId: p.planId,
-            planName: p.planName,
-            billingCycle: p.billingCycle,
-            price: p.price,
-            currency: p.currency,
-          };
-        }
-        const hostingType =
-          p.hostingType ??
-          (p.productName.toLowerCase().includes("email")
-            ? "email"
-            : p.productName.toLowerCase().includes("web") ||
-                p.productName.toLowerCase().includes("website")
-              ? "web"
-              : "web");
-        return {
-          category: "hosting" as const,
-          hostingType,
-          productId: p.productId,
-          productName: p.productName,
-          planId: p.planId,
-          planName: p.planName,
-          billingCycle: p.billingCycle,
-          price: p.price,
-          currency: p.currency,
-        };
-      }),
+      plans.map((p) => ({
+        category: "hosting" as const,
+        hostingType: p.hostingType,
+        productId: p.productId,
+        productName: p.productName,
+        planId: p.planId,
+        planName: p.planName,
+        billingCycle: p.billingCycle,
+        price: p.price,
+        currency: p.currency,
+      })),
     [],
   );
 
@@ -1205,6 +1264,8 @@ export function GlobalBuyNowDialog() {
       } else {
         setCurrentStep("review");
       }
+    } else if (currentStep === "team_billing") {
+      setCurrentStep("review");
     } else if (currentStep === "payment") {
       setCurrentStep("review");
     }
@@ -1221,53 +1282,31 @@ export function GlobalBuyNowDialog() {
   };
 
   const handleHostingBrowsePlans = (type: HostingPlanType) => {
-    openUpsellPlanSelection({ category: "hosting", hostingType: type });
-  };
-
-  const handleMarketingBrowsePlans = (productId: string, productName: string) => {
-    openUpsellPlanSelection({ category: "marketing", productId, productName });
+    openUpsellPlanSelection({ hostingType: type });
   };
 
   const handleHostingRemove = (type: HostingPlanType) => {
-    setSelectedUpsellPlans((prev) =>
-      prev.filter((p) => p.upsellCategory === "marketing" || p.hostingType !== type),
-    );
-  };
-
-  const handleMarketingRemove = (productId: string) => {
-    setSelectedUpsellPlans((prev) =>
-      prev.filter((p) => p.upsellCategory !== "marketing" || p.productId !== productId),
-    );
+    setSelectedUpsellPlans((prev) => prev.filter((p) => p.hostingType !== type));
   };
 
   const upsellPlanSelectionContext = React.useMemo(() => {
     if (!upsellBrowseTarget) return null;
-    if (upsellBrowseTarget.category === "hosting") {
-      return {
-        title:
-          upsellBrowseTarget.hostingType === "web" ? "Website hosting" : "Email hosting",
-        plans:
-          upsellBrowseTarget.hostingType === "web"
-            ? (webHostingPricing?.plans ?? [])
-            : (emailHostingPricing?.plans ?? []),
-        productFeatures:
-          upsellBrowseTarget.hostingType === "web"
-            ? (webHostingPricing?.productFeatures ?? [])
-            : (emailHostingPricing?.productFeatures ?? []),
-        isLoading:
-          upsellBrowseTarget.hostingType === "web"
-            ? isLoadingWebHostingPricing
-            : isLoadingEmailHostingPricing,
-        planType: upsellBrowseTarget.hostingType,
-      };
-    }
-    const product = marketingOfferings.find((p) => p.id === upsellBrowseTarget.productId);
     return {
-      title: upsellBrowseTarget.productName,
-      plans: product?.plans ?? [],
-      productFeatures: digitalMarketingUpsell?.productFeatures ?? [],
-      isLoading: isLoadingDigitalMarketing,
-      planType: undefined as HostingPlanType | undefined,
+      title:
+        upsellBrowseTarget.hostingType === "web" ? "Website hosting" : "Email hosting",
+      plans:
+        upsellBrowseTarget.hostingType === "web"
+          ? (webHostingPricing?.plans ?? [])
+          : (emailHostingPricing?.plans ?? []),
+      productFeatures:
+        upsellBrowseTarget.hostingType === "web"
+          ? (webHostingPricing?.productFeatures ?? [])
+          : (emailHostingPricing?.productFeatures ?? []),
+      isLoading:
+        upsellBrowseTarget.hostingType === "web"
+          ? isLoadingWebHostingPricing
+          : isLoadingEmailHostingPricing,
+      planType: upsellBrowseTarget.hostingType,
     };
   }, [
     upsellBrowseTarget,
@@ -1275,9 +1314,6 @@ export function GlobalBuyNowDialog() {
     emailHostingPricing,
     isLoadingWebHostingPricing,
     isLoadingEmailHostingPricing,
-    marketingOfferings,
-    digitalMarketingUpsell?.productFeatures,
-    isLoadingDigitalMarketing,
   ]);
 
   const addSelectedPlanToUpsell = () => {
@@ -1286,22 +1322,10 @@ export function GlobalBuyNowDialog() {
       const plan = plans.find((p) => p.id === selectedPlanId);
       if (!plan) return;
       const cycle =
-        hostingBillingCyclesByPlanId[plan.id] ??
-        (hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY");
+        hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY";
       const upsell = planSelectionToUpsell(plan, upsellBrowseTarget, cycle);
       setSelectedUpsellPlans((prev) => {
-        const without =
-          upsellBrowseTarget.category === "hosting"
-            ? prev.filter(
-                (p) =>
-                  !(
-                    (p.upsellCategory === "hosting" || p.hostingType != null) &&
-                    p.hostingType === upsellBrowseTarget.hostingType
-                  ),
-              )
-            : prev.filter(
-                (p) => !(p.upsellCategory === "marketing" && p.productId === upsellBrowseTarget.productId),
-              );
+        const without = prev.filter((p) => p.hostingType !== upsellBrowseTarget.hostingType);
         return [
           ...without,
           {
@@ -1313,7 +1337,6 @@ export function GlobalBuyNowDialog() {
             price: upsell.price,
             currency: upsell.currency,
             hostingType: upsell.hostingType,
-            upsellCategory: upsell.category,
           },
         ];
       });
@@ -1402,8 +1425,8 @@ export function GlobalBuyNowDialog() {
       setIsSelectingMainProductPlan(false);
       setUpsellBrowseTarget(null);
       setHostingBillingInterval(DEFAULT_HOSTING_BILLING_INTERVAL);
-      setHostingBillingCyclesByPlanId({});
       setRegistrantStepCompleted(false);
+      setPurchaseAsBusiness(false);
       setSelectedPlanId(null);
       setRegistrantType(isAgencySide ? "existing_customer" : "myself");
       setSelectedExistingCustomerId("");
@@ -1411,6 +1434,8 @@ export function GlobalBuyNowDialog() {
       setMpesaPhoneNumber("");
       setPaymentAmount("");
       setAccountReference("");
+      intendedPaymentAmountRef.current = "";
+      intendedAccountReferenceRef.current = "";
       setAccountRefError("");
       setPhoneError("");
       setAmountError("");
@@ -1522,16 +1547,11 @@ export function GlobalBuyNowDialog() {
               selected={upsellToServiceSelected(selectedUpsellPlans)}
               webFromPrice={webFromPrice}
               emailFromPrice={emailFromPrice}
-              marketingProducts={marketingOfferings}
-              isLoadingMarketing={isLoadingDigitalMarketing}
               pricePeriodLabel="/yr"
               isLoadingPrices={isLoadingWebHostingPricing || isLoadingEmailHostingPricing}
               onBrowseHostingPlans={handleHostingBrowsePlans}
               onChangeHostingPlan={handleHostingBrowsePlans}
               onRemoveHosting={handleHostingRemove}
-              onBrowseMarketingPlans={handleMarketingBrowsePlans}
-              onChangeMarketingPlan={handleMarketingBrowsePlans}
-              onRemoveMarketing={handleMarketingRemove}
             />
           </BuyNowStepScroll>
         );
@@ -1539,7 +1559,8 @@ export function GlobalBuyNowDialog() {
       case "plan-selection":
         if (upsellBrowseTarget && upsellPlanSelectionContext) {
           return (
-            <BuyNowStepScroll>
+            <ScrollArea className="h-[min(72vh,44rem)] w-full max-w-[calc(100%-0.5rem)]" thumbClassName="bg-primary">
+              <div className="py-2 pl-1 pr-4">
               <HostingPlanSelectionStep
                 selectionTitle={upsellPlanSelectionContext.title}
                 planType={upsellPlanSelectionContext.planType}
@@ -1549,32 +1570,11 @@ export function GlobalBuyNowDialog() {
                 isLoading={upsellPlanSelectionContext.isLoading}
                 selectedPlanId={selectedPlanId}
                 billingInterval={hostingBillingInterval}
-                billingCyclesByPlanId={hostingBillingCyclesByPlanId}
-                onSelectPlan={(planId) => {
-                  setSelectedPlanId(planId);
-                  if (!hostingBillingCyclesByPlanId[planId]) {
-                    setHostingBillingCyclesByPlanId((prev) => ({
-                      ...prev,
-                      [planId]:
-                        hostingBillingInterval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY",
-                    }));
-                  }
-                }}
-                onBillingIntervalChange={(interval) => {
-                  setHostingBillingInterval(interval);
-                  if (selectedPlanId) {
-                    setHostingBillingCyclesByPlanId((prev) => ({
-                      ...prev,
-                      [selectedPlanId]:
-                        interval === "yearly" ? DEFAULT_HOSTING_BILLING_CYCLE : "MONTHLY",
-                    }));
-                  }
-                }}
-                onPlanBillingCycleChange={(planId, cycle) => {
-                  setHostingBillingCyclesByPlanId((prev) => ({ ...prev, [planId]: cycle }));
-                }}
+                onSelectPlan={setSelectedPlanId}
+                onBillingIntervalChange={setHostingBillingInterval}
               />
-            </BuyNowStepScroll>
+              </div>
+            </ScrollArea>
           );
         }
         return (
@@ -1744,6 +1744,12 @@ export function GlobalBuyNowDialog() {
                   })}
                 </div>
               </ScrollArea>
+              {showPurchaseAsBusinessOption ? (
+                <PurchaseAsBusinessOption
+                  value={purchaseAsBusiness}
+                  onChange={setPurchaseAsBusiness}
+                />
+              ) : null}
               <div className="flex items-center gap-2">
                 <Input
                   placeholder="enter you coupon code"
@@ -1840,6 +1846,12 @@ export function GlobalBuyNowDialog() {
                 ))}
               </div>
             </ScrollArea>
+            {showPurchaseAsBusinessOption ? (
+              <PurchaseAsBusinessOption
+                value={purchaseAsBusiness}
+                onChange={setPurchaseAsBusiness}
+              />
+            ) : null}
             <div className="flex items-center gap-2">
               <Input
                 placeholder="enter you coupon code"
@@ -1868,6 +1880,26 @@ export function GlobalBuyNowDialog() {
           </div>
         );
 
+      case "team_billing":
+        if (!checkoutTeamId) return null;
+        return (
+          <BuyNowStepScroll className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Company billing details</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add your company billing information so we can invoice this order correctly.
+              </p>
+            </div>
+            <CheckoutTeamBillingForm
+              teamId={checkoutTeamId}
+              formId={CHECKOUT_TEAM_BILLING_FORM_ID}
+              isLoading={teamBillingQuery.isLoading}
+              initialData={teamBillingInitialData}
+              onSaved={() => void handleTeamBillingSaved()}
+            />
+          </BuyNowStepScroll>
+        );
+
       case "payment":
         return (
           <BuyNowStepScroll className="space-y-6">
@@ -1887,7 +1919,7 @@ export function GlobalBuyNowDialog() {
                     variant="mpesa"
                     icon={<img src="/mpesa.png" alt="M-Pesa" className="h-full w-full object-contain" />}
                     title="M-Pesa"
-                    description="Pay instantly from your phone — secured by Nisc Cloud"
+                    description="Pay instantly from your phone - secured by Nisc Cloud"
                   />
                 }
               >
@@ -1899,21 +1931,28 @@ export function GlobalBuyNowDialog() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Phone number *</label>
-                          <Input placeholder="0712345678 or 254712345678" value={mpesaPhoneNumber} onChange={handlePhoneNumberChange} className={phoneError ? "border-destructive" : ""} />
-                          {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Amount ({primaryCurr}) *</label>
-                          <Input type="number" value={paymentAmount} onChange={handleAmountChange} className={amountError ? "border-destructive" : ""} min={1} />
-                          {amountError && <p className="text-xs text-destructive">{amountError}</p>}
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Account reference *</label>
-                          <Input placeholder="Account reference" value={accountReference} onChange={handleAccountReferenceChange} className={accountRefError ? "border-destructive" : ""} maxLength={12} />
-                          {accountRefError && <p className="text-xs text-destructive">{accountRefError}</p>}
-                        </div>
+                        <MpesaPaymentFields
+                          currency={primaryCurr}
+                          canEditPaymentDetails={isAgencyUser}
+                          phoneNumber={mpesaPhoneNumber}
+                          onPhoneNumberChange={handlePhoneNumberChange}
+                          phoneError={phoneError || undefined}
+                          amount={paymentAmount}
+                          onAmountChange={handleAmountChange}
+                          amountError={amountError || undefined}
+                          amountHelperText={
+                            isAgencyUser
+                              ? `Order total: ${formatPrice(effectiveTotal, primaryCurr)} (editable)`
+                              : `Order total: ${formatPrice(effectiveTotal, primaryCurr)}`
+                          }
+                          accountReference={accountReference}
+                          onAccountReferenceChange={handleAccountReferenceChange}
+                          accountRefError={accountRefError || undefined}
+                          accountRefHelperText={
+                            accountRefError ? undefined : `Reference (${accountReference.length}/12)`
+                          }
+                          idPrefix="global-mpesa"
+                        />
                         <div className="flex justify-end pt-1">
                           <MpesaPayButton
                             onClick={handleMpesaPayment}
@@ -1960,28 +1999,21 @@ export function GlobalBuyNowDialog() {
                             </p>
                           )}
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Amount ({primaryCurr}) *</label>
-                          <Input
-                            type="number"
-                            value={paymentAmount}
-                            onChange={handleAmountChange}
-                            className={amountError ? "border-destructive" : ""}
-                            min={1}
-                          />
-                          {amountError && <p className="text-xs text-destructive">{amountError}</p>}
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Account reference</label>
-                          <Input
-                            placeholder="Optional internal reference"
-                            value={accountReference}
-                            onChange={handleAccountReferenceChange}
-                            className={accountRefError ? "border-destructive" : ""}
-                            maxLength={12}
-                          />
-                          {accountRefError && <p className="text-xs text-destructive">{accountRefError}</p>}
-                        </div>
+                        <MpesaPaymentFields
+                          showPhone={false}
+                          currency={primaryCurr}
+                          canEditPaymentDetails={isAgencyUser}
+                          phoneNumber=""
+                          onPhoneNumberChange={() => {}}
+                          amount={paymentAmount}
+                          onAmountChange={handleAmountChange}
+                          amountError={amountError || undefined}
+                          amountHelperText={`Order total: ${formatPrice(effectiveTotal, primaryCurr)}`}
+                          accountReference={accountReference}
+                          onAccountReferenceChange={handleAccountReferenceChange}
+                          accountRefError={accountRefError || undefined}
+                          idPrefix="global-manual"
+                        />
                         <div className="flex justify-end pt-1">
                           <Button
                             onClick={() => void handleRecordManualPayment()}
@@ -2145,7 +2177,7 @@ export function GlobalBuyNowDialog() {
                       ) : null}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Search and select a customer with a complete profile — recommended for client orders.
+                      Search and select a customer with a complete profile - recommended for client orders.
                     </p>
                     <div className="mt-4" onClick={() => setRegistrantType("existing_customer")}>
                       {customersForRegistrantQuery.isLoading ? (
@@ -2344,13 +2376,10 @@ export function GlobalBuyNowDialog() {
   const getTitle = () => {
     if (isCartMode) return totalItems === 1 ? "Complete your purchase" : `Review ${totalItems} items`;
     if (effectiveStep === "product") return `Buy ${hasDomain ? ctx?.domain?.domain ?? ctx?.productName : ctx?.productName}`;
-    if (effectiveStep === "hosting-upsell") return "Add services";
+    if (effectiveStep === "hosting-upsell") return "Add cloud hosting";
     if (effectiveStep === "plan-selection") {
-      if (upsellBrowseTarget?.category === "hosting") {
+      if (upsellBrowseTarget) {
         return upsellBrowseTarget.hostingType === "web" ? "Website hosting plans" : "Email hosting plans";
-      }
-      if (upsellBrowseTarget?.category === "marketing") {
-        return `${upsellBrowseTarget.productName} plans`;
       }
       return `Select plan: ${planSelectionProductName}`;
     }
@@ -2358,6 +2387,7 @@ export function GlobalBuyNowDialog() {
     if (effectiveStep === "registrant_info") {
       return isCustomerDomainCheckout ? "Profile required" : "Registrant details";
     }
+    if (effectiveStep === "team_billing") return "Company billing";
     if (effectiveStep === "payment") return "Choose payment method";
     if (effectiveStep === "success") return "Order confirmed";
     if (effectiveStep === "error") return "Payment failed";
@@ -2369,7 +2399,11 @@ export function GlobalBuyNowDialog() {
       <DialogContent
         className={cn(
           "max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0",
-          effectiveStep === "plan-selection" && upsellBrowseTarget ? "sm:max-w-2xl" : "sm:max-w-[600px]",
+          effectiveStep === "plan-selection" && upsellBrowseTarget
+            ? "sm:max-w-4xl"
+            : effectiveStep === "team_billing"
+              ? "sm:max-w-2xl"
+              : "sm:max-w-[600px]",
         )}
       >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
@@ -2377,7 +2411,7 @@ export function GlobalBuyNowDialog() {
           <DialogDescription>
             {effectiveStep === "product" && "Add optional services and proceed."}
             {effectiveStep === "hosting-upsell" &&
-              "Add hosting or digital marketing for your domain, or skip to checkout."}
+              "Add website or email hosting for your domain, or skip to checkout."}
             {effectiveStep === "plan-selection" &&
               (upsellBrowseTarget
                 ? "Compare plans and pick the billing period that works for you."
@@ -2387,6 +2421,8 @@ export function GlobalBuyNowDialog() {
               (isCustomerDomainCheckout
                 ? "Complete your profile before paying for a domain."
                 : "Select a customer in nPanel or use your agency profile.")}
+            {effectiveStep === "team_billing" &&
+              "Enter company billing details used on your invoice. You can update these later in Settings."}
             {effectiveStep === "payment" && "Complete your payment."}
             {effectiveStep === "success" && "Order confirmed."}
             {effectiveStep === "error" && "Payment could not be completed."}
@@ -2394,7 +2430,7 @@ export function GlobalBuyNowDialog() {
         </DialogHeader>
         <div className="flex-1 min-h-0 px-6 overflow-hidden">
           <ScrollArea className="h-full" thumbClassName="bg-primary">
-            <div className="py-4">{renderStep()}</div>
+            <div className="py-4 min-w-0 w-full max-w-[calc(100%-0.5rem)] pr-4">{renderStep()}</div>
           </ScrollArea>
         </div>
         <DialogFooter className="gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t">
@@ -2459,6 +2495,16 @@ export function GlobalBuyNowDialog() {
                 {isCustomerDomainCheckout && !isProfileComplete
                   ? "Complete profile to continue"
                   : "Review order"}
+              </Button>
+            </>
+          )}
+          {effectiveStep === "team_billing" && (
+            <>
+              <Button variant="ghost" onClick={handleBack}>
+                Back
+              </Button>
+              <Button type="submit" form={CHECKOUT_TEAM_BILLING_FORM_ID}>
+                Save and continue
               </Button>
             </>
           )}

@@ -242,7 +242,7 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 group min-h-[2.5rem] p-3 rounded-lg bg-muted/20 border border-border/40">
-                      <p className="text-sm font-medium truncate text-primary">{deviceData.hostname || "—"}</p>
+                      <p className="text-sm font-medium truncate text-primary">{deviceData.hostname || "-"}</p>
                       {deviceData.hostname && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto opacity-0 group-hover:opacity-100 transition-all" onClick={() => copyToClipboard(deviceData.hostname, "Hostname")}>
                           <Copy className="h-3 w-3" />

@@ -480,7 +480,7 @@ function BundleCard({
           
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-card-foreground">
-              {bundleCustomerTotal != null ? formatPrice(bundleCustomerTotal, 'KES') : '—'}/1st yr
+              {bundleCustomerTotal != null ? formatPrice(bundleCustomerTotal, 'KES') : '-'}/1st yr
             </span>
           </div>
         </div>

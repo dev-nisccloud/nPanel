@@ -257,7 +257,7 @@ export function ProfileInformation({ userId }: ProfileInformationProps) {
               <p className="font-medium">{user.howDidYouFindUs}</p>
             </div>
           ) : (
-            <InfoRow label="How did they find us?" value={<span className="text-muted-foreground">—</span>} />
+            <InfoRow label="How did they find us?" value={<span className="text-muted-foreground">-</span>} />
           )}
 
           {user?.adminNotes ? (
@@ -266,7 +266,7 @@ export function ProfileInformation({ userId }: ProfileInformationProps) {
               <p className="leading-relaxed whitespace-pre-wrap font-medium">{user.adminNotes}</p>
             </div>
           ) : (
-            <InfoRow label="Admin notes" value={<span className="text-muted-foreground">—</span>} />
+            <InfoRow label="Admin notes" value={<span className="text-muted-foreground">-</span>} />
           )}
         </CardContent>
       </Card>

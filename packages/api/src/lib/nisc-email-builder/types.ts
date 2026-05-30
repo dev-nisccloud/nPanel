@@ -10,7 +10,7 @@ export const nebBriefSchema = z.object({
 	instructions: z.string().optional(),
 	brandColors: z.array(z.string()).optional(),
 	ctaUrl: z.string().url().optional(),
-	/** Optional — we fetch logo + colors from this URL when starting a build */
+	/** Optional - we fetch logo + colors from this URL when starting a build */
 	websiteUrl: z.string().optional(),
 	logoUrl: z.string().min(1).optional(),
 	/** Markdown summary from web research (UI + agents). */
@@ -41,7 +41,7 @@ export const imageSlotSchema = z.object({
 		.transform((v) => v ?? "1K"),
 	/**
 	 * Hex background of the email section behind this icon (metadata only).
-	 * Server maps this to a plain-language fill for image gen — never put this hex in `prompt`.
+	 * Server maps this to a plain-language fill for image gen - never put this hex in `prompt`.
 	 */
 	backgroundColor: z.string().optional(),
 });

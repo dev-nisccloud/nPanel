@@ -202,14 +202,14 @@ function TldAvailabilityRow({
             Reserved
           </Badge>
         ) : entry.status === "unknown" ? (
-          <span className="text-[10px] text-muted-foreground/50">—</span>
+          <span className="text-[10px] text-muted-foreground/50">-</span>
         ) : (
           <Badge className="text-[10px] px-1.5 py-0 h-4 bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200 dark:border-red-800">
             Taken
           </Badge>
         )}
 
-        {/* Buy Now + Cart — only when available and price is ready */}
+        {/* Buy Now + Cart - only when available and price is ready */}
         {entry.available && priceReady && displayResult && (
           <div className="flex items-center gap-1">
             <Button

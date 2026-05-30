@@ -39,7 +39,7 @@ export function isGatewayPaymentFailed(status: string): boolean {
   return status === "FAILED" || status === "CANCELLED";
 }
 
-/** Collected amount for one invoice — matches agency list (PAID = full invoice amount). */
+/** Collected amount for one invoice - matches agency list (PAID = full invoice amount). */
 export function invoiceCollectedAmount(
   inv: { status: string; amount: string | null },
   completedPaymentsTotal = 0,
@@ -236,7 +236,7 @@ export async function aggregatePaymentMethodBreakdown(params: {
     .sort((a, b) => b.amount - a.amount);
 }
 
-/** Sum completed payments per invoice (amounts are text — aggregate in JS). */
+/** Sum completed payments per invoice (amounts are text - aggregate in JS). */
 export async function fetchCompletedPaymentsByInvoice(
   invoiceIds: string[],
 ): Promise<Map<string, number>> {

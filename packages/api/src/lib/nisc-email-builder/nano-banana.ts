@@ -60,7 +60,7 @@ function extractImageUrl(output: unknown): string {
 }
 
 /**
- * google/nano-banana-pro — creative mockups and email asset imagery.
+ * google/nano-banana-pro - creative mockups and email asset imagery.
  */
 export async function generateNanoBananaPro(
 	replicate: Replicate,

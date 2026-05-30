@@ -8,7 +8,7 @@ import { apiUrl } from "@/lib/auth-client";
 
 /**
  * UploadThing route handler lives on the API server (Hono), proxied at `/api/uploadthing`.
- * Same-origin requests send session cookies by default (no custom fetch — avoids breaking ingest XHR).
+ * Same-origin requests send session cookies by default (no custom fetch - avoids breaking ingest XHR).
  */
 const uploadthingInit = {
   url: apiUrl("/api/uploadthing"),
@@ -52,7 +52,7 @@ const IMAGE_MIME_BY_EXT: Record<string, string> = {
   heif: "image/heif",
 };
 
-/** Windows/some browsers leave `file.type` empty — normalize before UploadThing signs the upload. */
+/** Windows/some browsers leave `file.type` empty - normalize before UploadThing signs the upload. */
 export function normalizeImageFilesForUpload(files: File[]): File[] {
   return files.map((file) => {
     const type = file.type?.trim();
@@ -67,7 +67,7 @@ export function normalizeImageFilesForUpload(files: File[]): File[] {
 type UploadFilesOptions = NonNullable<Parameters<typeof uploadFiles>[1]>;
 
 /**
- * Zeepo chat attachments — uses the same `creativeAsset` blob route as creative-assets version uploads
+ * Zeepo chat attachments - uses the same `creativeAsset` blob route as creative-assets version uploads
  * (one file per request; that route is maxFileCount: 1).
  */
 export async function uploadZeepoAgentFiles(

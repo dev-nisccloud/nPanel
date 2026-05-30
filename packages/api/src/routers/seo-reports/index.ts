@@ -333,7 +333,7 @@ export const seoReportsRouter = router({
           if (ga4Results[4].status === 'fulfilled') ga4Pages = (ga4Results[4] as any).value?.rows || [];
         }
 
-        // Summary Statistics (GSC) — property totals from API; fallback to weighted daily aggregate
+        // Summary Statistics (GSC) - property totals from API; fallback to weighted daily aggregate
         const currentGscSummary = currentTotalsRow
           ? gscPropertySummaryFromRow(currentTotalsRow)
           : gscPropertySummaryFromDailyRows(currentStats);
@@ -341,7 +341,7 @@ export const seoReportsRouter = router({
           ? gscPropertySummaryFromRow(prevTotalsRow)
           : gscPropertySummaryFromDailyRows(prevStats);
 
-        // Summary Statistics (GA4) — response.totals (TOTAL aggregation), then fallback
+        // Summary Statistics (GA4) - response.totals (TOTAL aggregation), then fallback
         const currentGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4CurrentTotalsResponse);
         const prevGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4PrevTotalsResponse);
 

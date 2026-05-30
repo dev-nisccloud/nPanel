@@ -63,12 +63,12 @@ import { OverviewInvoicesBilling } from "./overview-invoices-billing";
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(d: Date | string | null | undefined): string {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 function fmtFull(d: Date | string | null | undefined): string {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleString();
 }
 
@@ -368,9 +368,9 @@ function InvoicesTab({ clientId }: { clientId: string }) {
           <tbody className="divide-y">
             {invoices.map((inv) => (
               <tr key={inv.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3 font-mono text-xs">{inv.invoiceNumber ?? "—"}</td>
+                <td className="px-4 py-3 font-mono text-xs">{inv.invoiceNumber ?? "-"}</td>
                 <td className="px-4 py-3">
-                  <p className="font-medium leading-none">{inv.customerName ?? "—"}</p>
+                  <p className="font-medium leading-none">{inv.customerName ?? "-"}</p>
                   {inv.customerEmail && <p className="text-xs text-muted-foreground mt-0.5">{inv.customerEmail}</p>}
                 </td>
                 <td className="px-4 py-3">
@@ -379,7 +379,7 @@ function InvoicesTab({ clientId }: { clientId: string }) {
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-right font-medium">
-                  {inv.amount ? `${inv.currency} ${inv.amount}` : "—"}
+                  {inv.amount ? `${inv.currency} ${inv.amount}` : "-"}
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">{fmt(inv.dueDate)}</td>
               </tr>
@@ -500,9 +500,9 @@ function QuotationsTab({ clientId }: { clientId: string }) {
             <tbody className="divide-y">
               {quotations.map((q) => (
                 <tr key={q.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 font-mono text-xs">{q.quotationNumber ?? "—"}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{q.quotationNumber ?? "-"}</td>
                   <td className="px-4 py-3">
-                    <p className="font-medium leading-none">{q.customerName ?? "—"}</p>
+                    <p className="font-medium leading-none">{q.customerName ?? "-"}</p>
                     {q.customerEmail && <p className="text-xs text-muted-foreground mt-0.5">{q.customerEmail}</p>}
                   </td>
                   <td className="px-4 py-3">
@@ -511,7 +511,7 @@ function QuotationsTab({ clientId }: { clientId: string }) {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right font-medium">
-                    {q.amount ? `${q.currency} ${q.amount}` : "—"}
+                    {q.amount ? `${q.currency} ${q.amount}` : "-"}
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{fmt(q.issueDate ?? q.createdAt)}</td>
                 </tr>
@@ -562,7 +562,7 @@ function TransactionsTab({ clientId }: { clientId: string }) {
           <tbody className="divide-y">
             {txns.map((txn) => (
               <tr key={txn.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3 font-mono text-xs">{txn.receiptNumber ?? txn.accountReference ?? "—"}</td>
+                <td className="px-4 py-3 font-mono text-xs">{txn.receiptNumber ?? txn.accountReference ?? "-"}</td>
                 <td className="px-4 py-3 font-medium">{txn.gateway}</td>
                 <td className="px-4 py-3">
                   <Badge variant="outline" className={`text-xs ${statusColors[txn.status] ?? ""}`}>{txn.status}</Badge>

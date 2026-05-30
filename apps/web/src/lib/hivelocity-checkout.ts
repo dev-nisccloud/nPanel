@@ -211,7 +211,7 @@ export function buildHivelocityInvoiceBreakdown(input: {
 		lines.push({
 			id: `os-${input.os.id}`,
 			kind: "os",
-			name: `Operating system — ${input.os.name}`,
+			name: `Operating system - ${input.os.name}`,
 			description: "OS license / image",
 			amountExVat: input.os.amountExVat,
 			optionId: typeof input.os.id === "number" ? input.os.id : Number(input.os.id) || undefined,

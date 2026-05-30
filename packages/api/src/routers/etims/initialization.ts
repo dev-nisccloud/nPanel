@@ -42,7 +42,7 @@ export const etimsInitializationRouter = router({
             const clientConfig = buildClientConfigFromEnv(input.isSandbox);
             const client = getEtimsClient(clientConfig);
 
-            // Clear any cached token — initialization must use a fresh one
+            // Clear any cached token - initialization must use a fresh one
             await client.clearToken();
 
             let result: Record<string, unknown>;
@@ -53,7 +53,7 @@ export const etimsInitializationRouter = router({
                 const msg = err.message ?? "";
 
                 // resultCd 902 = "device already installed"
-                // In sandbox this is expected when re-initializing — KRA still returns a cmcKey.
+                // In sandbox this is expected when re-initializing - KRA still returns a cmcKey.
                 // In production this is a hard error.
                 if (msg.includes("resultCd=902")) {
                     if (!input.isSandbox) {

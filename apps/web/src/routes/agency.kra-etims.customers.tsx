@@ -171,14 +171,14 @@ export default function ETimsCustomersPage() {
                                                         <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                                                         <span>Email</span>
                                                     </div>
-                                                    <span className="text-xs font-medium">{customer.email || "—"}</span>
+                                                    <span className="text-xs font-medium">{customer.email || "-"}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
                                                     <div className="flex items-center gap-2 text-xs">
                                                         <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                                                         <span>Telephone</span>
                                                     </div>
-                                                    <span className="text-xs font-medium">{customer.telNo || "—"}</span>
+                                                    <span className="text-xs font-medium">{customer.telNo || "-"}</span>
                                                 </div>
                                             </CardContent>
                                         </Card>

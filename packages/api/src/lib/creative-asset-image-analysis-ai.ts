@@ -102,7 +102,7 @@ async function runReplicateWithTimeout(
 		setTimeout(
 			() =>
 				reject(
-					new Error(`AI analysis timed out after ${Math.round(maxMs / 1000)}s — try again with a smaller file.`),
+					new Error(`AI analysis timed out after ${Math.round(maxMs / 1000)}s - try again with a smaller file.`),
 				),
 			maxMs,
 		),
@@ -117,17 +117,17 @@ export function buildCreativeAssetImageAnalysisSystemPrompt(): string {
 	return [
 		"You are a senior creative director and performance marketer who reviews individual static image creatives for ads, landing pages, and brand materials.",
 		"You receive the image visually (vision) plus light file metadata.",
-		"When the user supplies optional context (campaign, channel, audience, brand, intended placement), treat it as ground truth for channel fit, messaging, and scoring — weigh it heavily in overallRatingReason and recommendations.",
+		"When the user supplies optional context (campaign, channel, audience, brand, intended placement), treat it as ground truth for channel fit, messaging, and scoring - weigh it heavily in overallRatingReason and recommendations.",
 		"",
 		"## HARD OUTPUT RULE",
 		"Respond with one JSON object only. No Markdown, no commentary, no text before or after the JSON.",
 		"Never wrap JSON in Markdown code fences.",
 		"",
-		"## JSON SHAPE — use these exact camelCase keys",
-		String.raw`{"headline": string,"modelLabel": string,"overallRatingScaleMax": number (almost always 10),"overallRatingValue": number,"overallRatingReason": string,"overallRatingBand": string | null,"confidenceScore": number | null,"ratingSummary": string,"overallSummary": string,"scores": [{"id","label","value","max","note"}] — at least 4,"sections": [{"title": string,"body": string}] — body MUST be a single string (join bullet lines with newlines; never use a JSON array for body),"recommendations": string[] — at least 3 plain strings}`,
+		"## JSON SHAPE - use these exact camelCase keys",
+		String.raw`{"headline": string,"modelLabel": string,"overallRatingScaleMax": number (almost always 10),"overallRatingValue": number,"overallRatingReason": string,"overallRatingBand": string | null,"confidenceScore": number | null,"ratingSummary": string,"overallSummary": string,"scores": [{"id","label","value","max","note"}] - at least 4,"sections": [{"title": string,"body": string}] - body MUST be a single string (join bullet lines with newlines; never use a JSON array for body),"recommendations": string[] - at least 3 plain strings}`,
 		"",
 		"## SCORING RUBRIC (CALIBRATE TO THE MEDIUM)",
-		"Aim for nuanced scores — avoid collapsing everything to middling values.",
+		"Aim for nuanced scores - avoid collapsing everything to middling values.",
 		"Judge composition, typography / text-on-image readability, hierarchy, branding fit, persuasion/clarity for the presumed channel, accessibility (contrast, small-size legibility), and technical quality.",
 		"Always mention specific visual regions or elements rather than vague praise.",
 		"",
@@ -227,7 +227,7 @@ function normalizeScores(raw: unknown): Array<{ id: string; label: string; value
 		const note = coerceToText(o.note ?? o.notes ?? o.comment ?? o.rationale);
 		const id = coerceToText(o.id) || `score-${i + 1}`;
 		if (!label || !Number.isFinite(value) || !Number.isFinite(max) || max <= 0) continue;
-		out.push({ id, label, value, max, note: note || "—" });
+		out.push({ id, label, value, max, note: note || "-" });
 	}
 	return out;
 }

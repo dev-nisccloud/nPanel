@@ -145,7 +145,7 @@ export function listModelsForTool(args: {
 
 /**
  * Short, fact-only overview meant for the agent's system prompt.
- * Does NOT list every id — agent must call `list_models` to discover non-default ids.
+ * Does NOT list every id - agent must call `list_models` to discover non-default ids.
  */
 export function getCatalogOverviewForSystemPrompt(): string {
 	const cats: ZeepoCategory[] = [

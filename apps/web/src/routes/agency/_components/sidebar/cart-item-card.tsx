@@ -203,7 +203,7 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
                         : [
                             { id: "base", kind: "base" as const, name: hv.planName, amountExVat: hv.basePrice },
                             ...(hv.os
-                              ? [{ id: `os-${hv.os.id}`, kind: "os" as const, name: `OS — ${hv.os.name}`, amountExVat: hv.os.price }]
+                              ? [{ id: `os-${hv.os.id}`, kind: "os" as const, name: `OS - ${hv.os.name}`, amountExVat: hv.os.price }]
                               : []),
                             ...hv.addons.map((a) => ({
                               id: `addon-${a.id}`,

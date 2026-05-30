@@ -33,7 +33,7 @@ export type AgentOrchestrationMessage = {
 	content: string;
 	toolCalls?: unknown;
 	toolCallId?: string | null;
-	/** First image URL from user-attached files — passed to vision-capable models. */
+	/** First image URL from user-attached files - passed to vision-capable models. */
 	imageUrl?: string;
 };
 
@@ -197,9 +197,9 @@ export function serializeAgentTurnPrompt(
 	return { systemBlock, userBlock };
 }
 
-export const ORCHESTRATION_JSON_INSTRUCTION = `Your reply MUST be a single valid JSON object — no markdown, no fences, no commentary before or after. Use this exact shape:
+export const ORCHESTRATION_JSON_INSTRUCTION = `Your reply MUST be a single valid JSON object - no markdown, no fences, no commentary before or after. Use this exact shape:
 {
-  "assistant_text": "string — the markdown reply shown to the user. Empty string only when tool_calls is non-empty AND the tool result will explain everything on its own.",
+  "assistant_text": "string - the markdown reply shown to the user. Empty string only when tool_calls is non-empty AND the tool result will explain everything on its own.",
   "tool_calls": [
     {
       "name": "create_document" | "check_domain_availability" | "web_search" | "list_models" | "run_media_generation",
@@ -208,7 +208,7 @@ export const ORCHESTRATION_JSON_INSTRUCTION = `Your reply MUST be a single valid
   ],
   "clarifying_questions": [
     {
-      "question": "string — a single, specific question",
+      "question": "string - a single, specific question",
       "options": ["Option A", "Option B", "Option C"],
       "allow_upload": false
     }
@@ -216,12 +216,12 @@ export const ORCHESTRATION_JSON_INSTRUCTION = `Your reply MUST be a single valid
 }
 Rules:
 - "tool_calls": [] when no tool is needed this turn.
-- "clarifying_questions" is OPTIONAL. Include it ONLY when you genuinely need 1–3 short, specific answers before you can produce a good result — and ONLY when there are no tool_calls in the same reply. Each entry is one question with 2–5 concise option labels (do NOT include "Other" — the UI adds it automatically). Never produce clarifying_questions AND tool_calls in the same reply.
+- "clarifying_questions" is OPTIONAL. Include it ONLY when you genuinely need 1–3 short, specific answers before you can produce a good result - and ONLY when there are no tool_calls in the same reply. Each entry is one question with 2–5 concise option labels (do NOT include "Other" - the UI adds it automatically). Never produce clarifying_questions AND tool_calls in the same reply.
 - Set "allow_upload": true on a question when the answer could be an image/file the user provides (e.g. "Do you have a logo?"). The UI will show an "Upload file" chip. The user's uploaded URL is then available as an attachment in the next message.
-- IMPORTANT: when calling create_document, the full markdown content goes inside arguments.content — write the COMPLETE document there; do not truncate.
-- Do NOT include clarifying_questions on follow-up turns after the user already answered — proceed with what you have.
+- IMPORTANT: when calling create_document, the full markdown content goes inside arguments.content - write the COMPLETE document there; do not truncate.
+- Do NOT include clarifying_questions on follow-up turns after the user already answered - proceed with what you have.
 - Do NOT include any other top-level keys. Do NOT prepend "Sure" or "Here is".
-- In assistant_text, never expose technical ids: no generationId, no UUIDs, no "(ID: …)" or "job id" strings — the product UI already tracks jobs.`;
+- In assistant_text, never expose technical ids: no generationId, no UUIDs, no "(ID: …)" or "job id" strings - the product UI already tracks jobs.`;
 
 const REPAIR_INSTRUCTION = `Your previous reply could not be parsed as the required JSON object. Re-emit ONLY a single valid JSON object matching the schema above. Do not apologize. Do not include any text outside the JSON.`;
 

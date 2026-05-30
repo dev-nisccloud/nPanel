@@ -129,7 +129,7 @@ export function WpTaskProgress({ taskUrl, onComplete, onDismiss, className }: Wp
           {task.steps.map((step, i) => (
             <li key={step.code ?? i} className="flex items-center justify-between text-xs gap-2">
               <span className="text-muted-foreground truncate">{step.title ?? step.code}</span>
-              <span className="capitalize shrink-0 text-foreground/80">{step.status ?? "—"}</span>
+              <span className="capitalize shrink-0 text-foreground/80">{step.status ?? "-"}</span>
             </li>
           ))}
         </ul>

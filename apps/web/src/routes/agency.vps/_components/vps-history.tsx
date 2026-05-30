@@ -82,7 +82,7 @@ export function VpsHistory({ deviceId }: VpsHistoryProps) {
               filteredEvents.map((event: any, idx: number) => (
                 <TableRow key={idx}>
                   <TableCell className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                    {event.createdAt ? format(new Date(event.createdAt), "MMM dd, HH:mm:ss") : "—"}
+                    {event.createdAt ? format(new Date(event.createdAt), "MMM dd, HH:mm:ss") : "-"}
                   </TableCell>
                   <TableCell>
                     <span className="text-sm font-semibold">{event.type || "System Event"}</span>

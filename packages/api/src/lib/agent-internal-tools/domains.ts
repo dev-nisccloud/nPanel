@@ -2,7 +2,7 @@
  * Domain availability checking for the Zeepo AI Agent.
  *
  * Routes .ke / .co.ke / .or.ke etc. through KENIC EPP and all other
- * extensions through the OpenProvider REST API — both of which are
+ * extensions through the OpenProvider REST API - both of which are
  * Nisc Cloud's existing backend integrations. The agent never needs to
  * direct users to external registrars.
  *
@@ -112,7 +112,7 @@ async function checkViaOpenProvider(
 				await cacheOpToken(auth.data.token);
 			}
 		} catch (e: unknown) {
-			// Auth failed — return error entries for all requested extensions.
+			// Auth failed - return error entries for all requested extensions.
 			const msg =
 				e instanceof Error ? e.message : "OpenProvider auth failed";
 			for (const ext of extensions) {
@@ -247,7 +247,7 @@ async function checkViaKenic(
 	// domain of the same TLD without an extra EPP connection.
 	const tldPriceCache = new Map<string, { amount: number; currency: string } | null>();
 
-	// KENIC EPP does one domain per connection — run sequentially to avoid overwhelming the EPP server.
+	// KENIC EPP does one domain per connection - run sequentially to avoid overwhelming the EPP server.
 	for (const ext of extensions) {
 		const domain = `${name}${ext}`;
 		try {
@@ -323,7 +323,7 @@ async function checkViaKenic(
  * OpenProvider for everything else).
  *
  * @param targetCurrency ISO 4217 code for pricing display (e.g. "KES", "USD").
- *   Defaults to KES (Kenyan Shilling) — the most common currency for Nisc Cloud clients.
+ *   Defaults to KES (Kenyan Shilling) - the most common currency for Nisc Cloud clients.
  */
 export async function agentCheckDomainAvailability(params: {
 	name: string;

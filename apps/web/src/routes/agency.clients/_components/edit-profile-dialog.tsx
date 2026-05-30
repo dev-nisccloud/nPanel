@@ -175,7 +175,7 @@ export function EditProfileDialog({
     { enabled: open && !!userId },
   );
 
-  // Load user record (name + all preference fields) — no `fields` filter = returns everything
+  // Load user record (name + all preference fields) - no `fields` filter = returns everything
   const { data: userRecord, isLoading: isLoadingUser } = trpc.userProfile.getUserById.useQuery(
     { userId },
     { enabled: open && !!userId },
@@ -227,7 +227,7 @@ export function EditProfileDialog({
       state: profile.state ?? "",
       country: profile.country ?? "",
       postalCode: profile.postalCode ?? "",
-      // Email preferences — cast because getUserById returns unknown extra fields
+      // Email preferences - cast because getUserById returns unknown extra fields
       generalEmailsAccepted: boolToRadio((userRecord as any).generalEmailsAccepted),
       invoiceEmailsAccepted: boolToRadio((userRecord as any).invoiceEmailsAccepted),
       supportEmailsAccepted: boolToRadio((userRecord as any).supportEmailsAccepted),

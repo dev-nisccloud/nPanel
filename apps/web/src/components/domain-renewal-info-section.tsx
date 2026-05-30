@@ -29,7 +29,7 @@ export type DomainRenewalInfoSectionProps = {
   yearsFromNow?: number;
   /**
    * KENIC only (buy-now): show renewal at this unit price.
-   * Omit on transfer — KENIC renewal row is hidden via `hideForKenic`.
+   * Omit on transfer - KENIC renewal row is hidden via `hideForKenic`.
    */
   kenicUnitPrice?: number | null;
   kenicCurrency?: string;

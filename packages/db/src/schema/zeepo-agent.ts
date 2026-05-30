@@ -207,7 +207,7 @@ export const zeepoAgentTokenLedger = pgTable(
     /** orchestration | media_generation | image_edit | title_gen | top_up | subscription_grant | adjustment */
     operationType: text("operation_type").notNull(),
     description: text("description"),
-    /** Internal only — never return to customer UI. */
+    /** Internal only - never return to customer UI. */
     providerCostUsdMicros: integer("provider_cost_usd_micros"),
     predictionId: text("prediction_id"),
     modelId: text("model_id"),

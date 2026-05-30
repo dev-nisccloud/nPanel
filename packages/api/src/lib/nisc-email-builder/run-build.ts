@@ -194,7 +194,7 @@ async function hydrateImages(params: {
 			fileUrl = result.fileUrl;
 			storageKey = result.storageKey;
 		} catch (imgErr) {
-			// A single slot failure must not crash the entire build — use a sized placeholder instead.
+			// A single slot failure must not crash the entire build - use a sized placeholder instead.
 			console.warn(
 				`[hydrateImages] Slot "${slot.key}" failed, using placeholder: ${
 					imgErr instanceof Error ? imgErr.message : String(imgErr)
@@ -347,7 +347,7 @@ export async function runNebBuildEmail(params: RunNebBuildEmailParams): Promise<
 		.where(eq(nebDesign.id, params.designId));
 
 	try {
-		// Step 1: Single vision call — exhaustive design specification (+ continuation if truncated)
+		// Step 1: Single vision call - exhaustive design specification (+ continuation if truncated)
 		const creativeSpec = await generateCreativeDesignSpec({
 			replicate,
 			brief: params.brief,
@@ -378,7 +378,7 @@ export async function runNebBuildEmail(params: RunNebBuildEmailParams): Promise<
 			})
 			.where(eq(nebDesign.id, params.designId));
 
-		// Step 2: HTML from specification only (no vision — spec is the source of truth)
+		// Step 2: HTML from specification only (no vision - spec is the source of truth)
 		const built = await buildHtmlFromSpec({
 			replicate,
 			designSpecification: creativeSpec.designSpecification,
@@ -474,7 +474,7 @@ export async function runNebBuildEmail(params: RunNebBuildEmailParams): Promise<
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DIRECT BUILD — skips creative design & vision spec, uses template references
+// DIRECT BUILD - skips creative design & vision spec, uses template references
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type RunNebDirectBuildParams = RunNebBuildParams & {
@@ -528,7 +528,7 @@ export async function runNebDirectBuild(params: RunNebDirectBuildParams): Promis
 		.where(eq(nebDesign.id, params.designId));
 
 	try {
-		// Step 1: Pick best-matching reference templates (Haiku — fast & cheap)
+		// Step 1: Pick best-matching reference templates (Haiku - fast & cheap)
 		const selectedTemplateInfos = await pickTemplates(params.brief, replicate);
 		const templateRefs = loadTemplateHtml(selectedTemplateInfos);
 		const selectedTemplates = selectedTemplateInfos.map((t) => t.filename);

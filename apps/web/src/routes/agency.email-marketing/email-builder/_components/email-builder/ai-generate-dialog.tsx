@@ -143,7 +143,7 @@ export function AiGenerateDialog({ designId, open, onOpenChange }: AiGenerateDia
                         {step === 3 && "Style & Content"}
                     </DialogTitle>
                     <DialogDescription>
-                        Step {step} of 3 — {step === 1 ? "Tell us about your brand" : step === 2 ? "Who is this for?" : "Finalize the look and feel"}
+                        Step {step} of 3 - {step === 1 ? "Tell us about your brand" : step === 2 ? "Who is this for?" : "Finalize the look and feel"}
                     </DialogDescription>
                     
                     {/* Progress Bar */}

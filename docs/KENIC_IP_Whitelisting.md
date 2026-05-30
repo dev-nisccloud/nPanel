@@ -1,9 +1,9 @@
-# KENIC IP Whitelisting — Google Cloud Run Egress
+# KENIC IP Whitelisting - Google Cloud Run Egress
 
 ## Background
 
 Our backend server is deployed on **Google Cloud Run**. Cloud Run does not assign a static
-outbound (egress) IP address by default — it draws from a pool of IPs managed by Google,
+outbound (egress) IP address by default - it draws from a pool of IPs managed by Google,
 meaning the IP our server appears to come from can change at any time without notice.
 
 This became a problem when whitelisting our server on KENIC (Kenya Network Information Centre),
@@ -26,8 +26,8 @@ Over several days, the outbound IPs from our Cloud Run service followed a clear 
 
 All observed IPs fell within two Google Cloud CIDR blocks:
 
-- `34.96.0.0/14` — covers `34.96.0.0` to `34.99.255.255`
-- `34.34.0.0/16` — covers `34.34.0.0` to `34.34.255.255`
+- `34.96.0.0/14` - covers `34.96.0.0` to `34.99.255.255`
+- `34.34.0.0/16` - covers `34.34.0.0` to `34.34.255.255`
 
 ---
 
@@ -75,7 +75,7 @@ pool, so these ranges should remain stable.
 
 ---
 
-## Future Consideration — `cloud.json`
+## Future Consideration - `cloud.json`
 
 Google publicly publishes all of its Cloud IP ranges in a JSON file:
 
@@ -102,7 +102,7 @@ If our Cloud Run service ever starts using an IP outside the two ranges we white
 (which would be rare but possible), this file is the definitive source to look up which
 new CIDR block to add.
 
-You can also use it programmatically — for example, a script that:
+You can also use it programmatically - for example, a script that:
 
 1. Fetches `cloud.json`
 2. Filters entries by region (e.g. `europe-west`)
@@ -129,4 +129,4 @@ To check which CIDR block a new mystery IP belongs to:
 - Google's `cloud.json` file is the official reference if we ever need to expand or
   verify our whitelisted ranges in the future.
 - The permanent fix, if ever needed, is to configure **Cloud NAT with a reserved static
-  IP** — this would give us one fixed IP to whitelist forever.
+  IP** - this would give us one fixed IP to whitelist forever.

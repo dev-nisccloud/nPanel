@@ -29,7 +29,7 @@ const HOP_BY_HOP_HEADERS = new Set([
 ]);
 
 const STATIC_ROOT = join(import.meta.dir, "build/client");
-// Cloud Run injects PORT at runtime — do not set PORT in deploy env_vars or secrets.
+// Cloud Run injects PORT at runtime - do not set PORT in deploy env_vars or secrets.
 const PORT = process.env.PORT ? Number.parseInt(process.env.PORT, 10) : 8080;
 const HOSTNAME = process.env.HOSTNAME ?? "0.0.0.0";
 
@@ -92,7 +92,7 @@ function buildProxyHeaders(request: Request, incoming: URL): Headers {
     headers.set(key, value);
   }
 
-  // Cloud Run routes by the backend service hostname — forwarding the web Host breaks upstream.
+  // Cloud Run routes by the backend service hostname - forwarding the web Host breaks upstream.
   headers.set("host", BACKEND_ORIGIN.host);
   headers.set("x-forwarded-host", incoming.host);
   headers.set("x-forwarded-proto", incoming.protocol.replace(":", ""));

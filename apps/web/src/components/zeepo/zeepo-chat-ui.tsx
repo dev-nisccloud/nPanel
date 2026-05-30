@@ -13,6 +13,7 @@ import {
   Square,
   X,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
@@ -248,7 +249,7 @@ export function ZeepoEmptyThread({
       </p>
       <p className="mt-2 max-w-md text-sm text-muted-foreground leading-relaxed">
         {skillTitle ? (
-          "Tell me what you need and I'll take it from here — ask follow-up questions, refine, and deliver."
+          "Tell me what you need and I'll take it from here - ask follow-up questions, refine, and deliver."
         ) : (
           <>
             I can {rotatingCapability ?? "help with creative, research, and operational tasks."}
@@ -365,7 +366,7 @@ export type ZeepoComposerProps = {
   selectedSkillTitle?: string | null;
   onClearSkill?: () => void;
   /** Sample-prompt category pill (shown after attach icon). */
-  promptCategory?: { label: string; className?: string } | null;
+  promptCategory?: { label: string; className?: string; icon?: LucideIcon } | null;
   onClearPromptCategory?: () => void;
   pendingPreviews?: { previewUrl: string; name: string; onRemove: () => void }[];
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
@@ -408,6 +409,8 @@ export function ZeepoComposer({
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [value, ref]);
+
+  const PromptCategoryIcon = promptCategory?.icon;
 
   return (
     <div className={cn("flex flex-col", className)}>
@@ -505,6 +508,9 @@ export function ZeepoComposer({
                 promptCategory.className,
               )}
             >
+              {PromptCategoryIcon ? (
+                <PromptCategoryIcon className="size-3 shrink-0" aria-hidden />
+              ) : null}
               <span className="truncate">{promptCategory.label}</span>
               {onClearPromptCategory ? (
                 <button

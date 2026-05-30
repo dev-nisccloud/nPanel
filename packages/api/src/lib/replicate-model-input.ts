@@ -50,7 +50,7 @@ const MINIMAX_SPEECH_IDS = new Set<string>([
 	"minimax/speech-02-hd",
 ]);
 
-/** Nano Banana model family — uses image_input[] instead of reference_image_url. */
+/** Nano Banana model family - uses image_input[] instead of reference_image_url. */
 const NANO_BANANA_IDS = new Set<string>([
 	"google/nano-banana-pro",
 	"google/nano-banana-2",

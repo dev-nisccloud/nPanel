@@ -270,7 +270,7 @@ export function TransferDomainSection({ registerDomainsHref = "/agency/domains",
     typeof transferPrice.price === "number" &&
     !Number.isNaN(transferPrice.price);
 
-  /** Customer-facing transfer price — only after TLD margin + currency conversion (same as agency domains). */
+  /** Customer-facing transfer price - only after TLD margin + currency conversion (same as agency domains). */
   const displayPrice =
     calculated != null ? (calculated.convertedPrice ?? calculated.finalPrice) : null;
 
