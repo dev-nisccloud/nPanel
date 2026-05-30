@@ -29,7 +29,7 @@ export type NiscOrderInvoiceDeliveryResult =
 			invoiceId: string;
 			invoiceNumber: string;
 			emailed: boolean;
-			source: "team_billing" | "user_profile";
+			source: "team_billing" | "user_profile" | "team_owners";
 	  }
 	| {
 			ok: false;
@@ -87,7 +87,7 @@ export async function createAndEmailNiscOrderInvoice(
 		};
 	}
 
-	const { billing, source } = billingResolution.resolved;
+	const { billing, source, recipientEmails } = billingResolution.resolved;
 
 	let invoiceId = order.invoiceId ?? null;
 	let invoiceNumber = order.invoiceNumber ?? null;
@@ -165,13 +165,27 @@ export async function createAndEmailNiscOrderInvoice(
 	}
 
 	const ccList: string[] = [];
+	const primaryLower = toEmail.toLowerCase();
+
+	if (recipientEmails && recipientEmails.length > 1) {
+		for (const email of recipientEmails) {
+			const trimmed = email.trim();
+			if (trimmed && trimmed.toLowerCase() !== primaryLower) {
+				ccList.push(trimmed);
+			}
+		}
+	}
+
 	const initiator = await db.query.user.findFirst({
 		where: eq(userTable.id, createdBy),
 		columns: { email: true },
 	});
 	if (initiator?.email?.trim()) {
 		const initiatorEmail = initiator.email.trim();
-		if (initiatorEmail.toLowerCase() !== toEmail.toLowerCase()) {
+		if (
+			initiatorEmail.toLowerCase() !== primaryLower &&
+			!ccList.some((e) => e.toLowerCase() === initiatorEmail.toLowerCase())
+		) {
 			ccList.push(initiatorEmail);
 		}
 	}

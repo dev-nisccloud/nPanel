@@ -1,6 +1,9 @@
 import { Context } from "hono";
+import Replicate from "replicate";
 import { db, eq } from "@npanel/db";
 import { zeepoAgentGeneration } from "@npanel/db/schema";
+import { user as userTable } from "@npanel/db/schema/auth";
+import { billZeepoAgentPredictionById } from "@npanel/api/lib/zeepo-agent-bill-prediction";
 import {
 	persistReplicateOutputToUploadThing,
 	ReplicatePersistError,
@@ -50,6 +53,37 @@ export async function handleZeepoAgentWebhook(c: Context) {
 						updatedAt: now,
 					})
 					.where(eq(zeepoAgentGeneration.id, generationId));
+
+				const predictionId =
+					(typeof body.id === "string" ? body.id : null) ??
+					generation.predictionId;
+				if (predictionId && generation.teamId && process.env.REPLICATE_API_TOKEN) {
+					try {
+						const dbUser = await db.query.user.findFirst({
+							where: eq(userTable.id, generation.userId),
+							columns: { role: true },
+						});
+						const replicate = new Replicate({
+							auth: process.env.REPLICATE_API_TOKEN,
+						});
+						await billZeepoAgentPredictionById({
+							replicate,
+							billing: {
+								teamId: generation.teamId,
+								userId: generation.userId,
+								userRole: dbUser?.role,
+								sessionId: generation.sessionId,
+							},
+							predictionId,
+							modelId: generation.modelId,
+							operationType: "media_generation",
+							generationId,
+							output,
+						});
+					} catch (billErr) {
+						console.error("[Webhook][ZeepoAgent] Token billing failed:", billErr);
+					}
+				}
 			} catch (persistErr) {
 				console.error(
 					"[Webhook][ZeepoAgent] Persist failed; marking generation FAILED (no Replicate URLs stored):",

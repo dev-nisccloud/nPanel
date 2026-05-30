@@ -12,6 +12,12 @@ import {
 import { env } from "@npanel/env/server";
 import { router } from "../../trpc";
 import { zeepoAgentProcedure } from "./procedures";
+import { billZeepoAgentPrediction } from "../../lib/zeepo-agent-bill-prediction";
+import { runReplicatePrediction } from "../../lib/zeepo-agent-replicate";
+import {
+	assertZeepoAgentCanStartTurn,
+	type ZeepoBillingContext,
+} from "../../lib/zeepo-agent-tokens";
 import {
 	editTextSchema,
 	eraseObjectSchema,
@@ -94,11 +100,52 @@ function extractImageUrl(output: unknown): string | null {
 async function authSession(userId: string, sessionId: string) {
 	const session = await db.query.zeepoAgentSession.findFirst({
 		where: eq(zeepoAgentSession.id, sessionId),
-		columns: { id: true, userId: true },
+		columns: { id: true, userId: true, teamId: true },
 	});
 	if (!session || session.userId !== userId)
 		throw new TRPCError({ code: "NOT_FOUND" });
 	return session;
+}
+
+async function authSessionForBilling(params: {
+	userId: string;
+	sessionId: string;
+	userRole?: string | null;
+}) {
+	const session = await authSession(params.userId, params.sessionId);
+	const billingCtx: ZeepoBillingContext = {
+		teamId: session.teamId ?? null,
+		userId: params.userId,
+		userRole: params.userRole,
+		sessionId: params.sessionId,
+	};
+	await assertZeepoAgentCanStartTurn(billingCtx);
+	return { session, billingCtx };
+}
+
+async function runBilledReplicate(params: {
+	replicate: Replicate;
+	modelId: string;
+	input: Record<string, unknown>;
+	billingCtx: ZeepoBillingContext;
+	generationId: string;
+	operationType?: string;
+	maxMs?: number;
+}) {
+	const completed = await runReplicatePrediction({
+		replicate: params.replicate,
+		modelId: params.modelId,
+		input: params.input,
+		maxMs: params.maxMs,
+	});
+	await billZeepoAgentPrediction({
+		billing: params.billingCtx,
+		prediction: completed,
+		modelId: params.modelId,
+		operationType: params.operationType ?? "image_edit",
+		generationId: params.generationId,
+	});
+	return completed.output;
 }
 
 /** Persist an edit to the history table and return the record. */
@@ -128,14 +175,6 @@ async function saveHistory(params: {
 	});
 	return { id, ...params };
 }
-
-const withTimeout = <T>(p: Promise<T>, ms = 90_000): Promise<T> =>
-	Promise.race([
-		p,
-		new Promise<never>((_, rej) =>
-			setTimeout(() => rej(new Error(`Timed out after ${ms / 1000}s`)), ms),
-		),
-	]);
 
 // ── Style preset → prompt map ──────────────────────────────────────────────
 
@@ -226,26 +265,32 @@ export const zeepoAgentImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			await authSession(userId, input.sessionId);
+			const { billingCtx } = await authSessionForBilling({
+				userId,
+				sessionId: input.sessionId,
+				userRole: ctx.session?.user?.role,
+			});
 
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
 			const stylePrompt =
 				input.customPrompt ?? STYLE_PROMPTS[input.style] ?? STYLE_PROMPTS["watercolor"];
 
-			const output = await withTimeout(
-				replicate.run("black-forest-labs/flux-2-pro", {
-					input: {
-						prompt: stylePrompt,
-						input_images: [input.imageUrl],
-						aspect_ratio: "match_input_image",
-						resolution: input.resolution,
-						output_format: input.outputFormat,
-						output_quality: 90,
-						safety_tolerance: 2,
-					},
-				}),
-			);
+			const output = await runBilledReplicate({
+				replicate,
+				modelId: "black-forest-labs/flux-2-pro",
+				billingCtx,
+				generationId: input.generationId,
+				input: {
+					prompt: stylePrompt,
+					input_images: [input.imageUrl],
+					aspect_ratio: "match_input_image",
+					resolution: input.resolution,
+					output_format: input.outputFormat,
+					output_quality: 90,
+					safety_tolerance: 2,
+				},
+			});
 
 			const rawUrl = extractImageUrl(output);
 			if (!rawUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No image returned." });
@@ -286,25 +331,29 @@ export const zeepoAgentImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			await authSession(userId, input.sessionId);
+			const { billingCtx } = await authSessionForBilling({
+				userId,
+				sessionId: input.sessionId,
+				userRole: ctx.session?.user?.role,
+			});
 
-			// bria/eraser requires real URLs, not data URLs — upload mask first
 			const maskUrl = await persistMaskDataUrl(input.maskDataUrl);
-
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
-			const output = await withTimeout(
-				replicate.run("bria/eraser", {
-					input: {
-						image_url: input.imageUrl,
-						mask_url: maskUrl,
-						mask_type: "manual",
-						preserve_alpha: true,
-						sync: true,
-					},
-				}),
-				60_000,
-			);
+			const output = await runBilledReplicate({
+				replicate,
+				modelId: "bria/eraser",
+				billingCtx,
+				generationId: input.generationId,
+				maxMs: 60_000,
+				input: {
+					image_url: input.imageUrl,
+					mask_url: maskUrl,
+					mask_type: "manual",
+					preserve_alpha: true,
+					sync: true,
+				},
+			});
 
 			const rawUrl = extractImageUrl(output) ?? (typeof output === "string" ? output : null);
 			if (!rawUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No image returned." });
@@ -332,22 +381,28 @@ export const zeepoAgentImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			await authSession(userId, input.sessionId);
+			const { billingCtx } = await authSessionForBilling({
+				userId,
+				sessionId: input.sessionId,
+				userRole: ctx.session?.user?.role,
+			});
 
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
-			const output = await withTimeout(
-				replicate.run("bria/generate-background", {
-					input: {
-						image_url: input.imageUrl,
-						bg_prompt: input.bgPrompt,
-						refine_prompt: true,
-						fast: true,
-						sync: true,
-					},
-				}),
-				90_000,
-			);
+			const output = await runBilledReplicate({
+				replicate,
+				modelId: "bria/generate-background",
+				billingCtx,
+				generationId: input.generationId,
+				maxMs: 90_000,
+				input: {
+					image_url: input.imageUrl,
+					bg_prompt: input.bgPrompt,
+					refine_prompt: true,
+					fast: true,
+					sync: true,
+				},
+			});
 
 			const rawUrl = extractImageUrl(output) ?? (typeof output === "string" ? output : null);
 			if (!rawUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No image returned." });
@@ -387,18 +442,22 @@ export const zeepoAgentImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			await authSession(userId, input.sessionId);
+			const { billingCtx } = await authSessionForBilling({
+				userId,
+				sessionId: input.sessionId,
+				userRole: ctx.session?.user?.role,
+			});
 
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
-			const output = await withTimeout(
-				replicate.run("recraft-ai/recraft-crisp-upscale", {
-					input: {
-						image: input.imageUrl,
-					},
-				}),
-				120_000,
-			);
+			const output = await runBilledReplicate({
+				replicate,
+				modelId: "recraft-ai/recraft-crisp-upscale",
+				billingCtx,
+				generationId: input.generationId,
+				maxMs: 120_000,
+				input: { image: input.imageUrl },
+			});
 
 			const rawUrl = extractImageUrl(output) ?? (typeof output === "string" ? output : null);
 			if (!rawUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No image returned." });
@@ -426,21 +485,27 @@ export const zeepoAgentImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			await authSession(userId, input.sessionId);
+			const { billingCtx } = await authSessionForBilling({
+				userId,
+				sessionId: input.sessionId,
+				userRole: ctx.session?.user?.role,
+			});
 
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
-			const output = await withTimeout(
-				replicate.run("qwen/qwen-image-edit-2511", {
-					input: {
-						image: [input.imageUrl],
-						prompt: input.prompt,
-						output_format: "webp",
-						output_quality: 90,
-					},
-				}),
-				90_000,
-			);
+			const output = await runBilledReplicate({
+				replicate,
+				modelId: "qwen/qwen-image-edit-2511",
+				billingCtx,
+				generationId: input.generationId,
+				maxMs: 90_000,
+				input: {
+					image: [input.imageUrl],
+					prompt: input.prompt,
+					output_format: "webp",
+					output_quality: 90,
+				},
+			});
 
 			const rawUrl = extractImageUrl(output);
 			if (!rawUrl) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "No image returned." });
@@ -469,7 +534,11 @@ export const zeepoAgentImageEditsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
-			await authSession(userId, input.sessionId);
+			const { billingCtx } = await authSessionForBilling({
+				userId,
+				sessionId: input.sessionId,
+				userRole: ctx.session?.user?.role,
+			});
 
 			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
@@ -483,24 +552,27 @@ export const zeepoAgentImageEditsRouter = router({
 				input.prompt ??
 				"Create a variation of this image. Preserve the overall composition and subject but introduce subtle creative differences in style, lighting, and detail.";
 
-			const outputs = await withTimeout(
-				Promise.all(
-					seeds.map((seed) =>
-						replicate.run("black-forest-labs/flux-2-pro", {
-							input: {
-								prompt: basePrompt,
-								input_images: [input.imageUrl],
-								aspect_ratio: "match_input_image",
-								resolution: "1 MP",
-								output_format: input.outputFormat,
-								output_quality: 90,
-								safety_tolerance: 2,
-								seed,
-							},
-						}),
-					),
+			const outputs = await Promise.all(
+				seeds.map((seed) =>
+					runBilledReplicate({
+						replicate,
+						modelId: "black-forest-labs/flux-2-pro",
+						billingCtx,
+						generationId: input.generationId,
+						maxMs: 120_000,
+						operationType: "image_edit_variation",
+						input: {
+							prompt: basePrompt,
+							input_images: [input.imageUrl],
+							aspect_ratio: "match_input_image",
+							resolution: "1 MP",
+							output_format: input.outputFormat,
+							output_quality: 90,
+							safety_tolerance: 2,
+							seed,
+						},
+					}),
 				),
-				120_000,
 			);
 
 			const variations = await Promise.all(

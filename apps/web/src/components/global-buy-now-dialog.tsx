@@ -1096,11 +1096,19 @@ export function GlobalBuyNowDialog() {
     setAmountError("");
   };
 
+  const prevGlobalStepRef = React.useRef<typeof currentStep | null>(null);
   React.useEffect(() => {
-    if (currentStep === "payment") {
+    if (!open) {
+      prevGlobalStepRef.current = null;
+      return;
+    }
+    const enteredPayment =
+      currentStep === "payment" && prevGlobalStepRef.current !== "payment";
+    if (enteredPayment && !isCartMode) {
       setPaymentAmount(paymentTotalString(effectiveTotal));
     }
-  }, [currentStep, effectiveTotal]);
+    prevGlobalStepRef.current = currentStep;
+  }, [open, currentStep, effectiveTotal, isCartMode]);
 
   const goToRegistrantStep = () => {
     setRegistrantStepCompleted(false);

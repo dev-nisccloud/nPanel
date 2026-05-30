@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { ReactNode } from "react";
+import { useLocation } from "react-router";
 import { AppSidebar } from "./sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -43,6 +44,9 @@ export function TeamSidebarLayout({
   teamSlug,
   children,
 }: TeamSidebarLayoutProps) {
+  const { pathname } = useLocation();
+  const isZeepoAgent = pathname?.includes("/zeepo-ai-agent");
+
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <PrefetchTeams />
@@ -56,6 +60,7 @@ export function TeamSidebarLayout({
         className={cn(
           "data-[content-layout=centered]:!mx-auto data-[content-layout=centered]:max-w-screen-2xl",
           "max-[113rem]:peer-data-[variant=inset]:!mr-2 min-[101rem]:peer-data-[variant=inset]:peer-data-[state=collapsed]:!mr-auto",
+          isZeepoAgent && "min-h-0 max-h-svh overflow-hidden",
         )}
       >
         <header className="flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -74,7 +79,14 @@ export function TeamSidebarLayout({
             </div>
           </div>
         </header>
-        <div className="h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background">{children}</div>
+        <div
+          className={cn(
+            "h-full p-4 md:p-6 bg-[#f8fafb] dark:bg-background",
+            isZeepoAgent && "flex min-h-0 flex-1 flex-col overflow-hidden !p-0",
+          )}
+        >
+          {children}
+        </div>
         <NavigationLoader />
         <SwitchingTeamOverlay />
       </SidebarInset>

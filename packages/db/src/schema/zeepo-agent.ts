@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -9,6 +10,7 @@ import {
 
 import { team } from "./teams";
 import { user } from "./auth";
+import { niscClientSubscriptionUsage } from "./products";
 
 // --- Zeepo Agent Session (chat thread) ----------------------------------------
 
@@ -84,6 +86,11 @@ export const zeepoAgentGeneration = pgTable(
     status: text("status").notNull().default("QUEUED"),
     qstashMessageId: text("qstash_message_id"),
     predictionId: text("prediction_id"),
+
+    /** Tokens debited from the team balance after successful completion (customer billing). */
+    tokensDebited: text("tokens_debited"),
+    /** Internal provider cost in USD micro-dollars (1 USD = 1_000_000 micros). Not exposed in UI. */
+    providerCostUsdMicros: integer("provider_cost_usd_micros"),
 
     prompt: text("prompt"),
     inputs: jsonb("inputs"),
@@ -172,6 +179,54 @@ export const zeepoAgentImageEditHistory = pgTable(
   ]
 );
 
+// --- Zeepo Agent Token Ledger (customer balance audit) -----------------------
+
+export const zeepoAgentTokenLedger = pgTable(
+  "zeepo_agent_token_ledger",
+  {
+    id: text("id").primaryKey(),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => team.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => zeepoAgentSession.id, {
+      onDelete: "set null",
+    }),
+    subscriptionUsageId: text("subscription_usage_id").references(
+      () => niscClientSubscriptionUsage.id,
+      { onDelete: "set null" },
+    ),
+    /** DEBIT | CREDIT */
+    direction: text("direction").notNull(),
+    /** Token amount (decimal string, e.g. "12.5"). */
+    tokens: text("tokens").notNull(),
+    balanceBefore: text("balance_before").notNull(),
+    balanceAfter: text("balance_after").notNull(),
+    /** orchestration | media_generation | image_edit | title_gen | top_up | subscription_grant | adjustment */
+    operationType: text("operation_type").notNull(),
+    description: text("description"),
+    /** Internal only — never return to customer UI. */
+    providerCostUsdMicros: integer("provider_cost_usd_micros"),
+    predictionId: text("prediction_id"),
+    modelId: text("model_id"),
+    generationId: text("generation_id").references(() => zeepoAgentGeneration.id, {
+      onDelete: "set null",
+    }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("zeepo_agent_token_ledger_teamId_idx").on(table.teamId),
+    index("zeepo_agent_token_ledger_userId_idx").on(table.userId),
+    index("zeepo_agent_token_ledger_sessionId_idx").on(table.sessionId),
+    index("zeepo_agent_token_ledger_operationType_idx").on(table.operationType),
+    index("zeepo_agent_token_ledger_createdAt_idx").on(table.createdAt),
+    index("zeepo_agent_token_ledger_predictionId_idx").on(table.predictionId),
+  ],
+);
+
 // --- Relations ----------------------------------------------------------------
 
 export const zeepoAgentSessionRelations = relations(
@@ -255,4 +310,30 @@ export const zeepoAgentImageEditHistoryRelations = relations(
       references: [zeepoAgentImageEditHistory.id],
     }),
   })
+);
+
+export const zeepoAgentTokenLedgerRelations = relations(
+  zeepoAgentTokenLedger,
+  ({ one }) => ({
+    team: one(team, {
+      fields: [zeepoAgentTokenLedger.teamId],
+      references: [team.id],
+    }),
+    user: one(user, {
+      fields: [zeepoAgentTokenLedger.userId],
+      references: [user.id],
+    }),
+    session: one(zeepoAgentSession, {
+      fields: [zeepoAgentTokenLedger.sessionId],
+      references: [zeepoAgentSession.id],
+    }),
+    subscriptionUsage: one(niscClientSubscriptionUsage, {
+      fields: [zeepoAgentTokenLedger.subscriptionUsageId],
+      references: [niscClientSubscriptionUsage.id],
+    }),
+    generation: one(zeepoAgentGeneration, {
+      fields: [zeepoAgentTokenLedger.generationId],
+      references: [zeepoAgentGeneration.id],
+    }),
+  }),
 );

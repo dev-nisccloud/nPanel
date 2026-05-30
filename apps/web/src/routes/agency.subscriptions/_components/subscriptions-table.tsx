@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw, Search, Eye, Pencil, MoreHorizontal } from "lucide-react";
+import { RefreshCw, Search, Eye, Pencil, MoreHorizontal, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import {
 	Table,
@@ -17,11 +17,15 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
+import { toast } from "@/components/ui/sonner";
+import { authClient } from "@/lib/auth-client";
+import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -79,6 +83,20 @@ export interface SubscriptionsTableProps {
 export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: SubscriptionsTableProps) {
 	const navigate = useNavigate();
 	const [searchQuery, setSearchQuery] = React.useState("");
+	const [deleteSubscriptionId, setDeleteSubscriptionId] = React.useState<string | null>(null);
+	const { data: session } = authClient.useSession();
+	const isSuperAdmin =
+		(session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
+
+	const utils = trpc.useUtils();
+	const deleteSubscription = trpc.clientSubscriptions.delete.useMutation({
+		onSuccess: () => {
+			toast.success("Subscription deleted");
+			setDeleteSubscriptionId(null);
+			void utils.clientSubscriptions.listForAgency.invalidate();
+		},
+		onError: (e) => toast.error(e.message),
+	});
 	const {
 		data: list,
 		isLoading,
@@ -104,6 +122,13 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 				s.status.toLowerCase().includes(q)
 		);
 	}, [list, searchQuery]);
+
+	const deleteTargetName = React.useMemo(() => {
+		if (!deleteSubscriptionId || !list) return "this subscription";
+		const sub = list.find((s) => s.id === deleteSubscriptionId);
+		if (!sub) return "this subscription";
+		return displayServiceName(sub.productName, sub.productPlanName, sub.subscriptionName);
+	}, [deleteSubscriptionId, list]);
 
 	const handleViewSubscription = React.useCallback(
 		(subscriptionId: string) => {
@@ -269,6 +294,18 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 														Edit
 													</DropdownMenuItem>
 												) : null}
+												{isSuperAdmin ? (
+													<>
+														<DropdownMenuSeparator />
+														<DropdownMenuItem
+															className="text-destructive focus:text-destructive"
+															onSelect={() => setDeleteSubscriptionId(sub.id)}
+														>
+															<Trash2 className="mr-2 h-4 w-4" />
+															Delete
+														</DropdownMenuItem>
+													</>
+												) : null}
 											</DropdownMenuContent>
 										</DropdownMenu>
 									</TableCell>
@@ -279,6 +316,19 @@ export function SubscriptionsTable({ onViewSubscription, onEditSubscription }: S
 					</Table>
 				</div>
 			</div>
+			<SubscriptionDeleteDialog
+				open={deleteSubscriptionId != null}
+				subscriptionName={deleteTargetName}
+				isPending={deleteSubscription.isPending}
+				onOpenChange={(open) => {
+					if (!open) setDeleteSubscriptionId(null);
+				}}
+				onConfirm={() => {
+					if (deleteSubscriptionId) {
+						deleteSubscription.mutate({ id: deleteSubscriptionId });
+					}
+				}}
+			/>
 		</>
 	);
 }

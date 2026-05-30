@@ -1,23 +1,25 @@
 /**
  * Resolve billing details for Nisc order invoices.
- * Orders with a team: company billing settings first, then user profile fallback.
- * Orders without a team (userId only): user profile + account only.
+ * Orders with a team: company billing settings first, then team owners (role OWNER),
+ * then order user profile fallback. Orders without a team: user profile only.
  */
-import { db, eq } from "@npanel/db";
+import { and, db, eq } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { userProfile } from "@npanel/db/schema/auth-extras";
-import { teamBillingSettings } from "@npanel/db/schema/teams";
+import { team, teamBillingSettings, teamMember } from "@npanel/db/schema/teams";
 import {
 	isTeamBillingComplete,
 	type TeamBillingSettings,
 	TEAM_BILLING_REQUIRED_FIELDS,
 } from "../schemas/team-billing";
 
-export type NiscInvoiceBillingSource = "team_billing" | "user_profile";
+export type NiscInvoiceBillingSource = "team_billing" | "user_profile" | "team_owners";
 
 export type ResolvedNiscOrderBilling = {
 	billing: TeamBillingSettings;
 	source: NiscInvoiceBillingSource;
+	/** When set, invoice PDF is emailed to all listed addresses (first is primary TO). */
+	recipientEmails?: string[];
 };
 
 export const NISC_INVOICE_SKIP_REASON_CODES = {
@@ -81,6 +83,80 @@ function profileToBillingSettings(
 		country: profile?.country?.trim() ?? "",
 		postalCode: profile?.postalCode?.trim() ?? null,
 		taxId: null,
+	};
+}
+
+async function getTeamOwnerUsers(teamId: string) {
+	const rows = await db
+		.select({
+			userId: teamMember.userId,
+			email: userTable.email,
+			name: userTable.name,
+		})
+		.from(teamMember)
+		.innerJoin(userTable, eq(teamMember.userId, userTable.id))
+		.where(and(eq(teamMember.teamId, teamId), eq(teamMember.role, "OWNER")));
+	return rows.filter((r) => r.email?.trim());
+}
+
+async function resolveTeamOwnerBilling(teamId: string): Promise<
+	| { ok: true; resolved: ResolvedNiscOrderBilling }
+	| { ok: false; reasonCode: NiscInvoiceSkipReasonCode; reasonMessage: string }
+> {
+	const owners = await getTeamOwnerUsers(teamId);
+	if (owners.length === 0) {
+		return {
+			ok: false,
+			reasonCode: NISC_INVOICE_SKIP_REASON_CODES.TEAM_BILLING_INCOMPLETE,
+			reasonMessage:
+				"No invoice was created: team billing settings are not configured and no team owners were found.",
+		};
+	}
+
+	const recipientEmails = [
+		...new Set(owners.map((o) => o.email!.trim()).filter(Boolean)),
+	];
+
+	for (const owner of owners) {
+		const profileResult = await resolveUserProfileBilling(owner.userId);
+		if (profileResult.ok) {
+			return {
+				ok: true,
+				resolved: {
+					billing: profileResult.resolved.billing,
+					source: "team_owners",
+					recipientEmails,
+				},
+			};
+		}
+	}
+
+	const teamRow = await db.query.team.findFirst({
+		where: eq(team.id, teamId),
+		columns: { name: true },
+	});
+	const primary = owners[0]!;
+	const profileName = primary.name?.trim() || "Customer";
+	const minimalBilling: TeamBillingSettings = {
+		legalName: teamRow?.name?.trim() || profileName,
+		billingEmail: primary.email!.trim(),
+		billingPhone: null,
+		addressLine1: "Not provided",
+		addressLine2: null,
+		city: "Not provided",
+		state: null,
+		country: "KE",
+		postalCode: null,
+		taxId: null,
+	};
+
+	return {
+		ok: true,
+		resolved: {
+			billing: minimalBilling,
+			source: "team_owners",
+			recipientEmails,
+		},
 	};
 }
 
@@ -164,6 +240,11 @@ export async function resolveNiscOrderInvoiceBilling(params: {
 		return { ok: true, resolved: { billing: teamRow, source: "team_billing" } };
 	}
 
+	const ownerBilling = await resolveTeamOwnerBilling(teamId);
+	if (ownerBilling.ok) {
+		return ownerBilling;
+	}
+
 	if (!userId) {
 		const missing = teamRow ? missingTeamBillingFields(teamRow) : [];
 		return {
@@ -173,7 +254,7 @@ export async function resolveNiscOrderInvoiceBilling(params: {
 				? `${NISC_INVOICE_SKIP_REASON_MESSAGES.team_billing_incomplete}${
 						missing.length ? ` Missing on team billing: ${missing.join(", ")}.` : ""
 					}`
-				: "No invoice was created: team billing settings are not configured and no customer account is linked to this order.",
+				: ownerBilling.reasonMessage,
 		};
 	}
 

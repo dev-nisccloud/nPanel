@@ -2,9 +2,12 @@
 
 import * as React from "react";
 import { useSearchParams } from "react-router";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SubscriptionsTable } from "./agency.subscriptions/_components/subscriptions-table";
 import { SubscriptionViewSheet } from "./agency.subscriptions/_components/subscription-view-sheet";
 import { SubscriptionEditSheet } from "./agency.subscriptions/_components/subscription-edit-sheet";
+import { CreateSubscriptionSheet } from "./agency.subscriptions/_components/create-subscription-sheet";
 import { SendRenewalEmailDialog } from "./agency.subscriptions/_components/send-renewal-email-dialog";
 
 export default function SubscriptionsPage() {
@@ -13,6 +16,7 @@ export default function SubscriptionsPage() {
 	const [sheetOpen, setSheetOpen] = React.useState(false);
 	const [editSubscriptionId, setEditSubscriptionId] = React.useState<string | null>(null);
 	const [editSheetOpen, setEditSheetOpen] = React.useState(false);
+	const [createSheetOpen, setCreateSheetOpen] = React.useState(false);
 	const [renewalEmailSubscriptionId, setRenewalEmailSubscriptionId] = React.useState<string | null>(null);
 
 	// Open view sheet when landing with ?subscriptionId=xxx (e.g. from hosting client subscriptions)
@@ -41,11 +45,17 @@ export default function SubscriptionsPage() {
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 			<div className="w-full max-w-7xl mx-auto">
-				<div className="flex flex-col gap-2">
-					<h1 className="text-base font-semibold tracking-tight">Subscriptions</h1>
-					<p className="text-xs text-muted-foreground">
-						View and manage service subscriptions. Data from Nisc client subscriptions.
-					</p>
+				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+					<div>
+						<h1 className="text-base font-semibold tracking-tight">Subscriptions</h1>
+						<p className="text-xs text-muted-foreground">
+							View and manage service subscriptions. Data from Nisc client subscriptions.
+						</p>
+					</div>
+					<Button size="sm" onClick={() => setCreateSheetOpen(true)}>
+						<Plus className="mr-2 h-4 w-4" />
+						Create subscription
+					</Button>
 				</div>
 
 				<div className="mt-6">
@@ -73,6 +83,11 @@ export default function SubscriptionsPage() {
 					setEditSheetOpen(open);
 					if (!open) setEditSubscriptionId(null);
 				}}
+			/>
+
+			<CreateSubscriptionSheet
+				open={createSheetOpen}
+				onOpenChange={setCreateSheetOpen}
 			/>
 
 			{renewalEmailSubscriptionId && (

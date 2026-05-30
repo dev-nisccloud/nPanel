@@ -9,6 +9,10 @@ import {
 import { router } from "../../trpc";
 import { zeepoAgentProcedure } from "./procedures";
 import {
+	assertCustomerCanUseZeepoAgent,
+	assertZeepoAgentTeamAccess,
+} from "../../lib/zeepo-agent-access";
+import {
 	createSessionSchema,
 	deleteSessionSchema,
 	getSessionSchema,
@@ -24,6 +28,14 @@ export const zeepoAgentSessionsRouter = router({
 			if (!userId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
+
+			const teamId = await assertCustomerCanUseZeepoAgent({
+				userId,
+				userRole: ctx.session?.user?.role,
+				teamId: input.teamId,
+				requireTokens: true,
+			});
+
 			const id = randomUUID();
 			const now = new Date();
 			const title = input.title?.trim() || "New chat";
@@ -31,7 +43,7 @@ export const zeepoAgentSessionsRouter = router({
 			await db.insert(zeepoAgentSession).values({
 				id,
 				userId,
-				teamId: input.teamId ?? null,
+				teamId,
 				title,
 				status: "ACTIVE",
 				createdAt: now,
@@ -63,6 +75,12 @@ export const zeepoAgentSessionsRouter = router({
 			if (!userId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
+
+			await assertZeepoAgentTeamAccess({
+				userId,
+				userRole: ctx.session?.user?.role,
+				teamId: input.teamId,
+			});
 
 			const offset = (input.page - 1) * input.limit;
 			const conditions = [eq(zeepoAgentSession.userId, userId)];

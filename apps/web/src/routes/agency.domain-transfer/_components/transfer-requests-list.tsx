@@ -13,6 +13,8 @@ import {
   CreditCard,
   EllipsisVertical,
   RefreshCw,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
@@ -93,6 +95,30 @@ const STATUS_CONFIG: Record<
     className: "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300",
     icon: <AlertCircle className="h-3 w-3 mr-1 shrink-0" />,
   },
+  OUTGOING_PENDING: {
+    label: "Transferring out",
+    variant: "outline",
+    className: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300",
+    icon: <ArrowUpRight className="h-3 w-3 mr-1 shrink-0" />,
+  },
+};
+
+type TransferDirection = "incoming" | "outgoing";
+
+const DIRECTION_CONFIG: Record<
+  TransferDirection,
+  { label: string; className: string; icon: React.ReactNode }
+> = {
+  incoming: {
+    label: "Incoming",
+    className: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300",
+    icon: <ArrowDownLeft className="h-3 w-3 mr-1 shrink-0" />,
+  },
+  outgoing: {
+    label: "Outgoing",
+    className: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300",
+    icon: <ArrowUpRight className="h-3 w-3 mr-1 shrink-0" />,
+  },
 };
 
 function formatPrice(amount: string | null, currency: string | null): string {
@@ -112,7 +138,11 @@ function formatPrice(amount: string | null, currency: string | null): string {
 function orderStatusHint(
   requestStatus: string,
   niscOrderStatus: string | null | undefined,
+  direction?: TransferDirection,
 ): string | null {
+  if (direction === "outgoing") {
+    return "Domain is transferring away from Nisc Cloud to another registrar.";
+  }
   if (requestStatus === "AWAITING_PAYMENT") {
     return "Complete payment in checkout to continue.";
   }
@@ -260,6 +290,7 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-sm font-bold">Domain</TableHead>
+              {isAgency ? <TableHead className="text-sm font-bold">Direction</TableHead> : null}
               <TableHead className="text-sm font-bold">Status</TableHead>
               {isAgency ? <TableHead className="text-sm font-bold">Order</TableHead> : null}
               <TableHead className="text-sm font-bold text-right">Price</TableHead>
@@ -270,18 +301,21 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
           </TableHeader>
           <TableBody className="text-sm">
             {requests.map((row) => {
+              const direction = (row.direction ?? "incoming") as TransferDirection;
+              const directionConfig = DIRECTION_CONFIG[direction];
               const statusConfig = STATUS_CONFIG[row.status] ?? {
                 label: row.status,
                 variant: "secondary" as const,
                 className: "",
                 icon: null,
               };
-              const hint = orderStatusHint(row.status, row.niscOrderStatus);
+              const hint = orderStatusHint(row.status, row.niscOrderStatus, direction);
               const isResuming = resumingRequestId === row.id;
               const showCompletePayment = row.status === "AWAITING_PAYMENT";
-              const showDelete = isAgency && canDeleteTransferRequest(row.status);
+              const isOutgoingProviderRow = direction === "outgoing";
+              const showDelete = isAgency && canDeleteTransferRequest(row.status) && !isOutgoingProviderRow;
               const showAgencyMenu =
-                isAgency && (Boolean(row.niscOrderId) || showDelete);
+                isAgency && !isOutgoingProviderRow && (Boolean(row.niscOrderId) || showDelete);
               const hasRowActions = showCompletePayment || showAgencyMenu;
 
               return (
@@ -297,6 +331,20 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
                       ) : null}
                     </span>
                   </TableCell>
+                  {isAgency ? (
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-xs flex items-center w-fit",
+                          directionConfig.className,
+                        )}
+                      >
+                        {directionConfig.icon}
+                        {directionConfig.label}
+                      </Badge>
+                    </TableCell>
+                  ) : null}
                   <TableCell>
                     <Badge
                       variant={statusConfig.variant}
