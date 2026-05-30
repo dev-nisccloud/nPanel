@@ -1,6 +1,6 @@
 /**
  * Shared email helpers for the @npanel/api package.
- * Uses AWS SES (sendRawEmail) via the shared ses-client — the same transport
+ * Uses AWS SES (sendRawEmail) via the shared ses-client - the same transport
  * used by auth, teams invites, and agency invoicing flows.
  * Previously used Resend; replaced because nisccloud.com was not verified there.
  */
@@ -216,7 +216,7 @@ export async function sendEmail({
       lastError = err;
       const msg = err instanceof Error ? err.message : String(err);
 
-      // Permanent failures — don't retry
+      // Permanent failures - don't retry
       const isPermanent =
         msg.includes("MessageRejected") ||
         msg.includes("InvalidParameterValue") ||
@@ -319,7 +319,7 @@ export async function sendEmailWithPdf({
 
 /**
  * Send multiple emails sequentially (rate-limiting friendly).
- * Never throws — returns per-email success/failure so callers can handle individually.
+ * Never throws - returns per-email success/failure so callers can handle individually.
  */
 export async function sendEmailBatch(
   emails: Array<{

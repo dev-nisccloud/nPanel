@@ -503,7 +503,7 @@ export function cleanSiteName(raw: string | null | undefined, hostname: string):
 	};
 	if (!raw?.trim()) return fromHost();
 	let s = raw.trim();
-	s = s.replace(/\s*[-|·–—]\s*.+$/, "").trim();
+	s = s.replace(/\s*[-|·–-]\s*.+$/, "").trim();
 	s = s.replace(/\s*:\s*.+$/, "").trim();
 	s = s.replace(/\s*\|\s*.+$/, "").trim();
 	s = s.replace(/\s+(Home|Official Site|Welcome|Homepage)\s*$/i, "").trim();
@@ -806,7 +806,7 @@ export function formatCompanyContextForUi(sections: string[]): string | null {
 
 /**
  * Fetch a public website and extract logo URL + brand colors using ordered fallbacks.
- * Never throws for enrichment failures — returns partial results and warnings instead.
+ * Never throws for enrichment failures - returns partial results and warnings instead.
  */
 export async function enrichWebsiteBrand(
 	websiteUrlInput: string,
@@ -898,15 +898,15 @@ export async function enrichWebsiteBrand(
 	const { palette, colors, sources } = colorResult;
 	const companyContext = formatCompanyContextForUi(research.sections);
 
-	if (!logo) warnings.push("No logo found — try uploading one in brand kit later.");
+	if (!logo) warnings.push("No logo found - try uploading one in brand kit later.");
 	const missingRoles = BRAND_ROLES.filter((r) => !palette[r]);
 	if (missingRoles.length === 3) {
 		warnings.push(
-			"Could not detect primary, accent, or secondary — set them below before generating.",
+			"Could not detect primary, accent, or secondary - set them below before generating.",
 		);
 	} else if (missingRoles.length > 0) {
 		warnings.push(
-			`Could not detect ${missingRoles.join(", ")} — set ${missingRoles.length === 1 ? "it" : "them"} below.`,
+			`Could not detect ${missingRoles.join(", ")} - set ${missingRoles.length === 1 ? "it" : "them"} below.`,
 		);
 	}
 
@@ -958,7 +958,7 @@ export function nebBriefHasUserLogo(logoUrl?: string): boolean {
 }
 
 /**
- * Fill gaps from website detection only — never overwrite values the user set in the brief form.
+ * Fill gaps from website detection only - never overwrite values the user set in the brief form.
  */
 export function mergeBrandEnrichment(
 	brief: {
@@ -1022,7 +1022,7 @@ export function buildBrandAgentContext(
 	enrichment: WebsiteBrandEnrichment | null,
 ): string | null {
 	const parts: string[] = [
-		"BRAND COMPLIANCE CONTEXT — follow for copy, visual hierarchy, and tone:",
+		"BRAND COMPLIANCE CONTEXT - follow for copy, visual hierarchy, and tone:",
 	];
 
 	const company = brief.companyName ?? enrichment?.siteName;
@@ -1052,7 +1052,7 @@ export function buildBrandAgentContext(
 	if (enrichment?.companyContext) {
 		parts.push(
 			"",
-			"COMPANY RESEARCH (products, services, positioning — stay factually aligned):",
+			"COMPANY RESEARCH (products, services, positioning - stay factually aligned):",
 			enrichment.companyContext.slice(0, MAX_RESEARCH_FOR_PROMPT),
 		);
 	}

@@ -371,6 +371,7 @@ export default function ZeepoAiAgentIndexPage() {
                     ? {
                         label: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].label,
                         className: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].pillClass,
+                        icon: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].icon,
                       }
                     : null
                 }
@@ -385,27 +386,30 @@ export default function ZeepoAiAgentIndexPage() {
           />
         </div>
 
-        {/* Sample prompts — category pill tabs (like domain TLD categories) */}
+        {/* Sample prompts - category pill tabs (like domain TLD categories) */}
         <div className="zeepo-hero-surface w-full space-y-3">
           <p className="text-xs font-medium text-muted-foreground">Sample prompts</p>
           <ScrollArea className="w-full">
             <div className="flex gap-2 flex-nowrap w-max pb-1 pr-2">
               {ZEEPO_PROMPT_CATEGORY_ORDER.map((category) => {
                 const isActive = activePromptTab === category;
+                const meta = ZEEPO_PROMPT_CATEGORY_META[category];
+                const TabIcon = meta.icon;
                 return (
                   <button
                     key={category}
                     type="button"
                     onClick={() => setActivePromptTab(category)}
                     className={cn(
-                      "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "border border-border bg-background text-foreground hover:bg-muted/50",
                     )}
                   >
-                    {ZEEPO_PROMPT_CATEGORY_META[category].label}
+                    <TabIcon className="size-3.5 shrink-0" aria-hidden />
+                    {meta.label}
                   </button>
                 );
               })}

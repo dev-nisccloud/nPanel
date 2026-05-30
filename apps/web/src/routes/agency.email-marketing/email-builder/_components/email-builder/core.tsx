@@ -27,7 +27,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // Helper: resolve the image URL from native schema (data.props.url)
-// or legacy flat schema (data.url) — used in Image block renderers only
+// or legacy flat schema (data.url) - used in Image block renderers only
 // ---------------------------------------------------------------------------
 function resolveImageUrl(data: any): string {
     return data?.props?.url ?? data?.url ?? '';
@@ -48,7 +48,7 @@ function resolveText(data: any): string {
 const EDITOR_DICTIONARY = buildBlockConfigurationDictionary({
     Avatar: {
         schema: z.any(),
-        // Avatar uses native { props, style } — pass through directly
+        // Avatar uses native { props, style } - pass through directly
         Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
                 <Avatar {...data} />
@@ -67,7 +67,7 @@ const EDITOR_DICTIONARY = buildBlockConfigurationDictionary({
     Container: {
         schema: z.any(),
         // Container: data = { props: { childrenIds }, style: { backgroundColor, padding, borderRadius } }
-        // ContainerEditor destructures { style, props } — pass through without unwrapping
+        // ContainerEditor destructures { style, props } - pass through without unwrapping
         Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
                 <ContainerEditor {...data} />
@@ -77,7 +77,7 @@ const EDITOR_DICTIONARY = buildBlockConfigurationDictionary({
     ColumnsContainer: {
         schema: z.any(),
         // ColumnsContainer: data = { props: { columns }, style: { padding } }
-        // ColumnsContainerEditor destructures { style, props } — pass through
+        // ColumnsContainerEditor destructures { style, props } - pass through
         Component: (data) => (
             <EditorBlockWrapper blockId={useCurrentBlockId()}>
                 <ColumnsContainerEditor {...data} />

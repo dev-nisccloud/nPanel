@@ -1,5 +1,5 @@
 /**
- * Customer Zeepo token balance — always read live from the DB; never serve stale cache.
+ * Customer Zeepo token balance - always read live from the DB; never serve stale cache.
  */
 export const ZEEPO_TOKEN_BALANCE_LIVE_QUERY_OPTIONS = {
 	staleTime: 0,

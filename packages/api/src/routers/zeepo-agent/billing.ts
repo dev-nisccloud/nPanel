@@ -54,7 +54,7 @@ export const zeepoAgentBillingRouter = router({
 		};
 	}),
 
-	/** Customer-facing usage history (tokens only — no USD). */
+	/** Customer-facing usage history (tokens only - no USD). */
 	listTokenActivity: zeepoAgentProcedure
 		.input(
 			teamIdSchema.extend({
@@ -140,7 +140,7 @@ export const zeepoAgentBillingRouter = router({
 					/** Retail price for checkout display */
 					displayPrice,
 					displayCurrency,
-					/** Stored backend price (USD) — omit from customer UI components */
+					/** Stored backend price (USD) - omit from customer UI components */
 					priceUsd: displayPriceUsd,
 					currencyUsd: plan.currency ?? "USD",
 				};

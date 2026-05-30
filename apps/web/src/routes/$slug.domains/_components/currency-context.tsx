@@ -53,7 +53,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('selectedCurrency', selectedCurrency);
   }, [selectedCurrency]);
 
-  // Public rates — avoid protected currency.* when provider mounts outside authenticated routes.
+  // Public rates - avoid protected currency.* when provider mounts outside authenticated routes.
   const { data: exchangeRates, isLoading: isLoadingRates } = trpc.publicPricing.getExchangeRatesPublic.useQuery(
     { baseCurrency: 'USD' },
     {

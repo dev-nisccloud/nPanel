@@ -4,7 +4,7 @@ import type { DomainSearchResult } from "@/hooks/use-domain-search";
 
 /**
  * Shape returned by the check_domain_availability agent tool.
- * Mirrors packages/api/src/lib/agent-internal-tools/domains.ts — kept here
+ * Mirrors packages/api/src/lib/agent-internal-tools/domains.ts - kept here
  * so the frontend doesn't import from a server-only package.
  */
 export interface AgentDomainCheckEntry {
@@ -61,7 +61,7 @@ function domainCheckEntryToSearchResult(entry: AgentDomainCheckEntry): DomainSea
  * STK, registrant info, order creation) is reused without duplication.
  *
  * Extend this hook when future payment surfaces are added to the agent
- * (e.g. purchaseHosting, purchaseSSL) — all call sites stay the same.
+ * (e.g. purchaseHosting, purchaseSSL) - all call sites stay the same.
  */
 export function useZeepoPaymentHandler() {
   const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);

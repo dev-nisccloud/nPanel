@@ -116,7 +116,7 @@ function isHivelocityMetadataCandidate(value: unknown): value is Record<string, 
 	return value != null && typeof value === "object" && "hivelocityProductId" in value;
 }
 
-/** Route metadata to the correct schema. Transfer schema must not run first — it accepts any object. */
+/** Route metadata to the correct schema. Transfer schema must not run first - it accepts any object. */
 export function parseOrderItemMetadata(value: unknown): TransferItemMetadata | HivelocityItemMetadata | undefined | null {
 	if (value == null) return value as undefined | null;
 	if (isHivelocityMetadataCandidate(value)) {

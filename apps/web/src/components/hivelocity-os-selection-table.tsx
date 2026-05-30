@@ -33,7 +33,7 @@ type HivelocityOsSelectionTableProps = {
 	isError?: boolean;
 	/** Appended to price column header, e.g. "/mo" */
 	priceColumnHint?: string;
-	/** Original USD/KES columns — agency users only */
+	/** Original USD/KES columns - agency users only */
 	showOriginalPriceColumns?: boolean;
 };
 
@@ -148,10 +148,10 @@ export function HivelocityOsSelectionTable({
 										{showOriginalPriceColumns ? (
 											<>
 												<TableCell className="text-right text-sm text-green-600 dark:text-green-500 tabular-nums">
-													{row.originalUsdLabel ?? "—"}
+													{row.originalUsdLabel ?? "-"}
 												</TableCell>
 												<TableCell className="text-right text-sm text-green-600 dark:text-green-500 tabular-nums">
-													{row.originalKesLabel ?? "—"}
+													{row.originalKesLabel ?? "-"}
 												</TableCell>
 											</>
 										) : null}

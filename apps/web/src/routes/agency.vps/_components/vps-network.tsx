@@ -86,11 +86,11 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                       <div className="flex flex-col gap-1">
                          <div className="flex items-center gap-1.5 text-xs">
                             <span className="text-muted-foreground w-12 font-medium">GW:</span>
-                            <span className="text-[11px]">{ip.gatewayIp || "—"}</span>
+                            <span className="text-[11px]">{ip.gatewayIp || "-"}</span>
                          </div>
                          <div className="flex items-center gap-1.5 text-xs">
                             <span className="text-muted-foreground w-12 font-medium">BC:</span>
-                            <span className="text-[11px]">{ip.broadcastIp || "—"}</span>
+                            <span className="text-[11px]">{ip.broadcastIp || "-"}</span>
                          </div>
                       </div>
                     </TableCell>
@@ -190,7 +190,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                       <Fingerprint className="h-4 w-4 text-primary/60" />
                       Device MAC
                    </span>
-                   <span className="font-bold text-[10px] uppercase">{vpsData?.nics?.[0]?.macAddress || "—"}</span>
+                   <span className="font-bold text-[10px] uppercase">{vpsData?.nics?.[0]?.macAddress || "-"}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm p-2 rounded-lg hover:bg-muted/20 transition-colors">
                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">

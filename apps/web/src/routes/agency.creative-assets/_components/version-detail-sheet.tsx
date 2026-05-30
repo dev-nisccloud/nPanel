@@ -129,7 +129,7 @@ export function VersionDetailSheet({
 			<style
 				dangerouslySetInnerHTML={{
 					__html: `
-            /* Same color cycle as AI domain search / Zeepo — glow is on the button edge (no nested frame). */
+            /* Same color cycle as AI domain search / Zeepo - glow is on the button edge (no nested frame). */
             @keyframes creative-version-ai-glow {
               0%   { box-shadow: 0 0 0 2px rgba(124,58,237,0.78), 0 0 22px 8px rgba(124,58,237,0.34), 0 0 44px 18px rgba(124,58,237,0.14); }
               33%  { box-shadow: 0 0 0 2px rgba(37,99,235,0.78),  0 0 22px 8px rgba(37,99,235,0.34),  0 0 44px 18px rgba(37,99,235,0.14);  }

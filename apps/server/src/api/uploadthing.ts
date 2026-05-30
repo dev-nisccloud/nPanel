@@ -106,7 +106,7 @@ export const ourFileRouter: FileRouter = {
       return { uploadedBy: metadata.userId };
     }),
 
-  // Zeepo Agent chat attachments — blob (same as creative assets) so JPEG/PNG with empty MIME still upload
+  // Zeepo Agent chat attachments - blob (same as creative assets) so JPEG/PNG with empty MIME still upload
   zeepoAgentAttachment: f({ blob: { maxFileSize: "16MB", maxFileCount: 4 } })
     .middleware(async ({ req }) => {
       const session = await auth.api.getSession({ headers: req.headers });

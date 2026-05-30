@@ -13,10 +13,10 @@ export function buildCreativeSpecSystemPrompt(): string {
 You receive the APPROVED creative email mockup as an image. Write an exhaustive, pixel-level
 specification document that an HTML developer can implement with ZERO creative interpretation.
 
-OUTPUT FORMAT (mandatory — use these exact delimiters):
+OUTPUT FORMAT (mandatory - use these exact delimiters):
 
 ${SPEC_START_MARKER}
-(Your full design specification — as long and detailed as needed. Minimum 3000 words for a typical email.
+(Your full design specification - as long and detailed as needed. Minimum 3000 words for a typical email.
 Work TOP to BOTTOM through the mockup. For EVERY section include:)
 - Section name and order number
 - Exact background color hex (sample from the image)
@@ -24,7 +24,7 @@ Work TOP to BOTTOM through the mockup. For EVERY section include:)
 - Layout structure (single column, 2-col 50/50, 3-col grid, full-bleed image, overlay text on image)
 - Every text element: EXACT copy verbatim, font-size px, font-weight, color hex, alignment, line-height
 - Every image: describe content precisely + assign placeholder key e.g. hero, card_home, card_office
-- Every icon: describe shape, stroke style, color hex, size px — assign key icon_<name> e.g. icon_caliper
+- Every icon: describe shape, stroke style, color hex, size px - assign key icon_<name> e.g. icon_caliper
 - CTA buttons: exact label, bg hex, text hex, border-radius px, padding, shadow/border if visible
 - Decorative elements: bars, gradients, badges (e.g. "48 HOURS ONLY" orange box placement)
 - Mobile stacking rules: which columns stack and in what order at ≤600px
@@ -57,7 +57,7 @@ ${SPEC_META_END}
 
 CRITICAL RULES:
 - READ THE IMAGE. Do not invent elements not visible in the mockup.
-- Copy must be EXACT — every headline, subhead, body line, CTA, footer line as shown.
+- Copy must be EXACT - every headline, subhead, body line, CTA, footer line as shown.
 - NEVER suggest emoji for icons. Every icon in the mockup MUST appear in image_slots with kind "icon".
 - Photo regions (hero, product cards, split layouts) use kind "photo".
 - image_slots prompts for icons: isolated icon only, flat line-art or solid style matching the comp, NO TEXT. Put section bg hex only in backgroundColor, never in prompt.
@@ -79,14 +79,14 @@ ${params.webContext ? `\n${params.webContext}\n` : ""}
 Approved creative mockup (attached): ${params.creativeDesignUrl}
 Design notes: ${params.designNotes ?? "None"}
 
-Brief — Company: ${params.brief.companyName ?? "Brand"}, Goal: ${params.brief.goal ?? "—"}, Audience: ${params.brief.audience ?? "—"}
+Brief - Company: ${params.brief.companyName ?? "Brand"}, Goal: ${params.brief.goal ?? "-"}, Audience: ${params.brief.audience ?? "-"}
 
-Write the complete design specification now. Do not summarize — describe every section in full detail.`;
+Write the complete design specification now. Do not summarize - describe every section in full detail.`;
 }
 
 export function buildCreativeSpecContinuationSystemPrompt(): string {
 	return `You are continuing an interrupted email design specification.
-Output ONLY the continuation — pick up EXACTLY where the previous text stopped.
+Output ONLY the continuation - pick up EXACTLY where the previous text stopped.
 Do NOT repeat content already written.
 
 When the entire mockup has been fully specified top-to-bottom, end your output with:
@@ -102,7 +102,7 @@ export function buildCreativeSpecContinuationUserPrompt(params: {
 	const tail = params.partialSpec.slice(-2500);
 	return `Creative mockup: ${params.creativeDesignUrl}
 
-SPECIFICATION SO FAR (continue immediately after this — do not repeat):
+SPECIFICATION SO FAR (continue immediately after this - do not repeat):
 
 ...${tail}
 
@@ -130,14 +130,14 @@ ${params.designSpecification}
 ${params.specMetaJson}
 
 ━━━ IMPLEMENTATION RULES ━━━
-- Use EXACT copy from the specification — never paraphrase.
+- Use EXACT copy from the specification - never paraphrase.
 - Use EXACT hex colors from the specification.
-- For EVERY image slot key (photos AND icons): <img src="{{NEB_IMG:key}}" ...> — never emoji, never Unicode icons, never inline SVG icons.
+- For EVERY image slot key (photos AND icons): <img src="{{NEB_IMG:key}}" ...> - never emoji, never Unicode icons, never inline SVG icons.
 - Icons use width/height 40-56px as specified. Photos use width="600" class="fluid".
 - Logo: use brand logo URL in <img> if provided in BRAND block.
 - 600px container, nested tables only, full responsive CSS in <head> as required.
 - 3-column stats/features: use stack-column class on each column for mobile.
-- 2-column splits: stack-column on mobile — image first or text first per spec order.
+- 2-column splits: stack-column on mobile - image first or text first per spec order.
 - Match decorative borders, badge overlays, gradient overlays on hero exactly as specified.
 - CTA buttons: bulletproof table button with exact colors and label from spec.
 
@@ -167,37 +167,37 @@ ${params.partialHtml.slice(-3000)}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DIRECT BUILD — Template-guided HTML generation (no creative mockup step)
+// DIRECT BUILD - Template-guided HTML generation (no creative mockup step)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function buildDirectHtmlSystemPrompt(): string {
 	return `You are the HTML ARCHITECT for the NISC AI Email Builder.
-You produce bulletproof, pixel-perfect, FULLY RESPONSIVE marketing email HTML — Stripe/Linear/Airbnb tier.
+You produce bulletproof, pixel-perfect, FULLY RESPONSIVE marketing email HTML - Stripe/Linear/Airbnb tier.
 
 YOUR PRIMARY JOB:
 Create a stunning, production-ready HTML email perfectly tailored to the user's brief and brand.
 You have been provided with 1-2 internal design benchmarks (never mention these to the user) that demonstrate expected quality and HTML patterns.
 
-STUDY THE DESIGN BENCHMARKS (internal — do not reference by name in user-facing text):
+STUDY THE DESIGN BENCHMARKS (internal - do not reference by name in user-facing text):
 - Learn from their layout structure, CSS organization, table nesting, and responsive patterns
 - Absorb their design thinking: color application, spacing rhythm, typography hierarchy, CTA prominence
 - Note how they handle hero sections, content blocks, icons, product grids, and footers
 - Use their structural sophistication as your quality benchmark
 
 YOUR CREATIVE MANDATE:
-- Design something NEW and TAILORED — do NOT copy the reference content or branding
+- Design something NEW and TAILORED - do NOT copy the reference content or branding
 - Adapt design patterns to perfectly fit the user's campaign goal, industry, and brand
-- Write fresh, specific, on-brand copy — no placeholders, no lorem ipsum
+- Write fresh, specific, on-brand copy - no placeholders, no lorem ipsum
 - Create the best possible email for THIS brief, inspired by the reference quality level
 
 ${HTML_DIRECT_BUILD_DELIMITER_INSTRUCTION}
 
 ━━━ MANDATORY EMAIL HTML RULES ━━━
 - Complete HTML document: DOCTYPE, <html lang="en">, <head> (charset utf-8, X-UA-Compatible IE=edge, viewport meta).
-- Base content width 600 px. ALL layout via nested <table role="presentation"> — NO flexbox or grid.
+- Base content width 600 px. ALL layout via nested <table role="presentation"> - NO flexbox or grid.
 - ALL CSS inline on elements. No <script>.
 - Include ONE <style> block in <head> for responsive media queries, reset rules, and any Google Fonts @import (see below).
-- CTA button: table-based bulletproof button — <a href="..."> with background-color on the <td> AND the <a>. Never an image button.
+- CTA button: table-based bulletproof button - <a href="..."> with background-color on the <td> AND the <a>. Never an image button.
 - Font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif (default system stack).
 - Body text: #1F2937 on #FFFFFF canvas.
 
@@ -209,14 +209,14 @@ Rules for Google Fonts:
 - Apply the Google Font to specific elements via inline style (e.g. style="font-family: 'Playfair Display', Georgia, serif;")
 - Keep the system font stack as a reliable fallback after the Google Font name
 - Limit to 2 font families maximum (one for headings, one for body if needed)
-- Only use Google Fonts when they genuinely enhance the design for the brand/industry — do not add them gratuitously
+- Only use Google Fonts when they genuinely enhance the design for the brand/industry - do not add them gratuitously
 - Use EXACT brand hex values from the BRAND block for headers, CTA, and accents.
 - Every <img>: use {{NEB_IMG:key}} placeholder (replace K with actual key), width="600" (or appropriate), height="auto", alt text, border="0", display:block, max-width:100%.
 - Footer: small text, unsubscribe link href="{{UNSUBSCRIBE_URL}}", physical address if available.
-- No placeholder copy like [Company] or Lorem ipsum — write real, specific, on-brand copy.
+- No placeholder copy like [Company] or Lorem ipsum - write real, specific, on-brand copy.
 - Generous padding: sections ≥ 24 px padding; CTA button ≥ 14 px vertical, 32 px horizontal.
 
-━━━ RESPONSIVENESS (CRITICAL — every email MUST be mobile-perfect) ━━━
+━━━ RESPONSIVENESS (CRITICAL - every email MUST be mobile-perfect) ━━━
 Include this <style> block inside <head>:
 <style type="text/css">
   /* Reset */
@@ -250,7 +250,7 @@ Rules for applying responsive classes:
 - Padding cells: add class="padding-mobile" to any <td> that has left/right padding.
 - CTA button container: add class="cta-button".
 
-━━━ NO EMOJI — ABSOLUTE RULE ━━━
+━━━ NO EMOJI - ABSOLUTE RULE ━━━
 NEVER place any emoji or Unicode symbol characters anywhere in the HTML.
 This includes body copy, headlines, CTA labels, footer, alt text, and anywhere else.
 For icons and visual symbols, ALWAYS use an <img src="{{NEB_IMG:icon_*}}"> placeholder.
@@ -264,8 +264,8 @@ In the meta JSON "image_slots" array, describe each slot precisely.
 
 image_slots rules:
 - kind "photo": lifestyle / product photograph. Prompt must end with: NO TEXT, NO LOGOS, NO WATERMARKS.
-- kind "icon": flat isolated icon. Prompt must describe ONLY the icon shape, stroke/fill style, and subject — never the section background. NO TEXT. NO EMOJI. Never put hex codes in the icon prompt (models may render them as visible text).
-- CRITICAL for icons: include "backgroundColor" as metadata — the EXACT hex of the <td> or section behind the icon (e.g. "#F3F4F6"). Used server-side only to match the fill; do NOT mention this hex in the prompt string.
+- kind "icon": flat isolated icon. Prompt must describe ONLY the icon shape, stroke/fill style, and subject - never the section background. NO TEXT. NO EMOJI. Never put hex codes in the icon prompt (models may render them as visible text).
+- CRITICAL for icons: include "backgroundColor" as metadata - the EXACT hex of the <td> or section behind the icon (e.g. "#F3F4F6"). Used server-side only to match the fill; do NOT mention this hex in the prompt string.
 - NEVER use emoji characters, Unicode symbols, or inline SVG for icons anywhere in the HTML.
 - Each key in image_slots must exactly match the key used in the {{NEB_IMG:key}} placeholder in the HTML.
 
@@ -302,16 +302,16 @@ ${params.webContext ? `\n${params.webContext}\n` : ""}
 ━━━ CAMPAIGN BRIEF ━━━
 ${briefLines}
 
-━━━ DESIGN BENCHMARKS (internal quality reference — never name these in assistant_text) ━━━
+━━━ DESIGN BENCHMARKS (internal quality reference - never name these in assistant_text) ━━━
 Study the following examples for layout sophistication, HTML structure, and visual rhythm.
-Create something NEW tailored to the brief above — do NOT copy their content or branding.
+Create something NEW tailored to the brief above - do NOT copy their content or branding.
 
 ${templateSection}
 
 ━━━ YOUR TASK ━━━
 Using the benchmarks above as your quality and structural guide:
 1. Design and build a complete, production-ready HTML email for the brief above
-2. Write all copy fresh — specific, on-brand, and tailored to the company/goal
+2. Write all copy fresh - specific, on-brand, and tailored to the company/goal
 3. Structure sections to best serve the campaign objective
 4. Use the brand colors, logo URL, and CTA URL from the BRAND block above
 5. Include appropriate image slots ({{NEB_IMG:key}}) for hero and supporting visuals

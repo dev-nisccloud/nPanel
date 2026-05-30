@@ -234,7 +234,7 @@ export const nebChatRouter = router({
 			id: userMessageId,
 			sessionId: session.id,
 			role: "user",
-			content: "Approved — please build the HTML email.",
+			content: "Approved - please build the HTML email.",
 			createdAt: now,
 		});
 
@@ -339,7 +339,7 @@ export const nebChatRouter = router({
 			return { jobId };
 		}),
 
-	/** Zeepo-style chat — routes by workflow phase */
+	/** Zeepo-style chat - routes by workflow phase */
 	sendMessage: protectedProcedure.input(sendChatSchema).mutation(async ({ ctx, input }) => {
 		const userId = ctx.session?.user?.id;
 		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -409,7 +409,7 @@ export const nebChatRouter = router({
 				message: "Start with a creative brief first",
 			});
 		} else {
-			// During BUILDING phase without HTML — not ready for chat yet
+			// During BUILDING phase without HTML - not ready for chat yet
 			throw new TRPCError({
 				code: "BAD_REQUEST",
 				message: "Your email is still being generated, please wait",
@@ -522,7 +522,7 @@ export const nebChatRouter = router({
 			return { html: applied.html, success: true };
 		}),
 
-	/** Generate another design variation — reuses stored brief + webContext */
+	/** Generate another design variation - reuses stored brief + webContext */
 	generateVariation: protectedProcedure
 		.input(generateVariationSchema)
 		.mutation(async ({ ctx, input }) => {

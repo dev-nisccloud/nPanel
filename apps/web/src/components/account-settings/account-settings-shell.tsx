@@ -18,6 +18,7 @@ interface AccountSettingsShellProps {
   activeTab: AccountTab;
   onTabChange: (tab: AccountTab) => void;
   header: ReactNode;
+  banner?: ReactNode;
   children: ReactNode;
 }
 
@@ -27,6 +28,7 @@ export function AccountSettingsShell({
   activeTab,
   onTabChange,
   header,
+  banner,
   children,
 }: AccountSettingsShellProps) {
   return (
@@ -37,6 +39,8 @@ export function AccountSettingsShell({
       </div>
 
       {header}
+
+      {banner}
 
       <div className="flex flex-col gap-5 md:flex-row md:gap-8">
         <nav

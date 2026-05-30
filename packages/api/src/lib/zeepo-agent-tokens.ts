@@ -45,7 +45,7 @@ export type ZeepoAgentTokenBalanceResult = {
 
 /** Active Zeepo AI Agent subscription + token usage row for a team.
  *  Source of truth for balance: `nisc_client_subscription_usage.credits` (usage_kind zeepo_agent_tokens).
- *  `zeepo_agent_token_ledger` is audit history only — editing it does not change the live balance.
+ *  `zeepo_agent_token_ledger` is audit history only - editing it does not change the live balance.
  */
 export async function getZeepoAgentTokensForTeam(
 	teamId: string,

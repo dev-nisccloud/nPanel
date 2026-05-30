@@ -1,5 +1,5 @@
 /**
- * JetBackup 5 — JETAPI TypeScript Definitions
+ * JetBackup 5 - JETAPI TypeScript Definitions
  */
 
 export interface JetBackupPagination {

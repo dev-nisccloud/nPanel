@@ -11,7 +11,7 @@ function normalizeOrigin(value: string | undefined): string | undefined {
 // Direct cross-origin calls to the Cloud Run server break OAuth state cookies (state_mismatch).
 const baseURL = undefined;
 
-/** Direct API origin — only for WebSockets and other non-proxied backend connections. */
+/** Direct API origin - only for WebSockets and other non-proxied backend connections. */
 export const serverBaseURL: string | undefined = normalizeOrigin(import.meta.env.VITE_SERVER_URL);
 
 export function apiUrl(path: string): string {

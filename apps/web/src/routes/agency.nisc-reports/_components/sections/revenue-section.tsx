@@ -79,7 +79,7 @@ export function RevenueSection() {
             <Card className="border-border/50 shadow-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-bold uppercase tracking-tight opacity-70">Invoice breakdown by status</CardTitle>
-                <CardDescription className="text-xs">All statuses included — DRAFT is real business activity.</CardDescription>
+                <CardDescription className="text-xs">All statuses included - DRAFT is real business activity.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="divide-y divide-border/50">
@@ -119,7 +119,7 @@ export function RevenueSection() {
                             <td className="px-4 py-2.5 font-mono text-amber-600">{fmtKes(c.outstanding)}</td>
                             <td className="px-4 py-2.5 font-mono text-red-600">{fmtKes(c.overdueAmount)}</td>
                             <td className="px-4 py-2.5 font-mono">{c.invoiceCount}</td>
-                            <td className="px-4 py-2.5 font-mono">{c.avgDaysToPay > 0 ? `${c.avgDaysToPay.toFixed(0)}d` : "—"}</td>
+                            <td className="px-4 py-2.5 font-mono">{c.avgDaysToPay > 0 ? `${c.avgDaysToPay.toFixed(0)}d` : "-"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -143,12 +143,12 @@ export function RevenueSection() {
                     <tbody className="divide-y divide-border/40">
                       {(outstanding.data?.rows ?? []).map((inv) => (
                         <tr key={inv.id} className="hover:bg-muted/30">
-                          <td className="px-4 py-2.5 font-mono text-xs">{inv.invoiceNumber ?? "—"}</td>
-                          <td className="px-4 py-2.5 font-medium truncate max-w-[160px]">{inv.teamName ?? "—"}</td>
+                          <td className="px-4 py-2.5 font-mono text-xs">{inv.invoiceNumber ?? "-"}</td>
+                          <td className="px-4 py-2.5 font-medium truncate max-w-[160px]">{inv.teamName ?? "-"}</td>
                           <td className="px-4 py-2.5 font-mono font-semibold">{fmtKes(inv.amount)}</td>
-                          <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd, yyyy") : "—"}</td>
+                          <td className="px-4 py-2.5 text-xs">{inv.dueDate ? format(inv.dueDate, "MMM dd, yyyy") : "-"}</td>
                           <td className="px-4 py-2.5"><StatusBadge status={inv.status} /></td>
-                          <td className="px-4 py-2.5 font-mono text-red-600">{inv.daysOverdue > 0 ? `${inv.daysOverdue}d` : "—"}</td>
+                          <td className="px-4 py-2.5 font-mono text-red-600">{inv.daysOverdue > 0 ? `${inv.daysOverdue}d` : "-"}</td>
                         </tr>
                       ))}
                     </tbody>

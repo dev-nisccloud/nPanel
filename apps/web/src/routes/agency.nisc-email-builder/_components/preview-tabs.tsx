@@ -51,7 +51,7 @@ type PreviewTabsProps = {
 	/** Regenerate HTML from approved creative (when email already exists). */
 	onRetryHtmlBuild?: () => void;
 	isRetryingHtml?: boolean;
-	/** Chat AI is revising existing HTML — show overlay, not initial build loader */
+	/** Chat AI is revising existing HTML - show overlay, not initial build loader */
 	isAiRevising?: boolean;
 	onLatestHtmlChange?: (html: string) => void;
 };
@@ -233,7 +233,7 @@ function BuildingLoader({
 }
 
 /**
- * Variation toolbar — rendered between tab header and the preview image.
+ * Variation toolbar - rendered between tab header and the preview image.
  * Shown any time a creative design exists (even just 1 variation).
  */
 function VariationToolbar({
@@ -297,7 +297,7 @@ function VariationToolbar({
 							key={v.id}
 							type="button"
 							onClick={() => onSelectVariation?.(v.id)}
-							title={`Variation ${idx + 1}${isActive ? " — selected for build" : ""}`}
+							title={`Variation ${idx + 1}${isActive ? " - selected for build" : ""}`}
 							className={cn(
 								"group relative shrink-0 rounded-lg overflow-hidden border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 								isActive
@@ -347,7 +347,7 @@ function VariationToolbar({
 			{/* counter */}
 			{variations.length > 0 && (
 				<span className="shrink-0 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-					{selectedIdx >= 0 ? selectedIdx + 1 : "—"} / {variations.length}
+					{selectedIdx >= 0 ? selectedIdx + 1 : "-"} / {variations.length}
 				</span>
 			)}
 
@@ -375,7 +375,7 @@ function VariationToolbar({
 
 /**
  * Renders the email HTML in an iframe that automatically expands to fit the
- * full content height — no empty gray space, no internal scroll bar.
+ * full content height - no empty gray space, no internal scroll bar.
  */
 function AutoSizeIframe({ html, width }: { html: string; width: number }) {
 	const iframeRef = React.useRef<HTMLIFrameElement>(null);
@@ -441,7 +441,7 @@ export function PreviewTabs({
 	const showEmailLoader = isBuilding;
 	const [emailViewMode, setEmailViewMode] = React.useState<"preview" | "edit">("preview");
 	const [editDirty, setEditDirty] = React.useState(false);
-	/** Live HTML from edit canvas — keeps preview tab in sync before refetch completes */
+	/** Live HTML from edit canvas - keeps preview tab in sync before refetch completes */
 	const [livePreviewHtml, setLivePreviewHtml] = React.useState<string | null>(null);
 	const previewHtml = livePreviewHtml ?? htmlContent ?? "";
 
@@ -610,12 +610,12 @@ export function PreviewTabs({
 				</div>
 			</div>
 
-		{/* ── creative tab — only rendered for legacy designs with a mockup ── */}
+		{/* ── creative tab - only rendered for legacy designs with a mockup ── */}
 		{showCreativeTab && <TabsContent
 			value="creative"
 			className="flex-1 m-0 min-h-0 data-[state=inactive]:hidden flex flex-col"
 		>
-				{/* Variation toolbar — always visible once any design exists */}
+				{/* Variation toolbar - always visible once any design exists */}
 				{showToolbar && (
 					<VariationToolbar
 						variations={variations}

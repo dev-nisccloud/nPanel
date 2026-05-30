@@ -345,7 +345,7 @@ export default function DomainsPortfolioPage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-base font-semibold tracking-tight">Domains Portfolio</h1>
           <p className="text-xs text-muted-foreground">
-            Manage and monitor all domains registered through your agency — OpenProvider (international TLDs) and KENIC (.ke and sub-TLDs).
+            Manage and monitor all domains registered through your agency - OpenProvider (international TLDs) and KENIC (.ke and sub-TLDs).
           </p>
         </div>
 

@@ -131,12 +131,12 @@ export function SubscriptionsSection() {
               <tbody className="divide-y divide-border/40">
                 {(list.data?.rows ?? []).map((s) => (
                   <tr key={s.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-2.5 truncate max-w-[140px]">{s.teamName ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-xs truncate">{s.productName ?? "—"}</td>
+                    <td className="px-4 py-2.5 truncate max-w-[140px]">{s.teamName ?? "-"}</td>
+                    <td className="px-4 py-2.5 text-xs truncate">{s.productName ?? "-"}</td>
                     <td className="px-4 py-2.5"><span className={cn("px-2 py-0.5 rounded text-[11px] font-semibold", SUB_STATUS_COLORS[s.status])}>{s.status}</span></td>
-                    <td className="px-4 py-2.5 text-xs">{s.billingCycle ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-xs">{s.billingCycle ?? "-"}</td>
                     <td className="px-4 py-2.5 font-mono font-semibold">{fmtKes(s.mrr)}</td>
-                    <td className="px-4 py-2.5 text-xs">{s.nextRenewalDate ? format(s.nextRenewalDate, "MMM dd") : "—"}</td>
+                    <td className="px-4 py-2.5 text-xs">{s.nextRenewalDate ? format(s.nextRenewalDate, "MMM dd") : "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -157,7 +157,7 @@ export function SubscriptionsSection() {
               </thead>
               <tbody className="divide-y divide-border/40">
                 {(renewals.data ?? []).map((r) => (
-                  <tr key={r.id}><td className="px-4 py-2.5 truncate">{r.teamName}</td><td className="px-4 py-2.5 text-xs truncate">{r.productName}</td><td className="px-4 py-2.5 text-xs">{r.renewalDate ? format(r.renewalDate, "MMM dd") : "—"}</td><td className={cn("px-4 py-2.5 font-bold", r.daysUntilRenewal <= 15 && "text-red-600")}>{r.daysUntilRenewal}d</td><td className="px-4 py-2.5 font-mono">{fmtKes(r.expectedPrice)}</td><td className="px-4 py-2.5 text-xs">{r.autoRenew ? "Yes" : "No"}</td></tr>
+                  <tr key={r.id}><td className="px-4 py-2.5 truncate">{r.teamName}</td><td className="px-4 py-2.5 text-xs truncate">{r.productName}</td><td className="px-4 py-2.5 text-xs">{r.renewalDate ? format(r.renewalDate, "MMM dd") : "-"}</td><td className={cn("px-4 py-2.5 font-bold", r.daysUntilRenewal <= 15 && "text-red-600")}>{r.daysUntilRenewal}d</td><td className="px-4 py-2.5 font-mono">{fmtKes(r.expectedPrice)}</td><td className="px-4 py-2.5 text-xs">{r.autoRenew ? "Yes" : "No"}</td></tr>
                 ))}
               </tbody>
             </table>

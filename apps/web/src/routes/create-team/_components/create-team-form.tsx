@@ -40,8 +40,11 @@ export function CreateTeamForm() {
     onSuccess: (data) => {
       toast.success("Organization created successfully!");
       const teamSlug = data.team.slug;
+      const destination = data.isFirstTeam
+        ? `/${teamSlug}/my-profile?completeProfile=1`
+        : `/${teamSlug}/dashboard`;
       // Full page navigation so server re-runs and sees the new team (avoids staying on create-team)
-      window.location.assign(`/${teamSlug}/dashboard`);
+      window.location.assign(destination);
     },
     onError: (error: { message?: string }) => {
       toast.error(error.message || "Failed to create organization");

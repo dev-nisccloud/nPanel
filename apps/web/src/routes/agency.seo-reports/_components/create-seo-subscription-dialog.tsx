@@ -140,7 +140,7 @@ export function CreateSeoSubscriptionDialog(props: CreateSeoSubscriptionDialogPr
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Create SEO subscription — {integrationLabel}</DialogTitle>
+						<DialogTitle>Create SEO subscription - {integrationLabel}</DialogTitle>
 						<DialogDescription>
 							Link this {props.scope === "SEARCH_CONSOLE" ? "Search Console property" : "GA4 property"} to a
 							team. Search Console and GA4 are separate subscriptions.

@@ -138,7 +138,7 @@ export function ZeepoGenerationsPanel({
                 {active ? (
                   <>
                     <span className="font-medium text-foreground">{taskLabel}</span>
-                    <span className="text-muted-foreground"> — {statusLine}</span>
+                    <span className="text-muted-foreground"> - {statusLine}</span>
                   </>
                 ) : (
                   statusLine

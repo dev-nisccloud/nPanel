@@ -11,7 +11,7 @@ const GA4_MAX_ROWS_PER_REQUEST = 10_000;
 
 /**
  * Metric order for all organic SEO reports.
- * Uses activeUsers — same "Users" metric as standard GA4 acquisition reports.
+ * Uses activeUsers - same "Users" metric as standard GA4 acquisition reports.
  */
 export const GA4_ORGANIC_METRIC_NAMES = [
     'sessions',
@@ -324,7 +324,7 @@ export class GoogleAnalyticsClient {
         }
     }
 
-    /** Period totals — uses response.totals from metricAggregations TOTAL. */
+    /** Period totals - uses response.totals from metricAggregations TOTAL. */
     async getOrganicPeriodTotals(propertyId: string, startDate: string, endDate: string) {
         return this.runOrganicReportSafe(propertyId, {
             dateRanges: [{ startDate, endDate }],

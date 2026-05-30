@@ -14,7 +14,7 @@ import { user } from "./auth";
 import { team } from "./teams";
 
 // =============================================================================
-// Nisc Email Builder (neb_*) — standalone; no relation to email_builder_*
+// Nisc Email Builder (neb_*) - standalone; no relation to email_builder_*
 // =============================================================================
 
 export const nebDesign = pgTable(
@@ -39,7 +39,7 @@ export const nebDesign = pgTable(
 		brief: jsonb("brief"),
 		metadata: jsonb("metadata"),
 
-		/** Full email mockup from Nano Banana Pro — visual guideline for HTML build */
+		/** Full email mockup from Nano Banana Pro - visual guideline for HTML build */
 		creativeDesignUrl: text("creative_design_url"),
 		creativeDesignPrompt: text("creative_design_prompt"),
 		/** Planner output saved after creative approval */
@@ -233,7 +233,7 @@ export const nebActivityLog = pgTable(
 );
 
 // --- NebMediaLibrary ---------------------------------------------------------
-// User-owned images for Nisc Email Builder — not tied to a design; reusable across projects.
+// User-owned images for Nisc Email Builder - not tied to a design; reusable across projects.
 
 export const nebMediaLibrary = pgTable(
 	"neb_media_library",

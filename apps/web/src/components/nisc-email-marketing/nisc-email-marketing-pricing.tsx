@@ -12,7 +12,7 @@ type NiscEmailMarketingPricingProps = {
 	className?: string;
 };
 
-/** Customer pricing table — same scrollable layout as Zeepo AI Agent pricing. */
+/** Customer pricing table - same scrollable layout as Zeepo AI Agent pricing. */
 export function NiscEmailMarketingPricing({ className }: NiscEmailMarketingPricingProps) {
 	const { teamId } = useNiscEmailMarketingRoute();
 

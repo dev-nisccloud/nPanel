@@ -51,7 +51,7 @@ export async function buildNebSessionHistoryContext(params: {
 		lines.push("", "━━━ SAVED VERSIONS (newest first) ━━━");
 		for (const v of versions) {
 			lines.push(
-				`- v${v.versionNumber} [${v.trigger}]: ${v.changeSummary ?? "—"}`,
+				`- v${v.versionNumber} [${v.trigger}]: ${v.changeSummary ?? "-"}`,
 			);
 		}
 	}

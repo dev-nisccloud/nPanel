@@ -90,7 +90,7 @@ function tryExtractAssistantTextFromRaw(raw: string): string {
 			.replace(/\\\\/g, "\\")
 			.trim();
 	}
-	// Nothing salvageable — return a safe fallback the user can act on.
+	// Nothing salvageable - return a safe fallback the user can act on.
 	return "I ran into an issue generating a response. Please try again.";
 }
 
@@ -109,7 +109,7 @@ function mapRowToAgentMessage(m: {
 		const attachLines = attachments
 			.map(
 				(a, i) =>
-					`[ATTACHED_FILE_${i + 1}: "${a.name}" | type: ${a.mimeType} | url: ${a.url} — use this URL as reference_image_url when creating or referencing this asset]`,
+					`[ATTACHED_FILE_${i + 1}: "${a.name}" | type: ${a.mimeType} | url: ${a.url} - use this URL as reference_image_url when creating or referencing this asset]`,
 			)
 			.join("\n");
 		content = `${content}\n\n${attachLines}`;
@@ -401,7 +401,7 @@ export const zeepoAgentChatRouter = router({
 					break;
 				}
 
-				// Large budget — create_document and web_search grounding can easily push past
+				// Large budget - create_document and web_search grounding can easily push past
 				// 10 000 tokens in JSON form. Keeping it high avoids truncated JSON that
 				// falls back to displaying the raw orchestration response in the UI.
 				const maxTokens = iteration === 1 ? 16000 : iteration <= 3 ? 12000 : 6000;
@@ -779,7 +779,7 @@ export const zeepoAgentChatRouter = router({
 						}
 						}
 				} else if (tc.name === "get_user_session") {
-						// No meaningful args — validate defensively but always proceed.
+						// No meaningful args - validate defensively but always proceed.
 						getSessionInfoArgsSchema.safeParse(rawArgs);
 						try {
 							// Fetch the authenticated user's role and profile in parallel.
@@ -892,7 +892,7 @@ export const zeepoAgentChatRouter = router({
 	/**
 	 * Generate a short title for a session based on its first 3 user messages.
 	 * No-ops if the title is already set (not "New chat" / not null).
-	 * Runs a lightweight direct Replicate call — does not go through the full
+	 * Runs a lightweight direct Replicate call - does not go through the full
 	 * orchestration pipeline.
 	 */
 	generateTitle: zeepoAgentProcedure
@@ -952,7 +952,7 @@ export const zeepoAgentChatRouter = router({
 				)
 					? {
 							system_prompt:
-								"You write short chat titles. Output ONLY the title — 4 to 6 words, sentence case, no punctuation, no quotes.",
+								"You write short chat titles. Output ONLY the title - 4 to 6 words, sentence case, no punctuation, no quotes.",
 							prompt: `Based on these user messages, write a short chat title:\n${firstThree.map((t, i) => `${i + 1}. ${t}`).join("\n")}`,
 							max_tokens: 32,
 						}
@@ -987,7 +987,7 @@ export const zeepoAgentChatRouter = router({
 					.replace(/\.$/, "")
 					.slice(0, 100);
 			} catch {
-				// AI call failed — use heuristic title derived from message content.
+				// AI call failed - use heuristic title derived from message content.
 			}
 
 			if (!newTitle || newTitle.toLowerCase() === "new chat") {
@@ -1005,7 +1005,7 @@ export const zeepoAgentChatRouter = router({
 		}),
 
 	/**
-	 * Synchronous AI image edit — no background job, result returned directly.
+	 * Synchronous AI image edit - no background job, result returned directly.
 	 *
 	 * Uses black-forest-labs/flux-2-pro with the source image passed via
 	 * input_images for image-to-image editing. When the user has drawn a mask,
@@ -1017,7 +1017,7 @@ export const zeepoAgentChatRouter = router({
 			const userId = ctx.session?.user?.id;
 			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-			// Validate the session belongs to this user (auth gate only — no DB write).
+			// Validate the session belongs to this user (auth gate only - no DB write).
 			const session = await db.query.zeepoAgentSession.findFirst({
 				where: eq(zeepoAgentSession.id, input.sessionId),
 				columns: { id: true, userId: true, teamId: true },
@@ -1094,7 +1094,7 @@ export const zeepoAgentChatRouter = router({
 
 					return { imageUrl: persistedUrl };
 				} catch {
-					// Non-fatal — return the Replicate URL even if persist fails
+					// Non-fatal - return the Replicate URL even if persist fails
 				}
 			}
 

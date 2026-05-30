@@ -1,6 +1,6 @@
 /**
  * Round a converted price up to the nearest whole number.
- * Never rounds down — fractional amounts always ceil to protect revenue.
+ * Never rounds down - fractional amounts always ceil to protect revenue.
  */
 export function ceilConvertedPrice(amount: number): number {
   if (!Number.isFinite(amount)) return 0;

@@ -1,5 +1,5 @@
 /**
- * UI shape for creative asset AI analysis — mirrors API `detail` from
+ * UI shape for creative asset AI analysis - mirrors API `detail` from
  * `creativeAssets.runAiImageAnalysis` / `listAiImageAnalyses`.
  */
 export type CreativeAssetAiAnalysisDetailView = {

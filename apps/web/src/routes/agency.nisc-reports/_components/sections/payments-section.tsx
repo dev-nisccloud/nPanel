@@ -87,8 +87,8 @@ export function PaymentsSection() {
                   <tr key={r.id} className="hover:bg-muted/20">
                     <td className="px-4 py-2.5 text-xs">{format(r.initiatedAt, "MMM dd HH:mm")}</td>
                     <td className="px-4 py-2.5 text-[10px] font-bold uppercase">{r.gateway}</td>
-                    <td className="px-4 py-2.5 truncate max-w-[140px]">{r.teamName ?? "—"}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs">{r.phoneNumber ?? "—"}</td>
+                    <td className="px-4 py-2.5 truncate max-w-[140px]">{r.teamName ?? "-"}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{r.phoneNumber ?? "-"}</td>
                     <td className="px-4 py-2.5 font-mono font-semibold">{fmtKes(r.amount)}</td>
                     <td className="px-4 py-2.5 flex items-center gap-2">
                       <span className={cn("px-2 py-0.5 rounded text-[11px] font-semibold", r.status === "FAILED" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" : "bg-amber-100 text-amber-800")}>{r.status}</span>
@@ -124,10 +124,10 @@ export function PaymentsSection() {
               <tbody className="divide-y divide-border/40">
                 {(refunds.data?.rows ?? []).map((r) => (
                   <tr key={r.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-2.5 text-xs">{r.refundedAt ? format(r.refundedAt, "MMM dd HH:mm") : "—"}</td>
+                    <td className="px-4 py-2.5 text-xs">{r.refundedAt ? format(r.refundedAt, "MMM dd HH:mm") : "-"}</td>
                     <td className="px-4 py-2.5 text-[10px] font-bold uppercase">{r.gateway}</td>
-                    <td className="px-4 py-2.5 truncate max-w-[160px]">{r.teamName ?? "—"}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs">{r.receiptNumber ?? "—"}</td>
+                    <td className="px-4 py-2.5 truncate max-w-[160px]">{r.teamName ?? "-"}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{r.receiptNumber ?? "-"}</td>
                     <td className="px-4 py-2.5 font-mono text-purple-600 font-semibold">{fmtKes(r.amount)}</td>
                   </tr>
                 ))}

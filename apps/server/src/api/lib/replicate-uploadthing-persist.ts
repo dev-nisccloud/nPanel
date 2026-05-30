@@ -15,7 +15,7 @@ export class ReplicatePersistError extends Error {
  * Recursively re-upload Replicate delivery URLs to UploadThing for durable URLs.
  * Used by Zeepo Canvas and Zeepo Agent Replicate webhooks.
  *
- * **Throws ReplicatePersistError** if any Replicate-hosted URL cannot be persisted —
+ * **Throws ReplicatePersistError** if any Replicate-hosted URL cannot be persisted -
  * callers must mark the generation FAILED instead of saving ephemeral URLs.
  */
 export async function persistReplicateOutputToUploadThing(

@@ -25,15 +25,15 @@ export type MockAiLatest = {
   modelLabel: string;
   /** Denominator for headline score (persisted as overall_rating_scale_max) */
   overallRatingScaleMax: number;
-  /** Headline score — persisted as overall_rating_value */
+  /** Headline score - persisted as overall_rating_value */
   overallRatingValue: number;
   /** Persisted as overall_rating_reason */
   overallRatingReason: string;
-  /** Optional tier — persisted as overall_rating_band */
+  /** Optional tier - persisted as overall_rating_band */
   overallRatingBand: string | null;
-  /** 0–1 when available — persisted as confidence_score */
+  /** 0–1 when available - persisted as confidence_score */
   confidenceScore: number | null;
-  /** One-line card copy — persisted as summary */
+  /** One-line card copy - persisted as summary */
   ratingSummary: string;
   /** Supporting narrative (can overlap with reason; often a shorter “context” blurb) */
   overallSummary: string;
@@ -91,7 +91,7 @@ export function buildMockAiAnalysis(params: {
     confidenceScore: 0.82,
     ratingSummary: `${ratingValue.toFixed(1)}/${ratingScale} · Strong social-ready creative with minor crop and accessibility caveats`,
     overallSummary:
-      "Beyond the headline score: composition reads quickly at thumbnail size, palette feels on-brief, and export quality is adequate for web—see dimension scores for where to polish.",
+      "Beyond the headline score: composition reads quickly at thumbnail size, palette feels on-brief, and export quality is adequate for web-see dimension scores for where to polish.",
     scores: [
       {
         id: "composition",
@@ -105,7 +105,7 @@ export function buildMockAiAnalysis(params: {
         label: "Brand & tone fit",
         value: 76,
         max: 100,
-        note: "Professional and approachable—verify logo clear space in tighter crops.",
+        note: "Professional and approachable-verify logo clear space in tighter crops.",
       },
       {
         id: "technical",
@@ -143,7 +143,7 @@ export function buildMockAiAnalysis(params: {
       "Shift focal weight 5–8% left to balance negative space before final handoff.",
       "Export alternate 1080×1080 crop with tighter vertical padding for Stories.",
       "Add a subdued scrim layer behind eyebrow copy if localization lengthens headline strings.",
-      "Archive this run alongside client feedback—the history tab will surface past analyses for asset " +
+      "Archive this run alongside client feedback-the history tab will surface past analyses for asset " +
         creativeAssetId.slice(0, 8) +
         "… once persistence is enabled.",
       "This preview uses version ID " +
@@ -166,7 +166,7 @@ export function buildMockAiAnalysis(params: {
     ratingSummary:
       "7.9/10 · Strong foundation; minor crop/contrast friction vs the current baseline.",
     overallSummary:
-      "Compared with the newest run: dimension scores dipped slightly on accessibility and balance—still release-capable with a tightened crop preset.",
+      "Compared with the newest run: dimension scores dipped slightly on accessibility and balance-still release-capable with a tightened crop preset.",
     scores: [
       {
         id: "composition",
@@ -211,7 +211,7 @@ export function buildMockAiAnalysis(params: {
       {
         title: "Residual risks",
         body:
-          "Localized longer headlines may collide with SKU chip—plan overflow rules before launch.",
+          "Localized longer headlines may collide with SKU chip-plan overflow rules before launch.",
       },
     ],
     recommendations: [
@@ -230,7 +230,7 @@ export function buildMockAiAnalysis(params: {
       "7.4 captures a competent first-pass creative: composition and technical quality are ahead of brand/accessibility tuning, which is typical right after upload before reviewer feedback.",
     overallRatingBand: "GOOD",
     confidenceScore: 0.71,
-    ratingSummary: "7.4/10 · Baseline upload pass — strong structure, refinements still pending.",
+    ratingSummary: "7.4/10 · Baseline upload pass - strong structure, refinements still pending.",
     overallSummary:
       "This run predates crop refinements; expect lower balance and brand scores until brand kit overlays are applied.",
     scores: [
@@ -260,7 +260,7 @@ export function buildMockAiAnalysis(params: {
         label: "Clarity / accessibility",
         value: 60,
         max: 100,
-        note: "Initial pass—text stacks not yet audited for WCAG.",
+        note: "Initial pass-text stacks not yet audited for WCAG.",
       },
     ],
     sections: [
@@ -272,7 +272,7 @@ export function buildMockAiAnalysis(params: {
       {
         title: "Production notes",
         body:
-          "Export uses sRGB JPEG q85 — acceptable MVP; migrate to WebP for hero carousel after approval.",
+          "Export uses sRGB JPEG q85 - acceptable MVP; migrate to WebP for hero carousel after approval.",
       },
     ],
     recommendations: [
@@ -300,7 +300,7 @@ export function buildMockAiAnalysis(params: {
       id: "mock-history-2",
       createdAtLabel: "May 12, 2026 · 11:06 AM",
       versionLabel: `Internal v${Math.max(1, internalVersionNumber - 1)}`,
-      summary: "7.4/10 · Baseline analysis after asset upload — composition strong, palette neutral.",
+      summary: "7.4/10 · Baseline analysis after asset upload - composition strong, palette neutral.",
       status: "COMPLETED",
       overallRatingValue: 7.4,
       overallRatingScaleMax: 10,
@@ -313,7 +313,7 @@ export function buildMockAiAnalysis(params: {
       versionLabel: `Internal v${Math.max(1, internalVersionNumber - 2)}`,
       summary: "Provider timeout (mock FAILED row in history).",
       status: "FAILED",
-      detail: "Simulated outage — no charges; safe to retry. Real failures will persist error_message.",
+      detail: "Simulated outage - no charges; safe to retry. Real failures will persist error_message.",
     },
   ];
 

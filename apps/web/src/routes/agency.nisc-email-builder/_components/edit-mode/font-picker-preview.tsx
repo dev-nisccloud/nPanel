@@ -24,7 +24,7 @@ type FontFamilyPreviewProps = {
 
 /**
  * Renders the font name using only the Google family (no Arial/Georgia fallback)
- * so users see the real webfont when loaded — not the system UI font.
+ * so users see the real webfont when loaded - not the system UI font.
  */
 export function FontFamilyPreview({
 	font,

@@ -339,7 +339,7 @@ export interface VersionAiAnalysisSheetProps {
   onOpenChange: (open: boolean) => void;
   /** True while Replicate/analysis mutation is in flight */
   isLoading: boolean;
-  /** Starts another analysis pass — must call API mutation in parent */
+  /** Starts another analysis pass - must call API mutation in parent */
   onRunNewAnalysis?: (userContext?: string) => void;
   versionId: string;
   internalVersionNumber: number;

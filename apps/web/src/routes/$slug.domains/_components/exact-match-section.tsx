@@ -150,7 +150,7 @@ export function ExactMatchSection({
 	}, [fullDomain, isKenic, parsed?.name, parsed?.tld]);
 
 	// OpenProvider: clear when domain changes; start pricing batch when raw data exists (after paint).
-	// Use stable `calculatePricesBatch` in deps — the full `pricingHook` object is a new reference every render.
+	// Use stable `calculatePricesBatch` in deps - the full `pricingHook` object is a new reference every render.
 	React.useEffect(() => {
 		if (!openProviderRaw || !calculatePricesBatch) {
 			setOpenProviderResult(null);

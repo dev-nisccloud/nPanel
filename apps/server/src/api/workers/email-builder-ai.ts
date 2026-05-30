@@ -48,7 +48,7 @@ export async function handleEmailBuilderAi(c: Context) {
 
 	// Guard against re-entrant runs (Stale check: Only skip if COMPLETED)
 	if (design.aiStatus === "COMPLETED") {
-		console.info(`[EmailBuilderAI] Design ${designId} already completed — skipping`);
+		console.info(`[EmailBuilderAI] Design ${designId} already completed - skipping`);
 		return c.json({ message: "AI generation already completed" });
 	}
 

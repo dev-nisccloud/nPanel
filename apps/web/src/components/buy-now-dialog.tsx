@@ -54,6 +54,7 @@ import {
   PaymentMethodOption,
   PaymentMethodTrigger,
 } from "@/components/payment-method-accordion";
+import { MpesaPaymentFields } from "@/components/mpesa-payment-fields";
 import { Badge } from "@/components/ui/badge";
 import { trpc, type RouterInputs } from "@/utils/trpc";
 import type { UseMutationResult } from "@tanstack/react-query";
@@ -89,6 +90,20 @@ import {
   validateMpesaAccountReference,
 } from "@/lib/mpesa-account-reference";
 import {
+  canonicalMpesaPaymentAmount,
+  resolveMpesaCheckoutPayment,
+} from "@/lib/mpesa-checkout-payment";
+import { PurchaseAsBusinessOption } from "@/components/checkout/purchase-as-business-option";
+import {
+  CheckoutTeamBillingForm,
+  type CheckoutTeamBillingInitialData,
+} from "@/components/checkout/checkout-team-billing-form";
+import {
+  isTeamBillingComplete,
+  needsCheckoutTeamBillingStep,
+} from "@/lib/team-billing-completion";
+import { getCustomerTeamSlugFromPathname } from "@/lib/customer-team-slug";
+import {
   generateDefaultHivelocityHostname,
 } from "@/lib/hivelocity-default-hostname";
 import {
@@ -107,6 +122,8 @@ import {
   HivelocityAddonOptionRow,
 } from "@/components/hivelocity-addon-option-row";
 import { ceilConvertedPrice, computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
+
+const CHECKOUT_TEAM_BILLING_FORM_ID = "checkout-team-billing-form";
 
 export interface ServicePlanDetails {
   planId: string;
@@ -142,7 +159,7 @@ interface BuyNowDialogProps {
   plan: ServicePlanDetails | null;
   /** When true, show "Connect your domain" step before review (e.g. when opened from hosting/emails) */
   requireDomainStep?: boolean;
-  /** Team route slug (customer portal) — used to load domain subscriptions for hostname. */
+  /** Team route slug (customer portal) - used to load domain subscriptions for hostname. */
   teamSlug?: string;
   /** Team ID used to load domains for the dropdown (required when requireDomainStep is true) */
   teamId?: string;
@@ -172,6 +189,7 @@ type Step =
   | "agency_billing"
   | "hivelocity_config"
   | "review"
+  | "team_billing"
   | "payment"
   | "success"
   | "error";
@@ -335,7 +353,7 @@ export function BuyNowDialog({
   const [selectedAgencyTeamId, setSelectedAgencyTeamId] = React.useState("");
   const [selectedAgencyUserId, setSelectedAgencyUserId] = React.useState("");
 
-  /** Agency portfolio checkout: list all client teams (requires agency role — server enforces). */
+  /** Agency portfolio checkout: list all client teams (requires agency role - server enforces). */
   const { data: agencyTeams = [], isLoading: loadingAgencyTeams } = trpc.teams.getAll.useQuery(
     undefined,
     {
@@ -366,18 +384,59 @@ export function BuyNowDialog({
   );
   const selectedAgencyUserItem = agencyUserItems.find((u) => u.id === selectedAgencyUserId);
 
+  const resolvedTeamSlug = React.useMemo(
+    () => teamSlug ?? getCustomerTeamSlugFromPathname(location.pathname),
+    [teamSlug, location.pathname],
+  );
+  const { data: checkoutTeamBySlug } = trpc.teams.getTeamIdBySlug.useQuery(
+    { slug: resolvedTeamSlug ?? "" },
+    {
+      enabled: open && !!resolvedTeamSlug && !teamId && !showAgencyBillingStep,
+    },
+  );
+
   const resolvedCheckoutTeamId = React.useMemo(() => {
     if (showAgencyBillingStep) {
       if (agencyLinkType === "team") return selectedAgencyTeamId || undefined;
       return undefined;
     }
-    return teamId ?? undefined;
-  }, [showAgencyBillingStep, agencyLinkType, selectedAgencyTeamId, teamId]);
+    return teamId ?? checkoutTeamBySlug?.id ?? undefined;
+  }, [showAgencyBillingStep, agencyLinkType, selectedAgencyTeamId, teamId, checkoutTeamBySlug?.id]);
 
   const resolvedBilledForUserId = React.useMemo(() => {
     if (showAgencyBillingStep && agencyLinkType === "user") return selectedAgencyUserId || undefined;
     return undefined;
   }, [showAgencyBillingStep, agencyLinkType, selectedAgencyUserId]);
+
+  const [purchaseAsBusiness, setPurchaseAsBusiness] = React.useState(false);
+  const showPurchaseAsBusinessOption = !isAgencySide && !!resolvedCheckoutTeamId;
+  const teamBillingQuery = trpc.teamBilling.getByTeam.useQuery(
+    { teamId: resolvedCheckoutTeamId ?? "" },
+    {
+      enabled:
+        open &&
+        !!resolvedCheckoutTeamId &&
+        !isAgencySide &&
+        (purchaseAsBusiness || currentStep === "team_billing"),
+    },
+  );
+  const teamBilling = teamBillingQuery.data;
+  const teamBillingInitialData = React.useMemo((): CheckoutTeamBillingInitialData | null => {
+    if (!teamBilling) return null;
+    return {
+      legalName: teamBilling.legalName,
+      billingEmail: teamBilling.billingEmail,
+      billingPhone: teamBilling.billingPhone ?? null,
+      addressLine1: teamBilling.addressLine1,
+      addressLine2: teamBilling.addressLine2 ?? null,
+      city: teamBilling.city,
+      state: teamBilling.state ?? null,
+      country: teamBilling.country,
+      postalCode: teamBilling.postalCode ?? null,
+      taxId: teamBilling.taxId ?? null,
+      additionalNotes: teamBilling.additionalNotes ?? null,
+    };
+  }, [teamBilling]);
 
   const canProceedFromAgencyBilling =
     agencyLinkType === "self" ||
@@ -758,6 +817,9 @@ export function BuyNowDialog({
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
   const [paymentAmount, setPaymentAmount] = React.useState<string>("");
   const [accountReference, setAccountReference] = React.useState<string>("");
+  /** Canonical checkout values — used for STK push when the payer is not agency. */
+  const intendedPaymentAmountRef = React.useRef("");
+  const intendedAccountReferenceRef = React.useRef("");
   
   // Validation errors
   const [accountRefError, setAccountRefError] = React.useState<string>("");
@@ -904,6 +966,7 @@ export function BuyNowDialog({
               ? "payment"
               : "review";
       setCurrentStep(first);
+      setPurchaseAsBusiness(false);
       setManualDomain("");
       setSelectedDomainId(null);
       defaultHostnameRef.current = plan.hivelocity
@@ -920,6 +983,8 @@ export function BuyNowDialog({
       setMpesaPhoneNumber("");
       setPaymentAmount("");
       setAccountReference("");
+      intendedPaymentAmountRef.current = "";
+      intendedAccountReferenceRef.current = "";
       setAccountRefError("");
       setPhoneError("");
       setAmountError("");
@@ -940,6 +1005,7 @@ export function BuyNowDialog({
       setSelectedAgencyUserId("");
 
       const ref = generateMpesaAccountReference(plan.planName);
+      intendedAccountReferenceRef.current = ref;
       setAccountReference(ref);
       setAccountRefError(validateMpesaAccountReference(ref));
     }
@@ -955,7 +1021,9 @@ export function BuyNowDialog({
     const enteredPayment =
       currentStep === "payment" && prevStepRef.current !== "payment";
     if (enteredPayment) {
-      setPaymentAmount(paymentTotalString(pricing.total));
+      const amountValue = canonicalMpesaPaymentAmount(pricing.total);
+      intendedPaymentAmountRef.current = amountValue;
+      setPaymentAmount(amountValue);
     }
     prevStepRef.current = currentStep;
   }, [open, plan, currentStep, pricing.total]);
@@ -1016,11 +1084,12 @@ export function BuyNowDialog({
     }
   };
 
-  // Amount validation
+  // Amount validation (agency only — customers pay the computed order total)
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAgencyUser) return;
     const value = e.target.value;
     setPaymentAmount(value);
-    
+
     const numValue = parseFloat(value);
     if (!value) {
       setAmountError("Amount is required");
@@ -1031,7 +1100,13 @@ export function BuyNowDialog({
     }
   };
 
-  // Account reference is auto-generated and read-only on the payment step.
+  const handleAccountReferenceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isAgencyUser) return;
+    const value = e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
+    setAccountReference(value);
+    setAccountRefError(validateMpesaAccountReference(value));
+  };
+
   // M-Pesa STK Push mutation
   const initiateMpesaPayment = trpc.paymentGateway.mpesa.initiateStkPush.useMutation({
     onSuccess: (response) => {
@@ -1126,6 +1201,27 @@ export function BuyNowDialog({
     usdToKesRate,
   ]);
 
+  const openPaymentStep = React.useCallback(() => {
+    setCurrentStep("payment");
+    const amountValue = canonicalMpesaPaymentAmount(pricing.total);
+    intendedPaymentAmountRef.current = amountValue;
+    setPaymentAmount(amountValue);
+    if (plan) {
+      hivelocityCheckoutSnapshotRef.current = buildHivelocityPaymentItem();
+      const ref = generateMpesaAccountReference(plan.planName);
+      intendedAccountReferenceRef.current = ref;
+      setAccountReference(ref);
+      setAccountRefError(validateMpesaAccountReference(ref));
+    }
+  }, [pricing.total, plan, buildHivelocityPaymentItem]);
+
+  const handleTeamBillingSaved = React.useCallback(async () => {
+    const result = await teamBillingQuery.refetch();
+    if (isTeamBillingComplete(result.data)) {
+      openPaymentStep();
+    }
+  }, [teamBillingQuery, openPaymentStep]);
+
   // When payment step reaches success and we have plan+team+domain, create order and send to processing (once per checkout)
   React.useEffect(() => {
     if (currentStep !== "success" || !checkoutRequestId || !plan?.productId) return;
@@ -1168,11 +1264,14 @@ export function BuyNowDialog({
       return;
     }
 
-    const parsedPaid = Number.parseFloat(paymentAmount);
-    const priceStr =
-      paymentAmount.trim() && Number.isFinite(parsedPaid) && parsedPaid > 0
-        ? paymentTotalString(parsedPaid)
-        : paymentTotalString(plan.price ?? 0);
+    const resolved = resolveMpesaCheckoutPayment({
+      isAgencyUser,
+      formAmount: paymentAmount,
+      formAccountReference: accountReference,
+      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(pricing.total),
+      intendedAccountReference: intendedAccountReferenceRef.current,
+    });
+    const priceStr = resolved.amountString;
     createOrderFromPayment.mutate(
       {
         checkoutRequestId,
@@ -1210,7 +1309,9 @@ export function BuyNowDialog({
     showDomainStep,
     effectiveDomain,
     createOrderFromPayment,
-    paymentAmount,
+    isAgencyUser,
+    accountReference,
+    pricing.total,
   ]);
 
   // Poll payment status ?? real-time only, no cache
@@ -1299,17 +1400,32 @@ export function BuyNowDialog({
 
   // Handle M-Pesa payment
   const handleMpesaPayment = () => {
-    if (!mpesaPhoneNumber || !paymentAmount || !accountReference) {
+    const resolved = resolveMpesaCheckoutPayment({
+      isAgencyUser,
+      formAmount: paymentAmount,
+      formAccountReference: accountReference,
+      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(pricing.total),
+      intendedAccountReference: intendedAccountReferenceRef.current,
+    });
+
+    if (!mpesaPhoneNumber || !resolved.amountString || !resolved.accountReference) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    if (accountRefError || phoneError || amountError) {
+    const refErr = validateMpesaAccountReference(resolved.accountReference);
+    if (refErr) {
+      setAccountRefError(refErr);
       toast.error("Please fix the errors before proceeding");
       return;
     }
 
-    const amount = parseFloat(paymentAmount);
+    if (phoneError) {
+      toast.error("Please fix the errors before proceeding");
+      return;
+    }
+
+    const amount = resolved.amount;
     if (isNaN(amount) || amount <= 0) {
       toast.error("Invalid payment amount");
       return;
@@ -1327,7 +1443,7 @@ export function BuyNowDialog({
     initiateMpesaPayment.mutate({
       phoneNumber: formattedPhone,
       amount: amount,
-      accountReference: accountReference.trim(),
+      accountReference: resolved.accountReference,
       transactionDesc,
       ...(resolvedCheckoutTeamId && { teamId: resolvedCheckoutTeamId }),
     });
@@ -1355,7 +1471,14 @@ export function BuyNowDialog({
       setManualTransactionRefError("Reference must be at least 3 characters");
       return;
     }
-    const amount = parseFloat(paymentAmount);
+    const resolved = resolveMpesaCheckoutPayment({
+      isAgencyUser,
+      formAmount: paymentAmount,
+      formAccountReference: accountReference,
+      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(pricing.total),
+      intendedAccountReference: intendedAccountReferenceRef.current,
+    });
+    const amount = resolved.amount;
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error("Enter a valid payment amount.");
       return;
@@ -1368,7 +1491,7 @@ export function BuyNowDialog({
         transactionReference: ref,
         amount,
         currency: plan?.currency ?? "KES",
-        accountReference: accountReference.trim() || undefined,
+        accountReference: resolved.accountReference || undefined,
         transactionDesc,
         ...(resolvedCheckoutTeamId ? { teamId: resolvedCheckoutTeamId } : {}),
       });
@@ -1460,12 +1583,18 @@ export function BuyNowDialog({
         return;
       }
 
-      setCurrentStep("payment");
-      setPaymentAmount(paymentTotalString(pricing.total));
-      hivelocityCheckoutSnapshotRef.current = buildHivelocityPaymentItem();
-      const ref = generateMpesaAccountReference(plan.planName);
-      setAccountReference(ref);
-      setAccountRefError(validateMpesaAccountReference(ref));
+      if (purchaseAsBusiness && resolvedCheckoutTeamId) {
+        if (teamBillingQuery.isLoading || teamBillingQuery.isFetching) {
+          toast.message("Checking company billing details…");
+          return;
+        }
+        if (needsCheckoutTeamBillingStep(purchaseAsBusiness, teamBilling)) {
+          setCurrentStep("team_billing");
+          return;
+        }
+      }
+
+      openPaymentStep();
     }
   };
 
@@ -1476,6 +1605,8 @@ export function BuyNowDialog({
       } else {
         setCurrentStep("review");
       }
+    } else if (currentStep === "team_billing") {
+      setCurrentStep("review");
     } else if (currentStep === "review") {
       if (showAgencyBillingStep) {
         setCurrentStep("agency_billing");
@@ -1505,7 +1636,7 @@ export function BuyNowDialog({
                 Connect Search Console &amp; GA4
               </h3>
               <p className="text-sm text-muted-foreground">
-                After payment, you&apos;ll link properties in SEO Reports—no add-ons in this checkout.
+                After payment, you&apos;ll link properties in SEO Reports-no add-ons in this checkout.
               </p>
             </div>
 
@@ -1566,7 +1697,7 @@ export function BuyNowDialog({
                   Domain
                 </p>
                 <p className="mt-2 text-xl font-semibold font-mono text-foreground break-all">
-                  {rawPortfolio || "—"}
+                  {rawPortfolio || "-"}
                 </p>
               </div>
 
@@ -1752,7 +1883,7 @@ export function BuyNowDialog({
               <HivelocityConfigSectionHeading
                 step={3}
                 title="Add-ons"
-                description="Optional extras — review these before continuing."
+                description="Optional extras - review these before continuing."
               />
               <div className="rounded-xl border p-4">
                 <div className="flex items-center justify-end gap-3">
@@ -1801,7 +1932,7 @@ export function BuyNowDialog({
                                     )
                                   }
                                   label="No selection"
-                                  description={`Skip ${group} — nothing from this category will be added.`}
+                                  description={`Skip ${group} - nothing from this category will be added.`}
                                 />
                               ) : null}
                               {(rows as any[]).map((opt: any) => {
@@ -2136,6 +2267,13 @@ export function BuyNowDialog({
               </div>
             </ScrollArea>
 
+            {showPurchaseAsBusinessOption ? (
+              <PurchaseAsBusinessOption
+                value={purchaseAsBusiness}
+                onChange={setPurchaseAsBusiness}
+              />
+            ) : null}
+
             {/* Coupon Code */}
             <div className="space-y-2">
               <div className="text-sm text-muted-foreground">Coupon code</div>
@@ -2157,7 +2295,7 @@ export function BuyNowDialog({
               </div>
             </div>
 
-            {/* Taxes & Fees — non-Hivelocity only (Hivelocity totals are in invoice breakdown) */}
+            {/* Taxes & Fees - non-Hivelocity only (Hivelocity totals are in invoice breakdown) */}
             {!plan.hivelocity ? (
               <>
                 <div className="flex items-center justify-between text-sm">
@@ -2199,9 +2337,29 @@ export function BuyNowDialog({
           </div>
         );
 
-      case "payment":
+      case "team_billing":
+        if (!resolvedCheckoutTeamId) return null;
         return (
           <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Company billing details</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add your company billing information so we can invoice this order correctly.
+              </p>
+            </div>
+            <CheckoutTeamBillingForm
+              teamId={resolvedCheckoutTeamId}
+              formId={CHECKOUT_TEAM_BILLING_FORM_ID}
+              isLoading={teamBillingQuery.isLoading}
+              initialData={teamBillingInitialData}
+              onSaved={() => void handleTeamBillingSaved()}
+            />
+          </div>
+        );
+
+      case "payment":
+        return (
+          <div className="max-w-[calc(100%-0.75rem)] space-y-4 pr-2">
             <div className="text-center py-2">
               <h3 className="text-lg font-semibold text-foreground mb-2">
                 Choose Payment Method
@@ -2223,7 +2381,7 @@ export function BuyNowDialog({
                     variant="mpesa"
                     icon={<img src="/mpesa.png" alt="M-Pesa" className="h-full w-full object-contain" />}
                     title="M-Pesa"
-                    description="Pay instantly from your phone — secured by Nisc Cloud"
+                    description="Pay instantly from your phone - secured by Nisc Cloud"
                   />
                 }
               >
@@ -2251,69 +2409,30 @@ export function BuyNowDialog({
                         </div>
                       ) : (
                         <div className="space-y-4 pt-2">
-                          <div className="space-y-2">
-                            <label htmlFor="mpesa-phone" className="text-sm font-medium text-foreground">
-                              Phone Number <span className="text-destructive">*</span>
-                            </label>
-                            <Input
-                              id="mpesa-phone"
-                              placeholder="0712345678 or 254712345678"
-                              value={mpesaPhoneNumber}
-                              onChange={handlePhoneNumberChange}
-                              className={`w-full ${phoneError ? "border-destructive" : ""}`}
-                            />
-                            {phoneError ? (
-                              <p className="text-xs text-destructive">{phoneError}</p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                Enter your M-Pesa registered phone number
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <label htmlFor="payment-amount" className="text-sm font-medium text-foreground">
-                              Amount ({pricing.displayCurrency}) <span className="text-destructive">*</span>
-                            </label>
-                            <Input
-                              id="payment-amount"
-                              type="number"
-                              placeholder="Enter amount"
-                              value={paymentAmount}
-                              onChange={handleAmountChange}
-                              className={`w-full ${amountError ? "border-destructive" : ""}`}
-                              min="1"
-                              step="1"
-                            />
-                            {amountError ? (
-                              <p className="text-xs text-destructive">{amountError}</p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                Cart total: {formatPrice(pricing.total, pricing.displayCurrency)} (editable for testing)
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="space-y-2">
-                            <label htmlFor="account-reference" className="text-sm font-medium text-foreground">
-                              Account Reference
-                            </label>
-                            <Input
-                              id="account-reference"
-                              value={accountReference}
-                              readOnly
-                              disabled
-                              className="w-full bg-muted/50 cursor-default text-foreground disabled:opacity-100"
-                              maxLength={12}
-                            />
-                            {accountRefError ? (
-                              <p className="text-xs text-destructive">{accountRefError}</p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                Auto-generated for this order ({accountReference.length}/12)
-                              </p>
-                            )}
-                          </div>
+                          <MpesaPaymentFields
+                            currency={pricing.displayCurrency}
+                            canEditPaymentDetails={isAgencyUser}
+                            phoneNumber={mpesaPhoneNumber}
+                            onPhoneNumberChange={handlePhoneNumberChange}
+                            phoneError={phoneError || undefined}
+                            amount={paymentAmount}
+                            onAmountChange={handleAmountChange}
+                            amountError={amountError || undefined}
+                            amountHelperText={
+                              isAgencyUser
+                                ? `Order total: ${formatPrice(pricing.total, pricing.displayCurrency)} (editable)`
+                                : `Order total: ${formatPrice(pricing.total, pricing.displayCurrency)}`
+                            }
+                            accountReference={accountReference}
+                            onAccountReferenceChange={handleAccountReferenceChange}
+                            accountRefError={accountRefError || undefined}
+                            accountRefHelperText={
+                              accountRefError
+                                ? undefined
+                                : `Auto-generated (${accountReference.length}/12)`
+                            }
+                            idPrefix="buy-mpesa"
+                          />
 
                           <div className="flex justify-end pt-1">
                             <MpesaPayButton
@@ -2376,40 +2495,21 @@ export function BuyNowDialog({
                               </p>
                             )}
                           </div>
-                          <div className="space-y-2">
-                            <label htmlFor="manual-payment-amount" className="text-sm font-medium text-foreground">
-                              Amount ({pricing.displayCurrency}) <span className="text-destructive">*</span>
-                            </label>
-                            <Input
-                              id="manual-payment-amount"
-                              type="number"
-                              value={paymentAmount}
-                              onChange={handleAmountChange}
-                              className={amountError ? "border-destructive" : ""}
-                              min="1"
-                              step="1"
-                            />
-                            {amountError ? (
-                              <p className="text-xs text-destructive">{amountError}</p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                Order total: {formatPrice(pricing.total, pricing.displayCurrency)}
-                              </p>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            <label htmlFor="manual-account-reference" className="text-sm font-medium text-foreground">
-                              Account reference
-                            </label>
-                            <Input
-                              id="manual-account-reference"
-                              value={accountReference}
-                              readOnly
-                              disabled
-                              className="w-full bg-muted/50 cursor-default text-foreground disabled:opacity-100"
-                              maxLength={12}
-                            />
-                          </div>
+                          <MpesaPaymentFields
+                            showPhone={false}
+                            currency={pricing.displayCurrency}
+                            canEditPaymentDetails={isAgencyUser}
+                            phoneNumber=""
+                            onPhoneNumberChange={() => {}}
+                            amount={paymentAmount}
+                            onAmountChange={handleAmountChange}
+                            amountError={amountError || undefined}
+                            amountHelperText={`Order total: ${formatPrice(pricing.total, pricing.displayCurrency)}`}
+                            accountReference={accountReference}
+                            onAccountReferenceChange={handleAccountReferenceChange}
+                            accountRefError={accountRefError || undefined}
+                            idPrefix="buy-manual"
+                          />
                           <div className="flex justify-end pt-1">
                             <Button
                               onClick={() => void handleRecordManualPayment()}
@@ -2640,7 +2740,12 @@ export function BuyNowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!grid sm:max-w-[600px] h-[90vh] max-h-[90vh] !flex !flex-col overflow-hidden w-full p-0 gap-0">
+      <DialogContent
+        className={cn(
+          "!grid h-[90vh] max-h-[90vh] !flex !flex-col overflow-hidden w-full p-0 gap-0",
+          currentStep === "team_billing" ? "sm:max-w-2xl" : "sm:max-w-[600px]",
+        )}
+      >
         <DialogHeader className="min-w-0 w-full px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle className="line-clamp-1 break-words truncate min-w-0 w-full max-w-full">
             {intent === "add_to_cart" ? "Add to cart" : "Buy"} {plan.planName}
@@ -2654,9 +2759,11 @@ export function BuyNowDialog({
                 : "Choose or enter the domain to use with this plan")}
             {currentStep === "agency_billing" &&
               "Choose whether this order is for your agency, a client team, or a specific user"}
-            {currentStep === "hivelocity_config" && "Choose OS, hostname, and optional add-ons — scroll through all sections"}
+            {currentStep === "hivelocity_config" && "Choose OS, hostname, and optional add-ons - scroll through all sections"}
             {currentStep === "review" &&
               (intent === "add_to_cart" ? "Review your configuration and add it to cart" : "Review your order and proceed to checkout")}
+            {currentStep === "team_billing" &&
+              "Enter company billing details used on your invoice. You can update these later in Settings."}
             {currentStep === "payment" && "Complete your payment"}
             {currentStep === "success" && "Order Confirmed"}
             {currentStep === "error" && "Payment Failed"}
@@ -2687,7 +2794,7 @@ export function BuyNowDialog({
 
         <div ref={dialogScrollContainerRef} className="flex-1 min-h-0 px-6 overflow-hidden">
           <ScrollArea className="h-full" thumbClassName="bg-primary">
-            <div className="py-4 min-w-0 w-full pr-4">
+            <div className="py-4 min-w-0 w-full max-w-[calc(100%-0.5rem)] pr-4">
               {renderStep()}
             </div>
           </ScrollArea>
@@ -2767,6 +2874,16 @@ export function BuyNowDialog({
                 </Button>
               </div>
             </div>
+          )}
+          {currentStep === "team_billing" && (
+            <>
+              <Button variant="outline" onClick={() => setCurrentStep("review")}>
+                Back
+              </Button>
+              <Button type="submit" form={CHECKOUT_TEAM_BILLING_FORM_ID}>
+                Save and continue
+              </Button>
+            </>
           )}
           {currentStep === "review" && (
             <>

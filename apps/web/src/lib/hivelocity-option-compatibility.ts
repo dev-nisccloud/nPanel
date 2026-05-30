@@ -160,7 +160,7 @@ export function evaluateHivelocityCompatibilityExpression(
 		const tagSet = new Set(selectedTags.map(normalizeTag));
 		return evaluator((tag) => tagSet.has(tag));
 	} catch {
-		// Unknown expression grammar — don't block the whole category client-side.
+		// Unknown expression grammar - don't block the whole category client-side.
 		return true;
 	}
 }
@@ -195,7 +195,7 @@ export function isHivelocityOptOutOption(
 	if (/^none\b/.test(name)) return true;
 	if (/^no\b/.test(name)) return true;
 	if (/\bwithout\b/.test(name)) return true;
-	if (name === "—" || name === "-") return true;
+	if (name === "-" || name === "-") return true;
 
 	const g = String(groupName ?? "").trim().toLowerCase();
 	const isOptionalCategory =
@@ -323,7 +323,7 @@ export function getHivelocityAddonDisabledDetails(input: {
 	if (!os) {
 		return {
 			reason: "Select an operating system first.",
-			fix: "Choose an OS in the table above — add-on compatibility depends on it.",
+			fix: "Choose an OS in the table above - add-on compatibility depends on it.",
 		};
 	}
 

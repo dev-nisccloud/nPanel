@@ -13,7 +13,7 @@ function transformPleskEmailsToComponent(
   const results = pleskResponse.parsed.packet.mail["get_info"].result;
 
   // Empty mailbox list: Plesk returns `{ status: "ok" }` only; schema wraps it as one
-  // result with no mailname — do not synthesize a fake "Unknown Email" row.
+  // result with no mailname - do not synthesize a fake "Unknown Email" row.
   return results
     .filter((result) => result.mailname != null)
     .map((result) => {

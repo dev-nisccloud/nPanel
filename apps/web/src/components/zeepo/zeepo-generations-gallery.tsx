@@ -300,7 +300,7 @@ export function ZeepoGenerationsGallery({
                 >
                   <ImageIcon className="mb-1 size-4 shrink-0 text-muted-foreground" aria-hidden />
                   <p className="line-clamp-5 flex-1 overflow-hidden text-[10px] leading-snug text-muted-foreground whitespace-pre-wrap">
-                    {textPreview || "—"}
+                    {textPreview || "-"}
                   </p>
                 </div>
               );

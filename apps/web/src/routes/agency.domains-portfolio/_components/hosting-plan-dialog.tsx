@@ -27,7 +27,7 @@ interface HostingPlanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   planType: "web" | "email";
-  /** Domain from the portfolio page — shown in Buy now confirmation */
+  /** Domain from the portfolio page - shown in Buy now confirmation */
   domainName: string;
   /** Team context for checkout when available */
   teamId?: string | null;

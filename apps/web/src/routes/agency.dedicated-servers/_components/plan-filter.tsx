@@ -114,7 +114,7 @@ export const PlanFilter = React.memo(function PlanFilter({
 	totalCount,
 	filteredCount,
 }: PlanFilterProps) {
-	// Derive unique values from all plans — only recomputes when plans/prices change
+	// Derive unique values from all plans - only recomputes when plans/prices change
 	const { memoryOptions, coreOptions, priceRange } = React.useMemo(() => {
 		const memories = new Set<string>();
 		const cores = new Set<number>();
@@ -143,7 +143,7 @@ export const PlanFilter = React.memo(function PlanFilter({
 		};
 	}, [plans, displayPrices]);
 
-	// Local draft for the price slider — we only propagate after the user stops dragging
+	// Local draft for the price slider - we only propagate after the user stops dragging
 	// to avoid re-running applyDedicatedFilter on every pixel moved.
 	const [draftPrice, setDraftPrice] = React.useState<{ min: number; max: number } | null>(null);
 	const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);

@@ -101,7 +101,7 @@ const THEMES: Record<PresentationTheme, Palette> = {
   },
 };
 
-// Slide dimensions (16:9 widescreen, in pt — 960×540 scaled to A4 landscape for react-pdf)
+// Slide dimensions (16:9 widescreen, in pt - 960×540 scaled to A4 landscape for react-pdf)
 const W = 841.89; // A4 landscape width in pt
 const H = 595.28; // A4 landscape height in pt
 
@@ -191,7 +191,7 @@ function TitleSlide({ slide, p }: { slide: PresentationSlide; p: Palette }) {
           }}
         />
       )}
-      {/* Content — centred */}
+      {/* Content - centred */}
       <View
         style={{
           position: "absolute", top: 0, left: 0, width: W, height: H,
@@ -588,7 +588,7 @@ function ChartSlide({ slide, p }: { slide: PresentationSlide; p: Palette }) {
           {normText(slide.subtitle)}
         </Text>
       )}
-      {/* Horizontal bar chart — compatible with react-pdf */}
+      {/* Horizontal bar chart - compatible with react-pdf */}
       <View style={{ flex: 1, justifyContent: "center", gap: 10 }}>
         {cd.labels.map((label, i) => {
           const fill = cd.colors?.[i] ?? CHART_PALETTE[i % CHART_PALETTE.length];
@@ -605,7 +605,7 @@ function ChartSlide({ slide, p }: { slide: PresentationSlide; p: Palette }) {
               </View>
               {/* Track */}
               <View style={{ width: chartW, height: barH, backgroundColor: p.divider, borderRadius: 4 }}>
-                {/* Fill — percentage width relative to parent */}
+                {/* Fill - percentage width relative to parent */}
                 <View
                   style={{
                     width: `${Math.max(pct, 2)}%` as unknown as number,

@@ -63,7 +63,7 @@ export function resolveZeepoAgentOrchestrationClientMessage(error: unknown): str
 	return resolveZeepoAgentPublicMessageFromError(error);
 }
 
-/** Persisted on generation rows — redacted in production. */
+/** Persisted on generation rows - redacted in production. */
 export function resolveZeepoAgentStoredErrorMessage(error: unknown): string {
 	if (isZeepoAgentDevelopmentMode()) {
 		const raw = resolveZeepoAgentPublicMessageFromError(error, "Unknown error");

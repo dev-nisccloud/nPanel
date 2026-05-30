@@ -40,11 +40,11 @@ export function validateEmailHtml(html: string): NebValidationReport {
 	}
 
 	if (!/<!DOCTYPE\s+html/i.test(html) && !/<html[\s>]/i.test(html)) {
-		warnings.push("Missing DOCTYPE or <html> — wrapping recommended");
+		warnings.push("Missing DOCTYPE or <html> - wrapping recommended");
 	}
 
 	if (!/<table[\s>]/i.test(html)) {
-		warnings.push("No <table> found — Outlook may render poorly");
+		warnings.push("No <table> found - Outlook may render poorly");
 	}
 
 	const imgTags = html.match(/<img\b[^>]*>/gi) ?? [];
@@ -56,7 +56,7 @@ export function validateEmailHtml(html: string): NebValidationReport {
 
 	const hasLink = /<a\s+[^>]*href\s*=/i.test(html);
 	if (!hasLink) {
-		warnings.push("No links found — add at least one CTA <a href>");
+		warnings.push("No links found - add at least one CTA <a href>");
 	}
 
 	return { ok: errors.length === 0, errors, warnings };

@@ -55,7 +55,7 @@ function randomPlaceholderLabel(): string {
 
 /**
  * Get KENIC create and transfer fees for a TLD using only the known-registered
- * fallback domains — no random-placeholder attempts. This is faster than
+ * fallback domains - no random-placeholder attempts. This is faster than
  * `getKenicPricingForTld` and suitable for agent-internal tools where latency
  * matters (at most 3 EPP connections instead of up to 15 + fallbacks).
  *

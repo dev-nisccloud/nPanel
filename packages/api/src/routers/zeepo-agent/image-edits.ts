@@ -78,9 +78,9 @@ function extractImageUrl(output: unknown): string | null {
 		// Plain string URL
 		if (typeof item === "string" && item.startsWith("http")) return item;
 
-		// Replicate FileOutput — .url() returns a URL object, .toString() returns href
+		// Replicate FileOutput - .url() returns a URL object, .toString() returns href
 		if (typeof item === "object" && item !== null) {
-			// Try toString() first — Replicate FileOutput.toString() returns the CDN URL string
+			// Try toString() first - Replicate FileOutput.toString() returns the CDN URL string
 			const str = String(item);
 			if (str.startsWith("http")) return str;
 
@@ -324,7 +324,7 @@ export const zeepoAgentImageEditsRouter = router({
 	/**
 	 * Erase an object from the image. The user paints a mask in the panel;
 	 * white pixels indicate the region to erase.
-	 * Uses bria/eraser — trained on licensed data, commercial-safe.
+	 * Uses bria/eraser - trained on licensed data, commercial-safe.
 	 */
 	eraseObject: zeepoAgentProcedure
 		.input(eraseObjectSchema)
@@ -435,7 +435,7 @@ export const zeepoAgentImageEditsRouter = router({
 
 	/**
 	 * Upscale and sharpen an image using recraft-ai/recraft-crisp-upscale.
-	 * No prompt needed — simply pass the image URL.
+	 * No prompt needed - simply pass the image URL.
 	 */
 	upscaleImage: zeepoAgentProcedure
 		.input(upscaleImageSchema)

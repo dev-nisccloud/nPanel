@@ -280,7 +280,7 @@ export function DomainPortfolioContactInfo({
         ) : (
           <div className="space-y-4">
             <ContactField label={primaryContact.role}>
-              <p className="text-sm font-medium leading-none">{primaryContact.fullName || "—"}</p>
+              <p className="text-sm font-medium leading-none">{primaryContact.fullName || "-"}</p>
               {primaryContact.organization && (
                 <p className="text-[11px] text-muted-foreground mt-1">{primaryContact.organization}</p>
               )}
@@ -328,7 +328,7 @@ export function DomainPortfolioContactInfo({
                     {additionalContacts.map((contact) => (
                       <div key={`${contact.role}-${contact.handle}`} className="space-y-3 pl-0">
                         <ContactField label={contact.role}>
-                          <p className="text-sm font-medium leading-none">{contact.fullName || "—"}</p>
+                          <p className="text-sm font-medium leading-none">{contact.fullName || "-"}</p>
                           {contact.organization && (
                             <p className="text-[11px] text-muted-foreground mt-1">{contact.organization}</p>
                           )}

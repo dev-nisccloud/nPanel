@@ -17,7 +17,7 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 
-// Logo from the public folder — resolved at fetch time by the PDF renderer in the browser.
+// Logo from the public folder - resolved at fetch time by the PDF renderer in the browser.
 const NISC_LOGO_URL = "/nisclogooriginal.png";
 
 // ─── Colours ────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ const s = StyleSheet.create({
   titleLeft: { flex: 1, paddingRight: 20 },
   titleText: { fontSize: 20, fontFamily: "Helvetica-Bold", color: C.dark, marginBottom: 12 },
   titleMeta: { fontSize: 8.5, color: C.muted, lineHeight: 1.5 },
-  // Logo — transparent, 180×60 ratio scaled to fit header
+  // Logo - transparent, 180×60 ratio scaled to fit header
   logoImg: { width: 135, height: 45 },
   // ── Headings ──
   h1: { fontSize: 16, fontFamily: "Helvetica-Bold", color: C.dark, marginTop: 20, marginBottom: 6, paddingBottom: 5, borderBottom: `1pt solid ${C.border}` },
@@ -269,7 +269,7 @@ function parseBlocks(md: string): Block[] {
       continue;
     }
 
-    // Paragraph — accumulate consecutive non-blank non-special lines
+    // Paragraph - accumulate consecutive non-blank non-special lines
     const pLines: string[] = [];
     while (i < lines.length) {
       const l = lines[i] ?? "";
@@ -394,7 +394,7 @@ export function ZeepoDocumentPdf({ title, content, generatedAt }: ZeepoDocumentP
     <Document title={title} author="Zeepo by Nisc Cloud" creator="Zeepo AI Agent">
       <Page size="A4" style={s.page}>
 
-        {/* ── Fixed footer — declared FIRST so react-pdf anchors it to the
+        {/* ── Fixed footer - declared FIRST so react-pdf anchors it to the
              bottom of every page before laying out the content flow ──────── */}
         <View style={s.footer} fixed>
           <Text
@@ -421,7 +421,7 @@ export function ZeepoDocumentPdf({ title, content, generatedAt }: ZeepoDocumentP
               </Text>
             </View>
 
-            {/* Right: Nisc Cloud logo — transparent, no wrapper */}
+            {/* Right: Nisc Cloud logo - transparent, no wrapper */}
             <Image src={NISC_LOGO_URL} style={s.logoImg} />
           </View>
         </View>

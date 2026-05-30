@@ -104,7 +104,7 @@ type AccountChanges = {
   password?: string;
   email?: string;
   language?: string;
-  /** Password from credentials already loaded in UI — used when not setting a new password */
+  /** Password from credentials already loaded in UI - used when not setting a new password */
   retainPassword?: string;
 };
 

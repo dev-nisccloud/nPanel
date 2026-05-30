@@ -268,7 +268,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 					amount,
 					currency: selectedZeepoPlan.displayCurrency || "KES",
 					teamId: data.teamId,
-					transactionDesc: `Agency subscription: Zeepo AI Agent — ${selectedZeepoPlan.name}`.slice(
+					transactionDesc: `Agency subscription: Zeepo AI Agent - ${selectedZeepoPlan.name}`.slice(
 						0,
 						200,
 					),
@@ -306,7 +306,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 					currency: selectedNiscEmPlan.displayCurrency || "KES",
 					teamId: data.teamId,
 					transactionDesc:
-						`Agency subscription: Nisc Email Marketing — ${selectedNiscEmPlan.name}`.slice(
+						`Agency subscription: Nisc Email Marketing - ${selectedNiscEmPlan.name}`.slice(
 							0,
 							200,
 						),
@@ -448,7 +448,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 															{isZeepo
 																? zeepoPlans.map((plan) => (
 																		<SelectItem key={plan.id} value={plan.id}>
-																			{plan.name} — {plan.tokenGrant.toLocaleString()}{" "}
+																			{plan.name} - {plan.tokenGrant.toLocaleString()}{" "}
 																			tokens (
 																			{plan.zeepoPlanType === "top_up"
 																				? "top-up"
@@ -458,7 +458,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 																	))
 																: niscEmPlans.map((plan) => (
 																		<SelectItem key={plan.id} value={plan.id}>
-																			{plan.name} — {plan.displayCurrency}{" "}
+																			{plan.name} - {plan.displayCurrency}{" "}
 																			{Math.ceil(plan.displayPrice).toLocaleString()} /{" "}
 																			{plan.billingCycle.toLowerCase()}
 																		</SelectItem>

@@ -8,7 +8,7 @@ const PHRASES = [
 	"Applying your changes to the email…",
 	"Updating copy, layout, and styles…",
 	"Matching your brand and brief…",
-	"Almost there — refining the HTML…",
+	"Almost there - refining the HTML…",
 ] as const;
 
 type ChatRevisionOverlayProps = {
@@ -39,7 +39,7 @@ export function ChatRevisionOverlay({ isHydratingImages }: ChatRevisionOverlayPr
 				</div>
 				<p className="text-xs text-muted-foreground leading-relaxed">
 					{isHydratingImages
-						? "Image slots are being filled — this usually takes a few minutes."
+						? "Image slots are being filled - this usually takes a few minutes."
 						: "This usually takes 1–5 minutes depending on complexity. You can keep the tab open."}
 				</p>
 			</div>

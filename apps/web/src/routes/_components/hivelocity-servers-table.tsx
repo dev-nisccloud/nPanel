@@ -40,7 +40,7 @@ import {
 export type HivelocityServerType = "dedicated" | "vps" | "vds";
 
 interface HivelocityServersTableProps {
-	/** Which device type to display — drives which tRPC procedure is called. */
+	/** Which device type to display - drives which tRPC procedure is called. */
 	type: HivelocityServerType;
 	/** URL prefix for server detail links (no trailing slash). Default `/agency` for agency UI. */
 	resourceBasePath?: string;
@@ -414,14 +414,14 @@ function ServersTableRows({
 				const isLinked = linkedSet.has(String(resourceId));
 
 				// Location handling
-				let locationLabel = "—";
+				let locationLabel = "-";
 				const loc = resource.location as any;
 				if (loc?.facility_title || loc?.facility) {
 					locationLabel = loc.facility_title && loc.facility 
 						? `${loc.facility_title} (${loc.facility})`
-						: loc.facility_title || loc.facility || "—";
+						: loc.facility_title || loc.facility || "-";
 				} else if (isVps) {
-					locationLabel = resource.facilityCode || "—";
+					locationLabel = resource.facilityCode || "-";
 				}
 
 				// Billing info
@@ -430,8 +430,8 @@ function ServersTableRows({
 					? `$${billing.price}` 
 					: resource.nextBillingValue != null 
 						? `$${resource.nextBillingValue}` 
-						: "—";
-				const periodLabel = billing?.period || "—";
+						: "-";
+				const periodLabel = billing?.period || "-";
 
 				return (
 					<TableRow
@@ -470,7 +470,7 @@ function ServersTableRows({
 							</div>
 						</TableCell>
 						<TableCell className="font-mono text-xs text-muted-foreground">
-							{resource.primaryIp || "—"}
+							{resource.primaryIp || "-"}
 						</TableCell>
 						<TableCell className="text-sm">
 							{locationLabel}
@@ -482,7 +482,7 @@ function ServersTableRows({
 							</div>
 						</TableCell>
 						<TableCell className="text-sm text-muted-foreground">
-							{resource.createdDate || "—"}
+							{resource.createdDate || "-"}
 						</TableCell>
 						{!hideSubscriptionColumn ? (
 							<TableCell className="pr-6 text-right" onClick={(e) => e.stopPropagation()}>

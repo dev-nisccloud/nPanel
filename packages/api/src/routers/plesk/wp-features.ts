@@ -432,7 +432,7 @@ export const wpFeaturesRouter = router({
       z
         .object({
           installationsIds: z.array(z.number()).optional(),
-          /** @deprecated use installationsIds — kept for mistyped clients */
+          /** @deprecated use installationsIds - kept for mistyped clients */
           installationIds: z.array(z.number()).optional(),
         })
         .transform((v) => ({

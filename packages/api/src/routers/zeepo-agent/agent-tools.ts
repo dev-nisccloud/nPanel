@@ -122,7 +122,7 @@ export const createDocumentArgsSchema = z.object({
 export const presentationSlideSchema = z.object({
 	/** Visual layout of this slide. */
 	layout: z.enum([
-		"title",         // Hero cover — title + subtitle centred, optional bg image
+		"title",         // Hero cover - title + subtitle centred, optional bg image
 		"content",       // Title + body paragraph, optional side image
 		"bullets",       // Title + bullet list, optional side image
 		"image-full",    // Full-bleed image with gradient text overlay at bottom
@@ -147,7 +147,7 @@ export const presentationSlideSchema = z.object({
 	/**
 	 * UploadThing image URL for this slide's image / background.
 	 * MUST be an UploadThing CDN URL (utfs.io / uploadthing.com).
-	 * Never pass a Replicate-hosted URL here — first call run_media_generation,
+	 * Never pass a Replicate-hosted URL here - first call run_media_generation,
 	 * wait for the generation to complete and appear in SESSION ASSETS, then
 	 * pass the UploadThing FILE_URL returned there.
 	 * ALWAYS set imagePosition when setting imageUrl.
@@ -161,7 +161,7 @@ export const presentationSlideSchema = z.object({
 	imagePosition: z.enum(["background", "right", "left"]).optional(),
 	/** Hex slide background colour override (e.g. "#1a1a2e"). */
 	bgColor: z.string().max(20).optional(),
-	/** Hex text colour override — leave blank and let auto-contrast pick it. */
+	/** Hex text colour override - leave blank and let auto-contrast pick it. */
 	textColor: z.string().max(20).optional(),
 	/** Hex accent / highlight colour for this slide. */
 	accentColor: z.string().max(20).optional(),
@@ -242,7 +242,7 @@ export type CreateImagePresentationArgs = z.infer<typeof createImagePresentation
 export type ImagePresentationSlide = z.infer<typeof imagePresentationSlideSchema>;
 
 /**
- * No arguments — the tool always queries the session of the currently
+ * No arguments - the tool always queries the session of the currently
  * authenticated user. Agents cannot query another user's session.
  */
 export const getSessionInfoArgsSchema = z.object({});
@@ -274,8 +274,8 @@ export type GetSessionInfoArgs = z.infer<typeof getSessionInfoArgsSchema>;
 export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them through the "tool_calls" array):
 
 1) get_user_session
-   Purpose: Retrieve the current authenticated user's account role and profile completeness. Use this immediately after presenting domain availability results — BEFORE saying domains are available for purchase — so you can tailor the next step message to the user's situation.
-   Arguments: none (no arguments object needed — you always check your own session, never another user's).
+   Purpose: Retrieve the current authenticated user's account role and profile completeness. Use this immediately after presenting domain availability results - BEFORE saying domains are available for purchase - so you can tailor the next step message to the user's situation.
+   Arguments: none (no arguments object needed - you always check your own session, never another user's).
    Returns: {
      role: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN",
      isAgency: boolean,           // true for any AGENCY_* role
@@ -283,39 +283,39 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
      missingFields: string[]      // which fields need filling in (empty array when complete)
    }
    After results:
-   - If isAgency is true → tell the user: "Since you're on an agency account, during checkout you'll be prompted to enter the customer's details (name, email, address, phone) — the domain will be registered under their information."
+   - If isAgency is true → tell the user: "Since you're on an agency account, during checkout you'll be prompted to enter the customer's details (name, email, address, phone) - the domain will be registered under their information."
    - If isAgency is false AND profileComplete is false → tell the user which fields are missing and direct them to complete their profile at /my-profile BEFORE purchasing. Explain that domain registration requires this information and the order will fail without it.
    - If isAgency is false AND profileComplete is true → proceed normally; the user can click Buy on any available domain above.
 
 2) create_document
-   Purpose: produce a richly formatted, standalone markdown document — for strategies, detailed plans, proposals, full analyses, comprehensive breakdowns, reports, or any deliverable that benefits from structure and length beyond a chat reply.
+   Purpose: produce a richly formatted, standalone markdown document - for strategies, detailed plans, proposals, full analyses, comprehensive breakdowns, reports, or any deliverable that benefits from structure and length beyond a chat reply.
    Arguments:
-     - title  : string (1–200 chars) — concise document title (e.g. "Brand Strategy for Diamond Coffee Co.").
-     - content: string — the complete markdown body. Use ## headings, bullet lists, tables, **bold** for emphasis. Write the FULL document — no placeholders, no "continued below", no truncation.
-   Returns: { status: "CREATED", title } — internal only; never show a document id to the user.
+     - title  : string (1–200 chars) - concise document title (e.g. "Brand Strategy for Diamond Coffee Co.").
+     - content: string - the complete markdown body. Use ## headings, bullet lists, tables, **bold** for emphasis. Write the FULL document - no placeholders, no "continued below", no truncation.
+   Returns: { status: "CREATED", title } - internal only; never show a document id to the user.
    When to call: (1) the user explicitly asks for a "breakdown", "detailed plan", "strategy doc", "report", "proposal", "full analysis", or "put this in a doc"; (2) the response requires 3+ distinct sections and would be unwieldy as a plain chat reply; (3) the user says "save this" or "I want the full version".
-   When NOT to call: conversational replies, short answers, quick lists, follow-up clarifications, or anything that reads naturally as a chat bubble. Err toward NOT calling — only invoke when the document format genuinely adds value.
+   When NOT to call: conversational replies, short answers, quick lists, follow-up clarifications, or anything that reads naturally as a chat bubble. Err toward NOT calling - only invoke when the document format genuinely adds value.
    After calling: write a SHORT chat reply (2–4 sentences) telling the user what the document covers and directing them to open it in the Generations section. Do NOT reproduce the full document content in the chat reply.
 
 3) check_domain_availability  ← NISC CLOUD INTERNAL TOOL
-   Purpose: check whether domain names are available for registration through Nisc Cloud's own infrastructure (OpenProvider for gTLDs, KENIC EPP for .ke TLDs). ALWAYS use this when the user asks about domain availability, domain registration, or domain name ideas — never guess and never recommend external registrars.
+   Purpose: check whether domain names are available for registration through Nisc Cloud's own infrastructure (OpenProvider for gTLDs, KENIC EPP for .ke TLDs). ALWAYS use this when the user asks about domain availability, domain registration, or domain name ideas - never guess and never recommend external registrars.
    Arguments:
-     - name       : string — the SLD (second-level domain) WITHOUT any extension or dots (e.g. "diamond-coffee" not "diamond-coffee.com").
-     - extensions?: string[] (1–10 items) — TLD extensions to check (e.g. [".co.ke", ".com", ".africa", ".ke"]). If not specified, the server uses the smart default set for Kenyan businesses: .co.ke, .com, .ke, .africa, .net, .org. **Always override** when the user states a **primary market outside Kenya** — order extensions the way registrants in that market typically stack them (e.g. UK → .co.uk, .com; Germany → .de, .com; Nigeria → .com.ng, .ng, .com; EU-wide brand → .eu or national ccTLD of HQ + .com). Add context-specific gTLDs (.tech, .store, .agency) only when the brief fits. Regional NGO in Kenya → add .or.ke; global startup → .com, .io; creative studio → .studio, .agency.
+     - name       : string - the SLD (second-level domain) WITHOUT any extension or dots (e.g. "diamond-coffee" not "diamond-coffee.com").
+     - extensions?: string[] (1–10 items) - TLD extensions to check (e.g. [".co.ke", ".com", ".africa", ".ke"]). If not specified, the server uses the smart default set for Kenyan businesses: .co.ke, .com, .ke, .africa, .net, .org. **Always override** when the user states a **primary market outside Kenya** - order extensions the way registrants in that market typically stack them (e.g. UK → .co.uk, .com; Germany → .de, .com; Nigeria → .com.ng, .ng, .com; EU-wide brand → .eu or national ccTLD of HQ + .com). Add context-specific gTLDs (.tech, .store, .agency) only when the brief fits. Regional NGO in Kenya → add .or.ke; global startup → .com, .io; creative studio → .studio, .agency.
    Returns: { name, checked: [{ domain, available, status, price?, isPremium?, via }], availableCount, checkedAt }
-   After results: present available domains and their prices, then IMMEDIATELY call get_user_session (do NOT skip this step). Do NOT tell the user to contact Nisc Cloud by email or phone for domain registration — they can purchase directly using the Buy buttons shown above each domain result. NEVER mention or recommend GoDaddy, Namecheap, Google Domains, Cloudflare, or any other registrar.
+   After results: present available domains and their prices, then IMMEDIATELY call get_user_session (do NOT skip this step). Do NOT tell the user to contact Nisc Cloud by email or phone for domain registration - they can purchase directly using the Buy buttons shown above each domain result. NEVER mention or recommend GoDaddy, Namecheap, Google Domains, Cloudflare, or any other registrar.
 
 4) web_search
    Purpose: retrieve real-time grounding context from the live web via Brave Search. Call this BEFORE answering questions that involve specific real-world entities, current data, or regional context.
    Arguments:
-     - query   : string (1–400 chars) — the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026"). ALWAYS embed geography directly in the query for non-major-market regions (Africa, Middle East, South/Southeast Asia except IN, ID, MY, PH) — e.g. "luxury car imports Nairobi Kenya 2026" not just "luxury cars".
-     - depth?  : "quick" | "standard" | "deep" — "quick" for single facts, "standard" (default) for most queries, "deep" for complex research.
-     - freshness? : "pd" (24 h) | "pw" (7 days) | "pm" (31 days) | "py" (1 year) — omit for all-time.
+     - query   : string (1–400 chars) - the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026"). ALWAYS embed geography directly in the query for non-major-market regions (Africa, Middle East, South/Southeast Asia except IN, ID, MY, PH) - e.g. "luxury car imports Nairobi Kenya 2026" not just "luxury cars".
+     - depth?  : "quick" | "standard" | "deep" - "quick" for single facts, "standard" (default) for most queries, "deep" for complex research.
+     - freshness? : "pd" (24 h) | "pw" (7 days) | "pm" (31 days) | "py" (1 year) - omit for all-time.
      - country? : 2-letter ISO code. ONLY use for: AR AU AT BE BR CA CL DK FI FR DE GR HK IN ID IT JP KR MY MX NL NZ NO CN PL PT PH RU SA ZA ES SE CH TW TR GB US. For all other countries (e.g. Kenya, Nigeria, most of Africa) omit this field entirely and embed the country/city in the query string instead.
    Returns: extracted page snippets ready for LLM consumption. Cite sources inline in your reply (e.g. "According to [hostname]…").
-   When to call: (1) user mentions a specific business, person, place, product, or event; (2) question involves prices, availability, opening hours, statistics, or news; (3) you need local/regional context (e.g. "Nairobi businesses", "Kenyan market", "this quarter"); (4) user asks you to "research", "find out", "check", or verify something about the real world; (5) **domain or brand naming** where the user names a **country, city, or foreign market** you are not highly confident about — search for how businesses there typically name and which extensions they pair with, then apply that to your SLD ideas and extension list before you call check_domain_availability.
-   When NOT to call: general knowledge you are confident about, pure creative tasks where you have all context, or Nisc Cloud topics already in your system prompt. Do NOT call web_search for domain availability — use check_domain_availability instead.
-   Call web_search BEFORE claiming facts about real-world entities — do not guess then search.
+   When to call: (1) user mentions a specific business, person, place, product, or event; (2) question involves prices, availability, opening hours, statistics, or news; (3) you need local/regional context (e.g. "Nairobi businesses", "Kenyan market", "this quarter"); (4) user asks you to "research", "find out", "check", or verify something about the real world; (5) **domain or brand naming** where the user names a **country, city, or foreign market** you are not highly confident about - search for how businesses there typically name and which extensions they pair with, then apply that to your SLD ideas and extension list before you call check_domain_availability.
+   When NOT to call: general knowledge you are confident about, pure creative tasks where you have all context, or Nisc Cloud topics already in your system prompt. Do NOT call web_search for domain availability - use check_domain_availability instead.
+   Call web_search BEFORE claiming facts about real-world entities - do not guess then search.
 
 5) list_models
    Purpose: discover the *exact* Replicate model ids available in the Zeepo catalog for a category, filtered by capabilities.
@@ -330,26 +330,26 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Arguments:
      - category : "text" | "image" | "video" | "audio" | "background-remover"
      - prompt : string (concrete, detailed; 1–800 words)
-     - model_id? : string — MUST be an id you saw in a list_models result for the same category. Omit to use the default for the category.
+     - model_id? : string - MUST be an id you saw in a list_models result for the same category. Omit to use the default for the category.
      - requires? : capability keys the chosen model MUST satisfy (e.g. ["audio_generation"] for video with audio; ["design"] to force the design-specialist model for logos, cards, flyers). The server validates this.
      - inputs? : optional category-specific knobs (image: {aspect_ratio, reference_image_url, output_format, negative_prompt, seed}; video: {aspect_ratio, duration_seconds, reference_image_url, with_audio, negative_prompt, seed}; audio: {voice, duration_seconds, negative_prompt, seed}; text: {max_tokens, negative_prompt, seed}; background-remover: {image: <url>}). Unknown keys are rejected.
-       IMPORTANT — aspect_ratio for images: the default model (gpt-image-2) ONLY accepts "1:1", "3:2", or "2:3". Do NOT pass "16:9", "9:16", "4:3", or "3:4" with the default model — this causes a 422 error. Use "3:2" for landscape (widescreen slide backgrounds), "1:1" for square assets, and "2:3" for portrait. Other ratios are only valid when you explicitly pick a Flux/SDXL-class model via model_id.
-   Returns: { generationId, status: "QUEUED", modelId, category } (for your context only — never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now — you'll see it in Generations when ready.").
+       IMPORTANT - aspect_ratio for images: the default model (gpt-image-2) ONLY accepts "1:1", "3:2", or "2:3". Do NOT pass "16:9", "9:16", "4:3", or "3:4" with the default model - this causes a 422 error. Use "3:2" for landscape (widescreen slide backgrounds), "1:1" for square assets, and "2:3" for portrait. Other ratios are only valid when you explicitly pick a Flux/SDXL-class model via model_id.
+   Returns: { generationId, status: "QUEUED", modelId, category } (for your context only - never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now - you'll see it in Generations when ready.").
 
 7) create_presentation
-   Purpose: produce a professionally designed slide deck — pitches, strategy decks, proposals, reports, educational content, or any multi-slide deliverable. Exports: PDF, PPTX (PowerPoint), PNG per slide.
+   Purpose: produce a professionally designed slide deck - pitches, strategy decks, proposals, reports, educational content, or any multi-slide deliverable. Exports: PDF, PPTX (PowerPoint), PNG per slide.
 
    ── ARGUMENTS ──────────────────────────────────────────────────────────────
-   - title  : string — deck title shown on cover slide and export filename.
+   - title  : string - deck title shown on cover slide and export filename.
    - theme  : "dark" | "light" | "branded" | "minimal"
-       • dark     — deep navy (#0a0f1e) bg, white text, indigo accent. Bold, cinematic. Best for pitches, tech, night-mode content.
-       • light    — near-white (#f8fafc) bg, near-black text, blue accent. Clean, corporate. Best for reports, client decks, daytime presentations.
-       • branded  — deep indigo (#1e1b4b) bg, lavender text, purple accent. Distinctive, premium. Best for brand presentations.
-       • minimal  — pure white bg, black text, black accent. Editorial, typographic. Best for design-focused, editorial content.
+       • dark     - deep navy (#0a0f1e) bg, white text, indigo accent. Bold, cinematic. Best for pitches, tech, night-mode content.
+       • light    - near-white (#f8fafc) bg, near-black text, blue accent. Clean, corporate. Best for reports, client decks, daytime presentations.
+       • branded  - deep indigo (#1e1b4b) bg, lavender text, purple accent. Distinctive, premium. Best for brand presentations.
+       • minimal  - pure white bg, black text, black accent. Editorial, typographic. Best for design-focused, editorial content.
    - slides : array of slide objects (1–40). See layouts and design rules below.
 
    ── SLIDE LAYOUTS ──────────────────────────────────────────────────────────
-   Choose layouts that vary through the deck — never use the same layout 3+ times in a row.
+   Choose layouts that vary through the deck - never use the same layout 3+ times in a row.
 
    "title"        Hero cover. Fields: title (required), subtitle, imageUrl+imagePosition="background".
                   Use ONLY for the opening cover slide or major section openers.
@@ -367,10 +367,10 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    "two-column"   Title + two equal columns. Fields: title, leftContent, rightContent.
                   Best for: comparisons, before/after, pros/cons, two perspectives. Use **bold** for sub-headings within columns.
 
-   "quote"        Single pull-quote. Fields: body (the quote text, 20–60 words), subtitle (attribution — write as plain name/title, no leading dash or em dash, e.g. "Jane Doe, CEO" not "— Jane Doe").
+   "quote"        Single pull-quote. Fields: body (the quote text, 20–60 words), subtitle (attribution - write as plain name/title, no leading dash or em dash, e.g. "Jane Doe, CEO" not "- Jane Doe").
                   Best for: testimonials, key insights, thought leadership moments.
 
-   "image-full"   Full-bleed image with title+subtitle overlaid. Fields: title, subtitle?, imageUrl (REQUIRED — imagePosition is implied "background").
+   "image-full"   Full-bleed image with title+subtitle overlaid. Fields: title, subtitle?, imageUrl (REQUIRED - imagePosition is implied "background").
                   Best for: visual impact moments, photography, scene-setting.
 
    "stats"        Grid of 2–4 large KPI numbers. Fields: title, stats[] with {value, label, delta?, icon?}.
@@ -387,25 +387,25 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    "big-number"   Single giant statistic. Fields: title (the big number/stat), subtitle (what it measures), body (1–2 sentences of context).
                   Best for: opening impact, single most important proof point, wow moments.
 
-   ── DESIGN RULES (MANDATORY — follow every one) ─────────────────────────────
-   1. CONTRAST FIRST — Never put light text on a light background or dark text on a dark background.
+   ── DESIGN RULES (MANDATORY - follow every one) ─────────────────────────────
+   1. CONTRAST FIRST - Never put light text on a light background or dark text on a dark background.
       • If bgColor is light (#ffffff, #f8fafc, #f0f0f0, any hex where R+G+B > 400): use dark textColor (#0f172a, #111827, #18181b).
       • If bgColor is dark (#0a0f1e, #1e1b4b, any hex where R+G+B < 300): use light textColor (#f8fafc, #ffffff, #e0e7ff).
-      • NEVER override textColor at all unless you're also setting a custom bgColor — let the renderer auto-compute contrast.
-      • NEVER set textColor="#ffffff" on a white or near-white bgColor. This is the most common mistake — it makes text invisible.
+      • NEVER override textColor at all unless you're also setting a custom bgColor - let the renderer auto-compute contrast.
+      • NEVER set textColor="#ffffff" on a white or near-white bgColor. This is the most common mistake - it makes text invisible.
 
-   2. COLOUR HARMONY — accent colours must contrast with both bg and text.
+   2. COLOUR HARMONY - accent colours must contrast with both bg and text.
       • On dark bg: bright/saturated accents work well (#6366f1, #22d3ee, #f59e0b, #10b981, #f43f5e).
       • On light bg: medium-dark accents only (#2563eb, #7c3aed, #059669, #dc2626, #d97706).
       • Never use a light accent on a light bg (invisible). Never use an accent that matches the bg.
 
-   3. SLIDE DENSITY — each slide should convey ONE main idea.
+   3. SLIDE DENSITY - each slide should convey ONE main idea.
       • bullets: max 6 items, each under 15 words.
       • body: max 3 short paragraphs; use **bold** to call out key terms.
-      • Never put body AND bullets on the same slide — choose one.
+      • Never put body AND bullets on the same slide - choose one.
       • stats: max 4 KPIs per slide; if you have more, split across two stats slides.
 
-   4. LAYOUT VARIETY — a well-designed deck varies layouts intentionally:
+   4. LAYOUT VARIETY - a well-designed deck varies layouts intentionally:
       • Slide 1: always "title"
       • After every 2–3 content slides, use a "section-break" or "quote" or "big-number" to reset the pace.
       • For data-heavy content, use "stats" or "chart" instead of bullets with numbers.
@@ -416,7 +416,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
       • Subtitle: supports the title in 1 sentence.
       • Body: written in clean prose, **bold** key phrases only.
       • Bullets: lead with the most important word/phrase, support in the rest of the bullet.
-      • NEVER use em dashes (—) anywhere in slide content — not in titles, subtitles, body, bullets, or any field. Use a regular hyphen (-) if a separator is needed. Em dashes look broken in presentation fonts and are not acceptable.
+      • NEVER use em dashes (-) anywhere in slide content - not in titles, subtitles, body, bullets, or any field. Use a regular hyphen (-) if a separator is needed. Em dashes look broken in presentation fonts and are not acceptable.
 
    6. SLIDE COUNT GUIDELINES
       • 10–15 slides for a typical pitch or strategy deck.
@@ -426,7 +426,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
 
    ── IMAGE WORKFLOW ──────────────────────────────────────────────────────────
    Images in slides MUST use UploadThing URLs (FILE_URL from RECENT GENERATIONS).
-   NEVER use a Replicate-hosted URL directly — it will expire.
+   NEVER use a Replicate-hosted URL directly - it will expire.
 
    Recommended flow when slides need visual imagery:
      Step 1 (same turn): Call run_media_generation for each image needed (aspect_ratio "3:2" for landscape/background images).
@@ -436,7 +436,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
                          Call create_presentation again with the actual imageUrl values filled in.
                          Tell the user the deck is now updated with the real images.
 
-   For "image-full" layout: imagePosition is implied — just set imageUrl and the full-bleed render is automatic.
+   For "image-full" layout: imagePosition is implied - just set imageUrl and the full-bleed render is automatic.
    For "content"/"bullets" with side image: always set imagePosition="right" or "left" alongside imageUrl.
    For "title" with bg image: set imagePosition="background".
 
@@ -449,23 +449,23 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    ── WHEN TO USE ──────────────────────────────────────────────────────────────
    • User says: "make it look photorealistic", "high graphics", "cinematic slides", "image deck", "visual slides", "graphic slides", "like a real design".
    • The content benefits from full-bleed imagery over text layouts (e.g. a travel deck, a product showcase, a brand story, a photography portfolio walkthrough).
-   • NEVER use for data-heavy decks (charts, stats, timelines) — use create_presentation instead.
+   • NEVER use for data-heavy decks (charts, stats, timelines) - use create_presentation instead.
 
    ── ARGUMENTS ──────────────────────────────────────────────────────────────
-   - title  : string — deck title, used as the export filename.
+   - title  : string - deck title, used as the export filename.
    - slides : array of slide objects (1–20). Each slide = one generated image.
-       • prompt   : (required) — detailed image-generation prompt. See PROMPT GUIDELINES below.
-       • imageUrl : (optional) — UploadThing FILE_URL once the image is ready. Leave blank on the first call.
-       • caption  : (optional) — short text shown at the bottom of the slide (max 200 chars).
-       • notes    : (optional) — presenter notes (not visible on slide).
+       • prompt   : (required) - detailed image-generation prompt. See PROMPT GUIDELINES below.
+       • imageUrl : (optional) - UploadThing FILE_URL once the image is ready. Leave blank on the first call.
+       • caption  : (optional) - short text shown at the bottom of the slide (max 200 chars).
+       • notes    : (optional) - presenter notes (not visible on slide).
 
-   ── PROMPT GUIDELINES (critical — image quality depends on this) ──────────────
+   ── PROMPT GUIDELINES (critical - image quality depends on this) ──────────────
    Each prompt must be a richly descriptive image generation prompt:
    • Describe: subject, setting, composition, lighting, mood, colour palette, style.
    • Use cinematic / editorial language: "golden hour lighting", "shallow depth of field", "aerial view", "dramatic shadows", "vibrant saturated colours", "muted pastel palette", "studio lighting", "photorealistic render".
    • Include text/graphic design needs if any: "bold white headline in the centre", "minimalist design layout with brand logo top-right".
    • Keep each prompt 80–200 words for best results.
-   • All slides should share a visual style — mention the shared aesthetic in every prompt (e.g. "consistent dark cinematic style", "same warm editorial photography feel").
+   • All slides should share a visual style - mention the shared aesthetic in every prompt (e.g. "consistent dark cinematic style", "same warm editorial photography feel").
 
    ── IMAGE WORKFLOW ────────────────────────────────────────────────────────────
    Step 1 (same turn):

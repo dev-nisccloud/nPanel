@@ -69,7 +69,7 @@ export function getHivelocityDefaultHostnameDnsSetup() {
 			`Confirm ${domain} DNS is hosted in OpenProvider / nPanel and API credentials (OPENPROVIDER_*) work in production.`,
 			`Ensure ${domain} nameservers are authoritative for the OpenProvider zone you edit via API.`,
 			`Add ${domain} to the agency domain portfolio with DNS management enabled.`,
-			"Do not add *.nisccloud.com wildcard A — each server has a different IP.",
+			"Do not add *.nisccloud.com wildcard A - each server has a different IP.",
 			"Smoke-test: create then delete a temporary A record (e.g. hv-dns-test) to verify the zone is writable.",
 			"Request Hivelocity PTR/rDNS for your IP blocks to match assigned hostnames.",
 		],

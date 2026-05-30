@@ -31,7 +31,7 @@ export function PaymentMethodAccordion({
       type="single"
       collapsible
       className={cn(
-        "flex w-full flex-col gap-4 [&>[data-slot=accordion-item]]:border-b-0",
+        "flex w-full max-w-[calc(100%-0.75rem)] flex-col gap-4 [&>[data-slot=accordion-item]]:border-b-0",
         className,
       )}
       value={value ?? undefined}
@@ -102,7 +102,7 @@ export function PaymentMethodTrigger({
   return (
     <AccordionTrigger
       className={cn(
-        "px-5 py-4 hover:no-underline",
+        "px-4 py-4 hover:no-underline sm:px-5",
         "[&>svg]:ml-3 [&>svg]:size-8 [&>svg]:shrink-0 [&>svg]:rounded-full [&>svg]:border [&>svg]:border-border [&>svg]:bg-background [&>svg]:p-1.5 [&>svg]:text-muted-foreground [&>svg]:transition-colors",
         !isMpesa && "group-data-[state=open]:[&>svg]:border-primary/30 group-data-[state=open]:[&>svg]:text-primary",
         isMpesa &&
@@ -143,7 +143,7 @@ type PaymentMethodContentProps = {
 export function PaymentMethodContent({ children, className }: PaymentMethodContentProps) {
   return (
     <AccordionContent className={cn("px-0 pb-0", className)}>
-      <div className="space-y-4 border-t border-border/60 bg-muted/25 px-5 pb-5 pt-4">
+      <div className="space-y-4 border-t border-border/60 bg-muted/25 px-4 pb-5 pt-4 pr-5 sm:pr-6">
         {children}
       </div>
     </AccordionContent>

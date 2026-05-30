@@ -12,7 +12,7 @@ function transformPleskSubdomainsToComponent(
 ): z.infer<typeof subdomainSchema>[] {
   const results = pleskResponse.parsed.packet.subdomain.get.result;
 
-  // Empty list: Plesk may return `{ status: "ok" }` with no `data` — skip fake "Unknown Subdomain" rows.
+  // Empty list: Plesk may return `{ status: "ok" }` with no `data` - skip fake "Unknown Subdomain" rows.
   return results
     .filter((result) => result.data != null)
     .map((result) => {

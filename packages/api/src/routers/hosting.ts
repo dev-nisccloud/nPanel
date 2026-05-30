@@ -77,7 +77,7 @@ function pleskXmlScalar(value: unknown): string | undefined {
 
 /**
  * Plesk webspace/get <result> top-level <id> is the numeric subscription id used in hosting URLs.
- * Never use <filter-id> for routing — when filtering by domain name, filter-id echoes the domain string.
+ * Never use <filter-id> for routing - when filtering by domain name, filter-id echoes the domain string.
  */
 function extractPleskWebspaceNumericId(result: Record<string, unknown> | undefined): number | null {
 	if (!result) return null;
@@ -809,7 +809,7 @@ export const hostingRouter = router({
 		}),
 
 	// Check if domain has hosting in Plesk by domain name (domain portfolio "Connected services").
-	// Returns a numeric Plesk webspace id for /hosting/:id — never use filter-id (can be the domain name).
+	// Returns a numeric Plesk webspace id for /hosting/:id - never use filter-id (can be the domain name).
 	getHostingByDomainName: protectedProcedure
 		.input(getHostingByDomainNameInputSchema)
 		.output(getHostingByDomainNameOutputSchema)

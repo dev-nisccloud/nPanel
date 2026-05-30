@@ -119,7 +119,7 @@ export function ZeepoOutOfTokensDialog({
 		reason === "no_subscription" ? "Subscribe to use Zeepo" : "You're out of tokens";
 	const description =
 		reason === "no_subscription"
-			? "Choose a plan to unlock Zeepo AI Agent — chat, media generation, documents, and more."
+			? "Choose a plan to unlock Zeepo AI Agent - chat, media generation, documents, and more."
 			: hasSubscription
 				? "Top up your balance to keep creating with Zeepo."
 				: "Purchase a plan or token pack to continue using Zeepo AI Agent.";

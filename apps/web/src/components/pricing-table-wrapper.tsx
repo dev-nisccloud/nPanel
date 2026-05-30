@@ -163,6 +163,51 @@ function isPlanWithFeatureValues(plan: HostingPlan): plan is HostingPlanWithFeat
   return "featureValues" in plan && Array.isArray((plan as HostingPlanWithFeatureValues).featureValues)
 }
 
+/** Map hosting API plans to PricingTable plan rows (sorted by monthly price). */
+export function mapHostingPlansToPricingTable(
+  plans: HostingPlan[],
+  productFeatures?: ProductFeatureRow[],
+): PricingPlan[] {
+  const useProductFeatures = productFeatures != null && productFeatures.length > 0
+
+  const pricingPlans: PricingPlan[] = plans.map((plan) => {
+    const { monthlyPrice, yearlyPrice } = derivePricing(plan.niscPrice, plan.billingCycle)
+
+    const base = {
+      id: plan.id,
+      name: plan.name.toUpperCase(),
+      level: plan.id,
+      price: { monthly: monthlyPrice, yearly: yearlyPrice },
+      popular: plan.isPopular ?? false,
+      recommended: "isRecommended" in plan ? (plan as HostingPlanWithFeatureValues).isRecommended : false,
+    }
+
+    if (useProductFeatures && isPlanWithFeatureValues(plan)) {
+      return {
+        ...base,
+        features: {},
+        featureValues: plan.featureValues,
+      }
+    }
+
+    return {
+      ...base,
+      features: parseFeatures((plan as HostingPlanLegacy).features || []),
+    }
+  })
+
+  pricingPlans.sort((a, b) => {
+    const am = a.price.monthly
+    const bm = b.price.monthly
+    if (am === 0 && bm === 0) return 0
+    if (am === 0) return 1
+    if (bm === 0) return -1
+    return am - bm
+  })
+
+  return pricingPlans
+}
+
 interface PricingTableWrapperProps {
   /** Legacy: array of plans with features string[]. Or pass productFeatures + plans with featureValues. */
   plans: HostingPlan[]
@@ -200,45 +245,7 @@ export function PricingTableWrapper({
   }
 
   const useProductFeatures = productFeatures != null && productFeatures.length > 0
-
-  const pricingPlans: PricingPlan[] = plans.map((plan) => {
-    const niscPrice = plan.niscPrice
-    const billingCycle = plan.billingCycle
-    const { monthlyPrice, yearlyPrice } = derivePricing(niscPrice, billingCycle)
-
-    const base = {
-      id: plan.id,
-      name: plan.name.toUpperCase(),
-      level: plan.id,
-      price: { monthly: monthlyPrice, yearly: yearlyPrice },
-      popular: plan.isPopular ?? false,
-      recommended: "isRecommended" in plan ? (plan as HostingPlanWithFeatureValues).isRecommended : false,
-    }
-
-    if (useProductFeatures && isPlanWithFeatureValues(plan)) {
-      return {
-        ...base,
-        features: {},
-        featureValues: plan.featureValues,
-      }
-    }
-
-    return {
-      ...base,
-      features: parseFeatures((plan as HostingPlanLegacy).features || []),
-    }
-  })
-
-  // Sort by monthly price: lowest first, but zero-price plans last
-  pricingPlans.sort((a, b) => {
-    const am = a.price.monthly
-    const bm = b.price.monthly
-    if (am === 0 && bm === 0) return 0
-    if (am === 0) return 1
-    if (bm === 0) return -1
-    return am - bm
-  })
-
+  const pricingPlans = mapHostingPlansToPricingTable(plans, productFeatures)
   const defaultPlan = pricingPlans.find((p) => p.popular)?.level || pricingPlans[0]?.level
 
   const handlePlanSelect = (selectedPlan: PricingPlan) => {

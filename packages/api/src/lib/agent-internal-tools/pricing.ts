@@ -101,7 +101,7 @@ async function getUsdRates(): Promise<Record<string, number> | null> {
 				}
 			}
 		} catch {
-			/* ignore cache errors — fall through to fresh fetch */
+			/* ignore cache errors - fall through to fresh fetch */
 		}
 	}
 
@@ -132,7 +132,7 @@ async function getUsdRates(): Promise<Record<string, number> | null> {
 }
 
 // ---------------------------------------------------------------------------
-// Margin application — mirrors use-domain-pricing.ts exactly
+// Margin application - mirrors use-domain-pricing.ts exactly
 // ---------------------------------------------------------------------------
 
 function applyMargin(price: number, margin: MarginConfig): number {
@@ -157,7 +157,7 @@ function applyMargin(price: number, margin: MarginConfig): number {
 }
 
 // ---------------------------------------------------------------------------
-// Currency conversion — same cross-rate math as currency-conversion.ts
+// Currency conversion - same cross-rate math as currency-conversion.ts
 // ---------------------------------------------------------------------------
 
 function computeRate(
@@ -195,7 +195,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 	NGN: "₦",
 };
 
-/** Whole-number display — same policy as agency domains + buy-now dialog. */
+/** Whole-number display - same policy as agency domains + buy-now dialog. */
 function formatRetailPrice(amount: number, currency: string): string {
 	const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
 	const whole = ceilConvertedPrice(amount);
@@ -236,7 +236,7 @@ export async function toRetailPrice(
 	}
 
 	if (!rates) {
-		// Can't convert — return in original currency rather than nothing.
+		// Can't convert - return in original currency rather than nothing.
 		const amount = finalizeRetailAmount(afterMargin);
 		return { amount, currency: fromCurrency, formatted: formatRetailPrice(amount, fromCurrency) };
 	}

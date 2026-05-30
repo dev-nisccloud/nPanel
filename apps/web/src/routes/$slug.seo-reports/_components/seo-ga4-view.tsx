@@ -188,7 +188,7 @@ export function SeoGa4View({ teamSlug }: SeoGa4ViewProps = {}) {
             <div className="flex flex-col gap-6 py-4 md:py-6">
                 <p className="text-sm text-muted-foreground max-w-2xl">
                     {teamSlug
-                        ? "No Google Analytics 4 properties on your team’s active SEO subscriptions yet. One SEO plan covers both Search Console and GA4—link a GA4 property to a subscription to see it here."
+                        ? "No Google Analytics 4 properties on your team’s active SEO subscriptions yet. One SEO plan covers both Search Console and GA4-link a GA4 property to a subscription to see it here."
                         : "No GA4 properties available. Connect Google Analytics 4 and ensure your account has access."}
                 </p>
             </div>

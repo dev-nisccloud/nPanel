@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -35,6 +35,8 @@ function GoogleColorIcon({ className }: { className?: string }) {
   );
 }
 
+const GOOGLE_OAUTH_REDIRECT_KEY = "npanel_google_oauth_redirect";
+
 type GoogleButtonProps = React.ComponentProps<typeof Button> & {
   mode?: "login" | "signup";
   termsAccepted?: boolean;
@@ -48,6 +50,24 @@ export function GoogleButton({
 }: GoogleButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
+  // OAuth navigates away; browser back can restore this page from bfcache with isLoading still true.
+  useEffect(() => {
+    const clearPendingRedirect = (event?: PageTransitionEvent) => {
+      const hadPending = sessionStorage.getItem(GOOGLE_OAUTH_REDIRECT_KEY);
+      if (hadPending) {
+        sessionStorage.removeItem(GOOGLE_OAUTH_REDIRECT_KEY);
+      }
+      if (hadPending || event?.persisted) {
+        setIsLoading(false);
+      }
+    };
+
+    clearPendingRedirect();
+    const onPageShow = (event: PageTransitionEvent) => clearPendingRedirect(event);
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   const handleGoogleSignIn = async () => {
     if (mode === "signup" && !termsAccepted) {
       toast.error("Terms required", {
@@ -57,6 +77,7 @@ export function GoogleButton({
     }
 
     setIsLoading(true);
+    sessionStorage.setItem(GOOGLE_OAUTH_REDIRECT_KEY, "1");
     if (mode === "signup") {
       setSignupTermsCookie();
     }
@@ -73,6 +94,7 @@ export function GoogleButton({
     });
     // signIn.social navigates the browser away on success; we only reach here on error.
     if (error) {
+      sessionStorage.removeItem(GOOGLE_OAUTH_REDIRECT_KEY);
       toast.error("Google sign-in failed", {
         description: error.message ?? "Please try again.",
       });

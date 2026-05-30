@@ -36,7 +36,7 @@ import { HostingPricing } from "./hosting-pricing";
 import type { CustomerHostingListItem } from "./schema";
 import { useTeamEmailSubscriptions } from "./use-team-email-subscriptions";
 
-/** Canonical segment for `/emails/:id` — matches API resolution (Plesk id when known). */
+/** Canonical segment for `/emails/:id` - matches API resolution (Plesk id when known). */
 function emailHostingDetailId(sub: Pick<CustomerHostingListItem, "id" | "pleskSubscriptionId">) {
   return sub.pleskSubscriptionId ?? sub.id;
 }

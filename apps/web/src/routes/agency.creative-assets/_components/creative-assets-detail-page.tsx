@@ -491,7 +491,7 @@ export function CreativeAssetsDetailPage({
 					/>
 						</TabsContent>
 
-						{/* Permissions tab — hidden until access logic is finalized
+						{/* Permissions tab - hidden until access logic is finalized
 						<TabsContent value="permissions" className="mt-6">
 							<PermissionsTab
 								asset={{
@@ -533,7 +533,7 @@ export function CreativeAssetsDetailPage({
         }}
       />
 
-      {/* Manage Permissions Sheet — hidden until access logic is finalized
+      {/* Manage Permissions Sheet - hidden until access logic is finalized
 			<ManagePermissionsSheet
 				open={isManagePermissionsOpen}
 				onOpenChange={setIsManagePermissionsOpen}

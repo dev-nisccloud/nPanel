@@ -6,15 +6,15 @@
 const SUGGESTED_NEXT_STEPS = `**Suggested next steps**
 - Open **Email preview** to review the full layout on desktop and mobile widths
 - Use **Edit** mode to adjust copy, colours, spacing, and links
-- Check **CTA buttons** — wording, destination URL, and visibility on small screens
+- Check **CTA buttons** - wording, destination URL, and visibility on small screens
 - Update **images** via the image panel or your media library
 - Ask in chat for targeted tweaks (e.g. “shorten the intro”, “stronger CTA”, “swap the hero image”)`;
 
-const READY_FOOTER = `**Your email is ready** — review it in the **Email preview** tab.
+const READY_FOOTER = `**Your email is ready** - review it in the **Email preview** tab.
 
 ${SUGGESTED_NEXT_STEPS}`;
 
-const REBUILT_FOOTER = `**Your email has been rebuilt** — review the updated version in the **Email preview** tab.
+const REBUILT_FOOTER = `**Your email has been rebuilt** - review the updated version in the **Email preview** tab.
 
 ${SUGGESTED_NEXT_STEPS}`;
 
@@ -43,6 +43,6 @@ export function buildNebHtmlReadyChatMessage(
 /** Guidance for models writing assistant_text in build outputs. */
 export const NEB_ASSISTANT_TEXT_USER_RULES = `assistant_text rules (user-facing):
 - Write 2-3 warm, specific sentences about the email you created (goal, tone, standout sections).
-- Speak as a creative partner — never as an engineer.
+- Speak as a creative partner - never as an engineer.
 - NEVER mention templates, reference files, .html filenames, placeholders, image_slots, or how the email was built internally.
 - Do not list technical steps or tooling.`;

@@ -609,7 +609,7 @@ function BundleCard({
 				) : null}
 			</div>
 			<div className="text-base font-bold text-foreground mb-2 line-clamp-2 break-words">
-				{retailPricingReady && bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "—"}
+				{retailPricingReady && bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "-"}
 			</div>
 			{TLD_WHY_CHOOSE.bundle ? (
 				<div>

@@ -1,14 +1,14 @@
 /**
- * Zeepo AI Agent — customer token billing constants.
+ * Zeepo AI Agent - customer token billing constants.
  *
  * Backend stores and computes provider costs in USD (Replicate bills in USD).
  * Customer UI converts retail USD plan prices to KES via the same FX + ceil
  * strategy used for domains (`convertPriceWithCeil` / `ceilConvertedPrice`).
  *
- * Customer-facing balances are always "tokens" — never USD equivalents.
+ * Customer-facing balances are always "tokens" - never USD equivalents.
  */
 
-/** Stable product id — seeded by apps/server/src/scripts/seed-zeepo-ai-agent-product.ts */
+/** Stable product id - seeded by apps/server/src/scripts/seed-zeepo-ai-agent-product.ts */
 export const ZEEPO_AI_AGENT_PRODUCT_ID = "zeepo-ai-agent";
 
 /** Subscription usage row kind for token balance on nisc_client_subscription_usage. */

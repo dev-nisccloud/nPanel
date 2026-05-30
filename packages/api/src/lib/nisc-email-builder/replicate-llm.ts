@@ -9,7 +9,7 @@ export async function runAnthropicOnReplicate(params: {
 	maxTokens?: number;
 	/** Public image URL for vision-capable Anthropic models on Replicate. */
 	imageUrl?: string;
-	/** Prefill the assistant turn — forces the model to continue from this string.
+	/** Prefill the assistant turn - forces the model to continue from this string.
 	 *  Pass "{" to prevent any preamble before the JSON object. */
 	prefill?: string;
 }): Promise<string> {
@@ -32,6 +32,6 @@ export async function runAnthropicOnReplicate(params: {
 		},
 	});
 	const text = await collectReplicateText(output);
-	// If we prefilled, the model continues from that prefix — prepend it back
+	// If we prefilled, the model continues from that prefix - prepend it back
 	return prefill ? `${prefill}${text}` : text;
 }

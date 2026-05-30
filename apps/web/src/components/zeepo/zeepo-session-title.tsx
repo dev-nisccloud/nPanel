@@ -13,7 +13,7 @@ const TITLE_MAX = 150;
 type ZeepoSessionTitleProps = {
   sessionId: string;
   title: string;
-  /** Auto-title generation in progress — show placeholder, block edit. */
+  /** Auto-title generation in progress - show placeholder, block edit. */
   isAutoNaming?: boolean;
   disabled?: boolean;
   /** Single-line header: truncate with ellipsis, no helper text while editing. */

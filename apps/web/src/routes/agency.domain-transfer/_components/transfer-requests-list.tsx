@@ -122,7 +122,7 @@ const DIRECTION_CONFIG: Record<
 };
 
 function formatPrice(amount: string | null, currency: string | null): string {
-  if (amount == null || currency == null) return "—";
+  if (amount == null || currency == null) return "-";
   const symbols: Record<string, string> = {
     USD: "$",
     KES: "KSh",
@@ -131,7 +131,7 @@ function formatPrice(amount: string | null, currency: string | null): string {
   };
   const symbol = symbols[currency] ?? currency;
   const num = Number.parseFloat(amount);
-  if (Number.isNaN(num)) return "—";
+  if (Number.isNaN(num)) return "-";
   return `${symbol} ${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
@@ -364,7 +364,7 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
                           ) : null}
                         </span>
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </TableCell>
                   ) : null}
@@ -374,11 +374,11 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
                   <TableCell className="text-muted-foreground">
                     {row.submittedToProviderAt
                       ? format(new Date(row.submittedToProviderAt), "MMM d, yyyy HH:mm")
-                      : "—"}
+                      : "-"}
                   </TableCell>
                   {isAgency ? (
                     <TableCell className="text-muted-foreground">
-                      {row.createdBy?.name ?? row.createdBy?.email ?? "—"}
+                      {row.createdBy?.name ?? row.createdBy?.email ?? "-"}
                     </TableCell>
                   ) : null}
                   <TableCell className="text-right">
@@ -443,7 +443,7 @@ export function TransferRequestsList({ variant = "customer" }: TransferRequestsL
                         ) : null}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                 </TableRow>

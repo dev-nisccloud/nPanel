@@ -33,7 +33,7 @@ export function OrderInvoiceSection({
 
 	if (invoiceState.status === "pending") {
 		if (compact) {
-			return <span className="text-muted-foreground text-xs">—</span>;
+			return <span className="text-muted-foreground text-xs">-</span>;
 		}
 		return (
 			<div className="w-full rounded-md border border-dashed p-3 text-sm text-muted-foreground">

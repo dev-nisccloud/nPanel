@@ -1872,7 +1872,7 @@ export const clientSubscriptionsRouter = router({
             };
         }),
 
-    /** Create a team SEO subscription for Search Console (site URL) or GA4 (property id) — one subscription per tab integration. */
+    /** Create a team SEO subscription for Search Console (site URL) or GA4 (property id) - one subscription per tab integration. */
     createSeoSubscription: protectedProcedure
         .input(createSeoSubscriptionInputSchema)
         .output(subscriptionOutputSchema)
@@ -1969,8 +1969,8 @@ export const clientSubscriptionsRouter = router({
 
             const subName =
                 input.scope === "SEARCH_CONSOLE"
-                    ? `SEO (Search Console) — ${input.searchConsoleSiteUrl}`
-                    : `SEO (GA4) — ${input.ga4DisplayName?.trim() || input.ga4PropertyId}`;
+                    ? `SEO (Search Console) - ${input.searchConsoleSiteUrl}`
+                    : `SEO (GA4) - ${input.ga4DisplayName?.trim() || input.ga4PropertyId}`;
 
             const now = new Date();
             const subId = crypto.randomUUID();

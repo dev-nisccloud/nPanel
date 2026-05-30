@@ -57,8 +57,8 @@ export class OpenProviderApiError extends Error {
 
 /**
  * Extract a rich human-readable error description from an OpenProvider API response body.
- * Inspects registry, data, message, and warnings fields — the same extraction used for HTTP >= 400
- * responses — so callers that receive non-zero codes on HTTP 200 responses get the same detail.
+ * Inspects registry, data, message, and warnings fields - the same extraction used for HTTP >= 400
+ * responses - so callers that receive non-zero codes on HTTP 200 responses get the same detail.
  */
 export function buildOpenProviderApiError(
   responseData: unknown,

@@ -88,7 +88,7 @@ export class GoogleSearchConsoleClient {
     }
 
     /**
-     * Paginated searchanalytics.query — matches GSC API guidance (startRow until empty).
+     * Paginated searchanalytics.query - matches GSC API guidance (startRow until empty).
      */
     private async querySearchAnalyticsAllRows(
         siteUrl: string,
@@ -148,7 +148,7 @@ export class GoogleSearchConsoleClient {
     }
 
     /**
-     * Property-level totals for a date range (no dimensions) — matches GSC chart totals.
+     * Property-level totals for a date range (no dimensions) - matches GSC chart totals.
      */
     async getSiteSummaryTotals(siteUrl: string, startDate: string, endDate: string) {
         const rows = await this.querySearchAnalytics(siteUrl, { startDate, endDate });

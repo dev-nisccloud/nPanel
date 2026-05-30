@@ -117,6 +117,7 @@ const createTeamInputSchema = z.object({
 
 const createTeamOutputSchema = z.object({
   success: z.boolean(),
+  isFirstTeam: z.boolean(),
   team: z.object({
     id: z.string(),
     name: z.string(),
@@ -404,27 +405,27 @@ export const teamsRouter = router({
       }
 
       // Sign-up welcome tokens (email/password or Google): granted when a customer creates their
-      // first organization on /create-team — signup method does not matter, only teams.create.
+      // first organization on /create-team - signup method does not matter, only teams.create.
       const customerRole = inviter?.role ?? "CUSTOMER";
-      if (customerRole === "CUSTOMER" && createdTeam.createdById === userId) {
-        const [ownedTeamCountRow] = await db
-          .select({ count: count() })
-          .from(team)
-          .where(eq(team.createdById, userId));
+      const [ownedTeamCountRow] = await db
+        .select({ count: count() })
+        .from(team)
+        .where(eq(team.createdById, userId));
+      const isFirstTeam = (ownedTeamCountRow?.count ?? 0) === 1;
 
-        if ((ownedTeamCountRow?.count ?? 0) === 1) {
-          void provisionZeepoCustomerSignupWelcome({
-            userId,
-            teamId: createdTeam.id,
-            userRole: customerRole,
-          }).catch((err) => {
-            console.error("[teams.create] Zeepo signup welcome provisioning failed:", err);
-          });
-        }
+      if (customerRole === "CUSTOMER" && createdTeam.createdById === userId && isFirstTeam) {
+        void provisionZeepoCustomerSignupWelcome({
+          userId,
+          teamId: createdTeam.id,
+          userRole: customerRole,
+        }).catch((err) => {
+          console.error("[teams.create] Zeepo signup welcome provisioning failed:", err);
+        });
       }
 
       return {
         success: true,
+        isFirstTeam,
         team: {
           id: createdTeam.id,
           name: createdTeam.name,

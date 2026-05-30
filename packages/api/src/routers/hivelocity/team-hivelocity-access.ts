@@ -7,7 +7,7 @@ import { team, teamMember } from "@npanel/db/schema/teams";
 
 export type TeamHivelocityResourceCategory = "vps" | "vds" | "dedicated";
 
-/** Optional team scope for Hivelocity device calls — both fields required together. */
+/** Optional team scope for Hivelocity device calls - both fields required together. */
 export const teamHivelocityAccessSchema = z
 	.object({
 		teamSlug: z.string().min(1).optional(),

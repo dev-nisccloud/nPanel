@@ -425,7 +425,7 @@ export function VpsStorage({ deviceId, facilityCode }: VpsStorageProps) {
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="text-[10px] font-medium text-muted-foreground">
-                        {vol.createdAt ? format(new Date(vol.createdAt), "MMM d, yyyy") : "—"}
+                        {vol.createdAt ? format(new Date(vol.createdAt), "MMM d, yyyy") : "-"}
                       </span>
                     </TableCell>
                     <TableCell className="pr-6 text-right">
@@ -850,7 +850,7 @@ function AvailableSizesSelect({ volumeId, onSelect }: { volumeId: string; onSele
           <>
             {sizes.map((item: any) => (
               <SelectItem key={item.size} value={String(item.size)}>
-                {item.size} GB SSD — ${item.monthlyPrice}/mo
+                {item.size} GB SSD - ${item.monthlyPrice}/mo
               </SelectItem>
             ))}
             {!query.isLoading && sizes.length === 0 && (

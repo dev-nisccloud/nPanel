@@ -107,7 +107,7 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
         />
         <WpStatTile
           label="PHP"
-          value={wpData.features?.php?.handler?.version || "—"}
+          value={wpData.features?.php?.handler?.version || "-"}
           hint={wpData.features?.php?.handler?.name || undefined}
         />
         <WpStatTile
@@ -134,7 +134,7 @@ export function WordPressOverview({ wpData, onNavigateToTab }: WordPressOverview
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            {updatesCount} update{updatesCount === 1 ? "" : "s"} available — consider updating for
+            {updatesCount} update{updatesCount === 1 ? "" : "s"} available - consider updating for
             security and stability.
           </AlertDescription>
         </Alert>

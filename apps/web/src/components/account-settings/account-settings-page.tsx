@@ -5,14 +5,17 @@ import { useState } from "react";
 import { AccountSettingsShell, type AccountTab } from "./account-settings-shell";
 import { ProfileHeader } from "./profile-header";
 import { ProfileForm } from "./profile-form";
+import { ProfileCompletionBanner } from "./profile-completion-banner";
 import { AccountActivitiesList } from "./account-activities-list";
 import { SecurityMfaForm } from "./security-mfa-form";
 
 interface AccountSettingsPageProps {
   title: string;
+  /** Show profile completion prompt for customers purchasing services */
+  showProfileCompletionPrompt?: boolean;
 }
 
-export function AccountSettingsPage({ title }: AccountSettingsPageProps) {
+export function AccountSettingsPage({ title, showProfileCompletionPrompt = false }: AccountSettingsPageProps) {
   const [activeTab, setActiveTab] = useState<AccountTab>("profile");
 
   return (
@@ -22,6 +25,7 @@ export function AccountSettingsPage({ title }: AccountSettingsPageProps) {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         header={<ProfileHeader />}
+        banner={showProfileCompletionPrompt ? <ProfileCompletionBanner /> : null}
       >
         {activeTab === "profile" && <ProfileForm />}
         {activeTab === "security" && <SecurityMfaForm />}

@@ -80,7 +80,7 @@ function parseMetaBlock(metaRaw: string): {
 	}
 }
 
-/** Parse HTML architect / revision output — delimiter format first, then JSON, then raw HTML. */
+/** Parse HTML architect / revision output - delimiter format first, then JSON, then raw HTML. */
 export function parseHtmlAgentResponse(
 	raw: string,
 	schema: z.ZodType<NebHtmlArchitectOutput | NebRevisionOutput>,
@@ -249,7 +249,7 @@ export function parsePlannerResponse(raw: string): NebPlannerOutput {
 }
 
 export const HTML_DELIMITER_INSTRUCTION = `
-OUTPUT FORMAT (mandatory — do NOT put HTML inside a JSON string):
+OUTPUT FORMAT (mandatory - do NOT put HTML inside a JSON string):
 
 ${HTML_START}
 <!DOCTYPE html>
@@ -266,11 +266,11 @@ Rules:
 - Do not output anything else outside these blocks.`;
 
 /**
- * Extended delimiter format for direct builds — includes subject, preheader,
+ * Extended delimiter format for direct builds - includes subject, preheader,
  * and image_slots in the meta block so we don't need a separate spec step.
  */
 export const HTML_DIRECT_BUILD_DELIMITER_INSTRUCTION = `
-OUTPUT FORMAT (mandatory — do NOT put HTML inside a JSON string):
+OUTPUT FORMAT (mandatory - do NOT put HTML inside a JSON string):
 
 ${HTML_START}
 <!DOCTYPE html>
@@ -279,15 +279,15 @@ ${HTML_END}
 
 ${META_START}
 {
-  "subject": "under 60 chars — specific, compelling email subject line",
-  "preheader": "under 90 chars — preview text that extends the subject",
+  "subject": "under 60 chars - specific, compelling email subject line",
+  "preheader": "under 90 chars - preview text that extends the subject",
   "change_summary": "one line summary of what was built",
-  "assistant_text": "2-3 warm sentences about the finished email for the user — campaign angle and highlights only; never mention templates, reference files, or internal build details",
+  "assistant_text": "2-3 warm sentences about the finished email for the user - campaign angle and highlights only; never mention templates, reference files, or internal build details",
   "image_slots": [
     {
       "key": "hero",
       "kind": "photo",
-      "prompt": "detailed image generation prompt — subject, scene, mood, colors, NO TEXT, NO LOGOS, NO WATERMARKS",
+      "prompt": "detailed image generation prompt - subject, scene, mood, colors, NO TEXT, NO LOGOS, NO WATERMARKS",
       "alt": "alt text",
       "aspectRatio": "16:9",
       "imageSize": "2K"
@@ -309,7 +309,7 @@ Rules:
 - The HTML block is raw HTML only (no JSON escaping). ZERO emoji characters in the HTML.
 - The meta block is valid JSON with ALL fields populated.
 - image_slots: include one entry per {{NEB_IMG:key}} placeholder used in the HTML.
-- For icons (kind "icon"): set backgroundColor to the EXACT hex of the section <td> background behind the icon (metadata only — never repeat that hex in the prompt). Icon prompt describes ONLY the icon — no background, no scene, no text, no hex codes.
+- For icons (kind "icon"): set backgroundColor to the EXACT hex of the section <td> background behind the icon (metadata only - never repeat that hex in the prompt). Icon prompt describes ONLY the icon - no background, no scene, no text, no hex codes.
 - For photos (kind "photo"): lifestyle/product scene prompt, end with NO TEXT, NO LOGOS, NO WATERMARKS.
 - Do not output anything else outside these blocks.
 - assistant_text is shown directly to the user: no template names, no .html filenames, no references to internal design libraries.`;
@@ -368,7 +368,7 @@ export function parseDirectBuildResponse(raw: string): NebDirectBuildOutput {
 		const candidate = { html: htmlFromDelim, ...meta };
 		const validated = directBuildOutputSchema.safeParse(candidate);
 		if (validated.success) return validated.data;
-		// Schema failed but we have HTML — return with defaults merged
+		// Schema failed but we have HTML - return with defaults merged
 		return { html: htmlFromDelim, ...meta };
 	}
 

@@ -85,5 +85,5 @@ export function skillSystemAddendum(skill: ZeepoAgentSkillDefinition): string {
 	return `Guided skill: "${skill.title}" (id: ${skill.id}).
 ${skill.agentDirectives}
 
-Behavior: Ask focused follow-up questions (one or two at a time) until you have enough context. Do not invent missing facts—invite the user to share them. Then deliver structured, actionable help.`;
+Behavior: Ask focused follow-up questions (one or two at a time) until you have enough context. Do not invent missing facts-invite the user to share them. Then deliver structured, actionable help.`;
 }

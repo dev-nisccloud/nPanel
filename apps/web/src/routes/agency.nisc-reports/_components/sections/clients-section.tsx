@@ -98,7 +98,7 @@ export function ClientsSection() {
                         <td className="px-4 py-2.5 font-mono">{c.startCount}</td>
                         {[c.at1Month, c.at3Months, c.at6Months, c.at12Months].map((v, i) => (
                           <td key={i} className="px-4 py-2.5">
-                            {v === -1 ? "—" : (
+                            {v === -1 ? "-" : (
                               <span className={cn("font-mono font-semibold", pct(v) >= 80 ? "text-emerald-600" : pct(v) >= 50 ? "text-amber-600" : "text-red-600")}>
                                 {v} ({pct(v)}%)
                               </span>

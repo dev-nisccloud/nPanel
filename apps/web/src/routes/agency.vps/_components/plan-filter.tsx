@@ -61,7 +61,7 @@ export function applyVpsPlanFilter(
 	displayPrices: Map<number, number>,
 ): VpsPlan[] {
 	return plans.filter((plan) => {
-		// CPU brand — VPS/VDS encode brand in product_name
+		// CPU brand - VPS/VDS encode brand in product_name
 		if (filter.cpuBrand !== "all") {
 			const brand = getCpuBrand(plan.product_name);
 			if (brand === null || brand !== filter.cpuBrand) return false;
@@ -134,7 +134,7 @@ export const VpsPlanFilter = React.memo(function VpsPlanFilter({
 		};
 	}, [plans, displayPrices]);
 
-	// Debounced price slider — visual draft updates immediately, filter commits after 150ms
+	// Debounced price slider - visual draft updates immediately, filter commits after 150ms
 	const [draftPrice, setDraftPrice] = React.useState<{ min: number; max: number } | null>(null);
 	const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 

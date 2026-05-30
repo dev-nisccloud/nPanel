@@ -32,7 +32,7 @@ export function QuotationsSection() {
     <NiscSection
       id="quotations"
       title="Quotation pipeline"
-      description="Pipeline overview, conversion funnel, and full quotation list — all statuses included."
+      description="Pipeline overview, conversion funnel, and full quotation list - all statuses included."
     >
       {pipeline.isLoading ? (
         <Skeleton className="h-48" />
@@ -88,11 +88,11 @@ export function QuotationsSection() {
               <tbody className="divide-y divide-border/40">
                 {(list.data?.rows ?? []).map((q) => (
                   <tr key={q.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-2.5 font-mono text-xs">{q.quotationNumber ?? "—"}</td>
-                    <td className="px-4 py-2.5 truncate max-w-[160px]">{q.customerName ?? "—"}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{q.quotationNumber ?? "-"}</td>
+                    <td className="px-4 py-2.5 truncate max-w-[160px]">{q.customerName ?? "-"}</td>
                     <td className="px-4 py-2.5 font-mono font-semibold">{fmtKes(q.amount)}</td>
                     <td className="px-4 py-2.5"><span className={cn("px-2 py-0.5 rounded text-[11px] font-semibold", QUOTE_STATUS_COLORS[q.status])}>{q.status}</span></td>
-                    <td className="px-4 py-2.5 text-xs">{q.issueDate ? format(q.issueDate, "MMM dd, yyyy") : "—"}</td>
+                    <td className="px-4 py-2.5 text-xs">{q.issueDate ? format(q.issueDate, "MMM dd, yyyy") : "-"}</td>
                   </tr>
                 ))}
               </tbody>

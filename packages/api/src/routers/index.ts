@@ -193,7 +193,7 @@ export const appRouter = router({
 	nameserverGroups: nameserverGroupsRouter,
 	// TLD Settings management
 	tldSettings: tldSettingsRouter,
-	// AI domain name ideas (authenticated — Replicate / Claude Haiku)
+	// AI domain name ideas (authenticated - Replicate / Claude Haiku)
 	aiDomainSearch: aiDomainSearchRouter,
 	// Domains Management (Nisc)
 	domains: niscDomainsRouter,
@@ -265,7 +265,7 @@ export const appRouter = router({
 	emailMarketing: emailMarketingRouter,
 	// nisc Email Marketing (SES Integration - new, parallel)
 	niscEmailMarketing: niscEmailMarketingRouter,
-	/** Standalone Nisc Email Builder (AI HTML — not legacy emailBuilder) */
+	/** Standalone Nisc Email Builder (AI HTML - not legacy emailBuilder) */
 	niscEmailBuilder: niscEmailBuilderRouter,
 	// Web Design Quote Requests (domain portfolio dialog)
 	webDesignQuotes: webDesignQuotesRouter,

@@ -139,7 +139,7 @@ export interface MetaAdsAnalysisJobResult {
 	messageId: string;
 }
 
-/** Nisc Email Builder (neb) — multi-agent HTML build */
+/** Nisc Email Builder (neb) - multi-agent HTML build */
 export interface NebBuildJobPayload {
 	jobId: string;
 }

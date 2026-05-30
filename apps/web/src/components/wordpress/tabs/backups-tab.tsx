@@ -39,7 +39,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
     onSuccess: (res) => {
       const url = extractTaskUrl(res);
       if (!url && !res.started) {
-        toast.error("Backup could not be started — no task returned from the server");
+        toast.error("Backup could not be started - no task returned from the server");
         return;
       }
       setDescription("");
@@ -58,7 +58,7 @@ export function WordPressBackupsTab({ installationId }: { installationId: string
   });
 
   const formatSize = (bytes?: number) => {
-    if (bytes == null) return "—";
+    if (bytes == null) return "-";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

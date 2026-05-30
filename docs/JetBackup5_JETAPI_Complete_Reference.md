@@ -1,6 +1,6 @@
-# JetBackup 5 — JETAPI Complete Reference Guide (Plesk Edition)
+# JetBackup 5 - JETAPI Complete Reference Guide (Plesk Edition)
 
-> **Source:** Official JetBackup 5 Documentation — https://docs.jetbackup.com/v5.3/api/  
+> **Source:** Official JetBackup 5 Documentation - https://docs.jetbackup.com/v5.3/api/  
 > **Version Covered:** JetBackup 5 v5.3 (STABLE)  
 > **Minimum Plesk Version Required:** 18.0.39 and above  
 > **Last Docs Update Referenced:** June 2025  
@@ -10,8 +10,8 @@
 ## Table of Contents
 
 1. [Overview](#1-overview)
-2. [Authentication — Plesk](#2-authentication--plesk)
-3. [Base API URL — Plesk](#3-base-api-url--plesk)
+2. [Authentication - Plesk](#2-authentication--plesk)
+3. [Base API URL - Plesk](#3-base-api-url--plesk)
 4. [Request Format](#4-request-format)
 5. [Universal Response Structure](#5-universal-response-structure)
 6. [Common Parameters (List Calls)](#6-common-parameters-list-calls)
@@ -46,7 +46,7 @@
 
 ## 1. Overview
 
-JetBackup's JETAPI gives you **full programmatic access** to every feature available in the JetBackup 5 admin GUI — and more. You can use it to:
+JetBackup's JETAPI gives you **full programmatic access** to every feature available in the JetBackup 5 admin GUI - and more. You can use it to:
 
 - Create and manage backup destinations (S3, FTP, SFTP, local, Google Drive, Dropbox, OneDrive)
 - Create, edit, run, and delete backup jobs and clone jobs
@@ -57,11 +57,11 @@ JetBackup's JETAPI gives you **full programmatic access** to every feature avail
 - Manage system settings, security, snapshot retention, notifications
 - Manage plugins and integrations
 
-> **Important for Plesk shared hosting:** The JETAPI operates at the **admin level**. You authenticate as the Plesk admin (root), and then scope individual calls to a specific customer account using the `account` parameter. Your customers never authenticate directly against the JETAPI — your system acts on their behalf.
+> **Important for Plesk shared hosting:** The JETAPI operates at the **admin level**. You authenticate as the Plesk admin (root), and then scope individual calls to a specific customer account using the `account` parameter. Your customers never authenticate directly against the JETAPI - your system acts on their behalf.
 
 ---
 
-## 2. Authentication — Plesk
+## 2. Authentication - Plesk
 
 ### How it works
 
@@ -69,13 +69,13 @@ JetBackup on Plesk uses the **same Plesk API secret key** you already use for Pl
 
 ### Creating the API Key (if you haven't already)
 
-**Method 1 — SSH terminal (recommended):**
+**Method 1 - SSH terminal (recommended):**
 ```bash
 plesk bin secret_key --create -ip-address ALL -description "JetBackup API Key"
 ```
 This prints a key. Store it securely.
 
-**Method 2 — Plesk REST API:**
+**Method 2 - Plesk REST API:**
 ```
 POST https://{YOUR_PLESK_HOST}:8443/api/v2/auth/keys
 Content-Type: application/json
@@ -94,11 +94,11 @@ Pass it as a `secret_key` header:
 secret_key: YOUR_SECRET_KEY_HERE
 ```
 
-Or as a `Authorization: Bearer` token format — the Plesk API adapter accepts both.
+Or as a `Authorization: Bearer` token format - the Plesk API adapter accepts both.
 
 ---
 
-## 3. Base API URL — Plesk
+## 3. Base API URL - Plesk
 
 All JetBackup API calls on a Plesk server go to this endpoint:
 
@@ -172,10 +172,10 @@ Non-alphanumeric characters (except underscore `_`) in parameter values must be 
 |-------|------|-------------|
 | `success` | Boolean (1/0) | `1` = call succeeded, `0` = failed |
 | `message` | String | Error message if `success` is `0`, or informational message |
-| `data` | Object/Array | The actual returned data — structure varies per function |
+| `data` | Object/Array | The actual returned data - structure varies per function |
 | `system.version` | String | Current JetBackup version installed |
 | `system.tier` | String | `STABLE`, `EDGE`, or `ALPHA` |
-| `system.type` | String | Panel type — will be `Plesk` on your server |
+| `system.type` | String | Panel type - will be `Plesk` on your server |
 | `system.dr` | Boolean | Whether system is in Disaster Recovery mode |
 | `system.licenseIssue` | Boolean | Whether there is a license problem |
 
@@ -248,7 +248,7 @@ Many backup-related API calls use a `type` parameter that is a **bitmask** (bitw
 ---
 
 #### `getMasterEncryptionKey`
-Returns the Master Encryption Key used for encrypted backups. Store this securely — it is required for disaster recovery.
+Returns the Master Encryption Key used for encrypted backups. Store this securely - it is required for disaster recovery.
 
 **Parameters:** None
 
@@ -269,7 +269,7 @@ Returns the Master Encryption Key used for encrypted backups. Store this securel
 ---
 
 #### `factoryReset`
-Resets the entire JetBackup configuration back to factory defaults. **Destructive — use with extreme caution.**
+Resets the entire JetBackup configuration back to factory defaults. **Destructive - use with extreme caution.**
 
 **Parameters:** None
 
@@ -310,7 +310,7 @@ Returns the list of showcase items / onboarding steps and their completion statu
 ---
 
 #### `getDashboardDetails`
-Returns a comprehensive overview of the JetBackup dashboard — backup counts, queue status, recent activity, storage usage, and job summaries.
+Returns a comprehensive overview of the JetBackup dashboard - backup counts, queue status, recent activity, storage usage, and job summaries.
 
 **Parameters:** None
 
@@ -342,7 +342,7 @@ Returns version and system information about the JetBackup installation.
 ---
 
 #### `getStatistics`
-Returns statistical data for charts and reporting — backup counts over time, storage usage trends, success/failure rates.
+Returns statistical data for charts and reporting - backup counts over time, storage usage trends, success/failure rates.
 
 **Parameters:**
 
@@ -534,7 +534,7 @@ Permanently deletes all backup snapshots for a specific account from a specific 
 
 ### 9.4 Destinations
 
-> Functions for managing where backups are stored — create, list, validate, delete, and reindex destinations.
+> Functions for managing where backups are stored - create, list, validate, delete, and reindex destinations.
 
 ---
 
@@ -553,10 +553,10 @@ Returns all configured backup destinations.
 | `disk_limit` | Storage limit in bytes (`0` = unlimited) |
 | `disk_usage` | Current usage in bytes |
 | `threads` | Number of concurrent upload threads |
-| `readonly` | Boolean — if `1`, no new backups can be sent here |
-| `disabled` | Boolean — if `1`, destination is inactive |
-| `dr` | Boolean — whether this destination is used for Disaster Recovery |
-| `options` | Object — connection-specific settings (path, credentials, etc.) |
+| `readonly` | Boolean - if `1`, no new backups can be sent here |
+| `disabled` | Boolean - if `1`, destination is inactive |
+| `dr` | Boolean - whether this destination is used for Disaster Recovery |
+| `options` | Object - connection-specific settings (path, credentials, etc.) |
 
 ---
 
@@ -720,12 +720,12 @@ Returns all configured backup jobs.
 | `name` | Job name |
 | `destination_id` | Target destination ID |
 | `type` | Bitmask of what types are backed up |
-| `enabled` | Boolean — whether job is active |
+| `enabled` | Boolean - whether job is active |
 | `schedule_id` | Associated schedule ID |
 | `account_filter_id` | Associated account filter ID |
 | `retain` | Number of snapshots to retain |
 | `ttl` | Snapshot time-to-live in days |
-| `running` | Boolean — whether job is currently executing |
+| `running` | Boolean - whether job is currently executing |
 
 ---
 
@@ -798,7 +798,7 @@ Permanently deletes a backup job configuration. **Does not delete existing backu
 
 ### 9.6 Clone Jobs
 
-> Functions for managing clone jobs — jobs that copy/clone account data to another server or location.
+> Functions for managing clone jobs - jobs that copy/clone account data to another server or location.
 
 ---
 
@@ -1013,7 +1013,7 @@ Returns all backup snapshots across all destinations.
 |-----------|------|-------------|
 | `type` | Integer | Filter by backup type bitmask |
 | `destination_id` | String | Filter by destination |
-| Standard list params | — | `page`, `limit`, `search`, `orderby`, `order` |
+| Standard list params | - | `page`, `limit`, `search`, `orderby`, `order` |
 
 ---
 
@@ -1029,7 +1029,7 @@ Returns all available backups for accounts. This is the primary call for showing
 | `username` | String | No | Filter to a single account username |
 | `destination_id` | String | No | Filter by destination |
 
-**Example — list all backups for a specific customer:**
+**Example - list all backups for a specific customer:**
 ```json
 {
   "function": "listBackupForAccounts",
@@ -1048,7 +1048,7 @@ Returns all available backups for accounts. This is the primary call for showing
 | `type` | Bitmask of what was backed up |
 | `size` | Size in bytes |
 | `destination_id` | Where it is stored |
-| `locked` | Boolean — if locked, cannot be auto-deleted |
+| `locked` | Boolean - if locked, cannot be auto-deleted |
 
 ---
 
@@ -1087,7 +1087,7 @@ Returns accounts that match given filter criteria, along with their backup snaps
 ---
 
 #### `getBackupItems`
-Returns all sub-items within a backup snapshot — e.g., list of individual databases, email accounts, or files inside a specific backup.
+Returns all sub-items within a backup snapshot - e.g., list of individual databases, email accounts, or files inside a specific backup.
 
 **Parameters:**
 
@@ -1124,7 +1124,7 @@ Locks or unlocks a backup snapshot to prevent automatic deletion by retention po
 
 ### 9.10 Restore
 
-> The Restore section in JETAPI is handled via **`addQueueItems`** in the Queues section (see Section 9.12), by passing `type: 2` (restore) when queuing items. There is no separate standalone restore function — restoration is a queue operation.
+> The Restore section in JETAPI is handled via **`addQueueItems`** in the Queues section (see Section 9.12), by passing `type: 2` (restore) when queuing items. There is no separate standalone restore function - restoration is a queue operation.
 
 > The workflow is: `listBackupForAccounts` → get `parent_id` → `getBackupItems` → get item `_id`s → `addQueueItems` with `type: 2`.
 
@@ -1198,7 +1198,7 @@ Adds or updates notes/comments on a download entry.
 ---
 
 #### `addQueueItems`
-The most important queue function — queues backup items for either **restore** or **download**.
+The most important queue function - queues backup items for either **restore** or **download**.
 
 **Parameters:**
 
@@ -1207,10 +1207,10 @@ The most important queue function — queues backup items for either **restore**
 | `items` | Array | **Yes** | Array of queue item objects |
 | `items[].parent_id` | String | **Yes** | Backup snapshot `_id` from `listBackupForAccounts` |
 | `items[].type` | Integer | **Yes** | `1` = Backup, `2` = Restore, `3` = Download |
-| `items[].item_id` | String | No | Specific sub-item ID (from `getBackupItems`) — if omitted, entire snapshot is processed |
+| `items[].item_id` | String | No | Specific sub-item ID (from `getBackupItems`) - if omitted, entire snapshot is processed |
 | `items[].username` | String | No | Target account (for restore to different account) |
 
-**Example — queue a full account restore:**
+**Example - queue a full account restore:**
 ```json
 {
   "function": "addQueueItems",
@@ -1223,7 +1223,7 @@ The most important queue function — queues backup items for either **restore**
 }
 ```
 
-**Example — queue a specific database restore:**
+**Example - queue a specific database restore:**
 ```json
 {
   "function": "addQueueItems",
@@ -1340,7 +1340,7 @@ Re-queues a failed queue group to try again.
 ---
 
 #### `manageQueuePriority`
-Creates or modifies a queue priority rule — controls the order in which queue items are processed.
+Creates or modifies a queue priority rule - controls the order in which queue items are processed.
 
 **Parameters:**
 
@@ -1403,7 +1403,7 @@ Returns all current alerts.
 | `message` | Human-readable alert message |
 | `severity` | `info`, `warning`, `critical` |
 | `date` | Alert timestamp |
-| `read` | Boolean — whether alert has been acknowledged |
+| `read` | Boolean - whether alert has been acknowledged |
 
 ---
 
@@ -1466,7 +1466,7 @@ Returns all detailed line items within a specific log (the verbose output of a b
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `log_id` | String | **Yes** | Parent log ID |
-| Standard list params | — | `page`, `limit` |
+| Standard list params | - | `page`, `limit` |
 
 ---
 
@@ -1513,7 +1513,7 @@ Updates the restore settings configuration.
 ---
 
 #### `getSettingsSecurity`
-Returns the security settings object — IP whitelist/blacklist, 2FA requirements, session timeouts.
+Returns the security settings object - IP whitelist/blacklist, 2FA requirements, session timeouts.
 
 ---
 
@@ -1523,7 +1523,7 @@ Updates security settings.
 ---
 
 #### `getSettingsPrivacy`
-Returns privacy settings — data anonymisation, log retention policies.
+Returns privacy settings - data anonymisation, log retention policies.
 
 ---
 
@@ -1543,7 +1543,7 @@ Updates panel settings.
 ---
 
 #### `getSettingsSnapshots`
-Returns the snapshot retention settings — how many to keep, TTL (time-to-live), size and inode limits.
+Returns the snapshot retention settings - how many to keep, TTL (time-to-live), size and inode limits.
 
 **Response `data` example:**
 ```json
@@ -1574,7 +1574,7 @@ Updates snapshot retention settings.
 ---
 
 #### `getSettingsBinary`
-Returns the binary/path settings — paths to compression tools, workspace directory, download directory.
+Returns the binary/path settings - paths to compression tools, workspace directory, download directory.
 
 ---
 
@@ -1584,7 +1584,7 @@ Updates binary/path settings.
 ---
 
 #### `getSettingsResource`
-Returns resource allocation settings — CPU and memory limits for backup processes.
+Returns resource allocation settings - CPU and memory limits for backup processes.
 
 ---
 
@@ -1726,7 +1726,7 @@ Deletes a file permission object.
 
 ### 9.19 Plugins
 
-> Manage JetBackup's plugin system — install, configure, and remove plugins that extend functionality (notification channels, Imunify360 security integration, JetBackupMC management console, etc.).
+> Manage JetBackup's plugin system - install, configure, and remove plugins that extend functionality (notification channels, Imunify360 security integration, JetBackupMC management console, etc.).
 
 ---
 
@@ -1944,7 +1944,7 @@ print_r($restore['data']);
 // 5. Check queue status
 $queue = jetbackupApiCall($host, $secretKey, 'listQueueGroups');
 foreach ($queue['data']['items'] as $group) {
-    echo "{$group['username']} — Status: {$group['status']}\n";
+    echo "{$group['username']} - Status: {$group['status']}\n";
 }
 ```
 
@@ -1998,7 +1998,7 @@ jb_api '{"function":"addQueueItems","items":[{"parent_id":"SNAPSHOT_ID","type":2
 
 This is the complete step-by-step workflow for showing a customer their backups and letting them restore one:
 
-### Step 1 — Get the customer's backup snapshots
+### Step 1 - Get the customer's backup snapshots
 
 ```json
 POST https://server.yourdomain.com:8443/modules/jetbackup5/api.php
@@ -2013,7 +2013,7 @@ From the response, collect the `_id` of the snapshot the customer wants to resto
 
 ---
 
-### Step 2 (Optional) — Browse items within a snapshot
+### Step 2 (Optional) - Browse items within a snapshot
 
 If the customer wants to restore only a specific database or specific files rather than the full snapshot:
 
@@ -2032,7 +2032,7 @@ From the response, collect the `_id` of the specific item to restore.
 
 ---
 
-### Step 3 — Queue the restore
+### Step 3 - Queue the restore
 
 **Full snapshot restore:**
 ```json
@@ -2065,7 +2065,7 @@ POST https://server.yourdomain.com:8443/modules/jetbackup5/api.php
 
 ---
 
-### Step 4 — Monitor progress
+### Step 4 - Monitor progress
 
 ```json
 POST https://server.yourdomain.com:8443/modules/jetbackup5/api.php

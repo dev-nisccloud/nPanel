@@ -210,7 +210,7 @@ export async function handleNiscEmailBuilder(c: Context) {
 				await enqueueNebBuildJob(regenJobId);
 			} else if (chat.action === "ready_to_build") {
 				await appendAssistant(
-					`${chat.assistant_text}\n\nClick **Approve & build email** when you're ready — I'll turn this into your HTML email.`,
+					`${chat.assistant_text}\n\nClick **Approve & build email** when you're ready - I'll turn this into your HTML email.`,
 					{ action: chat.action },
 				);
 			} else {

@@ -273,7 +273,7 @@ export const creativeAssetAiAnalysis = pgTable(
      */
     summary: text("summary"),
 
-    /** Denominator for headline score — almost always 10 */
+    /** Denominator for headline score - almost always 10 */
     overallRatingScaleMax: integer("overall_rating_scale_max").default(10).notNull(),
     /** Headline rating on `[0, overall_rating_scale_max]`; null until COMPLETED or if FAILED */
     overallRatingValue: decimal("overall_rating_value", { precision: 5, scale: 2 }),

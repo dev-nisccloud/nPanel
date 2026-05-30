@@ -310,7 +310,7 @@ export class EtimsOscuClient {
         bhfId: string;
         dvcSrlNo: string;
     }) {
-        // No OSCU headers for init — only Authorization
+        // No OSCU headers for init - only Authorization
         return this.post('selectInitOsdcInfo', payload as Record<string, unknown>);
     }
 
@@ -445,7 +445,7 @@ export function getEtimsClient(config: EtimsClientConfig): EtimsOscuClient {
         // if the tokenUrl changed (different env), since the old token won't be valid.
         const prevUrl = (_singleton as unknown as { config: EtimsClientConfig }).config.tokenUrl;
         if (prevUrl !== config.tokenUrl) {
-            // Environment changed — kill the old singleton and the cached token
+            // Environment changed - kill the old singleton and the cached token
             _singleton.clearToken().catch(() => undefined);
             _singleton = new EtimsOscuClient(config);
         }

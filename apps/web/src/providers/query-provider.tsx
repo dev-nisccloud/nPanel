@@ -52,7 +52,7 @@ export function QueryProvider({ children }: QueryProviderProps) {
       },
     });
 
-    // When session has expired (UNAUTHORIZED), sign out and redirect to login — but never from public/auth routes (avoids redirect loops).
+    // When session has expired (UNAUTHORIZED), sign out and redirect to login - but never from public/auth routes (avoids redirect loops).
     const redirectToLogin = () => {
       if (typeof window !== "undefined" && isPublicPath(window.location.pathname)) {
         return;

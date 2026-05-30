@@ -1,5 +1,5 @@
 /**
- * Zeepo AI Agent — internal tool registry.
+ * Zeepo AI Agent - internal tool registry.
  *
  * This module is the single place to register all Nisc Cloud internal API
  * wrappers that the agent can call. Adding a new internal tool:
