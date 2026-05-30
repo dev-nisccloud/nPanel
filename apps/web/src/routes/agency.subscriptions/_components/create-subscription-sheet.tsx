@@ -41,9 +41,15 @@ import { toast } from "@/components/ui/sonner";
 
 const ZEEPO_TOKEN_OVERRIDE_KEY = "zeepoTokenGrantOverride";
 
+const SERVICE_PRODUCTS = [
+	{ id: "zeepo_ai_agent", label: "Zeepo AI Agent" },
+	{ id: "nisc_email_marketing", label: "Nisc Email Marketing" },
+] as const;
+
 const createFormSchema = z
 	.object({
 		teamId: z.string().min(1, "Select a team"),
+		serviceProduct: z.enum(["zeepo_ai_agent", "nisc_email_marketing"]),
 		planId: z.string().min(1, "Select a plan"),
 		amount: z.string().min(1, "Enter the payment amount"),
 		overrideTokens: z.boolean(),
@@ -57,7 +63,7 @@ const createFormSchema = z
 		if (!Number.isFinite(amount) || amount <= 0) {
 			ctx.addIssue({ code: "custom", message: "Amount must be greater than 0", path: ["amount"] });
 		}
-		if (data.overrideTokens) {
+		if (data.serviceProduct === "zeepo_ai_agent" && data.overrideTokens) {
 			const tokens = Number.parseInt(data.tokenGrant ?? "", 10);
 			if (!Number.isFinite(tokens) || tokens < 0) {
 				ctx.addIssue({
@@ -81,6 +87,24 @@ type ZeepoPlanOption = {
 	billingCycle: string | null;
 };
 
+type NiscEmPlanOption = {
+	id: string;
+	name: string;
+	productId: string;
+	productName: string;
+	displayPrice: number;
+	displayCurrency: string;
+	billingCycle: string;
+};
+
+function normalizeBillingCycle(
+	raw: string | null | undefined,
+): "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" {
+	const v = (raw ?? "MONTHLY").toUpperCase();
+	if (v === "YEARLY" || v === "BIENNIALLY" || v === "CUSTOM") return v;
+	return "MONTHLY";
+}
+
 interface CreateSubscriptionSheetProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -93,14 +117,39 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 		enabled: open,
 	});
 
-	const { data: plansData, isLoading: loadingPlans } =
+	const form = useForm<CreateFormData>({
+		resolver: zodResolver(createFormSchema),
+		defaultValues: {
+			teamId: "",
+			serviceProduct: "zeepo_ai_agent",
+			planId: "",
+			amount: "",
+			overrideTokens: false,
+			tokenGrant: "",
+			transactionReference: "",
+		},
+	});
+
+	const watchedTeamId = form.watch("teamId");
+	const watchedPlanId = form.watch("planId");
+	const watchedOverride = form.watch("overrideTokens");
+	const watchedServiceProduct = form.watch("serviceProduct");
+
+	const isZeepo = watchedServiceProduct === "zeepo_ai_agent";
+
+	const { data: zeepoPlansData, isLoading: loadingZeepoPlans } =
 		trpc.zeepoAgent.billing.listPurchasePlans.useQuery(
 			{ displayCurrency: "KES" },
-			{ enabled: open },
+			{ enabled: open && isZeepo },
 		);
 
+	const { data: niscEmPlansData, isLoading: loadingNiscEmPlans } =
+		trpc.products.getNiscEmailMarketingPlansForPricing.useQuery(undefined, {
+			enabled: open && !isZeepo,
+		});
+
 	const zeepoPlans = React.useMemo((): ZeepoPlanOption[] => {
-		return (plansData?.data ?? [])
+		return (zeepoPlansData?.data ?? [])
 			.filter((p) => String(p.zeepoPlanType ?? "") !== "pay_as_you_go")
 			.map((p) => ({
 				id: String(p.id),
@@ -117,34 +166,42 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				displayCurrency: String(p.displayCurrency ?? "KES"),
 				billingCycle: p.billingCycle != null ? String(p.billingCycle) : null,
 			}));
-	}, [plansData?.data]);
+	}, [zeepoPlansData?.data]);
 
-	const productId = plansData?.productId;
+	const niscEmPlans = React.useMemo((): NiscEmPlanOption[] => {
+		return (niscEmPlansData?.plans ?? []).map((p) => ({
+			id: p.id,
+			name: p.name,
+			productId: p.productId,
+			productName: p.productName,
+			displayPrice: Number.parseFloat(p.niscPrice ?? "0") || 0,
+			displayCurrency: p.niscCurrency || "KES",
+			billingCycle: p.billingCycle || "MONTHLY",
+		}));
+	}, [niscEmPlansData?.plans]);
 
-	const form = useForm<CreateFormData>({
-		resolver: zodResolver(createFormSchema),
-		defaultValues: {
-			teamId: "",
-			planId: "",
-			amount: "",
-			overrideTokens: false,
-			tokenGrant: "",
-			transactionReference: "",
-		},
-	});
+	const zeepoProductId = zeepoPlansData?.productId;
 
-	const watchedTeamId = form.watch("teamId");
-	const watchedPlanId = form.watch("planId");
-	const watchedOverride = form.watch("overrideTokens");
+	const selectedZeepoPlan = React.useMemo(
+		() => zeepoPlans.find((p) => p.id === watchedPlanId) ?? null,
+		[zeepoPlans, watchedPlanId],
+	);
+
+	const selectedNiscEmPlan = React.useMemo(
+		() => niscEmPlans.find((p) => p.id === watchedPlanId) ?? null,
+		[niscEmPlans, watchedPlanId],
+	);
+
+	const selectedPlan = isZeepo ? selectedZeepoPlan : selectedNiscEmPlan;
+	const loadingPlans = isZeepo ? loadingZeepoPlans : loadingNiscEmPlans;
+	const planOptions = isZeepo ? zeepoPlans : niscEmPlans;
+	const displayCurrency = isZeepo
+		? (selectedZeepoPlan?.displayCurrency ?? "KES")
+		: (selectedNiscEmPlan?.displayCurrency ?? "KES");
 
 	const { data: teamMembers = [] } = trpc.teams.getMembers.useQuery(
 		{ teamId: watchedTeamId },
 		{ enabled: open && Boolean(watchedTeamId) },
-	);
-
-	const selectedPlan = React.useMemo(
-		() => zeepoPlans.find((p) => p.id === watchedPlanId) ?? null,
-		[zeepoPlans, watchedPlanId],
 	);
 
 	const teamItems = React.useMemo((): ComboboxItem[] => {
@@ -161,12 +218,22 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 	}, [open, form]);
 
 	React.useEffect(() => {
+		form.setValue("planId", "");
+		form.setValue("amount", "");
+		form.setValue("overrideTokens", false);
+		form.setValue("tokenGrant", "");
+	}, [watchedServiceProduct, form]);
+
+	React.useEffect(() => {
 		if (!selectedPlan) return;
-		form.setValue("amount", String(Math.ceil(selectedPlan.displayPrice)));
-		if (!form.getValues("overrideTokens")) {
-			form.setValue("tokenGrant", String(selectedPlan.tokenGrant));
+		const price = isZeepo
+			? (selectedZeepoPlan?.displayPrice ?? 0)
+			: (selectedNiscEmPlan?.displayPrice ?? 0);
+		form.setValue("amount", String(Math.ceil(price)));
+		if (isZeepo && selectedZeepoPlan && !form.getValues("overrideTokens")) {
+			form.setValue("tokenGrant", String(selectedZeepoPlan.tokenGrant));
 		}
-	}, [selectedPlan, form]);
+	}, [selectedPlan, selectedZeepoPlan, selectedNiscEmPlan, isZeepo, form]);
 
 	const recordManualPayment = trpc.paymentTransactions.recordManual.useMutation();
 	const createFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation();
@@ -174,59 +241,94 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 	const [submitting, setSubmitting] = React.useState(false);
 
 	const onSubmit = form.handleSubmit(async (data) => {
-		if (!productId || !selectedPlan) {
-			toast.error("Zeepo AI Agent product is not available.");
-			return;
-		}
-
-		const amount = Math.ceil(Number.parseFloat(data.amount));
 		const ownerUserId =
 			teamMembers.find((m) => m.role === "OWNER")?.userId ?? teamMembers[0]?.userId;
 
-		const metadata: Record<string, unknown> = {};
-		if (data.overrideTokens && data.tokenGrant?.trim()) {
-			metadata[ZEEPO_TOKEN_OVERRIDE_KEY] = Number.parseInt(data.tokenGrant, 10);
-		}
-
-		const billingCycle =
-			selectedPlan.zeepoPlanType === "top_up"
-				? ("CUSTOM" as const)
-				: selectedPlan.billingCycle === "YEARLY" ||
-						selectedPlan.billingCycle === "BIENNIALLY" ||
-						selectedPlan.billingCycle === "MONTHLY"
-					? (selectedPlan.billingCycle as "MONTHLY" | "YEARLY" | "BIENNIALLY")
-					: ("MONTHLY" as const);
-
 		setSubmitting(true);
 		try {
-			const payment = await recordManualPayment.mutateAsync({
-				transactionReference: data.transactionReference.trim(),
-				amount,
-				currency: selectedPlan.displayCurrency || "KES",
-				teamId: data.teamId,
-				transactionDesc: `Agency subscription: Zeepo AI Agent — ${selectedPlan.name}`.slice(
-					0,
-					200,
-				),
-			});
+			if (data.serviceProduct === "zeepo_ai_agent") {
+				if (!zeepoProductId || !selectedZeepoPlan) {
+					toast.error("Zeepo AI Agent product is not available.");
+					return;
+				}
 
-			await createFromPayment.mutateAsync({
-				checkoutRequestId: payment.checkoutRequestId,
-				teamId: data.teamId,
-				...(ownerUserId ? { billedForUserId: ownerUserId } : {}),
-				currency: selectedPlan.displayCurrency || "KES",
-				items: [
-					{
-						productId,
-						productPlanId: data.planId,
-						billingCycle,
-						itemPrice: String(amount),
-						itemSubtotal: String(amount),
-						description: selectedPlan.name,
-						...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-					},
-				],
-			});
+				const amount = Math.ceil(Number.parseFloat(data.amount));
+				const metadata: Record<string, unknown> = {};
+				if (data.overrideTokens && data.tokenGrant?.trim()) {
+					metadata[ZEEPO_TOKEN_OVERRIDE_KEY] = Number.parseInt(data.tokenGrant, 10);
+				}
+
+				const billingCycle =
+					selectedZeepoPlan.zeepoPlanType === "top_up"
+						? ("CUSTOM" as const)
+						: normalizeBillingCycle(selectedZeepoPlan.billingCycle);
+
+				const payment = await recordManualPayment.mutateAsync({
+					transactionReference: data.transactionReference.trim(),
+					amount,
+					currency: selectedZeepoPlan.displayCurrency || "KES",
+					teamId: data.teamId,
+					transactionDesc: `Agency subscription: Zeepo AI Agent — ${selectedZeepoPlan.name}`.slice(
+						0,
+						200,
+					),
+				});
+
+				await createFromPayment.mutateAsync({
+					checkoutRequestId: payment.checkoutRequestId,
+					teamId: data.teamId,
+					...(ownerUserId ? { billedForUserId: ownerUserId } : {}),
+					currency: selectedZeepoPlan.displayCurrency || "KES",
+					items: [
+						{
+							productId: zeepoProductId,
+							productPlanId: data.planId,
+							billingCycle,
+							itemPrice: String(amount),
+							itemSubtotal: String(amount),
+							description: selectedZeepoPlan.name,
+							...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+						},
+					],
+				});
+			} else {
+				if (!selectedNiscEmPlan) {
+					toast.error("Nisc Email Marketing product is not available.");
+					return;
+				}
+
+				const amount = Math.ceil(Number.parseFloat(data.amount));
+				const billingCycle = normalizeBillingCycle(selectedNiscEmPlan.billingCycle);
+
+				const payment = await recordManualPayment.mutateAsync({
+					transactionReference: data.transactionReference.trim(),
+					amount,
+					currency: selectedNiscEmPlan.displayCurrency || "KES",
+					teamId: data.teamId,
+					transactionDesc:
+						`Agency subscription: Nisc Email Marketing — ${selectedNiscEmPlan.name}`.slice(
+							0,
+							200,
+						),
+				});
+
+				await createFromPayment.mutateAsync({
+					checkoutRequestId: payment.checkoutRequestId,
+					teamId: data.teamId,
+					...(ownerUserId ? { billedForUserId: ownerUserId } : {}),
+					currency: selectedNiscEmPlan.displayCurrency || "KES",
+					items: [
+						{
+							productId: selectedNiscEmPlan.productId,
+							productPlanId: data.planId,
+							billingCycle,
+							itemPrice: String(amount),
+							itemSubtotal: String(amount),
+							description: selectedNiscEmPlan.name,
+						},
+					],
+				});
+			}
 
 			toast.success("Subscription order created. Invoice sent and service provisioned.");
 			onOpenChange(false);
@@ -241,6 +343,10 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 	});
 
 	const isBusy = submitting || recordManualPayment.isPending || createFromPayment.isPending;
+	const canSubmit =
+		isZeepo
+			? Boolean(zeepoProductId && zeepoPlans.length > 0)
+			: niscEmPlans.length > 0;
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
@@ -248,8 +354,9 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				<SheetHeader className="px-6 pt-6 pb-2">
 					<SheetTitle>Create subscription</SheetTitle>
 					<SheetDescription>
-						Create a subscription on behalf of a customer. Payment is recorded manually, an
-						invoice is emailed, and the order is provisioned through the Nisc order processor.
+						Create a subscription on behalf of a customer team. Payment is recorded manually,
+						an invoice is emailed, and the order is provisioned through the Nisc order
+						processor.
 					</SheetDescription>
 				</SheetHeader>
 
@@ -279,7 +386,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 													/>
 												)}
 												<FormDescription>
-													Subscription and tokens are linked to this team.
+													Subscription is linked to this customer team.
 												</FormDescription>
 												<FormMessage />
 											</FormItem>
@@ -289,11 +396,34 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 
 								<section className="space-y-4">
 									<h3 className="text-sm font-medium">Service</h3>
-									<FormItem>
-										<FormLabel>Product</FormLabel>
-										<Input value="Zeepo AI Agent" readOnly disabled className="bg-muted/50" />
-										<FormDescription>More services will be added here later.</FormDescription>
-									</FormItem>
+									<FormField
+										control={form.control}
+										name="serviceProduct"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Product</FormLabel>
+												<Select
+													onValueChange={field.onChange}
+													value={field.value}
+													disabled={isBusy}
+												>
+													<FormControl>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Select product" />
+														</SelectTrigger>
+													</FormControl>
+													<SelectContent>
+														{SERVICE_PRODUCTS.map((product) => (
+															<SelectItem key={product.id} value={product.id}>
+																{product.label}
+															</SelectItem>
+														))}
+													</SelectContent>
+												</Select>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
 
 									<FormField
 										control={form.control}
@@ -307,7 +437,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 													<Select
 														onValueChange={field.onChange}
 														value={field.value}
-														disabled={isBusy || zeepoPlans.length === 0}
+														disabled={isBusy || planOptions.length === 0}
 													>
 														<FormControl>
 															<SelectTrigger className="w-full">
@@ -315,21 +445,38 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 															</SelectTrigger>
 														</FormControl>
 														<SelectContent>
-															{zeepoPlans.map((plan) => (
-																<SelectItem key={plan.id} value={plan.id}>
-																	{plan.name} — {plan.tokenGrant.toLocaleString()} tokens (
-																	{plan.zeepoPlanType === "top_up" ? "top-up" : "subscription"})
-																</SelectItem>
-															))}
+															{isZeepo
+																? zeepoPlans.map((plan) => (
+																		<SelectItem key={plan.id} value={plan.id}>
+																			{plan.name} — {plan.tokenGrant.toLocaleString()}{" "}
+																			tokens (
+																			{plan.zeepoPlanType === "top_up"
+																				? "top-up"
+																				: "subscription"}
+																			)
+																		</SelectItem>
+																	))
+																: niscEmPlans.map((plan) => (
+																		<SelectItem key={plan.id} value={plan.id}>
+																			{plan.name} — {plan.displayCurrency}{" "}
+																			{Math.ceil(plan.displayPrice).toLocaleString()} /{" "}
+																			{plan.billingCycle.toLowerCase()}
+																		</SelectItem>
+																	))}
 														</SelectContent>
 													</Select>
+												)}
+												{!isZeepo && selectedNiscEmPlan && (
+													<FormDescription>
+														{selectedNiscEmPlan.productName}
+													</FormDescription>
 												)}
 												<FormMessage />
 											</FormItem>
 										)}
 									/>
 
-									{selectedPlan && (
+									{isZeepo && selectedZeepoPlan && (
 										<>
 											<FormField
 												control={form.control}
@@ -341,10 +488,10 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 																checked={field.value}
 																onCheckedChange={(v) => {
 																	field.onChange(Boolean(v));
-																	if (v && selectedPlan) {
+																	if (v && selectedZeepoPlan) {
 																		form.setValue(
 																			"tokenGrant",
-																			String(selectedPlan.tokenGrant),
+																			String(selectedZeepoPlan.tokenGrant),
 																		);
 																	}
 																}}
@@ -354,7 +501,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 														<div className="space-y-1 leading-none">
 															<FormLabel>Override token grant</FormLabel>
 															<FormDescription>
-																Plan includes {selectedPlan.tokenGrant.toLocaleString()}{" "}
+																Plan includes {selectedZeepoPlan.tokenGrant.toLocaleString()}{" "}
 																tokens. Override to grant a custom amount when provisioning.
 															</FormDescription>
 														</div>
@@ -374,7 +521,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 																	type="number"
 																	min={0}
 																	step={1}
-																	placeholder={String(selectedPlan.tokenGrant)}
+																	placeholder={String(selectedZeepoPlan.tokenGrant)}
 																	{...field}
 																	disabled={isBusy}
 																/>
@@ -398,9 +545,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 										name="amount"
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>
-													Amount ({selectedPlan?.displayCurrency ?? "KES"})
-												</FormLabel>
+												<FormLabel>Amount ({displayCurrency})</FormLabel>
 												<FormControl>
 													<Input
 														type="number"
@@ -451,7 +596,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 							>
 								Cancel
 							</Button>
-							<Button type="submit" disabled={isBusy || !productId || zeepoPlans.length === 0}>
+							<Button type="submit" disabled={isBusy || !canSubmit}>
 								{isBusy ? (
 									<>
 										<Spinner size={16} className="mr-2" />

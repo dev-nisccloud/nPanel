@@ -1,11 +1,12 @@
 /**
  * Invoice line item titles and subscription periods for Nisc order auto-invoices.
  * Format: "(identifier) Service - Action" with subscription dates from billing cycle.
+ * Domains use Transfer / Registration / Renewal; subscription services use Subscription (or Renewal).
  */
 import type { NiscOrderItemForInvoice } from "../schemas/nisc-order-invoice";
 import { formatNiscDate } from "./nisc-datetime-format";
 
-export type InvoiceLineItemAction = "Transfer" | "Registration" | "Renewal";
+export type InvoiceLineItemAction = "Transfer" | "Registration" | "Renewal" | "Subscription";
 
 export type NiscOrderInvoiceLineItemCopy = {
 	name: string;
@@ -50,10 +51,12 @@ function billingCycleLabel(billingCycle: string | null | undefined): string {
 export function resolveInvoiceLineItemAction(
 	description: string | null | undefined,
 	serviceType?: string | null,
+	options?: { subscriptionBased?: boolean },
 ): InvoiceLineItemAction {
 	const desc = (description ?? "").trim().toLowerCase();
 	if (desc === "transfer" || serviceType === "domain_transfer") return "Transfer";
 	if (desc === "renewal") return "Renewal";
+	if (options?.subscriptionBased) return "Subscription";
 	if (desc === "registration") return "Registration";
 	return "Registration";
 }
@@ -83,9 +86,23 @@ export function isDomainOrderItem(
 	return false;
 }
 
+export function isEmailMarketingOrderItem(item: {
+	product?: { serviceType?: string | null; name?: string };
+}): boolean {
+	const st = normalizeServiceType(item.product?.serviceType);
+	if (st === "email_marketing" || st === "nisc_email_marketing") {
+		return true;
+	}
+	const name = (item.product?.name ?? "").toLowerCase();
+	return name.includes("email marketing") || name.includes("nisc email marketing");
+}
+
 export function isHostingOrderItem(item: {
 	product?: { serviceType?: string | null; name?: string };
 }): boolean {
+	if (isEmailMarketingOrderItem(item)) {
+		return false;
+	}
 	const st = normalizeServiceType(item.product?.serviceType);
 	if (
 		st === "web_hosting" ||
@@ -102,8 +119,20 @@ export function isHostingOrderItem(item: {
 		name.includes("hosting") ||
 		name.includes("vps") ||
 		name.includes("dedicated") ||
-		name.includes("email")
+		name.includes("email hosting")
 	);
+}
+
+export function resolveEmailMarketingServiceLabel(
+	serviceType: string | null | undefined,
+	productName: string,
+): string {
+	const st = normalizeServiceType(serviceType);
+	if (st === "nisc_email_marketing") return "Nisc Email Marketing";
+	const name = productName.trim();
+	if (/nisc email marketing/i.test(name)) return "Nisc Email Marketing";
+	if (/email marketing/i.test(name)) return "Email Marketing";
+	return "Email Marketing";
 }
 
 export function resolveHostingServiceLabel(
@@ -119,7 +148,7 @@ export function resolveHostingServiceLabel(
 
 	const name = productName.trim();
 	if (/vps/i.test(name)) return "VPS Hosting";
-	if (/email/i.test(name)) return "Email Hosting";
+	if (/email hosting/i.test(name)) return "Email Hosting";
 	if (/dedicated/i.test(name)) return "Dedicated Hosting";
 	if (/hosting/i.test(name)) return "Website Hosting";
 	return productName.trim() || "Hosting";
@@ -153,11 +182,25 @@ export function buildNiscOrderInvoiceLineItemCopy(
 ): NiscOrderInvoiceLineItemCopy {
 	const identifier = resolveIdentifier(item);
 	const bracket = identifier ? `(${identifier})` : "";
-	const action = resolveInvoiceLineItemAction(item.description, item.product.serviceType);
+	const isDomain = isDomainOrderItem(item);
+	const action = resolveInvoiceLineItemAction(item.description, item.product.serviceType, {
+		subscriptionBased: !isDomain,
+	});
 	const subscription = formatSubscriptionPeriod(subscriptionStart, item.billingCycle);
 
-	if (isDomainOrderItem(item)) {
+	if (isDomain) {
 		const name = bracket ? `${bracket} Domain - ${action}` : `Domain - ${action}`;
+		return { name, description: subscription };
+	}
+
+	if (isEmailMarketingOrderItem(item)) {
+		const emailMarketingLabel = resolveEmailMarketingServiceLabel(
+			item.product.serviceType,
+			item.product.name,
+		);
+		const name = bracket
+			? `${bracket} ${emailMarketingLabel} - ${action}`
+			: `${emailMarketingLabel} - ${action}`;
 		return { name, description: subscription };
 	}
 
