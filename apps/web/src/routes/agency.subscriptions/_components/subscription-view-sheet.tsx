@@ -22,9 +22,11 @@ import {
 	XCircle,
 	Mail,
 	Server,
+	Trash2,
 } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { authClient } from "@/lib/auth-client";
 import { HostingSubscriptionSuspendDialog } from "@/routes/agency.hosting/_components/hosting-subscription-suspend-dialog";
 import { useHostingSubscriptionSuspend } from "@/routes/agency.hosting/_components/use-hosting-subscription-suspend";
 import {
@@ -36,6 +38,7 @@ import {
 	SubscriptionStatusConfirmDialog,
 	type SubscriptionStatusConfirmAction,
 } from "./subscription-status-confirm-dialog";
+import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -88,6 +91,9 @@ export function SubscriptionViewSheet({
 	onSendRenewalEmail,
 }: SubscriptionViewSheetProps) {
 	const utils = trpc.useUtils();
+	const { data: session } = authClient.useSession();
+	const isSuperAdmin =
+		(session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
 	const { data: sub, isLoading } = trpc.clientSubscriptions.getById.useQuery(
 		{ id: subscriptionId! },
 		{ enabled: open && !!subscriptionId },
@@ -121,6 +127,22 @@ export function SubscriptionViewSheet({
 		onError: (e) => toast.error(e.message),
 	});
 
+	const deleteSubscription = trpc.clientSubscriptions.delete.useMutation({
+		onSuccess: () => {
+			utils.clientSubscriptions.listForAgency.invalidate();
+			setDeleteDialogOpen(false);
+			onOpenChange(false);
+			toast.success("Subscription deleted");
+		},
+		onError: (e) => toast.error(e.message),
+	});
+
+	const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+
+	React.useEffect(() => {
+		if (!open) setDeleteDialogOpen(false);
+	}, [open]);
+
 	const productName = sub?.product?.name ?? "";
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
@@ -145,7 +167,10 @@ export function SubscriptionViewSheet({
 		React.useState<SubscriptionStatusConfirmAction | null>(null);
 
 	const isActionPending =
-		syncNiscStatus.isPending || pleskSuspendActions.isPending || cancelSubscription.isPending;
+		syncNiscStatus.isPending ||
+		pleskSuspendActions.isPending ||
+		cancelSubscription.isPending ||
+		deleteSubscription.isPending;
 
 	const handleSuspend = () => {
 		if (!sub) return;
@@ -344,6 +369,17 @@ export function SubscriptionViewSheet({
 									Cancel service
 								</Button>
 							)}
+							{isSuperAdmin && (
+								<Button
+									variant="destructive"
+									size="sm"
+									onClick={() => setDeleteDialogOpen(true)}
+									disabled={isActionPending}
+								>
+									<Trash2 className="mr-2 h-4 w-4" />
+									Delete
+								</Button>
+							)}
 						</SheetFooter>
 					</>
 				) : (
@@ -371,6 +407,16 @@ export function SubscriptionViewSheet({
 				if (!open) setStatusConfirmAction(null);
 			}}
 			onConfirm={confirmStatusChange}
+		/>
+
+		<SubscriptionDeleteDialog
+			open={deleteDialogOpen}
+			subscriptionName={subscriptionDisplayName}
+			isPending={deleteSubscription.isPending}
+			onOpenChange={setDeleteDialogOpen}
+			onConfirm={() => {
+				if (sub?.id) deleteSubscription.mutate({ id: sub.id });
+			}}
 		/>
 		</>
 	);

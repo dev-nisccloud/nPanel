@@ -154,8 +154,8 @@ export const sidebarItems: NavGroup[] = [
     label: "Gen AI Tools",
     items: [
       {
-        title: "Zeepo AI Canvas",
-        url: "/dashboard/zeepo-canvas",
+        title: "Zeepo AI Agent",
+        url: "/dashboard/zeepo-ai-agent",
         icon: (props: any) => React.createElement(Icons.AIImageStudio, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
     ],

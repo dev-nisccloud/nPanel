@@ -181,12 +181,6 @@ export function BuyNowDialog({ open, onOpenChange, domain }: BuyNowDialogProps) 
   const { vatAmount: taxes, totalIncVat: total } = computeCeilVatTotals(subtotal, taxRate);
   const couponDiscount = 0;
 
-  React.useEffect(() => {
-    if (open && currentStep === "payment") {
-      setPaymentAmount(paymentTotalString(total));
-    }
-  }, [open, currentStep, total]);
-
   const handleAddonToggle = (addonId: string) => {
     setSelectedAddons(prev => 
       prev.map(addon => 

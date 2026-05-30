@@ -21,7 +21,7 @@ import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 
 /** Chat session: full width with hosting-detail gutters (max-w-7xl). */
 export const ZEEPO_AGENCY_PAGE_SHELL =
-  "@container/main flex min-h-0 flex-1 flex-col overflow-hidden px-4 md:px-6 lg:px-8";
+  "@container/main flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-3 sm:px-5 sm:pt-4 md:px-6 md:pt-5 lg:px-8";
 export const ZEEPO_AGENCY_PAGE_CONTENT = "w-full max-w-7xl mx-auto";
 
 /** Session chat: centered floating compose dock (same width as landing). */
@@ -33,7 +33,7 @@ export const ZEEPO_AGENCY_LANDING_PAGE =
 export const ZEEPO_AGENCY_LANDING_SCROLL =
   "zeepo-landing-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain";
 export const ZEEPO_AGENCY_LANDING_CONTENT =
-  "relative mx-auto flex w-full max-w-3xl flex-col px-0 py-6 pb-10 md:py-8";
+  "relative mx-auto flex w-full max-w-3xl flex-col px-4 py-6 pb-10 sm:px-5 md:py-8 md:px-6";
 
 /** Elapsed seconds while `active` is true (resets when inactive). */
 export function useElapsedSeconds(active: boolean) {

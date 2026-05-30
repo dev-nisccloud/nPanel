@@ -191,6 +191,10 @@ const cancelSubscriptionInputSchema = z.object({
     reason: z.string().optional(),
 });
 
+const deleteSubscriptionInputSchema = z.object({
+    id: z.string(),
+});
+
 // --- List schema -------------------------------------------------------------
 
 const getSubscriptionsInputSchema = z.object({
@@ -2453,6 +2457,47 @@ export const clientSubscriptionsRouter = router({
             });
 
             return mapSubscription(updated);
+        }),
+
+    /** Permanently delete a subscription (agency super admin only). */
+    delete: protectedProcedure
+        .input(deleteSubscriptionInputSchema)
+        .output(z.object({ success: z.literal(true) }))
+        .mutation(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to delete subscriptions",
+                });
+            }
+            if (!isAgencySuperAdminRole(session.user.role)) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency super admins can delete subscriptions",
+                });
+            }
+
+            const [existing] = await db
+                .select({ id: niscClientSubscription.id, name: niscClientSubscription.name })
+                .from(niscClientSubscription)
+                .where(eq(niscClientSubscription.id, input.id))
+                .limit(1);
+            if (!existing) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+            }
+
+            try {
+                await db.delete(niscClientSubscription).where(eq(niscClientSubscription.id, input.id));
+            } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: `Could not delete subscription: ${message}`,
+                });
+            }
+
+            return { success: true as const };
         }),
 
     /** Send a service renewal reminder email. Grace period: 7 days before suspension for most services; for domains, suspension is immediate. */

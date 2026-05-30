@@ -1,6 +1,10 @@
 import Replicate from "replicate";
 import { z } from "zod";
 import type { ZeepoModel } from "../zeepo-canvas/models";
+import {
+	runReplicateTextPrediction,
+	type CompletedReplicatePrediction,
+} from "../../lib/zeepo-agent-replicate";
 
 export const clarifyingQuestionSchema = z.object({
 	question: z.string(),
@@ -229,18 +233,27 @@ async function callReplicateOnce(params: {
 	maxTokens: number;
 	maxMs: number;
 	imageUrl?: string;
+	onPrediction?: (prediction: CompletedReplicatePrediction, modelId: string) => Promise<void>;
 }): Promise<string> {
-	const { replicate, model, systemBlock, userBlock, maxTokens, maxMs, imageUrl } = params;
+	const { replicate, model, systemBlock, userBlock, maxTokens, maxMs, imageUrl, onPrediction } =
+		params;
 	const input = buildReplicateLlmInput(model, systemBlock, userBlock, maxTokens, imageUrl);
-	const timeout = new Promise<never>((_, reject) =>
-		setTimeout(() => reject(new Error(`timed out after ${maxMs / 1000}s`)), maxMs),
-	);
-	const output = await Promise.race([
-		replicate.run(model.id as `${string}/${string}`, { input }),
-		timeout,
-	]);
-	return collectTextOutput(output);
+	const { text, prediction } = await runReplicateTextPrediction({
+		replicate,
+		modelId: model.id,
+		input,
+		maxMs,
+	});
+	if (onPrediction) {
+		await onPrediction(prediction, model.id);
+	}
+	return text;
 }
+
+export type ZeepoOrchestrationPredictionHandler = (
+	prediction: CompletedReplicatePrediction,
+	modelId: string,
+) => Promise<void>;
 
 export async function runOrchestrationTurnWithRepair(params: {
 	replicate: Replicate;
@@ -248,12 +261,13 @@ export async function runOrchestrationTurnWithRepair(params: {
 	messages: AgentOrchestrationMessage[];
 	maxMs: number;
 	maxTokens: number;
+	onPrediction?: ZeepoOrchestrationPredictionHandler;
 }): Promise<{
 	parsed: ParsedOrchestrationResult;
 	rawAttempts: string[];
 	repairUsed: boolean;
 }> {
-	const { replicate, model, messages, maxMs, maxTokens } = params;
+	const { replicate, model, messages, maxMs, maxTokens, onPrediction } = params;
 	const { systemBlock, userBlock } = serializeAgentTurnPrompt(
 		messages,
 		ORCHESTRATION_JSON_INSTRUCTION,
@@ -272,6 +286,7 @@ export async function runOrchestrationTurnWithRepair(params: {
 		maxTokens,
 		maxMs,
 		imageUrl: latestImageUrl,
+		onPrediction,
 	});
 	rawAttempts.push(first);
 	const firstParsed = parseOrchestrationResponse(first);
@@ -287,6 +302,7 @@ export async function runOrchestrationTurnWithRepair(params: {
 		userBlock: repairUser,
 		maxTokens,
 		maxMs,
+		onPrediction,
 	});
 	rawAttempts.push(second);
 	const secondParsed = parseOrchestrationResponse(second);

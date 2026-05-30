@@ -22,6 +22,7 @@ import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import { processNiscOrder } from "../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
+import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
 import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
@@ -658,6 +659,15 @@ export const niscServiceOrdersRouter = router({
 				});
 			}
 
+			// Align line items with the amount actually paid (supports editable M-Pesa test amounts).
+			const paidAmountRaw = transaction.paidAmount ?? transaction.amount;
+			const paidAmountNum = Number.parseFloat(paidAmountRaw);
+			if (Number.isFinite(paidAmountNum) && paidAmountNum > 0 && input.items.length === 1) {
+				const paidStr = String(Math.ceil(paidAmountNum));
+				input.items[0]!.itemPrice = paidStr;
+				input.items[0]!.itemSubtotal = paidStr;
+			}
+
 			for (const item of input.items) {
 				const productRows = await db
 					.select()
@@ -670,6 +680,21 @@ export const niscServiceOrdersRouter = router({
 						code: "NOT_FOUND",
 						message: `Product ${item.productId} not found or inactive`,
 					});
+				}
+				if (isZeepoAiAgentProduct(item.productId)) {
+					if (!input.teamId?.trim()) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Zeepo AI Agent checkout requires a team. Open Zeepo from your team dashboard.",
+						});
+					}
+					if (!item.productPlanId?.trim()) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Zeepo AI Agent checkout requires a plan.",
+						});
+					}
 				}
 				if (
 					(product.serviceType === "domain_registration" || product.serviceType === "domain_transfer") &&

@@ -945,10 +945,19 @@ export function BuyNowDialog({
     }
   }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep, agencyPortfolioCheckout]);
 
-  // Keep M-Pesa amount aligned with ceiled checkout total on the payment step
+  // Seed M-Pesa amount when entering the payment step (do not overwrite while user edits)
+  const prevStepRef = React.useRef<Step | null>(null);
   React.useEffect(() => {
-    if (!open || !plan || currentStep !== "payment") return;
-    setPaymentAmount(paymentTotalString(pricing.total));
+    if (!open || !plan) {
+      prevStepRef.current = null;
+      return;
+    }
+    const enteredPayment =
+      currentStep === "payment" && prevStepRef.current !== "payment";
+    if (enteredPayment) {
+      setPaymentAmount(paymentTotalString(pricing.total));
+    }
+    prevStepRef.current = currentStep;
   }, [open, plan, currentStep, pricing.total]);
 
   // Helper function to get user-friendly error messages
@@ -1159,7 +1168,11 @@ export function BuyNowDialog({
       return;
     }
 
-    const priceStr = String(plan.price ?? 0);
+    const parsedPaid = Number.parseFloat(paymentAmount);
+    const priceStr =
+      paymentAmount.trim() && Number.isFinite(parsedPaid) && parsedPaid > 0
+        ? paymentTotalString(parsedPaid)
+        : paymentTotalString(plan.price ?? 0);
     createOrderFromPayment.mutate(
       {
         checkoutRequestId,
@@ -1174,6 +1187,7 @@ export function BuyNowDialog({
             primaryDomain: showDomainStep ? effectiveDomain ?? undefined : undefined,
             itemPrice: priceStr,
             itemSubtotal: priceStr,
+            description: plan.planName,
           },
         ],
       },
@@ -1196,6 +1210,7 @@ export function BuyNowDialog({
     showDomainStep,
     effectiveDomain,
     createOrderFromPayment,
+    paymentAmount,
   ]);
 
   // Poll payment status ?? real-time only, no cache

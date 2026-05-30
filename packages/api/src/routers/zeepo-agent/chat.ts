@@ -66,6 +66,13 @@ import {
 	toolCallSignature,
 } from "./replicate-agent-orchestration";
 import { isReplicateHostedMediaUrl } from "../../lib/replicate-hosted-url";
+import { billZeepoAgentPrediction } from "../../lib/zeepo-agent-bill-prediction";
+import {
+	assertZeepoAgentCanStartTurn,
+	zeepoAgentHasTokensRemaining,
+	type ZeepoBillingContext,
+} from "../../lib/zeepo-agent-tokens";
+import { runReplicateTextPrediction, runReplicatePrediction } from "../../lib/zeepo-agent-replicate";
 
 /**
  * When the orchestration JSON is truncated or malformed, try to salvage just
@@ -251,6 +258,24 @@ export const zeepoAgentChatRouter = router({
 				throw new TRPCError({ code: "NOT_FOUND", message: "Session not found" });
 			}
 
+			const billingCtx: ZeepoBillingContext = {
+				teamId: session.teamId ?? null,
+				userId,
+				userRole: ctx.session?.user?.role,
+				sessionId: input.sessionId,
+			};
+			await assertZeepoAgentCanStartTurn(billingCtx);
+
+			const onOrchestrationPrediction = async (prediction, modelId) => {
+				await billZeepoAgentPrediction({
+					billing: billingCtx,
+					prediction,
+					modelId,
+					operationType: "orchestration",
+					description: "Agent orchestration turn",
+				});
+			};
+
 			let skillForTurn: ReturnType<typeof getZeepoAgentSkillById> = undefined;
 			if (input.skillId) {
 				skillForTurn = getZeepoAgentSkillById(input.skillId);
@@ -367,6 +392,15 @@ export const zeepoAgentChatRouter = router({
 			while (iteration < maxIterations) {
 				iteration++;
 
+				if (
+					billingCtx.teamId &&
+					!(await zeepoAgentHasTokensRemaining(billingCtx.teamId))
+				) {
+					lastContent =
+						"You've run out of tokens. Purchase more to continue using Zeepo AI Agent.";
+					break;
+				}
+
 				// Large budget — create_document and web_search grounding can easily push past
 				// 10 000 tokens in JSON form. Keeping it high avoids truncated JSON that
 				// falls back to displaying the raw orchestration response in the UI.
@@ -382,6 +416,7 @@ export const zeepoAgentChatRouter = router({
 						messages: agentMessages,
 						maxMs: 180_000,
 						maxTokens,
+						onPrediction: onOrchestrationPrediction,
 					});
 					parseResult = r.parsed;
 					rawAttempts = r.rawAttempts;
@@ -695,6 +730,15 @@ export const zeepoAgentChatRouter = router({
 							};
 						} else {
 						try {
+							if (
+								billingCtx.teamId &&
+								!(await zeepoAgentHasTokensRemaining(billingCtx.teamId))
+							) {
+								resultPayload = {
+									error:
+										"Insufficient tokens to start media generation. Purchase more tokens to continue.",
+								};
+							} else {
 							const requires = safeCapsArray(parsedArgs.data.requires);
 							const model = pickModelForGeneration(
 								parsedArgs.data.category,
@@ -727,6 +771,7 @@ export const zeepoAgentChatRouter = router({
 								modelId: model.id,
 								category: model.category,
 							};
+							}
 						} catch (e: unknown) {
 									resultPayload = {
 									error: formatZeepoAgentToolError("Failed to start generation", e),
@@ -916,11 +961,26 @@ export const zeepoAgentChatRouter = router({
 							max_tokens: 32,
 						};
 
-				const output = await replicate.run(
-					orchModel.id as `${string}/${string}`,
-					{ input: replicateInput },
-				);
-				const raw = await collectTextOutput(output);
+				const billingCtx: ZeepoBillingContext = {
+					teamId: session.teamId ?? null,
+					userId,
+					userRole: ctx.session?.user?.role,
+					sessionId: input.sessionId,
+				};
+
+				const { text: raw, prediction } = await runReplicateTextPrediction({
+					replicate,
+					modelId: orchModel.id,
+					input: replicateInput,
+					maxMs: 30_000,
+				});
+				await billZeepoAgentPrediction({
+					billing: billingCtx,
+					prediction,
+					modelId: orchModel.id,
+					operationType: "title_gen",
+					description: "Session title generation",
+				});
 				newTitle = raw
 					.trim()
 					.replace(/^["'`]+|["'`]+$/g, "")
@@ -960,21 +1020,20 @@ export const zeepoAgentChatRouter = router({
 			// Validate the session belongs to this user (auth gate only — no DB write).
 			const session = await db.query.zeepoAgentSession.findFirst({
 				where: eq(zeepoAgentSession.id, input.sessionId),
-				columns: { id: true, userId: true },
+				columns: { id: true, userId: true, teamId: true },
 			});
 			if (!session || session.userId !== userId)
 				throw new TRPCError({ code: "NOT_FOUND" });
 
-			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+			const billingCtx: ZeepoBillingContext = {
+				teamId: session.teamId ?? null,
+				userId,
+				userRole: ctx.session?.user?.role,
+				sessionId: input.sessionId,
+			};
+			await assertZeepoAgentCanStartTurn(billingCtx);
 
-			// 90-second hard timeout — flux-2-pro is synchronous but can be slow at high res.
-			const withTimeout = <T>(p: Promise<T>): Promise<T> =>
-				Promise.race([
-					p,
-					new Promise<never>((_, rej) =>
-						setTimeout(() => rej(new Error("Image edit timed out after 90 s")), 90_000),
-					),
-				]);
+			const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 
 			// When the user painted a mask, prefix the prompt so the model knows
 			// to target only the brushed region.
@@ -982,19 +1041,29 @@ export const zeepoAgentChatRouter = router({
 				? `Edit only the highlighted/selected region: ${input.prompt}`
 				: input.prompt;
 
-			const output = await withTimeout(
-				replicate.run("black-forest-labs/flux-2-pro", {
-					input: {
-						prompt: effectivePrompt,
-						input_images: [input.imageUrl],
-						aspect_ratio: "match_input_image",
-						resolution: input.resolution ?? "1 MP",
-						output_format: input.outputFormat ?? "webp",
-						output_quality: 90,
-						safety_tolerance: 2,
-					},
-				}),
-			);
+			const { output, ...predictionRest } = await runReplicatePrediction({
+				replicate,
+				modelId: "black-forest-labs/flux-2-pro",
+				input: {
+					prompt: effectivePrompt,
+					input_images: [input.imageUrl],
+					aspect_ratio: "match_input_image",
+					resolution: input.resolution ?? "1 MP",
+					output_format: input.outputFormat ?? "webp",
+					output_quality: 90,
+					safety_tolerance: 2,
+				},
+				maxMs: 90_000,
+			});
+
+			await billZeepoAgentPrediction({
+				billing: billingCtx,
+				prediction: { ...predictionRest, output },
+				modelId: "black-forest-labs/flux-2-pro",
+				operationType: "image_edit",
+				description: "Inline image edit",
+				generationId: input.generationId ?? null,
+			});
 
 			const resultUrl = extractReplicateImageUrl(output);
 			if (!resultUrl)
