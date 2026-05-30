@@ -17,6 +17,7 @@ import {
 	isAgencyUserRole,
 	userIsAgencyStaff,
 } from "../lib/domain-transfer-access";
+import { listOutgoingKenicTransfers } from "../lib/list-outgoing-kenic-transfers";
 
 /**
  * Parse domain into name and extension (extension without leading dot).
@@ -81,11 +82,14 @@ function buildReturn(
 	};
 }
 
+type TransferDirection = "incoming" | "outgoing";
+
 type DomainTransferRequestListItem = {
 	id: string;
 	domainName: string;
 	provider: string;
 	status: string;
+	direction: TransferDirection;
 	providerPriceAmount: string | null;
 	providerPriceCurrency: string | null;
 	customerPriceAmount: string | null;
@@ -100,7 +104,7 @@ type DomainTransferRequestListItem = {
 		id: string;
 		name: string;
 		email: string;
-	};
+	} | null;
 };
 
 /** Statuses that may still change while the user watches the transfer requests list. */
@@ -126,6 +130,120 @@ function toCheckoutTransferProvider(
 	dbProvider: string,
 ): "kenic" | "openprovider" {
 	return dbProvider === "KENIC" ? "kenic" : "openprovider";
+}
+
+function formatOpenProviderDomainName(domainField: unknown): string | null {
+	if (typeof domainField === "string") {
+		return domainField.trim().toLowerCase() || null;
+	}
+	if (domainField && typeof domainField === "object") {
+		const domainObj = domainField as { name?: string; extension?: string };
+		const name = domainObj.name?.trim();
+		const ext = domainObj.extension?.trim();
+		if (!name || !ext) return null;
+		const normalizedExt = ext.startsWith(".") ? ext.slice(1) : ext;
+		return `${name}.${normalizedExt}`.toLowerCase();
+	}
+	return null;
+}
+
+function hasOutgoingTransferRegistryStatus(registryStatuses: unknown): boolean {
+	if (!registryStatuses || typeof registryStatuses !== "object") return false;
+	const statuses = registryStatuses as Record<string, { value?: number | boolean | string }>;
+	for (const [key, entry] of Object.entries(statuses)) {
+		const normalizedKey = key.replace(/_/g, "").toLowerCase();
+		if (normalizedKey !== "pendingtransfer") continue;
+		const value = entry?.value;
+		if (value === true || value === 1 || value === "1") return true;
+	}
+	return false;
+}
+
+async function listOutgoingOpenProviderTransfers(): Promise<DomainTransferRequestListItem[]> {
+	if (!process.env.OPENPROVIDER_USERNAME || !process.env.OPENPROVIDER_PASSWORD) {
+		return [];
+	}
+
+	try {
+		const client = createOpenProviderClient();
+		await client.authenticate({
+			username: process.env.OPENPROVIDER_USERNAME,
+			password: process.env.OPENPROVIDER_PASSWORD,
+			ip: process.env.OPENPROVIDER_IP,
+		});
+
+		const response = await client.searchDomains({
+			status: "ACT",
+			limit: 100,
+			offset: 0,
+			with_registry_statuses: true,
+		});
+
+		if (response.code !== 0) return [];
+
+		const outgoing: DomainTransferRequestListItem[] = [];
+
+		for (const domain of response.data.results) {
+			const registryStatuses = (domain as { registry_statuses?: unknown }).registry_statuses;
+			if (!hasOutgoingTransferRegistryStatus(registryStatuses)) continue;
+
+			const domainName = formatOpenProviderDomainName(
+				(domain as { domain?: unknown }).domain,
+			);
+			if (!domainName) continue;
+
+			const lastChangedRaw = (domain as { last_changed?: string }).last_changed;
+			const lastChanged = lastChangedRaw ? new Date(lastChangedRaw) : new Date();
+			const submittedAt = Number.isNaN(lastChanged.getTime()) ? new Date() : lastChanged;
+
+			outgoing.push({
+				id: `op-outgoing-${domain.id}`,
+				domainName,
+				provider: "OPENPROVIDER",
+				status: "OUTGOING_PENDING",
+				direction: "outgoing",
+				providerPriceAmount: null,
+				providerPriceCurrency: null,
+				customerPriceAmount: null,
+				customerPriceCurrency: null,
+				submittedToProviderAt: submittedAt,
+				niscOrderId: null,
+				niscOrderNumber: null,
+				niscOrderStatus: null,
+				createdAt: submittedAt,
+				updatedAt: submittedAt,
+				createdBy: null,
+			});
+		}
+
+		return outgoing;
+	} catch (error) {
+		console.error("[domainTransfer.listTransferRequests] outgoing OpenProvider fetch failed:", error);
+		return [];
+	}
+}
+
+function mapOutgoingKenicTransfers(
+	rows: Awaited<ReturnType<typeof listOutgoingKenicTransfers>>,
+): DomainTransferRequestListItem[] {
+	return rows.map((row) => ({
+		id: `kenic-outgoing-${row.domainName}`,
+		domainName: row.domainName,
+		provider: "KENIC",
+		status: "OUTGOING_PENDING",
+		direction: "outgoing" as const,
+		providerPriceAmount: null,
+		providerPriceCurrency: null,
+		customerPriceAmount: null,
+		customerPriceCurrency: null,
+		submittedToProviderAt: row.submittedAt,
+		niscOrderId: null,
+		niscOrderNumber: null,
+		niscOrderStatus: null,
+		createdAt: row.submittedAt,
+		updatedAt: row.submittedAt,
+		createdBy: null,
+	}));
 }
 
 export const domainTransferRouter = router({
@@ -654,12 +772,34 @@ export const domainTransferRouter = router({
 			.where(whereClause ?? undefined)
 			.orderBy(desc(domainTransferRequest.createdAt));
 
-		return rows.map(
+		const incoming = rows.map(
 			(r) =>
 				({
 					...r,
+					direction: "incoming" as const,
 					createdBy: r.createdBy,
 				}) as DomainTransferRequestListItem,
+		);
+
+		if (!isAgencyUserRole(userRole)) {
+			return incoming;
+		}
+
+		const [openProviderOutgoing, kenicOutgoingRows] = await Promise.all([
+			listOutgoingOpenProviderTransfers(),
+			listOutgoingKenicTransfers(),
+		]);
+		const outgoing = [
+			...openProviderOutgoing,
+			...mapOutgoingKenicTransfers(kenicOutgoingRows),
+		];
+		const incomingDomainNames = new Set(incoming.map((row) => row.domainName.toLowerCase()));
+		const dedupedOutgoing = outgoing.filter(
+			(row) => !incomingDomainNames.has(row.domainName.toLowerCase()),
+		);
+
+		return [...incoming, ...dedupedOutgoing].sort(
+			(a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
 		);
 	}),
 });

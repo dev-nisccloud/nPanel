@@ -295,6 +295,7 @@ export interface OpenProviderDomainSearchRequest {
   limit?: number;
   offset?: number;
   status?: 'ACT' | 'REQ' | 'DEL' | 'FAIL';
+  with_registry_statuses?: boolean;
 }
 
 export interface OpenProviderDomainSearchResponse {
