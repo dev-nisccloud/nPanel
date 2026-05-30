@@ -33,6 +33,7 @@ import {
 	PreviewTabs,
 	type DesignVariation,
 } from "./agency.nisc-email-builder/_components/preview-tabs";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -147,6 +148,7 @@ function InlineNameEditor({
 
 export default function NiscEmailBuilderEditorPage() {
 	const { designId } = useParams() as { designId: string };
+	const route = useNiscEmailMarketingRoute();
 	const utils = trpc.useUtils();
 
 	const [chatInput, setChatInput] = React.useState("");
@@ -459,7 +461,7 @@ export default function NiscEmailBuilderEditorPage() {
 			<div className="flex flex-col items-center justify-center gap-4 py-16">
 				<p className="text-sm text-muted-foreground">Design not found</p>
 				<Button asChild variant="secondary">
-					<Link to="/agency/nisc-email-builder">Back</Link>
+					<Link to={route.emailBuilderBasePath}>Back</Link>
 				</Button>
 			</div>
 		);
@@ -481,7 +483,7 @@ export default function NiscEmailBuilderEditorPage() {
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<header className="flex items-center gap-3 border-b px-4 py-3 shrink-0 bg-background">
 				<Button variant="ghost" size="icon" asChild>
-					<Link to="/agency/nisc-email-builder">
+					<Link to={route.emailBuilderBasePath}>
 						<ArrowLeft className="size-4" />
 					</Link>
 				</Button>

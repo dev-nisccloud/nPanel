@@ -4,6 +4,7 @@ import { db, eq } from "@npanel/db";
 import { zeepoAgentGeneration } from "@npanel/db/schema";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { billZeepoAgentPredictionById } from "@npanel/api/lib/zeepo-agent-bill-prediction";
+import { buildReplicateInput } from "@npanel/api/lib/replicate-model-input";
 import {
 	persistReplicateOutputToUploadThing,
 	ReplicatePersistError,
@@ -79,6 +80,11 @@ export async function handleZeepoAgentWebhook(c: Context) {
 							operationType: "media_generation",
 							generationId,
 							output,
+							predictionInput: buildReplicateInput({
+								modelId: generation.modelId,
+								prompt: generation.prompt,
+								inputs: generation.inputs,
+							}),
 						});
 					} catch (billErr) {
 						console.error("[Webhook][ZeepoAgent] Token billing failed:", billErr);

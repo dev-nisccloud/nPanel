@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 type CampaignSummary = RouterOutputs["niscEmailMarketing"]["campaigns"]["list"]["campaigns"][0];
 
@@ -105,6 +106,7 @@ interface CampaignRowActionsProps {
 
 function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 	const navigate = useNavigate();
+	const { basePath } = useNiscEmailMarketingRoute();
 	const utils = trpc.useUtils();
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -209,7 +211,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-48">
-								<DropdownMenuItem onClick={() => navigate(`/agency/nisc-email-marketing/campaigns/${campaign.id}`)}>
+								<DropdownMenuItem onClick={() => navigate(`${basePath}/campaigns/${campaign.id}`)}>
 									View Details
 								</DropdownMenuItem>
 								<DropdownMenuItem onClick={handleRefresh} disabled={isRefreshing}>
@@ -286,6 +288,8 @@ export interface CampaignsTableProps {
 }
 
 export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
+	const { basePath } = useNiscEmailMarketingRoute();
+
 	return (
 		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
 			<Table>
@@ -303,7 +307,7 @@ export function CampaignsTable({ campaigns, onRefetch }: CampaignsTableProps) {
 						<TableRow key={campaign.id}>
 							<TableCell className="pl-6">
 								<Link
-							to={`/agency/nisc-email-marketing/campaigns/${campaign.id}`}
+							to={`${basePath}/campaigns/${campaign.id}`}
 									className="flex items-center gap-2 font-medium text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
 								>
 									<Mail className="h-4 w-4 text-muted-foreground shrink-0" />

@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -47,6 +48,7 @@ interface AddDomainSheetProps {
 }
 
 export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheetProps) {
+	const route = useNiscEmailMarketingRoute();
 	const [step, setStep] = React.useState(1);
 	const [showAdvanced, setShowAdvanced] = React.useState(false);
 	const [createdDomain, setCreatedDomain] = React.useState<{ dnsRecords: unknown; domainName: string } | null>(null);
@@ -61,11 +63,11 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 		},
 	});
 
-	// Fetch teams for advanced options
+	// Fetch teams for advanced options (agency only)
 	const { data: teamsData, isLoading: isLoadingTeams } = trpc.teams.getAll.useQuery(
 		undefined,
 		{
-			enabled: open,
+			enabled: open && route.showAdminFeatures,
 			staleTime: 5 * 60 * 1000,
 		}
 	);
@@ -105,9 +107,15 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 
 	const onSubmit = async (data: FormData) => {
 		try {
+			const teamId = route.isCustomer
+				? route.teamId ?? undefined
+				: data.teamId && data.teamId !== "" && data.teamId !== "__none__"
+					? data.teamId
+					: undefined;
+
 			await createMutation.mutateAsync({
 				domainName: data.domainName,
-				teamId: data.teamId && data.teamId !== "" && data.teamId !== "__none__" ? data.teamId : undefined,
+				teamId,
 			});
 		} catch (error) {
 			// Error handled in mutation
@@ -171,7 +179,8 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 										)}
 									/>
 
-									{/* Advanced Options */}
+									{/* Advanced Options (agency only) */}
+									{route.showAdminFeatures && (
 									<Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
 										<CollapsibleTrigger asChild>
 											<Button
@@ -220,6 +229,7 @@ export function AddDomainSheet({ open, onOpenChange, onSuccess }: AddDomainSheet
 											/>
 										</CollapsibleContent>
 									</Collapsible>
+									)}
 								</div>
 							)}
 

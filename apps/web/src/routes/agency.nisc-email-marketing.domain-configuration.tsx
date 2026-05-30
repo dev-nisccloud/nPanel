@@ -11,6 +11,10 @@ import { trpc } from "@/utils/trpc";
 import { EmailDomainsTable } from "./agency.nisc-email-marketing/domain-configuration/_components/email-domains-table";
 import { AddDomainSheet } from "./agency.nisc-email-marketing/domain-configuration/_components/add-domain-sheet";
 import { SesDomainsTable } from "./agency.nisc-email-marketing/domain-configuration/_components/ses-domains-table";
+import {
+	niscEmTeamScopedInput,
+	useNiscEmailMarketingRoute,
+} from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 const EmailDomainsTableSkeleton: React.FC = () => (
 	<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -50,10 +54,13 @@ const EmptyState: React.FC<{
 );
 
 export default function DomainConfigurationPage() {
+	const route = useNiscEmailMarketingRoute();
 	const [searchTerm, setSearchTerm] = React.useState("");
 	const [isAddSheetOpen, setIsAddSheetOpen] = React.useState(false);
 	const [isRefreshing, setIsRefreshing] = React.useState(false);
-	const [tab, setTab] = React.useState<"usage" | "domains">("usage");
+	const [tab, setTab] = React.useState<"usage" | "domains">(
+		route.showAdminFeatures ? "usage" : "domains",
+	);
 
 	const {
 		data,
@@ -62,7 +69,8 @@ export default function DomainConfigurationPage() {
 		error,
 		refetch,
 	} = trpc.niscEmailMarketing.domains.listLegacy.useQuery(
-		{ limit: 100 },
+		niscEmTeamScopedInput(route, { limit: 100 }),
+		{ enabled: !route.isCustomer || Boolean(route.teamId) },
 	);
 
 	const {
@@ -70,16 +78,19 @@ export default function DomainConfigurationPage() {
 		isLoading: usageQuotaLoading,
 		refetch: refetchUsageQuota,
 	} = trpc.niscEmailMarketing.sesUsage.quotaLive.useQuery(undefined, {
-		enabled: tab === "usage",
+		enabled: route.showAdminFeatures && tab === "usage",
 	});
 
 	const {
 		data: usageDomains,
 		isLoading: usageDomainsLoading,
 		refetch: refetchUsageDomains,
-	} = trpc.niscEmailMarketing.sesUsage.listDomainsLive.useQuery({ limit: 100 }, {
-		enabled: tab === "usage",
-	});
+	} = trpc.niscEmailMarketing.sesUsage.listDomainsLive.useQuery(
+		{ limit: 100 },
+		{
+			enabled: route.showAdminFeatures && tab === "usage",
+		},
+	);
 
 	const domains = data?.domains ?? [];
 
@@ -160,130 +171,184 @@ export default function DomainConfigurationPage() {
 				</div>
 
 				<div className="mt-6">
-					<Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-						<TabsList>
-							<TabsTrigger value="usage">Usage</TabsTrigger>
-							<TabsTrigger value="domains">Domains</TabsTrigger>
-						</TabsList>
+					{route.showAdminFeatures ? (
+						<Tabs value={tab} onValueChange={(v) => setTab(v as "usage" | "domains")}>
+							<TabsList>
+								<TabsTrigger value="usage">Usage</TabsTrigger>
+								<TabsTrigger value="domains">Domains</TabsTrigger>
+							</TabsList>
 
-						<div className="mt-4 flex items-center justify-between gap-4">
-							<div className="relative flex-1 max-w-sm">
-								<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-								<Input
-									type="search"
-									placeholder={tab === "usage" ? "Search SES domains..." : "Search domains by name or status..."}
-									value={searchTerm}
-									onChange={(event) => setSearchTerm(event.target.value)}
-									className="pl-9"
-								/>
-							</div>
-							<div className="flex items-center gap-2">
-								<Button
-									variant="outline"
-									size="icon"
-									onClick={handleRefresh}
-									disabled={isRefreshing || (tab === "domains" ? isFetching : false)}
-									title="Refresh"
-								>
-									<RefreshCw className={`h-4 w-4 ${(isRefreshing || (tab === "domains" && isFetching)) ? "animate-spin" : ""}`} />
-								</Button>
-								{tab === "domains" && (
-									<Button onClick={() => setIsAddSheetOpen(true)}>
-										<Plus className="mr-2 h-4 w-4" />
-										Add Domain
+							<div className="mt-4 flex items-center justify-between gap-4">
+								<div className="relative flex-1 max-w-sm">
+									<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+									<Input
+										type="search"
+										placeholder={tab === "usage" ? "Search SES domains..." : "Search domains by name or status..."}
+										value={searchTerm}
+										onChange={(event) => setSearchTerm(event.target.value)}
+										className="pl-9"
+									/>
+								</div>
+								<div className="flex items-center gap-2">
+									<Button
+										variant="outline"
+										size="icon"
+										onClick={handleRefresh}
+										disabled={isRefreshing || (tab === "domains" ? isFetching : false)}
+										title="Refresh"
+									>
+										<RefreshCw className={`h-4 w-4 ${(isRefreshing || (tab === "domains" && isFetching)) ? "animate-spin" : ""}`} />
 									</Button>
-								)}
-							</div>
-						</div>
-
-						<TabsContent value="usage" className="mt-6 space-y-6">
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-								<Card className="shadow-none border-muted/60">
-									<CardHeader className="pb-2">
-										<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-											Max send rate
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="pt-0">
-										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.maxSendRate ?? 0)} / sec`}
-										</div>
-									</CardContent>
-								</Card>
-								<Card className="shadow-none border-muted/60">
-									<CardHeader className="pb-2">
-										<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-											24h quota
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="pt-0">
-										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.max24HourSend ?? 0).toLocaleString()}`}
-										</div>
-									</CardContent>
-								</Card>
-								<Card className="shadow-none border-muted/60">
-									<CardHeader className="pb-2">
-										<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-											Sent (last 24h)
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="pt-0">
-										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.sentLast24Hours ?? 0).toLocaleString()}`}
-										</div>
-									</CardContent>
-								</Card>
-								<Card className="shadow-none border-muted/60">
-									<CardHeader className="pb-2">
-										<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-											Remaining (24h)
-										</CardTitle>
-									</CardHeader>
-									<CardContent className="pt-0">
-										<div className="text-2xl font-bold">
-											{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.remaining24HourSend ?? 0).toLocaleString()}`}
-										</div>
-									</CardContent>
-								</Card>
-							</div>
-
-							{usageDomainsLoading ? (
-								<EmailDomainsTableSkeleton />
-							) : (
-								<SesDomainsTable
-									domains={(usageDomains?.domains ?? []).filter((d) => {
-										if (!searchTerm.trim()) return true;
-										const q = searchTerm.toLowerCase();
-										return (d.domainName ?? "").toLowerCase().includes(q) || (d.status ?? "").toLowerCase().includes(q);
-									})}
-									onRefetch={() => refetchUsageDomains()}
-								/>
-							)}
-						</TabsContent>
-
-						<TabsContent value="domains" className="mt-6">
-							{domains.length === 0 ? (
-								<EmptyState
-									title="No domains yet"
-									description="Add a domain to start sending emails from your own domain."
-									action={
+									{tab === "domains" && (
 										<Button onClick={() => setIsAddSheetOpen(true)}>
 											<Plus className="mr-2 h-4 w-4" />
 											Add Domain
 										</Button>
-									}
-								/>
-							) : filteredDomains.length === 0 ? (
-								<EmptyState
-									title="No domains match your search"
-									description={`We couldn't find domains for "${searchTerm}". Try updating your search.`}
-								/>
-							) : (
-								<EmailDomainsTable domains={filteredDomains} onRefetch={refetch} />
-							)}
-						</TabsContent>
-					</Tabs>
+									)}
+								</div>
+							</div>
+
+							<TabsContent value="usage" className="mt-6 space-y-6">
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+									<Card className="shadow-none border-muted/60">
+										<CardHeader className="pb-2">
+											<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+												Max send rate
+											</CardTitle>
+										</CardHeader>
+										<CardContent className="pt-0">
+											<div className="text-2xl font-bold">
+												{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.maxSendRate ?? 0)} / sec`}
+											</div>
+										</CardContent>
+									</Card>
+									<Card className="shadow-none border-muted/60">
+										<CardHeader className="pb-2">
+											<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+												24h quota
+											</CardTitle>
+										</CardHeader>
+										<CardContent className="pt-0">
+											<div className="text-2xl font-bold">
+												{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.max24HourSend ?? 0).toLocaleString()}`}
+											</div>
+										</CardContent>
+									</Card>
+									<Card className="shadow-none border-muted/60">
+										<CardHeader className="pb-2">
+											<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+												Sent (last 24h)
+											</CardTitle>
+										</CardHeader>
+										<CardContent className="pt-0">
+											<div className="text-2xl font-bold">
+												{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.sentLast24Hours ?? 0).toLocaleString()}`}
+											</div>
+										</CardContent>
+									</Card>
+									<Card className="shadow-none border-muted/60">
+										<CardHeader className="pb-2">
+											<CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+												Remaining (24h)
+											</CardTitle>
+										</CardHeader>
+										<CardContent className="pt-0">
+											<div className="text-2xl font-bold">
+												{usageQuotaLoading ? " " : `${Math.floor(usageQuota?.remaining24HourSend ?? 0).toLocaleString()}`}
+											</div>
+										</CardContent>
+									</Card>
+								</div>
+
+								{usageDomainsLoading ? (
+									<EmailDomainsTableSkeleton />
+								) : (
+									<SesDomainsTable
+										domains={(usageDomains?.domains ?? []).filter((d) => {
+											if (!searchTerm.trim()) return true;
+											const q = searchTerm.toLowerCase();
+											return (d.domainName ?? "").toLowerCase().includes(q) || (d.status ?? "").toLowerCase().includes(q);
+										})}
+										onRefetch={() => refetchUsageDomains()}
+									/>
+								)}
+							</TabsContent>
+
+							<TabsContent value="domains" className="mt-6">
+								{domains.length === 0 ? (
+									<EmptyState
+										title="No domains yet"
+										description="Add a domain to start sending emails from your own domain."
+										action={
+											<Button onClick={() => setIsAddSheetOpen(true)}>
+												<Plus className="mr-2 h-4 w-4" />
+												Add Domain
+											</Button>
+										}
+									/>
+								) : filteredDomains.length === 0 ? (
+									<EmptyState
+										title="No domains match your search"
+										description={`We couldn't find domains for "${searchTerm}". Try updating your search.`}
+									/>
+								) : (
+									<EmailDomainsTable domains={filteredDomains} onRefetch={refetch} />
+								)}
+							</TabsContent>
+						</Tabs>
+					) : (
+						<>
+							<div className="flex items-center justify-between gap-4">
+								<div className="relative flex-1 max-w-sm">
+									<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+									<Input
+										type="search"
+										placeholder="Search domains by name or status..."
+										value={searchTerm}
+										onChange={(event) => setSearchTerm(event.target.value)}
+										className="pl-9"
+									/>
+								</div>
+								<div className="flex items-center gap-2">
+									<Button
+										variant="outline"
+										size="icon"
+										onClick={handleRefresh}
+										disabled={isRefreshing || isFetching}
+										title="Refresh"
+									>
+										<RefreshCw className={`h-4 w-4 ${isRefreshing || isFetching ? "animate-spin" : ""}`} />
+									</Button>
+									<Button onClick={() => setIsAddSheetOpen(true)}>
+										<Plus className="mr-2 h-4 w-4" />
+										Add Domain
+									</Button>
+								</div>
+							</div>
+
+							<div className="mt-6">
+								{domains.length === 0 ? (
+									<EmptyState
+										title="No domains yet"
+										description="Add a domain to start sending emails from your own domain."
+										action={
+											<Button onClick={() => setIsAddSheetOpen(true)}>
+												<Plus className="mr-2 h-4 w-4" />
+												Add Domain
+											</Button>
+										}
+									/>
+								) : filteredDomains.length === 0 ? (
+									<EmptyState
+										title="No domains match your search"
+										description={`We couldn't find domains for "${searchTerm}". Try updating your search.`}
+									/>
+								) : (
+									<EmailDomainsTable domains={filteredDomains} onRefetch={refetch} />
+								)}
+							</div>
+						</>
+					)}
 				</div>
 
 			</div>

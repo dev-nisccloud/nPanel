@@ -69,6 +69,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { format } from "date-fns";
 import { DownloadNiscEmReportButton } from "./agency.nisc-email-marketing/campaigns/_components/report/download-button";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 function getEventTypeLabel(type: string): string {
 	const labels: Record<string, string> = {
@@ -201,6 +202,7 @@ function CardEmptyState({
 export default function CampaignDetailPage() {
 	const params = useParams();
 	const navigate = useNavigate();
+	const route = useNiscEmailMarketingRoute();
 	const campaignId = params?.campaignId as string | undefined;
 
 	const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -341,7 +343,7 @@ export default function CampaignDetailPage() {
 			utils.niscEmailMarketing.campaigns.list.invalidate();
 			setShowDeleteDialog(false);
 			setIsDeleting(false);
-			navigate("/agency/nisc-email-marketing/campaigns");
+			navigate(`${route.basePath}/campaigns`);
 		},
 		onError: (e: { message: string }) => {
 			toast.error("Failed to delete campaign", { description: e.message });
@@ -434,7 +436,7 @@ export default function CampaignDetailPage() {
 				<div className="w-full max-w-7xl mx-auto">
 					<p className="text-muted-foreground">Invalid campaign.</p>
 					<Button variant="link" asChild className="mt-2 px-0">
-						<Link to="/agency/nisc-email-marketing/campaigns">Back to campaigns</Link>
+						<Link to={`${route.basePath}/campaigns`}>Back to campaigns</Link>
 					</Button>
 				</div>
 			</div>
@@ -468,7 +470,7 @@ export default function CampaignDetailPage() {
 				<div className="w-full max-w-7xl mx-auto">
 					<p className="text-muted-foreground">{error?.message ?? "Campaign not found."}</p>
 					<Button variant="link" asChild className="mt-2 px-0">
-						<Link to="/agency/nisc-email-marketing/campaigns">Back to campaigns</Link>
+						<Link to={`${route.basePath}/campaigns`}>Back to campaigns</Link>
 					</Button>
 				</div>
 			</div>
@@ -481,7 +483,7 @@ export default function CampaignDetailPage() {
 				{/* Header: Back button, title, status, actions (same pattern as hosting/wordpress detail) */}
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-4">
-						<Link to="/agency/nisc-email-marketing/campaigns">
+						<Link to={`${route.basePath}/campaigns`}>
 							<Button variant="ghost" size="sm">
 								<ArrowLeft className="h-4 w-4 mr-2" />
 								Back

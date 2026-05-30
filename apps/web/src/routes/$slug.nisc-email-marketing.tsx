@@ -1,5 +1,12 @@
-import { Outlet } from "react-router";
+"use client";
 
-export default function EmailMarketingLayout() {
-  return <Outlet />;
+import { Outlet } from "react-router";
+import { CustomerNiscEmRouteShell } from "@/components/nisc-email-marketing/customer-nisc-em-route-shell";
+
+export default function CustomerNiscEmailMarketingLayout() {
+	return (
+		<CustomerNiscEmRouteShell>
+			<Outlet />
+		</CustomerNiscEmRouteShell>
+	);
 }

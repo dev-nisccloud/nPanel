@@ -16,6 +16,7 @@ import {
 import { useGetNebDesigns } from "../_api/use-get-neb-designs";
 import { useDeleteNebDesign } from "../_api/use-delete-neb-design";
 import { useDuplicateNebDesign } from "../_api/use-duplicate-neb-design";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 import {
 	DropdownMenuContent,
@@ -39,8 +40,9 @@ export const ProjectsSection = () => {
 	const duplicateMutation = useDuplicateNebDesign();
 	const removeMutation = useDeleteNebDesign();
 	const navigate = useNavigate();
+	const route = useNiscEmailMarketingRoute();
 
-	const teamId = undefined;
+	const teamId = route.isCustomer ? route.teamId ?? undefined : undefined;
 
 	const isDeleteInProgress =
 		deletingDesignId !== null || removeMutation.isPending;
@@ -48,7 +50,7 @@ export const ProjectsSection = () => {
 	const handleDesignClick = (designId: string) => {
 		if (isDeleteInProgress || duplicatingDesignId || navigatingDesignId) return;
 		setNavigatingDesignId(designId);
-		navigate(`/agency/nisc-email-builder/${designId}`);
+		navigate(`${route.emailBuilderBasePath}/${designId}`);
 	};
 
 	const onCopy = (designId: string, e: React.MouseEvent) => {

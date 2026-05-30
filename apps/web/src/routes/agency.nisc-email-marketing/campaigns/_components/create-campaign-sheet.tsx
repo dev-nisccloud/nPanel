@@ -51,6 +51,10 @@ import { ChevronDownIcon } from "lucide-react";
 import type { UseFormReturn } from "react-hook-form";
 import { useGetEmailBuilderDesigns } from "@/routes/agency.email-marketing/email-builder/_api/use-get-email-builder-designs";
 import { renderToHtml } from "@/routes/agency.email-marketing/email-builder/_components/email-builder/utils";
+import {
+	niscEmTeamScopedInput,
+	useNiscEmailMarketingRoute,
+} from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 const STEPS = [
 	{ title: "Setup", description: "Domain, from address, and subject" },
@@ -343,6 +347,7 @@ function ScheduleDateTimePicker({ form }: { form: UseFormReturn<ScheduleFormValu
 
 export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCampaignSheetProps) {
 	const navigate = useNavigate();
+	const route = useNiscEmailMarketingRoute();
 	const [step, setStep] = React.useState(1);
 	const [htmlFile, setHtmlFile] = React.useState<File | null>(null);
 	const [htmlContent, setHtmlContent] = React.useState<string>("");
@@ -360,9 +365,9 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 
 	const { data: audiencesData, isLoading: audiencesLoading } =
 		trpc.niscEmailMarketing.audiences.list.useQuery(
-			{ limit: 100, offset: 0 },
+			niscEmTeamScopedInput(route, { limit: 100, offset: 0 }),
 			{
-				enabled: open,
+				enabled: open && (!route.isCustomer || Boolean(route.teamId)),
 			},
 		);
 
@@ -382,8 +387,8 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 
 	// Fetch verified domains
 	const { data: domainsData, isLoading: domainsLoading } = trpc.niscEmailMarketing.domains.listAllVerified.useQuery(
-		undefined,
-		{ enabled: open, staleTime: 5 * 60 * 1000 }
+		niscEmTeamScopedInput(route, {}),
+		{ enabled: open && (!route.isCustomer || Boolean(route.teamId)), staleTime: 5 * 60 * 1000 },
 	);
 
 	const verifiedDomains = React.useMemo(() => {
@@ -786,6 +791,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				recipientEmails: data.recipientEmails,
 				emailDomainId: data.emailDomainId ?? undefined,
 				scheduledAt: undefined,
+				...(route.isCustomer && route.teamId ? { teamId: route.teamId } : {}),
 			});
 
 			// Fire-and-forget: enqueue send job in background. Do not block UI on queue latency.
@@ -842,6 +848,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				recipientEmails: data.recipientEmails,
 				emailDomainId: data.emailDomainId ?? undefined,
 				scheduledAt: data.scheduledAt ?? undefined,
+				...(route.isCustomer && route.teamId ? { teamId: route.teamId } : {}),
 			});
 
 			// Fire-and-forget: enqueue scheduled send job in background.
@@ -1194,7 +1201,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 														variant="outline"
 														onClick={() => {
 															onOpenChange(false);
-															navigate("/agency/nisc-email-marketing/audiences");
+															navigate(`${route.basePath}/audiences`);
 														}}
 													>
 														Go to Audiences

@@ -10,6 +10,7 @@ import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
+import { provisionZeepoCustomerSignupWelcome } from "../lib/zeepo-agent-signup-provisioning";
 
 const isAgencyRole = (role: string | null | undefined) =>
   ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
@@ -214,7 +215,7 @@ export const teamsRouter = router({
 
       // Get user's name for email personalization
       const [inviter] = await db
-        .select({ name: user.name, email: user.email })
+        .select({ name: user.name, email: user.email, role: user.role })
         .from(user)
         .where(eq(user.id, userId))
         .limit(1);
@@ -400,6 +401,17 @@ export const teamsRouter = router({
               console.error("Failed to batch log invite email activities:", error);
             });
         }
+      }
+
+      // Sign-up flow: customer creates one org — welcome tokens go on that team only (once per user).
+      if (inviter?.role === "CUSTOMER" && createdTeam.createdById === userId) {
+        void provisionZeepoCustomerSignupWelcome({
+          userId,
+          teamId: createdTeam.id,
+          userRole: inviter.role,
+        }).catch((err) => {
+          console.error("[teams.create] Zeepo signup welcome provisioning failed:", err);
+        });
       }
 
       return {
