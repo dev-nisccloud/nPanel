@@ -38,6 +38,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import { toast } from "@/components/ui/sonner";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
@@ -52,6 +53,7 @@ const formatDateTime = (value: Date | string | null | undefined) => {
 export default function AudienceDetailPage() {
 	const params = useParams<{ audienceId: string }>();
 	const navigate = useNavigate();
+	const route = useNiscEmailMarketingRoute();
 	const audienceId = params.audienceId;
 
 	const [searchTerm, setSearchTerm] = React.useState("");
@@ -350,7 +352,7 @@ export default function AudienceDetailPage() {
 							type="button"
 							variant="ghost"
 							size="sm"
-							onClick={() => navigate("/agency/nisc-email-marketing/audiences")}
+							onClick={() => navigate(`${route.basePath}/audiences`)}
 							className="px-0 text-xs"
 						>
 							<ArrowLeft className="mr-1 h-3 w-3" />

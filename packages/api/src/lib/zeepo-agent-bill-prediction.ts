@@ -19,6 +19,8 @@ export async function billZeepoAgentPrediction(params: {
 	operationType: string;
 	description?: string;
 	generationId?: string | null;
+	/** Stored generation inputs when prediction.input is unavailable. */
+	predictionInput?: Record<string, unknown> | null;
 }): Promise<{ tokensDebited: number } | null> {
 	if (!shouldBillZeepoAgentTokens(params.billing) || !params.billing.teamId) {
 		return null;
@@ -28,6 +30,7 @@ export async function billZeepoAgentPrediction(params: {
 		modelId: params.modelId,
 		metrics: params.prediction.metrics,
 		output: params.prediction.output,
+		input: params.predictionInput ?? params.prediction.input,
 	});
 
 	const result = await debitZeepoAgentTokens({
@@ -67,16 +70,26 @@ export async function billZeepoAgentPredictionById(params: {
 	operationType: string;
 	generationId?: string | null;
 	output?: unknown;
+	predictionInput?: Record<string, unknown> | null;
 }): Promise<{ tokensDebited: number } | null> {
 	if (!shouldBillZeepoAgentTokens(params.billing)) return null;
 
 	const prediction = await params.replicate.predictions.get(params.predictionId);
 	if (prediction.status !== "succeeded") return null;
 
+	const predictionInput =
+		params.predictionInput ??
+		(prediction.input &&
+		typeof prediction.input === "object" &&
+		!Array.isArray(prediction.input)
+			? (prediction.input as Record<string, unknown>)
+			: null);
+
 	const completed: CompletedReplicatePrediction = {
 		id: prediction.id,
 		status: prediction.status,
 		output: params.output ?? prediction.output,
+		input: predictionInput ?? undefined,
 		metrics: prediction.metrics as CompletedReplicatePrediction["metrics"],
 		model: typeof prediction.model === "string" ? prediction.model : params.modelId,
 	};
@@ -88,5 +101,6 @@ export async function billZeepoAgentPredictionById(params: {
 		operationType: params.operationType,
 		generationId: params.generationId,
 		description: "Media generation",
+		predictionInput,
 	});
 }

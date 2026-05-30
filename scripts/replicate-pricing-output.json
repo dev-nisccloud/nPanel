@@ -1,0 +1,2834 @@
+[
+  {
+    "id": "anthropic/claude-4.5-haiku",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 200,000 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$5",
+              "title": "per million output tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or 1,000,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$1",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "anthropic/claude-4.5-haiku"
+  },
+  {
+    "id": "anthropic/claude-4.5-sonnet",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66,666 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.015",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 333,333 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$3",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "anthropic/claude-4.5-sonnet"
+  },
+  {
+    "id": "anthropic/claude-3.7-sonnet",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66,666 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.015",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 333,333 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$3",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "anthropic/claude-3.7-sonnet"
+  },
+  {
+    "id": "anthropic/claude-opus-4.6",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 40,000 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.025",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or 200,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$5",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "anthropic/claude-opus-4.6"
+  },
+  {
+    "id": "google/gemini-3.1-pro",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "≤ 200,000",
+              "subtype": "open-closed",
+              "title": "input token",
+              "type": "range",
+              "value": [
+                null,
+                200000
+              ]
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 500,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$2",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 83,333 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.012",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "> 200,000",
+              "subtype": "open",
+              "title": "input token",
+              "type": "range",
+              "value": [
+                200000,
+                null
+              ]
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 250,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$4",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 55,555 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.018",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/gemini-3.1-pro"
+  },
+  {
+    "id": "google/gemini-2.5-flash",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 3,333,333 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$0.30",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or 400,000 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$2.50",
+              "title": "per million output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/gemini-2.5-flash"
+  },
+  {
+    "id": "google/gemini-3-pro",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "≤ 200,000",
+              "subtype": "open-closed",
+              "title": "input token",
+              "type": "range",
+              "value": [
+                null,
+                200000
+              ]
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 500,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$2",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 83,333 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.012",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "> 200,000",
+              "subtype": "open",
+              "title": "input token",
+              "type": "range",
+              "value": [
+                200000,
+                null
+              ]
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 250,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$4",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 55,555 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.018",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/gemini-3-pro"
+  },
+  {
+    "id": "openai/gpt-5.2",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 571,428 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$1.75",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 71,428 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.014",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "openai/gpt-5.2"
+  },
+  {
+    "id": "openai/gpt-5",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 800,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$1.25",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or 100,000 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.01",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "openai/gpt-5"
+  },
+  {
+    "id": "openai/gpt-5-nano",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 20,000,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$0.05",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or 2,500,000 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.40",
+              "title": "per million output tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "openai/gpt-5-nano"
+  },
+  {
+    "id": "openai/gpt-4o",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 100,000 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$0.01",
+              "title": "per thousand output tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or 400,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$2.50",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "openai/gpt-4o"
+  },
+  {
+    "id": "deepseek-ai/deepseek-v3",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 689,655 tokens for $1",
+              "metric": "token_output_count",
+              "metric_display": "output token",
+              "price": "$1.45",
+              "title": "per million output tokens",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 689,655 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$1.45",
+              "title": "per million input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "deepseek-ai/deepseek-v3"
+  },
+  {
+    "id": "openai/gpt-image-2",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "auto",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "auto"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 78 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.128",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "low",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "low"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 83 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.012",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "medium",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "medium"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 21 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.047",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "high",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "high"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 78 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.128",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "openai/gpt-image-2"
+  },
+  {
+    "id": "google/imagen-4-ultra",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 16 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.06",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/imagen-4-ultra"
+  },
+  {
+    "id": "google/imagen-4-fast",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 50 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.02",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/imagen-4-fast"
+  },
+  {
+    "id": "bytedance/seedream-4.5",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 25 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.04",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "bytedance/seedream-4.5"
+  },
+  {
+    "id": "black-forest-labs/flux-2-pro",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 runs for $1",
+              "metric": "run_count",
+              "metric_display": "run",
+              "price": "$0.015",
+              "title": "per run",
+              "type": "fixed"
+            },
+            {
+              "description": "or around 66 megapixels for $1",
+              "metric": "image_input_megapixel_count",
+              "metric_display": "input image megapixel",
+              "price": "$0.015",
+              "title": "per input image megapixel",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 66 megapixels for $1",
+              "metric": "image_output_megapixel_count",
+              "metric_display": "output image megapixel",
+              "price": "$0.015",
+              "title": "per output image megapixel",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "black-forest-labs/flux-2-pro"
+  },
+  {
+    "id": "black-forest-labs/flux-2-max",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 25 runs for $1",
+              "metric": "run_count",
+              "metric_display": "run",
+              "price": "$0.04",
+              "title": "per run",
+              "type": "fixed"
+            },
+            {
+              "description": "or around 33 megapixels for $1",
+              "metric": "image_input_megapixel_count",
+              "metric_display": "input image megapixel",
+              "price": "$0.03",
+              "title": "per input image megapixel",
+              "type": "per-unit"
+            },
+            {
+              "description": "or around 33 megapixels for $1",
+              "metric": "image_output_megapixel_count",
+              "metric_display": "output image megapixel",
+              "price": "$0.03",
+              "title": "per output image megapixel",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "black-forest-labs/flux-2-max"
+  },
+  {
+    "id": "google/nano-banana-2",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "1K",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1K"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 14 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.067",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "2K",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "2K"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 99 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.101",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "4K",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "4K"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.151",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/nano-banana-2"
+  },
+  {
+    "id": "google/nano-banana-pro",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "1K",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1K"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.15",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "2K",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "2K"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.15",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "4K",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "4K"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 33 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.30",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "fallback",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "fallback"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 28 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.035",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/nano-banana-pro"
+  },
+  {
+    "id": "google/nano-banana",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 25 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.039",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/nano-banana"
+  },
+  {
+    "id": "xai/grok-imagine-image",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 50 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.02",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "xai/grok-imagine-image"
+  },
+  {
+    "id": "openai/gpt-image-1.5",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "auto",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "auto"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 73 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.136",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "low",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "low"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 76 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.013",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "medium",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "medium"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 20 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.05",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "high",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "high"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 73 images for $10",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.136",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "openai/gpt-image-1.5"
+  },
+  {
+    "id": "prunaai/hidream-l1-fast",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 200 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$5",
+              "title": "per thousand output images",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "prunaai/hidream-l1-fast"
+  },
+  {
+    "id": "prunaai/z-image-turbo",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "0.5",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "0.5"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 400 megapixels for $1",
+              "metric": "image_output_megapixel_count",
+              "metric_display": "output image megapixel",
+              "price": "$2.50",
+              "title": "per thousand output image megapixels",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "1",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 200 megapixels for $1",
+              "metric": "image_output_megapixel_count",
+              "metric_display": "output image megapixel",
+              "price": "$5",
+              "title": "per thousand output image megapixels",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "2",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "2"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 100 megapixels for $1",
+              "metric": "image_output_megapixel_count",
+              "metric_display": "output image megapixel",
+              "price": "$0.01",
+              "title": "per output image megapixel",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "3",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "3"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 megapixels for $1",
+              "metric": "image_output_megapixel_count",
+              "metric_display": "output image megapixel",
+              "price": "$0.015",
+              "title": "per output image megapixel",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "4",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "4"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 50 megapixels for $1",
+              "metric": "image_output_megapixel_count",
+              "metric_display": "output image megapixel",
+              "price": "$0.02",
+              "title": "per output image megapixel",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "prunaai/z-image-turbo"
+  },
+  {
+    "id": "prunaai/p-video",
+    "billing": {
+      "current_description": "<p>Paid pricing resumes after extended free launch period ends Monday 9AM CET</p>",
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "base",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "base"
+            },
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": "720p, draft mode OFF",
+          "prices": [
+            {
+              "description": "or 50 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.02",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "720p Standard"
+        },
+        {
+          "criteria": [
+            {
+              "description": "draft",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "draft"
+            },
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": "720p, draft mode ON",
+          "prices": [
+            {
+              "description": null,
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.005",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "720p Draft"
+        },
+        {
+          "criteria": [
+            {
+              "description": "base",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "base"
+            },
+            {
+              "description": "1080p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1080p"
+            }
+          ],
+          "description": "1080p, draft mode OFF",
+          "prices": [
+            {
+              "description": "or 25 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.04",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "1080p Standard"
+        },
+        {
+          "criteria": [
+            {
+              "description": "draft",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "draft"
+            },
+            {
+              "description": "1080p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1080p"
+            }
+          ],
+          "description": "1080p, draft mode ON",
+          "prices": [
+            {
+              "description": "or 100 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.01",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "1080p Draft"
+        }
+      ]
+    },
+    "modelName": "prunaai/p-video"
+  },
+  {
+    "id": "bytedance/seedance-2.0",
+    "billing": {
+      "current_description": "<p>Add 1080p tiers for seedance-2.0 (1080p not available on -fast).</p>",
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "video_in",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "video_in"
+            },
+            {
+              "description": "480p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "480p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 10 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.10",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "non_video_in",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "non_video_in"
+            },
+            {
+              "description": "480p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "480p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 12 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.08",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "video_in",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "video_in"
+            },
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 45 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.22",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "non_video_in",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "non_video_in"
+            },
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 55 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.18",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "video_in",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "video_in"
+            },
+            {
+              "description": "1080p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1080p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 18 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.55",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "non_video_in",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "non_video_in"
+            },
+            {
+              "description": "1080p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1080p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 22 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.45",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "bytedance/seedance-2.0"
+  },
+  {
+    "id": "bytedance/seedance-1-lite",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "480p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "480p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 55 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.018",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 27 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.036",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "1080p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1080p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 13 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.072",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "bytedance/seedance-1-lite"
+  },
+  {
+    "id": "bytedance/seedance-1-pro",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "480p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "480p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 33 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.03",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 16 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.06",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "1080p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "1080p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.15",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "bytedance/seedance-1-pro"
+  },
+  {
+    "id": "google/veo-3.1-fast",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "with_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "with_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.15",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "without_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "without_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 10 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.10",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/veo-3.1-fast"
+  },
+  {
+    "id": "google/veo-3.1",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "with_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "with_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 25 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.40",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "without_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "without_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 50 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.20",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/veo-3.1"
+  },
+  {
+    "id": "google/veo-3",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "with_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "with_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 25 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.40",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "without_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "without_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 50 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.20",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/veo-3"
+  },
+  {
+    "id": "google/veo-3-fast",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "with_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "with_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 66 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.15",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "without_audio",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "without_audio"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 10 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.10",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/veo-3-fast"
+  },
+  {
+    "id": "google/veo-2",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 20 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.50",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "google/veo-2"
+  },
+  {
+    "id": "xai/grok-imagine-video",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 20 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.05",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "xai/grok-imagine-video"
+  },
+  {
+    "id": "runwayml/gen-4.5",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 83 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.12",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "runwayml/gen-4.5"
+  },
+  {
+    "id": "wan-video/wan-2.2-i2v-fast",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "base",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "base"
+            },
+            {
+              "description": "480p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "480p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 20 videos for $1",
+              "metric": "video_output_count",
+              "metric_display": "output video",
+              "price": "$0.05",
+              "title": "per output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "interpolate",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "interpolate"
+            },
+            {
+              "description": "480p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "480p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 15 videos for $1",
+              "metric": "video_output_count",
+              "metric_display": "output video",
+              "price": "$0.065",
+              "title": "per output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "base",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "base"
+            },
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 90 videos for $10",
+              "metric": "video_output_count",
+              "metric_display": "output video",
+              "price": "$0.11",
+              "title": "per output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "interpolate",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "interpolate"
+            },
+            {
+              "description": "720p",
+              "subtype": "string",
+              "title": "target resolution",
+              "type": "equals",
+              "value": "720p"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 68 videos for $10",
+              "metric": "video_output_count",
+              "metric_display": "output video",
+              "price": "$0.145",
+              "title": "per output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "wan-video/wan-2.2-i2v-fast"
+  },
+  {
+    "id": "kwaivgi/kling-v2.1",
+    "billing": {
+      "current_description": "<p>Standard mode (720p) costs $0.05 per second. Pro (1080p) costs $0.09 per second.</p>",
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "standard",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "standard"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 20 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.05",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "pro",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "pro"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 11 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.09",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "kwaivgi/kling-v2.1"
+  },
+  {
+    "id": "kwaivgi/kling-v2.6",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "no",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": false
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 14 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.07",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        },
+        {
+          "criteria": [
+            {
+              "description": "yes",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": true
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 71 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.14",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "kwaivgi/kling-v2.6"
+  },
+  {
+    "id": "kwaivgi/kling-v2.5-turbo-pro",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 14 seconds for $1",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.07",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "kwaivgi/kling-v2.5-turbo-pro"
+  },
+  {
+    "id": "kwaivgi/kling-v3-omni-video",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "no",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": false
+            },
+            {
+              "description": "standard",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "standard"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 59 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.168",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "standard"
+        },
+        {
+          "criteria": [
+            {
+              "description": "yes",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": true
+            },
+            {
+              "description": "standard",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "standard"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 44 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.224",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "standard-audio"
+        },
+        {
+          "criteria": [
+            {
+              "description": "no",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": false
+            },
+            {
+              "description": "pro",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "pro"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 44 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.224",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "pro"
+        },
+        {
+          "criteria": [
+            {
+              "description": "yes",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": true
+            },
+            {
+              "description": "pro",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "pro"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 35 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.28",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "pro-audio"
+        },
+        {
+          "criteria": [
+            {
+              "description": "no",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": false
+            },
+            {
+              "description": "4k",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "4k"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 23 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.42",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "fourk-no-audio"
+        },
+        {
+          "criteria": [
+            {
+              "description": "yes",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": true
+            },
+            {
+              "description": "4k",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "4k"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 23 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.42",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "fourk-audio"
+        }
+      ]
+    },
+    "modelName": "kwaivgi/kling-v3-omni-video"
+  },
+  {
+    "id": "kwaivgi/kling-v3-video",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [
+            {
+              "description": "no",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": false
+            },
+            {
+              "description": "standard",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "standard"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 59 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.168",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "standard"
+        },
+        {
+          "criteria": [
+            {
+              "description": "yes",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": true
+            },
+            {
+              "description": "standard",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "standard"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 39 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.252",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "standard-audio"
+        },
+        {
+          "criteria": [
+            {
+              "description": "no",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": false
+            },
+            {
+              "description": "pro",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "pro"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 44 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.224",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "pro"
+        },
+        {
+          "criteria": [
+            {
+              "description": "yes",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": true
+            },
+            {
+              "description": "pro",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "pro"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 29 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.336",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "pro-audio"
+        },
+        {
+          "criteria": [
+            {
+              "description": "no",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": false
+            },
+            {
+              "description": "4k",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "4k"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 23 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.42",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "fourk-no-audio"
+        },
+        {
+          "criteria": [
+            {
+              "description": "yes",
+              "subtype": "boolean",
+              "title": "with audio",
+              "type": "equals",
+              "value": true
+            },
+            {
+              "description": "4k",
+              "subtype": "string",
+              "title": "model variant",
+              "type": "equals",
+              "value": "4k"
+            }
+          ],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 23 seconds for $10",
+              "metric": "video_output_duration_seconds",
+              "metric_display": "second of output video",
+              "price": "$0.42",
+              "title": "per second of output video",
+              "type": "per-unit"
+            }
+          ],
+          "title": "fourk-audio"
+        }
+      ]
+    },
+    "modelName": "kwaivgi/kling-v3-video"
+  },
+  {
+    "id": "minimax/speech-2.8-hd",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 10,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$0.10",
+              "title": "per thousand input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "minimax/speech-2.8-hd"
+  },
+  {
+    "id": "minimax/speech-2.8-turbo",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 16,666 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$0.06",
+              "title": "per thousand input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "minimax/speech-2.8-turbo"
+  },
+  {
+    "id": "minimax/speech-02-hd",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 10,000 tokens for $1",
+              "metric": "token_input_count",
+              "metric_display": "input token",
+              "price": "$0.10",
+              "title": "per thousand input tokens",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "minimax/speech-02-hd"
+  },
+  {
+    "id": "qwen/qwen3-tts",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 50,000 characters for $1",
+              "metric": "character_input_count",
+              "metric_display": "input character",
+              "price": "$0.02",
+              "title": "per thousand input characters",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "qwen/qwen3-tts"
+  },
+  {
+    "id": "vaibhavs10/incredibly-fast-whisper",
+    "error": "no billingConfig",
+    "hardware": "L40S",
+    "fallbackPrice": "$0.000975 per second"
+  },
+  {
+    "id": "bria/eraser",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 25 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.04",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "bria/eraser"
+  },
+  {
+    "id": "bria/generate-background",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 25 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.04",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "bria/generate-background"
+  },
+  {
+    "id": "recraft-ai/recraft-crisp-upscale",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 166 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$6",
+              "title": "per thousand output images",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "recraft-ai/recraft-crisp-upscale"
+  },
+  {
+    "id": "qwen/qwen-image-edit-2511",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or around 33 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.03",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "qwen/qwen-image-edit-2511"
+  },
+  {
+    "id": "black-forest-labs/flux-1.1-pro",
+    "billing": {
+      "current_description": null,
+      "current_tiers": [
+        {
+          "criteria": [],
+          "description": null,
+          "prices": [
+            {
+              "description": "or 25 images for $1",
+              "metric": "image_output_count",
+              "metric_display": "output image",
+              "price": "$0.04",
+              "title": "per output image",
+              "type": "per-unit"
+            }
+          ],
+          "title": null
+        }
+      ]
+    },
+    "modelName": "black-forest-labs/flux-1.1-pro"
+  }
+]

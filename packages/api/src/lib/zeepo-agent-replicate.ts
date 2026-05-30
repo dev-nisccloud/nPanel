@@ -4,16 +4,14 @@
 import Replicate from "replicate";
 import { collectTextOutput } from "../routers/zeepo-agent/replicate-agent-orchestration";
 
+import type { ReplicatePredictionMetrics } from "./zeepo-agent-cost";
+
 export type CompletedReplicatePrediction = {
 	id: string;
 	status: string;
 	output: unknown;
-	metrics?: {
-		predict_time?: number;
-		total_time?: number;
-		input_token_count?: number;
-		output_token_count?: number;
-	};
+	input?: Record<string, unknown>;
+	metrics?: ReplicatePredictionMetrics;
 	model?: string;
 	error?: string | null;
 };
@@ -59,6 +57,10 @@ export async function runReplicatePrediction(params: {
 		id: prediction.id,
 		status: prediction.status,
 		output: prediction.output,
+		input:
+			prediction.input && typeof prediction.input === "object" && !Array.isArray(prediction.input)
+				? (prediction.input as Record<string, unknown>)
+				: input,
 		metrics: prediction.metrics as CompletedReplicatePrediction["metrics"],
 		model: typeof prediction.model === "string" ? prediction.model : modelId,
 		error: prediction.error,

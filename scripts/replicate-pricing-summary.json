@@ -1,0 +1,1082 @@
+[
+  {
+    "id": "anthropic/claude-4.5-haiku",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$5",
+        "unit": "per million output tokens",
+        "note": "or 200,000 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$1",
+        "unit": "per million input tokens",
+        "note": "or 1,000,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "anthropic/claude-4.5-sonnet",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$0.015",
+        "unit": "per thousand output tokens",
+        "note": "or around 66,666 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$3",
+        "unit": "per million input tokens",
+        "note": "or around 333,333 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "anthropic/claude-3.7-sonnet",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$0.015",
+        "unit": "per thousand output tokens",
+        "note": "or around 66,666 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$3",
+        "unit": "per million input tokens",
+        "note": "or around 333,333 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "anthropic/claude-opus-4.6",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$0.025",
+        "unit": "per thousand output tokens",
+        "note": "or 40,000 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$5",
+        "unit": "per million input tokens",
+        "note": "or 200,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/gemini-3.1-pro",
+    "prices": [
+      {
+        "tier": "≤ 200,000",
+        "metric": "token_input_count",
+        "price": "$2",
+        "unit": "per million input tokens",
+        "note": "or 500,000 tokens for $1"
+      },
+      {
+        "tier": "≤ 200,000",
+        "metric": "token_output_count",
+        "price": "$0.012",
+        "unit": "per thousand output tokens",
+        "note": "or around 83,333 tokens for $1"
+      },
+      {
+        "tier": "> 200,000",
+        "metric": "token_input_count",
+        "price": "$4",
+        "unit": "per million input tokens",
+        "note": "or 250,000 tokens for $1"
+      },
+      {
+        "tier": "> 200,000",
+        "metric": "token_output_count",
+        "price": "$0.018",
+        "unit": "per thousand output tokens",
+        "note": "or around 55,555 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/gemini-2.5-flash",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$0.30",
+        "unit": "per million input tokens",
+        "note": "or around 3,333,333 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$2.50",
+        "unit": "per million output tokens",
+        "note": "or 400,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/gemini-3-pro",
+    "prices": [
+      {
+        "tier": "≤ 200,000",
+        "metric": "token_input_count",
+        "price": "$2",
+        "unit": "per million input tokens",
+        "note": "or 500,000 tokens for $1"
+      },
+      {
+        "tier": "≤ 200,000",
+        "metric": "token_output_count",
+        "price": "$0.012",
+        "unit": "per thousand output tokens",
+        "note": "or around 83,333 tokens for $1"
+      },
+      {
+        "tier": "> 200,000",
+        "metric": "token_input_count",
+        "price": "$4",
+        "unit": "per million input tokens",
+        "note": "or 250,000 tokens for $1"
+      },
+      {
+        "tier": "> 200,000",
+        "metric": "token_output_count",
+        "price": "$0.018",
+        "unit": "per thousand output tokens",
+        "note": "or around 55,555 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "openai/gpt-5.2",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$1.75",
+        "unit": "per million input tokens",
+        "note": "or around 571,428 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$0.014",
+        "unit": "per thousand output tokens",
+        "note": "or around 71,428 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "openai/gpt-5",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$1.25",
+        "unit": "per million input tokens",
+        "note": "or 800,000 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$0.01",
+        "unit": "per thousand output tokens",
+        "note": "or 100,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "openai/gpt-5-nano",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$0.05",
+        "unit": "per million input tokens",
+        "note": "or 20,000,000 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$0.40",
+        "unit": "per million output tokens",
+        "note": "or 2,500,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "openai/gpt-4o",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$0.01",
+        "unit": "per thousand output tokens",
+        "note": "or 100,000 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$2.50",
+        "unit": "per million input tokens",
+        "note": "or 400,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "deepseek-ai/deepseek-v3",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_output_count",
+        "price": "$1.45",
+        "unit": "per million output tokens",
+        "note": "or around 689,655 tokens for $1"
+      },
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$1.45",
+        "unit": "per million input tokens",
+        "note": "or around 689,655 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "openai/gpt-image-2",
+    "prices": [
+      {
+        "tier": "auto",
+        "metric": "image_output_count",
+        "price": "$0.128",
+        "unit": "per output image",
+        "note": "or around 78 images for $10"
+      },
+      {
+        "tier": "low",
+        "metric": "image_output_count",
+        "price": "$0.012",
+        "unit": "per output image",
+        "note": "or around 83 images for $1"
+      },
+      {
+        "tier": "medium",
+        "metric": "image_output_count",
+        "price": "$0.047",
+        "unit": "per output image",
+        "note": "or around 21 images for $1"
+      },
+      {
+        "tier": "high",
+        "metric": "image_output_count",
+        "price": "$0.128",
+        "unit": "per output image",
+        "note": "or around 78 images for $10"
+      }
+    ]
+  },
+  {
+    "id": "google/imagen-4-ultra",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.06",
+        "unit": "per output image",
+        "note": "or around 16 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/imagen-4-fast",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.02",
+        "unit": "per output image",
+        "note": "or 50 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "bytedance/seedream-4.5",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.04",
+        "unit": "per output image",
+        "note": "or 25 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "black-forest-labs/flux-2-pro",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "run_count",
+        "price": "$0.015",
+        "unit": "per run",
+        "note": "or around 66 runs for $1"
+      },
+      {
+        "tier": null,
+        "metric": "image_input_megapixel_count",
+        "price": "$0.015",
+        "unit": "per input image megapixel",
+        "note": "or around 66 megapixels for $1"
+      },
+      {
+        "tier": null,
+        "metric": "image_output_megapixel_count",
+        "price": "$0.015",
+        "unit": "per output image megapixel",
+        "note": "or around 66 megapixels for $1"
+      }
+    ]
+  },
+  {
+    "id": "black-forest-labs/flux-2-max",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "run_count",
+        "price": "$0.04",
+        "unit": "per run",
+        "note": "or 25 runs for $1"
+      },
+      {
+        "tier": null,
+        "metric": "image_input_megapixel_count",
+        "price": "$0.03",
+        "unit": "per input image megapixel",
+        "note": "or around 33 megapixels for $1"
+      },
+      {
+        "tier": null,
+        "metric": "image_output_megapixel_count",
+        "price": "$0.03",
+        "unit": "per output image megapixel",
+        "note": "or around 33 megapixels for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/nano-banana-2",
+    "prices": [
+      {
+        "tier": "1K",
+        "metric": "image_output_count",
+        "price": "$0.067",
+        "unit": "per output image",
+        "note": "or around 14 images for $1"
+      },
+      {
+        "tier": "2K",
+        "metric": "image_output_count",
+        "price": "$0.101",
+        "unit": "per output image",
+        "note": "or around 99 images for $10"
+      },
+      {
+        "tier": "4K",
+        "metric": "image_output_count",
+        "price": "$0.151",
+        "unit": "per output image",
+        "note": "or around 66 images for $10"
+      }
+    ]
+  },
+  {
+    "id": "google/nano-banana-pro",
+    "prices": [
+      {
+        "tier": "1K",
+        "metric": "image_output_count",
+        "price": "$0.15",
+        "unit": "per output image",
+        "note": "or around 66 images for $10"
+      },
+      {
+        "tier": "2K",
+        "metric": "image_output_count",
+        "price": "$0.15",
+        "unit": "per output image",
+        "note": "or around 66 images for $10"
+      },
+      {
+        "tier": "4K",
+        "metric": "image_output_count",
+        "price": "$0.30",
+        "unit": "per output image",
+        "note": "or around 33 images for $10"
+      },
+      {
+        "tier": "fallback",
+        "metric": "image_output_count",
+        "price": "$0.035",
+        "unit": "per output image",
+        "note": "or around 28 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/nano-banana",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.039",
+        "unit": "per output image",
+        "note": "or around 25 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "xai/grok-imagine-image",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.02",
+        "unit": "per output image",
+        "note": "or 50 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "openai/gpt-image-1.5",
+    "prices": [
+      {
+        "tier": "auto",
+        "metric": "image_output_count",
+        "price": "$0.136",
+        "unit": "per output image",
+        "note": "or around 73 images for $10"
+      },
+      {
+        "tier": "low",
+        "metric": "image_output_count",
+        "price": "$0.013",
+        "unit": "per output image",
+        "note": "or around 76 images for $1"
+      },
+      {
+        "tier": "medium",
+        "metric": "image_output_count",
+        "price": "$0.05",
+        "unit": "per output image",
+        "note": "or 20 images for $1"
+      },
+      {
+        "tier": "high",
+        "metric": "image_output_count",
+        "price": "$0.136",
+        "unit": "per output image",
+        "note": "or around 73 images for $10"
+      }
+    ]
+  },
+  {
+    "id": "prunaai/hidream-l1-fast",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$5",
+        "unit": "per thousand output images",
+        "note": "or 200 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "prunaai/z-image-turbo",
+    "prices": [
+      {
+        "tier": "0.5",
+        "metric": "image_output_megapixel_count",
+        "price": "$2.50",
+        "unit": "per thousand output image megapixels",
+        "note": "or 400 megapixels for $1"
+      },
+      {
+        "tier": "1",
+        "metric": "image_output_megapixel_count",
+        "price": "$5",
+        "unit": "per thousand output image megapixels",
+        "note": "or 200 megapixels for $1"
+      },
+      {
+        "tier": "2",
+        "metric": "image_output_megapixel_count",
+        "price": "$0.01",
+        "unit": "per output image megapixel",
+        "note": "or 100 megapixels for $1"
+      },
+      {
+        "tier": "3",
+        "metric": "image_output_megapixel_count",
+        "price": "$0.015",
+        "unit": "per output image megapixel",
+        "note": "or around 66 megapixels for $1"
+      },
+      {
+        "tier": "4",
+        "metric": "image_output_megapixel_count",
+        "price": "$0.02",
+        "unit": "per output image megapixel",
+        "note": "or 50 megapixels for $1"
+      }
+    ]
+  },
+  {
+    "id": "prunaai/p-video",
+    "prices": [
+      {
+        "tier": "base; 720p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.02",
+        "unit": "per second of output video",
+        "note": "or 50 seconds for $1"
+      },
+      {
+        "tier": "draft; 720p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.005",
+        "unit": "per second of output video",
+        "note": null
+      },
+      {
+        "tier": "base; 1080p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.04",
+        "unit": "per second of output video",
+        "note": "or 25 seconds for $1"
+      },
+      {
+        "tier": "draft; 1080p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.01",
+        "unit": "per second of output video",
+        "note": "or 100 seconds for $1"
+      }
+    ]
+  },
+  {
+    "id": "bytedance/seedance-2.0",
+    "prices": [
+      {
+        "tier": "video_in; 480p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.10",
+        "unit": "per second of output video",
+        "note": "or 10 seconds for $1"
+      },
+      {
+        "tier": "non_video_in; 480p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.08",
+        "unit": "per second of output video",
+        "note": "or around 12 seconds for $1"
+      },
+      {
+        "tier": "video_in; 720p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.22",
+        "unit": "per second of output video",
+        "note": "or around 45 seconds for $10"
+      },
+      {
+        "tier": "non_video_in; 720p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.18",
+        "unit": "per second of output video",
+        "note": "or around 55 seconds for $10"
+      },
+      {
+        "tier": "video_in; 1080p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.55",
+        "unit": "per second of output video",
+        "note": "or around 18 seconds for $10"
+      },
+      {
+        "tier": "non_video_in; 1080p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.45",
+        "unit": "per second of output video",
+        "note": "or around 22 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "bytedance/seedance-1-lite",
+    "prices": [
+      {
+        "tier": "480p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.018",
+        "unit": "per second of output video",
+        "note": "or around 55 seconds for $1"
+      },
+      {
+        "tier": "720p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.036",
+        "unit": "per second of output video",
+        "note": "or around 27 seconds for $1"
+      },
+      {
+        "tier": "1080p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.072",
+        "unit": "per second of output video",
+        "note": "or around 13 seconds for $1"
+      }
+    ]
+  },
+  {
+    "id": "bytedance/seedance-1-pro",
+    "prices": [
+      {
+        "tier": "480p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.03",
+        "unit": "per second of output video",
+        "note": "or around 33 seconds for $1"
+      },
+      {
+        "tier": "720p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.06",
+        "unit": "per second of output video",
+        "note": "or around 16 seconds for $1"
+      },
+      {
+        "tier": "1080p",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.15",
+        "unit": "per second of output video",
+        "note": "or around 66 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "google/veo-3.1-fast",
+    "prices": [
+      {
+        "tier": "with_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.15",
+        "unit": "per second of output video",
+        "note": "or around 66 seconds for $10"
+      },
+      {
+        "tier": "without_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.10",
+        "unit": "per second of output video",
+        "note": "or 10 seconds for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/veo-3.1",
+    "prices": [
+      {
+        "tier": "with_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.40",
+        "unit": "per second of output video",
+        "note": "or 25 seconds for $10"
+      },
+      {
+        "tier": "without_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.20",
+        "unit": "per second of output video",
+        "note": "or 50 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "google/veo-3",
+    "prices": [
+      {
+        "tier": "with_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.40",
+        "unit": "per second of output video",
+        "note": "or 25 seconds for $10"
+      },
+      {
+        "tier": "without_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.20",
+        "unit": "per second of output video",
+        "note": "or 50 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "google/veo-3-fast",
+    "prices": [
+      {
+        "tier": "with_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.15",
+        "unit": "per second of output video",
+        "note": "or around 66 seconds for $10"
+      },
+      {
+        "tier": "without_audio",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.10",
+        "unit": "per second of output video",
+        "note": "or 10 seconds for $1"
+      }
+    ]
+  },
+  {
+    "id": "google/veo-2",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "video_output_duration_seconds",
+        "price": "$0.50",
+        "unit": "per second of output video",
+        "note": "or 20 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "xai/grok-imagine-video",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "video_output_duration_seconds",
+        "price": "$0.05",
+        "unit": "per second of output video",
+        "note": "or 20 seconds for $1"
+      }
+    ]
+  },
+  {
+    "id": "runwayml/gen-4.5",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "video_output_duration_seconds",
+        "price": "$0.12",
+        "unit": "per second of output video",
+        "note": "or around 83 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "wan-video/wan-2.2-i2v-fast",
+    "prices": [
+      {
+        "tier": "base; 480p",
+        "metric": "video_output_count",
+        "price": "$0.05",
+        "unit": "per output video",
+        "note": "or 20 videos for $1"
+      },
+      {
+        "tier": "interpolate; 480p",
+        "metric": "video_output_count",
+        "price": "$0.065",
+        "unit": "per output video",
+        "note": "or around 15 videos for $1"
+      },
+      {
+        "tier": "base; 720p",
+        "metric": "video_output_count",
+        "price": "$0.11",
+        "unit": "per output video",
+        "note": "or around 90 videos for $10"
+      },
+      {
+        "tier": "interpolate; 720p",
+        "metric": "video_output_count",
+        "price": "$0.145",
+        "unit": "per output video",
+        "note": "or around 68 videos for $10"
+      }
+    ]
+  },
+  {
+    "id": "kwaivgi/kling-v2.1",
+    "prices": [
+      {
+        "tier": "standard",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.05",
+        "unit": "per second of output video",
+        "note": "or 20 seconds for $1"
+      },
+      {
+        "tier": "pro",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.09",
+        "unit": "per second of output video",
+        "note": "or around 11 seconds for $1"
+      }
+    ]
+  },
+  {
+    "id": "kwaivgi/kling-v2.6",
+    "prices": [
+      {
+        "tier": "no",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.07",
+        "unit": "per second of output video",
+        "note": "or around 14 seconds for $1"
+      },
+      {
+        "tier": "yes",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.14",
+        "unit": "per second of output video",
+        "note": "or around 71 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "kwaivgi/kling-v2.5-turbo-pro",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "video_output_duration_seconds",
+        "price": "$0.07",
+        "unit": "per second of output video",
+        "note": "or around 14 seconds for $1"
+      }
+    ]
+  },
+  {
+    "id": "kwaivgi/kling-v3-omni-video",
+    "prices": [
+      {
+        "tier": "no; standard",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.168",
+        "unit": "per second of output video",
+        "note": "or around 59 seconds for $10"
+      },
+      {
+        "tier": "yes; standard",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.224",
+        "unit": "per second of output video",
+        "note": "or around 44 seconds for $10"
+      },
+      {
+        "tier": "no; pro",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.224",
+        "unit": "per second of output video",
+        "note": "or around 44 seconds for $10"
+      },
+      {
+        "tier": "yes; pro",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.28",
+        "unit": "per second of output video",
+        "note": "or around 35 seconds for $10"
+      },
+      {
+        "tier": "no; 4k",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.42",
+        "unit": "per second of output video",
+        "note": "or around 23 seconds for $10"
+      },
+      {
+        "tier": "yes; 4k",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.42",
+        "unit": "per second of output video",
+        "note": "or around 23 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "kwaivgi/kling-v3-video",
+    "prices": [
+      {
+        "tier": "no; standard",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.168",
+        "unit": "per second of output video",
+        "note": "or around 59 seconds for $10"
+      },
+      {
+        "tier": "yes; standard",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.252",
+        "unit": "per second of output video",
+        "note": "or around 39 seconds for $10"
+      },
+      {
+        "tier": "no; pro",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.224",
+        "unit": "per second of output video",
+        "note": "or around 44 seconds for $10"
+      },
+      {
+        "tier": "yes; pro",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.336",
+        "unit": "per second of output video",
+        "note": "or around 29 seconds for $10"
+      },
+      {
+        "tier": "no; 4k",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.42",
+        "unit": "per second of output video",
+        "note": "or around 23 seconds for $10"
+      },
+      {
+        "tier": "yes; 4k",
+        "metric": "video_output_duration_seconds",
+        "price": "$0.42",
+        "unit": "per second of output video",
+        "note": "or around 23 seconds for $10"
+      }
+    ]
+  },
+  {
+    "id": "minimax/speech-2.8-hd",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$0.10",
+        "unit": "per thousand input tokens",
+        "note": "or 10,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "minimax/speech-2.8-turbo",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$0.06",
+        "unit": "per thousand input tokens",
+        "note": "or around 16,666 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "minimax/speech-02-hd",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "token_input_count",
+        "price": "$0.10",
+        "unit": "per thousand input tokens",
+        "note": "or 10,000 tokens for $1"
+      }
+    ]
+  },
+  {
+    "id": "qwen/qwen3-tts",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "character_input_count",
+        "price": "$0.02",
+        "unit": "per thousand input characters",
+        "note": "or 50,000 characters for $1"
+      }
+    ]
+  },
+  {
+    "id": "vaibhavs10/incredibly-fast-whisper",
+    "error": "no billingConfig",
+    "hardware": "L40S",
+    "fallbackPrice": "$0.000975 per second"
+  },
+  {
+    "id": "bria/eraser",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.04",
+        "unit": "per output image",
+        "note": "or 25 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "bria/generate-background",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.04",
+        "unit": "per output image",
+        "note": "or 25 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "recraft-ai/recraft-crisp-upscale",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$6",
+        "unit": "per thousand output images",
+        "note": "or around 166 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "qwen/qwen-image-edit-2511",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.03",
+        "unit": "per output image",
+        "note": "or around 33 images for $1"
+      }
+    ]
+  },
+  {
+    "id": "black-forest-labs/flux-1.1-pro",
+    "prices": [
+      {
+        "tier": null,
+        "metric": "image_output_count",
+        "price": "$0.04",
+        "unit": "per output image",
+        "note": "or 25 images for $1"
+      }
+    ]
+  }
+]

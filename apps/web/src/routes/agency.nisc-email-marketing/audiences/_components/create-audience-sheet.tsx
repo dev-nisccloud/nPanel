@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 import { Badge } from "@/components/ui/badge";
 
 const FormSchema = z.object({
@@ -105,6 +106,7 @@ function parseContactsCsv(csvText: string): DraftContact[] {
 }
 
 export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAudienceSheetProps) {
+	const route = useNiscEmailMarketingRoute();
 	const [contacts, setContacts] = React.useState<DraftContact[]>([]);
 	const [csvFileName, setCsvFileName] = React.useState<string | null>(null);
 	const [isSaving, setIsSaving] = React.useState(false);
@@ -242,7 +244,7 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 			const audience = await createAudience.mutateAsync({
 				name: data.name,
 				description: data.description || undefined,
-				teamId: null,
+				teamId: route.isCustomer ? route.teamId : null,
 			});
 
 			if (contacts.length > 0) {

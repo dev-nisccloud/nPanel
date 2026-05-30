@@ -40,6 +40,9 @@ export const ZEEPO_AI_AGENT_PLAN_IDS = {
 	payAsYouGo: "zeepo-ai-agent-plan-payg",
 } as const;
 
+/** Free tokens granted on customer signup (Starter plan, no invoice). */
+export const ZEEPO_SIGNUP_WELCOME_TOKEN_GRANT = 100;
+
 export function isZeepoAgentFreeOperation(name: string): name is ZeepoAgentFreeOperation {
 	return (ZEEPO_AGENT_FREE_OPERATIONS as readonly string[]).includes(name);
 }

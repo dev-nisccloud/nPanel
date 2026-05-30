@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 type AudienceSummary = RouterOutputs["niscEmailMarketing"]["audiences"]["list"]["audiences"][0];
 
@@ -135,6 +136,7 @@ export interface AudiencesTableProps {
 
 export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 	const navigate = useNavigate();
+	const { basePath } = useNiscEmailMarketingRoute();
 
 	return (
 		<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -156,7 +158,7 @@ export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 									className="flex items-center gap-2 text-left hover:text-primary focus:outline-none cursor-pointer"
 									onClick={() =>
 										navigate(
-											`/agency/nisc-email-marketing/audiences/${audience.id}`,
+											`${basePath}/audiences/${audience.id}`,
 										)
 									}
 								>
@@ -178,7 +180,7 @@ export function AudiencesTable({ audiences, onRefetch }: AudiencesTableProps) {
 										onRefetch={onRefetch}
 										onView={() =>
 											navigate(
-												`/agency/nisc-email-marketing/audiences/${audience.id}`,
+												`${basePath}/audiences/${audience.id}`,
 											)
 										}
 									/>

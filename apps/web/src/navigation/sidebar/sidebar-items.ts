@@ -125,12 +125,13 @@ export const sidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "Nisc Email Marketing",
+        title: "Email Marketing",
         url: "/dashboard/nisc-email-marketing",
         icon: (props: any) => React.createElement(Icons.EmailMarketing, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Campaigns", url: "/dashboard/nisc-email-marketing/campaigns", },
           { title: "Audiences", url: "/dashboard/nisc-email-marketing/audiences", },
+          { title: "AI Email Builder", url: "/dashboard/nisc-email-builder", },
           { title: "Domains", url: "/dashboard/nisc-email-marketing/domain-configuration", },
         ],
       },

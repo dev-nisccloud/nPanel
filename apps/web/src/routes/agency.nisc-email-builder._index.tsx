@@ -8,9 +8,11 @@ import { useCreateNebDesign } from "./agency.nisc-email-builder/_api/use-create-
 import { ProjectsSection } from "./agency.nisc-email-builder/_components/projects-section";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { RotatingText } from "@/components/rotating-text";
+import { useNiscEmailMarketingRoute } from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 export default function NiscEmailBuilderLandingPage() {
 	const navigate = useNavigate();
+	const route = useNiscEmailMarketingRoute();
 	const createMutation = useCreateNebDesign();
 	const [isCreating, setIsCreating] = useState(false);
 
@@ -19,10 +21,11 @@ export default function NiscEmailBuilderLandingPage() {
 		createMutation.mutate(
 			{
 				name: "Untitled Email",
+				...(route.isCustomer && route.teamId ? { teamId: route.teamId } : {}),
 			},
 			{
 				onSuccess: (data) => {
-					navigate(`/agency/nisc-email-builder/${data.id}`);
+					navigate(`${route.emailBuilderBasePath}/${data.id}`);
 				},
 				onError: () => {
 					setIsCreating(false);

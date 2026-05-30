@@ -9,6 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
 import { AudiencesTable } from "./agency.nisc-email-marketing/audiences/_components/audiences-table";
 import { CreateAudienceSheet } from "./agency.nisc-email-marketing/audiences/_components/create-audience-sheet";
+import {
+	niscEmTeamScopedInput,
+	useNiscEmailMarketingRoute,
+} from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 const AudiencesTableSkeleton: React.FC = () => (
 	<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -46,6 +50,7 @@ const EmptyState: React.FC<{
 );
 
 export default function AudiencesPage() {
+	const route = useNiscEmailMarketingRoute();
 	const [searchTerm, setSearchTerm] = React.useState("");
 	const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
 	const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -57,7 +62,8 @@ export default function AudiencesPage() {
 		error,
 		refetch,
 	} = trpc.niscEmailMarketing.audiences.list.useQuery(
-		{ limit: 100 },
+		niscEmTeamScopedInput(route, { limit: 100 }),
+		{ enabled: !route.isCustomer || Boolean(route.teamId) },
 	);
 
 	const audiences = data?.audiences ?? [];

@@ -9,6 +9,10 @@ import { trpc } from "@/utils/trpc";
 import { CampaignsTable } from "./agency.nisc-email-marketing/campaigns/_components/campaigns-table";
 import { CreateCampaignSheet } from "./agency.nisc-email-marketing/campaigns/_components/create-campaign-sheet";
 import { RotatingText } from "@/components/rotating-text";
+import {
+	niscEmTeamScopedInput,
+	useNiscEmailMarketingRoute,
+} from "@/components/nisc-email-marketing/nisc-email-marketing-route-context";
 
 const CampaignsTableSkeleton: React.FC = () => (
 	<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -48,6 +52,7 @@ const EmptyState: React.FC<{
 );
 
 export default function CampaignsPage() {
+	const route = useNiscEmailMarketingRoute();
 	const [searchTerm, setSearchTerm] = React.useState("");
 	const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
 	const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -59,7 +64,8 @@ export default function CampaignsPage() {
 		error,
 		refetch,
 	} = trpc.niscEmailMarketing.campaigns.list.useQuery(
-		{ limit: 100 },
+		niscEmTeamScopedInput(route, { limit: 100 }),
+		{ enabled: !route.isCustomer || Boolean(route.teamId) },
 	);
 
 	const campaigns = data?.campaigns ?? [];
