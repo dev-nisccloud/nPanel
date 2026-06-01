@@ -54,9 +54,14 @@ export function ProfileHeader() {
     <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar className="h-11 w-11 shrink-0">
-          {userInfo.image ? (
-            <AvatarImage src={userInfo.image} alt={userInfo.name} />
-          ) : null}
+          <AvatarImage
+            src={
+              userInfo.image?.trim() ||
+              `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(userInfo.name?.trim() || userInfo.email)}`
+            }
+            alt={userInfo.name}
+            referrerPolicy="no-referrer"
+          />
           <AvatarFallback className="text-sm font-medium">
             {getInitials(userInfo.name)}
           </AvatarFallback>

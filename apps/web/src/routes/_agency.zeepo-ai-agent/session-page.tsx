@@ -363,16 +363,26 @@ function formatChatBubbleTime(value: Date | string | undefined | null): string {
 
 function ChatLoadingSkeleton() {
   return (
-    <div className="flex w-full flex-col gap-8 py-4" aria-busy="true" aria-label="Loading conversation">
+    <div className="flex w-full flex-col gap-6 py-4" aria-busy="true" aria-label="Loading conversation">
       <div className="flex justify-end">
-        <Skeleton className="h-24 w-[min(70%,20rem)] rounded-2xl" />
+        <Skeleton className="h-20 w-[min(70%,20rem)] rounded-2xl rounded-tr-[0.25rem]" />
       </div>
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-5 w-24 rounded-md" />
-        <Skeleton className="h-32 w-full max-w-md rounded-md" />
+      <div className="flex items-start gap-3">
+        <Skeleton className="size-8 shrink-0 rounded-full" />
+        <div className="flex flex-1 flex-col gap-2">
+          <Skeleton className="h-3 w-12 rounded" />
+          <Skeleton className="h-28 w-full max-w-md rounded-2xl rounded-tl-[0.25rem]" />
+        </div>
       </div>
       <div className="flex justify-end">
-        <Skeleton className="h-16 w-[min(55%,16rem)] rounded-2xl" />
+        <Skeleton className="h-14 w-[min(55%,16rem)] rounded-2xl rounded-tr-[0.25rem]" />
+      </div>
+      <div className="flex items-start gap-3">
+        <Skeleton className="size-8 shrink-0 rounded-full" />
+        <div className="flex flex-1 flex-col gap-2">
+          <Skeleton className="h-3 w-12 rounded" />
+          <Skeleton className="h-20 w-full max-w-sm rounded-2xl rounded-tl-[0.25rem]" />
+        </div>
       </div>
     </div>
   );
@@ -2338,7 +2348,7 @@ export default function ZeepoAiAgentSessionPage() {
         ref={threadScrollRef}
         className="zeepo-chat-thread min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain"
       >
-        <div className="flex w-full flex-col gap-8 py-2 md:py-4">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-2 md:py-4">
           {displayMessages.length === 0 && !showAssistantThinking ? (
             <ZeepoEmptyThread
               skillTitle={selectedSkill?.title}
@@ -2400,9 +2410,16 @@ export default function ZeepoAiAgentSessionPage() {
               const domainResult = parseDomainCheckResult(m.content);
               if (domainResult) {
                 return (
-                  <div key={m.id} className="flex w-full min-w-0 flex-col gap-3">
-                    <ZeepoAgentIdentity />
-                    <ZeepoDomainPurchaseCard result={domainResult} />
+                  <div key={m.id} className="flex w-full min-w-0 items-start gap-3">
+                    <div className="shrink-0 pt-0.5">
+                      <div className="size-8 overflow-hidden rounded-full ring-1 ring-border/60 shadow-sm">
+                        <img src="/zepo.png" alt="" className="size-full object-cover" width={32} height={32} />
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <p className="text-[12px] font-semibold tracking-tight text-foreground/70 leading-none select-none">Zeepo</p>
+                      <ZeepoDomainPurchaseCard result={domainResult} />
+                    </div>
                   </div>
                 );
               }
@@ -2419,25 +2436,29 @@ export default function ZeepoAiAgentSessionPage() {
                 showIntermediate={hasIntermediateReplies}
               />
               {inlineProgressTitle ? (
+                <div className="pl-11">
+                  <ZeepoGenerationProgressCard
+                    title={inlineProgressTitle}
+                    subtitle={inlineProgressSubtitle}
+                    pending
+                    thumbnailUrl={activityThumbnail}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {!showAssistantThinking && pendingGenerations.length > 0 && inlineProgressTitle ? (
+            <div className="flex w-full min-w-0 flex-col gap-2">
+              <ZeepoStepIndicator label={inlineProgressTitle} />
+              <div className="pl-11">
                 <ZeepoGenerationProgressCard
                   title={inlineProgressTitle}
                   subtitle={inlineProgressSubtitle}
                   pending
                   thumbnailUrl={activityThumbnail}
                 />
-              ) : null}
-            </div>
-          ) : null}
-
-          {!showAssistantThinking && pendingGenerations.length > 0 && inlineProgressTitle ? (
-            <div className="flex w-full min-w-0 flex-col gap-3">
-              <ZeepoStepIndicator label={inlineProgressTitle} />
-              <ZeepoGenerationProgressCard
-                title={inlineProgressTitle}
-                subtitle={inlineProgressSubtitle}
-                pending
-                thumbnailUrl={activityThumbnail}
-              />
+              </div>
             </div>
           ) : null}
 
@@ -2453,7 +2474,7 @@ export default function ZeepoAiAgentSessionPage() {
       >
       <form
         className={cn(
-          "flex w-full flex-col gap-3 border-t border-border bg-background pt-2",
+          "flex w-full flex-col gap-3 pt-2",
           ZEEPO_CHAT_COMPOSE_COLUMN,
         )}
         onSubmit={(e) => {
