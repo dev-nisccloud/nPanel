@@ -67,17 +67,31 @@ export function ZeepoAgentIdentity({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div className="size-7 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
-        <img src="/zepo.png" alt="" className="size-7 object-cover" width={28} height={28} />
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <div className="size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-border/60 shadow-sm">
+        <img src="/zepo.png" alt="" className="size-8 object-cover" width={32} height={32} />
       </div>
-      <span className="text-sm font-semibold tracking-tight text-foreground">Zeepo</span>
+      <span className="text-[13px] font-semibold tracking-tight text-foreground/80">Zeepo</span>
       {badge ? (
-        <span className="rounded-md border border-border/80 bg-muted/50 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        <span className="rounded-md border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           {badge}
         </span>
       ) : null}
     </div>
+  );
+}
+
+function ThinkingDots() {
+  return (
+    <span className="flex items-center gap-1" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="size-1.5 rounded-full bg-muted-foreground/50"
+          style={{ animationDelay: `${i * 0.2}s`, animation: "zeepo-dot-pulse 1.2s ease-in-out infinite" }}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -94,7 +108,7 @@ export function ZeepoUserMessage({
 }) {
   return (
     <div className="flex justify-end">
-      <div className="flex max-w-[min(92%,36rem)] flex-col items-end gap-2">
+      <div className="flex max-w-[min(80%,28rem)] flex-col items-end gap-1.5">
         {attachments && attachments.length > 0 ? (
           <div className="flex flex-wrap justify-end gap-1.5">
             {attachments.map((a, i) => (
@@ -103,7 +117,7 @@ export function ZeepoUserMessage({
                 href={a.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block overflow-hidden rounded-xl border border-border shadow-sm transition-opacity hover:opacity-90"
+                className="block overflow-hidden rounded-xl shadow-md transition-opacity hover:opacity-90"
               >
                 <img
                   src={a.url}
@@ -114,20 +128,20 @@ export function ZeepoUserMessage({
             ))}
           </div>
         ) : null}
-        <div className="relative w-full rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
+        <div className="relative rounded-2xl rounded-tr-[0.25rem] bg-muted px-4 py-3">
           {skillLabel ? (
-            <div className="mb-2 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
-              <Zap className="size-3 shrink-0 opacity-60" aria-hidden />
-              <span>{skillLabel}</span>
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Zap className="size-3 shrink-0" aria-hidden />
+              <span className="font-medium">{skillLabel}</span>
             </div>
           ) : null}
           <AiMarkdownRenderer
             content={content}
-            className="text-[15px] leading-relaxed text-foreground prose-p:my-1 prose-headings:my-2"
+            className="text-[15px] leading-relaxed prose-p:my-1 prose-headings:my-2"
           />
         </div>
         {timestamp ? (
-          <time className="px-1 text-[10px] tabular-nums text-muted-foreground/80">{timestamp}</time>
+          <time className="px-1 text-[10px] tabular-nums text-muted-foreground/60">{timestamp}</time>
         ) : null}
       </div>
     </div>
@@ -142,26 +156,31 @@ export function ZeepoAssistantMessage({
   timestamp?: string | null;
 }) {
   return (
-    <div className="flex w-full min-w-0 flex-col gap-2">
-      <ZeepoAgentIdentity />
-      <div className="w-full min-w-0 pl-0.5">
+    <div className="flex w-full min-w-0 items-start gap-3">
+      <div className="shrink-0 pt-0.5">
+        <div className="size-8 overflow-hidden rounded-full ring-1 ring-border/60 shadow-sm">
+          <img src="/zepo.png" alt="" className="size-full object-cover" width={32} height={32} />
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <p className="text-[12px] font-semibold tracking-tight text-foreground/70 leading-none select-none">Zeepo</p>
         <AiMarkdownRenderer
           content={content}
-          className="text-[15px] leading-relaxed text-foreground/95 prose-p:my-1.5 prose-headings:my-2.5"
+          className="text-[15px] leading-relaxed text-foreground/90 prose-p:my-1.5 prose-headings:my-2.5"
         />
+        {timestamp ? (
+          <time className="text-[10px] tabular-nums text-muted-foreground/50">{timestamp}</time>
+        ) : null}
       </div>
-      {timestamp ? (
-        <time className="text-[10px] tabular-nums text-muted-foreground/80">{timestamp}</time>
-      ) : null}
     </div>
   );
 }
 
 export function ZeepoStepIndicator({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 pl-0.5 text-sm text-muted-foreground">
+    <div className="flex items-center gap-2 pl-11 text-[13px] text-muted-foreground/80">
       <span
-        className="size-2 shrink-0 rounded-full border-2 border-muted-foreground/40"
+        className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40"
         aria-hidden
       />
       <span>{label}</span>
@@ -221,14 +240,20 @@ export function ZeepoThinkingBlock({
   showIntermediate?: boolean;
 }) {
   return (
-    <div className="flex w-full min-w-0 flex-col gap-3">
-      <ZeepoAgentIdentity />
-      <ZeepoStepIndicator label={label} />
-      <div className="flex w-full items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
-        <Spinner variant="ellipsis" className="size-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">
-          {showIntermediate ? "Still working on your request…" : "Zeepo is thinking…"}
-        </span>
+    <div className="flex w-full min-w-0 items-start gap-3">
+      <div className="shrink-0 pt-0.5">
+        <div className="size-8 overflow-hidden rounded-full ring-1 ring-border/60 shadow-sm">
+          <img src="/zepo.png" alt="" className="size-full object-cover" width={32} height={32} />
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <p className="text-[12px] font-semibold tracking-tight text-foreground/70 leading-none select-none">Zeepo</p>
+        <div className="flex items-center gap-2.5 py-1">
+          <ThinkingDots />
+          <span className="text-sm text-muted-foreground">
+            {showIntermediate ? "Still working on your request…" : "Thinking…"}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -579,7 +604,7 @@ export function ZeepoFloatingDock({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-border bg-card shadow-md",
+        "zeepo-composer-glow overflow-hidden rounded-2xl bg-transparent",
         className,
       )}
     >

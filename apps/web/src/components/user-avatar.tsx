@@ -11,6 +11,14 @@ type UserAvatarProps = {
   fallbackClassName?: string;
 };
 
+/**
+ * Builds a DiceBear "notionists" avatar URL seeded from the user's name or email.
+ * Produces a consistent, unique illustrated avatar for every user with no real photo.
+ */
+function dicebearUrl(seed: string) {
+  return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}`;
+}
+
 /** OAuth avatars (e.g. Google) require no-referrer when loaded from external URLs. */
 export function UserAvatar({
   name,
@@ -21,13 +29,20 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const label = name?.trim() || email?.trim() || "User";
   const src = image?.trim() || undefined;
+  const generatedSrc = dicebearUrl(label);
 
   return (
     <Avatar className={className}>
-      {src ? (
-        <AvatarImage src={src} alt={label} referrerPolicy="no-referrer" />
-      ) : null}
-      <AvatarFallback className={cn(fallbackClassName)}>{getInitials(label)}</AvatarFallback>
+      {/* Real profile photo takes priority; DiceBear fills in for everyone else */}
+      <AvatarImage
+        src={src ?? generatedSrc}
+        alt={label}
+        referrerPolicy="no-referrer"
+      />
+      {/* Initials as a true last-resort if the network request fails */}
+      <AvatarFallback className={cn(fallbackClassName)}>
+        {getInitials(label)}
+      </AvatarFallback>
     </Avatar>
   );
 }
