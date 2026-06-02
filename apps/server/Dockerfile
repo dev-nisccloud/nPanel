@@ -34,13 +34,29 @@ RUN bun build \
 
 # ssh2 is externalized at bundle time. Bun installs it (and asn1, bcrypt-pbkdf, …)
 # as symlinks into .bun/ — COPY --from=base breaks those links in the runner stage.
-# Re-install ssh2 with real npm (/usr/bin/npm, not the bun symlink) so the full
-# dependency tree is materialized under /app/node_modules.
-RUN mkdir -p /runtime-externals && cd /runtime-externals && \
-    /usr/bin/npm install ssh2@1.17.0 --omit=dev --no-package-lock && \
-    rm -rf /app/node_modules/ssh2 /app/node_modules/asn1 /app/node_modules/bcrypt-pbkdf && \
-    cp -a node_modules/. /app/node_modules/ && \
-    test -f /app/node_modules/ssh2/package.json && \
+# Materialize real directories with tar -h (no npm; /usr/local/bin/npm is bun).
+RUN set -eux; \
+    find_pkg() { \
+      local hit; \
+      hit="$(find /app/node_modules /app/apps/server/node_modules \
+        -path "*/node_modules/${1}/package.json" 2>/dev/null | head -1)"; \
+      [ -n "$hit" ] && dirname "$hit"; \
+    }; \
+    materialize() { \
+      local name="$1"; \
+      local src; \
+      src="$(find_pkg "$name")"; \
+      if [ -z "$src" ] || [ ! -f "$src/package.json" ]; then \
+        echo "ERROR: package ${name} not found after bun install"; exit 1; \
+      fi; \
+      rm -rf "/app/node_modules/${name}"; \
+      mkdir -p "/app/node_modules/${name}"; \
+      tar -chf - -C "$src" . | tar -xf - -C "/app/node_modules/${name}"; \
+    }; \
+    materialize asn1; \
+    materialize bcrypt-pbkdf; \
+    materialize ssh2; \
+    test -f /app/node_modules/ssh2/package.json; \
     test -f /app/node_modules/asn1/package.json
 
 # ---------------------------------------------------------------------------
