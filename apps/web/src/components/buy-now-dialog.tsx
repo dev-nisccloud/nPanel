@@ -293,7 +293,6 @@ export function BuyNowDialog({
   );
   const showDomainPicker = Boolean(
     requireDomainStep &&
-      !!teamId &&
       !(portfolioDomainName?.trim() ?? "") &&
       !showSeoConnectStep,
   );
@@ -1735,37 +1734,41 @@ export function BuyNowDialog({
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="domain-select">Domains owned by your team</Label>
-                <Select
-                  value={selectedDomainId ?? ""}
-                  onValueChange={(v) => {
-                    setSelectedDomainId(v || null);
-                    setManualDomain("");
-                  }}
-                >
-                  <SelectTrigger id="domain-select" className="w-full">
-                    <SelectValue placeholder="Select a domain from your team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teamDomains.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.domainName}
-                      </SelectItem>
-                    ))}
-                    {teamDomains.length === 0 ? (
-                      <SelectItem value="__none__" disabled>
-                        No domains linked to this team
-                      </SelectItem>
-                    ) : null}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!!teamId && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="domain-select">Domains owned by your team</Label>
+                    <Select
+                      value={selectedDomainId ?? ""}
+                      onValueChange={(v) => {
+                        setSelectedDomainId(v || null);
+                        setManualDomain("");
+                      }}
+                    >
+                      <SelectTrigger id="domain-select" className="w-full">
+                        <SelectValue placeholder="Select a domain from your team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teamDomains.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.domainName}
+                          </SelectItem>
+                        ))}
+                        {teamDomains.length === 0 ? (
+                          <SelectItem value="__none__" disabled>
+                            No domains linked to this team
+                          </SelectItem>
+                        ) : null}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="relative flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="shrink-0">or</span>
-                <span className="h-px flex-1 bg-border" />
-              </div>
+                  <div className="relative flex items-center gap-2 text-sm text-muted-foreground">
+                    <span className="shrink-0">or</span>
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="manual-domain">Enter domain manually</Label>
@@ -2742,7 +2745,7 @@ export function BuyNowDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "!grid h-[90vh] max-h-[90vh] !flex !flex-col overflow-hidden w-full p-0 gap-0",
+          "!grid max-h-[90vh] !flex !flex-col overflow-hidden w-full p-0 gap-0",
           currentStep === "team_billing" ? "sm:max-w-2xl" : "sm:max-w-[600px]",
         )}
       >

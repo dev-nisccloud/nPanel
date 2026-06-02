@@ -217,6 +217,8 @@ interface PricingTableWrapperProps {
   currency?: string
   locale?: string
   onBuyNow?: (plan: HostingPlan) => void
+  /** Pass true to strip the full-page padding (py-12/px-4) and max-w-6xl container. Use inside dialogs or chat cards. */
+  embedded?: boolean
 }
 
 export function PricingTableWrapper({
@@ -227,6 +229,7 @@ export function PricingTableWrapper({
   currency = "KES",
   locale = "en-KE",
   onBuyNow,
+  embedded = false,
 }: PricingTableWrapperProps) {
   if (isLoading) {
     return (
@@ -273,6 +276,7 @@ export function PricingTableWrapper({
       defaultInterval="monthly"
       currency={currency}
       locale={locale}
+      embedded={embedded}
     />
   )
 }

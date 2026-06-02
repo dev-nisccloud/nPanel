@@ -38,12 +38,16 @@ import {
 	createImagePresentationArgsSchema,
 	createPresentationArgsSchema,
 	getSessionInfoArgsSchema,
+	getWebHostingPlansArgsSchema,
+	getEmailHostingPlansArgsSchema,
 	listModelsArgsSchema,
 	runMediaGenerationArgsSchema,
 	webSearchArgsSchema,
 } from "./agent-tools";
 import {
 	agentCheckDomainAvailability,
+	agentGetWebHostingPlans,
+	agentGetEmailHostingPlans,
 	DEFAULT_DOMAIN_EXTENSIONS,
 	DEFAULT_DISPLAY_CURRENCY,
 } from "../../lib/agent-internal-tools";
@@ -671,6 +675,36 @@ export const zeepoAgentChatRouter = router({
 							} catch (e: unknown) {
 								resultPayload = {
 									error: formatZeepoAgentToolError("Domain check failed", e),
+								};
+							}
+						}
+					} else if (tc.name === "get_web_hosting_plans") {
+						const parsedArgs = getWebHostingPlansArgsSchema.safeParse(rawArgs);
+						if (!parsedArgs.success) {
+							resultPayload = {
+								error: `get_web_hosting_plans received invalid arguments: ${parsedArgs.error.message}`,
+							};
+						} else {
+							try {
+								resultPayload = await agentGetWebHostingPlans();
+							} catch (e: unknown) {
+								resultPayload = {
+									error: formatZeepoAgentToolError("Web hosting plans fetch failed", e),
+								};
+							}
+						}
+					} else if (tc.name === "get_email_hosting_plans") {
+						const parsedArgs = getEmailHostingPlansArgsSchema.safeParse(rawArgs);
+						if (!parsedArgs.success) {
+							resultPayload = {
+								error: `get_email_hosting_plans received invalid arguments: ${parsedArgs.error.message}`,
+							};
+						} else {
+							try {
+								resultPayload = await agentGetEmailHostingPlans();
+							} catch (e: unknown) {
+								resultPayload = {
+									error: formatZeepoAgentToolError("Email hosting plans fetch failed", e),
 								};
 							}
 						}

@@ -66,7 +66,8 @@ import { generatePresentationPdfBlob } from "@/components/zeepo/presentation-pdf
 import type { PresentationData } from "@/components/zeepo/presentation-pdf";
 import { generatePresentationPptx } from "@/lib/generate-presentation-pptx";
 import { ZeepoDomainPurchaseCard } from "@/components/zeepo/domain-purchase-card";
-import type { AgentDomainCheckResult } from "@/stores/zeepo-payment-store";
+import { ZeepoHostingPlansCard } from "@/components/zeepo/hosting-plans-card";
+import type { AgentDomainCheckResult, AgentHostingPlansResult } from "@/stores/zeepo-payment-store";
 import { RotatingText } from "@/components/rotating-text";
 import { BarChart, Bar, XAxis, Cell, ResponsiveContainer, PieChart, Pie } from "recharts";
 import {
@@ -339,6 +340,27 @@ function parseDomainCheckResult(
       (o as { _tool?: unknown })._tool === "check_domain_availability"
     ) {
       return o as unknown as AgentDomainCheckResult;
+    }
+  } catch {
+    // Not JSON or not the right shape.
+  }
+  return null;
+}
+
+function parseHostingPlansResult(
+  content: string | null | undefined,
+): AgentHostingPlansResult | null {
+  if (!content) return null;
+  try {
+    const o = JSON.parse(content) as Record<string, unknown>;
+    if (
+      o &&
+      typeof o === "object" &&
+      !Array.isArray(o) &&
+      ((o as { _tool?: unknown })._tool === "get_web_hosting_plans" ||
+        (o as { _tool?: unknown })._tool === "get_email_hosting_plans")
+    ) {
+      return o as unknown as AgentHostingPlansResult;
     }
   } catch {
     // Not JSON or not the right shape.
@@ -2423,6 +2445,24 @@ export default function ZeepoAiAgentSessionPage() {
                   </div>
                 );
               }
+
+              const hostingResult = parseHostingPlansResult(m.content);
+              if (hostingResult) {
+                return (
+                  <div key={m.id} className="flex w-full min-w-0 items-start gap-3">
+                    <div className="shrink-0 pt-0.5">
+                      <div className="size-8 overflow-hidden rounded-full ring-1 ring-border/60 shadow-sm">
+                        <img src="/zepo.png" alt="" className="size-full object-cover" width={32} height={32} />
+                      </div>
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <p className="text-[12px] font-semibold tracking-tight text-foreground/70 leading-none select-none">Zeepo</p>
+                      <ZeepoHostingPlansCard result={hostingResult} />
+                    </div>
+                  </div>
+                );
+              }
+
               return null;
             }
 
