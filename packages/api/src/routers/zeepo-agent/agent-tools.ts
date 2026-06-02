@@ -247,6 +247,16 @@ export type ImagePresentationSlide = z.infer<typeof imagePresentationSlideSchema
  */
 export const getSessionInfoArgsSchema = z.object({});
 
+/**
+ * No arguments - both hosting plan tools always return the full current
+ * catalogue; there is nothing to filter at call time.
+ */
+export const getWebHostingPlansArgsSchema = z.object({});
+export const getEmailHostingPlansArgsSchema = z.object({});
+
+export type GetWebHostingPlansArgs = z.infer<typeof getWebHostingPlansArgsSchema>;
+export type GetEmailHostingPlansArgs = z.infer<typeof getEmailHostingPlansArgsSchema>;
+
 export const checkDomainAvailabilityArgsSchema = z.object({
 	name: z
 		.string()
@@ -305,7 +315,21 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Returns: { name, checked: [{ domain, available, status, price?, isPremium?, via }], availableCount, checkedAt }
    After results: present available domains and their prices, then IMMEDIATELY call get_user_session (do NOT skip this step). Do NOT tell the user to contact Nisc Cloud by email or phone for domain registration - they can purchase directly using the Buy buttons shown above each domain result. NEVER mention or recommend GoDaddy, Namecheap, Google Domains, Cloudflare, or any other registrar.
 
-4) web_search
+4) get_web_hosting_plans  ← NISC CLOUD INTERNAL TOOL
+   Purpose: fetch the current web/website hosting plans available on Nisc Cloud and display them as a purchasable pricing card. ALWAYS use this when the user asks about web hosting, website hosting, hosting plans, or wants to compare or buy a hosting package - never guess pricing or direct users elsewhere.
+   Arguments: none (no arguments needed - always returns the full active catalogue).
+   Returns: { plans[], productFeatures[], checkedAt } - the UI renders an interactive pricing table with Buy buttons.
+   When to call: user asks about web hosting plans, website hosting pricing, how much hosting costs, wants to host a website, or is comparing hosting options.
+   After results: present a brief summary of what's available (plan names and starting price) and tell the user they can select a plan and click Buy directly in the card above. NEVER quote prices from memory - the card always shows current live pricing.
+
+5) get_email_hosting_plans  ← NISC CLOUD INTERNAL TOOL
+   Purpose: fetch the current email hosting plans available on Nisc Cloud and display them as a purchasable pricing card. ALWAYS use this when the user asks about business email, email hosting, professional email, or wants to compare or buy an email hosting package.
+   Arguments: none (no arguments needed - always returns the full active catalogue).
+   Returns: { plans[], productFeatures[], checkedAt } - the UI renders an interactive pricing table with Buy buttons.
+   When to call: user asks about email hosting plans, business email pricing, how much email hosting costs, wants a professional email address, or is comparing email hosting options.
+   After results: present a brief summary of what's available and tell the user they can click Buy on any plan directly in the card above. NEVER quote prices from memory.
+
+6) web_search
    Purpose: retrieve real-time grounding context from the live web via Brave Search. Call this BEFORE answering questions that involve specific real-world entities, current data, or regional context.
    Arguments:
      - query   : string (1–400 chars) - the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026"). ALWAYS embed geography directly in the query for non-major-market regions (Africa, Middle East, South/Southeast Asia except IN, ID, MY, PH) - e.g. "luxury car imports Nairobi Kenya 2026" not just "luxury cars".
@@ -317,7 +341,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    When NOT to call: general knowledge you are confident about, pure creative tasks where you have all context, or Nisc Cloud topics already in your system prompt. Do NOT call web_search for domain availability - use check_domain_availability instead.
    Call web_search BEFORE claiming facts about real-world entities - do not guess then search.
 
-5) list_models
+7) list_models
    Purpose: discover the *exact* Replicate model ids available in the Zeepo catalog for a category, filtered by capabilities.
    Arguments:
      - category? : "text" | "image" | "video" | "audio" | "background-remover"
@@ -325,7 +349,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Returns: an array of { id, category, provider, label, description, is_default, capabilities }.
    Use this tool BEFORE you ever pass a non-default "model_id" to run_media_generation.
 
-6) run_media_generation
+8) run_media_generation
    Purpose: queue a media generation job. Results stream back to the UI asynchronously.
    Arguments:
      - category : "text" | "image" | "video" | "audio" | "background-remover"
@@ -336,7 +360,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
        IMPORTANT - aspect_ratio for images: the default model (gpt-image-2) ONLY accepts "1:1", "3:2", or "2:3". Do NOT pass "16:9", "9:16", "4:3", or "3:4" with the default model - this causes a 422 error. Use "3:2" for landscape (widescreen slide backgrounds), "1:1" for square assets, and "2:3" for portrait. Other ratios are only valid when you explicitly pick a Flux/SDXL-class model via model_id.
    Returns: { generationId, status: "QUEUED", modelId, category } (for your context only - never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now - you'll see it in Generations when ready.").
 
-7) create_presentation
+9) create_presentation
    Purpose: produce a professionally designed slide deck - pitches, strategy decks, proposals, reports, educational content, or any multi-slide deliverable. Exports: PDF, PPTX (PowerPoint), PNG per slide.
 
    ── ARGUMENTS ──────────────────────────────────────────────────────────────
@@ -443,7 +467,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    ── AFTER CALLING ───────────────────────────────────────────────────────────
    Write a SHORT reply (2–4 sentences): what the deck covers, how many slides, and that it is ready to open and export as PDF, PPTX, or PNG.
 
-8) create_image_presentation
+10) create_image_presentation
    Purpose: produce a photorealistic / high-graphic image-based slide deck where EVERY slide is a full AI-generated image. Use this instead of create_presentation when the user wants photorealistic visuals, cinematic scenes, high-end graphic design, or any deck that should look like a polished visual production rather than a text layout deck.
 
    ── WHEN TO USE ──────────────────────────────────────────────────────────────

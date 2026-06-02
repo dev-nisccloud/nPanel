@@ -18,3 +18,11 @@ export {
 } from "./domains";
 
 export { DEFAULT_DISPLAY_CURRENCY } from "./pricing";
+
+export {
+	agentGetWebHostingPlans,
+	agentGetEmailHostingPlans,
+	type HostingPlansResult,
+	type HostingPlanEntry,
+	type HostingPlanFeatureRow,
+} from "./hosting-plans";

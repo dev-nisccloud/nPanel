@@ -231,7 +231,7 @@ export function PricingTable({
         <div
           className={cn(
             "flex flex-col sm:flex-row items-center gap-4",
-            embedded ? "mb-4 justify-end" : "mb-8 sm:mb-10 justify-between",
+            embedded ? "mb-4 justify-between" : "mb-8 sm:mb-10 justify-between",
             hideActionButton && "sm:justify-end",
           )}
         >
@@ -369,14 +369,14 @@ export function PricingTable({
                     {plan.name}
                   </span>
                   {!hideBadges && (plan.popular || plan.recommended) && !isSelected && (
-                    <span className="flex flex-wrap gap-1 justify-end shrink-0">
+                    <span className="flex flex-col gap-1 items-end shrink-0">
                       {plan.popular && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full whitespace-nowrap">
                           Popular
                         </span>
                       )}
                       {plan.recommended && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1 rounded-full border border-emerald-500/20">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1 rounded-full border border-emerald-500/20 whitespace-nowrap">
                           Recommended
                         </span>
                       )}

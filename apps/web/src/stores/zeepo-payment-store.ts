@@ -26,6 +26,33 @@ export interface AgentDomainCheckResult {
   checkedAt: string;
 }
 
+/** Shape of a single plan returned by get_web_hosting_plans / get_email_hosting_plans. */
+export interface AgentHostingPlanEntry {
+  id: string;
+  name: string;
+  niscPrice: string | null;
+  niscCurrency: string;
+  billingCycle: string;
+  isPopular: boolean;
+  isRecommended: boolean;
+  productId: string;
+  productName: string;
+  featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+}
+
+export interface AgentHostingPlanFeatureRow {
+  key: string;
+  label: string;
+}
+
+/** Result returned by the get_web_hosting_plans / get_email_hosting_plans agent tools. */
+export interface AgentHostingPlansResult {
+  _tool: "get_web_hosting_plans" | "get_email_hosting_plans";
+  productFeatures: AgentHostingPlanFeatureRow[];
+  plans: AgentHostingPlanEntry[];
+  checkedAt: string;
+}
+
 /** Maps an agent DomainCheckEntry price to the shape GlobalBuyNowDialog expects. */
 function domainCheckEntryToSearchResult(entry: AgentDomainCheckEntry): DomainSearchResult {
   const retailAmount = entry.price
