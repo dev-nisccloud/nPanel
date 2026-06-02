@@ -37,6 +37,8 @@ import {
 	createDocumentArgsSchema,
 	createImagePresentationArgsSchema,
 	createPresentationArgsSchema,
+	getDomainsPortfolioArgsSchema,
+	getDomainDetailArgsSchema,
 	getSessionInfoArgsSchema,
 	getWebHostingPlansArgsSchema,
 	getEmailHostingPlansArgsSchema,
@@ -46,6 +48,8 @@ import {
 } from "./agent-tools";
 import {
 	agentCheckDomainAvailability,
+	agentGetDomainsPortfolio,
+	agentGetDomainDetail,
 	agentGetWebHostingPlans,
 	agentGetEmailHostingPlans,
 	DEFAULT_DOMAIN_EXTENSIONS,
@@ -875,9 +879,61 @@ export const zeepoAgentChatRouter = router({
 								error: formatZeepoAgentToolError("get_user_session failed", e),
 							};
 						}
+					} else if (tc.name === "get_domains_portfolio") {
+						getDomainsPortfolioArgsSchema.safeParse(rawArgs);
+						try {
+							const dbUser = await db.query.user.findFirst({
+								where: eq(userTable.id, userId),
+								columns: { role: true },
+							});
+							const role = (dbUser?.role ?? "CUSTOMER") as string;
+							const isAgency =
+								role === "AGENCY_USER" ||
+								role === "AGENCY_ADMIN" ||
+								role === "AGENCY_SUPER_ADMIN";
+							resultPayload = await agentGetDomainsPortfolio({
+								isAgency,
+								teamId: sessionCtx.team.id ?? null,
+								teamName: sessionCtx.team.name ?? null,
+							});
+						} catch (e: unknown) {
+							resultPayload = {
+								error: formatZeepoAgentToolError("Domains portfolio fetch failed", e),
+							};
+						}
+					} else if (tc.name === "get_domain_detail") {
+						const parsed = getDomainDetailArgsSchema.safeParse(rawArgs);
+						if (!parsed.success) {
+							resultPayload = {
+								error: `Invalid arguments for get_domain_detail: ${parsed.error.message}`,
+							};
+						} else {
+							try {
+								const dbUser = await db.query.user.findFirst({
+									where: eq(userTable.id, userId),
+									columns: { role: true },
+								});
+								const role = (dbUser?.role ?? "CUSTOMER") as string;
+								const isAgency =
+									role === "AGENCY_USER" ||
+									role === "AGENCY_ADMIN" ||
+									role === "AGENCY_SUPER_ADMIN";
+								resultPayload = await agentGetDomainDetail({
+									domain: parsed.data.domain,
+									isAgency,
+									teamId: sessionCtx.team.id ?? null,
+									includeNameservers: parsed.data.include_nameservers ?? false,
+									includeDns: parsed.data.include_dns ?? false,
+								});
+							} catch (e: unknown) {
+								resultPayload = {
+									error: formatZeepoAgentToolError("Domain detail fetch failed", e),
+								};
+							}
+						}
 					} else {
 						resultPayload = {
-							error: `Unknown tool "${tc.name}". Available: get_user_session, create_document, create_presentation, create_image_presentation, check_domain_availability, web_search, list_models, run_media_generation.`,
+							error: `Unknown tool "${tc.name}". Available: get_user_session, get_domains_portfolio, get_domain_detail, create_document, create_presentation, create_image_presentation, check_domain_availability, get_web_hosting_plans, get_email_hosting_plans, web_search, list_models, run_media_generation.`,
 						};
 					}
 

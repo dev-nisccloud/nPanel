@@ -53,6 +53,82 @@ export interface AgentHostingPlansResult {
   checkedAt: string;
 }
 
+// ── Domains portfolio ───────────────────────────────────────────────────────
+
+export type AgentPortfolioDomainStatus =
+  | "ACTIVE"
+  | "EXPIRED"
+  | "PENDING"
+  | "SUSPENDED"
+  | "UNKNOWN";
+
+export interface AgentPortfolioDomainEntry {
+  domain: string;
+  status: AgentPortfolioDomainStatus;
+  expiryDate: string | null;
+  registrationDate: string | null;
+  autoRenewal: boolean;
+  source: "openprovider" | "kenic" | "subscription";
+  clientName?: string;
+}
+
+/** Result returned by the get_domains_portfolio agent tool. */
+export interface AgentDomainsPortfolioResult {
+  _tool: "get_domains_portfolio";
+  isAgency: boolean;
+  teamName: string | null;
+  domains: AgentPortfolioDomainEntry[];
+  totalCount: number;
+  activeCount: number;
+  expiredCount: number;
+  hasMore: boolean;
+  checkedAt: string;
+}
+
+// ── Domain detail ────────────────────────────────────────────────────────────
+
+export interface AgentDomainDetailDnsRecord {
+  type: string;
+  host: string;
+  value: string;
+  ttl?: number;
+}
+
+/** Result returned by the get_domain_detail agent tool. */
+export interface AgentDomainDetailResult {
+  _tool: "get_domain_detail";
+  domain: string;
+  found: boolean;
+  source?: "openprovider" | "kenic" | "subscription";
+
+  // Overview
+  status?: string;
+  expiryDate?: string | null;
+  registrationDate?: string | null;
+  renewalDate?: string | null;
+  autoRenewal?: boolean;
+  registrantHandle?: string;
+  registrantName?: string;
+  registrantEmail?: string;
+  adminHandle?: string;
+  techHandle?: string;
+  isLocked?: boolean;
+  isDnssecEnabled?: boolean;
+
+  // Hosting
+  hasHosting: boolean;
+  hostingPlanName?: string | null;
+
+  // Optional sections
+  nameservers?: string[];
+  dnsRecords?: AgentDomainDetailDnsRecord[];
+  dnsNote?: string;
+
+  accessDenied?: boolean;
+  error?: string;
+  checkedAt: string;
+}
+
 /** Maps an agent DomainCheckEntry price to the shape GlobalBuyNowDialog expects. */
 function domainCheckEntryToSearchResult(entry: AgentDomainCheckEntry): DomainSearchResult {
   const retailAmount = entry.price

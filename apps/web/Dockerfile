@@ -43,13 +43,26 @@ RUN if [ -z "$VITE_SERVER_URL" ]; then \
 ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN bun run turbo build --filter=web...
 
-# Run stage
+# Run stage — only copy what the production web server actually needs.
+# apps/web/server.ts   → the Bun HTTP server
+# apps/web/build/      → static assets produced by react-router build
+# node_modules         → runtime deps (bun itself + any CJS polyfills imported by server.ts)
 FROM oven/bun:1 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 
-COPY --from=base /app /app
+# Top-level workspace manifests so Bun can resolve workspace packages at runtime
+COPY --from=base /app/package.json /app/bun.lock* ./
+COPY --from=base /app/node_modules ./node_modules
+
+# Web app source files needed at runtime
+COPY --from=base /app/apps/web/package.json ./apps/web/package.json
+COPY --from=base /app/apps/web/server.ts ./apps/web/server.ts
+COPY --from=base /app/apps/web/build ./apps/web/build
+
+# Workspace packages imported by server.ts (e.g. @npanel/env)
+COPY --from=base /app/packages ./packages
 
 CMD ["bun", "run", "--cwd", "apps/web", "start"]

@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Previous codebase (large directory, not needed in any build)
+previous_codebase/
+
+# Dev / editor artifacts
+.cursor/
+.vscode/
+.idea/
+*.local
+
+# Node / Bun - will be installed fresh inside Docker
+node_modules/
+**/node_modules/
+
+# Turbo cache
+.turbo/
+**/.turbo/
+
+# Next.js dev cache (fumadocs)
+apps/fumadocs/.next/
+apps/fumadocs/.source/
+
+# React Router generated types
+apps/web/.react-router/
+
+# Build outputs (rebuilt inside Docker)
+apps/*/dist/
+apps/*/build/
+packages/*/dist/
+
+# Env files (secrets are injected at runtime)
+.env
+.env.*
+apps/**/.env
+apps/**/.env.*
+packages/**/.env
+packages/**/.env.*
+
+# Docs / readme
+*.md
+LICENSE
+
+# Test artifacts
+coverage/
+**/__tests__/
+**/*.test.ts
+**/*.spec.ts
+
+# CI
+.github/

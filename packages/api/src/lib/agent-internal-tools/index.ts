@@ -26,3 +26,16 @@ export {
 	type HostingPlanEntry,
 	type HostingPlanFeatureRow,
 } from "./hosting-plans";
+
+export {
+	agentGetDomainsPortfolio,
+	type DomainsPortfolioResult,
+	type PortfolioDomainEntry,
+	type PortfolioDomainStatus,
+} from "./domains-portfolio";
+
+export {
+	agentGetDomainDetail,
+	type DomainDetailResult,
+	type DomainDetailDnsRecord,
+} from "./domain-detail";
