@@ -1,10 +1,10 @@
-FROM oven/bun:1 AS base
+FROM oven/bun:1.3.4 AS base
 
 # Install necessary tools for node-gyp and nodejs
 # Configure apt retries to handle transient mirror sync issues
 RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries && \
     apt-get update -qq && \
-    apt-get install -y --no-install-recommends python-is-python3 build-essential curl && \
+    apt-get install -y --no-install-recommends python-is-python3 build-essential libssl-dev pkg-config curl && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
@@ -47,7 +47,7 @@ RUN bun run turbo build --filter=web...
 # apps/web/server.ts   → the Bun HTTP server
 # apps/web/build/      → static assets produced by react-router build
 # node_modules         → runtime deps (bun itself + any CJS polyfills imported by server.ts)
-FROM oven/bun:1 AS runner
+FROM oven/bun:1.3.4 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
