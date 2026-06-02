@@ -110,6 +110,7 @@ const ticketMessageSchema = z.object({
   updatedAt: z.date(),
   editedAt: z.date().nullable(),
   deletedAt: z.date().nullable(),
+  senderIsAgency: z.boolean().optional(),
   sender: userSchema.optional(),
   attachments: z.array(z.object({
     id: z.string(),
@@ -285,6 +286,7 @@ function transformTicket(ticket: any) {
 }
 
 function transformTicketMessage(message: any) {
+  const senderRole = message.sender?.role as string | null | undefined;
   return {
     id: message.id,
     ticketId: message.ticketId,
@@ -299,6 +301,7 @@ function transformTicketMessage(message: any) {
     updatedAt: message.updatedAt,
     editedAt: message.editedAt,
     deletedAt: message.deletedAt,
+    senderIsAgency: roleIsAgency(senderRole),
     sender: message.sender ? {
       id: message.sender.id,
       name: message.sender.name,
@@ -423,7 +426,7 @@ const ticketWithRelations = {
 } as const;
 
 const messageWithRelations = {
-  sender: { columns: { id: true, name: true, email: true } as const },
+  sender: { columns: { id: true, name: true, email: true, role: true } as const },
   attachments: {
     columns: {
       id: true,

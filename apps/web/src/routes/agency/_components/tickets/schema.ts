@@ -74,6 +74,7 @@ export const ticketMessageSchema = z.object({
   updatedAt: z.coerce.date(),
   editedAt: z.coerce.date().nullable(),
   deletedAt: z.coerce.date().nullable(),
+  senderIsAgency: z.boolean().optional(),
   sender: z.object({
     id: z.string(),
     name: z.string().nullable(),
