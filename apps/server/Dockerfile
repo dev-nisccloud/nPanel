@@ -19,14 +19,23 @@ COPY . .
 
 # Install dependencies using bun
 RUN bun install --frozen-lockfile
-# Run stage
+
+# Run stage — only ship files needed to run the Hono/Bun server.
 FROM oven/bun:1 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 
-# Copy built monorepo
-COPY --from=base /app /app
+# Top-level workspace manifests & node_modules
+COPY --from=base /app/package.json /app/bun.lock* ./
+COPY --from=base /app/node_modules ./node_modules
+
+# Server app source
+COPY --from=base /app/apps/server/package.json ./apps/server/package.json
+COPY --from=base /app/apps/server/src ./apps/server/src
+
+# Workspace packages the server imports at runtime
+COPY --from=base /app/packages ./packages
 
 CMD ["bun", "run", "--cwd", "apps/server", "start"]
