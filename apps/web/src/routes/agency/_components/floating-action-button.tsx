@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useNavigate, useParams } from "react-router";
-import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, MoreVertical, CheckCircle, Circle, UserPlus, Archive, Sparkles, Trash2 } from "lucide-react";
+import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, MoreVertical, CheckCircle, Circle, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -19,7 +19,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -28,7 +27,7 @@ import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTicketsList, useTicketMessages } from "./tickets/use-tickets";
 import { useTicketMutations } from "./tickets/use-ticket-mutations";
-import type { TicketMessage } from "./tickets/schema";
+import type { TicketMessage, TicketStatus } from "./tickets/schema";
 import { authClient } from "@/lib/auth-client";
 import { MessageAttachment } from "@/components/tickets/message-attachment";
 import { uploadFiles } from "@/hooks/use-uploadthing";
@@ -42,6 +41,71 @@ import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 
 interface FloatingActionButtonProps {
   className?: string;
+}
+
+function isTicketOpenStatus(status: TicketStatus): boolean {
+  return status === "OPEN" || status === "IN_PROGRESS" || status === "WAITING";
+}
+
+function isTicketClosedStatus(status: TicketStatus): boolean {
+  return status === "CLOSED" || status === "RESOLVED" || status === "CANCELLED";
+}
+
+function getTicketStatusBadgeClass(status: TicketStatus): string {
+  if (isTicketClosedStatus(status)) {
+    return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+  }
+  return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
+}
+
+function getTicketStatusLabel(status: TicketStatus): string {
+  if (isTicketClosedStatus(status)) return "Closed";
+  if (status === "OPEN") return "Open";
+  return status.replace("_", " ").toLowerCase();
+}
+
+function TicketStatusActionsMenu({
+  ticketId,
+  status,
+  onMarkOpen,
+  onMarkClosed,
+  stopPropagation = false,
+}: {
+  ticketId: string;
+  status: TicketStatus | undefined;
+  onMarkOpen: (id: string) => void;
+  onMarkClosed: (id: string) => void;
+  stopPropagation?: boolean;
+}) {
+  const openDisabled = status ? isTicketOpenStatus(status) : false;
+  const closedDisabled = status ? isTicketClosedStatus(status) : false;
+
+  return (
+    <>
+      <DropdownMenuItem
+        disabled={openDisabled}
+        onClick={(e) => {
+          if (stopPropagation) e.stopPropagation();
+          onMarkOpen(ticketId);
+        }}
+        className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 data-[disabled]:opacity-50"
+      >
+        <Circle className="mr-2 h-4 w-4 text-emerald-600" />
+        Mark as Open
+      </DropdownMenuItem>
+      <DropdownMenuItem
+        disabled={closedDisabled}
+        onClick={(e) => {
+          if (stopPropagation) e.stopPropagation();
+          onMarkClosed(ticketId);
+        }}
+        className="text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-950/30 data-[disabled]:opacity-50"
+      >
+        <CheckCircle className="mr-2 h-4 w-4 text-red-600" />
+        Mark as Closed
+      </DropdownMenuItem>
+    </>
+  );
 }
 
 type ChatMessageAttachment = {
@@ -59,6 +123,8 @@ type ChatMessage =
     message: string;
     timestamp: Date;
     attachments?: ChatMessageAttachment[];
+    /** Agency agent display name — shown above bubble on agency view only */
+    senderLabel?: string;
   }
   | {
     id: string;
@@ -66,7 +132,80 @@ type ChatMessage =
     message: string;
     timestamp: Date;
     attachments?: ChatMessageAttachment[];
+    /** Agency agent display name — shown above bubble on agency view only */
+    senderLabel?: string;
   };
+
+function resolveTicketSenderLabel(
+  msg: TicketMessage,
+  opts: {
+    isAgency: boolean;
+    isFromCurrentUser: boolean;
+    currentUserName?: string | null;
+    currentUserEmail?: string | null;
+  },
+): string | undefined {
+  if (!opts.isAgency) return undefined;
+
+  const isAgencyMessage =
+    msg.senderIsAgency === true ||
+    (msg.senderIsAgency === undefined && opts.isFromCurrentUser);
+
+  if (!isAgencyMessage) return undefined;
+
+  const fromSender = msg.sender?.name?.trim() || msg.sender?.email;
+  if (fromSender) return fromSender;
+
+  if (opts.isFromCurrentUser) {
+    return opts.currentUserName?.trim() || opts.currentUserEmail || "You";
+  }
+
+  return "Support agent";
+}
+
+function TicketChatBubbleBody({
+  msg,
+}: {
+  msg: ChatMessage;
+}) {
+  return (
+    <div
+      className={cn(
+        "max-w-[80%] rounded-2xl px-4 py-2.5 space-y-2",
+        msg.type === "user"
+          ? "bg-primary text-primary-foreground"
+          : "bg-primary/10 text-foreground",
+      )}
+    >
+      {msg.senderLabel && (
+        <p
+          className={cn(
+            "text-xs font-semibold leading-tight",
+            msg.type === "user" ? "text-primary-foreground/85" : "text-foreground/70",
+          )}
+        >
+          {msg.senderLabel}
+        </p>
+      )}
+
+      {msg.attachments && msg.attachments.length > 0 && (
+        <div className="space-y-2">
+          {msg.attachments.map((attachment) => (
+            <MessageAttachment
+              key={attachment.id}
+              attachment={attachment}
+              isUserMessage={msg.type === "user"}
+            />
+          ))}
+        </div>
+      )}
+
+      {msg.message && (
+        <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
+      )}
+    </div>
+  );
+}
 
 
 
@@ -146,6 +285,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   // Get current user + role
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
+  const currentUserName = session?.user?.name;
+  const currentUserEmail = session?.user?.email;
   const userRole = (session?.user as { role?: string } | undefined)?.role;
   const isAgency =
     userRole === "AGENCY_USER" ||
@@ -162,7 +303,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const { messages, isLoading: isLoadingMessages, isError: isErrorMessages, error: messagesError, refetch: refetchMessages } = useTicketMessages(
     shouldFetchMessages ? selectedChatId : null
   );
-  const { createTicket, createMessage, updateStatus, assignTicket, archiveTicket, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations({ currentUserId });
+  const { createTicket, createMessage, updateStatus, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations({ currentUserId });
 
   // AI Data fetching hooks
   const { history: aiHistory, isLoading: isLoadingAiHistory, isRefetching: isRefetchingAiHistory, refetch: refetchAiHistory } = useAiHistory();
@@ -201,6 +342,12 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
           type: isFromCurrentUser ? "user" : "assistant",
           message: msg.content,
           timestamp: msg.createdAt,
+          senderLabel: resolveTicketSenderLabel(msg, {
+            isAgency,
+            isFromCurrentUser,
+            currentUserName,
+            currentUserEmail,
+          }),
           attachments: msg.attachments?.map(att => ({
             id: att.id,
             fileName: att.fileName,
@@ -214,7 +361,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
     // If no messages but ticket exists, show greeting
     return [initialGreetingMessage];
-  }, [messages, isNewTicket, currentUserId]);
+  }, [messages, isNewTicket, currentUserId, isAgency, currentUserName, currentUserEmail]);
 
   // Transform AI messages
   const transformedAiMessages: ChatMessage[] = React.useMemo(() => {
@@ -424,21 +571,22 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     }
   };
 
-  const handleAssignToUser = async (chatId: string) => {
-    // TODO: Open dialog/modal to select user
-    console.log("Assign to user:", chatId);
-    // For now, just log - will implement user selection dialog later
-  };
+  // const handleAssignToUser = async (chatId: string) => {
+  //   // TODO: Open dialog/modal to select user
+  //   console.log("Assign to user:", chatId);
+  // };
 
-  const handleArchive = async (chatId: string) => {
-    try {
-      await archiveTicket.mutateAsync({
-        ticketId: chatId,
-      });
-    } catch (error) {
-      console.error("Failed to archive ticket:", error);
-    }
-  };
+  // const handleArchive = async (chatId: string) => {
+  //   try {
+  //     await archiveTicket.mutateAsync({ ticketId: chatId });
+  //   } catch (error) {
+  //     console.error("Failed to archive ticket:", error);
+  //   }
+  // };
+
+  const selectedTicket = selectedChatId
+    ? tickets.find((t) => t.id === selectedChatId)
+    : undefined;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -840,13 +988,6 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       const ticketTitle = isAgency
                         ? (ticket.customerName || `Ticket #${ticket.ticketNumber}`)
                         : (ticket.subject || ticket.lastMessage?.slice(0, 50) || `Ticket #${ticket.ticketNumber}`);
-                      // Status badge colour
-                      const statusColour =
-                        ticket.status === "OPEN" || ticket.status === "IN_PROGRESS"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                          : ticket.status === "CLOSED" || ticket.status === "RESOLVED" || ticket.status === "CANCELLED"
-                            ? "bg-muted text-muted-foreground"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
 
                       return (
                         <div
@@ -886,8 +1027,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                               )}
                             </div>
                             {/* Row 3: status badge */}
-                            <span className={cn("self-start text-[10px] font-medium px-1.5 py-0.5 rounded capitalize", statusColour)}>
-                              {ticket.status.replace("_", " ").toLowerCase()}
+                            <span className={cn("self-start text-[10px] font-medium px-1.5 py-0.5 rounded capitalize", getTicketStatusBadgeClass(ticket.status))}>
+                              {getTicketStatusLabel(ticket.status)}
                             </span>
                           </button>
 
@@ -905,23 +1046,13 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsOpen(ticket.id); }}>
-                                  <Circle className="mr-2 h-4 w-4" />
-                                  Mark as Open
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsClosed(ticket.id); }}>
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                  Mark as Closed
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignToUser(ticket.id); }}>
-                                  <UserPlus className="mr-2 h-4 w-4" />
-                                  Assign to User
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchive(ticket.id); }}>
-                                  <Archive className="mr-2 h-4 w-4" />
-                                  Archive
-                                </DropdownMenuItem>
+                                <TicketStatusActionsMenu
+                                  ticketId={ticket.id}
+                                  status={ticket.status}
+                                  onMarkOpen={handleMarkAsOpen}
+                                  onMarkClosed={handleMarkAsClosed}
+                                  stopPropagation
+                                />
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}
@@ -1082,36 +1213,27 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full hover:bg-accent"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleMarkAsOpen(selectedChatId || "")}>
-                        <Circle className="mr-2 h-4 w-4" />
-                        Mark as Open
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleMarkAsClosed(selectedChatId || "")}>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Mark as Closed
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleAssignToUser(selectedChatId || "")}>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Assign to User
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleArchive(selectedChatId || "")}>
-                        <Archive className="mr-2 h-4 w-4" />
-                        Archive
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {isAgency && !isNewTicket && selectedChatId && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full hover:bg-accent"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <TicketStatusActionsMenu
+                          ticketId={selectedChatId}
+                          status={selectedTicket?.status}
+                          onMarkOpen={handleMarkAsOpen}
+                          onMarkClosed={handleMarkAsClosed}
+                        />
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1142,32 +1264,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                               <Icons.LiveChat className="h-4 w-4 text-primary" />
                             </div>
                           )}
-                          <div
-                            className={cn(
-                              "max-w-[80%] rounded-2xl px-4 py-2.5 space-y-2",
-                              msg.type === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-primary/10 text-foreground"
-                            )}
-                          >
-                            {/* Attachments - show before message text */}
-                            {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="space-y-2">
-                                {msg.attachments.map((attachment) => (
-                                  <MessageAttachment
-                                    key={attachment.id}
-                                    attachment={attachment}
-                                    isUserMessage={msg.type === "user"}
-                                  />
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Message text */}
-                            {msg.message && (
-                              <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
-                            )}
-                          </div>
+                          <TicketChatBubbleBody msg={msg} />
                         </div>
                       ))}
                     </div>
@@ -1248,32 +1345,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                                 <Icons.LiveChat className="h-4 w-4 text-primary" />
                               </div>
                             )}
-                            <div
-                              className={cn(
-                                "max-w-[80%] rounded-2xl px-4 py-2.5 space-y-2",
-                                msg.type === "user"
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-primary/10 text-foreground"
-                              )}
-                            >
-                              {/* Attachments - show before message text */}
-                              {msg.attachments && msg.attachments.length > 0 && (
-                                <div className="space-y-2">
-                                  {msg.attachments.map((attachment) => (
-                                    <MessageAttachment
-                                      key={attachment.id}
-                                      attachment={attachment}
-                                      isUserMessage={msg.type === "user"}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Message text */}
-                              {msg.message && (
-                                <p className="text-sm leading-relaxed whitespace-pre-line">{msg.message}</p>
-                              )}
-                            </div>
+                            <TicketChatBubbleBody msg={msg} />
                           </div>
                         ))
                       )}
