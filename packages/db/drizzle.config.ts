@@ -1,9 +1,10 @@
 import dotenv from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
-// Load local .env for development; in CI the DATABASE_URL is injected directly
-// into the environment by the workflow, so this is a no-op there.
-dotenv.config({ path: "../../apps/server/.env" });
+// Load local .env only when DATABASE_URL is not already set (CI / explicit env wins).
+if (!process.env.DATABASE_URL) {
+  dotenv.config({ path: "../../apps/server/.env" });
+}
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
