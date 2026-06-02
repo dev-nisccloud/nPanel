@@ -32,16 +32,16 @@ RUN bun build \
       --outfile apps/server/dist/server.js \
       apps/server/src/index.ts
 
-# ssh2 is only declared in apps/server/package.json. Bun may install it as a
-# symlink into .bun/ — COPY --from=base preserves symlinks, which break in the
-# runner stage. Materialize a real directory at node_modules/ssh2.
-RUN set -eux; \
-    if [ -f node_modules/ssh2/package.json ]; then SSH2_SRC=node_modules/ssh2; \
-    elif [ -f apps/server/node_modules/ssh2/package.json ]; then SSH2_SRC=apps/server/node_modules/ssh2; \
-    else echo "ERROR: ssh2 not found after bun install" && exit 1; fi; \
-    rm -rf node_modules/ssh2; \
-    cp -aL "$SSH2_SRC" node_modules/ssh2; \
-    test -f node_modules/ssh2/package.json
+# ssh2 is externalized at bundle time. Bun installs it (and asn1, bcrypt-pbkdf, …)
+# as symlinks into .bun/ — COPY --from=base breaks those links in the runner stage.
+# Re-install ssh2 with real npm (/usr/bin/npm, not the bun symlink) so the full
+# dependency tree is materialized under /app/node_modules.
+RUN mkdir -p /runtime-externals && cd /runtime-externals && \
+    /usr/bin/npm install ssh2@1.17.0 --omit=dev --no-package-lock && \
+    rm -rf /app/node_modules/ssh2 /app/node_modules/asn1 /app/node_modules/bcrypt-pbkdf && \
+    cp -a node_modules/. /app/node_modules/ && \
+    test -f /app/node_modules/ssh2/package.json && \
+    test -f /app/node_modules/asn1/package.json
 
 # ---------------------------------------------------------------------------
 # Run stage — ship only the pre-bundled JS + npm node_modules.
@@ -60,8 +60,8 @@ COPY --from=base /app/node_modules ./node_modules
 # Pre-bundled server — all workspace TS already inlined, starts instantly
 COPY --from=base /app/apps/server/dist/server.js ./server.js
 
-# Fail the image build if the materialized external is missing after COPY
-RUN test -f node_modules/ssh2/package.json
+# Fail the image build if ssh2 externals are missing after COPY
+RUN test -f node_modules/ssh2/package.json && test -f node_modules/asn1/package.json
 
 EXPOSE 8080
 
