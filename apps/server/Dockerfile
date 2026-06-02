@@ -1,7 +1,6 @@
 FROM oven/bun:1 AS base
 
-# Install necessary tools for node-gyp and nodejs
-# Configure apt retries to handle transient mirror sync issues
+# Install tools needed for native addons (ssh2/cpu-features, etc.)
 RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries && \
     apt-get update -qq && \
     apt-get install -y --no-install-recommends python-is-python3 build-essential curl && \
@@ -9,33 +8,41 @@ RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Symlink bun as npm so react-email CLI (which internally calls `npm install`) works
+# Symlink bun as npm so react-email CLI works
 RUN ln -sf /usr/local/bin/bun /usr/local/bin/npm
 
 WORKDIR /app
 
-# Copy the entire monorepo
+# Copy the entire monorepo and install dependencies
 COPY . .
-
-# Install dependencies using bun
 RUN bun install --frozen-lockfile
 
-# Run stage — only ship files needed to run the Hono/Bun server.
+# Pre-bundle: transpile all TypeScript (including workspace packages such as
+# @npanel/api, @npanel/auth, etc.) into a single JavaScript file.
+# npm packages remain external so node_modules is still needed at runtime,
+# but there is zero TypeScript transpilation work at cold-start.
+RUN bun build \
+      --target=bun \
+      --outfile apps/server/dist/server.js \
+      apps/server/src/index.ts
+
+# ---------------------------------------------------------------------------
+# Run stage — ship only the pre-bundled JS + npm node_modules.
+# No TypeScript source, no workspace package source needed.
+# ---------------------------------------------------------------------------
 FROM oven/bun:1 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 
-# Top-level workspace manifests & node_modules
-COPY --from=base /app/package.json /app/bun.lock* ./
+# npm packages (drizzle-orm, hono, ssh2, fast-xml-parser, …) and native addons
+COPY --from=base /app/package.json ./
 COPY --from=base /app/node_modules ./node_modules
 
-# Server app source
-COPY --from=base /app/apps/server/package.json ./apps/server/package.json
-COPY --from=base /app/apps/server/src ./apps/server/src
+# Pre-bundled server — all workspace TS already inlined, starts instantly
+COPY --from=base /app/apps/server/dist/server.js ./server.js
 
-# Workspace packages the server imports at runtime
-COPY --from=base /app/packages ./packages
+EXPOSE 8080
 
-CMD ["bun", "run", "--cwd", "apps/server", "start"]
+CMD ["bun", "run", "server.js"]
