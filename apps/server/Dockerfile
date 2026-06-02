@@ -32,16 +32,16 @@ RUN bun build \
       --outfile apps/server/dist/server.js \
       apps/server/src/index.ts
 
-# ssh2 is only declared in apps/server/package.json. Bun may install it under
-# apps/server/node_modules instead of the repo root, but the bundle loads
-# externals from /app/node_modules (where server.js lives in the runner stage).
-RUN if [ ! -e node_modules/ssh2/package.json ]; then \
-      if [ -e apps/server/node_modules/ssh2/package.json ]; then \
-        mkdir -p node_modules && cp -a apps/server/node_modules/ssh2 node_modules/ssh2; \
-      else \
-        echo "ERROR: ssh2 not found after bun install" && exit 1; \
-      fi; \
-    fi
+# ssh2 is only declared in apps/server/package.json. Bun may install it as a
+# symlink into .bun/ — COPY --from=base preserves symlinks, which break in the
+# runner stage. Materialize a real directory at node_modules/ssh2.
+RUN set -eux; \
+    if [ -f node_modules/ssh2/package.json ]; then SSH2_SRC=node_modules/ssh2; \
+    elif [ -f apps/server/node_modules/ssh2/package.json ]; then SSH2_SRC=apps/server/node_modules/ssh2; \
+    else echo "ERROR: ssh2 not found after bun install" && exit 1; fi; \
+    rm -rf node_modules/ssh2; \
+    cp -aL "$SSH2_SRC" node_modules/ssh2; \
+    test -f node_modules/ssh2/package.json
 
 # ---------------------------------------------------------------------------
 # Run stage — ship only the pre-bundled JS + npm node_modules.
@@ -60,8 +60,8 @@ COPY --from=base /app/node_modules ./node_modules
 # Pre-bundled server — all workspace TS already inlined, starts instantly
 COPY --from=base /app/apps/server/dist/server.js ./server.js
 
-# Fail the image build if externals required at runtime are missing
-RUN test -e node_modules/ssh2/package.json
+# Fail the image build if the materialized external is missing after COPY
+RUN test -f node_modules/ssh2/package.json
 
 EXPOSE 8080
 
