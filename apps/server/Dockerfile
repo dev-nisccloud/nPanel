@@ -21,8 +21,14 @@ RUN bun install --frozen-lockfile
 # @npanel/api, @npanel/auth, etc.) into a single JavaScript file.
 # npm packages remain external so node_modules is still needed at runtime,
 # but there is zero TypeScript transpilation work at cold-start.
+#
+# ssh2 / cpu-features use a relative require() path to a compiled .node binary
+# which Bun's bundler cannot resolve at build time — mark them external so they
+# are loaded from node_modules at runtime instead.
 RUN bun build \
       --target=bun \
+      --external cpu-features \
+      --external ssh2 \
       --outfile apps/server/dist/server.js \
       apps/server/src/index.ts
 
