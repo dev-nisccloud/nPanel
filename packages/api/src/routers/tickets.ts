@@ -157,6 +157,7 @@ const ticketSchema = z.object({
 const ticketListItemSchema = z.object({
   id: z.string(),
   ticketNumber: z.string(),
+  subject: z.string().nullable().optional(),
   lastMessage: z.string().nullable(),
   lastMessageAt: z.date().nullable(),
   unreadCount: z.number(),
@@ -317,6 +318,7 @@ function transformTicketListItem(ticket: any, isAgency: boolean) {
   const result: any = {
     id: ticket.id,
     ticketNumber: ticket.ticketNumber,
+    subject: ticket.subject ?? null,
     lastMessage: ticket.lastMessagePreview,
     lastMessageAt: ticket.lastMessageAt,
     unreadCount: isAgency ? ticket.unreadCount : ticket.customerUnreadCount,

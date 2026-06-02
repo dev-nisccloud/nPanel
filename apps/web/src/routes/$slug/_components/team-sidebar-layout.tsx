@@ -14,6 +14,7 @@ import { ThemeSwitcher } from "./sidebar/theme-switcher";
 import { PrefetchTeams } from "./prefetch-teams";
 import { NavigationLoader } from "@/components/navigation-loader";
 import { SwitchingTeamOverlay } from "@/contexts/switching-team-context";
+import { FloatingActionButton } from "@/routes/agency/_components/floating-action-button";
 
 const ClientTrpcSwitchers = React.lazy(() =>
   import("./client-trpc-switchers").then((m) => ({ default: m.ClientTrpcSwitchers })),
@@ -88,6 +89,7 @@ export function TeamSidebarLayout({
           {children}
         </div>
         <NavigationLoader />
+        <FloatingActionButton />
         <SwitchingTeamOverlay />
       </SidebarInset>
     </SidebarProvider>

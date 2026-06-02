@@ -39,3 +39,11 @@ export {
 	type DomainDetailResult,
 	type DomainDetailDnsRecord,
 } from "./domain-detail";
+
+export {
+	agentGetHostingResources,
+	agentGetHostingDetail,
+	type HostingResourceEntry,
+	type HostingResourcesResult,
+	type HostingDetailResult,
+} from "./hosting-resources";

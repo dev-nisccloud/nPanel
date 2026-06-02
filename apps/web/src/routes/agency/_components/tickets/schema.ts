@@ -47,6 +47,7 @@ export type MessageReadStatus = z.infer<typeof messageReadStatusSchema>;
 export const ticketListItemSchema = z.object({
   id: z.string(),
   ticketNumber: z.string(),
+  subject: z.string().nullable().optional(),
   lastMessage: z.string().nullable(),
   lastMessageAt: z.coerce.date().nullable(),
   unreadCount: z.number(),
