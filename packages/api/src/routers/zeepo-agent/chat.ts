@@ -39,6 +39,8 @@ import {
 	createPresentationArgsSchema,
 	getDomainsPortfolioArgsSchema,
 	getDomainDetailArgsSchema,
+	getHostingResourcesArgsSchema,
+	getHostingDetailArgsSchema,
 	getSessionInfoArgsSchema,
 	getWebHostingPlansArgsSchema,
 	getEmailHostingPlansArgsSchema,
@@ -50,6 +52,8 @@ import {
 	agentCheckDomainAvailability,
 	agentGetDomainsPortfolio,
 	agentGetDomainDetail,
+	agentGetHostingResources,
+	agentGetHostingDetail,
 	agentGetWebHostingPlans,
 	agentGetEmailHostingPlans,
 	DEFAULT_DOMAIN_EXTENSIONS,
@@ -931,9 +935,63 @@ export const zeepoAgentChatRouter = router({
 								};
 							}
 						}
+					} else if (tc.name === "get_hosting_resources") {
+						getHostingResourcesArgsSchema.safeParse(rawArgs);
+						try {
+							const dbUser = await db.query.user.findFirst({
+								where: eq(userTable.id, userId),
+								columns: { role: true },
+							});
+							const role = (dbUser?.role ?? "CUSTOMER") as string;
+							const isAgency =
+								role === "AGENCY_USER" ||
+								role === "AGENCY_ADMIN" ||
+								role === "AGENCY_SUPER_ADMIN";
+							resultPayload = await agentGetHostingResources({
+								isAgency,
+								teamId: sessionCtx.team.id ?? null,
+								teamName: sessionCtx.team.name ?? null,
+							});
+						} catch (e: unknown) {
+							resultPayload = {
+								error: formatZeepoAgentToolError("Hosting resources fetch failed", e),
+							};
+						}
+					} else if (tc.name === "get_hosting_detail") {
+						const parsed = getHostingDetailArgsSchema.safeParse(rawArgs);
+						if (!parsed.success) {
+							resultPayload = {
+								error: `Invalid arguments for get_hosting_detail: ${parsed.error.message}`,
+							};
+						} else {
+							try {
+								const dbUser = await db.query.user.findFirst({
+									where: eq(userTable.id, userId),
+									columns: { role: true },
+								});
+								const role = (dbUser?.role ?? "CUSTOMER") as string;
+								const isAgency =
+									role === "AGENCY_USER" ||
+									role === "AGENCY_ADMIN" ||
+									role === "AGENCY_SUPER_ADMIN";
+								resultPayload = await agentGetHostingDetail({
+									domain: parsed.data.domain,
+									isAgency,
+									teamId: sessionCtx.team.id ?? null,
+									includeDns: parsed.data.include_dns ?? false,
+									includeMail: parsed.data.include_mail ?? false,
+									includeSubdomains: parsed.data.include_subdomains ?? false,
+									includeDatabases: parsed.data.include_databases ?? false,
+								});
+							} catch (e: unknown) {
+								resultPayload = {
+									error: formatZeepoAgentToolError("Hosting detail fetch failed", e),
+								};
+							}
+						}
 					} else {
 						resultPayload = {
-							error: `Unknown tool "${tc.name}". Available: get_user_session, get_domains_portfolio, get_domain_detail, create_document, create_presentation, create_image_presentation, check_domain_availability, get_web_hosting_plans, get_email_hosting_plans, web_search, list_models, run_media_generation.`,
+							error: `Unknown tool "${tc.name}". Available: get_user_session, get_domains_portfolio, get_domain_detail, get_hosting_resources, get_hosting_detail, create_document, create_presentation, create_image_presentation, check_domain_availability, get_web_hosting_plans, get_email_hosting_plans, web_search, list_models, run_media_generation.`,
 						};
 					}
 

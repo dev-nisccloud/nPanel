@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useNavigate, useParams } from "react-router";
 import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, MoreVertical, CheckCircle, Circle, UserPlus, Archive, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,6 +115,8 @@ const initialGreetingMessage: ChatMessage = {
 };
 
 export function FloatingActionButton({ className }: FloatingActionButtonProps) {
+  const navigate = useNavigate();
+  const params = useParams<{ slug?: string }>();
   const [isOpen, setIsOpen] = React.useState(false);
   const [currentView, setCurrentView] = React.useState<"main" | "chat-list" | "chat" | "zepo" | "zepo-history">("main");
   const [messageInput, setMessageInput] = React.useState("");
@@ -140,9 +143,17 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     }
   }, []);
 
-  // Get current user
+  // Get current user + role
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const isAgency =
+    userRole === "AGENCY_USER" ||
+    userRole === "AGENCY_ADMIN" ||
+    userRole === "AGENCY_SUPER_ADMIN";
+
+  // Optimistic local read tracker — clears unread badge immediately when chat opened
+  const [locallyReadIds, setLocallyReadIds] = React.useState<Set<string>>(new Set());
 
   // Data fetching hooks
   const { tickets, isLoading: isLoadingTickets, isRefetching: isRefetchingTickets, isError: isErrorTickets, error: ticketsError, refetch: refetchTickets } = useTicketsList();
@@ -181,14 +192,13 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     // If we have messages, transform them
     if (messages && messages.length > 0) {
       return messages.map((msg) => {
-        // For agency side: if sender is not current user and not internal, it's from customer (user)
-        // If sender is current user or internal, it's from agent (assistant)
+        // Messages sent by the currently logged-in user always appear on the right ("user").
+        // All other messages (from the other party) appear on the left ("assistant").
         const isFromCurrentUser = msg.senderId === currentUserId;
-        const isFromCustomer = !msg.isInternal && !isFromCurrentUser;
 
         return {
           id: msg.id,
-          type: isFromCustomer ? "user" : "assistant",
+          type: isFromCurrentUser ? "user" : "assistant",
           message: msg.content,
           timestamp: msg.createdAt,
           attachments: msg.attachments?.map(att => ({
@@ -299,12 +309,12 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   };
 
   const handleChatWithHuman = (ticketId?: string) => {
-    // "new" or no id = create new ticket: no message fetch, show greeting only
     if (ticketId && ticketId !== "new") {
       setSelectedChatId(ticketId);
       setIsNewTicket(false);
-
-      // Run mutation in the background
+      // Optimistically clear the unread badge immediately
+      setLocallyReadIds((prev) => new Set(prev).add(ticketId));
+      // Persist the read state server-side
       markAllTicketMessagesAsRead.mutate({ ticketId });
     } else {
       setIsNewTicket(true);
@@ -314,7 +324,20 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   };
 
   const handleZepoChat = () => {
-    setCurrentView("zepo-history");
+    setIsOpen(false);
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    const isAgency =
+      role === "AGENCY_USER" ||
+      role === "AGENCY_ADMIN" ||
+      role === "AGENCY_SUPER_ADMIN";
+    if (isAgency) {
+      navigate("/agency/zeepo-ai-agent");
+    } else {
+      const slug = params.slug;
+      if (slug) {
+        navigate(`/${slug}/zeepo-ai-agent`);
+      }
+    }
   };
 
   const handleStartNewZepoChat = () => {
@@ -723,6 +746,18 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   <h2 className="text-lg font-semibold text-foreground">Support Tickets</h2>
                 </div>
                 <div className="flex items-center gap-1">
+                  {/* Only customers can open new tickets */}
+                  {!isAgency && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                      onClick={() => handleChatWithHuman("new")}
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      New Ticket
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -790,81 +825,109 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       <Icons.LiveChat className="h-12 w-12 text-muted-foreground" />
                     </div>
                     <h3 className="mb-2 text-lg font-semibold">No support tickets</h3>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                      There are no support tickets at the moment.
-                    </p>
+                    {!isAgency && (
+                      <p className="mb-4 text-sm text-muted-foreground">
+                        Start a new ticket to get help from our support team.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
-                    {tickets.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className="flex items-center gap-2 px-4 py-3 hover:bg-muted/50 transition-colors group"
-                      >
-                        <button
-                          onClick={() => handleChatWithHuman(ticket.id)}
-                          className="flex-1 flex flex-col gap-1 text-left"
-                          disabled={loadingChatId === ticket.id}
+                    {tickets.map((ticket) => {
+                      // Effective unread count — cleared immediately when chat is opened locally
+                      const effectiveUnread = locallyReadIds.has(ticket.id) ? 0 : ticket.unreadCount;
+                      // Title: agency shows customer name, customer shows ticket subject/number
+                      const ticketTitle = isAgency
+                        ? (ticket.customerName || `Ticket #${ticket.ticketNumber}`)
+                        : (ticket.subject || ticket.lastMessage?.slice(0, 50) || `Ticket #${ticket.ticketNumber}`);
+                      // Status badge colour
+                      const statusColour =
+                        ticket.status === "OPEN" || ticket.status === "IN_PROGRESS"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : ticket.status === "CLOSED" || ticket.status === "RESOLVED" || ticket.status === "CANCELLED"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+
+                      return (
+                        <div
+                          key={ticket.id}
+                          className="flex items-center gap-2 px-4 py-3 hover:bg-muted/50 transition-colors group"
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-foreground">
-                              {ticket.customerName || "Unknown Customer"}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              {loadingChatId === ticket.id && (
-                                <Spinner size={14} className="text-primary" />
-                              )}
-                              {ticket.unreadCount > 0 && (
-                                <span className="text-xs font-semibold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                                  {ticket.unreadCount}
+                          <button
+                            onClick={() => handleChatWithHuman(ticket.id)}
+                            className="flex-1 flex flex-col gap-1 text-left"
+                            disabled={loadingChatId === ticket.id}
+                          >
+                            {/* Row 1: title + unread badge */}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-semibold text-sm text-foreground line-clamp-1 flex-1">
+                                {ticketTitle}
+                              </span>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {loadingChatId === ticket.id && (
+                                  <Spinner size={14} className="text-primary" />
+                                )}
+                                {effectiveUnread > 0 && (
+                                  <span className="text-xs font-semibold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                                    {effectiveUnread}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {/* Row 2: last message + time */}
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs text-muted-foreground line-clamp-1 flex-1">
+                                {ticket.lastMessage || "No messages yet"}
+                              </p>
+                              {ticket.lastMessageAt && (
+                                <span className="text-[10px] text-muted-foreground shrink-0">
+                                  {formatTime(ticket.lastMessageAt)}
                                 </span>
                               )}
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {ticket.lastMessage || "No messages yet"}
-                            </p>
-                            {ticket.lastMessageAt && (
-                              <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
-                                {formatTime(ticket.lastMessageAt)}
-                              </span>
-                            )}
-                          </div>
-                        </button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsOpen(ticket.id); }}>
-                              <Circle className="mr-2 h-4 w-4" />
-                              Mark as Open
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsClosed(ticket.id); }}>
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Mark as Closed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignToUser(ticket.id); }}>
-                              <UserPlus className="mr-2 h-4 w-4" />
-                              Assign to User
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchive(ticket.id); }}>
-                              <Archive className="mr-2 h-4 w-4" />
-                              Archive
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    ))}
+                            {/* Row 3: status badge */}
+                            <span className={cn("self-start text-[10px] font-medium px-1.5 py-0.5 rounded capitalize", statusColour)}>
+                              {ticket.status.replace("_", " ").toLowerCase()}
+                            </span>
+                          </button>
+
+                          {/* Actions menu — agency only */}
+                          {isAgency && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsOpen(ticket.id); }}>
+                                  <Circle className="mr-2 h-4 w-4" />
+                                  Mark as Open
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleMarkAsClosed(ticket.id); }}>
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Mark as Closed
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignToUser(ticket.id); }}>
+                                  <UserPlus className="mr-2 h-4 w-4" />
+                                  Assign to User
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchive(ticket.id); }}>
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archive
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </ScrollArea>

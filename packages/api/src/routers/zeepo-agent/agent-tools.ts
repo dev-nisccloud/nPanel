@@ -261,6 +261,23 @@ export const getEmailHostingPlansArgsSchema = z.object({});
 export const getDomainsPortfolioArgsSchema = z.object({});
 export type GetDomainsPortfolioArgs = z.infer<typeof getDomainsPortfolioArgsSchema>;
 
+export const getHostingResourcesArgsSchema = z.object({});
+export type GetHostingResourcesArgs = z.infer<typeof getHostingResourcesArgsSchema>;
+
+export const getHostingDetailArgsSchema = z.object({
+	/** The domain / primary domain of the hosting subscription to retrieve. */
+	domain: z.string().min(3).max(253),
+	/** Include DNS records. Default false — only set true when the user explicitly asks. */
+	include_dns: z.boolean().optional().default(false),
+	/** Include mail accounts summary. Default false — only set true when the user asks about mail/email accounts. */
+	include_mail: z.boolean().optional().default(false),
+	/** Include subdomains list. Default false — only set true when the user asks about subdomains. */
+	include_subdomains: z.boolean().optional().default(false),
+	/** Include databases list. Default false — only set true when the user asks about databases. */
+	include_databases: z.boolean().optional().default(false),
+});
+export type GetHostingDetailArgs = z.infer<typeof getHostingDetailArgsSchema>;
+
 export const getDomainDetailArgsSchema = z.object({
 	/** The full domain name to look up, e.g. "example.co.ke" or "example.com". */
 	domain: z.string().min(3).max(253),
@@ -347,7 +364,55 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    When to call: user asks "what domains do we have", "show my domains", "list all domains", "what domains does [client] own", "check our domain portfolio", or any variant of listing existing domains (NOT checking availability of new ones - use check_domain_availability for that).
    After results: summarise counts (total / active / expired), list the domains, and highlight any that are expired or expiring soon (within 30 days). For agency, group by source (OpenProvider vs KENIC). If hasMore is true, note that only the first 100 OpenProvider domains are shown.
 
-5) get_domain_detail  ← NISC CLOUD INTERNAL TOOL
+5) get_hosting_resources  ← NISC CLOUD INTERNAL TOOL
+   Purpose: list all hosting subscriptions managed through Nisc Cloud. Behaviour is automatically role-aware.
+   Arguments: none.
+   Returns: {
+     isAgency: boolean,
+     teamName: string | null,
+     resources: [{
+       domain, status ("Active"|"Suspended"|"Unknown"), ipAddress, sslEnabled,
+       diskUsageFormatted, diskLimitFormatted, trafficFormatted,
+       planName, billingCycle, expiryDate, nextRenewalDate, autoRenew,
+       teamName (agency only: which client owns the subscription), createdAt
+     }],
+     totalCount, activeCount, suspendedCount,
+     pleskUnavailable?  // true when Plesk is unreachable (customer shows DB data only)
+   }
+   - Agency: live Plesk data for ALL webspaces, enriched with billing info from the database.
+   - Customer: shows only the team's web hosting subscriptions from the database.
+   When to call: user asks "show my hosting", "list hosting plans", "what hosting do we have", "show all hosting resources", or any variant requesting a list of existing hosting accounts.
+   After results: the card is rendered in the UI — write a SHORT follow-up (2–4 sentences) covering total/active/suspended counts and highlighting any suspended or expiring subscriptions. NEVER echo raw field values (IP addresses, disk bytes, internal IDs).
+
+6) get_hosting_detail  ← NISC CLOUD INTERNAL TOOL
+   Purpose: fetch full live detail for a single hosting subscription identified by its primary domain name. Supports optional on-demand sections.
+   Arguments:
+     - domain              : string  - the primary domain of the hosting account (e.g. "example.co.ke").
+     - include_dns?        : boolean (default false) - fetch DNS records; only set true when user explicitly asks about DNS.
+     - include_mail?       : boolean (default false) - fetch mail accounts summary; only set true when user asks about email/mail accounts.
+     - include_subdomains? : boolean (default false) - fetch subdomains list; only set true when user asks about subdomains.
+     - include_databases?  : boolean (default false) - fetch databases list; only set true when user asks about databases.
+   Returns (always): { found, status, ipAddress, sslEnabled, diskUsageFormatted, diskLimitFormatted, trafficFormatted, mailboxCount, databaseCount, subdomainCount, createdAt, planName, hostingType, billingCycle, expiryDate, nextRenewalDate, autoRenew, teamName (agency only), pleskUnavailable?, error? }
+   Returns (when requested):
+     - dnsRecords: [{ type, host, value, ttl }]
+     - mailAccounts: [{ email, mailboxEnabled, quotaFormatted, usageFormatted, forwardingEnabled, forwardingAddresses, aliases, autoresponderEnabled }]
+     - subdomains: [{ name, fqdn }]
+     - databases: [{ name, type }]
+   Authorization: agency can query any subscription; customer can only query subscriptions belonging to their organisation.
+   When to call: user asks "show details for [domain] hosting", "get hosting info for [domain]", "how much disk is [domain] using", "is [domain] hosting active", "when does [domain] hosting expire".
+   IMPORTANT — set include flags based on what the user EXPLICITLY asks:
+   - Default (overview + billing only): all flags false.
+   - User asks about DNS: include_dns = true.
+   - User asks about email/mail accounts: include_mail = true.
+   - User asks about subdomains: include_subdomains = true.
+   - User asks about databases: include_databases = true.
+   After results: the detail card is already rendered in the UI — write a SHORT follow-up (1–3 sentences).
+   - Always: summarise status, disk usage, expiry.
+   - If include_mail true: briefly list mail accounts (email address only) and suggest user ask for details on a specific one if they want more.
+   - If include_dns/subdomains/databases true: note counts found; do NOT paste full raw data in text.
+   - NEVER mention: IP addresses, certificate names, internal IDs, raw byte values, passwords, or credentials of any kind.
+
+7) get_domain_detail  ← NISC CLOUD INTERNAL TOOL
    Purpose: retrieve full registry detail for a specific domain - status, dates, registrant handles, hosting connection, and optionally nameservers and DNS records.
    Arguments:
      - domain              : string - the full FQDN (e.g. "example.co.ke" or "example.com").
@@ -363,21 +428,21 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    - User asks for "full details" or "everything": both true.
    After results: the detail card is already rendered in the UI — write a SHORT plain-text follow-up (1–3 sentences) that ONLY mentions: status, expiry date, and hosting status. Do NOT narrate or repeat any other fields. NEVER mention or echo: source, registrantHandle, adminHandle, techHandle, isLocked value, isDnssecEnabled value, pleskSiteId, or any internal identifier. If include_nameservers was true, you may briefly list the nameservers in text. If include_dns was true and dnsRecords are present, you may note how many records were found — do NOT paste the full DNS table in text (the card already shows it). If dnsNote is present, quote it once briefly.
 
-6) get_web_hosting_plans  ← NISC CLOUD INTERNAL TOOL
+8) get_web_hosting_plans  ← NISC CLOUD INTERNAL TOOL
    Purpose: fetch the current web/website hosting plans available on Nisc Cloud and display them as a purchasable pricing card. ALWAYS use this when the user asks about web hosting, website hosting, hosting plans, or wants to compare or buy a hosting package - never guess pricing or direct users elsewhere.
    Arguments: none (no arguments needed - always returns the full active catalogue).
    Returns: { plans[], productFeatures[], checkedAt } - the UI renders an interactive pricing table with Buy buttons.
    When to call: user asks about web hosting plans, website hosting pricing, how much hosting costs, wants to host a website, or is comparing hosting options.
    After results: present a brief summary of what's available (plan names and starting price) and tell the user they can select a plan and click Buy directly in the card above. NEVER quote prices from memory - the card always shows current live pricing.
 
-7) get_email_hosting_plans  ← NISC CLOUD INTERNAL TOOL
+9) get_email_hosting_plans  ← NISC CLOUD INTERNAL TOOL
    Purpose: fetch the current email hosting plans available on Nisc Cloud and display them as a purchasable pricing card. ALWAYS use this when the user asks about business email, email hosting, professional email, or wants to compare or buy an email hosting package.
    Arguments: none (no arguments needed - always returns the full active catalogue).
    Returns: { plans[], productFeatures[], checkedAt } - the UI renders an interactive pricing table with Buy buttons.
    When to call: user asks about email hosting plans, business email pricing, how much email hosting costs, wants a professional email address, or is comparing email hosting options.
    After results: present a brief summary of what's available and tell the user they can click Buy on any plan directly in the card above. NEVER quote prices from memory.
 
-8) web_search
+10) web_search
    Purpose: retrieve real-time grounding context from the live web via Brave Search. Call this BEFORE answering questions that involve specific real-world entities, current data, or regional context.
    Arguments:
      - query   : string (1–400 chars) - the search query. Be specific: include entity names, location, and timeframe when relevant (e.g. "Diamond Coffee Nairobi menu prices 2026"). ALWAYS embed geography directly in the query for non-major-market regions (Africa, Middle East, South/Southeast Asia except IN, ID, MY, PH) - e.g. "luxury car imports Nairobi Kenya 2026" not just "luxury cars".
@@ -389,7 +454,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    When NOT to call: general knowledge you are confident about, pure creative tasks where you have all context, or Nisc Cloud topics already in your system prompt. Do NOT call web_search for domain availability - use check_domain_availability instead.
    Call web_search BEFORE claiming facts about real-world entities - do not guess then search.
 
-9) list_models
+11) list_models
    Purpose: discover the *exact* Replicate model ids available in the Zeepo catalog for a category, filtered by capabilities.
    Arguments:
      - category? : "text" | "image" | "video" | "audio" | "background-remover"
@@ -397,7 +462,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    Returns: an array of { id, category, provider, label, description, is_default, capabilities }.
    Use this tool BEFORE you ever pass a non-default "model_id" to run_media_generation.
 
-10) run_media_generation
+12) run_media_generation
    Purpose: queue a media generation job. Results stream back to the UI asynchronously.
    Arguments:
      - category : "text" | "image" | "video" | "audio" | "background-remover"
@@ -408,7 +473,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
        IMPORTANT - aspect_ratio for images: the default model (gpt-image-2) ONLY accepts "1:1", "3:2", or "2:3". Do NOT pass "16:9", "9:16", "4:3", or "3:4" with the default model - this causes a 422 error. Use "3:2" for landscape (widescreen slide backgrounds), "1:1" for square assets, and "2:3" for portrait. Other ratios are only valid when you explicitly pick a Flux/SDXL-class model via model_id.
    Returns: { generationId, status: "QUEUED", modelId, category } (for your context only - never repeat generationId, modelId as a "job id", or UUIDs in assistant_text). The chat UI shows progress in the Generations strip; tell the user in plain language that their asset is generating / queued (e.g. "It's generating now - you'll see it in Generations when ready.").
 
-11) create_presentation
+13) create_presentation
    Purpose: produce a professionally designed slide deck - pitches, strategy decks, proposals, reports, educational content, or any multi-slide deliverable. Exports: PDF, PPTX (PowerPoint), PNG per slide.
 
    ── ARGUMENTS ──────────────────────────────────────────────────────────────
@@ -515,7 +580,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    ── AFTER CALLING ───────────────────────────────────────────────────────────
    Write a SHORT reply (2–4 sentences): what the deck covers, how many slides, and that it is ready to open and export as PDF, PPTX, or PNG.
 
-12) create_image_presentation
+14) create_image_presentation
    Purpose: produce a photorealistic / high-graphic image-based slide deck where EVERY slide is a full AI-generated image. Use this instead of create_presentation when the user wants photorealistic visuals, cinematic scenes, high-end graphic design, or any deck that should look like a polished visual production rather than a text layout deck.
 
    ── WHEN TO USE ──────────────────────────────────────────────────────────────

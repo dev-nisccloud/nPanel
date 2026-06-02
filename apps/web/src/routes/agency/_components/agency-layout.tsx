@@ -25,6 +25,7 @@ import { NavigationLoadingProvider } from "@/contexts/navigation-loading-context
 import { apiUrl, authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { IntercomSupport } from "@/components/intercom-support";
+import { FloatingActionButton } from "@/routes/agency/_components/floating-action-button";
 
 function readSidebarDefaultOpen(): boolean {
   if (typeof document === "undefined") return true;
@@ -133,7 +134,7 @@ export default function AgencyLayout({ children }: Readonly<{ children: ReactNod
 
   return (
     <NavigationLoadingProvider>
-      <IntercomSupport user={session.user} />
+      {/* <IntercomSupport user={session.user} /> */}
       <SidebarProvider defaultOpen={defaultOpen}>
         <AppSidebar variant={sidebarVariant} collapsible={sidebarCollapsible} />
         <AgencyContentArea contentLayout={contentLayout}>
@@ -153,6 +154,7 @@ export default function AgencyLayout({ children }: Readonly<{ children: ReactNod
           </header>
           <AgencyContentInner>{children}</AgencyContentInner>
           <NavigationLoader />
+          <FloatingActionButton />
         </AgencyContentArea>
       </SidebarProvider>
     </NavigationLoadingProvider>

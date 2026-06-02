@@ -85,6 +85,88 @@ export interface AgentDomainsPortfolioResult {
   checkedAt: string;
 }
 
+// ── Hosting resources ────────────────────────────────────────────────────────
+
+export interface AgentHostingResourceEntry {
+  domain: string | null;
+  status: "Active" | "Suspended" | "Unknown";
+  ipAddress: string | null;
+  sslEnabled: boolean;
+  diskUsageBytes: number;
+  diskLimitBytes: number;
+  diskUsageFormatted: string;
+  diskLimitFormatted: string;
+  trafficBytes: number;
+  trafficFormatted: string;
+  createdAt: string | null;
+  planName: string | null;
+  hostingType: string | null;
+  billingCycle: string | null;
+  expiryDate: string | null;
+  nextRenewalDate: string | null;
+  autoRenew: boolean | null;
+  teamName: string | null;
+}
+
+export interface AgentHostingResourcesResult {
+  _tool: "get_hosting_resources";
+  isAgency: boolean;
+  teamName: string | null;
+  resources: AgentHostingResourceEntry[];
+  totalCount: number;
+  activeCount: number;
+  suspendedCount: number;
+  pleskUnavailable?: boolean;
+  checkedAt: string;
+}
+
+export interface AgentHostingMailAccount {
+  email: string;
+  mailboxEnabled: boolean;
+  quotaFormatted: string;
+  usageFormatted: string;
+  forwardingEnabled: boolean;
+  forwardingAddresses: string[];
+  aliases: string[];
+  autoresponderEnabled: boolean;
+}
+
+export interface AgentHostingDetailResult {
+  _tool: "get_hosting_detail";
+  domain: string;
+  found: boolean;
+  status: "Active" | "Suspended" | "Unknown";
+  ipAddress: string | null;
+  sslEnabled: boolean;
+  certificateName: string | null;
+  diskUsageBytes: number;
+  diskLimitBytes: number;
+  diskUsageFormatted: string;
+  diskLimitFormatted: string;
+  trafficBytes: number;
+  trafficFormatted: string;
+  mailboxCount: number;
+  databaseCount: number;
+  subdomainCount: number;
+  createdAt: string | null;
+  planName: string | null;
+  hostingType: string | null;
+  billingCycle: string | null;
+  expiryDate: string | null;
+  nextRenewalDate: string | null;
+  autoRenew: boolean | null;
+  teamName: string | null;
+  // Optional sections
+  dnsRecords?: Array<{ type: string; host: string; value: string; ttl?: number }>;
+  mailAccounts?: AgentHostingMailAccount[];
+  subdomains?: Array<{ name: string; fqdn: string }>;
+  databases?: Array<{ name: string; type: string }>;
+  accessDenied?: boolean;
+  pleskUnavailable?: boolean;
+  error?: string;
+  checkedAt: string;
+}
+
 // ── Domain detail ────────────────────────────────────────────────────────────
 
 export interface AgentDomainDetailDnsRecord {
