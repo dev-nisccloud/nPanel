@@ -14,7 +14,9 @@ WORKDIR /app
 
 # Full monorepo: workspace packages are TypeScript and resolved at runtime by Bun.
 COPY . .
-RUN bun install --frozen-lockfile
+# --ignore-scripts: skip optional native ssh2 addons (cpu-features/buildcheck).
+# ssh2 still works at runtime without them.
+RUN bun install --frozen-lockfile --ignore-scripts
 
 ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
