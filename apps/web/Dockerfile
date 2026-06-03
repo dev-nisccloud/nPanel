@@ -17,10 +17,9 @@ WORKDIR /app
 # Copy the entire monorepo
 COPY . .
 
-# Install dependencies using bun
-RUN bun install --frozen-lockfile
-
-
+# Install only the web workspace tree (web + its deps). Skips server-only native
+# packages (ssh2 → cpu-features/buildcheck) that cause "Failed to install 2 packages".
+RUN bun install --frozen-lockfile --ignore-scripts --filter web...
 
 # Provide placeholder BETTER_AUTH_SECRET if needed by some build steps
 ARG BETTER_AUTH_SECRET="build-time-placeholder-do-not-use-in-production"
