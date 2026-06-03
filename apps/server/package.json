@@ -40,8 +40,5 @@
     "@types/bun": "catalog:",
     "tsdown": "catalog:",
     "typescript": "^5"
-  },
-  "trustedDependencies": [
-    "supabase"
-  ]
+  }
 }
