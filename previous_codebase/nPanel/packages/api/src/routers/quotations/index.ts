@@ -638,7 +638,7 @@ export const quotationsRouter = router({
 
 			await sendEmail({
 				to: input.toEmail,
-				subject: `Quotation ${quotation.quotationNumber ?? ""} from Nisc Cloud Limited`,
+				subject: `Quotation ${quotation.quotationNumber ?? ""} from Nisc Cloud®`,
 				html: emailHtml,
 				attachments: [
 					{

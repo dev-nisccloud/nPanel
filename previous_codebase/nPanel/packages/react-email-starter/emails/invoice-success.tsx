@@ -32,7 +32,7 @@ export const InvoiceSuccessEmail = ({
   const formattedAmount = `${currency} ${totalAmount}`;
 
   return (
-    <EmailLayout preview={`Your invoice ${invoiceNumber} from Nisc Cloud Limited`}>
+    <EmailLayout preview={`Your invoice ${invoiceNumber} from Nisc Cloud®`}>
       <EmailHeader />
       <Section>
         <EmailText>Dear {customerName},</EmailText>
@@ -77,7 +77,7 @@ export const InvoiceSuccessEmail = ({
           <EmailLink href={`mailto:${supportEmail}`}>{supportEmail}</EmailLink>
           {supportPhone && ` or ${supportPhone}`}.
         </EmailText>
-        <EmailText>Thank you for choosing Nisc Cloud Limited.</EmailText>
+        <EmailText>Thank you for choosing Nisc Cloud®.</EmailText>
         <EmailSignature />
       </Section>
       <EmailFooter />

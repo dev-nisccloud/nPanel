@@ -183,7 +183,7 @@ export const OrderConfirmationEmail = ({
           </EmailLink>
         </EmailText>
         <EmailText>
-          Thank you for choosing <strong>Nisc Cloud Limited</strong>. We appreciate your business and look forward to serving you!
+          Thank you for choosing <strong>Nisc Cloud®</strong>. We appreciate your business and look forward to serving you!
         </EmailText>
         <EmailSignature />
       </Section>

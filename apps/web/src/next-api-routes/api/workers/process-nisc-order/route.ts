@@ -170,7 +170,7 @@ export async function POST(request: Request) {
 					});
 					await sendEmail({
 						to: customerEmail,
-						subject: `Order Confirmation - ${orderAfter.orderNumber} from Nisc Cloud Limited`,
+						subject: `Order Confirmation - ${orderAfter.orderNumber} from Nisc Cloud®`,
 						html: orderConfirmationHtml,
 					});
 					await niscLog("worker_email_sent", {

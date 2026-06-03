@@ -2389,7 +2389,7 @@ export const ordersRouter = router({
 						// Send email
 						await sendEmail({
 							to: billingSettings.billingEmail,
-							subject: `Order Confirmation - ${result.order.orderNumber} from Nisc Cloud Limited`,
+							subject: `Order Confirmation - ${result.order.orderNumber} from Nisc Cloud®`,
 							html: emailHtml,
 						});
 					}

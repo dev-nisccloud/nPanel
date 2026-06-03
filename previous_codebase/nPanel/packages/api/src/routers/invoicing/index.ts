@@ -1717,7 +1717,7 @@ export const invoicingRouter = router({
 			try {
 				await sendEmail({
 					to: invoice.customerEmail,
-					subject: `Invoice Reminder: ${invoice.invoiceNumber || "Invoice"} from Nisc Cloud Limited`,
+					subject: `Invoice Reminder: ${invoice.invoiceNumber || "Invoice"} from Nisc Cloud®`,
 					html: emailHtml,
 					attachments,
 				});
