@@ -84,6 +84,7 @@ jobs:
             echo "❌ DATABASE_URL is empty. Set the DATABASE_URL_STAGING (or DATABASE_URL) secret in your GitHub repository/environment settings."
             exit 1
           fi
+          cd packages/db
           bun run db:migrate
           echo "✅ Staging database migrations completed"
 
@@ -280,9 +281,10 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "❌ DATABASE_URL is empty. Set the DATABASE_URL_PRODUCTION secret in your GitHub repository/environment settings."
+            echo "❌ DATABASE_URL is empty. Set DATABASE_URL_PRODUCTION on the GitHub **production** environment (Settings → Environments → production → Environment secrets)."
             exit 1
           fi
+          cd packages/db
           bun run db:migrate
           echo "✅ Production database migrations completed"
 
