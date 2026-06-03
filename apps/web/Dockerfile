@@ -17,10 +17,9 @@ WORKDIR /app
 # Copy the entire monorepo
 COPY . .
 
-# Install dependencies using bun
-RUN bun install --frozen-lockfile
-
-
+# Full monorepo install. --ignore-scripts skips optional native builds
+# (ssh2 → cpu-features/buildcheck) that fail in Docker; turbo stays available at root.
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Provide placeholder BETTER_AUTH_SECRET if needed by some build steps
 ARG BETTER_AUTH_SECRET="build-time-placeholder-do-not-use-in-production"
