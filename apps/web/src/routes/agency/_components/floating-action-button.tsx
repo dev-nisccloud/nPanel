@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router";
 import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, MoreVertical, CheckCircle, Circle, Sparkles, Trash2 } from "lucide-react";
+import { AuroraGlow } from "@/components/ui/aurora-button";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
+import { FabTicketsLottie } from "@/components/fab-tickets-lottie";
 import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTicketsList, useTicketMessages } from "./tickets/use-tickets";
@@ -763,21 +765,27 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen} modal={false}>
       <PopoverTrigger asChild>
-        <Button
-          size="icon"
+        <AuroraGlow
           className={cn(
-            "fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:shadow-xl transition-all duration-200",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "fixed bottom-6 right-6 z-50 rounded-full",
             className
           )}
-          aria-label="Open support options"
+          glowClassName="rounded-full from-primary/60 via-cyan-400/80 to-teal-400/70 opacity-80 blur-xl group-hover:opacity-100 group-hover:blur-2xl"
         >
-          {isOpen ? (
-            <ChevronDown className="h-10 w-10" />
-          ) : (
-            <Icons.FAB className="h-10 w-10" />
-          )}
-        </Button>
+          <Button
+            className={cn(
+              "relative flex size-[5.5rem] shrink-0 items-center justify-center rounded-full border-0 p-0 shadow-lg transition-all duration-200",
+              "bg-[#eef5f7] hover:bg-[#e2edf0] hover:shadow-xl",
+            )}
+            aria-label="Open support options"
+          >
+            {isOpen ? (
+              <ChevronDown className="size-[3.25rem] text-primary" strokeWidth={2.5} />
+            ) : (
+              <FabTicketsLottie />
+            )}
+          </Button>
+        </AuroraGlow>
       </PopoverTrigger>
       <PopoverContent
         align="end"
@@ -785,6 +793,10 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         sideOffset={16}
         className={cn(
           "w-[360px] p-0 rounded-2xl overflow-hidden border-0 shadow-xl bg-background/98 backdrop-blur-md",
+          "data-[state=open]:duration-500 data-[state=closed]:duration-400",
+          "data-[state=open]:ease-out data-[state=closed]:ease-in",
+          "data-[side=top]:slide-in-from-bottom-6",
+          "data-[side=top]:data-[state=closed]:slide-out-to-bottom-4",
           (currentView === "chat-list" || currentView === "chat" || currentView === "zepo" || currentView === "zepo-history") && "h-[600px] flex flex-col"
         )}
       >
