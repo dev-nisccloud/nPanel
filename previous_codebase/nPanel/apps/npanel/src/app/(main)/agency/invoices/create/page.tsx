@@ -8,7 +8,7 @@ export default function InvoicingPage() {
     defaultValues: {
       step: "1",
       yourEmail: "accounts@nisccloud.com",
-      yourName: "Nisc Cloud Limited",
+      yourName: "Nisc Cloud®",
       yourAddress: "P.O BOX 21615",
       yourCity: "Nairobi",
       yourState: "",
@@ -31,7 +31,7 @@ export default function InvoicingPage() {
       paymentMethod: "bank",
       bankName: "Absa Bank Limited",
       accountNumber: "2052676528",
-      accountName: "Nisc Cloud Limited",
+      accountName: "Nisc Cloud®",
       branchName: "Hurlingham",
       branchCode: "045",
       swiftCode: "BARCKENX",

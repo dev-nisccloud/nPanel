@@ -212,7 +212,7 @@ export async function createAndEmailNiscOrderInvoice(
 
 		await sendEmailWithPdf({
 			to: toEmail,
-			subject: `Your invoice ${invoiceNumber} from Nisc Cloud Limited`,
+			subject: `Your invoice ${invoiceNumber} from Nisc Cloud®`,
 			html: emailHtml,
 			cc: ccList.length > 0 ? ccList : undefined,
 			attachmentFilename: pdfFilename,

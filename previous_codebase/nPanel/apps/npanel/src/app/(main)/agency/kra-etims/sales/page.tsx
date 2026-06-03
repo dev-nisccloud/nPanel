@@ -175,7 +175,7 @@ export default function ETimsSalesPage() {
                 custTin: "A016495079I",
                 rptNo: 1,
                 rcptPbctDt: dt14,
-                trdeNm: branch?.bhfNm ?? cfg?.mgrNm ?? "Nisc Cloud Limited",
+                trdeNm: branch?.bhfNm ?? cfg?.mgrNm ?? "Nisc Cloud®",
                 adrs: cfg?.prvncNm ?? "Nairobi",
                 topMsg: "Shopwithus",
                 btmMsg: "Welcome",
