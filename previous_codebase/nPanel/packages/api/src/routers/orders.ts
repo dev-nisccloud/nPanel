@@ -2091,7 +2091,7 @@ export const ordersRouter = router({
 							const companyLogoUrl = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
 							
 							const fromDetails = {
-								name: "Nisc Cloud Limited",
+								name: "Nisc Cloud®",
 								email: "billing@nisccloud.com",
 								address: "Applewood Adams Suite 805 - Ngong Rd",
 								city: "Nairobi",
@@ -2351,7 +2351,7 @@ export const ordersRouter = router({
 						// Send email
 						await sendEmail({
 							to: billingSettings.billingEmail,
-							subject: `Order Confirmation - ${result.order.orderNumber} from Nisc Cloud Limited`,
+							subject: `Order Confirmation - ${result.order.orderNumber} from Nisc Cloud®`,
 							html: emailHtml,
 						});
 					}

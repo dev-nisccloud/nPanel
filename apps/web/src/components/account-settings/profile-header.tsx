@@ -2,11 +2,10 @@
 
 import { Calendar, Shield } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/utils/trpc";
-import { getInitials } from "@/lib/utils";
 
 function formatDate(date: Date | string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -53,19 +52,13 @@ export function ProfileHeader() {
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-card px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <Avatar className="h-11 w-11 shrink-0">
-          <AvatarImage
-            src={
-              userInfo.image?.trim() ||
-              `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(userInfo.name?.trim() || userInfo.email)}`
-            }
-            alt={userInfo.name}
-            referrerPolicy="no-referrer"
-          />
-          <AvatarFallback className="text-sm font-medium">
-            {getInitials(userInfo.name)}
-          </AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          name={userInfo.name}
+          email={userInfo.email}
+          image={userInfo.image}
+          className="h-11 w-11 shrink-0"
+          fallbackClassName="text-sm font-medium"
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

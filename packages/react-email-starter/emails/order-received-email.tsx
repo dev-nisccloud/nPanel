@@ -126,7 +126,7 @@ export const OrderReceivedEmail = ({
           </EmailLink>
         </EmailText>
         <EmailText>
-          Thank you for choosing <strong>Nisc Cloud Limited</strong>. We appreciate your business!
+          Thank you for choosing <strong>Nisc Cloud®</strong>. We appreciate your business!
         </EmailText>
         <EmailSignature />
       </Section>

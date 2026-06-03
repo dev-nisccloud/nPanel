@@ -595,7 +595,7 @@ export const quotationsRouter = router({
             : "Quotation.pdf";
         await sendEmail({
             to: input.toEmail,
-            subject: `Quotation ${quotationDetail.quotationNumber ?? ""} from Nisc Cloud Limited`,
+            subject: `Quotation ${quotationDetail.quotationNumber ?? ""} from Nisc Cloud®`,
             html: emailHtml,
             attachments: [
                 {

@@ -172,17 +172,17 @@ export const emailStyles = {
 export const companyBranding = {
   logo: {
     src: "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png",
-    alt: "Nisc Cloud Limited",
+    alt: "Nisc Cloud®",
     width: "175",
     height: "50",
   },
   footerLogo: {
     src: "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png",
-    alt: "Nisc Cloud Limited",
+    alt: "Nisc Cloud®",
     width: "175",
     height: "50",
   },
-  name: "Nisc Cloud Limited",
+  name: "Nisc Cloud®",
   tagline: "Transforming Businesses to stand out and succeed",
   website: "https://www.nisccloud.com",
   email: "info@nisccloud.com",

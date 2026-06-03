@@ -14,7 +14,7 @@ type PrismaClient = typeof prisma;
 const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
 
 const FROM_DETAILS = {
-	name: "Nisc Cloud Limited",
+	name: "Nisc Cloud®",
 	email: "accounts@nisccloud.com",
 	address: "P.O BOX 21615 - 00505",
 	city: "Nairobi",
@@ -30,7 +30,7 @@ const BANK_PAYMENT_DETAILS = {
 	branchName: "Hurlingham",
 	branchCode: "045",
 	accountNumber: "2052676528",
-	accountName: "Nisc Cloud Limited",
+	accountName: "Nisc Cloud®",
 	swiftCode: "BARCKENX",
 	qrCodeValue: "www.nisccloud.com",
 };

@@ -37,12 +37,12 @@ export const QuotationDeliveryEmail = ({
 	const formattedAmount = `${currency} ${totalAmount}`;
 
 	return (
-		<EmailLayout preview={`Quotation ${quotationNumber} from Nisc Cloud Limited`}>
+		<EmailLayout preview={`Quotation ${quotationNumber} from Nisc Cloud®`}>
 			<EmailHeader />
 			<Section>
 				<EmailText>Dear {customerName},</EmailText>
 				<EmailText>
-					Please find your quotation from <strong>Nisc Cloud Limited</strong> for the services outlined below.
+					Please find your quotation from <strong>Nisc Cloud®</strong> for the services outlined below.
 				</EmailText>
 
 				<div
