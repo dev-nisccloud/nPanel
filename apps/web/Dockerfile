@@ -17,9 +17,9 @@ WORKDIR /app
 # Copy the entire monorepo
 COPY . .
 
-# Install only the web workspace tree (web + its deps). Skips server-only native
-# packages (ssh2 → cpu-features/buildcheck) that cause "Failed to install 2 packages".
-RUN bun install --frozen-lockfile --ignore-scripts --filter web...
+# Full monorepo install. --ignore-scripts skips optional native builds
+# (ssh2 → cpu-features/buildcheck) that fail in Docker; turbo stays available at root.
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Provide placeholder BETTER_AUTH_SECRET if needed by some build steps
 ARG BETTER_AUTH_SECRET="build-time-placeholder-do-not-use-in-production"
