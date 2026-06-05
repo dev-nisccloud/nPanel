@@ -7,15 +7,9 @@ import { trpc } from "@/utils/trpc";
 import { CreativeAssetsListing } from "./$slug.creative-assets/_components/creative-assets-listing";
 import { EditAssetSheet } from "./$slug.creative-assets/_components/edit-asset-sheet";
 import { creativeAssetSchema } from "./$slug.creative-assets/_components/schema";
-import { useVisualCreativeSubscriptions } from "./$slug.creative-assets/_components/use-visual-creative-subscriptions";
-import { CreativeAssetsPricing } from "./$slug.creative-assets/_components/creative-assets-pricing";
-
 export default function CreativeAssetsPage() {
   const [isEditAssetOpen, setIsEditAssetOpen] = React.useState(false);
   const [editingAsset, setEditingAsset] = React.useState<z.infer<typeof creativeAssetSchema> | null>(null);
-
-  // Check for VISUAL_CREATIVE subscriptions
-  const { hasServiceSubscriptions, isLoading: isSubscriptionsLoading } = useVisualCreativeSubscriptions();
 
   // Fetch creative assets - only public ones owned by the team
   const { data: assets, isLoading: isAssetsLoading, isError, error, refetch } = trpc.creativeAssets.getAll.useQuery();
@@ -26,7 +20,7 @@ export default function CreativeAssetsPage() {
     return assets.filter(asset => asset.isPublic === true);
   }, [assets]);
 
-  const isLoading = isSubscriptionsLoading || isAssetsLoading;
+  const isLoading = isAssetsLoading;
 
   const [archivingAssetId] = React.useState<string | null>(null);
   const [unarchivingAssetId] = React.useState<string | null>(null);
@@ -121,25 +115,6 @@ export default function CreativeAssetsPage() {
   const handleEditAsset = () => {
     refetch();
   };
-
-  // Show pricing if no subscriptions
-  if (!isLoading && hasServiceSubscriptions === false) {
-    return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-        <div className="w-full max-w-7xl mx-auto">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight">Creative Assets</h1>
-            <p className="text-muted-foreground">
-              View and manage your creative assets, versions, and collaborate with your team.
-            </p>
-          </div>
-          <div className="mt-6">
-            <CreativeAssetsPricing />
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">

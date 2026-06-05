@@ -236,12 +236,16 @@ interface AdminAccessGuideDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   platform: AdPlatform;
+  selectedPlanName?: string;
+  selectedCommissionRate?: number | null;
 }
 
 export function AdminAccessGuideDialog({
   open,
   onOpenChange,
   platform,
+  selectedPlanName,
+  selectedCommissionRate,
 }: AdminAccessGuideDialogProps) {
   const guide = GUIDES[platform];
 
@@ -256,6 +260,21 @@ export function AdminAccessGuideDialog({
           <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
             {guide.description}
           </DialogDescription>
+          {selectedPlanName && (
+            <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">
+              Selected plan:{" "}
+              <span className="font-semibold text-foreground">{selectedPlanName}</span>
+              {selectedCommissionRate != null && (
+                <>
+                  {" "}
+                  ·{" "}
+                  <span className="font-semibold text-foreground">
+                    {selectedCommissionRate}% of ad spend
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </DialogHeader>
 
         <div className="space-y-6 mt-2">

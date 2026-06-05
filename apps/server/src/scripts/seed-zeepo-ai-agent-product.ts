@@ -18,33 +18,106 @@ import {
 	ZEEPO_AI_AGENT_PRODUCT_ID,
 	ZEEPO_AGENT_FREE_OPERATIONS,
 	ZEEPO_INTERNAL_USD_PER_TOKEN,
+	ZEEPO_SIGNUP_WELCOME_TOKEN_GRANT,
 } from "@npanel/api/lib/zeepo-agent-billing";
 import { invalidateProductsCache } from "@npanel/api/lib/products-cache";
+
+type ProductFeature = {
+	key: string;
+	label: string;
+	description: string;
+};
+
+const PRODUCT_FEATURES: ProductFeature[] = [
+	{
+		key: "chat",
+		label: "AI chat assistant",
+		description: "Multi-turn agent that researches, plans, and executes tasks in one conversation",
+	},
+	{
+		key: "skills",
+		label: "Guided workflows",
+		description: "Premade flows for strategy, branding, naming, pricing, and quarterly planning",
+	},
+	{
+		key: "attachments",
+		label: "Image uploads & vision",
+		description: "Attach images for analysis, reference assets, or logo-aware design work",
+	},
+	{
+		key: "web_search",
+		label: "Live web research",
+		description: "Real-time grounding for markets, competitors, and facts — no token cost",
+	},
+	{
+		key: "media_image",
+		label: "Image generation",
+		description: "Photorealistic visuals, social creatives, and design-specialist outputs",
+	},
+	{
+		key: "media_video",
+		label: "Video generation",
+		description: "Cinematic clips and motion content with optional audio",
+	},
+	{
+		key: "media_audio",
+		label: "Voice & audio",
+		description: "Text-to-speech and spoken content generation",
+	},
+	{
+		key: "background_remover",
+		label: "Background removal",
+		description: "Clean cutouts from product shots and portraits",
+	},
+	{
+		key: "image_editing",
+		label: "Image editing",
+		description: "Instruct, style transfer, erase, background swap, upscale, text edit, and variations",
+	},
+	{
+		key: "design_assets",
+		label: "Brand & design assets",
+		description: "Logos, business cards, flyers, mockups, and campaign-ready creatives",
+	},
+	{
+		key: "documents",
+		label: "Strategy documents",
+		description: "Long-form documents deliverables — reports, briefs, and analyses with PDF export",
+	},
+	{
+		key: "presentations",
+		label: "Slide decks",
+		description: "Structured presentations with charts and themes — export PDF, PPTX, or PNG",
+	},
+	{
+		key: "image_presentations",
+		label: "Visual slide decks",
+		description: "Photorealistic, full-bleed image-based decks for pitches and storytelling",
+	},
+	{
+		key: "platform_resources",
+		label: "Your resources in one chat",
+		description:
+			"Zeepo connects to your live domains, web hosting, and business email — search availability, register names, view your portfolio, browse plans, and inspect subscriptions without leaving the conversation. Domain availability checks are free.",
+	},
+];
 
 const PRODUCT = {
 	id: ZEEPO_AI_AGENT_PRODUCT_ID,
 	name: "Zeepo AI Agent",
 	description:
-		"AI assistant for chat, image and video generation, documents, and more. Usage is metered in tokens.",
+		"Your AI copilot for research, strategy, creative production, and everyday business work. Generate images, video, and voice; build documents and slide decks; manage domains, hosting, and email — all in one chat. Usage is metered in tokens with flexible monthly plans or pay-as-you-go top-ups.",
 	category: "AI",
 	serviceType: "ZEEPO_AI_AGENT",
 	isActive: true,
 	sortOrder: 20,
-	features: [
-		{ key: "chat", label: "AI chat assistant", description: "Multi-turn agent with tools" },
-		{ key: "media", label: "Media generation", description: "Images, video, and audio" },
-		{ key: "documents", label: "Documents & presentations", description: "Structured outputs" },
-		{ key: "web_search", label: "Web search", description: "Included at no token cost" },
-		{
-			key: "domain_check",
-			label: "Domain availability",
-			description: "Included at no token cost",
-		},
-	],
+	features: PRODUCT_FEATURES,
 	highlights: [
-		"Token-based usage - buy a plan or top up anytime",
-		"Web search and domain checks included",
-		"Pay-as-you-go or monthly plans",
+		`${ZEEPO_SIGNUP_WELCOME_TOKEN_GRANT} welcome tokens when you sign up`,
+		"Web search and domain availability checks at no token cost",
+		"Images, video, audio, documents, presentations, and image editing",
+		"Domains, hosting, and email — your resources in one chat window",
+		"Monthly plans or one-time token top-ups — pay only for what you use",
 	],
 	isAddOn: false,
 	metadata: {
@@ -53,8 +126,18 @@ const PRODUCT = {
 		billingCurrency: "USD",
 		internalUsdPerToken: ZEEPO_INTERNAL_USD_PER_TOKEN,
 		freeOperations: ZEEPO_AGENT_FREE_OPERATIONS,
+		welcomeTokenGrant: ZEEPO_SIGNUP_WELCOME_TOKEN_GRANT,
 	},
 } as const;
+
+function buildPlanFeatures(): Array<{ key: string; available: boolean }> {
+	return PRODUCT_FEATURES.map((feature) => ({
+		key: feature.key,
+		available: true,
+	}));
+}
+
+const PLAN_FEATURES = buildPlanFeatures();
 
 type PlanSeed = {
 	id: string;
@@ -71,13 +154,15 @@ type PlanSeed = {
 	sortOrder: number;
 	usagePeriod?: string | null;
 	accumulateCredits?: boolean;
+	highlights: string[];
 };
 
 const PLANS: PlanSeed[] = [
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.starter,
 		name: "Starter",
-		description: "Monthly plan with 650 tokens - ideal for light use.",
+		description:
+			"650 tokens each month — ideal for light creative work, research, and occasional generations.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceUsd: "9.00",
@@ -85,11 +170,17 @@ const PLANS: PlanSeed[] = [
 		zeepoPlanType: "subscription",
 		sortOrder: 1,
 		usagePeriod: "MONTHLY",
+		highlights: [
+			"650 tokens per month",
+			"Full access to every Zeepo feature",
+			"Web search & domain checks included",
+		],
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.standard,
 		name: "Standard",
-		description: "Monthly plan with 1,400 tokens - best for regular workflows.",
+		description:
+			"1,400 tokens each month — the sweet spot for regular content, design, and business workflows.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceUsd: "19.00",
@@ -100,11 +191,17 @@ const PLANS: PlanSeed[] = [
 		isDefault: true,
 		sortOrder: 2,
 		usagePeriod: "MONTHLY",
+		highlights: [
+			"1,400 tokens per month",
+			"Full access to every Zeepo feature",
+			"Best value for everyday use",
+		],
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.pro,
 		name: "Pro",
-		description: "Monthly plan with 3,800 tokens - for power users and teams.",
+		description:
+			"3,800 tokens each month — for power users, heavy creative output, and growing teams.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceUsd: "49.00",
@@ -112,11 +209,16 @@ const PLANS: PlanSeed[] = [
 		zeepoPlanType: "subscription",
 		sortOrder: 3,
 		usagePeriod: "MONTHLY",
+		highlights: [
+			"3,800 tokens per month",
+			"Full access to every Zeepo feature",
+			"Highest monthly token allowance",
+		],
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.topUp500,
-		name: "Token Top-Up - 500",
-		description: "One-time purchase of 500 tokens. Adds to your current balance.",
+		name: "Token Top-Up — 500",
+		description: "One-time purchase of 500 tokens. Adds to your current balance whenever you need a boost.",
 		pricingModel: "FIXED",
 		billingCycle: "CUSTOM",
 		priceUsd: "7.00",
@@ -125,11 +227,12 @@ const PLANS: PlanSeed[] = [
 		sortOrder: 10,
 		usagePeriod: null,
 		accumulateCredits: true,
+		highlights: ["500 tokens", "Adds to your balance", "No monthly commitment"],
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.topUp1500,
-		name: "Token Top-Up - 1,500",
-		description: "One-time purchase of 1,500 tokens. Adds to your current balance.",
+		name: "Token Top-Up — 1,500",
+		description: "One-time purchase of 1,500 tokens. Ideal when you need extra runway for a campaign or project.",
 		pricingModel: "FIXED",
 		billingCycle: "CUSTOM",
 		priceUsd: "18.00",
@@ -138,11 +241,12 @@ const PLANS: PlanSeed[] = [
 		sortOrder: 11,
 		usagePeriod: null,
 		accumulateCredits: true,
+		highlights: ["1,500 tokens", "Adds to your balance", "No monthly commitment"],
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.topUp5000,
-		name: "Token Top-Up - 5,000",
-		description: "One-time purchase of 5,000 tokens. Adds to your current balance.",
+		name: "Token Top-Up — 5,000",
+		description: "One-time purchase of 5,000 tokens. For sustained production sprints without upgrading your plan.",
 		pricingModel: "FIXED",
 		billingCycle: "CUSTOM",
 		priceUsd: "55.00",
@@ -151,12 +255,13 @@ const PLANS: PlanSeed[] = [
 		sortOrder: 12,
 		usagePeriod: null,
 		accumulateCredits: true,
+		highlights: ["5,000 tokens", "Adds to your balance", "Best top-up value"],
 	},
 	{
 		id: ZEEPO_AI_AGENT_PLAN_IDS.payAsYouGo,
 		name: "Pay As You Go",
 		description:
-			"No monthly fee. Purchase token top-ups when you need them and pay only for what you use.",
+			"No monthly fee. Start with welcome tokens, then top up whenever you need more — pay only for what you use.",
 		pricingModel: "FIXED",
 		billingCycle: "CUSTOM",
 		priceUsd: "0.00",
@@ -165,6 +270,11 @@ const PLANS: PlanSeed[] = [
 		sortOrder: 99,
 		usagePeriod: null,
 		accumulateCredits: true,
+		highlights: [
+			"No monthly subscription",
+			"Top up tokens on demand",
+			"Full access to every Zeepo feature",
+		],
 	},
 ];
 
@@ -221,8 +331,8 @@ async function upsertPlan(plan: PlanSeed) {
 			setupFee: null,
 			cost: plan.priceUsd,
 			costCurrency: "USD",
-			planFeatures: [],
-			highlights: [`${plan.tokenGrant.toLocaleString()} tokens`],
+			planFeatures: PLAN_FEATURES,
+			highlights: plan.highlights,
 			isPopular: plan.isPopular ?? false,
 			isRecommended: plan.isRecommended ?? false,
 			isActive: true,
@@ -255,7 +365,8 @@ async function upsertPlan(plan: PlanSeed) {
 				currency: "USD",
 				cost: plan.priceUsd,
 				costCurrency: "USD",
-				highlights: [`${plan.tokenGrant.toLocaleString()} tokens`],
+				planFeatures: PLAN_FEATURES,
+				highlights: plan.highlights,
 				isPopular: plan.isPopular ?? false,
 				isRecommended: plan.isRecommended ?? false,
 				isActive: true,

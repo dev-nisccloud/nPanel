@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
+import { NISC_SEO_REPORTS_PRODUCT_ID } from "../../lib/seo-reports-billing";
 import { seoReport, seoReportActivityLog } from "@npanel/db/schema/seo-reports";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router, type Context } from "../../trpc";
@@ -158,7 +159,11 @@ async function loadActiveTeamSeoSubscriptionResources(teamId: string): Promise<T
       and(
         eq(niscClientSubscription.teamId, teamId),
         eq(niscClientSubscription.status, "ACTIVE"),
-        ilike(niscProduct.name, "%seo%"),
+        or(
+          eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID),
+          ilike(niscProduct.name, "%seo report%"),
+          ilike(niscProduct.name, "%seo%"),
+        ),
       ),
     );
 

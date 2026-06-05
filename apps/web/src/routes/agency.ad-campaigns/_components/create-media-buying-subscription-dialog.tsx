@@ -142,6 +142,9 @@ export function CreateMediaBuyingSubscriptionDialog({
                   {(mediaBuyingProduct?.plans ?? []).map((plan) => (
                     <SelectItem key={plan.id} value={plan.id}>
                       {plan.name}
+                      {plan.agreedCommissionRate != null
+                        ? ` — ${plan.agreedCommissionRate}% of ad spend`
+                        : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -209,7 +212,16 @@ export function CreateMediaBuyingSubscriptionDialog({
               <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
                 {selectedTeam ? `Team: ${selectedTeam.name}` : ""}
                 {selectedTeam && selectedPlan ? " · " : ""}
-                {selectedPlan ? `Plan: ${selectedPlan.name}` : ""}
+                {selectedPlan ? (
+                  <>
+                    Plan: {selectedPlan.name}
+                    {selectedPlan.agreedCommissionRate != null
+                      ? ` (${selectedPlan.agreedCommissionRate}% of ad spend)`
+                      : ""}
+                  </>
+                ) : (
+                  ""
+                )}
                 {(selectedTeam || selectedPlan) && adServingFee.trim().length > 0 ? " · " : ""}
                 {adServingFee.trim().length > 0 ? `Ad Serving Fee: ${adServingFee.trim()} ${adServingFeeCurrency}` : ""}
               </div>

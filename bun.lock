@@ -59,6 +59,7 @@
         "dotenv": "catalog:",
         "drizzle-orm": "catalog:",
         "hono": "catalog:",
+        "pg": "catalog:",
         "prettier": "^3.5.1",
         "react": "catalog:",
         "react-dom": "catalog:",

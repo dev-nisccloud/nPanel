@@ -2,15 +2,15 @@ import { HostingDataTable } from "./$slug.emails/_components/hosting-data-table"
 
 export default function EmailsPage() {
   return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-      <div className="w-full max-w-7xl mx-auto">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-base font-semibold tracking-tight">Email Hosting subscriptions</h1>
-          <p className="text-xs text-muted-foreground">
-            Customers obtain email hosting services from you by subscribing to an Email Hosting plan
+    <div className="@container/main flex min-h-0 flex-1 flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+      <div className="mx-auto flex w-full max-w-7xl min-h-0 flex-1 flex-col">
+        <div className="flex shrink-0 flex-col gap-2">
+          <h1 className="text-base font-semibold tracking-tight">Business Email</h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Professional email on your domain — mailboxes, storage, and daily backups managed by Nisc Cloud.
           </p>
         </div>
-        <div className="mt-6">
+        <div className="mt-6 min-h-0 flex-1">
           <HostingDataTable />
         </div>
       </div>
