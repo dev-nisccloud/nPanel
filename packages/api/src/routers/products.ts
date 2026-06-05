@@ -22,6 +22,9 @@ import {
     hostingUpsellKey,
     digitalMarketingUpsellKey,
 } from "../lib/products-cache";
+import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
+import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
+import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -987,7 +990,14 @@ export const productsRouter = router({
         )
         .query(async () => {
             const products = await db.query.niscProduct.findMany({
-                where: and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%seo%")),
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    or(
+                        eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID),
+                        ilike(niscProduct.name, "%seo report%"),
+                        ilike(niscProduct.name, "%seo%"),
+                    ),
+                ),
                 orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
                 with: {
                     plans: {
@@ -1064,6 +1074,128 @@ export const productsRouter = router({
             return { productFeatures, plans };
         }),
 
+    /** Media buying customer pricing (Meta / Google / LinkedIn). COMMISSION plans only. */
+    getMediaBuyingPlansForPricing: publicProcedure
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productName: z.string(),
+                plans: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        niscPrice: z.string().nullable(),
+                        niscCurrency: z.string(),
+                        billingCycle: z.string(),
+                        pricingModel: z.enum(["FIXED", "COMMISSION"]),
+                        commissionRate: z.number().nullable(),
+                        commissionBase: z.string().nullable(),
+                        isPopular: z.boolean(),
+                        isRecommended: z.boolean(),
+                        productId: z.string(),
+                        productName: z.string(),
+                        featureValues: z.array(
+                            z.object({
+                                available: z.boolean(),
+                                valueOverride: z.string().nullable(),
+                            }),
+                        ),
+                    }),
+                ),
+            }),
+        )
+        .query(async () => {
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    or(
+                        eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
+                        ilike(niscProduct.name, "%media buying%"),
+                    ),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
+                    plans: {
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "COMMISSION"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
+                    },
+                },
+            });
+
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push(f);
+                    }
+                }
+            }
+
+            const plans: Array<{
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                pricingModel: "FIXED" | "COMMISSION";
+                commissionRate: number | null;
+                commissionBase: string | null;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+            }> = [];
+
+            let productName = "Media Buying";
+
+            for (const product of products) {
+                productName = product.name;
+                for (const plan of (product as any).plans ?? []) {
+                    const planFeats =
+                        (plan.planFeatures as Array<{
+                            key: string;
+                            available: boolean;
+                            valueOverride?: string | null;
+                        }>) ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+                    plans.push({
+                        id: plan.id,
+                        name: plan.name,
+                        niscPrice: null,
+                        niscCurrency: plan.currency ?? "KES",
+                        billingCycle: "MONTHLY",
+                        pricingModel: "COMMISSION",
+                        commissionRate:
+                            plan.commissionRate != null ? Number(plan.commissionRate) : null,
+                        commissionBase: plan.commissionBase ?? null,
+                        isPopular: plan.isPopular ?? false,
+                        isRecommended: plan.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+            }
+
+            return { productFeatures, productName, plans };
+        }),
+
     /**
      * Creative / design customer pricing (e.g. Creative Assets empty state). Matches products whose name
      * contains "creatives design", "creative_design", or "creatives_design" (case-insensitive).
@@ -1099,6 +1231,7 @@ export const productsRouter = router({
                 where: and(
                     eq(niscProduct.isActive, true),
                     or(
+                        eq(niscProduct.id, CREATIVES_DESIGN_PRODUCT_ID),
                         ilike(niscProduct.name, "%creatives design%"),
                         ilike(niscProduct.name, "%creative_design%"),
                         ilike(niscProduct.name, "%creatives_design%"),

@@ -8,7 +8,14 @@
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts",
-    "seed:zeepo-ai-agent": "bun run src/scripts/seed-zeepo-ai-agent-product.ts"
+    "seed:zeepo-ai-agent": "bun run src/scripts/seed-zeepo-ai-agent-product.ts",
+    "seed:nisc-email-marketing": "bun run src/scripts/seed-nisc-email-marketing-product.ts",
+    "seed:creatives-design": "bun run src/scripts/seed-creatives-design-product.ts",
+    "seed:seo-reports": "bun run src/scripts/seed-seo-reports-product.ts",
+    "seed:media-buying": "bun run src/scripts/seed-media-buying-product.ts",
+    "seed:web-hosting": "bun run src/scripts/seed-web-hosting-product.ts",
+    "seed:email-hosting": "bun run src/scripts/seed-email-hosting-product.ts",
+    "seed:hosting-products": "bun run src/scripts/seed-web-hosting-product.ts && bun run src/scripts/seed-email-hosting-product.ts"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",
@@ -23,7 +30,6 @@
     "@upstash/qstash": "catalog:",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
-    "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "prettier": "^3.5.1",
     "react": "catalog:",

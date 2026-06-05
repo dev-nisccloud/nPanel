@@ -187,9 +187,13 @@ export function HostingDataTable() {
     return <HostingTableError error={error as unknown as Error} onRetry={() => refetch()} />;
   }
 
-  // No subscriptions: show pricing (products-based) so the customer can choose a plan
+  // No subscriptions: show pricing so the customer can choose a plan
   if (data.length === 0) {
-    return <HostingPricing />;
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <HostingPricing className="min-h-[min(calc(100dvh-18rem),48rem)]" />
+      </div>
+    );
   }
 
   const TableView = () => (

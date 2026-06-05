@@ -155,6 +155,8 @@ interface HostingPlanWithFeatureValues {
   productId: string
   productName: string
   featureValues: Array<{ available: boolean; valueOverride: string | null }>
+  commissionRate?: number | null
+  pricingModel?: "FIXED" | "COMMISSION"
 }
 
 type HostingPlan = HostingPlanLegacy | HostingPlanWithFeatureValues
@@ -171,7 +173,11 @@ export function mapHostingPlansToPricingTable(
   const useProductFeatures = productFeatures != null && productFeatures.length > 0
 
   const pricingPlans: PricingPlan[] = plans.map((plan) => {
-    const { monthlyPrice, yearlyPrice } = derivePricing(plan.niscPrice, plan.billingCycle)
+    const isCommission =
+      isPlanWithFeatureValues(plan) && plan.pricingModel === "COMMISSION" && plan.commissionRate != null
+    const { monthlyPrice, yearlyPrice } = isCommission
+      ? { monthlyPrice: plan.commissionRate!, yearlyPrice: plan.commissionRate! }
+      : derivePricing(plan.niscPrice, plan.billingCycle)
 
     const base = {
       id: plan.id,
@@ -219,6 +225,9 @@ interface PricingTableWrapperProps {
   onBuyNow?: (plan: HostingPlan) => void
   /** Pass true to strip the full-page padding (py-12/px-4) and max-w-6xl container. Use inside dialogs or chat cards. */
   embedded?: boolean
+  /** Commission-based media buying plans */
+  pricingMode?: "fixed" | "commission"
+  actionButtonLabel?: string
 }
 
 export function PricingTableWrapper({
@@ -230,6 +239,8 @@ export function PricingTableWrapper({
   locale = "en-KE",
   onBuyNow,
   embedded = false,
+  pricingMode = "fixed",
+  actionButtonLabel,
 }: PricingTableWrapperProps) {
   if (isLoading) {
     return (
@@ -277,6 +288,8 @@ export function PricingTableWrapper({
       currency={currency}
       locale={locale}
       embedded={embedded}
+      pricingMode={pricingMode}
+      actionButtonLabel={actionButtonLabel}
     />
   )
 }

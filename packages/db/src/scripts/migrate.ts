@@ -1,11 +1,19 @@
+import dotenv from "dotenv";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import { resolve } from "node:path";
 
+// Load local .env only when DATABASE_URL is not already set (CI / explicit env wins).
+if (!process.env.DATABASE_URL) {
+  dotenv.config({ path: resolve(import.meta.dir, "../../../../apps/server/.env") });
+}
+
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
-  console.error("DATABASE_URL is not set.");
+  console.error(
+    "DATABASE_URL is not set. In CI, set it as an env var. Locally, ensure apps/server/.env exists.",
+  );
   process.exit(1);
 }
 

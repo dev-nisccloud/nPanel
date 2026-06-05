@@ -7,7 +7,6 @@ import { trpc } from "@/utils/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SeoSearchConsoleView } from "./$slug.seo-reports/_components/seo-search-console-view";
 import { SeoGa4View } from "./$slug.seo-reports/_components/seo-ga4-view";
-import { SeoPricing } from "./$slug.seo-reports/_components/seo-pricing";
 
 export default function TeamSeoReportsPage() {
   const { slug: teamSlug } = useParams();
@@ -24,22 +23,7 @@ export default function TeamSeoReportsPage() {
     },
   );
 
-  const {
-    data: ga4Data,
-    isLoading: isLoadingGa4,
-  } = trpc.seoReports.listGa4Properties.useQuery(
-    { teamSlug: teamSlug! },
-    {
-      enabled: Boolean(teamSlug),
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  );
-
   const sites = sitesData || [];
-  const ga4Properties = ga4Data || [];
-  const showGlobalSeoPricing =
-    !isLoadingSites && !isLoadingGa4 && sites.length === 0 && ga4Properties.length === 0;
 
   if (!teamSlug) {
     return (
@@ -49,27 +33,10 @@ export default function TeamSeoReportsPage() {
     );
   }
 
-  if (isLoadingSites || isLoadingGa4) {
+  if (isLoadingSites) {
     return (
       <div className="flex items-center justify-center py-24">
         <Spinner size={32} />
-      </div>
-    );
-  }
-
-  if (showGlobalSeoPricing) {
-    return (
-      <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6 text-foreground">
-        <div className="w-full max-w-7xl mx-auto">
-          <div className="flex flex-col gap-2 mb-2">
-            <h1 className="text-xl font-bold tracking-tight">SEO Reports</h1>
-            <p className="text-sm text-muted-foreground max-w-2xl">
-              See how people discover your site and what they do next, Search Console and GA4 together in one workflow.
-              Pick a plan below to enable reporting for your team.
-            </p>
-          </div>
-          <SeoPricing />
-        </div>
       </div>
     );
   }
@@ -78,9 +45,9 @@ export default function TeamSeoReportsPage() {
     <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6 text-foreground">
       <div className="w-full max-w-7xl mx-auto">
         <div className="flex flex-col gap-2 mb-6">
-          <h1 className="text-xl font-bold tracking-tight">SEO Reports</h1>
-          <p className="text-xs text-muted-foreground">
-            Comprehensive SEO performance metrics from Google Search Console & Google Analytics 4.
+          <h1 className="text-base font-semibold tracking-tight">SEO Reports</h1>
+          <p className="text-sm text-muted-foreground">
+            Track the results of your managed SEO — rankings, traffic, and conversions from Google Search and Analytics.
           </p>
         </div>
 

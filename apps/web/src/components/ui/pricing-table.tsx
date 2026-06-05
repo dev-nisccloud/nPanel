@@ -65,6 +65,10 @@ export interface PricingTableProps
   locale?: string
   /** When set, "Contact us" (price 0) uses this tel: link instead of onPlanSelect. Defaults to company number. */
   contactTelHref?: string
+  /** Commission-based plans: show % of ad spend instead of currency. Hides monthly/yearly toggle. */
+  pricingMode?: "fixed" | "commission"
+  commissionSuffix?: string
+  actionButtonLabel?: string
 }
 
 /**
@@ -177,8 +181,12 @@ export function PricingTable({
   currency = "KES",
   locale = "en-KE",
   contactTelHref = CONTACT_TEL_HREF,
+  pricingMode = "fixed",
+  commissionSuffix = "of ad spend / month",
+  actionButtonLabel,
   ...props
 }: PricingTableProps) {
+  const isCommission = pricingMode === "commission"
   const isPlanControlled = selectedPlanLevelProp !== undefined
   const isYearlyControlled = isYearlyProp !== undefined
 
@@ -211,6 +219,121 @@ export function PricingTable({
     : extractAllFeatures(plans)
   const selectedPlanData = plans.find((p) => p.level === selectedPlan)
 
+  /** Feature table column sizing (plan cards use full width separately). */
+  const featuresColClass = "w-48 sm:w-64 flex-shrink-0"
+  const planColsGapClass = "gap-4 sm:gap-6"
+  const planCardsGridClass =
+    plans.length <= 1
+      ? "grid-cols-1"
+      : plans.length === 2
+        ? "grid-cols-1 sm:grid-cols-2"
+        : plans.length === 3
+          ? "grid-cols-1 sm:grid-cols-3"
+          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+
+  const renderPlanCard = (plan: PricingPlan) => {
+    const isSelected = selectedPlan === plan.level
+    return (
+      <button
+        key={plan.id}
+        type="button"
+        onClick={() => handlePlanCardClick(plan)}
+        className={cn(
+          "relative w-full min-w-0 rounded-2xl text-left transition-all duration-200",
+          embedded ? "p-4" : "p-5 sm:p-6",
+          "border-2 bg-card/60 hover:bg-card/90",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+          isSelected
+            ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/25"
+            : "border-border/80 hover:border-primary/40 hover:shadow-md"
+        )}
+      >
+        <div
+          className={cn(
+            "absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-opacity",
+            isSelected
+              ? "bg-primary text-primary-foreground opacity-100"
+              : "opacity-0"
+          )}
+        >
+          <Check className="w-3 h-3 stroke-[2.5]" />
+          Selected
+        </div>
+
+        <div
+          className={cn(
+            "mb-4 flex size-8 items-center justify-center rounded-full border-2 transition-colors",
+            isSelected
+              ? "border-primary bg-primary"
+              : "border-muted-foreground/30 bg-muted/50"
+          )}
+        >
+          {isSelected ? (
+            <div className="size-2 rounded-full bg-primary-foreground" />
+          ) : null}
+        </div>
+
+        <div className={cn("flex items-center justify-between gap-2 mb-3", isSelected && "pr-20")}>
+          <span className="text-sm font-semibold tracking-tight text-foreground uppercase">
+            {plan.name}
+          </span>
+          {!hideBadges && (plan.popular || plan.recommended) && !isSelected && (
+            <span className="flex flex-col gap-1 items-end shrink-0">
+              {plan.popular && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full whitespace-nowrap">
+                  Popular
+                </span>
+              )}
+              {plan.recommended && (
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1 rounded-full border border-emerald-500/20 whitespace-nowrap">
+                  Recommended
+                </span>
+              )}
+            </span>
+          )}
+        </div>
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          {isCommission ? (
+            <>
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+                {plan.price.monthly}%
+              </span>
+              <span className="text-sm text-muted-foreground">{commissionSuffix}</span>
+            </>
+          ) : (isYearly ? plan.price.yearly : plan.price.monthly) === 0 ? (
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight">
+              Contact us
+            </span>
+          ) : (
+            <>
+              <NumberFlow
+                format={{
+                  style: "currency",
+                  currency: currency,
+                  trailingZeroDisplay: "stripIfInteger",
+                }}
+                value={isYearly ? plan.price.yearly : plan.price.monthly}
+                className="text-2xl sm:text-3xl font-bold tracking-tight"
+              />
+              <span className="text-sm text-muted-foreground">
+                /{isYearly ? "year" : "month"}
+              </span>
+            </>
+          )}
+        </div>
+        {!embedded && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {isSelected
+              ? (isYearly ? plan.price.yearly : plan.price.monthly) === 0
+                ? "Click Contact us above to continue"
+                : "Click Get started above to continue"
+              : "Click to select this plan"}
+          </p>
+        )}
+      </button>
+    )
+  }
+
   return (
     <section
       className={cn(
@@ -230,11 +353,12 @@ export function PricingTable({
         {/* Billing toggle + CTA */}
         <div
           className={cn(
-            "flex flex-col sm:flex-row items-center gap-4",
-            embedded ? "mb-4 justify-between" : "mb-8 sm:mb-10 justify-between",
-            hideActionButton && "sm:justify-end",
+            "flex flex-col sm:flex-row items-stretch sm:items-center gap-4",
+            embedded ? "mb-4" : "mb-8 sm:mb-10",
+            isCommission || !hideActionButton ? "sm:justify-between" : "sm:justify-end",
           )}
         >
+          {!isCommission && (
           <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/80 border border-border/80 shadow-sm">
             <button
               type="button"
@@ -264,11 +388,23 @@ export function PricingTable({
               </span>
             </button>
           </div>
+          )}
+
+          {isCommission && (
+            <p className="text-sm text-muted-foreground max-w-xl">
+              Commission on total ad spend, invoiced at the end of each billing cycle. Ad spend is paid directly to the platform.
+            </p>
+          )}
 
           {!hideActionButton && selectedPlanData && (onPlanSelect || contactTelHref) && (
             (() => {
               const displayPrice = isYearly ? selectedPlanData.price.yearly : selectedPlanData.price.monthly;
-              const isContactUs = displayPrice === 0;
+              const isContactUs = !isCommission && displayPrice === 0;
+              const ctaLabel =
+                actionButtonLabel ??
+                (isCommission
+                  ? "Get Started"
+                  : `Get started with ${selectedPlanData.name}`);
               return isContactUs ? (
                 <Button
                   size="lg"
@@ -296,7 +432,7 @@ export function PricingTable({
                   )}
                   onClick={() => {
                     if (!onPlanSelect) return;
-                    const selectedBillingCycle = isYearly ? "YEARLY" : "MONTHLY";
+                    const selectedBillingCycle = isCommission ? "MONTHLY" : isYearly ? "YEARLY" : "MONTHLY";
                     const selectedPrice = displayPrice;
                     onPlanSelect({
                       ...selectedPlanData,
@@ -305,7 +441,7 @@ export function PricingTable({
                     });
                   }}
                 >
-                  Get started with {selectedPlanData.name}
+                  {ctaLabel}
                   <ArrowRight className="w-4 h-4 opacity-90" />
                 </Button>
               );
@@ -313,121 +449,26 @@ export function PricingTable({
           )}
         </div>
 
-        {/* Plan selector cards */}
+        {/* Plan selector cards — full width, independent of feature table columns */}
         <div
           className={cn(
-            "flex flex-col sm:flex-row gap-4 sm:gap-5",
+            "grid w-full gap-4 sm:gap-6",
+            planCardsGridClass,
             embedded ? "mb-4" : "mb-10",
           )}
         >
-          {plans.map((plan) => {
-            const isSelected = selectedPlan === plan.level;
-            return (
-              <button
-                key={plan.id}
-                type="button"
-                onClick={() => handlePlanCardClick(plan)}
-                className={cn(
-                  "relative flex-1 rounded-2xl text-left transition-all duration-200",
-                  embedded ? "p-4" : "p-5 sm:p-6",
-                  "border-2 bg-card/60 hover:bg-card/90",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
-                  isSelected
-                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10 ring-2 ring-primary/25"
-                    : "border-border/80 hover:border-primary/40 hover:shadow-md"
-                )}
-              >
-                {/* Selected indicator */}
-                <div
-                  className={cn(
-                    "absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-opacity",
-                    isSelected
-                      ? "bg-primary text-primary-foreground opacity-100"
-                      : "opacity-0"
-                  )}
-                >
-                  <Check className="w-3 h-3 stroke-[2.5]" />
-                  Selected
-                </div>
-
-                {/* Radio-style dot */}
-                <div
-                  className={cn(
-                    "mb-4 flex size-8 items-center justify-center rounded-full border-2 transition-colors",
-                    isSelected
-                      ? "border-primary bg-primary"
-                      : "border-muted-foreground/30 bg-muted/50"
-                  )}
-                >
-                  {isSelected ? (
-                    <div className="size-2 rounded-full bg-primary-foreground" />
-                  ) : null}
-                </div>
-
-                <div className={cn("flex items-center justify-between gap-2 mb-3", isSelected && "pr-20")}>
-                  <span className="text-sm font-semibold tracking-tight text-foreground uppercase">
-                    {plan.name}
-                  </span>
-                  {!hideBadges && (plan.popular || plan.recommended) && !isSelected && (
-                    <span className="flex flex-col gap-1 items-end shrink-0">
-                      {plan.popular && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full whitespace-nowrap">
-                          Popular
-                        </span>
-                      )}
-                      {plan.recommended && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-1 rounded-full border border-emerald-500/20 whitespace-nowrap">
-                          Recommended
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  {(isYearly ? plan.price.yearly : plan.price.monthly) === 0 ? (
-                    <span className="text-2xl sm:text-3xl font-bold tracking-tight">
-                      Contact us
-                    </span>
-                  ) : (
-                    <>
-                      <NumberFlow
-                        format={{
-                          style: "currency",
-                          currency: currency,
-                          trailingZeroDisplay: "stripIfInteger",
-                        }}
-                        value={isYearly ? plan.price.yearly : plan.price.monthly}
-                        className="text-2xl sm:text-3xl font-bold tracking-tight"
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        /{isYearly ? "year" : "month"}
-                      </span>
-                    </>
-                  )}
-                </div>
-                {!embedded && (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    {isSelected
-                      ? (isYearly ? plan.price.yearly : plan.price.monthly) === 0
-                        ? "Click Contact us above to continue"
-                        : "Click Get started above to continue"
-                      : "Click to select this plan"}
-                  </p>
-                )}
-              </button>
-            );
-          })}
+          {plans.map(renderPlanCard)}
         </div>
 
         {/* Features table */}
         <div className="rounded-2xl border border-border overflow-hidden shadow-sm bg-card/30">
           <div className="overflow-x-auto">
-            <div className={cn(embedded ? "min-w-[520px]" : "min-w-[640px]")}>
+            <div className="min-w-[640px]">
               <div className="flex items-center px-4 sm:px-5 py-3.5 bg-muted/60 border-b border-border/80">
-                <div className="w-48 sm:w-64 flex-shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className={cn(featuresColClass, "text-xs font-semibold uppercase tracking-wider text-muted-foreground")}>
                   Features
                 </div>
-                <div className="flex items-center gap-4 sm:gap-6 text-sm flex-1">
+                <div className={cn("flex items-center text-sm flex-1", planColsGapClass)}>
                   {plans.map((plan) => (
                     <div
                       key={plan.level}
@@ -458,10 +499,10 @@ export function PricingTable({
                       selectedHighlight && "bg-primary/[0.06]"
                     )}
                   >
-                    <div className="w-48 sm:w-64 flex-shrink-0 text-sm text-foreground/90">
+                    <div className={cn(featuresColClass, "text-sm text-foreground/90")}>
                       {feature.name}
                     </div>
-                    <div className="flex items-center gap-4 sm:gap-6 text-sm flex-1">
+                    <div className={cn("flex items-center text-sm flex-1", planColsGapClass)}>
                       {plans.map((plan) => {
                         if (cellFromProduct && plan.featureValues) {
                           const cell = plan.featureValues[idx]

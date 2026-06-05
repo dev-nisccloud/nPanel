@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, eq, ilike, inArray, sql } from '@npanel/db';
+import { and, eq, ilike, inArray, or, sql } from '@npanel/db';
 import { db } from '@npanel/db';
 import { niscClientSubscription, niscProduct } from '@npanel/db/schema/products';
+import { NISC_MEDIA_BUYING_PRODUCT_ID } from '../../lib/media-buying-billing';
 import { team, teamMember } from '@npanel/db/schema/teams';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
@@ -72,7 +73,10 @@ async function hasLinkedInSubscriptionAccess(teamIds: string[], accountId: strin
 		.where(
 			and(
 				inArray(niscClientSubscription.teamId, teamIds),
-				ilike(niscProduct.name, "%media buying%"),
+				or(
+					eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
+					ilike(niscProduct.name, "%media buying%"),
+				),
 				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`,
 				sql`((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${accountId} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${urn} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${numeric})`,
 			),
@@ -93,7 +97,10 @@ async function getLinkedInLinkedAccountsFromSubscriptions(teamIds: string[]) {
 		.where(
 			and(
 				inArray(niscClientSubscription.teamId, teamIds),
-				ilike(niscProduct.name, "%media buying%"),
+				or(
+					eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
+					ilike(niscProduct.name, "%media buying%"),
+				),
 				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`,
 			),
 		);

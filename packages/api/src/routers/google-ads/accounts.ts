@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, ilike, inArray, sql } from '@npanel/db';
+import { and, desc, eq, ilike, inArray, or, sql } from '@npanel/db';
 import { router, protectedProcedure } from '../../trpc';
 import { db } from '@npanel/db';
 import {
@@ -9,6 +9,7 @@ import {
 	googleAdsAccountActivityLog,
 } from '@npanel/db/schema/google-ads';
 import { niscClientSubscription, niscProduct } from '@npanel/db/schema/products';
+import { NISC_MEDIA_BUYING_PRODUCT_ID } from '../../lib/media-buying-billing';
 import { team, teamMember } from '@npanel/db/schema/teams';
 import {
 	createGoogleAdsClient,
@@ -59,7 +60,10 @@ async function hasGoogleSubscriptionAccess(teamIds: string[], customerId: string
 		.where(
 			and(
 				inArray(niscClientSubscription.teamId, teamIds),
-				ilike(niscProduct.name, "%media buying%"),
+				or(
+					eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
+					ilike(niscProduct.name, "%media buying%"),
+				),
 				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`,
 				sql`((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${raw} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${dashed})`,
 			),
@@ -80,7 +84,10 @@ async function getGoogleLinkedAccountsFromSubscriptions(teamIds: string[]) {
 		.where(
 			and(
 				inArray(niscClientSubscription.teamId, teamIds),
-				ilike(niscProduct.name, "%media buying%"),
+				or(
+					eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
+					ilike(niscProduct.name, "%media buying%"),
+				),
 				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`,
 			),
 		);

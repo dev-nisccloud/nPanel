@@ -1,5 +1,12 @@
-import { Outlet } from "react-router";
+"use client";
 
-export default function SlugcreativeassetsLayout() {
-  return <Outlet />;
+import { Outlet } from "react-router";
+import { CustomerCreativeAssetsRouteShell } from "@/components/creative-assets/customer-creative-assets-route-shell";
+
+export default function SlugCreativeAssetsLayout() {
+	return (
+		<CustomerCreativeAssetsRouteShell>
+			<Outlet />
+		</CustomerCreativeAssetsRouteShell>
+	);
 }
