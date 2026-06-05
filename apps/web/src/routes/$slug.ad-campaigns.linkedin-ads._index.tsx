@@ -24,7 +24,7 @@ import {
 	ChevronDown,
 } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import { MediaBuyingPricing } from "./$slug.ad-campaigns/_components/media-buying-pricing";
+import { MediaBuyingPricing } from "@/components/media-buying/media-buying-pricing";
 
 export default function LinkedInAdsPage() {
 	const navigate = useNavigate();
@@ -280,6 +280,24 @@ export default function LinkedInAdsPage() {
 		return "bg-muted text-muted-foreground border-border";
 	};
 
+	if (isLoadingLinkedAccounts) {
+		return (
+			<div className="flex items-center justify-center py-24">
+				<Spinner size={32} />
+			</div>
+		);
+	}
+
+	if (!hasLinkedAccounts && !accountsError) {
+		return (
+			<div className="@container/main flex min-h-0 flex-1 flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+				<div className="mx-auto flex w-full max-w-7xl min-h-0 flex-1 flex-col">
+					<MediaBuyingPricing platform="linkedin" />
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6 text-foreground font-sans">
 			<div className="w-full max-w-7xl mx-auto">
@@ -392,15 +410,7 @@ export default function LinkedInAdsPage() {
 							</div>
 						</div>
 
-						{isLoadingLinkedAccounts ? (
-							<div className="flex items-center justify-center py-24">
-								<Spinner size={32} />
-							</div>
-						) : !hasLinkedAccounts ? (
-							<div className="mt-8">
-								<MediaBuyingPricing platform="linkedin" />
-							</div>
-						) : switcherAccounts.length === 0 ? (
+						{switcherAccounts.length === 0 ? (
 							<div className="mt-8 flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
 								<p className="max-w-xl text-sm text-muted-foreground">
 									Your analytics workspace is being prepared. Our marketing team will complete account linking shortly, and your LinkedIn Ads reports will appear automatically once ready.

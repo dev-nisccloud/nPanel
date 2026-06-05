@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, ilike, inArray, sql, type InferSelectModel } from "@npanel/db";
+import { and, desc, eq, ilike, inArray, or, sql, type InferSelectModel } from "@npanel/db";
 import { db } from "@npanel/db";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
 import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
+import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../../lib/media-buying-billing";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { router, protectedProcedure } from '../../trpc';
@@ -50,7 +51,10 @@ async function hasMetaSubscriptionAccess(teamIds: string[], accountId: string): 
 		.where(
 			and(
 				inArray(niscClientSubscription.teamId, teamIds),
-				ilike(niscProduct.name, "%media buying%"),
+				or(
+					eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
+					ilike(niscProduct.name, "%media buying%"),
+				),
 				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"META_ADS"}`,
 				sql`((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${normalized} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${numeric})`,
 			),
@@ -71,7 +75,10 @@ async function getMetaLinkedAccountsFromSubscriptions(teamIds: string[]) {
 		.where(
 			and(
 				inArray(niscClientSubscription.teamId, teamIds),
-				ilike(niscProduct.name, "%media buying%"),
+				or(
+					eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID),
+					ilike(niscProduct.name, "%media buying%"),
+				),
 				sql`(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"META_ADS"}`,
 			),
 		);
