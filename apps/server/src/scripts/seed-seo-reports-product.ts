@@ -95,7 +95,7 @@ const PRODUCT = {
 	name: "SEO",
 	description:
 		"Done-for-you search engine optimization from Nisc Cloud — keyword strategy, on-page and technical fixes, content optimization, and off-page growth. Track rankings, traffic, and results anytime in your SEO Reports portal.",
-	category: "Marketing",
+	category: "MARKETING",
 	serviceType: "nisc_seo_reports",
 	isActive: true,
 	sortOrder: 23,

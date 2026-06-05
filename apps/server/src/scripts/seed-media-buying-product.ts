@@ -101,7 +101,7 @@ const PRODUCT = {
 	name: "Media Buying",
 	description:
 		"Done-for-you paid advertising from Nisc Cloud — Meta, Google, and LinkedIn campaigns managed by our media buying team. Pay a commission on ad spend each month; track live results and AI insights in your ad dashboard.",
-	category: "Marketing",
+	category: "MARKETING",
 	serviceType: "media_buying",
 	isActive: true,
 	sortOrder: 24,

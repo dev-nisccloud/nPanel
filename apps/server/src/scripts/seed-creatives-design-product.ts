@@ -124,7 +124,7 @@ const PRODUCT = {
 	name: "Creatives & Design",
 	description:
 		"Professional creative production from Nisc Cloud — social posts, ad creatives, print, and brand assets delivered through your own review portal. Submit briefs, approve online, and keep every version in one library with AI quality scoring built in.",
-	category: "Creative",
+	category: "MARKETING",
 	serviceType: "creatives_design",
 	isActive: true,
 	sortOrder: 22,

@@ -95,7 +95,7 @@ const PRODUCT = {
 	name: "Nisc Email Marketing",
 	description:
 		"AI-powered email marketing for growing businesses. Send newsletters, automate welcome and e-commerce flows, build segments, and track every open and click — with AI templates, subject lines, and campaign ideas built in.",
-	category: "Marketing",
+	category: "MARKETING",
 	serviceType: "nisc_email_marketing",
 	isActive: true,
 	sortOrder: 21,
