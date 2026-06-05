@@ -326,12 +326,30 @@ function mapPlan(plan: any): z.infer<typeof planOutputSchema> {
     };
 }
 
+function normalizeProductCategory(
+    category: string,
+): z.infer<typeof productCategorySchema> {
+    const upper = category.toUpperCase();
+    if (productCategorySchema.safeParse(upper).success) {
+        return upper as z.infer<typeof productCategorySchema>;
+    }
+    const aliases: Record<string, z.infer<typeof productCategorySchema>> = {
+        Marketing: "MARKETING",
+        Creative: "CUSTOM",
+        Cloud: "CLOUD",
+        Consulting: "CONSULTING",
+        Custom: "CUSTOM",
+        Ai: "AI",
+    };
+    return aliases[category] ?? "CUSTOM";
+}
+
 function mapProduct(product: any): z.infer<typeof productOutputSchema> {
     return {
         id: product.id,
         name: product.name,
         description: product.description ?? null,
-        category: product.category,
+        category: normalizeProductCategory(product.category),
         serviceType: product.serviceType,
         isActive: product.isActive,
         sortOrder: product.sortOrder,

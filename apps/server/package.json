@@ -15,7 +15,8 @@
     "seed:media-buying": "bun run src/scripts/seed-media-buying-product.ts",
     "seed:web-hosting": "bun run src/scripts/seed-web-hosting-product.ts",
     "seed:email-hosting": "bun run src/scripts/seed-email-hosting-product.ts",
-    "seed:hosting-products": "bun run src/scripts/seed-web-hosting-product.ts && bun run src/scripts/seed-email-hosting-product.ts"
+    "seed:hosting-products": "bun run src/scripts/seed-web-hosting-product.ts && bun run src/scripts/seed-email-hosting-product.ts",
+    "seed:planless-services": "bun run src/scripts/seed-planless-services.ts"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",
