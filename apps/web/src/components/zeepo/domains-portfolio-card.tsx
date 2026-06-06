@@ -18,7 +18,7 @@ import type { AgentDomainsPortfolioResult, AgentPortfolioDomainEntry } from "@/s
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   try {
     return new Intl.DateTimeFormat(undefined, {
       year: "numeric",

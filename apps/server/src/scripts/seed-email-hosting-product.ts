@@ -39,7 +39,7 @@ const PRODUCT = {
 	id: NISC_EMAIL_HOSTING_PRODUCT_ID,
 	name: "Email Hosting",
 	description:
-		"Look professional with email at your domain — secure mailboxes, premium webmail, anti-spam, and daily backups from Nisc Cloud.",
+		"Look professional with email at your domain - secure mailboxes, premium webmail, anti-spam, and daily backups from Nisc Cloud.",
 	category: "CLOUD",
 	serviceType: "email_hosting",
 	isActive: true,
@@ -108,7 +108,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: NISC_EMAIL_HOSTING_PLAN_IDS.basic,
 		name: "Basic",
-		description: "Essential business email — 10 mailboxes with 10 GB SSD storage.",
+		description: "Essential business email - 10 mailboxes with 10 GB SSD storage.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "320",
@@ -119,7 +119,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: NISC_EMAIL_HOSTING_PLAN_IDS.standard,
 		name: "Standard",
-		description: "For growing teams — 20 mailboxes with 30 GB storage.",
+		description: "For growing teams - 20 mailboxes with 30 GB storage.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "500",
@@ -131,7 +131,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: NISC_EMAIL_HOSTING_PLAN_IDS.corporate,
 		name: "Corporate",
-		description: "For larger organisations — 100 mailboxes with 100 GB storage.",
+		description: "For larger organisations - 100 mailboxes with 100 GB storage.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "800",
@@ -283,7 +283,7 @@ async function main() {
 
 	for (const plan of PLANS) {
 		await upsertPlan(plan);
-		console.log(`  ✓ Plan ${plan.name} — KSh ${plan.priceKes}/mo (${plan.id})`);
+		console.log(`  ✓ Plan ${plan.name} - KSh ${plan.priceKes}/mo (${plan.id})`);
 	}
 
 	await invalidateProductsCache();

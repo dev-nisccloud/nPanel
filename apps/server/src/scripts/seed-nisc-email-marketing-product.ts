@@ -26,7 +26,7 @@ type ProductFeature = {
 	description: string;
 };
 
-/** Pricing-table rows — order defines column order in getNiscEmailMarketingPlansForPricing. */
+/** Pricing-table rows - order defines column order in getNiscEmailMarketingPlansForPricing. */
 const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "contacts",
@@ -76,7 +76,7 @@ const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "segments",
 		label: "Audience segments",
-		description: "Group contacts by behavior — manually or with AI",
+		description: "Group contacts by behavior - manually or with AI",
 	},
 	{
 		key: "white_label",
@@ -94,7 +94,7 @@ const PRODUCT = {
 	id: NISC_EMAIL_MARKETING_PRODUCT_ID,
 	name: "Nisc Email Marketing",
 	description:
-		"AI-powered email marketing for growing businesses. Send newsletters, automate welcome and e-commerce flows, build segments, and track every open and click — with AI templates, subject lines, and campaign ideas built in.",
+		"AI-powered email marketing for growing businesses. Send newsletters, automate welcome and e-commerce flows, build segments, and track every open and click - with AI templates, subject lines, and campaign ideas built in.",
 	category: "MARKETING",
 	serviceType: "nisc_email_marketing",
 	isActive: true,
@@ -105,7 +105,7 @@ const PRODUCT = {
 		"Schedule campaigns and track opens and clicks per send",
 		"Welcome sequences and e-commerce automation",
 		"Audience segments and team collaborators",
-		"Send from your own domain — your brand front and center",
+		"Send from your own domain - your brand front and center",
 	],
 	isAddOn: false,
 	metadata: {
@@ -173,7 +173,7 @@ const PLANS: PlanSeed[] = [
 		id: NISC_EMAIL_MARKETING_PLAN_IDS.starter,
 		name: "Starter",
 		description:
-			"Everything you need to launch email marketing — 2,500 contacts and 10,000 sends per month.",
+			"Everything you need to launch email marketing - 2,500 contacts and 10,000 sends per month.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "1999.00",
@@ -197,7 +197,7 @@ const PLANS: PlanSeed[] = [
 		id: NISC_EMAIL_MARKETING_PLAN_IDS.growth,
 		name: "Growth",
 		description:
-			"Scale your list and automation — 10,000 contacts, 50,000 sends, unlimited segments, and weekly AI campaign ideas.",
+			"Scale your list and automation - 10,000 contacts, 50,000 sends, unlimited segments, and weekly AI campaign ideas.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "4999.00",
@@ -224,7 +224,7 @@ const PLANS: PlanSeed[] = [
 		id: NISC_EMAIL_MARKETING_PLAN_IDS.pro,
 		name: "Pro",
 		description:
-			"For high-volume senders — 50,000 contacts, 200,000 sends, and full e-commerce automation.",
+			"For high-volume senders - 50,000 contacts, 200,000 sends, and full e-commerce automation.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "9999.00",

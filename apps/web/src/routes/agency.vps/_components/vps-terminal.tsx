@@ -10,7 +10,9 @@ import {
   ShieldCheck,
   Monitor,
   Key,
-  LogOut
+  LogOut,
+  AlertTriangle,
+  Power,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Terminal } from "xterm";
@@ -19,8 +21,10 @@ import "xterm/css/xterm.css";
 
 import { env } from "@npanel/env/web";
 import { trpc } from "@/utils/trpc";
+import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -31,6 +35,14 @@ interface VpsTerminalProps {
 }
 
 type ConnectionState = "disconnected" | "connecting" | "connected" | "auth_failed";
+
+function resolvePowerStatus(raw: unknown): string {
+  if (raw == null) return "UNKNOWN";
+  if (typeof raw === "object" && raw !== null && "status" in raw) {
+    return String((raw as { status: unknown }).status).toUpperCase();
+  }
+  return String(raw).toUpperCase();
+}
 
 export function VpsTerminal({ deviceData }: VpsTerminalProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
@@ -73,11 +85,58 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  const teamTrpc = useHivelocityTeamTrpcInput();
+  const utils = trpc.useUtils();
+  const deviceId = deviceData.deviceId || deviceData.id;
+
+  const powerStatusQuery = trpc.hivelocity.getDevicePowerStatus.useQuery(
+    { deviceId, ...teamTrpc },
+    {
+      initialData: { success: true, data: { powerStatus: deviceData.powerStatus, pendingAction: null } },
+      staleTime: 10_000,
+    },
+  );
+
+  const cachedPowerStatus = resolvePowerStatus(
+    (powerStatusQuery.data?.data as { powerStatus?: unknown })?.powerStatus ?? deviceData.powerStatus,
+  );
+  const cachedPendingAction = (powerStatusQuery.data?.data as { pendingAction?: unknown })?.pendingAction;
+  const isInstanceOff = cachedPowerStatus !== "ON";
+  const isPowerTransitioning = Boolean(cachedPendingAction);
+
   const { mutateAsync: getWsTicket } = trpc.hivelocity.getWsTicket.useMutation();
+
+  const ensurePoweredOn = React.useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await utils.hivelocity.getDevicePowerStatus.fetch({ deviceId, ...teamTrpc });
+      const data = res?.data as { powerStatus?: unknown; pendingAction?: unknown; status?: unknown } | undefined;
+      const pendingAction = data?.pendingAction;
+      const powerStatus = resolvePowerStatus(data?.powerStatus ?? data?.status ?? deviceData.powerStatus);
+
+      if (pendingAction) {
+        toast.warning("Power action in progress. Wait for the instance to finish starting before connecting.");
+        return false;
+      }
+
+      if (powerStatus !== "ON") {
+        toast.error("Instance is powered off. Start it from the Overview tab before using SSH.");
+        return false;
+      }
+
+      return true;
+    } catch {
+      toast.error("Could not verify instance power status. Please try again.");
+      return false;
+    }
+  }, [deviceData.powerStatus, deviceId, teamTrpc, utils.hivelocity.getDevicePowerStatus]);
 
   const connect = async (usePassword?: string) => {
     if (connState === "connected" || connState === "connecting") return;
-    
+
+    const poweredOn = await ensurePoweredOn();
+    if (!poweredOn) return;
+
     setConnState("connecting");
 
     // Fetch auth ticket first
@@ -262,15 +321,34 @@ export function VpsTerminal({ deviceData }: VpsTerminalProps) {
             <Monitor className="h-8 w-8" />
           </div>
           <CardTitle className="text-xl font-bold mb-2">Native SSH Console</CardTitle>
-          <p className="text-muted-foreground max-w-md mb-8">
+          <p className="text-muted-foreground max-w-md mb-6">
             Access your VPS directly via nPanel's native secure SSH terminal.
           </p>
+
+          {(isInstanceOff || isPowerTransitioning) && (
+            <Alert className="mb-6 max-w-md border-amber-300/80 bg-amber-50 text-left dark:border-amber-800/80 dark:bg-amber-950/40">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+              <AlertTitle className="text-xs font-bold uppercase text-amber-900 dark:text-amber-300">
+                {isPowerTransitioning ? "Instance is starting or stopping" : "Instance is powered off"}
+              </AlertTitle>
+              <AlertDescription className="text-[11px] leading-snug text-amber-900/90 dark:text-amber-200/90">
+                {isPowerTransitioning
+                  ? "A power action is still in progress. SSH will be available once the instance is fully running."
+                  : "Power on this VPS from the Overview tab before launching the SSH console."}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Button
             size="lg"
             className="gap-2 px-8"
             onClick={() => connect()}
           >
-            <TerminalIcon className="h-4 w-4" />
+            {isInstanceOff || isPowerTransitioning ? (
+              <Power className="h-4 w-4" />
+            ) : (
+              <TerminalIcon className="h-4 w-4" />
+            )}
             Launch Secure Console
           </Button>
 

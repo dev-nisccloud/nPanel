@@ -100,7 +100,7 @@ export function EmailEditCanvas({
 
 
 
-	/** srcDoc only when remountKey changes — not on every draftHtml edit (DOM is source of truth). */
+	/** srcDoc only when remountKey changes - not on every draftHtml edit (DOM is source of truth). */
 
 	const [srcDoc, setSrcDoc] = React.useState(() =>
 

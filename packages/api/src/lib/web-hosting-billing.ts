@@ -1,5 +1,5 @@
 /**
- * Website / web hosting — stable product and plan ids (seeded by apps/server).
+ * Website / web hosting - stable product and plan ids (seeded by apps/server).
  */
 
 export const NISC_WEB_HOSTING_PRODUCT_ID = "nisc-web-hosting";

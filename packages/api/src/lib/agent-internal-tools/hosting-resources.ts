@@ -137,7 +137,7 @@ function mapPleskWebspace(ws: any) {
 		databaseCount: pleskNum(stat.db),
 		subdomainCount: pleskNum(stat.subdom),
 		createdAt: pleskStr(gi.cr_date) || null,
-		/** The Plesk numeric id — used internally, NOT exposed in the result object */
+		/** The Plesk numeric id - used internally, NOT exposed in the result object */
 		_pleskId: Number(ws?.id ?? 0) || null,
 	};
 }
@@ -545,10 +545,10 @@ export async function agentGetHostingResources(params: {
 				sslEnabled: false,
 				diskUsageBytes: 0,
 				diskLimitBytes: 0,
-				diskUsageFormatted: "—",
-				diskLimitFormatted: "—",
+				diskUsageFormatted: "-",
+				diskLimitFormatted: "-",
 				trafficBytes: 0,
-				trafficFormatted: "—",
+				trafficFormatted: "-",
 				createdAt: sub.subscriptionDate?.toISOString() ?? null,
 				planName: sub.productPlan?.name ?? sub.name ?? null,
 				hostingType: null,
@@ -694,7 +694,7 @@ export async function agentGetHostingDetail(params: {
 		diskUsageBytes: 0,
 		diskLimitBytes: 0,
 		diskUsageFormatted: "0 B",
-		diskLimitFormatted: "—",
+		diskLimitFormatted: "-",
 		trafficBytes: 0,
 		trafficFormatted: "0 B",
 		mailboxCount: 0,

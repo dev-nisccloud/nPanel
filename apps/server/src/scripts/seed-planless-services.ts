@@ -1,5 +1,5 @@
 /**
- * Idempotent seed for planless Nisc services (product only — no plans).
+ * Idempotent seed for planless Nisc services (product only - no plans).
  *
  * Services: Domains, VPS Hosting, VDS Hosting, Dedicated Servers.
  *
@@ -41,7 +41,7 @@ const PRODUCTS: PlanlessProductSeed[] = [
 		id: NISC_DOMAINS_PRODUCT_ID,
 		name: "Domains",
 		description:
-			"Register, transfer, and manage domain names — .co.ke, .com, .africa, and hundreds of extensions with DNS management from Nisc Cloud.",
+			"Register, transfer, and manage domain names - .co.ke, .com, .africa, and hundreds of extensions with DNS management from Nisc Cloud.",
 		serviceType: PLANLESS_SERVICE_TYPES.domains,
 		sortOrder: 1,
 		features: [
@@ -97,7 +97,7 @@ const PRODUCTS: PlanlessProductSeed[] = [
 		id: NISC_VPS_HOSTING_PRODUCT_ID,
 		name: "VPS Hosting",
 		description:
-			"Scalable virtual private servers — root access, SSD storage, and flexible billing terms from Nisc Cloud.",
+			"Scalable virtual private servers - root access, SSD storage, and flexible billing terms from Nisc Cloud.",
 		serviceType: PLANLESS_SERVICE_TYPES.vpsHosting,
 		sortOrder: 20,
 		features: [
@@ -148,7 +148,7 @@ const PRODUCTS: PlanlessProductSeed[] = [
 		id: NISC_VDS_HOSTING_PRODUCT_ID,
 		name: "VDS Hosting",
 		description:
-			"Virtual dedicated servers with dedicated resources — more power than VPS, more flexibility than bare metal.",
+			"Virtual dedicated servers with dedicated resources - more power than VPS, more flexibility than bare metal.",
 		serviceType: PLANLESS_SERVICE_TYPES.vdsHosting,
 		sortOrder: 21,
 		features: [
@@ -194,7 +194,7 @@ const PRODUCTS: PlanlessProductSeed[] = [
 		id: NISC_DEDICATED_SERVERS_PRODUCT_ID,
 		name: "Dedicated Servers",
 		description:
-			"Bare-metal dedicated servers — maximum performance, full hardware control, and enterprise-grade reliability.",
+			"Bare-metal dedicated servers - maximum performance, full hardware control, and enterprise-grade reliability.",
 		serviceType: PLANLESS_SERVICE_TYPES.dedicatedServers,
 		sortOrder: 22,
 		features: [

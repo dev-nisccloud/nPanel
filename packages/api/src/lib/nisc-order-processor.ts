@@ -233,12 +233,21 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 					serviceType,
 				});
 				const result = await processHivelocityOrderItem(order, item);
+				const operation = (item.metadata as { operation?: string } | null)?.operation;
+				const hivelocityCall =
+					operation === "vps_upgrade"
+						? "PUT /vps/{deviceId} (VPS upgrade)"
+						: operation === "vps_reload"
+							? "POST /device/{deviceId}/reload (VPS OS reload)"
+							: operation === "vps_reactivate"
+								? "POST /device/{deviceId}/power boot + subscription ACTIVE"
+								: "POST /deploy/ (Deployment API)";
 				if (result.ok) {
 					await niscLog("processor_api_raw_response", {
 						niscOrderId,
 						orderItemId: item.id,
 						provider: "hivelocity",
-						call: "POST /deploy/ (Deployment API)",
+						call: hivelocityCall,
 						rawResponse: result.rawResponse,
 					});
 					await db
@@ -265,7 +274,7 @@ export async function processNiscOrder(niscOrderId: string): Promise<ProcessNisc
 						niscOrderId,
 						orderItemId: item.id,
 						provider: "hivelocity",
-						call: "POST /deploy/ (Deployment API)",
+						call: hivelocityCall,
 						rawResponse: errDetails,
 					});
 					await db

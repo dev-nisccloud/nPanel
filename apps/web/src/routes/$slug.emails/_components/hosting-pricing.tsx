@@ -12,7 +12,7 @@ type EmailHostingPricingProps = {
 	className?: string;
 };
 
-/** Customer email hosting pricing — scrollable layout matching other product pricing pages. */
+/** Customer email hosting pricing - scrollable layout matching other product pricing pages. */
 export function HostingPricing({ className }: EmailHostingPricingProps) {
 	const params = useParams();
 	const slug = typeof params?.slug === "string" ? params.slug : "";

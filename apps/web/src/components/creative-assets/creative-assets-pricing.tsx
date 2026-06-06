@@ -15,7 +15,7 @@ type CreativeAssetsPricingProps = {
 	className?: string;
 };
 
-/** Customer pricing table — same scrollable layout as Nisc Email Marketing pricing. */
+/** Customer pricing table - same scrollable layout as Nisc Email Marketing pricing. */
 export function CreativeAssetsPricing({ className }: CreativeAssetsPricingProps) {
 	const { teamId } = useCreativeAssetsRoute();
 

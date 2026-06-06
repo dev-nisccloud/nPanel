@@ -43,7 +43,7 @@ const PRODUCT = {
 	id: NISC_WEB_HOSTING_PRODUCT_ID,
 	name: "Website Hosting",
 	description:
-		"Build, test, and deploy websites faster on Nisc Cloud — SSD hosting with WordPress toolkit, free SSL, and 24/7 local support.",
+		"Build, test, and deploy websites faster on Nisc Cloud - SSD hosting with WordPress toolkit, free SSL, and 24/7 local support.",
 	category: "CLOUD",
 	serviceType: "web_hosting",
 	isActive: true,
@@ -122,7 +122,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: NISC_WEB_HOSTING_PLAN_IDS.starter,
 		name: "Starter",
-		description: "Affordable hosting for a single site — perfect for personal projects and small sites.",
+		description: "Affordable hosting for a single site - perfect for personal projects and small sites.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "149",
@@ -142,7 +142,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: NISC_WEB_HOSTING_PLAN_IDS.basic,
 		name: "Basic",
-		description: "More power for business websites — extra RAM, storage, and email accounts.",
+		description: "More power for business websites - extra RAM, storage, and email accounts.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "249",
@@ -163,7 +163,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: NISC_WEB_HOSTING_PLAN_IDS.deluxe,
 		name: "Deluxe",
-		description: "High-traffic sites and multiple projects — generous resources and bandwidth.",
+		description: "High-traffic sites and multiple projects - generous resources and bandwidth.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "799",
@@ -184,7 +184,7 @@ const PLANS: PlanSeed[] = [
 	{
 		id: NISC_WEB_HOSTING_PLAN_IDS.ultimate,
 		name: "Ultimate",
-		description: "Maximum resources for demanding sites — unlimited bandwidth and FTP accounts.",
+		description: "Maximum resources for demanding sites - unlimited bandwidth and FTP accounts.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "1199",
@@ -345,7 +345,7 @@ async function main() {
 
 	for (const plan of PLANS) {
 		await upsertPlan(plan);
-		console.log(`  ✓ Plan ${plan.name} — KSh ${plan.priceKes}/mo (${plan.id})`);
+		console.log(`  ✓ Plan ${plan.name} - KSh ${plan.priceKes}/mo (${plan.id})`);
 	}
 
 	await invalidateProductsCache();

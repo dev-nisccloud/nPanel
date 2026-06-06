@@ -1,5 +1,5 @@
 /**
- * Planless Nisc services — stable product ids (no nisc_product_plan rows).
+ * Planless Nisc services - stable product ids (no nisc_product_plan rows).
  * Pricing comes from external catalogs (OpenProvider TLDs, Hivelocity inventory).
  */
 

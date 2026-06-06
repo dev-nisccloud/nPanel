@@ -26,7 +26,7 @@ import type { AgentHostingDetailResult, AgentHostingMailAccount } from "@/stores
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso?: string | null): string {
-	if (!iso) return "—";
+	if (!iso) return "-";
 	try {
 		return new Intl.DateTimeFormat("en-KE", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(iso));
 	} catch {
@@ -130,7 +130,7 @@ function DnsTable({ records }: { records: Array<{ type: string; host: string; va
 							<td className="px-3 py-1.5 font-mono font-medium">{r.type}</td>
 							<td className="px-3 py-1.5 font-mono max-w-[160px] truncate" title={r.host}>{r.host || "@"}</td>
 							<td className="px-3 py-1.5 font-mono max-w-[180px] truncate" title={r.value}>{r.value}</td>
-							<td className="px-3 py-1.5 text-muted-foreground">{r.ttl ?? "—"}</td>
+							<td className="px-3 py-1.5 text-muted-foreground">{r.ttl ?? "-"}</td>
 						</tr>
 					))}
 				</tbody>
@@ -257,7 +257,7 @@ export function ZeepoHostingDetailCard({ result }: ZeepoHostingDetailCardProps) 
 					{expiringSoon && !expired && (
 						<div className="flex items-center gap-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 px-3 py-2 text-xs text-orange-700 dark:text-orange-400">
 							<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-							Subscription expires in {days} day{days === 1 ? "" : "s"} — renewal recommended.
+							Subscription expires in {days} day{days === 1 ? "" : "s"} - renewal recommended.
 						</div>
 					)}
 
@@ -265,7 +265,7 @@ export function ZeepoHostingDetailCard({ result }: ZeepoHostingDetailCardProps) 
 					{result.pleskUnavailable && (
 						<div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
 							<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-							Live server stats are currently unavailable — showing billing records only.
+							Live server stats are currently unavailable - showing billing records only.
 						</div>
 					)}
 
@@ -369,7 +369,7 @@ export function ZeepoHostingDetailCard({ result }: ZeepoHostingDetailCardProps) 
 												: "",
 									)}
 								>
-									{result.autoRenew === null ? "—" : result.autoRenew ? "On" : "Off"}
+									{result.autoRenew === null ? "-" : result.autoRenew ? "On" : "Off"}
 								</span>
 							</InfoRow>
 							{result.teamName && (

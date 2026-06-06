@@ -12,7 +12,7 @@ type WebHostingPricingProps = {
 	className?: string;
 };
 
-/** Customer web hosting pricing — scrollable layout matching other product pricing pages. */
+/** Customer web hosting pricing - scrollable layout matching other product pricing pages. */
 export function HostingPricing({ className }: WebHostingPricingProps) {
 	const params = useParams();
 	const slug = typeof params?.slug === "string" ? params.slug : "";

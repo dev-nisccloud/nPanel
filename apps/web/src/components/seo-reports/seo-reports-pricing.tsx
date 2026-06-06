@@ -12,7 +12,7 @@ type SeoReportsPricingProps = {
 	className?: string;
 };
 
-/** Customer pricing table — same scrollable layout as Nisc Email Marketing pricing. */
+/** Customer pricing table - same scrollable layout as Nisc Email Marketing pricing. */
 export function SeoReportsPricing({ className }: SeoReportsPricingProps) {
 	const { teamId, teamSlug } = useSeoReportsRoute();
 
