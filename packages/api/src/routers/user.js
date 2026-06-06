@@ -4,6 +4,7 @@ import { eq } from "@npanel/db";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
+import { hasEmailPreferenceUpdates, mapUserEmailPreferences, pickEmailPreferenceUpdates, userEmailPreferencesInputSchema, userEmailPreferencesSchema, } from "../lib/user-extra-fields";
 // Schema for notification preferences
 const notificationPreferencesSchema = z.object({
     notificationSoundEnabled: z.boolean(),
@@ -83,5 +84,58 @@ export const userRouter = router({
             browserNotificationPermission: updatedUser.browserNotificationPermission ?? "default",
             notificationPreferencesUpdatedAt: updatedUser.notificationPreferencesUpdatedAt,
         };
+    }),
+    getEmailPreferences: protectedProcedure
+        .output(userEmailPreferencesSchema)
+        .query(async ({ ctx }) => {
+        const userId = getActorId(ctx);
+        const [userRow] = await db
+            .select({
+            generalEmailsAccepted: user.generalEmailsAccepted,
+            invoiceEmailsAccepted: user.invoiceEmailsAccepted,
+            supportEmailsAccepted: user.supportEmailsAccepted,
+            productEmailsAccepted: user.productEmailsAccepted,
+            domainEmailsAccepted: user.domainEmailsAccepted,
+            affiliateEmailsAccepted: user.affiliateEmailsAccepted,
+            marketingEmailsAccepted: user.marketingEmailsAccepted,
+            smsMarketingAccepted: user.smsMarketingAccepted,
+        })
+            .from(user)
+            .where(eq(user.id, userId))
+            .limit(1);
+        if (!userRow) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+        return mapUserEmailPreferences(userRow);
+    }),
+    updateEmailPreferences: protectedProcedure
+        .input(userEmailPreferencesInputSchema)
+        .output(userEmailPreferencesSchema)
+        .mutation(async ({ ctx, input }) => {
+        const userId = getActorId(ctx);
+        if (!hasEmailPreferenceUpdates(input)) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "At least one email preference must be provided",
+            });
+        }
+        const [updatedUser] = await db
+            .update(user)
+            .set(pickEmailPreferenceUpdates(input))
+            .where(eq(user.id, userId))
+            .returning({
+            generalEmailsAccepted: user.generalEmailsAccepted,
+            invoiceEmailsAccepted: user.invoiceEmailsAccepted,
+            supportEmailsAccepted: user.supportEmailsAccepted,
+            productEmailsAccepted: user.productEmailsAccepted,
+            domainEmailsAccepted: user.domainEmailsAccepted,
+            affiliateEmailsAccepted: user.affiliateEmailsAccepted,
+            marketingEmailsAccepted: user.marketingEmailsAccepted,
+            smsMarketingAccepted: user.smsMarketingAccepted,
+        });
+        if (!updatedUser) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+        return mapUserEmailPreferences(updatedUser);
     }),
 });

@@ -1,8 +1,13 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "@npanel/db";
+import { and, desc, eq, inArray, or } from "@npanel/db";
 import { db } from "@npanel/db";
+import { invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";
+import { quotation } from "@npanel/db/schema/quotations";
+import { serviceSubscription } from "@npanel/db/schema/service-subscriptions";
+import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
+import { team, teamMember } from "@npanel/db/schema/teams";
 import { customerIntegration, customerIntegrationActivityLog, userActivityLog, userProfile, } from "@npanel/db/schema/auth-extras";
 import { session as sessionTable, user } from "@npanel/db/schema/auth";
 import * as crypto from "crypto";
@@ -12,6 +17,7 @@ import { sendEmail } from "../lib/email";
 import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
 import { XMLParser } from "fast-xml-parser";
 import { createOpenProviderClient, OpenProviderApiError } from "../lib/openprovider-client";
+import { hasAnyUserExtraFieldUpdates, mapUserAdminFields, mapUserEmailPreferences, pickAdminFieldUpdates, pickEmailPreferenceUpdates, userAdminFieldsInputSchema, userAdminFieldsSchema, userEmailPreferencesInputSchema, userEmailPreferencesSchema, } from "../lib/user-extra-fields";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
@@ -27,23 +33,41 @@ const clientOutputSchema = z.object({
     lastLoginAt: z.date().nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
-});
+}).merge(userEmailPreferencesSchema).merge(userAdminFieldsSchema);
+function toClientOutput(client) {
+    return clientOutputSchema.parse({
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        emailVerified: client.emailVerified,
+        role: client.role,
+        status: client.status,
+        image: client.image,
+        lastLoginAt: client.lastLoginAt,
+        createdAt: client.createdAt,
+        updatedAt: client.updatedAt,
+        ...mapUserEmailPreferences(client),
+        ...mapUserAdminFields(client),
+    });
+}
 const getAllClientsOutputSchema = z.array(clientOutputSchema);
 const createClientInputSchema = z.object({
     name: z.string().min(1, "Name is required"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]).optional().default("CUSTOMER"),
-});
+}).merge(userEmailPreferencesInputSchema).merge(userAdminFieldsInputSchema);
 const createClientOutputSchema = clientOutputSchema;
 const updateClientInputSchema = z.object({
     userId: z.string(),
     name: z.string().optional(),
     email: z.string().email("Invalid email address").optional(),
     role: z.enum(["CUSTOMER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN", "AGENCY_USER"]).optional(),
-}).refine((data) => {
-    // At least one field must be provided for update
-    return data.name !== undefined || data.email !== undefined || data.role !== undefined;
+}).merge(userEmailPreferencesInputSchema).merge(userAdminFieldsInputSchema).refine((data) => {
+    return (data.name !== undefined ||
+        data.email !== undefined ||
+        data.role !== undefined ||
+        hasAnyUserExtraFieldUpdates(data));
 }, {
     message: "At least one field must be provided for update",
 });
@@ -190,6 +214,55 @@ async function getUserRole(userId, sessionUser) {
 function isAgencyRole(role) {
     return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 }
+function parseInvoiceAmount(amount) {
+    if (!amount)
+        return 0;
+    const normalized = amount.replace(/,/g, "").trim();
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+function mapInvoiceStatusToBucket(status) {
+    switch (status) {
+        case "PAID":
+            return "paid";
+        case "DRAFT":
+            return "draft";
+        case "SENT":
+        case "OVERDUE":
+        case "PARTIALLY_PAID":
+            return "unpaid";
+        case "CANCELLED":
+            return "cancelled";
+        case "WRITTEN_OFF":
+            return "skip";
+        default:
+            return "unpaid";
+    }
+}
+async function getClientInvoiceScopeWhere(userId) {
+    const memberships = await db
+        .select({ teamId: teamMember.teamId })
+        .from(teamMember)
+        .where(eq(teamMember.userId, userId));
+    const teamIds = memberships.map((m) => m.teamId).filter((id) => id != null);
+    const conditions = [eq(invoice.customerId, userId)];
+    if (teamIds.length > 0) {
+        conditions.push(inArray(invoice.teamId, teamIds));
+    }
+    return conditions.length > 1 ? or(...conditions) : conditions[0];
+}
+const invoiceBillingBucketSchema = z.object({
+    key: z.enum(["paid", "draft", "unpaid", "cancelled", "refunded"]),
+    label: z.string(),
+    count: z.number().int().nonnegative(),
+    amount: z.number(),
+});
+const invoiceBillingSummarySchema = z.object({
+    currency: z.string(),
+    totalInvoices: z.number().int().nonnegative(),
+    totalAmount: z.number(),
+    buckets: z.array(invoiceBillingBucketSchema),
+});
 // ============================================================================
 // tRPC ROUTER
 // ============================================================================
@@ -220,18 +293,7 @@ export const clientsRouter = router({
             .from(user)
             .where(eq(user.role, "CUSTOMER"))
             .orderBy(desc(user.createdAt));
-        return getAllClientsOutputSchema.parse(clients.map((client) => ({
-            id: client.id,
-            name: client.name,
-            email: client.email,
-            emailVerified: client.emailVerified,
-            role: client.role,
-            status: client.status,
-            image: client.image,
-            lastLoginAt: client.lastLoginAt,
-            createdAt: client.createdAt,
-            updatedAt: client.updatedAt,
-        })));
+        return getAllClientsOutputSchema.parse(clients.map((client) => toClientOutput(client)));
     }),
     // Create a new client
     create: protectedProcedure
@@ -303,11 +365,15 @@ export const clientsRouter = router({
                 message: "User was created but could not be retrieved",
             });
         }
-        // Update user role to the specified role (Better Auth defaults to CUSTOMER)
-        if (input.role && input.role !== updatedUser.role) {
+        const extraFieldUpdates = {
+            ...(input.role && input.role !== updatedUser.role ? { role: input.role } : {}),
+            ...pickEmailPreferenceUpdates(input),
+            ...pickAdminFieldUpdates(input),
+        };
+        if (Object.keys(extraFieldUpdates).length > 0) {
             await db
                 .update(user)
-                .set({ role: input.role })
+                .set(extraFieldUpdates)
                 .where(eq(user.id, updatedUser.id));
             const [refetchedUser] = await db
                 .select()
@@ -319,7 +385,7 @@ export const clientsRouter = router({
         if (!updatedUser) {
             throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
-                message: "User could not be retrieved after role update",
+                message: "User could not be retrieved after update",
             });
         }
         // Send custom credentials email
@@ -358,18 +424,7 @@ export const clientsRouter = router({
             userAgent: null,
             createdAt: new Date(),
         });
-        return createClientOutputSchema.parse({
-            id: updatedUser.id,
-            name: updatedUser.name,
-            email: updatedUser.email,
-            emailVerified: updatedUser.emailVerified,
-            role: updatedUser.role,
-            status: updatedUser.status,
-            image: updatedUser.image,
-            lastLoginAt: updatedUser.lastLoginAt,
-            createdAt: updatedUser.createdAt,
-            updatedAt: updatedUser.updatedAt,
-        });
+        return toClientOutput(updatedUser);
     }),
     // Update client
     update: protectedProcedure
@@ -436,6 +491,7 @@ export const clientsRouter = router({
         if (input.role !== undefined) {
             updateData.role = input.role;
         }
+        Object.assign(updateData, pickEmailPreferenceUpdates(input), pickAdminFieldUpdates(input));
         // Batch: Update user and log activity in a transaction
         const changedFields = Object.keys(updateData).filter(key => key !== "updatedAt");
         const updatedUser = await db.transaction(async (tx) => {
@@ -480,18 +536,7 @@ export const clientsRouter = router({
             });
             return updated;
         });
-        return updateClientOutputSchema.parse({
-            id: updatedUser.id,
-            name: updatedUser.name,
-            email: updatedUser.email,
-            emailVerified: updatedUser.emailVerified,
-            role: updatedUser.role,
-            status: updatedUser.status,
-            image: updatedUser.image,
-            lastLoginAt: updatedUser.lastLoginAt,
-            createdAt: updatedUser.createdAt,
-            updatedAt: updatedUser.updatedAt,
-        });
+        return toClientOutput(updatedUser);
     }),
     // Change client status
     changeStatus: protectedProcedure
@@ -1612,5 +1657,279 @@ export const clientsRouter = router({
                 message: `Failed to send email verification: ${error instanceof Error ? error.message : "Unknown error"}`,
             });
         }
+    }),
+    // ── Per-client data tabs ─────────────────────────────────────────────────
+    getTeams: protectedProcedure
+        .input(z.object({ userId: z.string() }))
+        .output(z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        slug: z.string(),
+        role: z.string(),
+        isActive: z.boolean(),
+        createdAt: z.date(),
+        logoUrl: z.string().nullable(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id)
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+        const actorRole = await getUserRole(session.user.id);
+        if (!isAgencyRole(actorRole))
+            throw new TRPCError({ code: "FORBIDDEN", message: "Forbidden" });
+        const rows = await db
+            .select({
+            id: team.id,
+            name: team.name,
+            slug: team.slug,
+            role: teamMember.role,
+            isActive: team.isActive,
+            createdAt: team.createdAt,
+            logoUrl: team.logoUrl,
+        })
+            .from(teamMember)
+            .innerJoin(team, eq(teamMember.teamId, team.id))
+            .where(and(eq(teamMember.userId, input.userId), inArray(teamMember.role, ["OWNER", "ADMIN"])))
+            .orderBy(desc(team.createdAt));
+        return rows;
+    }),
+    getInvoiceBillingSummary: protectedProcedure
+        .input(z.object({ userId: z.string() }))
+        .output(invoiceBillingSummarySchema)
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id)
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+        const actorRole = await getUserRole(session.user.id);
+        if (!isAgencyRole(actorRole))
+            throw new TRPCError({ code: "FORBIDDEN", message: "Forbidden" });
+        const scopeWhere = await getClientInvoiceScopeWhere(input.userId);
+        const invoiceRows = await db
+            .select({
+            id: invoice.id,
+            status: invoice.status,
+            amount: invoice.amount,
+            currency: invoice.currency,
+        })
+            .from(invoice)
+            .where(scopeWhere);
+        const bucketTotals = {
+            paid: { count: 0, amount: 0 },
+            draft: { count: 0, amount: 0 },
+            unpaid: { count: 0, amount: 0 },
+            cancelled: { count: 0, amount: 0 },
+            refunded: { count: 0, amount: 0 },
+        };
+        let primaryCurrency = "KES";
+        for (const row of invoiceRows) {
+            if (row.currency)
+                primaryCurrency = row.currency;
+            const bucket = mapInvoiceStatusToBucket(row.status);
+            if (bucket === "skip")
+                continue;
+            bucketTotals[bucket].count += 1;
+            bucketTotals[bucket].amount += parseInvoiceAmount(row.amount);
+        }
+        const refundedRows = await db
+            .select({
+            invoiceId: invoiceTransaction.invoiceId,
+            amount: invoiceTransaction.amount,
+            currency: invoiceTransaction.currency,
+        })
+            .from(invoiceTransaction)
+            .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
+            .where(and(eq(invoiceTransaction.status, "REFUNDED"), scopeWhere));
+        const refundedInvoiceIds = new Set();
+        for (const row of refundedRows) {
+            refundedInvoiceIds.add(row.invoiceId);
+            if (row.currency)
+                primaryCurrency = row.currency;
+            bucketTotals.refunded.amount += parseInvoiceAmount(row.amount);
+        }
+        bucketTotals.refunded.count = refundedInvoiceIds.size;
+        const bucketDefs = [
+            { key: "paid", label: "Paid" },
+            { key: "draft", label: "Draft" },
+            { key: "unpaid", label: "Unpaid / Due" },
+            { key: "cancelled", label: "Cancelled" },
+            { key: "refunded", label: "Refunded" },
+        ];
+        const buckets = bucketDefs.map(({ key, label }) => ({
+            key,
+            label,
+            count: bucketTotals[key].count,
+            amount: Math.round(bucketTotals[key].amount * 100) / 100,
+        }));
+        const totalAmount = buckets.reduce((sum, b) => sum + b.amount, 0);
+        return {
+            currency: primaryCurrency,
+            totalInvoices: invoiceRows.length,
+            totalAmount: Math.round(totalAmount * 100) / 100,
+            buckets,
+        };
+    }),
+    getInvoices: protectedProcedure
+        .input(z.object({ userId: z.string() }))
+        .output(z.array(z.object({
+        id: z.string(),
+        invoiceNumber: z.string().nullable(),
+        customerName: z.string().nullable(),
+        customerEmail: z.string().nullable(),
+        status: z.string(),
+        amount: z.string().nullable(),
+        currency: z.string(),
+        dueDate: z.date().nullable(),
+        issueDate: z.date().nullable(),
+        createdAt: z.date(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id)
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+        const actorRole = await getUserRole(session.user.id);
+        if (!isAgencyRole(actorRole))
+            throw new TRPCError({ code: "FORBIDDEN", message: "Forbidden" });
+        const scopeWhere = await getClientInvoiceScopeWhere(input.userId);
+        const rows = await db
+            .select({
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            customerName: invoice.customerName,
+            customerEmail: invoice.customerEmail,
+            status: invoice.status,
+            amount: invoice.amount,
+            currency: invoice.currency,
+            dueDate: invoice.dueDate,
+            issueDate: invoice.issueDate,
+            createdAt: invoice.createdAt,
+        })
+            .from(invoice)
+            .where(scopeWhere)
+            .orderBy(desc(invoice.createdAt))
+            .limit(100);
+        return rows;
+    }),
+    getSubscriptions: protectedProcedure
+        .input(z.object({ userId: z.string() }))
+        .output(z.array(z.object({
+        id: z.string(),
+        teamId: z.string().nullable(),
+        status: z.string(),
+        billingCycle: z.string(),
+        subscriptionDate: z.date().nullable(),
+        nextRenewalDate: z.date().nullable(),
+        autoRenew: z.boolean(),
+        notes: z.string().nullable(),
+        createdAt: z.date(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id)
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+        const actorRole = await getUserRole(session.user.id);
+        if (!isAgencyRole(actorRole))
+            throw new TRPCError({ code: "FORBIDDEN", message: "Forbidden" });
+        const memberships = await db
+            .select({ teamId: teamMember.teamId })
+            .from(teamMember)
+            .where(eq(teamMember.userId, input.userId));
+        const teamIds = memberships.map((m) => m.teamId).filter((id) => id != null);
+        if (teamIds.length === 0)
+            return [];
+        const rows = await db
+            .select({
+            id: serviceSubscription.id,
+            teamId: serviceSubscription.teamId,
+            status: serviceSubscription.status,
+            billingCycle: serviceSubscription.billingCycle,
+            subscriptionDate: serviceSubscription.subscriptionDate,
+            nextRenewalDate: serviceSubscription.nextRenewalDate,
+            autoRenew: serviceSubscription.autoRenew,
+            notes: serviceSubscription.notes,
+            createdAt: serviceSubscription.createdAt,
+        })
+            .from(serviceSubscription)
+            .where(inArray(serviceSubscription.teamId, teamIds))
+            .orderBy(desc(serviceSubscription.createdAt))
+            .limit(100);
+        return rows;
+    }),
+    getQuotations: protectedProcedure
+        .input(z.object({ userId: z.string() }))
+        .output(z.array(z.object({
+        id: z.string(),
+        quotationNumber: z.string().nullable(),
+        customerName: z.string().nullable(),
+        customerEmail: z.string().nullable(),
+        status: z.string(),
+        amount: z.string().nullable(),
+        currency: z.string(),
+        issueDate: z.date().nullable(),
+        createdAt: z.date(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id)
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+        const actorRole = await getUserRole(session.user.id);
+        if (!isAgencyRole(actorRole))
+            throw new TRPCError({ code: "FORBIDDEN", message: "Forbidden" });
+        const rows = await db
+            .select({
+            id: quotation.id,
+            quotationNumber: quotation.quotationNumber,
+            customerName: quotation.customerName,
+            customerEmail: quotation.customerEmail,
+            status: quotation.status,
+            amount: quotation.amount,
+            currency: quotation.currency,
+            issueDate: quotation.issueDate,
+            createdAt: quotation.createdAt,
+        })
+            .from(quotation)
+            .where(eq(quotation.createdBy, input.userId))
+            .orderBy(desc(quotation.createdAt))
+            .limit(100);
+        return rows;
+    }),
+    getTransactions: protectedProcedure
+        .input(z.object({ userId: z.string() }))
+        .output(z.array(z.object({
+        id: z.string(),
+        gateway: z.string(),
+        amount: z.string(),
+        currency: z.string(),
+        status: z.string(),
+        receiptNumber: z.string().nullable(),
+        accountReference: z.string().nullable(),
+        initiatedAt: z.date(),
+        processedAt: z.date().nullable(),
+        createdAt: z.date(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id)
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Unauthorized" });
+        const actorRole = await getUserRole(session.user.id);
+        if (!isAgencyRole(actorRole))
+            throw new TRPCError({ code: "FORBIDDEN", message: "Forbidden" });
+        const rows = await db
+            .select({
+            id: paymentTransaction.id,
+            gateway: paymentTransaction.gateway,
+            amount: paymentTransaction.amount,
+            currency: paymentTransaction.currency,
+            status: paymentTransaction.status,
+            receiptNumber: paymentTransaction.receiptNumber,
+            accountReference: paymentTransaction.accountReference,
+            initiatedAt: paymentTransaction.initiatedAt,
+            processedAt: paymentTransaction.processedAt,
+            createdAt: paymentTransaction.createdAt,
+        })
+            .from(paymentTransaction)
+            .where(eq(paymentTransaction.userId, input.userId))
+            .orderBy(desc(paymentTransaction.createdAt))
+            .limit(100);
+        return rows;
     }),
 });

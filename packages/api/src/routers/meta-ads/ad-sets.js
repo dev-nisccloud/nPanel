@@ -222,6 +222,7 @@ export const metaAdsAdSetsRouter = router({
                 };
             });
             return {
+                success: true,
                 data: adSetsWithInsights,
                 paging: response.paging,
             };
@@ -291,6 +292,7 @@ export const metaAdsAdSetsRouter = router({
                 'updated_time',
             ]);
             return {
+                success: true,
                 data: {
                     id: adSet.id,
                     name: adSet.name || `Ad Set ${adSet.id}`,

@@ -4,6 +4,7 @@ import * as crypto from "crypto";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { teamMember } from "@npanel/db/schema/teams";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
@@ -11,6 +12,8 @@ import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import { rdapLookup } from "../lib/rdap/client";
 import { createOpenProviderClient, OpenProviderApiError } from "../lib/openprovider-client";
 import { executeKenicTransferRequest } from "../lib/kenic-transfer-request";
+import { getMemberTeamIds, isAgencyUserRole, userIsAgencyStaff, } from "../lib/domain-transfer-access";
+import { listOutgoingKenicTransfers } from "../lib/list-outgoing-kenic-transfers";
 /**
  * Parse domain into name and extension (extension without leading dot).
  * Handles multi-part TLDs (e.g. example.co.ke -> name: example, extension: co.ke).
@@ -54,13 +57,127 @@ function buildReturn(transferStatus, transferrable, provider, parsed, opts) {
         error: opts.error ?? null,
     };
 }
-const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
-async function getMemberTeamIds(userId) {
-    const memberships = await db
-        .select({ teamId: teamMember.teamId })
-        .from(teamMember)
-        .where(eq(teamMember.userId, userId));
-    return memberships.map((m) => m.teamId);
+/** Statuses that may still change while the user watches the transfer requests list. */
+export const ACTIVE_DOMAIN_TRANSFER_REQUEST_STATUSES = [
+    "AWAITING_PAYMENT",
+    "PENDING",
+    "SUBMITTED_TO_PROVIDER",
+];
+/** Terminal outcomes - transfer requests in these statuses cannot be deleted. */
+export const NON_DELETABLE_DOMAIN_TRANSFER_REQUEST_STATUSES = [
+    "COMPLETED",
+    "FAILED",
+];
+function isTransferRequestDeletable(status) {
+    return !NON_DELETABLE_DOMAIN_TRANSFER_REQUEST_STATUSES.includes(status);
+}
+function toCheckoutTransferProvider(dbProvider) {
+    return dbProvider === "KENIC" ? "kenic" : "openprovider";
+}
+function formatOpenProviderDomainName(domainField) {
+    if (typeof domainField === "string") {
+        return domainField.trim().toLowerCase() || null;
+    }
+    if (domainField && typeof domainField === "object") {
+        const domainObj = domainField;
+        const name = domainObj.name?.trim();
+        const ext = domainObj.extension?.trim();
+        if (!name || !ext)
+            return null;
+        const normalizedExt = ext.startsWith(".") ? ext.slice(1) : ext;
+        return `${name}.${normalizedExt}`.toLowerCase();
+    }
+    return null;
+}
+function hasOutgoingTransferRegistryStatus(registryStatuses) {
+    if (!registryStatuses || typeof registryStatuses !== "object")
+        return false;
+    const statuses = registryStatuses;
+    for (const [key, entry] of Object.entries(statuses)) {
+        const normalizedKey = key.replace(/_/g, "").toLowerCase();
+        if (normalizedKey !== "pendingtransfer")
+            continue;
+        const value = entry?.value;
+        if (value === true || value === 1 || value === "1")
+            return true;
+    }
+    return false;
+}
+async function listOutgoingOpenProviderTransfers() {
+    if (!process.env.OPENPROVIDER_USERNAME || !process.env.OPENPROVIDER_PASSWORD) {
+        return [];
+    }
+    try {
+        const client = createOpenProviderClient();
+        await client.authenticate({
+            username: process.env.OPENPROVIDER_USERNAME,
+            password: process.env.OPENPROVIDER_PASSWORD,
+            ip: process.env.OPENPROVIDER_IP,
+        });
+        const response = await client.searchDomains({
+            status: "ACT",
+            limit: 100,
+            offset: 0,
+            with_registry_statuses: true,
+        });
+        if (response.code !== 0)
+            return [];
+        const outgoing = [];
+        for (const domain of response.data.results) {
+            const registryStatuses = domain.registry_statuses;
+            if (!hasOutgoingTransferRegistryStatus(registryStatuses))
+                continue;
+            const domainName = formatOpenProviderDomainName(domain.domain);
+            if (!domainName)
+                continue;
+            const lastChangedRaw = domain.last_changed;
+            const lastChanged = lastChangedRaw ? new Date(lastChangedRaw) : new Date();
+            const submittedAt = Number.isNaN(lastChanged.getTime()) ? new Date() : lastChanged;
+            outgoing.push({
+                id: `op-outgoing-${domain.id}`,
+                domainName,
+                provider: "OPENPROVIDER",
+                status: "OUTGOING_PENDING",
+                direction: "outgoing",
+                providerPriceAmount: null,
+                providerPriceCurrency: null,
+                customerPriceAmount: null,
+                customerPriceCurrency: null,
+                submittedToProviderAt: submittedAt,
+                niscOrderId: null,
+                niscOrderNumber: null,
+                niscOrderStatus: null,
+                createdAt: submittedAt,
+                updatedAt: submittedAt,
+                createdBy: null,
+            });
+        }
+        return outgoing;
+    }
+    catch (error) {
+        console.error("[domainTransfer.listTransferRequests] outgoing OpenProvider fetch failed:", error);
+        return [];
+    }
+}
+function mapOutgoingKenicTransfers(rows) {
+    return rows.map((row) => ({
+        id: `kenic-outgoing-${row.domainName}`,
+        domainName: row.domainName,
+        provider: "KENIC",
+        status: "OUTGOING_PENDING",
+        direction: "outgoing",
+        providerPriceAmount: null,
+        providerPriceCurrency: null,
+        customerPriceAmount: null,
+        customerPriceCurrency: null,
+        submittedToProviderAt: row.submittedAt,
+        niscOrderId: null,
+        niscOrderNumber: null,
+        niscOrderStatus: null,
+        createdAt: row.submittedAt,
+        updatedAt: row.submittedAt,
+        createdBy: null,
+    }));
 }
 export const domainTransferRouter = router({
     /**
@@ -109,7 +226,7 @@ export const domainTransferRouter = router({
                 }
                 if (rdap.locked) {
                     return buildReturn("locked", false, "openprovider", parsed, {
-                        error: "This domain is locked at the current registrar. Unlock it in your registrar's control panel, then try the transfer again.",
+                        error: "This domain is locked at the current registrar. Unlock it in your registrar's control panel, then wait about 15 seconds for the change to take effect before checking again.",
                     });
                 }
                 // exists && !locked Ã¢â€ â€™ ready; get price below
@@ -343,6 +460,181 @@ export const domainTransferRouter = router({
         }
     }),
     /**
+     * Create a transfer request when the user proceeds to checkout (before payment).
+     * Updated to PENDING when payment succeeds and linked to the Nisc order; processor updates further.
+     */
+    createCheckoutRequest: protectedProcedure
+        .input(z.object({
+        domain: z.string().min(1),
+        authCode: z.string().min(1),
+        provider: z.enum(["kenic", "openprovider"]),
+        providerPriceAmount: z.string().optional(),
+        providerPriceCurrency: z.string().optional(),
+        customerPriceAmount: z.string().optional(),
+        customerPriceCurrency: z.string().optional(),
+        teamId: z.string().optional(),
+        /** Agency only: transfer owner (customer) when starting checkout on their behalf. */
+        createdForUserId: z.string().min(1).optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const userId = ctx.session.user.id;
+        const userRole = ctx.session.user.role;
+        const createdFor = input.createdForUserId?.trim();
+        if (createdFor) {
+            if (!isAgencyUserRole(userRole) && !(await userIsAgencyStaff(userId))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can create a transfer for another user.",
+                });
+            }
+            const [target] = await db
+                .select({ id: userTable.id })
+                .from(userTable)
+                .where(eq(userTable.id, createdFor))
+                .limit(1);
+            if (!target) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Selected user was not found.",
+                });
+            }
+        }
+        if (input.teamId && !isAgencyUserRole(userRole)) {
+            const [membership] = await db
+                .select({ id: teamMember.id })
+                .from(teamMember)
+                .where(and(eq(teamMember.teamId, input.teamId), eq(teamMember.userId, userId)))
+                .limit(1);
+            if (!membership) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team.",
+                });
+            }
+        }
+        const domainName = input.domain.trim().toLowerCase();
+        const authCode = input.authCode.trim();
+        const now = new Date();
+        const id = crypto.randomUUID();
+        await db.insert(domainTransferRequest).values({
+            id,
+            domainName,
+            authCode,
+            provider: input.provider === "kenic" ? "KENIC" : "OPENPROVIDER",
+            status: "AWAITING_PAYMENT",
+            providerPriceAmount: input.providerPriceAmount ?? null,
+            providerPriceCurrency: input.providerPriceCurrency ?? null,
+            customerPriceAmount: input.customerPriceAmount ?? null,
+            customerPriceCurrency: input.customerPriceCurrency ?? null,
+            teamId: input.teamId ?? null,
+            createdById: createdFor ?? userId,
+            createdAt: now,
+            updatedAt: now,
+            niscOrderId: null,
+            submittedToProviderAt: null,
+            providerResponse: null,
+        });
+        return { id, domainName, status: "AWAITING_PAYMENT" };
+    }),
+    /**
+     * Resume checkout for a transfer request awaiting payment (returns EPP code for buy-now only).
+     */
+    getCheckoutResumeContext: protectedProcedure
+        .input(z.object({ id: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+        const [row] = await db
+            .select({
+            id: domainTransferRequest.id,
+            domainName: domainTransferRequest.domainName,
+            authCode: domainTransferRequest.authCode,
+            provider: domainTransferRequest.provider,
+            status: domainTransferRequest.status,
+            customerPriceAmount: domainTransferRequest.customerPriceAmount,
+            customerPriceCurrency: domainTransferRequest.customerPriceCurrency,
+            teamId: domainTransferRequest.teamId,
+            niscOrderId: domainTransferRequest.niscOrderId,
+        })
+            .from(domainTransferRequest)
+            .where(eq(domainTransferRequest.id, input.id))
+            .limit(1);
+        if (!row) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Transfer request not found.",
+            });
+        }
+        if (row.status !== "AWAITING_PAYMENT") {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This transfer request is not awaiting payment.",
+            });
+        }
+        if (row.niscOrderId) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This transfer request is already linked to an order.",
+            });
+        }
+        const price = row.customerPriceAmount
+            ? Number.parseFloat(row.customerPriceAmount)
+            : Number.NaN;
+        if (Number.isNaN(price) || price <= 0) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Transfer price is missing or invalid.",
+            });
+        }
+        return {
+            id: row.id,
+            domainName: row.domainName,
+            authCode: row.authCode,
+            provider: toCheckoutTransferProvider(row.provider),
+            price,
+            currency: row.customerPriceCurrency ?? "KES",
+            teamId: row.teamId,
+        };
+    }),
+    /**
+     * Delete a transfer request (agency only). Not allowed for completed or failed requests.
+     */
+    deleteTransferRequest: protectedProcedure
+        .input(z.object({ id: z.string().min(1) }))
+        .mutation(async ({ ctx, input }) => {
+        const userRole = ctx.session.user.role;
+        if (!isAgencyUserRole(userRole)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can delete transfer requests.",
+            });
+        }
+        const [row] = await db
+            .select({
+            id: domainTransferRequest.id,
+            status: domainTransferRequest.status,
+            createdById: domainTransferRequest.createdById,
+            teamId: domainTransferRequest.teamId,
+        })
+            .from(domainTransferRequest)
+            .where(eq(domainTransferRequest.id, input.id))
+            .limit(1);
+        if (!row) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Transfer request not found.",
+            });
+        }
+        if (!isTransferRequestDeletable(row.status)) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Completed or failed transfer requests cannot be deleted.",
+            });
+        }
+        await db
+            .delete(domainTransferRequest)
+            .where(eq(domainTransferRequest.id, input.id));
+        return { success: true };
+    }),
+    /**
      * List domain transfer requests for the agency (all requests; auth required).
      * Does not return authCode for security.
      */
@@ -369,6 +661,9 @@ export const domainTransferRouter = router({
             customerPriceAmount: domainTransferRequest.customerPriceAmount,
             customerPriceCurrency: domainTransferRequest.customerPriceCurrency,
             submittedToProviderAt: domainTransferRequest.submittedToProviderAt,
+            niscOrderId: domainTransferRequest.niscOrderId,
+            niscOrderNumber: niscOrder.orderNumber,
+            niscOrderStatus: niscOrder.status,
             createdAt: domainTransferRequest.createdAt,
             updatedAt: domainTransferRequest.updatedAt,
             createdBy: {
@@ -379,11 +674,27 @@ export const domainTransferRouter = router({
         })
             .from(domainTransferRequest)
             .innerJoin(userTable, eq(domainTransferRequest.createdById, userTable.id))
+            .leftJoin(niscOrder, eq(domainTransferRequest.niscOrderId, niscOrder.id))
             .where(whereClause ?? undefined)
             .orderBy(desc(domainTransferRequest.createdAt));
-        return rows.map((r) => ({
+        const incoming = rows.map((r) => ({
             ...r,
+            direction: "incoming",
             createdBy: r.createdBy,
         }));
+        if (!isAgencyUserRole(userRole)) {
+            return incoming;
+        }
+        const [openProviderOutgoing, kenicOutgoingRows] = await Promise.all([
+            listOutgoingOpenProviderTransfers(),
+            listOutgoingKenicTransfers(),
+        ]);
+        const outgoing = [
+            ...openProviderOutgoing,
+            ...mapOutgoingKenicTransfers(kenicOutgoingRows),
+        ];
+        const incomingDomainNames = new Set(incoming.map((row) => row.domainName.toLowerCase()));
+        const dedupedOutgoing = outgoing.filter((row) => !incomingDomainNames.has(row.domainName.toLowerCase()));
+        return [...incoming, ...dedupedOutgoing].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }),
 });

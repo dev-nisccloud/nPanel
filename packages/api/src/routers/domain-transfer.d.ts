@@ -1,23 +1,32 @@
 /** User-facing transfer check status for the UI. */
 export type TransferStatus = "available" | "locked" | "ready" | "pending_check" | "reserved" | "unavailable";
+type TransferDirection = "incoming" | "outgoing";
 type DomainTransferRequestListItem = {
     id: string;
     domainName: string;
     provider: string;
     status: string;
+    direction: TransferDirection;
     providerPriceAmount: string | null;
     providerPriceCurrency: string | null;
     customerPriceAmount: string | null;
     customerPriceCurrency: string | null;
     submittedToProviderAt: Date | null;
+    niscOrderId: string | null;
+    niscOrderNumber: string | null;
+    niscOrderStatus: string | null;
     createdAt: Date;
     updatedAt: Date;
     createdBy: {
         id: string;
         name: string;
         email: string;
-    };
+    } | null;
 };
+/** Statuses that may still change while the user watches the transfer requests list. */
+export declare const ACTIVE_DOMAIN_TRANSFER_REQUEST_STATUSES: readonly ["AWAITING_PAYMENT", "PENDING", "SUBMITTED_TO_PROVIDER"];
+/** Terminal outcomes - transfer requests in these statuses cannot be deleted. */
+export declare const NON_DELETABLE_DOMAIN_TRANSFER_REQUEST_STATUSES: readonly ["COMPLETED", "FAILED"];
 export declare const domainTransferRouter: import("@trpc/server").TRPCBuiltRouter<{
     ctx: import("..").Context;
     meta: object;
@@ -86,6 +95,59 @@ export declare const domainTransferRouter: import("@trpc/server").TRPCBuiltRoute
             id: `${string}-${string}-${string}-${string}-${string}`;
             domain: string;
             pending?: undefined;
+        };
+        meta: object;
+    }>;
+    /**
+     * Create a transfer request when the user proceeds to checkout (before payment).
+     * Updated to PENDING when payment succeeds and linked to the Nisc order; processor updates further.
+     */
+    createCheckoutRequest: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            domain: string;
+            authCode: string;
+            provider: "kenic" | "openprovider";
+            providerPriceAmount?: string | undefined;
+            providerPriceCurrency?: string | undefined;
+            customerPriceAmount?: string | undefined;
+            customerPriceCurrency?: string | undefined;
+            teamId?: string | undefined;
+            createdForUserId?: string | undefined;
+        };
+        output: {
+            id: `${string}-${string}-${string}-${string}-${string}`;
+            domainName: string;
+            status: "AWAITING_PAYMENT";
+        };
+        meta: object;
+    }>;
+    /**
+     * Resume checkout for a transfer request awaiting payment (returns EPP code for buy-now only).
+     */
+    getCheckoutResumeContext: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            id: string;
+        };
+        output: {
+            id: string;
+            domainName: string;
+            authCode: string;
+            provider: "kenic" | "openprovider";
+            price: number;
+            currency: string;
+            teamId: string | null;
+        };
+        meta: object;
+    }>;
+    /**
+     * Delete a transfer request (agency only). Not allowed for completed or failed requests.
+     */
+    deleteTransferRequest: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            id: string;
+        };
+        output: {
+            success: true;
         };
         meta: object;
     }>;

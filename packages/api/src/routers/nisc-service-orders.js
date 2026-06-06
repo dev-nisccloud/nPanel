@@ -1,28 +1,42 @@
 import * as crypto from "crypto";
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
 import { userProfile } from "@npanel/db/schema/auth-extras";
 import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
 import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
 import { niscClientSubscription, niscProduct, niscProductPlan, } from "@npanel/db/schema/products";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
-import { team } from "@npanel/db/schema/teams";
-import { teamMember } from "@npanel/db/schema/teams";
+import { team, teamMember, teamBillingSettings } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
+import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
 import { processNiscOrder } from "../lib/nisc-order-processor";
-import { createFromPaymentInputSchema, createOrderInputSchema, getAllNiscOrdersInputSchema, getNiscOrderByIdInputSchema, retryNiscOrderInputSchema, } from "./nisc-service-orders-schemas";
+import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
+import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
+import { createFromPaymentInputSchema, createOrderInputSchema, getAllNiscOrdersInputSchema, getNiscOrderByIdInputSchema, retryNiscOrderInputSchema, hivelocityItemMetadataSchema, HIVELOCITY_SERVICE_TYPES, } from "./nisc-service-orders-schemas";
 function generateNiscOrderNumber() {
     const year = new Date().getFullYear();
     const timestamp = Date.now().toString().slice(-6);
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
     return `Nisc-${year}-${timestamp}-${random}`;
 }
+async function processNiscOrderWithPreInvoice(niscOrderId) {
+    await runPreProvisioningInvoiceForOrder(niscOrderId);
+    return processNiscOrder(niscOrderId);
+}
 function isAgencyUserRole(role) {
     return ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+}
+/** Match app-side agency detection for checkout assignee (e.g. domains portfolio buy now). */
+function canAssignBilledForUserId(role) {
+    if (isAgencyUserRole(role))
+        return true;
+    return (role ?? "").toUpperCase().includes("AGENCY");
 }
 function isAgencySuperAdminRole(role) {
     return role === "AGENCY_SUPER_ADMIN";
@@ -35,7 +49,8 @@ function requiresExternalProvisioning(serviceType) {
     return (resolved === "web_hosting" ||
         resolved === "email_hosting" ||
         resolved === "domain_registration" ||
-        resolved === "domain_transfer");
+        resolved === "domain_transfer" ||
+        HIVELOCITY_SERVICE_TYPES.includes(resolved));
 }
 async function isTeamMember(teamId, userId) {
     const [member] = await db
@@ -87,6 +102,56 @@ async function canAccessOrderMutation(orderId, userId, role) {
     return order;
 }
 export const niscServiceOrdersRouter = router({
+    getSummary: protectedProcedure
+        .output(z.object({
+        total: z.number(),
+        completed: z.number(),
+        failed: z.number(),
+        pending: z.number(),
+    }))
+        .query(async ({ ctx }) => {
+        const userId = ctx.session?.user?.id;
+        const userRole = ctx.session?.user?.role;
+        if (!userId) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view Nisc order summary",
+            });
+        }
+        const whereClause = isAgencyUserRole(userRole)
+            ? undefined
+            : eq(niscOrder.userId, userId);
+        const [totalRows, completedRows, failedRows, pendingRows] = await Promise.all([
+            db
+                .select({ c: count() })
+                .from(niscOrder)
+                .where(whereClause ?? sql `true`),
+            db
+                .select({ c: count() })
+                .from(niscOrder)
+                .where(whereClause
+                ? and(whereClause, eq(niscOrder.status, "COMPLETED"))
+                : eq(niscOrder.status, "COMPLETED")),
+            db
+                .select({ c: count() })
+                .from(niscOrder)
+                .where(whereClause
+                ? and(whereClause, eq(niscOrder.status, "FAILED"))
+                : eq(niscOrder.status, "FAILED")),
+            db
+                .select({ c: count() })
+                .from(niscOrder)
+                .where(whereClause
+                ? and(whereClause, inArray(niscOrder.status, ["PENDING", "PROCESSING", "PARTIAL"]))
+                : inArray(niscOrder.status, ["PENDING", "PROCESSING", "PARTIAL"])),
+        ]);
+        return {
+            total: Number(totalRows[0]?.c ?? 0),
+            completed: Number(completedRows[0]?.c ?? 0),
+            failed: Number(failedRows[0]?.c ?? 0),
+            pending: Number(pendingRows[0]?.c ?? 0),
+        };
+    }),
     getAll: protectedProcedure
         .input(getAllNiscOrdersInputSchema)
         .query(async ({ ctx, input }) => {
@@ -144,6 +209,9 @@ export const niscServiceOrdersRouter = router({
                 currency: o.currency,
                 notes: o.notes,
                 failureReason: o.failureReason,
+                invoiceId: o.invoiceId,
+                invoiceNumber: o.invoiceNumber,
+                metadata: o.metadata,
                 createdAt: o.createdAt,
                 completedAt: o.completedAt,
                 user: o.user,
@@ -485,6 +553,7 @@ export const niscServiceOrdersRouter = router({
             });
         }
         const userId = session.user.id;
+        const userRole = session.user.role;
         const txRows = await db
             .select()
             .from(paymentTransaction)
@@ -496,6 +565,14 @@ export const niscServiceOrdersRouter = router({
                 code: "NOT_FOUND",
                 message: "Payment not found or not yet successful. Wait a moment and try again.",
             });
+        }
+        // Align line items with the amount actually paid (supports editable M-Pesa test amounts).
+        const paidAmountRaw = transaction.paidAmount ?? transaction.amount;
+        const paidAmountNum = Number.parseFloat(paidAmountRaw);
+        if (Number.isFinite(paidAmountNum) && paidAmountNum > 0 && input.items.length === 1) {
+            const paidStr = String(Math.ceil(paidAmountNum));
+            input.items[0].itemPrice = paidStr;
+            input.items[0].itemSubtotal = paidStr;
         }
         for (const item of input.items) {
             const productRows = await db
@@ -510,12 +587,65 @@ export const niscServiceOrdersRouter = router({
                     message: `Product ${item.productId} not found or inactive`,
                 });
             }
+            if (isZeepoAiAgentProduct(item.productId)) {
+                if (!input.teamId?.trim()) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Zeepo AI Agent checkout requires a team. Open Zeepo from your team dashboard.",
+                    });
+                }
+                if (!item.productPlanId?.trim()) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Zeepo AI Agent checkout requires a plan.",
+                    });
+                }
+            }
             if ((product.serviceType === "domain_registration" || product.serviceType === "domain_transfer") &&
                 !item.primaryDomain?.trim()) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: `Domain item "${product.name}" requires a primary domain.`,
                 });
+            }
+            if (HIVELOCITY_SERVICE_TYPES.includes(product.serviceType)) {
+                const parsed = hivelocityItemMetadataSchema.safeParse(item.metadata);
+                if (!parsed.success) {
+                    const detail = parsed.error.issues
+                        .map((i) => `${i.path.join(".") || "metadata"}: ${i.message}`)
+                        .join("; ");
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: `Server item "${product.name}" requires valid Hivelocity configuration metadata. ${detail}`,
+                    });
+                }
+                const meta = parsed.data;
+                if (meta.hivelocityPeriod === "hourly") {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "Hourly billing is not available for server orders.",
+                    });
+                }
+                if (meta.operation !== "vps_upgrade" &&
+                    meta.operation !== "vps_reload" &&
+                    meta.operation !== "vps_reactivate") {
+                    if (!/^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(meta.hivelocityHostname.trim())) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "Server hostname must be a valid FQDN.",
+                        });
+                    }
+                }
+                else if (meta.operation === "vps_reactivate" ||
+                    meta.operation === "vps_upgrade" ||
+                    meta.operation === "vps_reload") {
+                    if (product.serviceType !== "vps_hosting") {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "VPS in-place orders must use the VPS hosting product.",
+                        });
+                    }
+                }
             }
         }
         const serviceTypeByProductId = new Map();
@@ -529,45 +659,76 @@ export const niscServiceOrdersRouter = router({
                 serviceTypeByProductId.set(row.id, row.serviceType);
             }
         }
-        const needsProfile = await Promise.all(input.items.map(async (i) => {
-            const pRows = await db
-                .select({ serviceType: niscProduct.serviceType })
-                .from(niscProduct)
-                .where(eq(niscProduct.id, i.productId))
-                .limit(1);
-            const p = pRows[0];
-            return (p?.serviceType === "web_hosting" ||
-                p?.serviceType === "email_hosting" ||
-                p?.serviceType === "domain_registration" ||
-                p?.serviceType === "domain_transfer");
-        })).then((arr) => arr.some(Boolean));
-        if (needsProfile) {
-            const payProfileRows = await db
-                .select()
-                .from(userProfile)
-                .where(eq(userProfile.userId, userId))
-                .limit(1);
-            const profile = payProfileRows[0];
-            if (!profile) {
-                throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message: "Complete your profile information and retry creating an order.",
-                });
-            }
-            const required = [
-                profile.firstName,
-                profile.lastName,
-                profile.address,
-                profile.city,
-                profile.country,
-                profile.postalCode,
-                profile.phone,
-            ];
-            if (required.some((f) => !f || String(f).trim() === "")) {
-                throw new TRPCError({
-                    code: "BAD_REQUEST",
-                    message: "Complete your profile information and retry creating an order.",
-                });
+        for (const item of input.items) {
+            const serviceType = serviceTypeByProductId.get(item.productId);
+            const isDomain = serviceType === "domain_registration" || serviceType === "domain_transfer";
+            const metadata = item.metadata;
+            if (isDomain) {
+                if (metadata?.useRegistrantInfo === "myself") {
+                    const profRows = await db
+                        .select()
+                        .from(userProfile)
+                        .where(eq(userProfile.userId, userId))
+                        .limit(1);
+                    const prof = profRows[0];
+                    if (!prof ||
+                        [
+                            prof.firstName,
+                            prof.lastName,
+                            prof.address,
+                            prof.city,
+                            prof.country,
+                            prof.postalCode,
+                            prof.phone,
+                        ].some((f) => !f || String(f).trim() === "")) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "Complete your profile details before using your own details for registration.",
+                        });
+                    }
+                }
+                else if (metadata?.useRegistrantInfo === "customer") {
+                    const manual = metadata.manualRegistrantDetails;
+                    if (!manual ||
+                        [
+                            manual.firstName,
+                            manual.lastName,
+                            manual.email,
+                            manual.address,
+                            manual.city,
+                            manual.country,
+                            manual.phone,
+                        ].some((f) => !f || String(f).trim() === "")) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "Customer registration details are incomplete. Please fill all required fields.",
+                        });
+                    }
+                }
+                else {
+                    // Fallback/Legacy: check user profile
+                    const profRows = await db
+                        .select()
+                        .from(userProfile)
+                        .where(eq(userProfile.userId, userId))
+                        .limit(1);
+                    const prof = profRows[0];
+                    if (!prof ||
+                        [
+                            prof.firstName,
+                            prof.lastName,
+                            prof.address,
+                            prof.city,
+                            prof.country,
+                            prof.postalCode,
+                            prof.phone,
+                        ].some((f) => !f || String(f).trim() === "")) {
+                        throw new TRPCError({
+                            code: "BAD_REQUEST",
+                            message: "Complete your profile details before proceeding.",
+                        });
+                    }
+                }
             }
         }
         // For domain_transfer items: create DomainTransferRequest (PENDING) so processor can update status later
@@ -607,20 +768,84 @@ export const niscServiceOrdersRouter = router({
             }
             const domainName = item.primaryDomain.trim();
             const provider = isKenicDomain(domainName) ? "KENIC" : "OPENPROVIDER";
-            const requestId = crypto.randomUUID();
-            await db.insert(domainTransferRequest).values({
-                id: requestId,
-                domainName,
-                authCode,
-                provider,
-                status: "PENDING",
-                customerPriceAmount: item.itemSubtotal ?? null,
-                customerPriceCurrency: input.currency ?? "KES",
-                teamId: input.teamId ?? null,
-                createdById: userId,
-                createdAt: now,
-                updatedAt: now,
-            });
+            const existingRequestId = meta?.domainTransferRequestId?.trim();
+            let requestId;
+            let existing;
+            if (existingRequestId) {
+                const [row] = await db
+                    .select({
+                    id: domainTransferRequest.id,
+                    createdById: domainTransferRequest.createdById,
+                    teamId: domainTransferRequest.teamId,
+                    status: domainTransferRequest.status,
+                    niscOrderId: domainTransferRequest.niscOrderId,
+                })
+                    .from(domainTransferRequest)
+                    .where(eq(domainTransferRequest.id, existingRequestId))
+                    .limit(1);
+                existing = row;
+            }
+            if (existing) {
+                if (existing.niscOrderId) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "This transfer request is already linked to an order.",
+                    });
+                }
+                if (!["AWAITING_PAYMENT", "PENDING"].includes(existing.status)) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: `Transfer request cannot be updated (status: ${existing.status}).`,
+                    });
+                }
+                requestId = existing.id;
+                const billedFor = input.billedForUserId?.trim();
+                const transferOwnerId = billedFor &&
+                    (canAssignBilledForUserId(userRole) || (await userIsAgencyStaff(userId)))
+                    ? billedFor
+                    : existing.createdById;
+                await db
+                    .update(domainTransferRequest)
+                    .set({
+                    domainName: domainName.toLowerCase(),
+                    authCode,
+                    provider,
+                    status: "PENDING",
+                    customerPriceAmount: item.itemSubtotal ?? null,
+                    customerPriceCurrency: input.currency ?? "KES",
+                    teamId: input.teamId ?? existing.teamId ?? null,
+                    createdById: transferOwnerId,
+                    updatedAt: now,
+                })
+                    .where(eq(domainTransferRequest.id, requestId));
+            }
+            else if (existingRequestId) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Transfer request not found.",
+                });
+            }
+            else {
+                const billedFor = input.billedForUserId?.trim();
+                const newOwnerId = billedFor &&
+                    (canAssignBilledForUserId(userRole) || (await userIsAgencyStaff(userId)))
+                    ? billedFor
+                    : userId;
+                requestId = crypto.randomUUID();
+                await db.insert(domainTransferRequest).values({
+                    id: requestId,
+                    domainName: domainName.toLowerCase(),
+                    authCode,
+                    provider,
+                    status: "PENDING",
+                    customerPriceAmount: item.itemSubtotal ?? null,
+                    customerPriceCurrency: input.currency ?? "KES",
+                    teamId: input.teamId ?? null,
+                    createdById: newOwnerId,
+                    createdAt: now,
+                    updatedAt: now,
+                });
+            }
             transferRequestIdsByIndex.push(requestId);
         }
         let orderNumber;
@@ -639,13 +864,39 @@ export const niscServiceOrdersRouter = router({
         const subtotal = String(subtotalNum);
         const total = String(totalNum);
         const currency = input.currency || "KES";
+        let orderUserId = userId;
+        const billedFor = input.billedForUserId?.trim();
+        const orderTeamId = input.teamId?.trim() || null;
+        if (billedFor) {
+            const role = session.user.role;
+            if (!canAssignBilledForUserId(role) && !(await userIsAgencyStaff(userId))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Only agency users can assign an order to another user.",
+                });
+            }
+            const targetRows = await db.select({ id: user.id }).from(user).where(eq(user.id, billedFor)).limit(1);
+            if (!targetRows[0]) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Selected user was not found.",
+                });
+            }
+            if (orderTeamId && !(await isTeamMember(orderTeamId, billedFor))) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Selected user is not a member of this team.",
+                });
+            }
+            orderUserId = billedFor;
+        }
         const payOrderIns = await db
             .insert(niscOrder)
             .values({
             id: randomUUID(),
             orderNumber,
-            userId: userId,
-            teamId: input.teamId ?? null,
+            userId: orderUserId,
+            teamId: orderTeamId,
             createdBy: session.user.id,
             status: "PENDING",
             subtotal,
@@ -703,26 +954,24 @@ export const niscServiceOrdersRouter = router({
             try {
                 const result = await enqueueNiscOrderProcessing(order.id);
                 qstashMessageId = result.messageId;
-            }
-            catch (err) {
                 await db
                     .update(niscOrder)
-                    .set({
-                    failureReason: (err instanceof Error ? err.message : String(err)).slice(0, 500),
-                })
+                    .set({ qstashMessageId })
                     .where(eq(niscOrder.id, order.id));
-                throw new TRPCError({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: err instanceof Error ? err.message : "Failed to enqueue order for processing",
-                });
             }
-            await db
-                .update(niscOrder)
-                .set({ qstashMessageId })
-                .where(eq(niscOrder.id, order.id));
+            catch (enqueueErr) {
+                // QStash unavailable (e.g. local dev without ngrok) - invoice then provision inline.
+                const processResult = await processNiscOrderWithPreInvoice(order.id);
+                if (!processResult.ok) {
+                    throw new TRPCError({
+                        code: "INTERNAL_SERVER_ERROR",
+                        message: processResult.failureReason || "Failed to complete order processing",
+                    });
+                }
+            }
         }
         else {
-            const processResult = await processNiscOrder(order.id);
+            const processResult = await processNiscOrderWithPreInvoice(order.id);
             if (!processResult.ok) {
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
@@ -738,7 +987,8 @@ export const niscServiceOrdersRouter = router({
                     with: {
                         orderItems: {
                             with: {
-                                product: { columns: { name: true } },
+                                product: { columns: { name: true, serviceType: true } },
+                                productPlan: { columns: { name: true } },
                             },
                         },
                         user: { columns: { id: true, name: true, email: true } },
@@ -748,16 +998,30 @@ export const niscServiceOrdersRouter = router({
                     return;
                 const { sendEmail } = await import("../lib/email");
                 const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
-                const orderItems = orderWithUser.orderItems.map((i) => ({
-                    name: i.primaryDomain || (i.product?.name ?? "Order item"),
-                    description: i.description ?? undefined,
-                    price: i.itemPrice,
-                }));
+                const { buildNiscOrderReceivedEmailItems } = await import("../lib/nisc-order-received-email");
+                const { formatNiscDateTime } = await import("../lib/nisc-datetime-format");
+                const { orderItems, totalAmount } = buildNiscOrderReceivedEmailItems({
+                    createdAt: orderWithUser.createdAt,
+                    currency: orderWithUser.currency,
+                    subtotal: orderWithUser.subtotal,
+                    orderItems: orderWithUser.orderItems.map((i) => ({
+                        itemPrice: i.itemPrice,
+                        itemSubtotal: i.itemSubtotal,
+                        primaryDomain: i.primaryDomain,
+                        billingCycle: i.billingCycle,
+                        description: i.description,
+                        product: {
+                            name: i.product?.name ?? "Service",
+                            serviceType: i.product?.serviceType ?? null,
+                        },
+                        productPlan: i.productPlan,
+                    })),
+                });
                 const html = await renderNiscOrderReceivedEmail({
                     customerName: orderWithUser.user.name ?? undefined,
                     orderNumber: orderWithUser.orderNumber,
-                    orderDate: orderWithUser.createdAt.toISOString().replace("T", " ").slice(0, 16),
-                    totalAmount: orderWithUser.total,
+                    orderDate: formatNiscDateTime(orderWithUser.createdAt),
+                    totalAmount,
                     currency: orderWithUser.currency,
                     orderItems,
                 });
@@ -811,17 +1075,10 @@ export const niscServiceOrdersRouter = router({
                 message: "Only failed or partial orders can be retried",
             });
         }
-        try {
-            await enqueueNiscOrderProcessing(order.id);
-        }
-        catch (err) {
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: err instanceof Error
-                    ? err.message
-                    : "Failed to re-enqueue order for processing",
-            });
-        }
+        // Reset status to PENDING BEFORE enqueuing so the worker never sees a non-PENDING order.
+        // Previously the enqueue happened first, causing a race condition: QStash delivered the
+        // message before the DB update completed, so the worker loaded the order in FAILED status
+        // and skipped it with worker_order_skip_not_pending.
         await db.transaction(async (tx) => {
             await tx
                 .update(niscOrder)
@@ -837,6 +1094,24 @@ export const niscServiceOrdersRouter = router({
                 .set({ status: "PENDING", provisioningError: null })
                 .where(and(eq(niscOrderItem.niscOrderId, order.id), inArray(niscOrderItem.status, ["FAILED", "SKIPPED"])));
         });
+        try {
+            await enqueueNiscOrderProcessing(order.id);
+        }
+        catch (err) {
+            // Enqueue failed - roll back the status so the order doesn't get stuck in PENDING
+            // without a worker running. Best-effort: ignore errors from this rollback.
+            await db
+                .update(niscOrder)
+                .set({ status: "FAILED", failureReason: "Failed to re-enqueue for processing" })
+                .where(eq(niscOrder.id, order.id))
+                .catch(() => undefined);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: err instanceof Error
+                    ? err.message
+                    : "Failed to re-enqueue order for processing",
+            });
+        }
         return { success: true, niscOrderId: order.id };
     }),
 });

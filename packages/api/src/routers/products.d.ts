@@ -148,7 +148,41 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
-    /** Plans for SEO customer pricing table. Product name contains "seo" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    /**
+     * Digital marketing upsell catalog (category MARKETING) for domain checkout.
+     * Returns each active product with fixed-price plans; excludes add-ons.
+     */
+    getDigitalMarketingPlansForUpsell: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            productFeatures: {
+                key: string;
+                label: string;
+            }[];
+            products: {
+                id: string;
+                name: string;
+                description: string | null;
+                plans: {
+                    id: string;
+                    name: string;
+                    niscPrice: string | null;
+                    niscCurrency: string;
+                    billingCycle: string;
+                    isPopular: boolean;
+                    isRecommended: boolean;
+                    productId: string;
+                    productName: string;
+                    featureValues: {
+                        available: boolean;
+                        valueOverride: string | null;
+                    }[];
+                }[];
+            }[];
+        };
+        meta: object;
+    }>;
+    /** Plans for SEO customer pricing table. Matches products whose name contains "seo" (case-insensitive). Same shape as getHostingPlansForPricing. */
     getSeoPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
         output: {
@@ -174,7 +208,41 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
-    /** Creative / design pricing; product name matches creatives design, creative_design, or creatives_design (case-insensitive). Same shape as getHostingPlansForPricing. */
+    /** Media buying customer pricing (Meta / Google / LinkedIn). COMMISSION plans only. */
+    getMediaBuyingPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            productFeatures: {
+                key: string;
+                label: string;
+            }[];
+            productName: string;
+            plans: {
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                pricingModel: "FIXED" | "COMMISSION";
+                commissionRate: number | null;
+                commissionBase: string | null;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: {
+                    available: boolean;
+                    valueOverride: string | null;
+                }[];
+            }[];
+        };
+        meta: object;
+    }>;
+    /**
+     * Creative / design customer pricing (e.g. Creative Assets empty state). Matches products whose name
+     * contains "creatives design", "creative_design", or "creatives_design" (case-insensitive).
+     * Same output shape as getHostingPlansForPricing.
+     */
     getCreativesDesignPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
         output: {

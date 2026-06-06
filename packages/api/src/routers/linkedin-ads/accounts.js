@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, eq, ilike, inArray, sql } from '@npanel/db';
+import { and, eq, ilike, inArray, or, sql } from '@npanel/db';
 import { db } from '@npanel/db';
 import { niscClientSubscription, niscProduct } from '@npanel/db/schema/products';
+import { NISC_MEDIA_BUYING_PRODUCT_ID } from '../../lib/media-buying-billing';
 import { team, teamMember } from '@npanel/db/schema/teams';
 import { router, protectedProcedure } from '../../trpc';
 import { LinkedInAdsClient } from '../../lib/linkedin-ads-client';
@@ -62,7 +63,7 @@ async function hasLinkedInSubscriptionAccess(teamIds, accountId) {
         .select({ id: niscClientSubscription.id })
         .from(niscClientSubscription)
         .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
-        .where(and(inArray(niscClientSubscription.teamId, teamIds), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`, sql `((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${accountId} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${urn} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${numeric})`))
+        .where(and(inArray(niscClientSubscription.teamId, teamIds), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%")), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`, sql `((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${accountId} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${urn} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${numeric})`))
         .limit(1);
     return !!linked;
 }
@@ -76,7 +77,7 @@ async function getLinkedInLinkedAccountsFromSubscriptions(teamIds) {
     })
         .from(niscClientSubscription)
         .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
-        .where(and(inArray(niscClientSubscription.teamId, teamIds), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`));
+        .where(and(inArray(niscClientSubscription.teamId, teamIds), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%")), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"LINKEDIN_ADS"}`));
     const byId = new Map();
     for (const row of rows) {
         const refs = row.serviceRefs;

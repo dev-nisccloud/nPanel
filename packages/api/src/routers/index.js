@@ -25,6 +25,7 @@ import { subdomainsDeleteRouter } from "./plesk/subdomains-delete";
 import { subscriptionsCreateRouter } from "./plesk/subscriptions-create";
 import { subscriptionsDeleteRouter } from "./plesk/subscriptions-delete";
 import { subscriptionsUpdateRouter } from "./plesk/subscriptions-update";
+import { subscriptionsSuspendRouter } from "./plesk/subscriptions-suspend";
 import { wpCredentialsRouter } from "./plesk/wp-credentials";
 import { wpPluginsAutoupdateRouter } from "./plesk/wp-plugins-autoupdate";
 import { wpPluginsDeleteRouter } from "./plesk/wp-plugins-delete";
@@ -47,6 +48,7 @@ import { kenicRouter } from "./kenic";
 import { domainTransferRouter } from "./domain-transfer";
 import { nameserverGroupsRouter } from "./nameserver-groups";
 import { tldSettingsRouter } from "./tld-settings";
+import { aiDomainSearchRouter } from "./ai-domain-search";
 import { domainsRouter as niscDomainsRouter } from "./domains";
 import { currencyConversionRouter } from "./currency-conversion";
 import { teamsRouter } from "./teams";
@@ -82,6 +84,7 @@ import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
 import { emailMarketingRouter } from "./email-marketing";
 import { niscEmailMarketingRouter } from "./nisc-email-marketing";
+import { niscEmailBuilderRouter } from "./nisc-email-builder";
 import { webDesignQuotesRouter } from "./web-design-quotes";
 import { userRouter } from "./user";
 import { emailBuilderRouter } from "./email-builder";
@@ -101,6 +104,17 @@ import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
 import { apiKeysRouter } from "./api-keys";
 import { digitaxRouter } from "./digitax";
+import { ipRecordsRouter } from "./ip-records";
+import { zeepoCanvasRouter } from "./zeepo-canvas";
+import { zeepoAgentRouter } from "./zeepo-agent";
+import { jetbackupDashboardRouter } from "./jetbackup/dashboard";
+import { jetbackupAccountsRouter } from "./jetbackup/accounts";
+import { jetbackupJobsRouter } from "./jetbackup/jobs";
+import { jetbackupDestinationsRouter } from "./jetbackup/destinations";
+import { jetbackupQueuesRouter } from "./jetbackup/queues";
+import { jetbackupBackupsRouter } from "./jetbackup/backups";
+import { jetbackupAlertsRouter } from "./jetbackup/alerts";
+import { jetbackupLogsRouter } from "./jetbackup/logs";
 export const appRouter = router({
     healthCheck: publicProcedure.query(() => {
         return "OK";
@@ -143,6 +157,7 @@ export const appRouter = router({
         subscriptionsCreate: subscriptionsCreateRouter,
         subscriptionsDelete: subscriptionsDeleteRouter,
         subscriptionsUpdate: subscriptionsUpdateRouter,
+        subscriptionsSuspend: subscriptionsSuspendRouter,
         // WordPress Toolkit
         wpCredentials: wpCredentialsRouter,
         wpPluginsInstall: wpPluginsInstallRouter,
@@ -176,6 +191,8 @@ export const appRouter = router({
     nameserverGroups: nameserverGroupsRouter,
     // TLD Settings management
     tldSettings: tldSettingsRouter,
+    // AI domain name ideas (authenticated - Replicate / Claude Haiku)
+    aiDomainSearch: aiDomainSearchRouter,
     // Domains Management (Nisc)
     domains: niscDomainsRouter,
     // Currency Conversion
@@ -246,6 +263,8 @@ export const appRouter = router({
     emailMarketing: emailMarketingRouter,
     // nisc Email Marketing (SES Integration - new, parallel)
     niscEmailMarketing: niscEmailMarketingRouter,
+    /** Standalone Nisc Email Builder (AI HTML - not legacy emailBuilder) */
+    niscEmailBuilder: niscEmailBuilderRouter,
     // Web Design Quote Requests (domain portfolio dialog)
     webDesignQuotes: webDesignQuotesRouter,
     // User preferences and profile
@@ -284,4 +303,21 @@ export const appRouter = router({
     apiKeys: apiKeysRouter,
     // DigiTax Integration
     digitax: digitaxRouter,
+    // IP Records
+    ipRecords: ipRecordsRouter,
+    // Zeepo Canvas
+    zeepoCanvas: zeepoCanvasRouter,
+    // Zeepo AI Agent (chat + Replicate jobs)
+    zeepoAgent: zeepoAgentRouter,
+    // JetBackup 5 Integration
+    jetbackup: router({
+        dashboard: jetbackupDashboardRouter,
+        accounts: jetbackupAccountsRouter,
+        jobs: jetbackupJobsRouter,
+        destinations: jetbackupDestinationsRouter,
+        queues: jetbackupQueuesRouter,
+        backups: jetbackupBackupsRouter,
+        alerts: jetbackupAlertsRouter,
+        logs: jetbackupLogsRouter,
+    }),
 });

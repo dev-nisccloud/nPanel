@@ -41,5 +41,15 @@ export declare const reportFiltersSchema: z.ZodObject<{
 export type ReportFilters = z.infer<typeof reportFiltersSchema>;
 /** Helper: build a SQL status condition or undefined (meaning "all statuses"). */
 export declare function toNum(v: string | null | undefined): number;
+/**
+ * Quotation value for reports - matches agency UI (`subtotal ?? amount`).
+ * Many rows store line-item totals in `subtotal` while `amount` stays unset.
+ */
+export declare function quotationReportAmount(row: {
+    amount?: string | null;
+    subtotal?: string | null;
+}): number;
+/** Normalize legacy/alternate quotation status labels to the agency schema. */
+export declare function normalizeQuotationStatus(status: string): string;
 /** Normalize agreedPrice to monthly MRR based on billingCycle. */
 export declare function monthlyMrr(price: string | null, cycle: string | null): number;

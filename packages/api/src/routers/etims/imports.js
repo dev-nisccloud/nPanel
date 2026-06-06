@@ -1,95 +1,63 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
-import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
+import { getEtimsContext } from "../../lib/etims-config";
+const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
+const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
+function assertRead(role) {
+    if (!isAgencyUser(role))
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS imports data." });
+}
+function assertWrite(role) {
+    if (!isSuperAdmin(role))
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can update eTIMS imported items." });
+}
 export const etimsImportsRouter = router({
     /**
-     * Retrieve imported items from customs system
+     * Retrieve imported items from KRA customs system.
+     * POST /selectImportItemList
      */
     getImportedItems: protectedProcedure
-        .input(z.object({
-        tin: z.string(),
-        bhfId: z.string(),
-        lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
-        accessToken: z.string().optional(),
-        cmcKey: z.string().optional(),
-    }))
-        .query(async ({ input }) => {
-        const config = {
-            baseUrl: process.env.ETIMS_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1",
-            tokenUrl: process.env.ETIMS_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate",
-            consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-            consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-        };
-        const client = new ETimsClient(config);
+        .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
+        .query(async ({ ctx, input }) => {
+        assertRead(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
         try {
-            const result = await client.selectImportedItemInfo({
-                tin: input.tin,
-                bhfId: input.bhfId,
-                cmcKey: input.cmcKey,
-                accessToken: input.accessToken
-            }, input.lastReqDt);
-            return {
-                success: true,
-                data: result,
-            };
+            const result = await client.selectImportItemList(oscu, input.lastReqDt);
+            return { success: true, data: result };
         }
-        catch (error) {
-            console.error("[eTIMS Get Imported Items Error]", error);
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: error.message || "Failed to retrieve eTIMS imported items",
-            });
+        catch (e) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to retrieve imported items" });
         }
     }),
     /**
-     * Confirm imported items and map to local item codes
+     * Confirm an imported item and map it to a local item code.
+     * POST /updateImportItem
      */
     confirmImportedItem: protectedProcedure
         .input(z.object({
-        tin: z.string(),
-        bhfId: z.string(),
-        accessToken: z.string().optional(),
-        cmcKey: z.string().optional(),
-        conversion: z.object({
+        item: z.object({
             taskCd: z.string(),
-            dclDe: z.string().regex(/^\d{8}$/, "Declaration date must be 8 digits (DDMMYYYY or YYYYMMDD depending on API expectations)"),
-            itemSeq: z.number(),
-            hsCd: z.string(),
-            itemClsCd: z.string(),
-            itemCd: z.string(),
+            dclDe: z.string().min(8).max(14),
+            itemSeq: z.number().int().min(1),
+            hsCd: z.string().max(17),
+            itemClsCd: z.string().max(10),
+            itemCd: z.string().max(20),
             imptItemSttsCd: z.string(),
-            remark: z.string().nullable(),
-            modrNm: z.string(),
-            modrId: z.string()
-        })
+            modrId: z.string().max(20),
+            modrNm: z.string().max(60),
+            remark: z.string().nullable().optional(),
+        }),
     }))
-        .mutation(async ({ input }) => {
-        const config = {
-            baseUrl: process.env.ETIMS_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1",
-            tokenUrl: process.env.ETIMS_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate",
-            consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-            consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-        };
-        const client = new ETimsClient(config);
+        .mutation(async ({ ctx, input }) => {
+        assertWrite(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
         try {
-            const result = await client.saveImportedItemConvertedInfo({
-                tin: input.tin,
-                bhfId: input.bhfId,
-                cmcKey: input.cmcKey,
-                accessToken: input.accessToken
-            }, input.conversion);
-            return {
-                success: true,
-                data: result,
-            };
+            const result = await client.updateImportItem(oscu, input.item);
+            return { success: true, data: result };
         }
-        catch (error) {
-            console.error("[eTIMS Confirm Imported Item Error]", error);
-            throw new TRPCError({
-                code: "INTERNAL_SERVER_ERROR",
-                message: error.message || "Failed to confirm eTIMS imported item mapping",
-            });
+        catch (e) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to confirm imported item" });
         }
     }),
 });

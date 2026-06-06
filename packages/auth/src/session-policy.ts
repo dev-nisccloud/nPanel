@@ -14,3 +14,7 @@ export function isSessionLifetimeExpired(
 export function nextIdleSessionExpiry(from: Date = new Date()): Date {
   return new Date(from.getTime() + STANDARD_SESSION_MAX_AGE_SEC * 1000);
 }
+
+export type IdleSessionValidation =
+  | { status: "expired" }
+  | { status: "valid"; expiresAt: Date; extended: boolean };

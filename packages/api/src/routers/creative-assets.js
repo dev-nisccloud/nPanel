@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, inArray, isNull, sql } from "@npanel/db";
+import Replicate from "replicate";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
-import { creativeAsset, creativeAssetActivityLog, creativeAssetComment, creativeAssetPermission, creativeAssetVersion, creativeAssetVersionActivityLog, } from "@npanel/db/schema/creative-assets";
+import { creativeAsset, creativeAssetActivityLog, creativeAssetAiAnalysis, creativeAssetComment, creativeAssetPermission, creativeAssetVersion, creativeAssetVersionActivityLog, } from "@npanel/db/schema/creative-assets";
 import { team, teamMember } from "@npanel/db/schema/teams";
+import { env } from "@npanel/env/server";
+import { CREATIVE_ASSET_IMAGE_ANALYSIS_MODEL, invokeCreativeAssetImageAnalysis } from "../lib/creative-asset-image-analysis-ai";
 import { protectedProcedure, router } from "../trpc";
 // ============================================================================
 // ZOD SCHEMAS - Independent from database schema (no shared types)
@@ -87,6 +90,49 @@ const commentSchema = z.object({
     replyCount: z.number(),
     createdAt: z.date(),
     updatedAt: z.date(),
+});
+const creativeAssetAiDetailSchema = z.object({
+    headline: z.string(),
+    modelLabel: z.string(),
+    overallRatingScaleMax: z.number(),
+    overallRatingValue: z.number(),
+    overallRatingReason: z.string(),
+    overallRatingBand: z.string().nullable(),
+    confidenceScore: z.number().nullable(),
+    ratingSummary: z.string(),
+    overallSummary: z.string(),
+    scores: z.array(z.object({
+        id: z.string(),
+        label: z.string(),
+        value: z.number(),
+        max: z.number(),
+        note: z.string(),
+    })),
+    sections: z.array(z.object({ title: z.string(), body: z.string() })),
+    recommendations: z.array(z.string()),
+});
+const creativeAssetAiAnalysisListItemSchema = z.object({
+    id: z.string(),
+    creativeAssetId: z.string(),
+    creativeAssetVersionId: z.string(),
+    status: z.string(),
+    model: z.string().nullable(),
+    summary: z.string().nullable(),
+    overallRatingScaleMax: z.number(),
+    overallRatingValue: z.number().nullable(),
+    overallRatingReason: z.string().nullable(),
+    overallRatingBand: z.string().nullable(),
+    confidenceScore: z.number().nullable(),
+    errorMessage: z.string().nullable(),
+    processingStartedAt: z.date().nullable(),
+    createdAt: z.date(),
+    completedAt: z.date().nullable(),
+    userContext: z.string().nullable(),
+    detail: creativeAssetAiDetailSchema.nullable(),
+});
+const runCreativeAssetAiImageAnalysisOutputSchema = z.object({
+    analysisId: z.string(),
+    detail: creativeAssetAiDetailSchema,
 });
 // ============================================================================
 // Helper Functions
@@ -177,6 +223,53 @@ function transformComment(comment) {
         replies: comment.replies ? comment.replies.map(transformComment) : undefined,
     };
 }
+function coerceDecimalLikeToNumber(val) {
+    if (val == null)
+        return null;
+    if (typeof val === "number")
+        return Number.isFinite(val) ? val : null;
+    const n = Number.parseFloat(String(val));
+    return Number.isFinite(n) ? n : null;
+}
+function coerceDetailFromResultJson(row) {
+    if (row.status !== "COMPLETED" || row.result == null || typeof row.result !== "object")
+        return null;
+    const raw = row.result;
+    const { userContext: _ctx, ...detailPayload } = raw;
+    const parsed = creativeAssetAiDetailSchema.safeParse(detailPayload);
+    return parsed.success ? parsed.data : null;
+}
+function extractUserContextFromResult(row) {
+    if (row.result == null || typeof row.result !== "object")
+        return null;
+    const raw = row.result.userContext;
+    if (typeof raw !== "string")
+        return null;
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+function mapCreativeAiAnalysisRow(row) {
+    const detail = coerceDetailFromResultJson(row);
+    return {
+        id: row.id,
+        creativeAssetId: row.creativeAssetId,
+        creativeAssetVersionId: row.creativeAssetVersionId,
+        status: row.status,
+        model: row.model ?? null,
+        summary: row.summary ?? null,
+        overallRatingScaleMax: row.overallRatingScaleMax,
+        overallRatingValue: coerceDecimalLikeToNumber(row.overallRatingValue),
+        overallRatingReason: row.overallRatingReason ?? null,
+        overallRatingBand: row.overallRatingBand ?? null,
+        confidenceScore: coerceDecimalLikeToNumber(row.confidenceScore),
+        errorMessage: row.errorMessage ?? null,
+        processingStartedAt: row.processingStartedAt ?? null,
+        createdAt: row.createdAt,
+        completedAt: row.completedAt ?? null,
+        userContext: extractUserContextFromResult(row),
+        detail,
+    };
+}
 /**
  * Get authenticated user - optimized to use session data
  * Only queries database for fields not available in session
@@ -232,6 +325,16 @@ function assertOwnerOrSuperAdmin(ownerUserId, actorUserId, actorRole, resource) 
             message: `Only the ${resource} creator can modify it`,
         });
     }
+}
+/** Agency mutations: asset creator or super admin only (permission rows do not grant mutate). */
+function assertCreativeAssetAgencyMutate(assetCreatedBy, userId, userRole) {
+    if (!isAgencyUser(userRole)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency users can perform this action",
+        });
+    }
+    assertOwnerOrSuperAdmin(assetCreatedBy, userId, userRole, "asset");
 }
 // Helper to check if user is customer
 const isCustomer = (role) => {
@@ -354,16 +457,8 @@ export const creativeAssetsRouter = router({
                 message: "Creative asset not found",
             });
         }
-        assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
-        // Check permissions for agency users
         if (isAgencyUser(user.role)) {
-            const permission = asset.permissions.find((p) => p.userId === user.id);
-            if (!permission?.canEdit) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "You don't have permission to upload versions",
-                });
-            }
+            assertCreativeAssetAgencyMutate(asset.createdBy, user.id, user.role);
         }
         else {
             // Customers cannot upload versions
@@ -470,15 +565,7 @@ export const creativeAssetsRouter = router({
                 message: "Version not found",
             });
         }
-        assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
-        // Check permission
-        const permission = version.creativeAsset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canApprove) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to approve versions",
-            });
-        }
+        assertCreativeAssetAgencyMutate(version.creativeAsset.createdBy, user.id, user.role);
         const now = new Date();
         let updateVersionData = {
             internalApprovalStatus: "APPROVED",
@@ -594,15 +681,7 @@ export const creativeAssetsRouter = router({
                 message: "Version not found",
             });
         }
-        assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
-        // Check permission
-        const permission = version.creativeAsset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canApprove) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to reject versions",
-            });
-        }
+        assertCreativeAssetAgencyMutate(version.creativeAsset.createdBy, user.id, user.role);
         const now = new Date();
         const [updatedVersion] = await db
             .update(creativeAssetVersion)
@@ -672,15 +751,7 @@ export const creativeAssetsRouter = router({
                 message: "Version not found",
             });
         }
-        assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
-        // Check permission
-        const permission = version.creativeAsset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canPublish) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to make versions public",
-            });
-        }
+        assertCreativeAssetAgencyMutate(version.creativeAsset.createdBy, user.id, user.role);
         // Must be approved internally first
         if (version.internalApprovalStatus !== "APPROVED") {
             throw new TRPCError({
@@ -762,7 +833,6 @@ export const creativeAssetsRouter = router({
                 message: "Version not found",
             });
         }
-        assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
         // Check if version is public
         if (!version.isPublic) {
             throw new TRPCError({
@@ -841,7 +911,6 @@ export const creativeAssetsRouter = router({
                 message: "Version not found",
             });
         }
-        assertOwnerOrSuperAdmin(version.creativeAsset.createdBy, user.id, user.role, "asset");
         // Check if version is public
         if (!version.isPublic) {
             throw new TRPCError({
@@ -917,14 +986,7 @@ export const creativeAssetsRouter = router({
                 message: "Version not found",
             });
         }
-        // Check permission
-        const permission = version.creativeAsset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canApprove) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to update version status",
-            });
-        }
+        assertCreativeAssetAgencyMutate(version.creativeAsset.createdBy, user.id, user.role);
         const now = new Date();
         let updateData = {
             internalApprovalStatus: input.status,
@@ -1059,14 +1121,8 @@ export const creativeAssetsRouter = router({
                 message: "Version not found",
             });
         }
-        // Check permission
         const permission = version.creativeAsset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canPublish) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to make versions private",
-            });
-        }
+        assertCreativeAssetAgencyMutate(version.creativeAsset.createdBy, user.id, user.role, permission, "canPublish", "You don't have permission to make versions private");
         // Must be public to make it private
         if (!version.isPublic) {
             throw new TRPCError({
@@ -1180,14 +1236,6 @@ export const creativeAssetsRouter = router({
             ...a,
             _count: { versions: versionCountMap.get(a.id) ?? 0 },
         }));
-        if (isAgency) {
-            return withCounts
-                .filter((asset) => {
-                const permission = asset.permissions?.find((p) => p.userId === user.id);
-                return permission?.canView;
-            })
-                .map(transformAsset);
-        }
         return withCounts.map(transformAsset);
     }),
     // Get all assets for the current user (across all teams)
@@ -1202,29 +1250,45 @@ export const creativeAssetsRouter = router({
         .query(async ({ ctx }) => {
         const user = await getAuthenticatedUser(ctx);
         const isAgency = isAgencyUser(user.role);
-        let assetIds = [];
         if (isAgency) {
-            const permissions = await db
-                .select({ creativeAssetId: creativeAssetPermission.creativeAssetId })
-                .from(creativeAssetPermission)
-                .where(and(eq(creativeAssetPermission.userId, user.id), eq(creativeAssetPermission.canView, true)));
-            assetIds = permissions.map((p) => p.creativeAssetId);
+            const assets = await db.query.creativeAsset.findMany({
+                with: {
+                    team: true,
+                    versions: { orderBy: (v, { desc: d }) => [d(v.createdAt)] },
+                    permissions: true,
+                },
+                orderBy: (a, { desc: d }) => [d(a.createdAt)],
+            });
+            const assetIds = assets.map((a) => a.id);
+            const versionCountRows = assetIds.length > 0
+                ? await db
+                    .select({
+                    creativeAssetId: creativeAssetVersion.creativeAssetId,
+                    c: count(),
+                })
+                    .from(creativeAssetVersion)
+                    .where(inArray(creativeAssetVersion.creativeAssetId, assetIds))
+                    .groupBy(creativeAssetVersion.creativeAssetId)
+                : [];
+            const versionCountMap = new Map(versionCountRows.map((r) => [r.creativeAssetId, r.c]));
+            return assets.map((a) => transformAsset({
+                ...a,
+                _count: { versions: versionCountMap.get(a.id) ?? 0 },
+            }));
         }
-        else {
-            const teamMemberships = await db
-                .select({ teamId: teamMember.teamId })
-                .from(teamMember)
-                .where(eq(teamMember.userId, user.id));
-            const teamIds = teamMemberships.map((tm) => tm.teamId);
-            if (teamIds.length === 0) {
-                return [];
-            }
-            const customerAssets = await db
-                .select({ id: creativeAsset.id })
-                .from(creativeAsset)
-                .where(inArray(creativeAsset.teamId, teamIds));
-            assetIds = customerAssets.map((a) => a.id);
+        const teamMemberships = await db
+            .select({ teamId: teamMember.teamId })
+            .from(teamMember)
+            .where(eq(teamMember.userId, user.id));
+        const teamIds = teamMemberships.map((tm) => tm.teamId);
+        if (teamIds.length === 0) {
+            return [];
         }
+        const customerAssets = await db
+            .select({ id: creativeAsset.id })
+            .from(creativeAsset)
+            .where(inArray(creativeAsset.teamId, teamIds));
+        const assetIds = customerAssets.map((a) => a.id);
         if (assetIds.length === 0) {
             return [];
         }
@@ -1232,13 +1296,10 @@ export const creativeAssetsRouter = router({
             where: inArray(creativeAsset.id, assetIds),
             with: {
                 team: true,
-                versions: isAgency
-                    ? { orderBy: (v, { desc: d }) => [d(v.createdAt)] }
-                    : {
-                        where: (v, { eq }) => eq(v.isPublic, true),
-                        orderBy: (v, { desc: d }) => [d(v.createdAt)],
-                    },
-                ...(isAgency ? { permissions: true } : {}),
+                versions: {
+                    where: (v, { eq: eqFn }) => eqFn(v.isPublic, true),
+                    orderBy: (v, { desc: d }) => [d(v.createdAt)],
+                },
             },
             orderBy: (a, { desc: d }) => [d(a.createdAt)],
         });
@@ -1251,19 +1312,10 @@ export const creativeAssetsRouter = router({
             .where(inArray(creativeAssetVersion.creativeAssetId, assetIds))
             .groupBy(creativeAssetVersion.creativeAssetId);
         const versionCountMap = new Map(versionCountRows.map((r) => [r.creativeAssetId, r.c]));
-        const withCounts = assets.map((a) => ({
+        return assets.map((a) => transformAsset({
             ...a,
             _count: { versions: versionCountMap.get(a.id) ?? 0 },
         }));
-        if (isAgency) {
-            return withCounts
-                .filter((asset) => {
-                const permission = asset.permissions?.find((p) => p.userId === user.id);
-                return permission?.canView;
-            })
-                .map(transformAsset);
-        }
-        return withCounts.map(transformAsset);
     }),
     // Get asset details
     getById: protectedProcedure
@@ -1303,18 +1355,7 @@ export const creativeAssetsRouter = router({
             });
         }
         const isAgency = isAgencyUser(user.role);
-        // Check access
-        if (isAgency) {
-            const permission = asset.permissions.find((p) => p.userId === user.id);
-            if (!permission?.canView) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "You don't have permission to view this asset",
-                });
-            }
-        }
-        else {
-            // Check if customer is team member
+        if (!isAgency) {
             const isMember = asset.team.members.some((m) => m.userId === user.id);
             if (!isMember) {
                 throw new TRPCError({
@@ -1322,7 +1363,6 @@ export const creativeAssetsRouter = router({
                     message: "You don't have access to this asset",
                 });
             }
-            // Filter to only public versions for customers
             asset.versions = asset.versions.filter((v) => v.isPublic);
         }
         // Transform and return
@@ -1371,15 +1411,8 @@ export const creativeAssetsRouter = router({
             });
         }
         const isAgency = isAgencyUser(user.role);
-        // Check access and permissions
         if (isAgency) {
-            const permission = version.creativeAsset.permissions.find((p) => p.userId === user.id);
-            if (!permission?.canComment) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "You don't have permission to comment",
-                });
-            }
+            assertCreativeAssetAgencyMutate(version.creativeAsset.createdBy, user.id, user.role);
         }
         else {
             // Customers can only comment on public versions
@@ -1479,17 +1512,7 @@ export const creativeAssetsRouter = router({
             });
         }
         const isAgency = isAgencyUser(user.role);
-        // Check access
-        if (isAgency) {
-            const permission = version.creativeAsset.permissions.find((p) => p.userId === user.id);
-            if (!permission?.canView) {
-                throw new TRPCError({
-                    code: "FORBIDDEN",
-                    message: "You don't have permission to view this version",
-                });
-            }
-        }
-        else {
+        if (!isAgency) {
             // Customers can only view public versions
             if (!version.isPublic) {
                 throw new TRPCError({
@@ -1541,8 +1564,7 @@ export const creativeAssetsRouter = router({
                 message: "Comment not found",
             });
         }
-        // Only the comment owner can update it
-        if (comment.userId !== user.id) {
+        if (comment.userId !== user.id && !isAgencySuperAdmin(user.role)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You can only edit your own comments",
@@ -1580,8 +1602,7 @@ export const creativeAssetsRouter = router({
                 message: "Comment not found",
             });
         }
-        // Only the comment owner can delete it (or admins in the future)
-        if (comment.userId !== user.id) {
+        if (comment.userId !== user.id && !isAgencySuperAdmin(user.role)) {
             throw new TRPCError({
                 code: "FORBIDDEN",
                 message: "You can only delete your own comments",
@@ -1739,15 +1760,8 @@ export const creativeAssetsRouter = router({
                 message: "Creative asset not found",
             });
         }
-        assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
-        // Check permission
         const permission = asset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canEdit) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to update this asset",
-            });
-        }
+        assertCreativeAssetAgencyMutate(asset.createdBy, user.id, user.role, permission, "canEdit", "You don't have permission to update this asset");
         // Verify team exists if teamId is being updated
         if (input.teamId && input.teamId !== asset.teamId) {
             const [teamRow] = await db
@@ -1843,14 +1857,6 @@ export const creativeAssetsRouter = router({
             });
         }
         assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
-        // Check permission
-        const permission = asset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canEdit && !permission?.canDelete) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to archive this asset",
-            });
-        }
         const now = new Date();
         await db
             .update(creativeAsset)
@@ -1912,19 +1918,10 @@ export const creativeAssetsRouter = router({
             });
         }
         assertOwnerOrSuperAdmin(asset.createdBy, user.id, user.role, "asset");
-        // Check if asset is archived
         if (asset.status !== "ARCHIVED") {
             throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "Asset is not archived",
-            });
-        }
-        // Check permission
-        const permission = asset.permissions.find((p) => p.userId === user.id);
-        if (!permission?.canEdit && !permission?.canDelete) {
-            throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "You don't have permission to unarchive this asset",
             });
         }
         const now = new Date();
@@ -1958,5 +1955,192 @@ export const creativeAssetsRouter = router({
             createdAt: now,
         });
         return transformAsset(updatedAsset);
+    }),
+    /** Synchronous AI vision analysis (Replicate Claude Haiku); persists one row per run. Asset creator or super admin. */
+    runAiImageAnalysis: protectedProcedure
+        .input(z.object({
+        creativeAssetVersionId: z.string(),
+        userContext: z
+            .string()
+            .trim()
+            .max(4000, "Context must be at most 4000 characters")
+            .optional(),
+    }))
+        .output(runCreativeAssetAiImageAnalysisOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        if (!isAgencyUser(user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can run AI image analysis",
+            });
+        }
+        if (!env.REPLICATE_API_TOKEN?.trim()) {
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "AI analysis is not configured (missing Replicate API token)",
+            });
+        }
+        const version = await db.query.creativeAssetVersion.findFirst({
+            where: eq(creativeAssetVersion.id, input.creativeAssetVersionId),
+            with: {
+                creativeAsset: {
+                    with: {
+                        permissions: true,
+                        team: {
+                            with: { members: true },
+                        },
+                    },
+                },
+            },
+        });
+        if (!version) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Version not found",
+            });
+        }
+        assertCreativeAssetAgencyMutate(version.creativeAsset.createdBy, user.id, user.role);
+        if (!version.mimeType?.toLowerCase().startsWith("image/")) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "AI analysis supports image MIME types only",
+            });
+        }
+        const analysisId = crypto.randomUUID();
+        const now = new Date();
+        await db.insert(creativeAssetAiAnalysis).values({
+            id: analysisId,
+            creativeAssetId: version.creativeAssetId,
+            creativeAssetVersionId: version.id,
+            requestedBy: user.id,
+            status: "PROCESSING",
+            model: CREATIVE_ASSET_IMAGE_ANALYSIS_MODEL,
+            summary: null,
+            overallRatingScaleMax: 10,
+            overallRatingValue: null,
+            overallRatingReason: null,
+            overallRatingBand: null,
+            confidenceScore: null,
+            result: null,
+            errorMessage: null,
+            processingStartedAt: now,
+            createdAt: now,
+            completedAt: null,
+        });
+        const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+        const trimmedContext = input.userContext?.trim() || null;
+        try {
+            const { detail } = await invokeCreativeAssetImageAnalysis({
+                replicate,
+                imageUrl: version.fileUrl,
+                fileName: version.fileName,
+                mimeType: version.mimeType,
+                internalVersionNumber: version.internalVersionNumber,
+                userContext: trimmedContext,
+            });
+            const completedAt = new Date();
+            const confidenceStr = detail.confidenceScore != null && Number.isFinite(detail.confidenceScore)
+                ? detail.confidenceScore.toFixed(4)
+                : null;
+            await db
+                .update(creativeAssetAiAnalysis)
+                .set({
+                status: "COMPLETED",
+                summary: detail.ratingSummary,
+                model: CREATIVE_ASSET_IMAGE_ANALYSIS_MODEL,
+                overallRatingScaleMax: detail.overallRatingScaleMax,
+                overallRatingValue: detail.overallRatingValue.toFixed(2),
+                overallRatingReason: detail.overallRatingReason,
+                overallRatingBand: detail.overallRatingBand ?? null,
+                confidenceScore: confidenceStr,
+                result: {
+                    ...detail,
+                    ...(trimmedContext ? { userContext: trimmedContext } : {}),
+                },
+                errorMessage: null,
+                completedAt,
+            })
+                .where(eq(creativeAssetAiAnalysis.id, analysisId));
+            return { analysisId, detail };
+        }
+        catch (e) {
+            const msg = e instanceof Error ? e.message : "Creative asset AI analysis failed";
+            const lower = msg.toLowerCase();
+            await db
+                .update(creativeAssetAiAnalysis)
+                .set({
+                status: "FAILED",
+                errorMessage: msg,
+                completedAt: new Date(),
+            })
+                .where(eq(creativeAssetAiAnalysis.id, analysisId));
+            if (lower.includes("429") || lower.includes("rate limit")) {
+                throw new TRPCError({
+                    code: "TOO_MANY_REQUESTS",
+                    message: "AI is temporarily busy. Please wait and try again.",
+                });
+            }
+            if (lower.includes("timed out")) {
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "The AI request took too long. Try again; very large images may need a smaller export.",
+                });
+            }
+            console.error("[creativeAssets.runAiImageAnalysis] failed:", e);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: msg,
+            });
+        }
+    }),
+    /** History + latest payloads for AI analysis tab (same access as viewing the version comments). */
+    listAiImageAnalyses: protectedProcedure
+        .input(z.object({
+        versionId: z.string(),
+    }))
+        .output(z.array(creativeAssetAiAnalysisListItemSchema))
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const version = await db.query.creativeAssetVersion.findFirst({
+            where: eq(creativeAssetVersion.id, input.versionId),
+            with: {
+                creativeAsset: {
+                    with: {
+                        permissions: true,
+                        team: {
+                            with: { members: true },
+                        },
+                    },
+                },
+            },
+        });
+        if (!version) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Version not found",
+            });
+        }
+        const isAgency = isAgencyUser(user.role);
+        if (!isAgency) {
+            if (!version.isPublic) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "This version is not public yet",
+                });
+            }
+            const isMember = version.creativeAsset.team.members.some((m) => m.userId === user.id);
+            if (!isMember) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You don't have access to this version",
+                });
+            }
+        }
+        const rows = await db.query.creativeAssetAiAnalysis.findMany({
+            where: eq(creativeAssetAiAnalysis.creativeAssetVersionId, input.versionId),
+            orderBy: (t, { desc: d }) => [d(t.createdAt)],
+        });
+        return rows.map(mapCreativeAiAnalysisRow);
     }),
 });

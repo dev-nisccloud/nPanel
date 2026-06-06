@@ -5,9 +5,23 @@ export type EnsureKenicIntegrationResult = {
  * Ensure the owner has a KENIC EPP contact (registrant). Creates CustomerIntegration
  * with platformCustomerId = contact id if not present; creates the contact via EPP if needed.
  */
-export declare function ensureKenicIntegration(ownerId: string, createdBy: string, logContext?: {
-    niscOrderId: string;
-    orderItemId: string;
+export type ManualRegistrantDetails = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    address: string;
+    city: string;
+    country: string;
+    postalCode?: string | null;
+    phone: string;
+    state?: string | null;
+};
+export declare function ensureKenicIntegration(ownerId: string | null, createdBy: string, options?: {
+    logContext?: {
+        niscOrderId: string;
+        orderItemId: string;
+    };
+    manualDetails?: ManualRegistrantDetails;
 }): Promise<EnsureKenicIntegrationResult>;
 export type RegisterKenicDomainResult = {
     success: true;
@@ -23,4 +37,8 @@ export declare function registerKenicDomain(params: {
     period?: number;
     orderId?: string;
     orderItemId?: string;
+    nameServers?: Array<{
+        name: string;
+        ip?: string;
+    }>;
 }): Promise<RegisterKenicDomainResult>;

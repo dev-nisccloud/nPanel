@@ -10,6 +10,7 @@ import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
+import { resolveInvoicePaymentMethod } from "../../lib/invoice-payment-method";
 import { activityLogSchema, creditNoteInputSchema, creditNoteOutputSchema, invoiceCreateInputSchema, invoiceDetailSchema, invoiceLineItemOutputSchema, invoiceListFiltersSchema, invoiceListResponseSchema, invoicePaymentStatusSchema, invoiceStatusSchema, invoiceSummarySchema, invoiceTransactionInputSchema, invoiceTransactionOutputSchema, invoiceUpdateInputSchema, nextInvoiceNumberSchema, nullableStringSchema, submitInvoiceSchema, updatePaymentInputSchema, } from "./schemas";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
@@ -710,6 +711,7 @@ export const invoicingRouter = router({
             status: invoice.status,
             amount: invoice.amount,
             currency: invoice.currency,
+            paymentDetails: invoice.paymentDetails,
         })
             .from(invoice)
             .where(eq(invoice.id, input.invoiceId))
@@ -748,11 +750,12 @@ export const invoicingRouter = router({
                     .where(eq(invoice.id, input.invoiceId));
             }
             const transactionId = crypto.randomUUID();
+            const paymentMethod = resolveInvoicePaymentMethod(null, inv.paymentDetails);
             await tx.insert(invoiceTransaction).values({
                 id: transactionId,
                 invoiceId: input.invoiceId,
                 status: "COMPLETED",
-                method: "OTHER",
+                method: paymentMethod,
                 amount: amountToRecord,
                 currency: inv.currency ?? "KES",
                 paidAt: now,

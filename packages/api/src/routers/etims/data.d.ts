@@ -5,56 +5,55 @@ export declare const etimsDataRouter: import("@trpc/server").TRPCBuiltRouter<{
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     /**
-     * Retrieve standard codes (payment types, receipt types, tax codes, etc.)
+     * Retrieve standard code lists (payment types, receipt types, tax codes, etc.)
+     * POST /selectCodeList
      */
     getCodeList: import("@trpc/server").TRPCQueryProcedure<{
         input: {
-            tin: string;
-            bhfId: string;
             lastReqDt: string;
-            accessToken?: string | undefined;
-            cmcKey?: string | undefined;
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
         };
         meta: object;
     }>;
     /**
-     * Get item classification codes for categorizing products
+     * Retrieve item classification codes for categorizing products.
+     * POST /selectItemClsList
      */
     getItemClassList: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             lastReqDt: string;
-            bhfId?: string | undefined;
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
             errorMessage?: undefined;
         } | {
             success: boolean;
             data: null;
-            errorMessage: any;
+            errorMessage: string;
         };
         meta: object;
     }>;
     /**
-     * Get list of registered branches
+     * Look up a specific customer by their KRA TIN.
+     * POST /selectCustomer  (requires custmTin, NOT lastReqDt)
      */
-    getBranchList: import("@trpc/server").TRPCQueryProcedure<{
+    lookupCustomer: import("@trpc/server").TRPCQueryProcedure<{
         input: {
-            lastReqDt: string;
+            custmTin: string;
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
         };
         meta: object;
     }>;
     /**
-     * Retrieve notices from KRA
+     * Retrieve KRA notices (announcements, policy changes).
+     * POST /selectNoticeList
      */
     getNoticeList: import("@trpc/server").TRPCQueryProcedure<{
         input: {
@@ -62,33 +61,7 @@ export declare const etimsDataRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             success: boolean;
-            data: any;
-        };
-        meta: object;
-    }>;
-    /**
-     * Get taxpayer registration details
-     */
-    getTaxpayerInfo: import("@trpc/server").TRPCQueryProcedure<{
-        input: {
-            lastReqDt: string;
-        };
-        output: {
-            success: boolean;
-            data: any;
-        };
-        meta: object;
-    }>;
-    /**
-     * Retrieve registered customer PIN information
-     */
-    getCustomerList: import("@trpc/server").TRPCQueryProcedure<{
-        input: {
-            lastReqDt: string;
-        };
-        output: {
-            success: boolean;
-            data: any;
+            data: unknown;
         };
         meta: object;
     }>;

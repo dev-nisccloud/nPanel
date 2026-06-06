@@ -1,13 +1,12 @@
 import { z } from "zod";
-import { and, count, desc, eq, gt, gte, inArray, lte, sql, sum } from "@npanel/db";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, lte, or } from "@npanel/db";
 import { db } from "@npanel/db";
-import { invoice } from "@npanel/db/schema/invoicing";
-import { invoiceTransaction } from "@npanel/db/schema/invoicing";
 import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInMinutes } from "date-fns";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
+import { aggregatePaymentMethodBreakdown, isGatewayPaymentFailed, isGatewayPaymentRefunded, isGatewayPaymentSuccessful, } from "./metrics";
 export const niscPaymentsRouter = router({
     // ─── PY-01 Payment Method Breakdown ───────────────────────────────────────
     methodBreakdown: protectedProcedure
@@ -24,34 +23,7 @@ export const niscPaymentsRouter = router({
             userId: ctx.session.user.id,
             role: ctx.session.user.role,
         });
-        const rows = await db
-            .select({ method: invoiceTransaction.method, amount: invoiceTransaction.amount })
-            .from(invoiceTransaction)
-            .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
-            .where(and(eq(invoiceTransaction.status, "COMPLETED"), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
-            teamColumn: invoice.teamId,
-            teamIds: scope.teamIds,
-        })));
-        const map = new Map();
-        let grandTotal = 0;
-        for (const r of rows) {
-            const amt = toNum(r.amount);
-            const e = map.get(r.method) ?? { count: 0, amount: 0 };
-            e.count += 1;
-            e.amount += amt;
-            map.set(r.method, e);
-            grandTotal += amt;
-        }
-        return Array.from(map.entries())
-            .map(([method, v]) => ({
-            method,
-            count: v.count,
-            amount: v.amount,
-            percentOfTotal: grandTotal > 0 ? (v.amount / grandTotal) * 100 : 0,
-        }))
-            .sort((a, b) => b.amount - a.amount);
+        return aggregatePaymentMethodBreakdown({ from, to, scope });
     }),
     // ─── PY-02 Gateway Performance ────────────────────────────────────────────
     gatewayPerf: protectedProcedure
@@ -79,9 +51,7 @@ export const niscPaymentsRouter = router({
             processedAt: paymentTransaction.processedAt,
         })
             .from(paymentTransaction)
-            .where(and(gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            .where(and(gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
         })));
@@ -89,14 +59,14 @@ export const niscPaymentsRouter = router({
         for (const r of rows) {
             const e = map.get(r.gateway) ?? { total: 0, completed: 0, failed: 0, refunded: 0, processingMinutes: [] };
             e.total += 1;
-            if (r.status === "COMPLETED") {
+            if (isGatewayPaymentSuccessful(r.status)) {
                 e.completed += 1;
                 if (r.processedAt)
                     e.processingMinutes.push(differenceInMinutes(r.processedAt, r.initiatedAt));
             }
-            if (r.status === "FAILED")
+            if (isGatewayPaymentFailed(r.status))
                 e.failed += 1;
-            if (r.status === "REFUNDED")
+            if (isGatewayPaymentRefunded(r.status))
                 e.refunded += 1;
             map.set(r.gateway, e);
         }
@@ -139,9 +109,7 @@ export const niscPaymentsRouter = router({
         const now = new Date();
         const threshold24h = new Date(now.getTime() - 24 * 3600000);
         const rows = await db.query.paymentTransaction.findMany({
-            where: and(inArray(paymentTransaction.status, ["PENDING", "FAILED"]), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildOwnerOrTeamReadScope({
-                isAgencyUser: scope.isAgencyUser,
-                ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            where: and(inArray(paymentTransaction.status, ["PENDING", "PROCESSING", "FAILED"]), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildReportEntityScope({
                 teamColumn: paymentTransaction.teamId,
                 teamIds: scope.teamIds,
             })),
@@ -153,9 +121,7 @@ export const niscPaymentsRouter = router({
         const [cntRow] = await db
             .select({ c: count() })
             .from(paymentTransaction)
-            .where(and(inArray(paymentTransaction.status, ["PENDING", "FAILED"]), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            .where(and(inArray(paymentTransaction.status, ["PENDING", "PROCESSING", "FAILED"]), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
         })));
@@ -169,7 +135,7 @@ export const niscPaymentsRouter = router({
                 status: r.status,
                 initiatedAt: r.initiatedAt,
                 phoneNumber: r.phoneNumber,
-                flagged: r.status === "PENDING" && r.initiatedAt < threshold24h,
+                flagged: (r.status === "PENDING" || r.status === "PROCESSING") && r.initiatedAt < threshold24h,
             })),
             total: Number(cntRow?.c ?? 0),
         };
@@ -197,10 +163,10 @@ export const niscPaymentsRouter = router({
             requestedTeamIds: teamIds,
         });
         const offset = (page - 1) * pageSize;
+        const refundInPeriod = or(and(isNotNull(paymentTransaction.refundedAt), gte(paymentTransaction.refundedAt, from), lte(paymentTransaction.refundedAt, to)), and(isNull(paymentTransaction.refundedAt), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to)));
+        const refundStatuses = ["REFUNDED", "PARTIALLY_REFUNDED"];
         const rows = await db.query.paymentTransaction.findMany({
-            where: and(eq(paymentTransaction.status, "REFUNDED"), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildOwnerOrTeamReadScope({
-                isAgencyUser: scope.isAgencyUser,
-                ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            where: and(inArray(paymentTransaction.status, [...refundStatuses]), refundInPeriod, buildReportEntityScope({
                 teamColumn: paymentTransaction.teamId,
                 teamIds: scope.teamIds,
             })),
@@ -212,9 +178,7 @@ export const niscPaymentsRouter = router({
         const all = await db
             .select({ amount: paymentTransaction.amount })
             .from(paymentTransaction)
-            .where(and(eq(paymentTransaction.status, "REFUNDED"), gte(paymentTransaction.initiatedAt, from), lte(paymentTransaction.initiatedAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(paymentTransaction.userId, scope.userId),
+            .where(and(inArray(paymentTransaction.status, [...refundStatuses]), refundInPeriod, buildReportEntityScope({
             teamColumn: paymentTransaction.teamId,
             teamIds: scope.teamIds,
         })));

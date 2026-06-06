@@ -1,186 +1,121 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
-import { ETimsClient } from "../../lib/etims-client";
 import { TRPCError } from "@trpc/server";
-import { db } from "@npanel/db";
-import { eTimsConfiguration } from "@npanel/db/schema/etims";
-const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
-const isAgencySuperAdminRole = (role) => role === "AGENCY_SUPER_ADMIN";
-function assertAgencyReadAccess(role) {
-    if (!isAgencyUserRole(role)) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only agency users can access eTIMS stock data.",
-        });
-    }
+import { getEtimsContext } from "../../lib/etims-config";
+const isAgencyUser = (r) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
+const isSuperAdmin = (r) => r === "AGENCY_SUPER_ADMIN";
+function assertRead(role) {
+    if (!isAgencyUser(role))
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS stock data." });
 }
-function assertAgencyMutationAccess(role) {
-    if (!isAgencySuperAdminRole(role)) {
-        throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only agency super admins can modify eTIMS stock data.",
-        });
-    }
+function assertWrite(role) {
+    if (!isSuperAdmin(role))
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS stock data." });
 }
+const stockItemSchema = z.object({
+    itemSeq: z.number().int().min(1),
+    itemCd: z.string().max(20),
+    itemClsCd: z.string().max(10),
+    itemNm: z.string().max(200),
+    bcd: z.string().nullable().optional(),
+    pkgUnitCd: z.string().max(5),
+    pkg: z.number(),
+    qtyUnitCd: z.string().max(5),
+    qty: z.number(),
+    itemExprDt: z.string().nullable().optional(),
+    prc: z.number(),
+    splyAmt: z.number(),
+    totDcAmt: z.number(),
+    taxblAmt: z.number(),
+    taxTyCd: z.string().max(5),
+    taxAmt: z.number(),
+    totAmt: z.number(),
+});
+const stockIOSchema = z.object({
+    sarNo: z.number().int().min(0),
+    orgSarNo: z.number().int().min(0),
+    regTyCd: z.string().max(5),
+    custTin: z.string().nullable().optional(),
+    custNm: z.string().max(100).nullable().optional(),
+    custBhfId: z.string().nullable().optional(),
+    sarTyCd: z.string().max(5),
+    ocrnDt: z.string().length(8),
+    totItemCnt: z.number().int().min(0),
+    totTaxblAmt: z.number(),
+    totTaxAmt: z.number(),
+    totAmt: z.number(),
+    remark: z.string().max(400).nullable().optional(),
+    regrId: z.string().max(20),
+    regrNm: z.string().max(60),
+    modrId: z.string().max(20),
+    modrNm: z.string().max(60),
+    itemList: z.array(stockItemSchema).min(1),
+});
 export const etimsStockRouter = router({
     /**
-     * Retrieve stock movement requests between branches
+     * Retrieve stock movement history.
+     * POST /selectStockMoveList
      */
     getStockMovements: protectedProcedure
-        .input(z.object({
-        lastReqDt: z.string().regex(/^\d{14}$/, "Date must be in YYYYMMDDHHmmss format"),
-    }))
+        .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
-        assertAgencyReadAccess(ctx.session?.user?.role);
-        const [config] = await db
-            .select()
-            .from(eTimsConfiguration)
-            .limit(1);
-        if (!config || !config.cmcKey) {
-            throw new TRPCError({
-                code: "PRECONDITION_FAILED",
-                message: "eTIMS Configuration not found or device not initialized.",
-            });
-        }
-        const clientConfig = {
-            baseUrl: config.isSandbox
-                ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-            tokenUrl: config.isSandbox
-                ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-            consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-            consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-        };
-        const client = new ETimsClient(clientConfig);
+        assertRead(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
         try {
-            const result = await client.selectStockMoveList({
-                tin: config.kraPin,
-                bhfId: config.branchId,
-                cmcKey: config.cmcKey,
-                accessToken: undefined
-            }, input.lastReqDt);
-            return {
-                success: true,
-                data: result,
-            };
+            const result = await client.selectStockMoveList(oscu, input.lastReqDt);
+            return { success: true, data: result };
         }
-        catch (error) {
-            console.warn("[eTIMS Get Stock Movements Error]", error?.message ?? error);
-            return {
-                success: false,
-                data: null,
-                errorMessage: error?.message || "Failed to retrieve eTIMS stock movements",
-            };
+        catch (e) {
+            const msg = e.message;
+            console.warn("[eTIMS] getStockMovements failed:", msg);
+            return { success: false, data: null, errorMessage: msg || "Failed to retrieve stock movements" };
         }
     }),
     /**
-     * Record stock in/out transactions
+     * Record stock in/out transaction.
+     * POST /insertStockIO
      */
     sendStockIO: protectedProcedure
-        .input(z.object({
-        stockData: z.any()
-    }))
+        .input(z.object({ stockData: stockIOSchema }))
         .mutation(async ({ ctx, input }) => {
-        assertAgencyMutationAccess(ctx.session?.user?.role);
-        const [config] = await db
-            .select()
-            .from(eTimsConfiguration)
-            .limit(1);
-        if (!config || !config.cmcKey) {
-            throw new TRPCError({
-                code: "PRECONDITION_FAILED",
-                message: "eTIMS Configuration not found or device not initialized.",
-            });
-        }
-        const clientConfig = {
-            baseUrl: config.isSandbox
-                ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-            tokenUrl: config.isSandbox
-                ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-            consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-            consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-        };
-        const client = new ETimsClient(clientConfig);
+        assertWrite(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
         try {
-            const result = await client.insertStockIO({
-                tin: config.kraPin,
-                bhfId: config.branchId,
-                cmcKey: config.cmcKey,
-                accessToken: undefined
-            }, input.stockData);
-            return {
-                success: true,
-                data: result,
-            };
+            const result = await client.insertStockIO(oscu, input.stockData);
+            return { success: true, data: result };
         }
-        catch (error) {
-            console.warn("[eTIMS Send Stock IO Error]", error?.message ?? error);
-            return {
-                success: false,
-                data: null,
-                errorMessage: error?.message || "Failed to send eTIMS stock in/out data",
-            };
+        catch (e) {
+            const msg = e.message;
+            console.warn("[eTIMS] sendStockIO failed:", msg);
+            return { success: false, data: null, errorMessage: msg || "Failed to send stock IO" };
         }
     }),
     /**
-     * Update stock master with current quantities
+     * Update the stock master record with current on-hand quantity.
+     * POST /saveStockMaster
      */
     saveStockMaster: protectedProcedure
         .input(z.object({
         stockMaster: z.object({
-            itemCd: z.string(),
-            rsdQty: z.number(),
-            regrId: z.string(),
-            regrNm: z.string(),
-            modrNm: z.string(),
-            modrId: z.string()
-        })
+            itemCd: z.string().max(20),
+            rsdQty: z.number().min(0),
+            regrId: z.string().max(20),
+            regrNm: z.string().max(60),
+            modrId: z.string().max(20),
+            modrNm: z.string().max(60),
+        }),
     }))
         .mutation(async ({ ctx, input }) => {
-        assertAgencyMutationAccess(ctx.session?.user?.role);
-        const [config] = await db
-            .select()
-            .from(eTimsConfiguration)
-            .limit(1);
-        if (!config || !config.cmcKey) {
-            throw new TRPCError({
-                code: "PRECONDITION_FAILED",
-                message: "eTIMS Configuration not found or device not initialized.",
-            });
-        }
-        const clientConfig = {
-            baseUrl: config.isSandbox
-                ? (process.env.ETIMS_SANDBOX_BASE_URL || "https://sbx.kra.go.ke/etims-oscu/api/v1")
-                : (process.env.ETIMS_PRODUCTION_BASE_URL || "https://ra.kra.go.ke/etims-oscu/api/v1"),
-            tokenUrl: config.isSandbox
-                ? (process.env.ETIMS_SANDBOX_TOKEN_URL || "https://sbx.kra.go.ke/v1/token/generate")
-                : (process.env.ETIMS_PRODUCTION_TOKEN_URL || "https://ra.kra.go.ke/v1/token/generate"),
-            consumerKey: process.env.ETIMS_CONSUMER_KEY || "",
-            consumerSecret: process.env.ETIMS_CONSUMER_SECRET || "",
-        };
-        const client = new ETimsClient(clientConfig);
+        assertWrite(ctx.session?.user?.role);
+        const { client, oscu } = await getEtimsContext();
         try {
-            const result = await client.saveStockMaster({
-                tin: config.kraPin,
-                bhfId: config.branchId,
-                cmcKey: config.cmcKey,
-                accessToken: undefined
-            }, input.stockMaster);
-            return {
-                success: true,
-                data: result,
-            };
+            const result = await client.saveStockMaster(oscu, input.stockMaster);
+            return { success: true, data: result };
         }
-        catch (error) {
-            console.warn("[eTIMS Save Stock Master Error]", error?.message ?? error);
-            return {
-                success: false,
-                data: null,
-                errorMessage: error?.message || "Failed to save eTIMS stock master",
-            };
+        catch (e) {
+            const msg = e.message;
+            console.warn("[eTIMS] saveStockMaster failed:", msg);
+            return { success: false, data: null, errorMessage: msg || "Failed to save stock master" };
         }
     }),
 });

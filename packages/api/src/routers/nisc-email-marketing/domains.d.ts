@@ -9,7 +9,9 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
      * Used by agency-side campaign creation dropdown.
      */
     listAllVerified: import("@trpc/server").TRPCQueryProcedure<{
-        input: Record<string, never> | undefined;
+        input: {
+            teamId?: string | undefined;
+        } | undefined;
         output: {
             domains: {
                 id: string;

@@ -177,7 +177,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
             data: {
                 id: string;
                 domain: string;
-                status: "PENDING" | "ACTIVE" | "EXPIRED" | "SUSPENDED" | "TRANSFERRING";
+                status: "ACTIVE" | "PENDING" | "EXPIRED" | "SUSPENDED" | "TRANSFERRING";
                 registrationDate: string;
                 expiryDate: string;
                 clientName: any;
@@ -383,7 +383,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
                 name: string;
                 extension: string;
             };
-            operation: "create" | "renew" | "transfer" | "restore";
+            operation: "create" | "transfer" | "renew" | "restore";
             period?: number | undefined;
             additional_data?: {
                 idn_script?: string | undefined;
@@ -421,7 +421,7 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
             meta: {
                 priced_at: string;
                 domain: string;
-                operation: "create" | "renew" | "transfer" | "restore";
+                operation: "create" | "transfer" | "renew" | "restore";
                 period: number;
             };
         };
@@ -474,6 +474,23 @@ export declare const openProviderDomainsRouter: import("@trpc/server").TRPCBuilt
                 extension: string;
                 domain_name: string | undefined;
             };
+        };
+        meta: object;
+    }>;
+    /**
+     * Public ICANN FOA transfer confirmation callback (branded confirmation page).
+     * Relays approve/decline to OpenProvider using domainId + authCode from the FOA email link.
+     */
+    completeTransferFoaConfirmation: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            domainId: string;
+            authCode: string;
+            approve: "no" | "yes";
+        };
+        output: {
+            success: boolean;
+            status: import("../../lib/openprovider-callback-response").OpenProviderCallbackStatus;
+            message: string;
         };
         meta: object;
     }>;

@@ -223,19 +223,34 @@ export const niscEmailMarketingDomainsRouter = router({
      * Used by agency-side campaign creation dropdown.
      */
     listAllVerified: protectedProcedure
-        .input(z.object({}).default({}))
-        .query(async ({ ctx }) => {
+        .input(z.object({ teamId: z.string().optional() }).default({}))
+        .query(async ({ ctx, input }) => {
         const userId = ctx.session?.user?.id;
         if (!userId)
             throw new TRPCError({ code: "UNAUTHORIZED", message: "User session not found" });
         const role = ctx.session?.user?.role;
-        if (!isAgencyUserRole(role)) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "You do not have permission to list all domains" });
+        if (isAgencyUserRole(role)) {
+            const rows = await db
+                .select({ id: niscEmDomain.id, domainName: niscEmDomain.domainName })
+                .from(niscEmDomain)
+                .where(eq(niscEmDomain.status, "VERIFIED"))
+                .orderBy(desc(niscEmDomain.createdAt))
+                .limit(500);
+            return { domains: rows };
         }
+        if (!input.teamId) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "teamId is required for customer domain listing",
+            });
+        }
+        const member = await assertTeamMember(input.teamId, userId);
+        if (!member)
+            throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
         const rows = await db
             .select({ id: niscEmDomain.id, domainName: niscEmDomain.domainName })
             .from(niscEmDomain)
-            .where(eq(niscEmDomain.status, "VERIFIED"))
+            .where(and(eq(niscEmDomain.teamId, input.teamId), eq(niscEmDomain.status, "VERIFIED")))
             .orderBy(desc(niscEmDomain.createdAt))
             .limit(500);
         return { domains: rows };

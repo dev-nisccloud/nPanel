@@ -6,9 +6,10 @@ export declare const billingCycleSchema: z.ZodEnum<{
     BIENNIALLY: "BIENNIALLY";
 }>;
 export type BillingCycleType = z.infer<typeof billingCycleSchema>;
-/** Product reference (name only) in an order item. */
+/** Product reference in an order item. */
 export declare const orderItemProductSchema: z.ZodObject<{
     name: z.ZodString;
+    serviceType: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
 /** Product plan reference (name only), optional for items without a plan. */
 export declare const orderItemProductPlanSchema: z.ZodNullable<z.ZodObject<{
@@ -21,8 +22,10 @@ export declare const niscOrderItemForInvoiceSchema: z.ZodObject<{
     primaryDomain: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     billingCycle: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    metadata: z.ZodNullable<z.ZodOptional<z.ZodRecord<z.core.$ZodRecordKey, z.core.SomeType>>>;
     product: z.ZodObject<{
         name: z.ZodString;
+        serviceType: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     }, z.core.$strip>;
     productPlan: z.ZodNullable<z.ZodObject<{
         name: z.ZodString;
@@ -42,8 +45,10 @@ export declare const niscOrderForInvoiceSchema: z.ZodObject<{
         primaryDomain: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         billingCycle: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        metadata: z.ZodNullable<z.ZodOptional<z.ZodRecord<z.core.$ZodRecordKey, z.core.SomeType>>>;
         product: z.ZodObject<{
             name: z.ZodString;
+            serviceType: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         }, z.core.$strip>;
         productPlan: z.ZodNullable<z.ZodObject<{
             name: z.ZodString;

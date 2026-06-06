@@ -1536,16 +1536,322 @@ export declare const creativeAssetVersionActivityLog: import("drizzle-orm/pg-cor
     };
     dialect: "pg";
 }>;
+/**
+ * AI image analysis runs per creative asset, tied to the version that was analyzed.
+ * Keeps a full history over time (multiple rows per asset / version as users re-run analysis).
+ *
+ * Rating: `overall_rating_scale_max` is usually 10; `overall_rating_value` is the score on that scale
+ * (e.g. 8.40). `overall_rating_reason` is the primary narrative for that score. Dimensional breakdown,
+ * bullets, and provider payload live in `result` (JSON) for richer UIs without denormalizing every field.
+ */
+export declare const creativeAssetAiAnalysis: import("drizzle-orm/pg-core").PgTableWithColumns<{
+    name: "creative_asset_ai_analysis";
+    schema: undefined;
+    columns: {
+        id: import("drizzle-orm/pg-core").PgColumn<{
+            name: "id";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: true;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        creativeAssetId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "creative_asset_id";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        creativeAssetVersionId: import("drizzle-orm/pg-core").PgColumn<{
+            name: "creative_asset_version_id";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        requestedBy: import("drizzle-orm/pg-core").PgColumn<{
+            name: "requested_by";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        status: import("drizzle-orm/pg-core").PgColumn<{
+            name: "status";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        model: import("drizzle-orm/pg-core").PgColumn<{
+            name: "model";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        summary: import("drizzle-orm/pg-core").PgColumn<{
+            name: "summary";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        overallRatingScaleMax: import("drizzle-orm/pg-core").PgColumn<{
+            name: "overall_rating_scale_max";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "number";
+            columnType: "PgInteger";
+            data: number;
+            driverParam: string | number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        overallRatingValue: import("drizzle-orm/pg-core").PgColumn<{
+            name: "overall_rating_value";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        overallRatingReason: import("drizzle-orm/pg-core").PgColumn<{
+            name: "overall_rating_reason";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        overallRatingBand: import("drizzle-orm/pg-core").PgColumn<{
+            name: "overall_rating_band";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        confidenceScore: import("drizzle-orm/pg-core").PgColumn<{
+            name: "confidence_score";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgNumeric";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        result: import("drizzle-orm/pg-core").PgColumn<{
+            name: "result";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "json";
+            columnType: "PgJsonb";
+            data: unknown;
+            driverParam: unknown;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        errorMessage: import("drizzle-orm/pg-core").PgColumn<{
+            name: "error_message";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        processingStartedAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "processing_started_at";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        createdAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "created_at";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        completedAt: import("drizzle-orm/pg-core").PgColumn<{
+            name: "completed_at";
+            tableName: "creative_asset_ai_analysis";
+            dataType: "date";
+            columnType: "PgTimestamp";
+            data: Date;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+    };
+    dialect: "pg";
+}>;
 export declare const creativeAssetRelations: import("drizzle-orm").Relations<"creative_asset", {
     team: import("drizzle-orm").One<"team", true>;
     versions: import("drizzle-orm").Many<"creative_asset_version">;
     permissions: import("drizzle-orm").Many<"creative_asset_permission">;
     activityLogs: import("drizzle-orm").Many<"creative_asset_activity_log">;
+    aiAnalyses: import("drizzle-orm").Many<"creative_asset_ai_analysis">;
 }>;
 export declare const creativeAssetVersionRelations: import("drizzle-orm").Relations<"creative_asset_version", {
     creativeAsset: import("drizzle-orm").One<"creative_asset", true>;
     comments: import("drizzle-orm").Many<"creative_asset_comment">;
     activityLogs: import("drizzle-orm").Many<"creative_asset_version_activity_log">;
+    aiAnalyses: import("drizzle-orm").Many<"creative_asset_ai_analysis">;
 }>;
 export declare const creativeAssetPermissionRelations: import("drizzle-orm").Relations<"creative_asset_permission", {
     creativeAsset: import("drizzle-orm").One<"creative_asset", true>;
@@ -1559,5 +1865,9 @@ export declare const creativeAssetActivityLogRelations: import("drizzle-orm").Re
     creativeAsset: import("drizzle-orm").One<"creative_asset", true>;
 }>;
 export declare const creativeAssetVersionActivityLogRelations: import("drizzle-orm").Relations<"creative_asset_version_activity_log", {
+    creativeAssetVersion: import("drizzle-orm").One<"creative_asset_version", true>;
+}>;
+export declare const creativeAssetAiAnalysisRelations: import("drizzle-orm").Relations<"creative_asset_ai_analysis", {
+    creativeAsset: import("drizzle-orm").One<"creative_asset", true>;
     creativeAssetVersion: import("drizzle-orm").One<"creative_asset_version", true>;
 }>;

@@ -369,16 +369,15 @@ export const tldSettingsRouter = router({
         success: z.boolean(),
         data: tldSettingResponseSchema.nullable(),
     }))
-        .query(async ({ ctx }) => {
-        const actor = getActor(ctx);
+        .query(async ({ ctx: _ctx }) => {
         try {
-            const defaultWhere = isAgencyUserRole(actor.role)
-                ? eq(tldSettings.isDefault, true)
-                : and(eq(tldSettings.isDefault, true), eq(tldSettings.userId, actor.userId));
+            // Platform default margin for domain retail pricing: any row with isDefault=true.
+            // End customers do not own TLD setting rows; the same global default is used for
+            // storefront pricing as in publicPricing.getDefaultMarginConfig (no per-user filter).
             const [defaultRow] = await db
                 .select({ id: tldSettings.id })
                 .from(tldSettings)
-                .where(defaultWhere)
+                .where(eq(tldSettings.isDefault, true))
                 .limit(1);
             const defaultSetting = defaultRow ? await fetchTldSettingById(defaultRow.id) : null;
             return {
@@ -473,8 +472,8 @@ export const tldSettingsRouter = router({
         data: tldSettingResponseSchema,
     }))
         .mutation(async ({ ctx, input }) => {
-        const { session } = ctx;
-        const userId = session.user.id;
+        const actor = getActor(ctx);
+        const userId = actor.userId;
         try {
             // Check if TLD setting exists and actor can mutate it
             const [existingTld] = await db

@@ -230,6 +230,23 @@ export declare const openProviderCustomersRouter: import("@trpc/server").TRPCBui
         meta: object;
     }>;
     /**
+     * Public ICANN gTLD contact email verification callback (branded confirmation page).
+     * Proxies approve/reject to OpenProvider using email + authCode from the verification email link.
+     */
+    completeContactEmailVerification: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            email: string;
+            authCode: string;
+            approve: "no" | "yes";
+        };
+        output: {
+            success: boolean;
+            status: import("../../lib/openprovider-callback-response").OpenProviderCallbackStatus;
+            message: string;
+        };
+        meta: object;
+    }>;
+    /**
      * Start email verification for gTLD
      */
     startEmailVerification: import("@trpc/server").TRPCMutationProcedure<{

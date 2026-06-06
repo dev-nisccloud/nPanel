@@ -7,6 +7,12 @@ export declare class OpenProviderApiError extends Error {
     readonly rawResponse?: unknown;
     constructor(code: number, description: string, originalError?: Error | undefined, rawResponse?: unknown);
 }
+/**
+ * Extract a rich human-readable error description from an OpenProvider API response body.
+ * Inspects registry, data, message, and warnings fields - the same extraction used for HTTP >= 400
+ * responses - so callers that receive non-zero codes on HTTP 200 responses get the same detail.
+ */
+export declare function buildOpenProviderApiError(responseData: unknown, fallbackDesc?: string, httpStatusCode?: number): OpenProviderApiError;
 export declare class OpenProviderClient {
     private token;
     private baseUrl;
@@ -47,6 +53,11 @@ export declare class OpenProviderClient {
      * Update an existing customer handle
      */
     updateCustomer(handle: string, params: Partial<OpenProviderCustomerRequest>): Promise<OpenProviderCustomerResponse>;
+    getCustomer(handle: string): Promise<{
+        code: number;
+        desc: string;
+        data: Record<string, unknown>;
+    }>;
     /**
      * Start email verification for gTLD
      */

@@ -31,4 +31,41 @@ export declare const userRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
+    getEmailPreferences: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            generalEmailsAccepted: boolean | null;
+            invoiceEmailsAccepted: boolean | null;
+            supportEmailsAccepted: boolean | null;
+            productEmailsAccepted: boolean | null;
+            domainEmailsAccepted: boolean | null;
+            affiliateEmailsAccepted: boolean | null;
+            marketingEmailsAccepted: boolean | null;
+            smsMarketingAccepted: boolean | null;
+        };
+        meta: object;
+    }>;
+    updateEmailPreferences: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            generalEmailsAccepted?: boolean | null | undefined;
+            invoiceEmailsAccepted?: boolean | null | undefined;
+            supportEmailsAccepted?: boolean | null | undefined;
+            productEmailsAccepted?: boolean | null | undefined;
+            domainEmailsAccepted?: boolean | null | undefined;
+            affiliateEmailsAccepted?: boolean | null | undefined;
+            marketingEmailsAccepted?: boolean | null | undefined;
+            smsMarketingAccepted?: boolean | null | undefined;
+        };
+        output: {
+            generalEmailsAccepted: boolean | null;
+            invoiceEmailsAccepted: boolean | null;
+            supportEmailsAccepted: boolean | null;
+            productEmailsAccepted: boolean | null;
+            domainEmailsAccepted: boolean | null;
+            affiliateEmailsAccepted: boolean | null;
+            marketingEmailsAccepted: boolean | null;
+            smsMarketingAccepted: boolean | null;
+        };
+        meta: object;
+    }>;
 }>>;

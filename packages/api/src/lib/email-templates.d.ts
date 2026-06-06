@@ -133,6 +133,7 @@ export declare function renderServiceRenewalReminderEmail({ recipientName, servi
     supportEmail?: string;
     supportPhone?: string;
 }): Promise<string>;
+/** Super-admin email when QStash processing completes successfully (same layout family as OrderFailedEmail). */
 export declare function renderNiscOrderConfirmationEmail({ customerName, orderNumber, orderDate, totalAmount, currency, orderItems, orderLink, }: {
     customerName?: string;
     orderNumber?: string;

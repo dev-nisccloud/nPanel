@@ -76,3 +76,54 @@ export interface NiscEmDispatchJobResult {
     messageId: string;
     scheduledFor?: number;
 }
+/**
+ * QStash job payload for Zeepo Canvas generation (immediate, no schedule)
+ */
+export interface ZeepoCanvasJobPayload {
+    generationId: string;
+}
+/**
+ * QStash job result for Zeepo Canvas generation
+ */
+export interface ZeepoCanvasJobResult {
+    messageId: string;
+}
+/** QStash job payload for Zeepo Agent generation */
+export interface ZeepoAgentJobPayload {
+    generationId: string;
+}
+export interface ZeepoAgentJobResult {
+    messageId: string;
+}
+/**
+ * QStash job payload for Email Builder AI generation (immediate, no schedule)
+ */
+export interface EmailBuilderAiJobPayload {
+    designId: string;
+}
+/**
+ * QStash job result for Email Builder AI generation
+ */
+export interface EmailBuilderAiJobResult {
+    messageId: string;
+}
+/**
+ * QStash job payload for Meta Ads analysis (immediate, no schedule)
+ */
+export interface MetaAdsAnalysisJobPayload {
+    analysisId: string;
+    data: any;
+}
+/**
+ * QStash job result for Meta Ads analysis
+ */
+export interface MetaAdsAnalysisJobResult {
+    messageId: string;
+}
+/** Nisc Email Builder (neb) - multi-agent HTML build */
+export interface NebBuildJobPayload {
+    jobId: string;
+}
+export interface NebBuildJobResult {
+    messageId: string;
+}
