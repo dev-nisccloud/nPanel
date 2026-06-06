@@ -1,20 +1,15 @@
 import { searchconsole_v1 } from 'googleapis';
-
 export type GscPropertySummary = {
     clicks: number;
     impressions: number;
+    /** CTR as percentage 0–100 (matches UI). */
     ctr: number;
     position: number;
 };
-
-export declare function gscPropertySummaryFromRow(
-    row: searchconsole_v1.Schema$ApiDataRow | null | undefined,
-): GscPropertySummary;
-
-export declare function gscPropertySummaryFromDailyRows(
-    rows: searchconsole_v1.Schema$ApiDataRow[],
-): GscPropertySummary;
-
+/** Build summary from a single property-total API row (no dimensions). */
+export declare function gscPropertySummaryFromRow(row: searchconsole_v1.Schema$ApiDataRow | null | undefined): GscPropertySummary;
+/** Fallback: sum daily rows with impression-weighted average position. */
+export declare function gscPropertySummaryFromDailyRows(rows: searchconsole_v1.Schema$ApiDataRow[]): GscPropertySummary;
 /**
  * Client for Google Search Console API using a Service Account
  */
@@ -23,10 +18,13 @@ export declare class GoogleSearchConsoleClient {
     private auth;
     constructor();
     private getSc;
+    /**
+     * Paginated searchanalytics.query - matches GSC API guidance (startRow until empty).
+     */
     private querySearchAnalyticsAllRows;
     private querySearchAnalytics;
     /**
-     * Property-level totals for a date range (no dimensions).
+     * Property-level totals for a date range (no dimensions) - matches GSC chart totals.
      */
     getSiteSummaryTotals(siteUrl: string, startDate: string, endDate: string): Promise<searchconsole_v1.Schema$ApiDataRow | null>;
     /**
@@ -34,23 +32,23 @@ export declare class GoogleSearchConsoleClient {
      */
     getSearchAnalytics(siteUrl: string, startDate: string, endDate: string): Promise<searchconsole_v1.Schema$ApiDataRow[]>;
     /**
-     * Top pages (by clicks), aggregated by page.
+     * Top pages (by clicks), aggregated by page per Google guidance.
      */
     getTopPages(siteUrl: string, startDate: string, endDate: string, limit?: number): Promise<searchconsole_v1.Schema$ApiDataRow[]>;
     /**
-     * Get top countries
+     * Top countries (by clicks).
      */
     getTopCountries(siteUrl: string, startDate: string, endDate: string, limit?: number): Promise<searchconsole_v1.Schema$ApiDataRow[]>;
     /**
-     * Get top keywords
+     * Top keywords/queries (by clicks).
      */
     getTopKeywords(siteUrl: string, startDate: string, endDate: string, limit?: number): Promise<searchconsole_v1.Schema$ApiDataRow[]>;
     /**
-     * Get data grouped by device
+     * Traffic by device.
      */
     getTopDevices(siteUrl: string, startDate: string, endDate: string): Promise<searchconsole_v1.Schema$ApiDataRow[]>;
     /**
-     * Get data grouped by search appearance (rich results)
+     * Search appearance types (step 1 of Google's two-step rich-result flow).
      */
     getSearchAppearance(siteUrl: string, startDate: string, endDate: string): Promise<searchconsole_v1.Schema$ApiDataRow[]>;
     /**

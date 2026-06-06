@@ -6,6 +6,10 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import { niscClientSubscription, niscClientSubscriptionActivityLog, niscClientSubscriptionRenewal, niscCommissionEntry, niscProduct, niscProductPlan, } from "@npanel/db/schema/products";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
+import { getTeamLiveDomainsSummary } from "../lib/team-live-domains-summary";
+import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
+import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
+import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
@@ -125,33 +129,40 @@ const createSubscriptionInputSchema = z
 });
 const updateSubscriptionInputSchema = z.object({
     id: z.string(),
+    name: z.string().nullable().optional(),
+    userId: z.string().nullable().optional(),
+    teamId: z.string().nullable().optional(),
+    productPlanId: z.string().nullable().optional(),
     status: subscriptionStatusSchema.optional(),
-    subscriptionDate: z.coerce.date().optional(),
+    subscriptionDate: z.coerce.date().nullable().optional(),
     billingCycle: billingCycleSchema.optional(),
-    nextRenewalDate: z.coerce.date().optional(),
-    expiryDate: z.coerce.date().optional(),
+    nextRenewalDate: z.coerce.date().nullable().optional(),
+    expiryDate: z.coerce.date().nullable().optional(),
     autoRenew: z.boolean().optional(),
-    agreedPrice: z.string().optional(),
+    agreedPrice: z.string().nullable().optional(),
     agreedCurrency: z.string().optional(),
-    agreedCommissionRate: z.number().positive().optional(),
-    agreedCommissionBase: z.string().optional(),
-    primaryDomain: z.string().optional(),
+    agreedCommissionRate: z.number().positive().nullable().optional(),
+    agreedCommissionBase: z.string().nullable().optional(),
+    primaryDomain: z.string().nullable().optional(),
     pleskFilterId: z.string().optional(),
     pleskOwnerId: z.string().optional(),
     pleskFtpLogin: z.string().optional(),
     pleskFtpPassword: z.string().optional(),
-    hostingType: hostingTypeSchema.optional(),
+    hostingType: hostingTypeSchema.nullable().optional(),
     openProviderId: z.number().int().optional(),
     domainAuthCode: z.string().optional(),
     nameserverGroupId: z.string().optional(),
     wpInstallationId: z.number().int().optional(),
     serviceRefs: serviceRefsSchema,
-    notes: z.string().optional(),
+    notes: z.string().nullable().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
 });
 const cancelSubscriptionInputSchema = z.object({
     id: z.string(),
     reason: z.string().optional(),
+});
+const deleteSubscriptionInputSchema = z.object({
+    id: z.string(),
 });
 // --- List schema -------------------------------------------------------------
 const getSubscriptionsInputSchema = z.object({
@@ -262,9 +273,54 @@ const createMediaBuyingSubscriptionInputSchema = z.object({
     adServingFee: z.string().min(1),
     adServingFeeCurrency: z.enum(["USD", "EUR", "KES"]),
 });
+/** Search Console vs GA4 are separate subscription links (agency SEO Reports tabs). */
+const seoLinkLookupInputSchema = z.discriminatedUnion("scope", [
+    z.object({
+        scope: z.literal("SEARCH_CONSOLE"),
+        searchConsoleSiteUrl: z.string().min(1),
+    }),
+    z.object({
+        scope: z.literal("GA4"),
+        ga4PropertyId: z.string().min(1),
+    }),
+]);
+const createSeoSubscriptionInputSchema = z.discriminatedUnion("scope", [
+    z.object({
+        scope: z.literal("SEARCH_CONSOLE"),
+        teamId: z.string().min(1),
+        productPlanId: z.string().min(1),
+        searchConsoleSiteUrl: z.string().min(1),
+        managementFee: z.string().min(1),
+        managementFeeCurrency: z.enum(["USD", "EUR", "KES"]),
+    }),
+    z.object({
+        scope: z.literal("GA4"),
+        teamId: z.string().min(1),
+        productPlanId: z.string().min(1),
+        ga4PropertyId: z.string().min(1),
+        ga4DisplayName: z.string().optional(),
+        managementFee: z.string().min(1),
+        managementFeeCurrency: z.enum(["USD", "EUR", "KES"]),
+    }),
+]);
+const seoProductForSubscriptionOutputSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    plans: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        pricingModel: pricingModelSchema,
+        billingCycle: billingCycleSchema.nullable(),
+        price: z.string().nullable(),
+        currency: z.string().nullable(),
+        agreedCommissionRate: z.number().nullable(),
+        agreedCommissionBase: z.string().nullable(),
+    })),
+});
 // --- Output schemas ----------------------------------------------------------
 const subscriptionOutputSchema = z.object({
     id: z.string(),
+    name: z.string().nullable(),
     userId: z.string().nullable(),
     teamId: z.string().nullable(),
     productId: z.string(),
@@ -323,6 +379,7 @@ const commissionEntryOutputSchema = z.object({
 function mapSubscription(sub) {
     return {
         id: sub.id,
+        name: sub.name ?? null,
         userId: sub.userId ?? null,
         teamId: sub.teamId ?? null,
         productId: sub.productId,
@@ -444,7 +501,7 @@ async function canAssignTeamSubscription(params) {
     return isTeamMember(params.teamId, params.userId);
 }
 function canMutateSubscription(subscription, userId, role) {
-    if (isAgencySuperAdminRole(role))
+    if (isAgencyUserRole(role))
         return true;
     return subscription.userId === userId || subscription.recordedBy === userId;
 }
@@ -805,6 +862,168 @@ export const clientSubscriptionsRouter = router({
             };
         });
     }),
+    /** List Creatives & Design subscriptions for a team (customer view). Same auth as listForTeamNiscEmailMarketing. */
+    listForTeamCreativesDesign: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(z.array(z.object({
+        id: z.string(),
+        pleskSubscriptionId: z.string().nullable(),
+        subscriptionName: z.string().nullable(),
+        status: subscriptionStatusSchema,
+        productName: z.string(),
+        productPlanName: z.string().nullable(),
+        subscriptionDate: z.date().nullable(),
+        expiryDate: z.date().nullable(),
+        primaryDomain: z.string().nullable(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view subscriptions",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const creativesProducts = await db
+            .select({ id: niscProduct.id })
+            .from(niscProduct)
+            .where(and(eq(niscProduct.isActive, true), or(eq(niscProduct.id, CREATIVES_DESIGN_PRODUCT_ID), ilike(niscProduct.name, "%creatives design%"), ilike(niscProduct.name, "%creative design%"), ilike(niscProduct.name, "%creative_design%"), ilike(niscProduct.name, "%creatives_design%"))));
+        const productIds = creativesProducts.map((p) => p.id);
+        if (productIds.length === 0)
+            return [];
+        const subs = await db.query.niscClientSubscription.findMany({
+            where: and(eq(niscClientSubscription.teamId, teamId), inArray(niscClientSubscription.productId, productIds)),
+            orderBy: (s, { desc: d }) => [d(s.createdAt)],
+            columns: {
+                id: true,
+                name: true,
+                status: true,
+                subscriptionDate: true,
+                expiryDate: true,
+                primaryDomain: true,
+                serviceRefs: true,
+                pleskFilterId: true,
+            },
+            with: {
+                product: { columns: { name: true } },
+                productPlan: { columns: { name: true } },
+            },
+        });
+        return subs.map((sub) => {
+            let pleskId = null;
+            const refs = sub.serviceRefs;
+            if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+                pleskId = String(refs.pleskSubscriptionId);
+            }
+            if (!pleskId && sub.pleskFilterId)
+                pleskId = sub.pleskFilterId;
+            return {
+                id: sub.id,
+                pleskSubscriptionId: pleskId,
+                subscriptionName: sub.name ?? null,
+                status: sub.status,
+                productName: sub.product.name,
+                productPlanName: sub.productPlan?.name ?? null,
+                subscriptionDate: sub.subscriptionDate,
+                expiryDate: sub.expiryDate,
+                primaryDomain: sub.primaryDomain,
+            };
+        });
+    }),
+    /** List SEO Reports subscriptions for a team (customer view). Same auth as listForTeamNiscEmailMarketing. */
+    listForTeamSeoReports: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(z.array(z.object({
+        id: z.string(),
+        pleskSubscriptionId: z.string().nullable(),
+        subscriptionName: z.string().nullable(),
+        status: subscriptionStatusSchema,
+        productName: z.string(),
+        productPlanName: z.string().nullable(),
+        subscriptionDate: z.date().nullable(),
+        expiryDate: z.date().nullable(),
+        primaryDomain: z.string().nullable(),
+    })))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view subscriptions",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const seoProducts = await db
+            .select({ id: niscProduct.id })
+            .from(niscProduct)
+            .where(and(eq(niscProduct.isActive, true), or(eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID), ilike(niscProduct.name, "%seo report%"), ilike(niscProduct.name, "%seo%"))));
+        const productIds = seoProducts.map((p) => p.id);
+        if (productIds.length === 0)
+            return [];
+        const subs = await db.query.niscClientSubscription.findMany({
+            where: and(eq(niscClientSubscription.teamId, teamId), inArray(niscClientSubscription.productId, productIds)),
+            orderBy: (s, { desc: d }) => [d(s.createdAt)],
+            columns: {
+                id: true,
+                name: true,
+                status: true,
+                subscriptionDate: true,
+                expiryDate: true,
+                primaryDomain: true,
+                serviceRefs: true,
+                pleskFilterId: true,
+            },
+            with: {
+                product: { columns: { name: true } },
+                productPlan: { columns: { name: true } },
+            },
+        });
+        return subs.map((sub) => {
+            let pleskId = null;
+            const refs = sub.serviceRefs;
+            if (refs && (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number")) {
+                pleskId = String(refs.pleskSubscriptionId);
+            }
+            if (!pleskId && sub.pleskFilterId)
+                pleskId = sub.pleskFilterId;
+            return {
+                id: sub.id,
+                pleskSubscriptionId: pleskId,
+                subscriptionName: sub.name ?? null,
+                status: sub.status,
+                productName: sub.product.name,
+                productPlanName: sub.productPlan?.name ?? null,
+                subscriptionDate: sub.subscriptionDate,
+                expiryDate: sub.expiryDate,
+                primaryDomain: sub.primaryDomain,
+            };
+        });
+    }),
     /** List domain subscriptions for a team (customer view). Returns subscriptions for products whose name contains "domains" (case-insensitive). Caller must be a member of the team. */
     listForTeamDomains: protectedProcedure
         .input(z.object({ teamSlug: z.string().min(1) }))
@@ -893,6 +1112,7 @@ export const clientSubscriptionsRouter = router({
         id: z.string(),
         productName: z.string(),
         productPlanName: z.string().nullable(),
+        subscriptionName: z.string().nullable(),
         subscriptionDate: z.date().nullable(),
         nextRenewalDate: z.date().nullable(),
         expiryDate: z.date().nullable(),
@@ -937,13 +1157,127 @@ export const clientSubscriptionsRouter = router({
         });
         return subs.map((sub) => ({
             id: sub.id,
-            productName: sub.name ?? sub.product.name,
+            productName: sub.product.name,
             productPlanName: sub.productPlan?.name ?? null,
+            subscriptionName: sub.name ?? null,
             subscriptionDate: sub.subscriptionDate,
             nextRenewalDate: sub.nextRenewalDate,
             expiryDate: sub.expiryDate,
             status: sub.status,
         }));
+    }),
+    /** Live domain metrics for a team (OpenProvider + KENIC), scoped to accessible domain subscriptions. */
+    getTeamLiveDomainsSummary: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(z.object({
+        total: z.number(),
+        active: z.number(),
+        expired: z.number(),
+    }))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view domains",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        return getTeamLiveDomainsSummary(teamId);
+    }),
+    /** Subscription status counts for a team from NiscClientSubscription. */
+    getTeamSubscriptionSummary: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(z.object({
+        total: z.number(),
+        active: z.number(),
+        other: z.number(),
+    }))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view subscriptions",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const subs = await db.query.niscClientSubscription.findMany({
+            where: eq(niscClientSubscription.teamId, teamId),
+            columns: { status: true },
+        });
+        const total = subs.length;
+        const active = subs.filter((sub) => sub.status === "ACTIVE").length;
+        return { total, active, other: total - active };
+    }),
+    /** Web hosting subscription counts for a team from NiscClientSubscription. */
+    getTeamHostingSummary: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(z.object({
+        total: z.number(),
+        active: z.number(),
+        other: z.number(),
+    }))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view hosting",
+            });
+        }
+        const teamId = await getTeamIdBySlug(input.teamSlug);
+        if (!teamId) {
+            throw new TRPCError({
+                code: "NOT_FOUND",
+                message: "Team not found",
+            });
+        }
+        if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const hostingProducts = await db
+            .select({ id: niscProduct.id })
+            .from(niscProduct)
+            .where(and(eq(niscProduct.isActive, true), or(ilike(niscProduct.name, "%web hosting%"), ilike(niscProduct.name, "%website hosting%"))));
+        const productIds = hostingProducts.map((p) => p.id);
+        if (productIds.length === 0) {
+            return { total: 0, active: 0, other: 0 };
+        }
+        const subs = await db.query.niscClientSubscription.findMany({
+            where: and(eq(niscClientSubscription.teamId, teamId), inArray(niscClientSubscription.productId, productIds)),
+            columns: { status: true },
+        });
+        const total = subs.length;
+        const active = subs.filter((sub) => sub.status === "ACTIVE").length;
+        return { total, active, other: total - active };
     }),
     /** Get a single subscription by ID */
     getById: protectedProcedure
@@ -1148,12 +1482,73 @@ export const clientSubscriptionsRouter = router({
         }
         return idStrs.filter((id) => found.has(id));
     }),
+    /** Check if a Hivelocity device id already has a linked NiscClientSubscription (serviceRefs.hivelocityDeviceId). */
+    getHasLinkedSubscriptionByHivelocityDeviceId: protectedProcedure
+        .input(z.object({ hivelocityDeviceId: z.union([z.string(), z.number()]) }))
+        .output(z.object({
+        hasLinked: z.boolean(),
+        subscriptionId: z.string().nullable(),
+        status: subscriptionStatusSchema.nullable(),
+    }))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view subscriptions",
+            });
+        }
+        const idStr = String(input.hivelocityDeviceId);
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+        const [sub] = await db
+            .select({
+            id: niscClientSubscription.id,
+            status: niscClientSubscription.status,
+        })
+            .from(niscClientSubscription)
+            .where(and(sql `(${niscClientSubscription.serviceRefs}->>'hivelocityDeviceId') = ${idStr}`, readScope ?? sql `true`))
+            .limit(1);
+        return {
+            hasLinked: !!sub,
+            subscriptionId: sub?.id ?? null,
+            status: sub?.status ?? null,
+        };
+    }),
+    /** Return Hivelocity device ids that already have a linked NiscClientSubscription (for batch check on list views). */
+    getHivelocityDeviceIdsWithLinkedSubscription: protectedProcedure
+        .input(z.object({ hivelocityDeviceIds: z.array(z.union([z.string(), z.number()])) }))
+        .output(z.array(z.string()))
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view subscriptions",
+            });
+        }
+        if (input.hivelocityDeviceIds.length === 0)
+            return [];
+        const idStrs = [...new Set(input.hivelocityDeviceIds.map((id) => String(id)))];
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+        const subs = await db
+            .select({ serviceRefs: niscClientSubscription.serviceRefs })
+            .from(niscClientSubscription)
+            .where(and(or(...idStrs.map((id) => sql `(${niscClientSubscription.serviceRefs}->>'hivelocityDeviceId') = ${id}`)), readScope ?? sql `true`));
+        const found = new Set();
+        for (const sub of subs) {
+            const refs = sub.serviceRefs;
+            if (refs && typeof refs.hivelocityDeviceId === "string") {
+                found.add(refs.hivelocityDeviceId);
+            }
+        }
+        return idStrs.filter((id) => found.has(id));
+    }),
     /** Get active media buying product and its active plans for subscription creation. */
     getMediaBuyingProductForSubscription: protectedProcedure
         .output(mediaBuyingProductOutputSchema.nullable())
         .query(async () => {
         const product = await db.query.niscProduct.findFirst({
-            where: and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%media buying%")),
+            where: and(eq(niscProduct.isActive, true), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%"))),
             with: {
                 plans: {
                     where: eq(niscProductPlan.isActive, true),
@@ -1245,7 +1640,7 @@ export const clientSubscriptionsRouter = router({
         })
             .from(niscProductPlan)
             .innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
-            .where(and(eq(niscProductPlan.id, input.productPlanId), eq(niscProductPlan.isActive, true), eq(niscProduct.isActive, true), ilike(niscProduct.name, "%media buying%")))
+            .where(and(eq(niscProductPlan.id, input.productPlanId), eq(niscProductPlan.isActive, true), eq(niscProduct.isActive, true), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%"))))
             .limit(1);
         if (!selectedPlan) {
             throw new TRPCError({
@@ -1323,6 +1718,205 @@ export const clientSubscriptionsRouter = router({
         });
         return mapSubscription(created);
     }),
+    /** Active SEO product + plans (Search Console / GA4 subscriptions share this product; scope is stored in serviceRefs). */
+    getSeoProductForSubscription: protectedProcedure
+        .output(seoProductForSubscriptionOutputSchema.nullable())
+        .query(async () => {
+        const product = await db.query.niscProduct.findFirst({
+            where: and(eq(niscProduct.isActive, true), or(eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID), ilike(niscProduct.name, "%seo report%"), ilike(niscProduct.name, "%seo%"))),
+            with: {
+                plans: {
+                    where: eq(niscProductPlan.isActive, true),
+                    orderBy: (plan, { asc: a }) => [a(plan.sortOrder), a(plan.createdAt)],
+                },
+            },
+        });
+        if (!product)
+            return null;
+        return {
+            id: product.id,
+            name: product.name,
+            plans: (product.plans ?? []).map((plan) => ({
+                id: plan.id,
+                name: plan.name,
+                pricingModel: plan.pricingModel,
+                billingCycle: plan.billingCycle ?? null,
+                price: plan.price ?? null,
+                currency: plan.currency ?? null,
+                agreedCommissionRate: plan.commissionRate != null ? Number(plan.commissionRate) : null,
+                agreedCommissionBase: plan.commissionBase ?? null,
+            })),
+        };
+    }),
+    /** Whether this Search Console site or GA4 property already has an SEO subscription row. */
+    getLinkedSeoSubscriptionByResource: protectedProcedure
+        .input(seoLinkLookupInputSchema)
+        .output(adAccountLinkLookupOutputSchema)
+        .query(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to view linked subscriptions",
+            });
+        }
+        const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
+        const scopeClause = input.scope === "SEARCH_CONSOLE"
+            ? and(sql `(${niscClientSubscription.serviceRefs}->>'seoScope') = 'SEARCH_CONSOLE'`, sql `(${niscClientSubscription.serviceRefs}->>'searchConsoleSiteUrl') = ${input.searchConsoleSiteUrl}`)
+            : and(sql `(${niscClientSubscription.serviceRefs}->>'seoScope') = 'GA4'`, sql `(${niscClientSubscription.serviceRefs}->>'ga4PropertyId') = ${input.ga4PropertyId}`);
+        const [row] = await db
+            .select({
+            id: niscClientSubscription.id,
+            teamId: niscClientSubscription.teamId,
+            teamName: team.name,
+        })
+            .from(niscClientSubscription)
+            .leftJoin(team, eq(team.id, niscClientSubscription.teamId))
+            .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+            .where(and(ilike(niscProduct.name, "%seo%"), scopeClause, readScope ?? sql `true`))
+            .limit(1);
+        return {
+            hasLinkedSubscription: !!row,
+            subscriptionId: row?.id ?? null,
+            teamId: row?.teamId ?? null,
+            teamName: row?.teamName ?? null,
+        };
+    }),
+    /** Create a team SEO subscription for Search Console (site URL) or GA4 (property id) - one subscription per tab integration. */
+    createSeoSubscription: protectedProcedure
+        .input(createSeoSubscriptionInputSchema)
+        .output(subscriptionOutputSchema)
+        .mutation(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to create subscriptions",
+            });
+        }
+        const hasTeamAccess = await canAssignTeamSubscription({
+            teamId: input.teamId,
+            userId: session.user.id,
+            role: session.user.role,
+        });
+        if (!hasTeamAccess) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You do not have access to this team",
+            });
+        }
+        const [selectedPlan] = await db
+            .select({
+            id: niscProductPlan.id,
+            productId: niscProductPlan.productId,
+            pricingModel: niscProductPlan.pricingModel,
+            billingCycle: niscProductPlan.billingCycle,
+            price: niscProductPlan.price,
+            currency: niscProductPlan.currency,
+            commissionRate: niscProductPlan.commissionRate,
+            commissionBase: niscProductPlan.commissionBase,
+            productName: niscProduct.name,
+        })
+            .from(niscProductPlan)
+            .innerJoin(niscProduct, eq(niscProduct.id, niscProductPlan.productId))
+            .where(and(eq(niscProductPlan.id, input.productPlanId), eq(niscProductPlan.isActive, true), eq(niscProduct.isActive, true), ilike(niscProduct.name, "%seo%")))
+            .limit(1);
+        if (!selectedPlan) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Invalid SEO plan selected",
+            });
+        }
+        const dupClause = input.scope === "SEARCH_CONSOLE"
+            ? and(sql `(${niscClientSubscription.serviceRefs}->>'seoScope') = 'SEARCH_CONSOLE'`, sql `(${niscClientSubscription.serviceRefs}->>'searchConsoleSiteUrl') = ${input.searchConsoleSiteUrl}`)
+            : and(sql `(${niscClientSubscription.serviceRefs}->>'seoScope') = 'GA4'`, sql `(${niscClientSubscription.serviceRefs}->>'ga4PropertyId') = ${input.ga4PropertyId}`);
+        const [existing] = await db
+            .select({ id: niscClientSubscription.id })
+            .from(niscClientSubscription)
+            .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+            .where(and(ilike(niscProduct.name, "%seo%"), dupClause))
+            .limit(1);
+        if (existing) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: input.scope === "SEARCH_CONSOLE"
+                    ? "This Search Console site is already linked to a subscription"
+                    : "This GA4 property is already linked to a subscription",
+            });
+        }
+        const serviceRefs = input.scope === "SEARCH_CONSOLE"
+            ? {
+                seoScope: "SEARCH_CONSOLE",
+                searchConsoleSiteUrl: input.searchConsoleSiteUrl,
+            }
+            : {
+                seoScope: "GA4",
+                ga4PropertyId: input.ga4PropertyId,
+                ga4DisplayName: input.ga4DisplayName?.trim() || null,
+            };
+        const subName = input.scope === "SEARCH_CONSOLE"
+            ? `SEO (Search Console) - ${input.searchConsoleSiteUrl}`
+            : `SEO (GA4) - ${input.ga4DisplayName?.trim() || input.ga4PropertyId}`;
+        const now = new Date();
+        const subId = crypto.randomUUID();
+        const pricingModel = selectedPlan.pricingModel;
+        const [created] = await db
+            .insert(niscClientSubscription)
+            .values({
+            id: subId,
+            name: subName,
+            teamId: input.teamId,
+            productId: selectedPlan.productId,
+            productPlanId: selectedPlan.id,
+            recordedBy: session.user.id,
+            subscribedBy: session.user.id,
+            status: "ACTIVE",
+            subscriptionDate: now,
+            billingCycle: pricingModel === "FIXED" ? selectedPlan.billingCycle ?? "MONTHLY" : null,
+            autoRenew: false,
+            pricingModel,
+            agreedPrice: pricingModel === "FIXED" ? selectedPlan.price ?? null : null,
+            agreedCurrency: selectedPlan.currency ?? "KES",
+            agreedCommissionRate: pricingModel === "COMMISSION" && selectedPlan.commissionRate != null
+                ? String(selectedPlan.commissionRate)
+                : null,
+            agreedCommissionBase: pricingModel === "COMMISSION" ? selectedPlan.commissionBase ?? null : null,
+            serviceRefs,
+            metadata: {
+                managementFee: input.managementFee,
+                managementFeeCurrency: input.managementFeeCurrency,
+                seoScope: input.scope,
+            },
+        })
+            .returning();
+        if (!created) {
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to create SEO subscription",
+            });
+        }
+        await db.insert(niscClientSubscriptionActivityLog).values({
+            id: crypto.randomUUID(),
+            subscriptionId: created.id,
+            userId: session.user.id,
+            action: "CREATE_SEO_SUBSCRIPTION",
+            description: input.scope === "SEARCH_CONSOLE"
+                ? `Created SEO (Search Console) subscription for ${input.searchConsoleSiteUrl}`
+                : `Created SEO (GA4) subscription for ${input.ga4PropertyId}`,
+            metadata: {
+                scope: input.scope,
+                productPlanId: input.productPlanId,
+                managementFee: input.managementFee,
+                managementFeeCurrency: input.managementFeeCurrency,
+                ...(input.scope === "SEARCH_CONSOLE"
+                    ? { searchConsoleSiteUrl: input.searchConsoleSiteUrl }
+                    : { ga4PropertyId: input.ga4PropertyId }),
+            },
+            ipAddress: null,
+            userAgent: null,
+        });
+        return mapSubscription(created);
+    }),
     /** Return ad account IDs linked to media buying subscriptions for a team/platform. */
     listLinkedAdAccountsForTeam: protectedProcedure
         .input(linkedAdAccountsForTeamInputSchema)
@@ -1352,7 +1946,7 @@ export const clientSubscriptionsRouter = router({
             .select({ serviceRefs: niscClientSubscription.serviceRefs })
             .from(niscClientSubscription)
             .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
-            .where(and(eq(niscClientSubscription.teamId, teamId), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`));
+            .where(and(eq(niscClientSubscription.teamId, teamId), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%")), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`));
         const ids = new Set();
         for (const row of rows) {
             const refs = row.serviceRefs;
@@ -1395,7 +1989,7 @@ export const clientSubscriptionsRouter = router({
         })
             .from(niscClientSubscription)
             .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
-            .where(and(eq(niscClientSubscription.teamId, teamId), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`));
+            .where(and(eq(niscClientSubscription.teamId, teamId), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%")), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${input.platform}`));
         const byId = new Map();
         for (const row of rows) {
             const refs = row.serviceRefs;
@@ -1565,16 +2159,38 @@ export const clientSubscriptionsRouter = router({
         }
         const { id, ...rest } = input;
         const patch = {};
+        if (rest.name !== undefined)
+            patch.name = rest.name ?? null;
+        if (rest.userId !== undefined)
+            patch.userId = rest.userId ?? null;
+        if (rest.teamId !== undefined)
+            patch.teamId = rest.teamId ?? null;
+        if (rest.productPlanId !== undefined) {
+            if (rest.productPlanId) {
+                const [plan] = await db
+                    .select({ id: niscProductPlan.id })
+                    .from(niscProductPlan)
+                    .where(and(eq(niscProductPlan.id, rest.productPlanId), eq(niscProductPlan.productId, existing.productId)))
+                    .limit(1);
+                if (!plan) {
+                    throw new TRPCError({
+                        code: "NOT_FOUND",
+                        message: "Plan not found or does not belong to this subscription's product",
+                    });
+                }
+            }
+            patch.productPlanId = rest.productPlanId ?? null;
+        }
         if (rest.status !== undefined)
             patch.status = rest.status;
         if (rest.subscriptionDate !== undefined)
-            patch.subscriptionDate = rest.subscriptionDate;
+            patch.subscriptionDate = rest.subscriptionDate ?? null;
         if (rest.billingCycle !== undefined)
             patch.billingCycle = rest.billingCycle;
         if (rest.nextRenewalDate !== undefined)
-            patch.nextRenewalDate = rest.nextRenewalDate;
+            patch.nextRenewalDate = rest.nextRenewalDate ?? null;
         if (rest.expiryDate !== undefined)
-            patch.expiryDate = rest.expiryDate;
+            patch.expiryDate = rest.expiryDate ?? null;
         if (rest.autoRenew !== undefined)
             patch.autoRenew = rest.autoRenew;
         if (rest.agreedPrice !== undefined)
@@ -1686,6 +2302,44 @@ export const clientSubscriptionsRouter = router({
             userAgent: null,
         });
         return mapSubscription(updated);
+    }),
+    /** Permanently delete a subscription (agency super admin only). */
+    delete: protectedProcedure
+        .input(deleteSubscriptionInputSchema)
+        .output(z.object({ success: z.literal(true) }))
+        .mutation(async ({ ctx, input }) => {
+        const session = ctx.session;
+        if (!session?.user?.id) {
+            throw new TRPCError({
+                code: "UNAUTHORIZED",
+                message: "You must be logged in to delete subscriptions",
+            });
+        }
+        if (!isAgencySuperAdminRole(session.user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency super admins can delete subscriptions",
+            });
+        }
+        const [existing] = await db
+            .select({ id: niscClientSubscription.id, name: niscClientSubscription.name })
+            .from(niscClientSubscription)
+            .where(eq(niscClientSubscription.id, input.id))
+            .limit(1);
+        if (!existing) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Subscription not found" });
+        }
+        try {
+            await db.delete(niscClientSubscription).where(eq(niscClientSubscription.id, input.id));
+        }
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: `Could not delete subscription: ${message}`,
+            });
+        }
+        return { success: true };
     }),
     /** Send a service renewal reminder email. Grace period: 7 days before suspension for most services; for domains, suspension is immediate. */
     sendRenewalEmail: protectedProcedure

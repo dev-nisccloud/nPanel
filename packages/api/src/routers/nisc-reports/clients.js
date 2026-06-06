@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, count, eq, gte, inArray, lte, or } from "@npanel/db";
+import { and, count, eq, gte, inArray, isNotNull, lte, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";
 import { niscClientSubscription } from "@npanel/db/schema/products";
@@ -7,8 +7,9 @@ import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { quotation } from "@npanel/db/schema/quotations";
 import { team } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
-import { reportFiltersSchema, monthlyMrr, toNum } from "./filters";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { quotationReportAmount, reportFiltersSchema, toNum } from "./filters";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
+import { OPEN_AR_STATUSES, fetchCompletedPaymentsByInvoice, invoiceCollectedAmount, invoiceIssuedInPeriod, invoiceOutstandingAmount, subscriptionMrr, } from "./metrics";
 const FIXED = "FIXED";
 const ACTIVE = "ACTIVE";
 export const niscClientsRouter = router({
@@ -44,20 +45,30 @@ export const niscClientsRouter = router({
         const results = await Promise.all(teamRows.map(async (t) => {
             // Invoices
             const invoices = await db
-                .select({ status: invoice.status, amount: invoice.amount, paidAt: invoice.paidAt, createdAt: invoice.createdAt })
+                .select({
+                id: invoice.id,
+                status: invoice.status,
+                amount: invoice.amount,
+                creditedAmount: invoice.creditedAmount,
+                createdAt: invoice.createdAt,
+                issueDate: invoice.issueDate,
+            })
                 .from(invoice)
-                .where(and(eq(invoice.teamId, t.id), gte(invoice.createdAt, from), lte(invoice.createdAt, to)));
+                .where(and(eq(invoice.teamId, t.id), invoiceIssuedInPeriod(from, to)));
+            const paidByInvoice = await fetchCompletedPaymentsByInvoice(invoices.map(i => i.id));
             let totalInvoiced = 0, totalPaid = 0, outstanding = 0;
             let lastActivity = null;
             for (const inv of invoices) {
                 const amt = toNum(inv.amount);
+                const paid = paidByInvoice.get(inv.id) ?? 0;
+                const issued = inv.issueDate ?? inv.createdAt;
                 totalInvoiced += amt;
-                if (inv.status === "PAID")
-                    totalPaid += amt;
-                if (inv.status === "SENT" || inv.status === "OVERDUE")
-                    outstanding += amt;
-                if (!lastActivity || inv.createdAt > lastActivity)
-                    lastActivity = inv.createdAt;
+                totalPaid += invoiceCollectedAmount(inv, paid);
+                if (OPEN_AR_STATUSES.includes(inv.status)) {
+                    outstanding += invoiceOutstandingAmount(inv, paid);
+                }
+                if (!lastActivity || issued > lastActivity)
+                    lastActivity = issued;
             }
             // Active subscriptions
             const subs = await db.query.niscClientSubscription.findMany({
@@ -65,18 +76,17 @@ export const niscClientsRouter = router({
             });
             let mrr = 0;
             for (const s of subs) {
-                if (s.pricingModel === FIXED)
-                    mrr += monthlyMrr(s.agreedPrice, s.billingCycle);
+                mrr += subscriptionMrr(s);
             }
             // Orders
             const [ordRow] = await db.select({ c: count() }).from(niscOrder)
                 .where(and(eq(niscOrder.teamId, t.id), gte(niscOrder.createdAt, from), lte(niscOrder.createdAt, to)));
             // Quotations
             const quotes = await db
-                .select({ amount: quotation.amount, status: quotation.status })
+                .select({ amount: quotation.amount, subtotal: quotation.subtotal, status: quotation.status })
                 .from(quotation)
-                .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), inArray(quotation.status, ["DRAFT", "SENT"]), scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId)));
-            const pipelineValue = quotes.reduce((s, q) => s + toNum(q.amount), 0);
+                .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), inArray(quotation.status, ["DRAFT", "SENT"])));
+            const pipelineValue = quotes.reduce((s, q) => s + quotationReportAmount(q), 0);
             return {
                 teamId: t.id,
                 teamName: t.name,
@@ -110,9 +120,7 @@ export const niscClientsRouter = router({
             role: ctx.session.user.role,
         });
         const subs = await db.query.niscClientSubscription.findMany({
-            where: and(gte(niscClientSubscription.subscriptionDate, from), lte(niscClientSubscription.subscriptionDate, to), buildOwnerOrTeamReadScope({
-                isAgencyUser: scope.isAgencyUser,
-                ownerCondition: eq(niscClientSubscription.userId, scope.userId),
+            where: and(gte(niscClientSubscription.subscriptionDate, from), lte(niscClientSubscription.subscriptionDate, to), buildReportEntityScope({
                 teamColumn: niscClientSubscription.teamId,
                 teamIds: scope.teamIds,
             })),
@@ -174,27 +182,61 @@ export const niscClientsRouter = router({
         const allInvoices = await db
             .select({ teamId: invoice.teamId, createdAt: invoice.createdAt, amount: invoice.amount, status: invoice.status })
             .from(invoice)
-            .where(and(inArray(invoice.status, ["DRAFT", "SENT", "PAID", "OVERDUE", "PARTIALLY_PAID"]), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+            .where(and(inArray(invoice.status, ["DRAFT", "SENT", "PAID", "OVERDUE", "PARTIALLY_PAID"])));
+        const periodTx = await db
+            .select({
+            teamId: invoice.teamId,
+            amount: invoiceTransaction.amount,
+            invoiceId: invoiceTransaction.invoiceId,
+        })
+            .from(invoiceTransaction)
+            .innerJoin(invoice, eq(invoiceTransaction.invoiceId, invoice.id))
+            .where(and(eq(invoiceTransaction.status, "COMPLETED"), gte(invoiceTransaction.paidAt, from), lte(invoiceTransaction.paidAt, to), buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
         })));
-        // Period invoices
+        const paidInvoicesInPeriod = await db
+            .select({ teamId: invoice.teamId, id: invoice.id, amount: invoice.amount })
+            .from(invoice)
+            .where(and(eq(invoice.status, "PAID"), isNotNull(invoice.paidAt), gte(invoice.paidAt, from), lte(invoice.paidAt, to), buildReportEntityScope({
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+        })));
         const periodTeams = new Map();
         for (const inv of allInvoices) {
             const tid = inv.teamId ?? "__none__";
+            const issued = inv.createdAt;
             const e = periodTeams.get(tid);
             if (!e) {
-                periodTeams.set(tid, { firstEver: inv.createdAt, periodAmount: 0 });
+                periodTeams.set(tid, { firstEver: issued, periodAmount: 0 });
             }
-            else if (inv.createdAt < e.firstEver) {
-                e.firstEver = inv.createdAt;
+            else if (issued < e.firstEver) {
+                e.firstEver = issued;
             }
-            if (inv.createdAt >= from && inv.createdAt <= to && inv.status === "PAID") {
-                const pe = periodTeams.get(tid);
-                pe.periodAmount += toNum(inv.amount);
-            }
+        }
+        for (const tx of periodTx) {
+            const tid = tx.teamId ?? "__none__";
+            const pe = periodTeams.get(tid);
+            if (pe)
+                pe.periodAmount += toNum(tx.amount);
+            else
+                periodTeams.set(tid, { firstEver: from, periodAmount: toNum(tx.amount) });
+        }
+        const txByInvoice = new Map();
+        for (const tx of periodTx) {
+            txByInvoice.set(tx.invoiceId, (txByInvoice.get(tx.invoiceId) ?? 0) + toNum(tx.amount));
+        }
+        for (const inv of paidInvoicesInPeriod) {
+            const tid = inv.teamId ?? "__none__";
+            const txPaid = txByInvoice.get(inv.id) ?? 0;
+            const gap = Math.max(0, toNum(inv.amount) - txPaid);
+            if (gap <= 0)
+                continue;
+            const pe = periodTeams.get(tid);
+            if (pe)
+                pe.periodAmount += gap;
+            else
+                periodTeams.set(tid, { firstEver: from, periodAmount: gap });
         }
         let newClients = 0, returningClients = 0, newRevenue = 0, returningRevenue = 0;
         for (const [, v] of periodTeams.entries()) {

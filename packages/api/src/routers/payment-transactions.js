@@ -1,8 +1,9 @@
+import * as crypto from "crypto";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { teamMember, team as teamTable } from "@npanel/db/schema/teams";
-import { paymentTransaction, } from "@npanel/db/schema/payment-transactions";
+import { paymentTransaction, paymentTransactionActivityLog, } from "@npanel/db/schema/payment-transactions";
 import { and, count, desc, eq, inArray, or } from "@npanel/db";
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
@@ -69,7 +70,37 @@ async function getAuthenticatedUser(ctx) {
     }
     return { id: dbUser.id, role: dbUser.role };
 }
-const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
+const AGENCY_USER_ROLES = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"];
+function normalizeUserRole(role) {
+    return typeof role === "string" ? role.trim().toUpperCase() : "";
+}
+const isAgencyUser = (role) => AGENCY_USER_ROLES.includes(normalizeUserRole(role));
+/** Authoritative agency check from DB (not session-only) for privileged mutations. */
+async function requireAgencyUser(ctx) {
+    const { id } = await getAuthenticatedUser(ctx);
+    const [row] = await db
+        .select({ role: userTable.role, status: userTable.status })
+        .from(userTable)
+        .where(eq(userTable.id, id))
+        .limit(1);
+    if (!row) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found." });
+    }
+    if (row.status !== "ACTIVE") {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Your account must be active to record manual payments.",
+        });
+    }
+    const role = normalizeUserRole(row.role);
+    if (!isAgencyUser(role)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only agency users can record manual payment transactions.",
+        });
+    }
+    return { id, role };
+}
 async function getAccessibleTeamIds(userId) {
     const [memberships, ownedTeams] = await Promise.all([
         db
@@ -97,6 +128,94 @@ function buildTransactionReadCondition(params) {
         : eq(paymentTransaction.userId, userId);
 }
 export const paymentTransactionsRouter = router({
+    /**
+     * Agency only: record an external payment (M-Pesa receipt, bank transfer, etc.) in payment_transaction
+     * so checkout can proceed via createFromPayment using the returned checkoutRequestId.
+     */
+    recordManual: protectedProcedure
+        .input(z.object({
+        transactionReference: z.string().min(1).max(64),
+        amount: z.number().positive(),
+        currency: z.string().min(1).max(8).default("KES"),
+        accountReference: z.string().max(64).optional(),
+        transactionDesc: z.string().max(200).optional(),
+        teamId: z.string().optional(),
+        notes: z.string().max(500).optional(),
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const agencyUser = await requireAgencyUser(ctx);
+        const transactionReference = input.transactionReference.trim();
+        if (!transactionReference) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Transaction reference is required.",
+            });
+        }
+        const [existing] = await db
+            .select({ id: paymentTransaction.id })
+            .from(paymentTransaction)
+            .where(eq(paymentTransaction.checkoutRequestId, transactionReference))
+            .limit(1);
+        if (existing) {
+            throw new TRPCError({
+                code: "CONFLICT",
+                message: "A payment with this transaction reference already exists.",
+            });
+        }
+        const now = new Date();
+        const transactionId = crypto.randomUUID();
+        const amountStr = String(input.amount);
+        await db.insert(paymentTransaction).values({
+            id: transactionId,
+            userId: agencyUser.id,
+            teamId: input.teamId ?? null,
+            gateway: "OTHER",
+            gatewayStatus: "MANUAL",
+            gatewayMessage: "Recorded manually by agency",
+            gatewayTransactionId: transactionReference,
+            checkoutRequestId: transactionReference,
+            receiptNumber: transactionReference,
+            amount: amountStr,
+            paidAmount: amountStr,
+            currency: input.currency,
+            accountReference: input.accountReference ?? null,
+            transactionDesc: input.transactionDesc ?? null,
+            phoneNumber: null,
+            status: "SUCCESS",
+            rawResponse: {
+                source: "agency_manual_checkout",
+                recordedBy: agencyUser.id,
+                recordedAt: now.toISOString(),
+            },
+            notes: input.notes ?? null,
+            metadata: {
+                source: "agency_manual_checkout",
+                recordedBy: agencyUser.id,
+                recordedByRole: agencyUser.role,
+            },
+            initiatedAt: now,
+            processedAt: now,
+            createdAt: now,
+            updatedAt: now,
+        });
+        await db.insert(paymentTransactionActivityLog).values({
+            id: crypto.randomUUID(),
+            transactionId,
+            userId: agencyUser.id,
+            action: "MANUAL_RECORD",
+            description: `Manual payment recorded. Reference: ${transactionReference}`,
+            metadata: {
+                amount: amountStr,
+                currency: input.currency,
+                accountReference: input.accountReference ?? null,
+            },
+            createdAt: now,
+        });
+        return {
+            transactionId,
+            checkoutRequestId: transactionReference,
+        };
+    }),
     list: protectedProcedure
         .input(z.object({
         limit: z.number().int().min(1).max(100).optional().default(50),

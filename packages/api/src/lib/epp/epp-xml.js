@@ -236,3 +236,110 @@ export function buildDomainTransferXml(params) {
   </command>
 </epp>`;
 }
+/**
+ * Build EPP domain:info command (RFC 5731).
+ */
+export function buildDomainInfoXml(domain, authInfo) {
+    const authEl = authInfo
+        ? `\n        <domain:authInfo>\n          <domain:pw>${escapeXml(authInfo)}</domain:pw>\n        </domain:authInfo>`
+        : "";
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <info>
+      <domain:info>
+        <domain:name>${escapeXml(domain)}</domain:name>${authEl}
+      </domain:info>
+    </info>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP contact:info command (RFC 5733).
+ */
+export function buildContactInfoXml(id, authInfo) {
+    const authEl = authInfo
+        ? `\n        <contact:authInfo>\n          <contact:pw>${escapeXml(authInfo)}</contact:pw>\n        </contact:authInfo>`
+        : "";
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:contact="urn:ietf:params:xml:ns:contact-1.0">
+  <command>
+    <info>
+      <contact:info>
+        <contact:id>${escapeXml(id)}</contact:id>${authEl}
+      </contact:info>
+    </info>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP domain:update command (RFC 5731) for nameservers.
+ */
+export function buildDomainUpdateXml(params) {
+    let addEl = "";
+    if (params.addNs && params.addNs.length > 0) {
+        const ns = params.addNs.map((n) => `          <domain:hostObj>${escapeXml(n)}</domain:hostObj>`).join("\n");
+        addEl = `\n      <domain:add>\n        <domain:ns>\n${ns}\n        </domain:ns>\n      </domain:add>`;
+    }
+    let remEl = "";
+    if (params.remNs && params.remNs.length > 0) {
+        const ns = params.remNs.map((n) => `          <domain:hostObj>${escapeXml(n)}</domain:hostObj>`).join("\n");
+        remEl = `\n      <domain:rem>\n        <domain:ns>\n${ns}\n        </domain:ns>\n      </domain:rem>`;
+    }
+    const chgEl = ""; // Used for registrant/authInfo changes if needed
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">
+  <command>
+    <update>
+      <domain:update>
+        <domain:name>${escapeXml(params.domain)}</domain:name>${addEl}${remEl}${chgEl}
+      </domain:update>
+    </update>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP host:check command (RFC 5732).
+ */
+export function buildHostCheckXml(hosts) {
+    const hostEls = hosts.map((h) => `        <host:name>${escapeXml(h)}</host:name>`).join("\n");
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:host="urn:ietf:params:xml:ns:host-1.0">
+  <command>
+    <check>
+      <host:check>
+${hostEls}
+      </host:check>
+    </check>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}
+/**
+ * Build EPP host:create command (RFC 5732).
+ */
+export function buildHostCreateXml(host, ips) {
+    let addrEls = "";
+    if (ips) {
+        if (ips.v4) {
+            addrEls += ips.v4.map((ip) => `        <host:addr ip="v4">${escapeXml(ip)}</host:addr>`).join("\n");
+        }
+        if (ips.v6) {
+            addrEls += ips.v6.map((ip) => `        <host:addr ip="v6">${escapeXml(ip)}</host:addr>`).join("\n");
+        }
+    }
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:host="urn:ietf:params:xml:ns:host-1.0">
+  <command>
+    <create>
+      <host:create>
+        <host:name>${escapeXml(host)}</host:name>${addrEls ? `\n${addrEls}` : ""}
+      </host:create>
+    </create>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}

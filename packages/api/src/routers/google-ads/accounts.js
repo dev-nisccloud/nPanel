@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, ilike, inArray, sql } from '@npanel/db';
+import { and, desc, eq, ilike, inArray, or, sql } from '@npanel/db';
 import { router, protectedProcedure } from '../../trpc';
 import { db } from '@npanel/db';
 import { googleAdsAccount, googleAdsAccountActivityLog, } from '@npanel/db/schema/google-ads';
 import { niscClientSubscription, niscProduct } from '@npanel/db/schema/products';
+import { NISC_MEDIA_BUYING_PRODUCT_ID } from '../../lib/media-buying-billing';
 import { team, teamMember } from '@npanel/db/schema/teams';
 import { createGoogleAdsClient, getAccessibleCustomers, getCustomerInstance, } from '../../lib/google-ads-client';
 import { getGoogleAdsClientId, getGoogleAdsClientSecret, getGoogleAdsDeveloperToken, } from '../../lib/google-ads-credentials';
@@ -41,7 +42,7 @@ async function hasGoogleSubscriptionAccess(teamIds, customerId) {
         .select({ id: niscClientSubscription.id })
         .from(niscClientSubscription)
         .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
-        .where(and(inArray(niscClientSubscription.teamId, teamIds), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`, sql `((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${raw} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${dashed})`))
+        .where(and(inArray(niscClientSubscription.teamId, teamIds), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%")), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`, sql `((${niscClientSubscription.serviceRefs}->>'adAccountId') = ${raw} OR (${niscClientSubscription.serviceRefs}->>'adAccountId') = ${dashed})`))
         .limit(1);
     return !!linked;
 }
@@ -55,7 +56,7 @@ async function getGoogleLinkedAccountsFromSubscriptions(teamIds) {
     })
         .from(niscClientSubscription)
         .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
-        .where(and(inArray(niscClientSubscription.teamId, teamIds), ilike(niscProduct.name, "%media buying%"), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`));
+        .where(and(inArray(niscClientSubscription.teamId, teamIds), or(eq(niscProduct.id, NISC_MEDIA_BUYING_PRODUCT_ID), ilike(niscProduct.name, "%media buying%")), sql `(${niscClientSubscription.serviceRefs}->>'adPlatform') = ${"GOOGLE_ADS"}`));
     const byId = new Map();
     for (const row of rows) {
         const refs = row.serviceRefs;

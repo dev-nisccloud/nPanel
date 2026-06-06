@@ -22,3 +22,5 @@ export declare function idKey(id: string, includePlans: boolean): string[];
 export declare function addonsKey(baseProductId: string): string[];
 /** Cache key for getHostingProductsForUpsell. */
 export declare function hostingUpsellKey(): string[];
+/** Cache key for getDigitalMarketingPlansForUpsell. */
+export declare function digitalMarketingUpsellKey(): string[];

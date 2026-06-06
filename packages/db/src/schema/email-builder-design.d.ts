@@ -138,6 +138,57 @@ export declare const emailBuilderDesign: import("drizzle-orm/pg-core").PgTableWi
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        isAiGenerated: import("drizzle-orm/pg-core").PgColumn<{
+            name: "is_ai_generated";
+            tableName: "email_builder_design";
+            dataType: "boolean";
+            columnType: "PgBoolean";
+            data: boolean;
+            driverParam: boolean;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        aiStatus: import("drizzle-orm/pg-core").PgColumn<{
+            name: "ai_status";
+            tableName: "email_builder_design";
+            dataType: "string";
+            columnType: "PgText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        aiContext: import("drizzle-orm/pg-core").PgColumn<{
+            name: "ai_context";
+            tableName: "email_builder_design";
+            dataType: "json";
+            columnType: "PgJsonb";
+            data: unknown;
+            driverParam: unknown;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         createdAt: import("drizzle-orm/pg-core").PgColumn<{
             name: "created_at";
             tableName: "email_builder_design";

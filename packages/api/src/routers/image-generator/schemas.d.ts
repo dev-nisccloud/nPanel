@@ -1,28 +1,28 @@
 import { z } from "zod";
 export declare const generationStatusSchema: z.ZodEnum<{
-    QUEUED: "QUEUED";
     PROCESSING: "PROCESSING";
-    FAILED: "FAILED";
+    QUEUED: "QUEUED";
     COMPLETED: "COMPLETED";
+    FAILED: "FAILED";
 }>;
 export type GenerationStatus = z.infer<typeof generationStatusSchema>;
 export declare const variationStatusSchema: z.ZodEnum<{
     PROCESSING: "PROCESSING";
-    FAILED: "FAILED";
     COMPLETED: "COMPLETED";
+    FAILED: "FAILED";
 }>;
 export type VariationStatus = z.infer<typeof variationStatusSchema>;
 export declare const aspectRatioSchema: z.ZodEnum<{
-    "1:1": "1:1";
-    "2:3": "2:3";
+    "21:9": "21:9";
+    "16:9": "16:9";
     "3:2": "3:2";
+    "5:4": "5:4";
+    "1:1": "1:1";
+    "4:5": "4:5";
+    "2:3": "2:3";
+    "9:16": "9:16";
     "3:4": "3:4";
     "4:3": "4:3";
-    "4:5": "4:5";
-    "5:4": "5:4";
-    "9:16": "9:16";
-    "16:9": "16:9";
-    "21:9": "21:9";
 }>;
 export declare const outputFormatSchema: z.ZodEnum<{
     png: "png";
@@ -37,16 +37,16 @@ export declare const startGenerationSchema: z.ZodObject<{
     prompt: z.ZodString;
     referenceImageUrls: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
     aspectRatio: z.ZodDefault<z.ZodEnum<{
-        "1:1": "1:1";
-        "2:3": "2:3";
+        "21:9": "21:9";
+        "16:9": "16:9";
         "3:2": "3:2";
+        "5:4": "5:4";
+        "1:1": "1:1";
+        "4:5": "4:5";
+        "2:3": "2:3";
+        "9:16": "9:16";
         "3:4": "3:4";
         "4:3": "4:3";
-        "4:5": "4:5";
-        "5:4": "5:4";
-        "9:16": "9:16";
-        "16:9": "16:9";
-        "21:9": "21:9";
     }>>;
     outputFormat: z.ZodDefault<z.ZodEnum<{
         png: "png";
@@ -63,10 +63,10 @@ export declare const startGenerationSchema: z.ZodObject<{
 export declare const startGenerationResponseSchema: z.ZodObject<{
     generationId: z.ZodString;
     status: z.ZodEnum<{
-        QUEUED: "QUEUED";
         PROCESSING: "PROCESSING";
-        FAILED: "FAILED";
+        QUEUED: "QUEUED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
     }>;
     variationsCount: z.ZodNumber;
 }, z.core.$strip>;
@@ -84,8 +84,8 @@ export declare const imageGeneratorVariationSchema: z.ZodObject<{
     variationIndex: z.ZodNumber;
     status: z.ZodEnum<{
         PROCESSING: "PROCESSING";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
     }>;
     errorMessage: z.ZodNullable<z.ZodString>;
     imageUrl: z.ZodNullable<z.ZodString>;
@@ -110,10 +110,10 @@ export declare const imageGeneratorGenerationSchema: z.ZodObject<{
     modelId: z.ZodString;
     modelName: z.ZodNullable<z.ZodString>;
     status: z.ZodEnum<{
-        QUEUED: "QUEUED";
         PROCESSING: "PROCESSING";
-        FAILED: "FAILED";
+        QUEUED: "QUEUED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
     }>;
     errorMessage: z.ZodNullable<z.ZodString>;
     qstashMessageId: z.ZodNullable<z.ZodString>;
@@ -127,8 +127,8 @@ export declare const imageGeneratorGenerationSchema: z.ZodObject<{
         variationIndex: z.ZodNumber;
         status: z.ZodEnum<{
             PROCESSING: "PROCESSING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
         }>;
         errorMessage: z.ZodNullable<z.ZodString>;
         imageUrl: z.ZodNullable<z.ZodString>;
@@ -155,10 +155,10 @@ export declare const getGenerationsResponseSchema: z.ZodObject<{
         modelId: z.ZodString;
         modelName: z.ZodNullable<z.ZodString>;
         status: z.ZodEnum<{
-            QUEUED: "QUEUED";
             PROCESSING: "PROCESSING";
-            FAILED: "FAILED";
+            QUEUED: "QUEUED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
         }>;
         errorMessage: z.ZodNullable<z.ZodString>;
         qstashMessageId: z.ZodNullable<z.ZodString>;
@@ -172,8 +172,8 @@ export declare const getGenerationsResponseSchema: z.ZodObject<{
             variationIndex: z.ZodNumber;
             status: z.ZodEnum<{
                 PROCESSING: "PROCESSING";
-                FAILED: "FAILED";
                 COMPLETED: "COMPLETED";
+                FAILED: "FAILED";
             }>;
             errorMessage: z.ZodNullable<z.ZodString>;
             imageUrl: z.ZodNullable<z.ZodString>;
@@ -208,16 +208,16 @@ export declare const generateImageSchema: z.ZodObject<{
     prompt: z.ZodString;
     referenceImageUrls: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
     aspectRatio: z.ZodDefault<z.ZodEnum<{
-        "1:1": "1:1";
-        "2:3": "2:3";
+        "21:9": "21:9";
+        "16:9": "16:9";
         "3:2": "3:2";
+        "5:4": "5:4";
+        "1:1": "1:1";
+        "4:5": "4:5";
+        "2:3": "2:3";
+        "9:16": "9:16";
         "3:4": "3:4";
         "4:3": "4:3";
-        "4:5": "4:5";
-        "5:4": "5:4";
-        "9:16": "9:16";
-        "16:9": "16:9";
-        "21:9": "21:9";
     }>>;
     outputFormat: z.ZodDefault<z.ZodEnum<{
         png: "png";

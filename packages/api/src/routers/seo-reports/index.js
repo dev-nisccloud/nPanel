@@ -4,13 +4,15 @@ import { and, count, desc, eq, ilike, or } from "@npanel/db";
 import { z } from "zod";
 import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
+import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
+import { NISC_SEO_REPORTS_PRODUCT_ID } from "../../lib/seo-reports-billing";
 import { seoReport, seoReportActivityLog } from "@npanel/db/schema/seo-reports";
 import { team, teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
-import { GoogleSearchConsoleClient } from "../../lib/google-search-console-client";
-import { GoogleAnalyticsClient } from "../../lib/google-analytics-client";
+import { GoogleSearchConsoleClient, gscPropertySummaryFromDailyRows, gscPropertySummaryFromRow, } from "../../lib/google-search-console-client";
+import { GoogleAnalyticsClient, ga4OrganicSummaryFromRunReportResponse, } from "../../lib/google-analytics-client";
 import { countries } from "@npanel/location";
-import { seoReportCreateInputSchema, seoReportDetailSchema, seoReportListFiltersSchema, seoReportListResponseSchema, seoReportSummarySchema, seoAutomatedReportInputSchema, seoAutomatedReportResponseSchema, seoGa4ReportInputSchema, seoGa4PropertySchema, seoManageableSiteSchema, } from "./schemas";
+import { seoReportCreateInputSchema, seoReportDetailSchema, seoReportListFiltersSchema, seoReportListResponseSchema, seoReportSummarySchema, seoAutomatedReportInputSchema, seoAutomatedReportResponseSchema, seoGa4ReportInputSchema, seoGa4PropertySchema, seoManageableSiteSchema, seoTeamScopeInputSchema, } from "./schemas";
 async function getAuthenticatedUser(ctx) {
     const user = ctx.session?.user;
     if (!user?.id) {
@@ -80,17 +82,127 @@ function getPreviousPeriod(from, to) {
         to: toVal,
     };
 }
-// Utility to normalize URLs for matching (strip protocol, trailing slash, www)
+/** Normalize GSC site URLs / web origins for subscription matching (protocol, www, sc-domain:, trailing slash). */
 function normalizeUrl(url) {
     if (!url)
-        return '';
-    return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').toLowerCase();
+        return "";
+    const s = url.trim().toLowerCase();
+    if (s.startsWith("sc-domain:")) {
+        return s.replace(/^sc-domain:/, "").replace(/\/$/, "");
+    }
+    return s.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+}
+async function teamIdFromSlug(slug) {
+    const [row] = await db.select({ id: team.id }).from(team).where(eq(team.slug, slug)).limit(1);
+    return row?.id ?? null;
+}
+async function userMayAccessTeamForSeoReports(userId, role, teamId) {
+    if (isAgencyUser(role))
+        return true;
+    const [m] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)))
+        .limit(1);
+    if (m)
+        return true;
+    const owned = await db.query.team.findFirst({
+        where: and(eq(team.id, teamId), eq(team.createdById, userId)),
+        columns: { id: true },
+    });
+    return !!owned;
+}
+async function loadActiveTeamSeoSubscriptionResources(teamId) {
+    const rows = await db
+        .select({ serviceRefs: niscClientSubscription.serviceRefs })
+        .from(niscClientSubscription)
+        .innerJoin(niscProduct, eq(niscProduct.id, niscClientSubscription.productId))
+        .where(and(eq(niscClientSubscription.teamId, teamId), eq(niscClientSubscription.status, "ACTIVE"), or(eq(niscProduct.id, NISC_SEO_REPORTS_PRODUCT_ID), ilike(niscProduct.name, "%seo report%"), ilike(niscProduct.name, "%seo%"))));
+    const gscKeys = new Set();
+    const ga4PropertyIds = new Set();
+    for (const row of rows) {
+        const refs = row.serviceRefs;
+        if (!refs?.seoScope)
+            continue;
+        if (refs.seoScope === "SEARCH_CONSOLE") {
+            const url = typeof refs.searchConsoleSiteUrl === "string" ? refs.searchConsoleSiteUrl.trim() : "";
+            if (url)
+                gscKeys.add(normalizeUrl(url));
+        }
+        if (refs.seoScope === "GA4") {
+            const pid = typeof refs.ga4PropertyId === "string" ? refs.ga4PropertyId.trim() : "";
+            if (pid)
+                ga4PropertyIds.add(pid);
+        }
+    }
+    return { gscKeys, ga4PropertyIds };
+}
+async function resolveSeoTeamScopeAccess(opts) {
+    const { user, teamSlug } = opts;
+    if (!teamSlug) {
+        if (!isAgencyUser(user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Team context is required to access SEO report data.",
+            });
+        }
+        return { mode: "open" };
+    }
+    const teamId = await teamIdFromSlug(teamSlug);
+    if (!teamId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Team not found." });
+    }
+    if (!(await userMayAccessTeamForSeoReports(user.id, user.role, teamId))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this team." });
+    }
+    const resources = await loadActiveTeamSeoSubscriptionResources(teamId);
+    return { mode: "team", teamId, resources };
+}
+function assertTeamHasGscSubscription(scope, siteId) {
+    if (scope.mode === "open")
+        return;
+    const key = normalizeUrl(siteId);
+    if (!scope.resources.gscKeys.has(key)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "This Search Console property is not covered by an active SEO subscription for your team.",
+        });
+    }
+}
+function assertTeamHasGa4Subscription(scope, ga4PropertyId) {
+    if (scope.mode === "open")
+        return;
+    const pid = ga4PropertyId.trim();
+    if (!scope.resources.ga4PropertyIds.has(pid)) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "This GA4 property is not covered by an active SEO subscription for your team.",
+        });
+    }
+}
+function filterManageableSitesForTeam(mapped, resources) {
+    const { gscKeys, ga4PropertyIds } = resources;
+    return mapped
+        .filter((row) => gscKeys.has(normalizeUrl(row.siteUrl)))
+        .map((row) => {
+        const pid = row.ga4PropertyId;
+        if (pid && !ga4PropertyIds.has(pid)) {
+            return { ...row, ga4PropertyId: null, ga4DisplayName: null };
+        }
+        return row;
+    });
 }
 export const seoReportsRouter = router({
     getAutomatedReport: protectedProcedure
         .input(seoAutomatedReportInputSchema)
         .output(seoAutomatedReportResponseSchema)
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input.teamSlug });
+        assertTeamHasGscSubscription(scope, input.siteId);
+        if (input.ga4PropertyId?.trim()) {
+            assertTeamHasGa4Subscription(scope, input.ga4PropertyId);
+        }
         try {
             const gsc = new GoogleSearchConsoleClient();
             const ga4 = new GoogleAnalyticsClient();
@@ -99,6 +211,8 @@ export const seoReportsRouter = router({
             const gscPromise = Promise.all([
                 gsc.getSearchAnalytics(input.siteId, input.from, input.to),
                 gsc.getSearchAnalytics(input.siteId, prevPeriod.from, prevPeriod.to),
+                gsc.getSiteSummaryTotals(input.siteId, input.from, input.to),
+                gsc.getSiteSummaryTotals(input.siteId, prevPeriod.from, prevPeriod.to),
                 gsc.getTopKeywords(input.siteId, input.from, input.to, 50),
                 gsc.getTopPages(input.siteId, input.from, input.to, 100),
                 gsc.getTopPages(input.siteId, prevPeriod.from, prevPeriod.to, 100),
@@ -111,72 +225,42 @@ export const seoReportsRouter = router({
             const ga4Promise = input.ga4PropertyId ? Promise.allSettled([
                 ga4.getOrganicPerformance(input.ga4PropertyId, input.from, input.to),
                 ga4.getOrganicPerformance(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
+                ga4.getOrganicPeriodTotals(input.ga4PropertyId, input.from, input.to),
+                ga4.getOrganicPeriodTotals(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
                 ga4.getTopLandingPages(input.ga4PropertyId, input.from, input.to, 100),
             ]) : Promise.resolve(null);
             const [gscResults, ga4Results] = await Promise.all([gscPromise, ga4Promise]);
-            const [currentStats, prevStats, currentKeywords, currentPages, prevPages, currentCountries, currentDevices, currentAppearance, sitemaps] = gscResults;
+            const [currentStats, prevStats, currentTotalsRow, prevTotalsRow, currentKeywords, currentPages, prevPages, currentCountries, currentDevices, currentAppearance, sitemaps] = gscResults;
             // Process GA4 Results if successful
             let ga4Current = [];
             let ga4Prev = [];
             let ga4Pages = [];
+            let ga4CurrentTotalsResponse;
+            let ga4PrevTotalsResponse;
             if (ga4Results) {
                 if (ga4Results[0].status === 'fulfilled')
                     ga4Current = ga4Results[0].value?.rows || [];
                 if (ga4Results[1].status === 'fulfilled')
                     ga4Prev = ga4Results[1].value?.rows || [];
-                if (ga4Results[2].status === 'fulfilled')
-                    ga4Pages = ga4Results[2].value?.rows || [];
+                if (ga4Results[2].status === 'fulfilled') {
+                    ga4CurrentTotalsResponse = ga4Results[2].value;
+                }
+                if (ga4Results[3].status === 'fulfilled') {
+                    ga4PrevTotalsResponse = ga4Results[3].value;
+                }
+                if (ga4Results[4].status === 'fulfilled')
+                    ga4Pages = ga4Results[4].value?.rows || [];
             }
-            // Summary Statistics (GSC)
-            const calculateGscSummary = (data) => {
-                let clicks = 0;
-                let impressions = 0;
-                let sumCtr = 0;
-                let sumPos = 0;
-                data.forEach(row => {
-                    clicks += row.clicks || 0;
-                    impressions += row.impressions || 0;
-                    sumCtr += row.ctr || 0;
-                    sumPos += row.position || 0;
-                });
-                return {
-                    clicks,
-                    impressions,
-                    ctr: data.length > 0 ? (sumCtr / data.length) * 100 : 0,
-                    pos: data.length > 0 ? sumPos / data.length : 0,
-                };
-            };
-            const currentGscSummary = calculateGscSummary(currentStats);
-            const prevGscSummary = calculateGscSummary(prevStats);
-            // Summary Statistics (GA4)
-            const calculateGa4Summary = (data) => {
-                let sessions = 0;
-                let users = 0;
-                let conversions = 0;
-                let sumEngagement = 0;
-                let sumBounce = 0;
-                let sumDuration = 0;
-                const count = data.length;
-                data.forEach(row => {
-                    const metrics = row.metricValues || [];
-                    sessions += parseInt(metrics[0]?.value || '0');
-                    users += parseInt(metrics[1]?.value || '0');
-                    conversions += parseInt(metrics[2]?.value || '0');
-                    sumBounce += parseFloat(metrics[3]?.value || '0');
-                    sumEngagement += parseFloat(metrics[4]?.value || '0');
-                    sumDuration += parseFloat(metrics[5]?.value || '0');
-                });
-                return {
-                    sessions,
-                    users,
-                    conversions,
-                    engagementRate: count > 0 ? (sumEngagement / count) * 100 : 0,
-                    bounceRate: count > 0 ? (sumBounce / count) * 100 : 0,
-                    averageSessionDuration: count > 0 ? sumDuration / count : 0,
-                };
-            };
-            const currentGa4Summary = calculateGa4Summary(ga4Current);
-            const prevGa4Summary = calculateGa4Summary(ga4Prev);
+            // Summary Statistics (GSC) - property totals from API; fallback to weighted daily aggregate
+            const currentGscSummary = currentTotalsRow
+                ? gscPropertySummaryFromRow(currentTotalsRow)
+                : gscPropertySummaryFromDailyRows(currentStats);
+            const prevGscSummary = prevTotalsRow
+                ? gscPropertySummaryFromRow(prevTotalsRow)
+                : gscPropertySummaryFromDailyRows(prevStats);
+            // Summary Statistics (GA4) - response.totals (TOTAL aggregation), then fallback
+            const currentGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4CurrentTotalsResponse);
+            const prevGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4PrevTotalsResponse);
             // Time Series (Merged GSC + GA4)
             const timeSeriesMap = new Map();
             // Init with GSC
@@ -215,8 +299,8 @@ export const seoReportsRouter = router({
                     existing.sessions = parseInt(metrics[0]?.value || '0');
                     existing.totalUsers = parseInt(metrics[1]?.value || '0');
                     existing.conversions = parseInt(metrics[2]?.value || '0');
-                    existing.bounceRate = parseFloat(metrics[3]?.value || '0');
-                    existing.engagementRate = parseFloat(metrics[4]?.value || '0');
+                    existing.bounceRate = parseFloat(metrics[3]?.value || '0') * 100;
+                    existing.engagementRate = parseFloat(metrics[4]?.value || '0') * 100;
                     existing.averageSessionDuration = parseFloat(metrics[5]?.value || '0');
                     timeSeriesMap.set(formattedDate, existing);
                 }
@@ -383,8 +467,8 @@ export const seoReportsRouter = router({
                     totalClicksPrev: prevGscSummary.clicks,
                     averageCtr: currentGscSummary.ctr,
                     averageCtrPrev: prevGscSummary.ctr,
-                    averagePosition: currentGscSummary.pos,
-                    averagePositionPrev: prevGscSummary.pos,
+                    averagePosition: currentGscSummary.position,
+                    averagePositionPrev: prevGscSummary.position,
                     // GA4
                     totalSessions: currentGa4Summary.sessions,
                     totalSessionsPrev: prevGa4Summary.sessions,
@@ -414,6 +498,8 @@ export const seoReportsRouter = router({
             };
         }
         catch (error) {
+            if (error instanceof TRPCError)
+                throw error;
             console.error('Failed to fetch automated SEO report:', error);
             // Help debug Google Auth issues in production
             if (error instanceof Error && (error.message.includes('auth') || error.message.includes('credential') || error.message.includes('Service Account'))) {
@@ -426,8 +512,12 @@ export const seoReportsRouter = router({
         }
     }),
     listManageableSites: protectedProcedure
+        .input(seoTeamScopeInputSchema.optional())
         .output(z.array(seoManageableSiteSchema))
-        .query(async () => {
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input?.teamSlug });
+        const applyTeamFilter = (mapped) => (scope.mode === "open" ? mapped : filterManageableSitesForTeam(mapped, scope.resources));
         try {
             const gsc = new GoogleSearchConsoleClient();
             const ga4 = new GoogleAnalyticsClient();
@@ -437,7 +527,7 @@ export const seoReportsRouter = router({
                 ga4.listAccessibleProperties()
             ]);
             // Match GA4 properties to GSC sites via URL
-            return gscSites.map(s => {
+            const mapped = gscSites.map(s => {
                 const normalizedSiteUrl = normalizeUrl(s.siteUrl || "");
                 // Find a matching GA4 property where the default stream URL matches the GSC site URL
                 const matchedGa4 = ga4Properties.find(p => {
@@ -452,6 +542,7 @@ export const seoReportsRouter = router({
                     ga4DisplayName: matchedGa4?.displayName || null
                 };
             });
+            return applyTeamFilter(mapped);
         }
         catch (error) {
             console.error('Failed to list manageable sites:', error);
@@ -461,12 +552,13 @@ export const seoReportsRouter = router({
                 if (error instanceof Error && error.message.includes('GA4')) {
                     const gsc = new GoogleSearchConsoleClient();
                     const sites = await gsc.listSites();
-                    return sites.map(s => ({
+                    const mapped = sites.map(s => ({
                         siteUrl: s.siteUrl || "",
                         permissionLevel: s.permissionLevel || null,
                         ga4PropertyId: null,
                         ga4DisplayName: null
                     }));
+                    return applyTeamFilter(mapped);
                 }
             }
             catch (e) {
@@ -483,18 +575,28 @@ export const seoReportsRouter = router({
     }),
     /** List GA4 properties independently (no GSC domain matching). User selects which property to view. */
     listGa4Properties: protectedProcedure
+        .input(seoTeamScopeInputSchema.optional())
         .output(z.array(seoGa4PropertySchema))
-        .query(async () => {
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input?.teamSlug });
         try {
             const ga4 = new GoogleAnalyticsClient();
             const properties = await ga4.listAccessibleProperties();
-            return properties.map((p) => ({
+            const mapped = properties.map((p) => ({
                 propertyId: p.propertyId,
                 displayName: p.displayName,
                 defaultUrl: p.defaultUrl ?? null,
             }));
+            if (scope.mode === "open") {
+                return mapped;
+            }
+            const allowed = scope.resources.ga4PropertyIds;
+            return mapped.filter((p) => allowed.has(p.propertyId.trim()));
         }
         catch (error) {
+            if (error instanceof TRPCError)
+                throw error;
             console.error("Failed to list GA4 properties:", error);
             if (error instanceof Error &&
                 (error.message.includes("auth") ||
@@ -512,47 +614,26 @@ export const seoReportsRouter = router({
     getGa4Report: protectedProcedure
         .input(seoGa4ReportInputSchema)
         .output(seoAutomatedReportResponseSchema)
-        .query(async ({ input }) => {
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const scope = await resolveSeoTeamScopeAccess({ user, teamSlug: input.teamSlug });
+        assertTeamHasGa4Subscription(scope, input.ga4PropertyId);
         try {
             const ga4 = new GoogleAnalyticsClient();
             const prevPeriod = getPreviousPeriod(input.from, input.to);
-            const [ga4Current, ga4Prev, ga4Pages, ga4Countries, ga4Devices] = await Promise.all([
+            const [ga4Current, ga4Prev, ga4CurrentTotals, ga4PrevTotals, ga4Pages, ga4Countries, ga4Devices] = await Promise.all([
                 ga4.getOrganicPerformance(input.ga4PropertyId, input.from, input.to),
                 ga4.getOrganicPerformance(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
+                ga4.getOrganicPeriodTotals(input.ga4PropertyId, input.from, input.to),
+                ga4.getOrganicPeriodTotals(input.ga4PropertyId, prevPeriod.from, prevPeriod.to),
                 ga4.getTopLandingPages(input.ga4PropertyId, input.from, input.to, 100),
                 ga4.getTopCountries(input.ga4PropertyId, input.from, input.to, 20),
                 ga4.getTopDevices(input.ga4PropertyId, input.from, input.to),
             ]);
             const ga4CurrentRows = ga4Current?.rows ?? [];
             const ga4PrevRows = ga4Prev?.rows ?? [];
-            const calculateGa4Summary = (data) => {
-                let sessions = 0;
-                let users = 0;
-                let conversions = 0;
-                let sumEngagement = 0;
-                let sumBounce = 0;
-                let sumDuration = 0;
-                const count = data.length;
-                for (const row of data) {
-                    const metrics = row.metricValues ?? [];
-                    sessions += Number.parseInt(metrics[0]?.value ?? "0", 10);
-                    users += Number.parseInt(metrics[1]?.value ?? "0", 10);
-                    conversions += Number.parseInt(metrics[2]?.value ?? "0", 10);
-                    sumBounce += Number.parseFloat(metrics[3]?.value ?? "0");
-                    sumEngagement += Number.parseFloat(metrics[4]?.value ?? "0");
-                    sumDuration += Number.parseFloat(metrics[5]?.value ?? "0");
-                }
-                return {
-                    sessions,
-                    users,
-                    conversions,
-                    engagementRate: count > 0 ? (sumEngagement / count) * 100 : 0,
-                    bounceRate: count > 0 ? (sumBounce / count) * 100 : 0,
-                    averageSessionDuration: count > 0 ? sumDuration / count : 0,
-                };
-            };
-            const currentGa4Summary = calculateGa4Summary(ga4CurrentRows);
-            const prevGa4Summary = calculateGa4Summary(ga4PrevRows);
+            const currentGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4CurrentTotals);
+            const prevGa4Summary = ga4OrganicSummaryFromRunReportResponse(ga4PrevTotals);
             const timeSeries = ga4CurrentRows.map((row) => {
                 const dateVal = row.dimensionValues?.[0]?.value;
                 const formattedDate = dateVal
@@ -566,8 +647,8 @@ export const seoReportsRouter = router({
                     sessions: Number.parseInt(metrics[0]?.value ?? "0", 10),
                     totalUsers: Number.parseInt(metrics[1]?.value ?? "0", 10),
                     conversions: Number.parseInt(metrics[2]?.value ?? "0", 10),
-                    bounceRate: Number.parseFloat(metrics[3]?.value ?? "0"),
-                    engagementRate: Number.parseFloat(metrics[4]?.value ?? "0"),
+                    bounceRate: Number.parseFloat(metrics[3]?.value ?? "0") * 100,
+                    engagementRate: Number.parseFloat(metrics[4]?.value ?? "0") * 100,
                     averageSessionDuration: Number.parseFloat(metrics[5]?.value ?? "0"),
                 };
             });
@@ -657,6 +738,8 @@ export const seoReportsRouter = router({
             };
         }
         catch (error) {
+            if (error instanceof TRPCError)
+                throw error;
             console.error("Failed to fetch GA4 report:", error);
             if (error instanceof Error &&
                 (error.message.includes("auth") ||

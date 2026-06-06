@@ -3,7 +3,7 @@ import { and, count, desc, eq, gte, inArray, lte } from "@npanel/db";
 import { db } from "@npanel/db";
 import { quotation } from "@npanel/db/schema/quotations";
 import { protectedProcedure, router } from "../../trpc";
-import { reportFiltersSchema, toNum } from "./filters";
+import { normalizeQuotationStatus, quotationReportAmount, reportFiltersSchema } from "./filters";
 import { differenceInDays } from "date-fns";
 import { resolveReportReadScope } from "./access";
 export const niscQuotationsRouter = router({
@@ -14,7 +14,7 @@ export const niscQuotationsRouter = router({
         inPreparation: z.number(), // DRAFT value
         activePipeline: z.number(), // SENT value
         wonValue: z.number(), // ACCEPTED
-        lostValue: z.number(), // REJECTED
+        lostValue: z.number(), // DECLINED
         expiredValue: z.number(), // EXPIRED
         winRate: z.number(),
         avgQuoteValue: z.number(),
@@ -32,49 +32,51 @@ export const niscQuotationsRouter = router({
             .select({
             status: quotation.status,
             amount: quotation.amount,
+            subtotal: quotation.subtotal,
             createdAt: quotation.createdAt,
             updatedAt: quotation.updatedAt,
             issueDate: quotation.issueDate,
         })
             .from(quotation)
-            .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined, scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId)));
+            .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined));
         const byStatusMap = new Map();
         let wonValue = 0, lostValue = 0, expiredValue = 0, activePipeline = 0, inPreparation = 0;
         const decisionDays = [];
         const acceptedAmounts = [];
         for (const q of rows) {
-            const amt = toNum(q.amount);
-            const e = byStatusMap.get(q.status) ?? { count: 0, amount: 0 };
+            const amt = quotationReportAmount(q);
+            const status = normalizeQuotationStatus(q.status);
+            const e = byStatusMap.get(status) ?? { count: 0, amount: 0 };
             e.count += 1;
             e.amount += amt;
-            byStatusMap.set(q.status, e);
-            if (q.status === "DRAFT")
+            byStatusMap.set(status, e);
+            if (status === "DRAFT")
                 inPreparation += amt;
-            else if (q.status === "SENT")
+            else if (status === "SENT")
                 activePipeline += amt;
-            else if (q.status === "ACCEPTED") {
+            else if (status === "ACCEPTED") {
                 wonValue += amt;
                 acceptedAmounts.push(amt);
                 const ref = q.issueDate ?? q.createdAt;
                 decisionDays.push(differenceInDays(q.updatedAt, ref));
             }
-            else if (q.status === "REJECTED") {
+            else if (status === "DECLINED") {
                 lostValue += amt;
                 const ref = q.issueDate ?? q.createdAt;
                 decisionDays.push(differenceInDays(q.updatedAt, ref));
             }
-            else if (q.status === "EXPIRED") {
+            else if (status === "EXPIRED") {
                 expiredValue += amt;
             }
         }
         const decisions = (byStatusMap.get("ACCEPTED")?.count ?? 0) +
-            (byStatusMap.get("REJECTED")?.count ?? 0) +
+            (byStatusMap.get("DECLINED")?.count ?? 0) +
             (byStatusMap.get("EXPIRED")?.count ?? 0);
         const accepted = byStatusMap.get("ACCEPTED")?.count ?? 0;
         const winRate = decisions > 0 ? (accepted / decisions) * 100 : 0;
         const avgDecision = decisionDays.length > 0 ? decisionDays.reduce((a, b) => a + b, 0) / decisionDays.length : 0;
         const avgAccepted = acceptedAmounts.length > 0 ? acceptedAmounts.reduce((a, b) => a + b, 0) / acceptedAmounts.length : 0;
-        const allStatuses = ["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"];
+        const allStatuses = ["DRAFT", "SENT", "ACCEPTED", "DECLINED", "EXPIRED", "CANCELLED"];
         const byStatus = allStatuses.map(s => ({
             status: s,
             count: byStatusMap.get(s)?.count ?? 0,
@@ -109,21 +111,23 @@ export const niscQuotationsRouter = router({
             role: ctx.session.user.role,
         });
         const rows = await db
-            .select({ status: quotation.status, amount: quotation.amount })
+            .select({ status: quotation.status, amount: quotation.amount, subtotal: quotation.subtotal })
             .from(quotation)
-            .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId)));
+            .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to)));
         const stages = {
             DRAFT: { count: 0, amount: 0 },
             SENT: { count: 0, amount: 0 },
             ACCEPTED: { count: 0, amount: 0 },
-            REJECTED: { count: 0, amount: 0 },
+            DECLINED: { count: 0, amount: 0 },
             EXPIRED: { count: 0, amount: 0 },
+            CANCELLED: { count: 0, amount: 0 },
         };
         for (const q of rows) {
-            const s = stages[q.status];
+            const status = normalizeQuotationStatus(q.status);
+            const s = stages[status];
             if (s) {
                 s.count += 1;
-                s.amount += toNum(q.amount);
+                s.amount += quotationReportAmount(q);
             }
         }
         const total = Object.values(stages).reduce((s, v) => s + v.count, 0);
@@ -160,10 +164,10 @@ export const niscQuotationsRouter = router({
         });
         const offset = (page - 1) * pageSize;
         const rows = await db.query.quotation.findMany({
-            where: and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined, scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId)),
+            where: and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined),
             columns: {
                 id: true, quotationNumber: true, customerName: true, customerEmail: true,
-                amount: true, currency: true, status: true, issueDate: true,
+                amount: true, subtotal: true, currency: true, status: true, issueDate: true,
                 createdBy: true, createdAt: true,
             },
             orderBy: [desc(quotation.createdAt)],
@@ -173,9 +177,13 @@ export const niscQuotationsRouter = router({
         const [cntRow] = await db
             .select({ c: count() })
             .from(quotation)
-            .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined, scope.isAgencyUser ? undefined : eq(quotation.createdBy, scope.userId)));
+            .where(and(gte(quotation.createdAt, from), lte(quotation.createdAt, to), quotationStatuses?.length ? inArray(quotation.status, quotationStatuses) : undefined));
         return {
-            rows: rows.map(r => ({ ...r, amount: toNum(r.amount) })),
+            rows: rows.map(r => ({
+                ...r,
+                status: normalizeQuotationStatus(r.status),
+                amount: quotationReportAmount(r),
+            })),
             total: Number(cntRow?.c ?? 0),
         };
     }),

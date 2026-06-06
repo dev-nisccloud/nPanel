@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, foreignKey, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, } from "drizzle-orm/pg-core";
+import { boolean, decimal, foreignKey, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, } from "drizzle-orm/pg-core";
 import { team } from "./teams";
 // --- CreativeAsset -----------------------------------------------------------
 export const creativeAsset = pgTable("creative_asset", {
@@ -164,6 +164,57 @@ export const creativeAssetVersionActivityLog = pgTable("creative_asset_version_a
     index("creative_asset_version_activity_action_idx").on(table.action),
     index("creative_asset_version_activity_createdAt_idx").on(table.createdAt),
 ]);
+/**
+ * AI image analysis runs per creative asset, tied to the version that was analyzed.
+ * Keeps a full history over time (multiple rows per asset / version as users re-run analysis).
+ *
+ * Rating: `overall_rating_scale_max` is usually 10; `overall_rating_value` is the score on that scale
+ * (e.g. 8.40). `overall_rating_reason` is the primary narrative for that score. Dimensional breakdown,
+ * bullets, and provider payload live in `result` (JSON) for richer UIs without denormalizing every field.
+ */
+export const creativeAssetAiAnalysis = pgTable("creative_asset_ai_analysis", {
+    id: text("id").primaryKey(),
+    creativeAssetId: text("creative_asset_id")
+        .notNull()
+        .references(() => creativeAsset.id, { onDelete: "cascade" }),
+    creativeAssetVersionId: text("creative_asset_version_id")
+        .notNull()
+        .references(() => creativeAssetVersion.id, { onDelete: "cascade" }),
+    requestedBy: text("requested_by").notNull(),
+    /** PENDING | PROCESSING | COMPLETED | FAILED */
+    status: text("status").default("PENDING").notNull(),
+    /** Optional model identifier when multiple backends exist */
+    model: text("model"),
+    /**
+     * One-line preview for timeline/cards (e.g. includes score when completed).
+     * Distinct from `overall_rating_reason` which is the full rationale.
+     */
+    summary: text("summary"),
+    /** Denominator for headline score - almost always 10 */
+    overallRatingScaleMax: integer("overall_rating_scale_max").default(10).notNull(),
+    /** Headline rating on `[0, overall_rating_scale_max]`; null until COMPLETED or if FAILED */
+    overallRatingValue: decimal("overall_rating_value", { precision: 5, scale: 2 }),
+    /** Main explanation for overall_rating_value (audit trail + UI “why”) */
+    overallRatingReason: text("overall_rating_reason"),
+    /** Optional bucket from rules or provider, e.g. STRONG | NEEDS_WORK */
+    overallRatingBand: text("overall_rating_band"),
+    /** Model self-reported confidence 0–1 when available */
+    confidenceScore: decimal("confidence_score", { precision: 5, scale: 4 }),
+    /** Structured analysis: per-dimension scores, recommendations[], raw payload, trace ids, … */
+    result: jsonb("result"),
+    errorMessage: text("error_message"),
+    /** When generation actually started / finished */
+    processingStartedAt: timestamp("processing_started_at"),
+    createdAt: timestamp("created_at").notNull(),
+    completedAt: timestamp("completed_at"),
+}, (table) => [
+    index("creative_asset_ai_analysis_creativeAssetId_idx").on(table.creativeAssetId),
+    index("creative_asset_ai_analysis_creativeAssetVersionId_idx").on(table.creativeAssetVersionId),
+    index("creative_asset_ai_analysis_status_idx").on(table.status),
+    index("creative_asset_ai_analysis_createdAt_idx").on(table.createdAt),
+    index("creative_asset_ai_analysis_requestedBy_idx").on(table.requestedBy),
+    index("creative_asset_ai_analysis_asset_rating_idx").on(table.creativeAssetId, table.overallRatingValue),
+]);
 // --- Relations ---------------------------------------------------------------
 export const creativeAssetRelations = relations(creativeAsset, ({ one, many }) => ({
     team: one(team, {
@@ -173,6 +224,7 @@ export const creativeAssetRelations = relations(creativeAsset, ({ one, many }) =
     versions: many(creativeAssetVersion),
     permissions: many(creativeAssetPermission),
     activityLogs: many(creativeAssetActivityLog),
+    aiAnalyses: many(creativeAssetAiAnalysis),
 }));
 export const creativeAssetVersionRelations = relations(creativeAssetVersion, ({ one, many }) => ({
     creativeAsset: one(creativeAsset, {
@@ -181,6 +233,7 @@ export const creativeAssetVersionRelations = relations(creativeAssetVersion, ({ 
     }),
     comments: many(creativeAssetComment),
     activityLogs: many(creativeAssetVersionActivityLog),
+    aiAnalyses: many(creativeAssetAiAnalysis),
 }));
 export const creativeAssetPermissionRelations = relations(creativeAssetPermission, ({ one }) => ({
     creativeAsset: one(creativeAsset, {
@@ -209,6 +262,16 @@ export const creativeAssetActivityLogRelations = relations(creativeAssetActivity
 export const creativeAssetVersionActivityLogRelations = relations(creativeAssetVersionActivityLog, ({ one }) => ({
     creativeAssetVersion: one(creativeAssetVersion, {
         fields: [creativeAssetVersionActivityLog.creativeAssetVersionId],
+        references: [creativeAssetVersion.id],
+    }),
+}));
+export const creativeAssetAiAnalysisRelations = relations(creativeAssetAiAnalysis, ({ one }) => ({
+    creativeAsset: one(creativeAsset, {
+        fields: [creativeAssetAiAnalysis.creativeAssetId],
+        references: [creativeAsset.id],
+    }),
+    creativeAssetVersion: one(creativeAssetVersion, {
+        fields: [creativeAssetAiAnalysis.creativeAssetVersionId],
         references: [creativeAssetVersion.id],
     }),
 }));

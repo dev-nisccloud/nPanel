@@ -66,4 +66,14 @@ export declare const emailBuilderLibraryRouter: import("@trpc/server").TRPCBuilt
         };
         meta: object;
     }>;
+    /** Delete a library asset the current user owns. */
+    delete: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            id: string;
+        };
+        output: {
+            success: boolean;
+        };
+        meta: object;
+    }>;
 }>>;

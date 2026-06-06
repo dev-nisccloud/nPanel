@@ -3,7 +3,8 @@
  * For each item: no integration → create NiscClientSubscription;
  * Plesk (web_hosting, email_hosting) → ensure integration + provision;
  * OpenProvider (domain_registration) → ensure integration, verify email, register domain;
- * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata).
+ * OpenProvider (domain_transfer) → ensure integration, verify email, transfer domain (auth code in item.metadata);
+ * Hivelocity (dedicated_server_hosting, vps_hosting, vds_hosting) → Deployment API, create subscription with device refs.
  */
 import { eq } from "@npanel/db";
 import { randomUUID } from "node:crypto";
@@ -14,9 +15,13 @@ import { niscClientSubscription } from "@npanel/db/schema/products";
 import { team } from "@npanel/db/schema/teams";
 import { niscLog } from "./nisc-order-logger";
 import { provisionInitialUsageCreditsForSubscription } from "./subscription-usage-provisioning";
+import { isZeepoAiAgentProduct, provisionZeepoAgentOrderItem, } from "./zeepo-agent-order-provisioning";
 import { isKenicDomain } from "./epp/kenic-tlds";
 import { ensureKenicIntegration, registerKenicDomain } from "./kenic-nisc";
 import { OpenProviderApiError } from "./openprovider-client";
+import { computeSubscriptionExpiryFromBillingCycle, resolveDomainTransferSubscriptionStartDate, } from "./nisc-subscription-dates";
+import { processHivelocityOrderItem } from "./hivelocity-nisc-processor";
+import { HIVELOCITY_SERVICE_TYPES } from "../routers/nisc-service-orders-schemas";
 /** Build a serializable error-details object for provisioningErrorDetails (exact provider response for debugging). */
 function buildProvisioningErrorDetails(err) {
     if (err instanceof OpenProviderApiError) {
@@ -44,6 +49,17 @@ function resolveServiceType(serviceType) {
     if (serviceType === "domains")
         return "domain_registration";
     return serviceType;
+}
+/** Resolve provisioning branch from product type plus checkout hints (description / auth code). */
+function resolveItemServiceType(rawServiceType, item) {
+    const base = resolveServiceType(rawServiceType);
+    if (base !== "domain_registration")
+        return base;
+    const meta = item.metadata;
+    if (item.description === "transfer" || meta?.transferAuthCode?.trim()) {
+        return "domain_transfer";
+    }
+    return base;
 }
 /** Resolve domain provider from TLD: KENIC for .ke/.co.ke etc., OpenProvider for the rest. */
 function getDomainProvider(domain) {
@@ -87,7 +103,7 @@ export async function processNiscOrder(niscOrderId) {
     const failureReasons = [];
     for (const item of order.orderItems) {
         const rawServiceType = item.product.serviceType;
-        const serviceType = resolveServiceType(rawServiceType);
+        const serviceType = resolveItemServiceType(rawServiceType, item);
         if (rawServiceType !== serviceType) {
             await niscLog("processor_service_type_resolved", {
                 niscOrderId,
@@ -179,6 +195,79 @@ export async function processNiscOrder(niscOrderId) {
                         error: result.error,
                         errorDetails: pleskErrorDetails,
                         rawResponse: result.errorDetails,
+                    });
+                    hasFailure = true;
+                    failureReasons.push(`Item ${item.product.name}: ${result.error}`);
+                }
+                continue;
+            }
+            if (HIVELOCITY_SERVICE_TYPES.includes(serviceType)) {
+                await niscLog("processor_item_branch", {
+                    niscOrderId,
+                    orderItemId: item.id,
+                    branch: "hivelocity",
+                    serviceType,
+                });
+                const result = await processHivelocityOrderItem(order, item);
+                const operation = item.metadata?.operation;
+                const hivelocityCall = operation === "vps_upgrade"
+                    ? "PUT /vps/{deviceId} (VPS upgrade)"
+                    : operation === "vps_reload"
+                        ? "POST /device/{deviceId}/reload (VPS OS reload)"
+                        : operation === "vps_reactivate"
+                            ? "POST /device/{deviceId}/power boot + subscription ACTIVE"
+                            : "POST /deploy/ (Deployment API)";
+                if (result.ok) {
+                    await niscLog("processor_api_raw_response", {
+                        niscOrderId,
+                        orderItemId: item.id,
+                        provider: "hivelocity",
+                        call: hivelocityCall,
+                        rawResponse: result.rawResponse,
+                    });
+                    await db
+                        .update(niscOrderItem)
+                        .set({
+                        status: "PROVISIONED",
+                        niscClientSubscriptionId: result.subscriptionId,
+                        updatedAt: now,
+                    })
+                        .where(eq(niscOrderItem.id, item.id));
+                    await niscLog("processor_item_success", {
+                        niscOrderId,
+                        orderItemId: item.id,
+                        branch: "hivelocity",
+                        subscriptionId: result.subscriptionId,
+                    });
+                    hasSuccess = true;
+                }
+                else {
+                    const errDetails = result.errorDetails ?? {
+                        provider: "hivelocity",
+                        message: result.error,
+                    };
+                    await niscLog("processor_api_raw_response", {
+                        niscOrderId,
+                        orderItemId: item.id,
+                        provider: "hivelocity",
+                        call: hivelocityCall,
+                        rawResponse: errDetails,
+                    });
+                    await db
+                        .update(niscOrderItem)
+                        .set({
+                        status: "FAILED",
+                        provisioningError: result.error,
+                        provisioningErrorDetails: errDetails,
+                        updatedAt: now,
+                    })
+                        .where(eq(niscOrderItem.id, item.id));
+                    await niscLog("processor_item_failed", {
+                        niscOrderId,
+                        orderItemId: item.id,
+                        branch: "hivelocity",
+                        error: result.error,
+                        errorDetails: errDetails,
                     });
                     hasFailure = true;
                     failureReasons.push(`Item ${item.product.name}: ${result.error}`);
@@ -340,13 +429,45 @@ export async function processNiscOrder(niscOrderId) {
             }
             // Default: DB-only (no external provider). Create subscription and provision usage from plan when configured.
             // Covers all service types not requiring Plesk or domain provider, e.g. ai_image_generator, background_remover, creatives, consulting, custom, etc.
+            const isZeepoItem = isZeepoAiAgentProduct(item.productId);
             await niscLog("processor_item_branch", {
                 niscOrderId,
                 orderItemId: item.id,
-                branch: "no_integration",
+                branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
                 serviceType,
+                ...(isZeepoItem ? { teamId: order.teamId ?? null } : {}),
             });
-            const sub = await createSubscriptionForOrderItem(order, item);
+            let sub;
+            if (isZeepoItem) {
+                const zeepoResult = await provisionZeepoAgentOrderItem({
+                    userId: order.userId,
+                    teamId: order.teamId,
+                    createdBy: order.createdBy,
+                    orderId: order.id,
+                    currency: order.currency,
+                }, {
+                    productId: item.productId,
+                    productPlanId: item.productPlanId,
+                    billingCycle: item.billingCycle,
+                    itemPrice: item.itemPrice,
+                    description: item.description,
+                    metadata: item.metadata,
+                    product: { name: item.product.name },
+                    productPlan: item.productPlan
+                        ? {
+                            name: item.productPlan.name,
+                            pricingModel: item.productPlan.pricingModel,
+                            price: item.productPlan.price,
+                            cost: item.productPlan.cost,
+                            metadata: item.productPlan.metadata,
+                        }
+                        : null,
+                });
+                sub = { id: zeepoResult.subscriptionId };
+            }
+            else {
+                sub = await createSubscriptionForOrderItem(order, item);
+            }
             await db
                 .update(niscOrderItem)
                 .set({
@@ -358,7 +479,7 @@ export async function processNiscOrder(niscOrderId) {
             await niscLog("processor_item_success", {
                 niscOrderId,
                 orderItemId: item.id,
-                branch: "no_integration",
+                branch: isZeepoItem ? "zeepo_ai_agent" : "no_integration",
                 subscriptionId: sub.id,
             });
             hasSuccess = true;
@@ -386,6 +507,20 @@ export async function processNiscOrder(niscOrderId) {
                 updatedAt: now,
             })
                 .where(eq(niscOrderItem.id, item.id));
+            if (serviceType === "domain_transfer") {
+                const transferMeta = item.metadata;
+                const domainTransferRequestId = transferMeta?.domainTransferRequestId?.trim();
+                if (domainTransferRequestId) {
+                    await db
+                        .update(domainTransferRequest)
+                        .set({
+                        status: "FAILED",
+                        providerResponse: { error: message, errorDetails },
+                        updatedAt: now,
+                    })
+                        .where(eq(domainTransferRequest.id, domainTransferRequestId));
+                }
+            }
             hasFailure = true;
             failureReasons.push(`Item ${item.product.name}: ${message}`);
         }
@@ -576,19 +711,28 @@ function billingCycleToYears(billingCycle) {
         return 2;
     return 1;
 }
+async function resolveOwnerId(order, item) {
+    const metadata = item.metadata;
+    if (metadata?.useRegistrantInfo === "myself") {
+        return order.createdBy;
+    }
+    if (order.teamId) {
+        const teamRow = await db
+            .select({ createdById: team.createdById })
+            .from(team)
+            .where(eq(team.id, order.teamId))
+            .limit(1);
+        return teamRow[0]?.createdById ?? order.userId;
+    }
+    return order.userId;
+}
 /** KENIC TLD (.ke, .co.ke, etc.): registration via Nisc using EPP (contacts + domain create). */
 async function processKenicOrderItem(order, item) {
     const domain = item.primaryDomain?.trim();
     if (!domain) {
         return { ok: false, error: "Primary domain is required for KENIC domain registration." };
     }
-    const ownerId = order.teamId
-        ? (await db
-            .select({ createdById: team.createdById })
-            .from(team)
-            .where(eq(team.id, order.teamId))
-            .limit(1))[0]?.createdById
-        : order.userId;
+    const ownerId = await resolveOwnerId(order, item);
     if (!ownerId || !order.createdBy) {
         return {
             ok: false,
@@ -596,17 +740,39 @@ async function processKenicOrderItem(order, item) {
         };
     }
     try {
+        const metadata = item.metadata;
+        void niscLog("processor_item_metadata", {
+            niscOrderId: order.id,
+            orderItemId: item.id,
+            metadata,
+        });
         const { contactId } = await ensureKenicIntegration(ownerId, order.createdBy, {
+            logContext: { niscOrderId: order.id, orderItemId: item.id },
+            manualDetails: metadata?.manualRegistrantDetails,
+        });
+        const period = billingCycleToYears(item.billingCycle);
+        let nameServers = metadata?.nameServers;
+        if (!nameServers || nameServers.length === 0) {
+            try {
+                const { resolveNameserversForDomain } = await import("./tld-resolution");
+                nameServers = await resolveNameserversForDomain(domain);
+            }
+            catch (err) {
+                return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+            }
+        }
+        void niscLog("ensure_kenic_integration_success", {
+            contactId: contactId,
             niscOrderId: order.id,
             orderItemId: item.id,
         });
-        const period = billingCycleToYears(item.billingCycle);
         const regResult = await registerKenicDomain({
             domainName: domain,
             registrantContactId: contactId,
             period,
             orderId: order.id,
             orderItemId: item.id,
+            nameServers,
         });
         const subId = randomUUID();
         const inserted = await db
@@ -677,13 +843,7 @@ async function processKenicTransferOrderItem(order, item) {
     if (!authCode) {
         return { ok: false, error: "Transfer auth code is required. Provide it in the order item metadata (transferAuthCode)." };
     }
-    const ownerId = order.teamId
-        ? (await db
-            .select({ createdById: team.createdById })
-            .from(team)
-            .where(eq(team.id, order.teamId))
-            .limit(1))[0]?.createdById
-        : order.userId;
+    const ownerId = await resolveOwnerId(order, item);
     if (!ownerId || !order.createdBy) {
         return {
             ok: false,
@@ -691,19 +851,36 @@ async function processKenicTransferOrderItem(order, item) {
         };
     }
     try {
+        const metadata = item.metadata;
+        let nameServers = metadata?.nameServers;
+        if (!nameServers || nameServers.length === 0) {
+            try {
+                const { resolveNameserversForDomain } = await import("./tld-resolution");
+                nameServers = await resolveNameserversForDomain(domain);
+            }
+            catch (err) {
+                return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+            }
+        }
         const { executeKenicTransferRequest } = await import("./kenic-transfer-request");
         const transferResult = await executeKenicTransferRequest({
             name: domain,
             authCode,
             period: 1,
+            nameServers,
         });
+        const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
+            domainTransferRequestId: metadata?.domainTransferRequestId,
+            orderCreatedAt: order.createdAt,
+        });
+        const expiryDate = computeSubscriptionExpiryFromBillingCycle(subscriptionDate, item.billingCycle);
         const subId = randomUUID();
         const inserted = await db
             .insert(niscClientSubscription)
             .values({
             id: subId,
             name: domain,
-            description: item.description ?? "transfer",
+            description: item.description === "transfer" ? "domain-transfer" : (item.description ?? "domain-transfer"),
             userId: order.userId,
             teamId: order.teamId,
             productId: item.productId,
@@ -712,8 +889,9 @@ async function processKenicTransferOrderItem(order, item) {
             niscOrderId: order.id,
             subscribedBy: order.createdBy,
             status: "ACTIVE",
-            subscriptionDate: new Date(),
+            subscriptionDate,
             billingCycle: item.billingCycle ?? null,
+            nextRenewalDate: expiryDate,
             pricingModel: "FIXED",
             agreedPrice: item.itemPrice,
             agreedCurrency: order.currency,
@@ -721,7 +899,7 @@ async function processKenicTransferOrderItem(order, item) {
             agreedCostCurrency: "KES",
             primaryDomain: domain,
             openProviderId: null,
-            expiryDate: transferResult.exDate ? new Date(transferResult.exDate) : null,
+            expiryDate,
             agreedCommissionRate: null,
             agreedCommissionBase: null,
             metadata: null,
@@ -767,17 +945,22 @@ async function processOpenProviderTransferOrderItem(order, item) {
     if (!authCode) {
         return { ok: false, error: "Transfer auth code is required. Provide it in the order item metadata (transferAuthCode)." };
     }
-    const ownerId = order.teamId
-        ? (await db
-            .select({ createdById: team.createdById })
-            .from(team)
-            .where(eq(team.id, order.teamId))
-            .limit(1))[0]?.createdById
-        : order.userId;
+    const ownerId = await resolveOwnerId(order, item);
     if (!ownerId || !order.createdBy) {
         return { ok: false, error: "Order must have a team or user and createdBy for domain transfer." };
     }
     try {
+        const metadata = item.metadata;
+        let nameServers = metadata?.nameServers;
+        if (!nameServers || nameServers.length === 0) {
+            try {
+                const { resolveNameserversForDomain } = await import("./tld-resolution");
+                nameServers = await resolveNameserversForDomain(domainName);
+            }
+            catch (err) {
+                return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+            }
+        }
         const openProvider = await import("@npanel/api/lib/openprovider-nisc");
         const result = await openProvider.ensureOpenProviderAndTransferDomain({
             ownerId,
@@ -794,7 +977,10 @@ async function processOpenProviderTransferOrderItem(order, item) {
             billingCycle: item.billingCycle,
             itemPrice: item.itemPrice,
             currency: order.currency,
-            nameServers: meta?.nameServers,
+            nameServers,
+            manualDetails: metadata?.manualRegistrantDetails,
+            domainTransferRequestId: metadata?.domainTransferRequestId,
+            orderCreatedAt: order.createdAt,
         });
         return {
             ok: true,
@@ -818,17 +1004,22 @@ async function processOpenProviderOrderItem(order, item) {
     if (!domainName) {
         return { ok: false, error: "Primary domain is required for domain registration." };
     }
-    const ownerId = order.teamId
-        ? (await db
-            .select({ createdById: team.createdById })
-            .from(team)
-            .where(eq(team.id, order.teamId))
-            .limit(1))[0]?.createdById
-        : order.userId;
+    const ownerId = await resolveOwnerId(order, item);
     if (!ownerId || !order.createdBy) {
         return { ok: false, error: "Order must have a team or user and createdBy for domain registration." };
     }
     try {
+        const metadata = item.metadata;
+        let nameServers = metadata?.nameServers;
+        if (!nameServers || nameServers.length === 0) {
+            try {
+                const { resolveNameserversForDomain } = await import("./tld-resolution");
+                nameServers = await resolveNameserversForDomain(domainName);
+            }
+            catch (err) {
+                return { ok: false, error: err instanceof Error ? err.message : "Failed to resolve nameservers for domain" };
+            }
+        }
         const openProvider = await import("@npanel/api/lib/openprovider-nisc");
         const result = await openProvider.ensureOpenProviderAndRegisterDomain({
             ownerId,
@@ -844,6 +1035,8 @@ async function processOpenProviderOrderItem(order, item) {
             billingCycle: item.billingCycle,
             itemPrice: item.itemPrice,
             currency: order.currency,
+            nameServers,
+            manualDetails: metadata?.manualRegistrantDetails,
         });
         if (result.subscriptionId) {
             return {

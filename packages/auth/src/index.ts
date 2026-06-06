@@ -23,6 +23,7 @@ import {
   applyStandardSessionExpiryByToken,
   validateAndRefreshIdleSessionById,
 } from "./session-enforcement";
+import { invalidateSessionCache } from "./session-cache";
 import {
   parseSignupTermsCookie,
   recordTermsAcceptance,
@@ -209,6 +210,17 @@ export const auth = betterAuth<BetterAuthOptions>({
       }
     }),
     after: createAuthMiddleware(async (ctx) => {
+      const isSignOut =
+        ctx.path === "/sign-out" ||
+        ctx.path.endsWith("/sign-out") ||
+        ctx.path.includes("sign-out");
+      if (isSignOut) {
+        const signOutSessionId = ctx.context.session?.session?.id;
+        if (typeof signOutSessionId === "string" && signOutSessionId.length > 0) {
+          await invalidateSessionCache(signOutSessionId);
+        }
+      }
+
       const newSessionToken = ctx.context.newSession?.session?.token;
       if (typeof newSessionToken === "string" && newSessionToken.length > 0) {
         try {

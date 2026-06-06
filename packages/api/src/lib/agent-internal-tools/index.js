@@ -1,0 +1,17 @@
+/**
+ * Zeepo AI Agent - internal tool registry.
+ *
+ * This module is the single place to register all Nisc Cloud internal API
+ * wrappers that the agent can call. Adding a new internal tool:
+ *   1. Create a new file in this directory with the implementation.
+ *   2. Export it from here.
+ *   3. Add its Zod schema to `agent-tools.ts`.
+ *   4. Add a handler branch in `chat.ts`.
+ *   5. Document when to call it in `prompts.ts`.
+ */
+export { agentCheckDomainAvailability, DEFAULT_DOMAIN_EXTENSIONS, } from "./domains";
+export { DEFAULT_DISPLAY_CURRENCY } from "./pricing";
+export { agentGetWebHostingPlans, agentGetEmailHostingPlans, } from "./hosting-plans";
+export { agentGetDomainsPortfolio, } from "./domains-portfolio";
+export { agentGetDomainDetail, } from "./domain-detail";
+export { agentGetHostingResources, agentGetHostingDetail, } from "./hosting-resources";

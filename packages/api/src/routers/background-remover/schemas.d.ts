@@ -1,9 +1,9 @@
 import { z } from "zod";
 export declare const backgroundRemoverStatusSchema: z.ZodEnum<{
-    QUEUED: "QUEUED";
     PROCESSING: "PROCESSING";
-    FAILED: "FAILED";
+    QUEUED: "QUEUED";
     COMPLETED: "COMPLETED";
+    FAILED: "FAILED";
 }>;
 export type BackgroundRemoverStatus = z.infer<typeof backgroundRemoverStatusSchema>;
 export declare const startBackgroundRemovalSchema: z.ZodObject<{
@@ -17,10 +17,10 @@ export declare const startBackgroundRemovalSchema: z.ZodObject<{
 export declare const startBackgroundRemovalResponseSchema: z.ZodObject<{
     generationId: z.ZodString;
     status: z.ZodEnum<{
-        QUEUED: "QUEUED";
         PROCESSING: "PROCESSING";
-        FAILED: "FAILED";
+        QUEUED: "QUEUED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
     }>;
 }, z.core.$strip>;
 export declare const removeBackgroundSchema: z.ZodObject<{
@@ -67,10 +67,10 @@ export declare const backgroundRemoverGenerationSchema: z.ZodObject<{
     modelId: z.ZodString;
     modelName: z.ZodNullable<z.ZodString>;
     status: z.ZodEnum<{
-        QUEUED: "QUEUED";
         PROCESSING: "PROCESSING";
-        FAILED: "FAILED";
+        QUEUED: "QUEUED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
     }>;
     errorMessage: z.ZodNullable<z.ZodString>;
     qstashMessageId: z.ZodNullable<z.ZodString>;
@@ -99,10 +99,10 @@ export declare const getBackgroundRemovalsResponseSchema: z.ZodObject<{
         modelId: z.ZodString;
         modelName: z.ZodNullable<z.ZodString>;
         status: z.ZodEnum<{
-            QUEUED: "QUEUED";
             PROCESSING: "PROCESSING";
-            FAILED: "FAILED";
+            QUEUED: "QUEUED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
         }>;
         errorMessage: z.ZodNullable<z.ZodString>;
         qstashMessageId: z.ZodNullable<z.ZodString>;

@@ -1,12 +1,13 @@
 import { auth } from "@npanel/auth";
+import { validateAndRefreshIdleSessionById } from "@npanel/auth/session-enforcement";
 import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
 import { apiKey } from "@npanel/db/schema/auth-extras";
 import { user } from "@npanel/db/schema/auth";
-import { and, isNull, or } from "@npanel/db";
-import { userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
+import { resolveMfaContextState } from "./lib/mfa-context";
 export async function createContext({ context, createCaller, }) {
-    const authHeader = context.req.raw.headers.get("Authorization");
+    const req = context.req;
+    const authHeader = req.raw.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
         const token = authHeader.substring(7).trim();
         if (token.startsWith("npanel_sk_")) {
@@ -21,6 +22,7 @@ export async function createContext({ context, createCaller, }) {
                     session: null,
                     apiKeyError: "Invalid API Key",
                     ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    req,
                 };
             }
             if (!keyRecord.isActive) {
@@ -28,6 +30,7 @@ export async function createContext({ context, createCaller, }) {
                     session: null,
                     apiKeyError: "API Key is revoked",
                     ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    req,
                 };
             }
             if (keyRecord.expiresAt && keyRecord.expiresAt < new Date()) {
@@ -35,6 +38,7 @@ export async function createContext({ context, createCaller, }) {
                     session: null,
                     apiKeyError: "API Key has expired",
                     ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    req,
                 };
             }
             const [userRecord] = await db
@@ -47,6 +51,7 @@ export async function createContext({ context, createCaller, }) {
                     session: null,
                     apiKeyError: "Account associated with this API key is inactive",
                     ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    req,
                 };
             }
             // Found a valid API key and active user.
@@ -77,40 +82,30 @@ export async function createContext({ context, createCaller, }) {
                 createCaller,
                 apiKey: { id: keyRecord.id, permissions: keyRecord.permissions },
                 ipAddress,
+                req,
             };
         }
     }
-    const session = await auth.api.getSession({
+    let session = await auth.api.getSession({
         headers: context.req.raw.headers,
     });
+    const sessionId = session?.session?.id;
+    if (typeof sessionId === "string" && sessionId.length > 0) {
+        const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+        if (lifetime.status === "expired") {
+            session = null;
+        }
+    }
     const ipAddress = context.req.raw.headers.get("x-forwarded-for") ?? null;
     let mfaRequired = false;
     let mfaVerified = true;
     let mfaSetupRequired = false;
     const sessionUserId = session?.user?.id;
-    const sessionId = session?.session?.id;
     if (typeof sessionUserId === "string" && sessionUserId.length > 0 && sessionId) {
-        const mfaRows = await db
-            .select({
-            id: userMfaSettings.id,
-            setupRequired: userMfaSettings.setupRequired,
-        })
-            .from(userMfaSettings)
-            .where(and(eq(userMfaSettings.userId, sessionUserId), or(eq(userMfaSettings.emailOtpEnabled, true), eq(userMfaSettings.setupRequired, true))))
-            .limit(1);
-        mfaRequired = Boolean(mfaRows[0]);
-        mfaSetupRequired = mfaRows[0]?.setupRequired === true;
-        if (!mfaRequired && mfaSetupRequired) {
-            mfaRequired = true;
-        }
-        if (mfaRequired) {
-            const pendingRows = await db
-                .select({ id: userMfaSession.id })
-                .from(userMfaSession)
-                .where(and(eq(userMfaSession.sessionId, sessionId), isNull(userMfaSession.verifiedAt)))
-                .limit(1);
-            mfaVerified = !pendingRows[0];
-        }
+        const mfaState = await resolveMfaContextState(sessionUserId, sessionId);
+        mfaRequired = mfaState.mfaRequired;
+        mfaVerified = mfaState.mfaVerified;
+        mfaSetupRequired = false;
     }
     return {
         session: session,
@@ -119,5 +114,6 @@ export async function createContext({ context, createCaller, }) {
         mfaSetupRequired,
         createCaller,
         ipAddress,
+        req,
     };
 }

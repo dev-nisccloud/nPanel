@@ -5,7 +5,8 @@ import { invoice, invoiceTransaction, creditNote, invoiceActivityLog } from "@np
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
-import { buildOwnerOrTeamReadScope, resolveReportReadScope } from "./access";
+import { buildReportEntityScope, resolveReportReadScope } from "./access";
+import { invoiceIssuedInPeriod, INVOICE_REPORT_STATUSES } from "./metrics";
 export const niscInvoicesRouter = router({
     // ─── I-01 Status Summary ───────────────────────────────────────────────────
     statusSummary: protectedProcedure
@@ -26,9 +27,7 @@ export const niscInvoicesRouter = router({
         const rows = await db
             .select({ status: invoice.status, amount: invoice.amount })
             .from(invoice)
-            .where(and(gte(invoice.createdAt, from), lte(invoice.createdAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+            .where(and(invoiceIssuedInPeriod(from, to), buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
         })));
@@ -39,7 +38,7 @@ export const niscInvoicesRouter = router({
             e.amount += toNum(r.amount);
             map.set(r.status, e);
         }
-        const allStatuses = ["DRAFT", "SENT", "PAID", "OVERDUE", "PARTIALLY_PAID", "CANCELLED", "CREDITED"];
+        const allStatuses = [...INVOICE_REPORT_STATUSES];
         return allStatuses.map(status => ({
             status,
             count: map.get(status)?.count ?? 0,
@@ -77,9 +76,7 @@ export const niscInvoicesRouter = router({
         });
         const offset = (page - 1) * pageSize;
         const rows = await db.query.invoice.findMany({
-            where: and(gte(invoice.createdAt, from), lte(invoice.createdAt, to), buildOwnerOrTeamReadScope({
-                isAgencyUser: scope.isAgencyUser,
-                ownerCondition: eq(invoice.createdBy, scope.userId),
+            where: and(invoiceIssuedInPeriod(from, to), buildReportEntityScope({
                 teamColumn: invoice.teamId,
                 teamIds: scope.teamIds,
             }), invoiceStatuses?.length ? inArray(invoice.status, invoiceStatuses) : undefined),
@@ -96,9 +93,7 @@ export const niscInvoicesRouter = router({
         const [cntRow] = await db
             .select({ c: count() })
             .from(invoice)
-            .where(and(gte(invoice.createdAt, from), lte(invoice.createdAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+            .where(and(invoiceIssuedInPeriod(from, to), buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
         }), invoiceStatuses?.length ? inArray(invoice.status, invoiceStatuses) : undefined));
@@ -138,9 +133,7 @@ export const niscInvoicesRouter = router({
             amount: invoice.amount,
         })
             .from(invoice)
-            .where(and(gte(invoice.createdAt, from), lte(invoice.createdAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(invoice.createdBy, scope.userId),
+            .where(and(invoiceIssuedInPeriod(from, to), buildReportEntityScope({
             teamColumn: invoice.teamId,
             teamIds: scope.teamIds,
         })));
@@ -201,9 +194,7 @@ export const niscInvoicesRouter = router({
         });
         const offset = (page - 1) * pageSize;
         const rows = await db.query.creditNote.findMany({
-            where: and(gte(creditNote.issuedAt, from), lte(creditNote.issuedAt, to), buildOwnerOrTeamReadScope({
-                isAgencyUser: scope.isAgencyUser,
-                ownerCondition: eq(creditNote.createdBy, scope.userId),
+            where: and(gte(creditNote.issuedAt, from), lte(creditNote.issuedAt, to), buildReportEntityScope({
                 teamColumn: creditNote.teamId,
                 teamIds: scope.teamIds,
             })),
@@ -216,9 +207,7 @@ export const niscInvoicesRouter = router({
         const all = await db
             .select({ amount: creditNote.amount, appliedAt: creditNote.appliedAt })
             .from(creditNote)
-            .where(and(gte(creditNote.issuedAt, from), lte(creditNote.issuedAt, to), buildOwnerOrTeamReadScope({
-            isAgencyUser: scope.isAgencyUser,
-            ownerCondition: eq(creditNote.createdBy, scope.userId),
+            .where(and(gte(creditNote.issuedAt, from), lte(creditNote.issuedAt, to), buildReportEntityScope({
             teamColumn: creditNote.teamId,
             teamIds: scope.teamIds,
         })));
@@ -279,25 +268,16 @@ export const niscInvoicesRouter = router({
             requestedTeamIds: teamIds,
         });
         const offset = (page - 1) * pageSize;
-        const rows = await db.query.invoice.findMany({
-            where: and(gte(invoice.createdAt, from), lte(invoice.createdAt, to), buildOwnerOrTeamReadScope({
-                isAgencyUser: scope.isAgencyUser,
-                ownerCondition: eq(invoice.createdBy, scope.userId),
-                teamColumn: invoice.teamId,
-                teamIds: scope.teamIds,
-            })),
-            with: { team: { columns: { name: true } } },
-            columns: {
-                id: true, invoiceNumber: true, amount: true, currency: true,
-                kraStatus: true, kraInvoiceNumber: true, kraReceiptNumber: true,
-                kraError: true, kraVerifiedDate: true, issueDate: true, status: true, customerName: true,
-            },
-            orderBy: [desc(invoice.createdAt)],
-            limit: pageSize,
-            offset,
-        });
+        const bucketWhere = and(invoiceIssuedInPeriod(from, to), buildReportEntityScope({
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+        }));
+        const bucketRows = await db
+            .select({ status: invoice.status, kraStatus: invoice.kraStatus })
+            .from(invoice)
+            .where(bucketWhere);
         const buckets = { VERIFIED: 0, PENDING: 0, FAILED: 0, NOT_SUBMITTED: 0 };
-        for (const r of rows) {
+        for (const r of bucketRows) {
             if (r.status === "CANCELLED")
                 continue;
             if (r.kraStatus === "VERIFIED")
@@ -309,6 +289,18 @@ export const niscInvoicesRouter = router({
             else
                 buckets.NOT_SUBMITTED += 1;
         }
+        const rows = await db.query.invoice.findMany({
+            where: bucketWhere,
+            with: { team: { columns: { name: true } } },
+            columns: {
+                id: true, invoiceNumber: true, amount: true, currency: true,
+                kraStatus: true, kraInvoiceNumber: true, kraReceiptNumber: true,
+                kraError: true, kraVerifiedDate: true, issueDate: true, status: true, customerName: true,
+            },
+            orderBy: [desc(invoice.createdAt)],
+            limit: pageSize,
+            offset,
+        });
         return {
             rows: rows.map(r => ({
                 id: r.id,

@@ -15,8 +15,8 @@ export type ApiWebDesignProjectType = z.infer<typeof apiWebDesignProjectTypeSche
 export declare const apiWebDesignQuoteStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
     ACCEPTED: "ACCEPTED";
-    DECLINED: "DECLINED";
     EXPIRED: "EXPIRED";
+    DECLINED: "DECLINED";
     CONTACTED: "CONTACTED";
     QUOTED: "QUOTED";
 }>;
@@ -66,8 +66,8 @@ export declare const webDesignQuoteItemSchema: z.ZodObject<{
     status: z.ZodEnum<{
         PENDING: "PENDING";
         ACCEPTED: "ACCEPTED";
-        DECLINED: "DECLINED";
         EXPIRED: "EXPIRED";
+        DECLINED: "DECLINED";
         CONTACTED: "CONTACTED";
         QUOTED: "QUOTED";
     }>;
@@ -98,8 +98,8 @@ export declare const webDesignQuoteListOutputSchema: z.ZodObject<{
         status: z.ZodEnum<{
             PENDING: "PENDING";
             ACCEPTED: "ACCEPTED";
-            DECLINED: "DECLINED";
             EXPIRED: "EXPIRED";
+            DECLINED: "DECLINED";
             CONTACTED: "CONTACTED";
             QUOTED: "QUOTED";
         }>;
@@ -116,8 +116,8 @@ export declare const webDesignQuoteListInputSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<{
         PENDING: "PENDING";
         ACCEPTED: "ACCEPTED";
-        DECLINED: "DECLINED";
         EXPIRED: "EXPIRED";
+        DECLINED: "DECLINED";
         CONTACTED: "CONTACTED";
         QUOTED: "QUOTED";
     }>>;

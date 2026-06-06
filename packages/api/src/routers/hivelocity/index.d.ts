@@ -1,3 +1,18 @@
+import { type HivelocityRequestTiming } from "../../lib/hivelocity-client";
+import { type HivelocityAnyResource, type HivelocityInventoryResponse } from "../../types/hivelocity";
+export type HivelocityResourcesFetchTiming = {
+    hivelocity: {
+        device: HivelocityRequestTiming;
+        vps: HivelocityRequestTiming;
+        parallelMs: number;
+    };
+    mergeMs: number;
+    counts: {
+        deviceRows: number;
+        vpsRows: number;
+        merged: number;
+    };
+};
 export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
     ctx: import("../..").Context;
     meta: object;
@@ -11,8 +26,13 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: void;
         output: {
             hasApiKey: boolean;
+            hasBillingInfoId: boolean;
             baseUrl: string;
             status: string;
+            configured?: undefined;
+        } | {
+            status: string;
+            configured: boolean;
         };
         meta: object;
     }>;
@@ -46,8 +66,8 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
      * Public (TEMP for development): Get product operating systems.
      * Docs: GET /product/{productId}/operating-systems
      *
-     * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
-     * while we finalize types. Switch to `protectedProcedure` before shipping.
+     * NOTE: This is intentionally `hivelocityProcedure` so you can test and inspect the live response shape
+     * while we finalize types. Switch to `hivelocityProcedure` before shipping.
      */
     getProductOperatingSystems: import("@trpc/server").TRPCQueryProcedure<{
         input: {
@@ -63,8 +83,8 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
      * Public (TEMP for development): Get product options/add-ons.
      * Docs: GET /product/{productId}/options?groupBy=upgrade
      *
-     * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
-     * while we finalize types. Switch to `protectedProcedure` before shipping.
+     * NOTE: This is intentionally `hivelocityProcedure` so you can test and inspect the live response shape
+     * while we finalize types. Switch to `hivelocityProcedure` before shipping.
      */
     getProductOptions: import("@trpc/server").TRPCQueryProcedure<{
         input: {
@@ -156,6 +176,9 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
     getComputeDeviceById: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
         };
         output: {
             success: boolean;
@@ -196,12 +219,51 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     /**
-     * Public (TEMP for development): Get initial password (first-login creds).
-     * Docs: GET /device/{deviceId}/initial-password
+     * Public (TEMP for development): Get device IP assignments.
+     * Docs: GET /device/{deviceId}/ips
      */
-    getDeviceInitialPassword: import("@trpc/server").TRPCQueryProcedure<{
+    getDeviceIps: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get all device services.
+     * Docs: GET /device/{deviceId}/services
+     */
+    getDeviceServices: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+            group_by?: string | undefined;
+            type_code?: string | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Public (TEMP for development): Get available upgrade options for a VPS product.
+     * Docs: GET /vps/{deviceId}/available-product-upgrades
+     */
+    getVpsUpgrades: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
         };
         output: {
             success: boolean;
@@ -222,7 +284,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         } | undefined;
         output: {
             success: boolean;
-            data: import("../../types/hivelocity").HivelocityInventoryResponse;
+            data: HivelocityInventoryResponse;
         };
         meta: object;
     }>;
@@ -251,7 +313,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "unavailable" | "available" | "limited";
+                    stock: "available" | "unavailable" | "limited";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -315,7 +377,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "unavailable" | "available" | "limited";
+                    stock: "available" | "unavailable" | "limited";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -379,7 +441,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "unavailable" | "available" | "limited";
+                    stock: "available" | "unavailable" | "limited";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -433,11 +495,11 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             success: boolean;
-            data: import("../../types/hivelocity").HivelocityInventoryResponse | {
+            data: HivelocityInventoryResponse | {
                 [x: string]: unknown;
                 product_id: number;
                 product_name: string;
-                stock: "unavailable" | "available" | "limited";
+                stock: "available" | "unavailable" | "limited";
                 data_center: string;
                 location_option_id: number;
                 edge: boolean;
@@ -478,7 +540,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 [x: string]: unknown;
                 product_id: number;
                 product_name: string;
-                stock: "unavailable" | "available" | "limited";
+                stock: "available" | "unavailable" | "limited";
                 data_center: string;
                 location_option_id: number;
                 edge: boolean;
@@ -516,6 +578,864 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 product_disabled_billing_periods?: string[] | undefined;
                 product_display_price?: number | undefined;
             }[];
+        };
+        meta: object;
+    }>;
+    /**
+     * Get all bare-metal / VDS devices in the account (paginated + filtered).
+     *
+     * Docs: GET /device/
+     * Schema: Device-dump
+     *
+     * Supports:
+     * - Free-text search (hostname, IP, customName, productName, tags)
+     * - Facility filter (facilityCode)
+     * - Power-status filter ("on" | "off" | "all")
+     * - Cursor-based pagination
+     */
+    getMyDevices: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            search?: string | undefined;
+            facilityCode?: string | undefined;
+            powerStatus?: "on" | "off" | "all" | undefined;
+            limit?: number | undefined;
+            cursor?: number | undefined;
+        } | undefined;
+        output: {
+            success: boolean;
+            data: {
+                items: {
+                    [x: string]: unknown;
+                    name: string;
+                    tags: string[];
+                    deviceId?: number | undefined;
+                    hostname?: string | undefined;
+                    primaryIp?: string | undefined;
+                    status?: string | undefined;
+                    deviceType?: string | undefined;
+                    deviceTypeGroup?: string | undefined;
+                    powerStatus?: unknown;
+                    location?: unknown;
+                    billingInfo?: {
+                        period?: string | undefined;
+                        price?: number | undefined;
+                    } | undefined;
+                    displayedTags?: {
+                        key: string;
+                        value: any;
+                    }[] | undefined;
+                    isManaged?: boolean | null | undefined;
+                    ipmiEnabled?: boolean | null | undefined;
+                    hasCancellation?: boolean | null | undefined;
+                    isReload?: boolean | null | undefined;
+                    spsStatus?: string | undefined;
+                    monitorsUp?: number | undefined;
+                    monitorsTotal?: number | undefined;
+                    servicePlan?: number | undefined;
+                    productId?: number | undefined;
+                    lastInvoiceId?: number | undefined;
+                    createdDate?: string | undefined;
+                }[];
+                total: number;
+                nextCursor: number | null;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Get all VPS instances in the account (paginated + filtered).
+     *
+     * Docs: GET /vps/
+     * Schema: VPS
+     *
+     * Note: This is a completely separate endpoint from /device/ with its own
+     * schema - VPS instances are NOT returned by /device/.
+     *
+     * Supports:
+     * - Free-text search (hostname, primaryIp, osName, id)
+     * - Facility filter (facilityCode)
+     * - Cursor-based pagination
+     */
+    getMyVpsInstances: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            search?: string | undefined;
+            facilityCode?: string | undefined;
+            limit?: number | undefined;
+            cursor?: number | undefined;
+        } | undefined;
+        output: {
+            success: boolean;
+            data: {
+                items: {
+                    [x: string]: unknown;
+                    id?: string | undefined;
+                    hostname?: string | undefined;
+                    status?: string | undefined;
+                    primaryIp?: string | undefined;
+                    cpus?: number | undefined;
+                    memory?: number | undefined;
+                    disk?: number | undefined;
+                    osName?: string | undefined;
+                    facilityCode?: string | undefined;
+                    networkId?: string | null | undefined;
+                    hostId?: string | null | undefined;
+                    storageId?: string | null | undefined;
+                    createdAt?: string | null | undefined;
+                }[];
+                total: number;
+                nextCursor: number | null;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Get ALL account resources in a single unified call (dedicated + VPS + VDS).
+     *
+     * Implementation:
+     * - Fetches /device/ and /vps/ in parallel (Promise.all).
+     * - Enriches each record with a `resourceType` discriminant:
+     *   - "vps"  → came from /vps/
+     *   - "vds"  → came from /device/ AND productName contains "VDS" (case-insensitive)
+     *   - "dedicated" → all other /device/ records
+     *
+     * Supports:
+     * - type: "dedicated" | "vps" | "vds" | "all"
+     * - Free-text search
+     * - Facility filter
+     * - Cursor-based pagination over the merged + sorted result
+     */
+    getMyAllResources: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            type?: "all" | "vps" | "vds" | "dedicated" | undefined;
+            search?: string | undefined;
+            facilityCode?: string | undefined;
+            limit?: number | undefined;
+            cursor?: number | undefined;
+        } | undefined;
+        output: {
+            timing?: {
+                filterMs: number;
+                paginateMs: number;
+                totalMs: number;
+                filteredCount: number;
+                returnedCount: number;
+                typeFilter: "all" | "vps" | "vds" | "dedicated";
+                hivelocity: {
+                    device: HivelocityRequestTiming;
+                    vps: HivelocityRequestTiming;
+                    parallelMs: number;
+                };
+                mergeMs: number;
+                counts: {
+                    deviceRows: number;
+                    vpsRows: number;
+                    merged: number;
+                };
+            } | undefined;
+            success: boolean;
+            data: {
+                items: HivelocityAnyResource[];
+                total: number;
+                nextCursor: number | null;
+                counts: {
+                    dedicated: number;
+                    vds: number;
+                    vps: number;
+                    total: number;
+                };
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Team-scoped server list: only Hivelocity devices linked to the team's NiscClientSubscription
+     * (serviceRefs.hivelocityDeviceId) for products named VPS hosting, VDS hosting, or Dedicated servers hosting (case-insensitive).
+     */
+    getTeamMyResources: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            teamSlug: string;
+            type: "vps" | "vds" | "dedicated";
+            search?: string | undefined;
+            facilityCode?: string | undefined;
+            limit?: number | undefined;
+            cursor?: number | undefined;
+        };
+        output: {
+            timing?: {
+                db: {
+                    teamLookupMs: number;
+                    accessCheckMs: number;
+                    subscriptionLookupMs: number;
+                };
+                scopeMs: number;
+                filterMs: number;
+                paginateMs: number;
+                totalMs: number;
+                allowedDeviceCount: number;
+                filteredCount: number;
+                returnedCount: number;
+                typeFilter: "vps" | "vds" | "dedicated";
+                hivelocity: {
+                    device: HivelocityRequestTiming;
+                    vps: HivelocityRequestTiming;
+                    parallelMs: number;
+                };
+                mergeMs: number;
+                counts: {
+                    deviceRows: number;
+                    vpsRows: number;
+                    merged: number;
+                };
+            } | undefined;
+            success: boolean;
+            data: {
+                items: HivelocityAnyResource[];
+                total: number;
+                nextCursor: number | null;
+                counts: {
+                    dedicated: number;
+                    vds: number;
+                    vps: number;
+                    total: number;
+                };
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Customer: payment context for a suspended VPS — no upstream device details.
+     */
+    getCustomerSuspendedVpsContext: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+            teamSlug: string;
+            teamResourceCategory: "vps" | "vds" | "dedicated";
+        };
+        output: {
+            suspended: false;
+            subscriptionId?: undefined;
+            serviceLabel?: undefined;
+            amount?: undefined;
+            currency?: undefined;
+            billingCycle?: undefined;
+            productId?: undefined;
+        } | {
+            suspended: true;
+            subscriptionId: string;
+            serviceLabel: string;
+            amount: number;
+            currency: string;
+            billingCycle: string | null;
+            productId: string;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get device details (standard /device/{id}).
+     */
+    getDeviceDetails: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: object | null;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get VPS-specific details (/vps/{id}).
+     */
+    getVpsDetails: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: object | null;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get VPS event log.
+     */
+    getVpsEvents: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get VPS metrics charts (Base64).
+     */
+    getVpsMetrics: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+            metricType: "CPU_USAGE" | "MEMORY_USAGE" | "DISK_RW" | "NETWORK_USAGE";
+            startTime?: number | undefined;
+            endTime?: number | undefined;
+            imageWidth?: number | undefined;
+            imageHeight?: number | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get VPS volumes.
+     */
+    getVpsVolumes: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    devicePowerAction: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            action: "on" | "off" | "reboot" | "boot" | "shutdown";
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: any;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get device power status (ON/OFF).
+     */
+    getDevicePowerStatus: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: any;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get device switch ports and IP assignments.
+     */
+    getDevicePorts: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get initial SSH credentials (user, password, port).
+     */
+    getDeviceInitialCreds: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get initial SSH password.
+     */
+    getDeviceInitialPassword: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Check if facility supports IPMI whitelist.
+     */
+    getIpmiWhitelistSupported: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get all VPS Snapshot Schedules for a device/facility.
+     */
+    getVpsSnapshotSchedules: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId?: number | undefined;
+            facilityCode?: string | undefined;
+            clientId?: number | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Create a VPS Snapshot Schedule.
+     */
+    createVpsSnapshotSchedule: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            [x: string]: unknown;
+            timezone: string;
+            volumeId: string;
+            intervalType: "MONTHLY" | "DAILY" | "WEEKLY" | "HOURLY";
+            maxSnapshots: number;
+            facilityCode: string;
+            day?: number | undefined;
+            hour?: number | undefined;
+            minute?: number | undefined;
+            weekday?: number | undefined;
+            clientId?: number | undefined;
+            deviceId?: number | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Create a new VPS Volume.
+     */
+    createVpsVolume: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            size: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Resize a VPS Volume.
+     */
+    resizeVpsVolume: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            volumeId: string;
+            size: number;
+            deviceId?: number | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Delete a VPS Volume.
+     */
+    deleteVpsVolume: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            volumeId: string;
+            deviceId?: number | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get a volume's list of upgradable sizes.
+     */
+    getVpsVolumeAvailableSizes: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            volumeId: string;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Restore a VPS Volume Snapshot.
+     */
+    restoreVpsSnapshot: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            snapshotId: string;
+            facilityCode: string;
+            clientId?: number | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Delete a VPS Volume Snapshot.
+     */
+    deleteVpsSnapshot: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            snapshotId: string;
+            facilityCode?: string | undefined;
+            clientId?: number | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get all VPS Volume Snapshots available.
+     */
+    getVpsSnapshots: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            facilityCode: string;
+            clientId?: number | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Create a manual VPS Volume Snapshot.
+     */
+    createVpsSnapshot: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            volumeId: string;
+            name: string;
+            facilityCode: string;
+            clientId?: number | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Delete a VPS Snapshot Schedule.
+     */
+    deleteVpsSnapshotSchedule: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            snapshotScheduleId: string;
+            facilityCode: string;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Initiate an OS reload.
+     */
+    reloadDevice: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            operatingSystemId?: number | undefined;
+            publicSshKeyIds?: number[] | undefined;
+            script?: string | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Update device metadata (name, hostname).
+     */
+    updateDevice: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            name?: string | undefined;
+            hostname?: string | undefined;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Request token to reset root password for VPS.
+     * Token is emailed to the Hivelocity account contact — not returned in the published API schema.
+     */
+    vpsRequestResetPasswordToken: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: import("../../lib/hivelocity-vps-password-reset").VpsPasswordResetRequestResult;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Reset VPS root password (requires token and device to be powered off).
+     */
+    vpsResetRootPassword: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            token: string;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: List VPS ISOs available in a facility (GET /vps/iso).
+     */
+    listVpsIsos: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            facilityCode: string;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get OS reload options for a device (GET /device/{deviceId}/reload).
+     */
+    getDeviceReloadInfo: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Attach ISO to VPS.
+     */
+    vpsAttachIso: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            isoId: string;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Detach ISO from VPS.
+     */
+    vpsDetachIso: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get one-time browser console URL for VPS.
+     */
+    vpsGetConsoleUrl: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: List account SSH public keys (GET /ssh_key/).
+     */
+    listSshKeys: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            success: boolean;
+            data: import("../../lib/hivelocity-vps-ssh-keys").HivelocitySshKey[];
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Add an SSH public key to the account (POST /ssh_key/).
+     */
+    createSshKey: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            name: string;
+            publicKey: string;
+        };
+        output: {
+            success: boolean;
+            data: import("../../lib/hivelocity-vps-ssh-keys").HivelocitySshKey;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Remove an SSH public key from the account (DELETE /ssh_key/{id}).
+     */
+    deleteSshKey: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            sshKeyId: number;
+        };
+        output: {
+            success: boolean;
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Replace SSH keys deployed on a VPS (PUT /vps/{deviceId}).
+     * Instance must be powered off.
+     */
+    updateVpsSshKeys: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            sshKeyIds: number[];
+        } & {
+            teamSlug?: string | undefined;
+            teamResourceCategory?: "vps" | "vds" | "dedicated" | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /**
+     * Agency: suspend customer panel access and power off the VPS upstream.
+     */
+    suspendVpsInstance: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            subscriptionId: string;
+        };
+        output: {
+            success: boolean;
+            data: {
+                upstreamPoweredOff: boolean;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Agency: restore customer panel access and boot the VPS if we powered it off on suspend.
+     */
+    reactivateVpsInstance: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            deviceId: number;
+            subscriptionId: string;
+        };
+        output: {
+            success: boolean;
+            data: {
+                upstreamPoweredOn: boolean;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Private: Get a short-lived ticket for authenticating cross-origin WebSockets.
+     */
+    getWsTicket: import("@trpc/server").TRPCMutationProcedure<{
+        input: void;
+        output: {
+            ticket: `${string}-${string}-${string}-${string}-${string}`;
         };
         meta: object;
     }>;

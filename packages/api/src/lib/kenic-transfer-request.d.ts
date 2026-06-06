@@ -7,6 +7,10 @@ export interface ExecuteKenicTransferInput {
     authCode: string;
     roid?: string;
     period?: number;
+    nameServers?: Array<{
+        name: string;
+        ip?: string;
+    }>;
 }
 export interface ExecuteKenicTransferResult {
     success: true;

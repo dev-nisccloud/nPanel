@@ -218,6 +218,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
+                success: boolean;
                 data: {
                     id: any;
                     name: any;
@@ -273,6 +274,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
+                success: boolean;
                 data: {
                     id: any;
                     name: any;
@@ -333,6 +335,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 } | undefined;
             };
             output: {
+                success: boolean;
                 data: {
                     id: any;
                     name: any;
@@ -379,6 +382,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 adId: string;
             };
             output: {
+                success: boolean;
                 data: {
                     id: any;
                     name: any;
@@ -402,6 +406,7 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
             };
             output: {
+                success: boolean;
                 data: {
                     id: any;
                     adset_id: any;
@@ -496,6 +501,66 @@ export declare const metaAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
                     fallbackReason: string;
                 };
             };
+            meta: object;
+        }>;
+        triggerAiAnalysis: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                campaignId: string;
+                data: any;
+                internalCampaignId?: string | undefined;
+            };
+            output: {
+                success: boolean;
+                analysisId: string;
+                status: string;
+            };
+            meta: object;
+        }>;
+        getAnalysisStatus: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                analysisId: string;
+            };
+            output: {
+                status: string;
+                analysis: string | null;
+                errorMessage: string | null;
+            };
+            meta: object;
+        }>;
+        listAnalyses: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                campaignId: string;
+            };
+            output: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                status: string;
+                userId: string;
+                metadata: unknown;
+                errorMessage: string | null;
+                campaignId: string;
+                internalCampaignId: string | null;
+                analysis: string | null;
+            }[];
+            meta: object;
+        }>;
+        getLatestAnalysis: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                campaignId: string;
+            };
+            output: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                status: string;
+                userId: string;
+                metadata: unknown;
+                errorMessage: string | null;
+                campaignId: string;
+                internalCampaignId: string | null;
+                analysis: string | null;
+            } | null;
             meta: object;
         }>;
     }>>;

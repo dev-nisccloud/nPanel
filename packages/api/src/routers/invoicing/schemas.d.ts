@@ -15,8 +15,8 @@ export declare const invoiceStatusSchema: z.ZodEnum<{
 export type InvoiceStatusType = z.infer<typeof invoiceStatusSchema>;
 export declare const invoicePaymentStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
-    FAILED: "FAILED";
     COMPLETED: "COMPLETED";
+    FAILED: "FAILED";
     REFUNDED: "REFUNDED";
 }>;
 export type InvoicePaymentStatusType = z.infer<typeof invoicePaymentStatusSchema>;
@@ -98,8 +98,8 @@ export declare const invoiceTransactionInputSchema: z.ZodObject<{
     providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodDefault<z.ZodEnum<{
         PENDING: "PENDING";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
         REFUNDED: "REFUNDED";
     }>>;
     method: z.ZodEnum<{
@@ -141,8 +141,8 @@ export declare const invoiceTransactionOutputSchema: z.ZodObject<{
     id: z.ZodString;
     status: z.ZodEnum<{
         PENDING: "PENDING";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
         REFUNDED: "REFUNDED";
     }>;
     paidAt: z.ZodNullable<z.ZodDate>;
@@ -269,8 +269,8 @@ export declare const invoiceCreateInputSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -364,8 +364,8 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -538,8 +538,8 @@ export declare const invoiceDetailSchema: z.ZodObject<{
         id: z.ZodString;
         status: z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>;
         paidAt: z.ZodNullable<z.ZodDate>;
@@ -713,8 +713,8 @@ export declare const submitInvoiceSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{

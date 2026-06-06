@@ -43,6 +43,21 @@ const deleteEmailBuilderDesignSchema = z.object({
 const duplicateEmailBuilderDesignSchema = z.object({
     id: z.string(),
 });
+const generateWithAiSchema = z.object({
+    designId: z.string(),
+    companyName: z.string().optional(),
+    productName: z.string().optional(),
+    audience: z.string().min(1, "Audience is required"),
+    goal: z.string().min(1, "Goal is required"),
+    tone: z.string().min(1, "Tone is required"),
+    emailType: z.string().optional(),
+    imageCount: z.number().min(0).max(5).default(1),
+    brandColors: z.array(z.string()).optional(),
+    instructions: z.string().optional(),
+});
+const getAiStatusSchema = z.object({
+    designId: z.string(),
+});
 // --- Router ---
 export const emailBuilderRouter = router({
     // Role helper for agency-side broad read access.
@@ -279,5 +294,53 @@ export const emailBuilderRouter = router({
             createdAt: now,
         });
         return { data: duplicatedDesign };
+    }),
+    // Trigger AI generation
+    generateWithAi: protectedProcedure
+        .input(generateWithAiSchema)
+        .mutation(async ({ ctx, input }) => {
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+            throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+        const design = await db.query.emailBuilderDesign.findFirst({
+            where: and(eq(emailBuilderDesign.id, input.designId), eq(emailBuilderDesign.userId, userId)),
+        });
+        if (!design) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
+        }
+        const { designId, ...aiContext } = input;
+        // Update design with AI context and status
+        await db.update(emailBuilderDesign)
+            .set({
+            aiStatus: "PROCESSING",
+            aiContext,
+            updatedAt: new Date(),
+        })
+            .where(eq(emailBuilderDesign.id, designId));
+        // Enqueue background job
+        const { enqueueEmailBuilderAiGeneration } = await import("../lib/qstash/email-builder-ai");
+        await enqueueEmailBuilderAiGeneration(designId);
+        return { success: true };
+    }),
+    // Get AI status
+    getAiStatus: protectedProcedure
+        .input(getAiStatusSchema)
+        .query(async ({ ctx, input }) => {
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+            throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+        const design = await db.query.emailBuilderDesign.findFirst({
+            where: and(eq(emailBuilderDesign.id, input.designId), eq(emailBuilderDesign.userId, userId)),
+            columns: {
+                aiStatus: true,
+                isAiGenerated: true,
+            },
+        });
+        if (!design) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
+        }
+        return { data: design };
     }),
 });

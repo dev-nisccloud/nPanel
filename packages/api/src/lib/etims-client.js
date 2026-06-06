@@ -1,267 +1,356 @@
 import { request } from 'undici';
-export class ETimsClient {
+import { getRedisClient } from './redis';
+// ─────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────
+/**
+ * All valid KRA OSCU API endpoints per the official specification.
+ * Keys are human-friendly names; values are the exact URL paths.
+ */
+const ENDPOINTS = {
+    // Initialization
+    selectInitOsdcInfo: '/selectInitOsdcInfo',
+    // Code Lists
+    selectCodeList: '/selectCodeList',
+    // Notices
+    selectNoticeList: '/selectNoticeList',
+    // Customer
+    selectCustomer: '/selectCustomer',
+    // Branches
+    selectBhfList: '/selectBhfList',
+    saveBhfCustomer: '/saveBhfCustomer',
+    saveBhfUser: '/saveBhfUser',
+    saveBhfInsurance: '/saveBhfInsurance',
+    // Items
+    selectItemClsList: '/selectItemClsList',
+    selectItemList: '/selectItemList',
+    saveItem: '/saveItem',
+    saveItemComposition: '/saveItemComposition',
+    // Imported Items
+    selectImportItemList: '/selectImportItemList',
+    updateImportItem: '/updateImportItem',
+    // Sales
+    saveTrnsSalesOsdc: '/saveTrnsSalesOsdc',
+    // Purchases
+    selectTrnsPurchaseSalesList: '/selectTrnsPurchaseSalesList',
+    insertTrnsPurchase: '/insertTrnsPurchase',
+    // Stock
+    selectStockMoveList: '/selectStockMoveList',
+    insertStockIO: '/insertStockIO',
+    saveStockMaster: '/saveStockMaster',
+};
+const REDIS_TOKEN_KEY = 'etims:oauth_token';
+const TOKEN_BUFFER_SECS = 60; // Refresh 60s before actual expiry
+// ─────────────────────────────────────────────
+// EtimsOscuClient
+// ─────────────────────────────────────────────
+export class EtimsOscuClient {
     config;
-    cachedAccessToken = null;
-    cachedAccessTokenExpiresAtMs = null;
+    // In-process cache (fallback when Redis is unavailable)
+    memToken = null;
+    memTokenExpiresAt = null;
     constructor(config) {
         this.config = config;
     }
+    // ───────────────────────
+    // Token Management
+    // ───────────────────────
     /**
-     * Generate OAuth 2.0 access token
+     * Get a valid OAuth access token, using Redis as the primary cache
+     * and an in-memory fallback. Never fetches more than once per TTL.
      */
-    async generateToken() {
-        const auth = Buffer.from(`${this.config.consumerKey}:${this.config.consumerSecret}`).toString('base64');
-        const res = await request(`${this.config.tokenUrl}?grant_type=client_credentials`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Basic ${auth}`,
+    async getToken(forceRefresh = false) {
+        if (!forceRefresh) {
+            // 1. Try Redis first
+            const redis = getRedisClient();
+            if (redis) {
+                try {
+                    const cached = await redis.get(REDIS_TOKEN_KEY);
+                    if (cached && Date.now() < cached.expiresAt * 1000) {
+                        return cached.token;
+                    }
+                }
+                catch {
+                    // Redis failure → fall through to in-memory
+                }
             }
+            // 2. Try in-memory cache
+            if (this.memToken && this.memTokenExpiresAt && Date.now() < this.memTokenExpiresAt * 1000) {
+                return this.memToken;
+            }
+        }
+        // 3. Fetch fresh token
+        const tokenData = await this.fetchToken();
+        const expiresIn = parseInt(tokenData.expires_in ?? '3600', 10);
+        const expiresAt = Math.floor(Date.now() / 1000) + expiresIn - TOKEN_BUFFER_SECS;
+        // Persist in-memory
+        this.memToken = tokenData.access_token;
+        this.memTokenExpiresAt = expiresAt;
+        // Persist to Redis (best-effort)
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                await redis.set(REDIS_TOKEN_KEY, { token: tokenData.access_token, expiresAt }, { ex: expiresIn - TOKEN_BUFFER_SECS });
+            }
+            catch {
+                // Redis write failure is non-fatal; we still have the in-memory cache
+            }
+        }
+        return tokenData.access_token;
+    }
+    async clearToken() {
+        this.memToken = null;
+        this.memTokenExpiresAt = null;
+        const redis = getRedisClient();
+        if (redis) {
+            try {
+                await redis.del(REDIS_TOKEN_KEY);
+            }
+            catch { /* non-fatal */ }
+        }
+    }
+    async fetchToken() {
+        const { consumerKey, consumerSecret, tokenUrl } = this.config;
+        if (!consumerKey || !consumerSecret) {
+            throw new Error('eTIMS Consumer Key and Secret are not configured.');
+        }
+        const authHeader = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');
+        const url = `${tokenUrl.trim().replace(/\/+$/, '')}?grant_type=client_credentials`;
+        const res = await request(url, {
+            method: 'GET',
+            headers: { Authorization: `Basic ${authHeader}` },
         });
-        const responseText = await res.body.text();
+        const text = await res.body.text();
         if (res.statusCode !== 200) {
-            throw new Error(`eTIMS Auth Error: ${res.statusCode} - ${responseText}`);
+            throw new Error(`eTIMS token request failed (${res.statusCode}): ${text}`);
         }
+        let data;
         try {
-            return JSON.parse(responseText);
+            data = JSON.parse(text);
         }
-        catch (e) {
-            throw new Error(`eTIMS Auth Error: Invalid JSON response: ${responseText}`);
+        catch {
+            throw new Error(`eTIMS token response is not valid JSON: ${text}`);
         }
-    }
-    async getValidAccessToken() {
-        const now = Date.now();
-        if (this.cachedAccessToken && this.cachedAccessTokenExpiresAtMs && now < this.cachedAccessTokenExpiresAtMs) {
-            return this.cachedAccessToken;
+        if (!data.access_token) {
+            throw new Error(`eTIMS token response missing access_token: ${text}`);
         }
-        const token = await this.generateToken();
-        const expiresInSec = Number(token.expires_in);
-        // Refresh a bit early to avoid edge-of-expiry failures.
-        const skewMs = 30_000;
-        const ttlMs = Number.isFinite(expiresInSec) ? Math.max(0, expiresInSec * 1000 - skewMs) : 0;
-        this.cachedAccessToken = token.access_token;
-        this.cachedAccessTokenExpiresAtMs = now + ttlMs;
-        return token.access_token;
+        return data;
     }
-    maskBearer(bearer) {
-        if (!bearer)
-            return "";
-        if (bearer.length <= 16)
-            return "***";
-        return `${bearer.slice(0, 6)}***${bearer.slice(-6)}`;
+    // ───────────────────────
+    // HTTP Core
+    // ───────────────────────
+    buildUrl(endpointKey) {
+        const path = ENDPOINTS[endpointKey];
+        return `${this.config.baseUrl.trim().replace(/\/+$/, '')}${path}`;
     }
-    omitNullishDeep(value) {
-        // KRA sandbox is strict: remove null/undefined fields from payloads.
+    /**
+     * Build request headers.
+     * Initialization only needs Authorization.
+     * All other endpoints also need tin + bhfId + cmcKey.
+     */
+    async buildHeaders(endpointKey, oscu) {
+        const token = await this.getToken();
+        const base = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        };
+        if (endpointKey === 'selectInitOsdcInfo') {
+            // Only auth header for initialization
+            return base;
+        }
+        if (!oscu)
+            throw new Error(`OSCU headers (tin/bhfId/cmcKey) required for endpoint: ${endpointKey}`);
+        return {
+            ...base,
+            'tin': oscu.tin,
+            'bhfId': oscu.bhfId,
+            'cmcKey': oscu.cmcKey,
+        };
+    }
+    /**
+     * Omit null/undefined values from the payload recursively.
+     * KRA sandbox rejects requests with null fields in many cases.
+     */
+    omitNullish(value) {
         if (value === null || value === undefined)
             return value;
-        if (Array.isArray(value)) {
-            return value.map((v) => this.omitNullishDeep(v));
-        }
-        if (typeof value === "object") {
+        if (Array.isArray(value))
+            return value.map((v) => this.omitNullish(v));
+        if (typeof value === 'object') {
             const out = {};
             for (const [k, v] of Object.entries(value)) {
                 if (v === null || v === undefined)
                     continue;
-                out[k] = this.omitNullishDeep(v);
+                out[k] = this.omitNullish(v);
             }
             return out;
         }
         return value;
     }
-    async request(method, endpoint, headers, body) {
-        const url = `${this.config.baseUrl}${endpoint}`;
-        const accessToken = headers.accessToken ?? (await this.getValidAccessToken());
-        const headersObj = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'apigee_app_id': this.config.consumerKey,
-            'tin': headers.tin,
-            'bhfId': headers.bhfId,
-            ...(headers.cmcKey ? { 'cmcKey': headers.cmcKey } : {}),
+    async post(endpointKey, body, oscu) {
+        const url = this.buildUrl(endpointKey);
+        const headers = await this.buildHeaders(endpointKey, oscu);
+        const payload = this.omitNullish(body);
+        const doRequest = async () => {
+            const res = await request(url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+            });
+            return { statusCode: res.statusCode, text: await res.body.text() };
         };
-        console.log(`[eTIMS] ${method} ${url}`);
-        const headersForLog = {
-            ...headersObj,
-            Authorization: `Bearer ${this.maskBearer(accessToken)}`,
-            apigee_app_id: this.config.consumerKey ? `${this.config.consumerKey.slice(0, 6)}***${this.config.consumerKey.slice(-6)}` : "",
-            ...(headers.cmcKey ? { cmcKey: `${headers.cmcKey.slice(0, 6)}***${headers.cmcKey.slice(-6)}` } : {}),
-        };
-        console.log(`[eTIMS] Headers:`, JSON.stringify(headersForLog, null, 2));
-        const sanitizedBody = body ? this.omitNullishDeep(body) : undefined;
-        if (sanitizedBody)
-            console.log(`[eTIMS] Body:`, JSON.stringify(sanitizedBody, null, 2));
-        const res = await request(url, {
-            method,
-            headers: headersObj,
-            body: sanitizedBody ? JSON.stringify(sanitizedBody) : undefined,
-        });
-        const responseText = await res.body.text();
+        let { statusCode, text } = await doRequest();
+        // Auto-retry once on 401 (expired token)
+        if (statusCode === 401) {
+            await this.clearToken();
+            await this.getToken(true);
+            // Rebuild headers with new token
+            const freshHeaders = await this.buildHeaders(endpointKey, oscu);
+            const retryRes = await request(url, {
+                method: 'POST',
+                headers: freshHeaders,
+                body: JSON.stringify(payload),
+            });
+            statusCode = retryRes.statusCode;
+            text = await retryRes.body.text();
+        }
         let data;
         try {
-            data = JSON.parse(responseText);
+            data = JSON.parse(text);
         }
-        catch (e) {
-            throw new Error(`eTIMS API Error (${endpoint}): ${res.statusCode} - Invalid JSON response: ${responseText}`);
+        catch {
+            throw new Error(`eTIMS API (${endpointKey}): invalid JSON response (${statusCode}): ${text}`);
         }
-        if (res.statusCode !== 200) {
-            throw new Error(`eTIMS API Error (${endpoint}): ${res.statusCode} - ${JSON.stringify(data)}`);
+        if (statusCode !== 200) {
+            const msg = data.resultMsg
+                ?? data.errorMessage
+                ?? text;
+            throw new Error(`eTIMS API (${endpointKey}) HTTP ${statusCode}: ${msg}`);
+        }
+        // Validate KRA business result code
+        const resultCd = data.resultCd;
+        const resultMsg = data.resultMsg ?? 'Unknown eTIMS error';
+        if (resultCd && resultCd !== '000' && resultCd !== '001') {
+            throw new Error(`eTIMS API (${endpointKey}) resultCd=${resultCd}: ${resultMsg}`);
         }
         return data;
     }
-    async initializeDevice(tin, bhfId, dvcSrlNo, accessToken) {
-        return this.request('POST', '/initialize', {
-            tin,
-            bhfId,
-            accessToken
-        }, {
-            tin,
-            bhfId,
-            dvcSrlNo,
-        });
+    // ───────────────────────
+    // Initialization
+    // ───────────────────────
+    async selectInitOsdcInfo(payload) {
+        // No OSCU headers for init - only Authorization
+        return this.post('selectInitOsdcInfo', payload);
     }
-    async selectCodeList(headers, lastReqDt) {
-        return this.request('POST', '/selectCodeList', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Code Lists
+    // ───────────────────────
+    async selectCodeList(oscu, lastReqDt) {
+        return this.post('selectCodeList', { lastReqDt }, oscu);
     }
-    async selectItemClass(headers, lastReqDt) {
-        return this.request('POST', '/selectItemClass', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    async selectNoticeList(oscu, lastReqDt) {
+        return this.post('selectNoticeList', { lastReqDt }, oscu);
     }
-    async selectBhfList(headers, lastReqDt) {
-        return this.request('POST', '/selectBhfList', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Customer
+    // ───────────────────────
+    /** Look up a single customer by their KRA TIN */
+    async selectCustomer(oscu, custmTin) {
+        return this.post('selectCustomer', { custmTin }, oscu);
     }
-    async saveItem(headers, item) {
-        // KRA OSCU docs: tin + bhfId must be present in the request body AND headers.
-        // KRA's sandbox uses the body fields to look up the TestSession for API logging;
-        // if they are absent getTestSessionApiLog() returns null → 400 NPE.
-        return this.request('POST', '/saveItem', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...item,
-        });
+    // ───────────────────────
+    // Branches
+    // ───────────────────────
+    async selectBhfList(oscu, lastReqDt) {
+        return this.post('selectBhfList', { lastReqDt }, oscu);
     }
-    async selectItemInfo(headers, lastReqDt) {
-        return this.request('POST', '/itemInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    async saveBhfCustomer(oscu, customerData) {
+        return this.post('saveBhfCustomer', customerData, oscu);
     }
-    async saveItemComposition(headers, composition) {
-        // Same rule: tin + bhfId required in body for KRA session tracking.
-        return this.request('POST', '/saveItemComposition', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...composition,
-        });
+    async saveBhfUser(oscu, userData) {
+        return this.post('saveBhfUser', userData, oscu);
     }
-    async selectImportedItemInfo(headers, lastReqDt) {
-        return this.request('POST', '/importedItemInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Items
+    // ───────────────────────
+    async selectItemClsList(oscu, lastReqDt) {
+        return this.post('selectItemClsList', { lastReqDt }, oscu);
     }
-    async saveImportedItemConvertedInfo(headers, conversion) {
-        return this.request('POST', '/importedItemConvertedInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...conversion,
-        });
+    async selectItemList(oscu, lastReqDt) {
+        return this.post('selectItemList', { lastReqDt }, oscu);
     }
-    async sendSalesTransaction(headers, transaction) {
-        // KRA requires tin + bhfId in the body for session tracking (same as all write endpoints).
-        return this.request('POST', '/sendSalesTransaction', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
+    async saveItem(oscu, item) {
+        // tin + bhfId must also be in the request body for KRA session tracking
+        return this.post('saveItem', { tin: oscu.tin, bhfId: oscu.bhfId, ...item }, oscu);
+    }
+    async saveItemComposition(oscu, composition) {
+        return this.post('saveItemComposition', { tin: oscu.tin, bhfId: oscu.bhfId, ...composition }, oscu);
+    }
+    // ───────────────────────
+    // Imported Items
+    // ───────────────────────
+    async selectImportItemList(oscu, lastReqDt) {
+        return this.post('selectImportItemList', { lastReqDt }, oscu);
+    }
+    async updateImportItem(oscu, item) {
+        return this.post('updateImportItem', item, oscu);
+    }
+    // ───────────────────────
+    // Sales
+    // ───────────────────────
+    async saveTrnsSalesOsdc(oscu, transaction) {
+        return this.post('saveTrnsSalesOsdc', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
             ...transaction,
-        });
+        }, oscu);
     }
-    async selectSalesTransactions(headers, lastReqDt) {
-        return this.request('POST', '/selectSalesTransactions', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Purchases
+    // ───────────────────────
+    async selectTrnsPurchaseSalesList(oscu, lastReqDt) {
+        return this.post('selectTrnsPurchaseSalesList', { lastReqDt }, oscu);
     }
-    async selectInvoiceDetail(headers, invcNo) {
-        return this.request('POST', '/selectInvoiceDetail', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            invcNo,
-        });
+    async insertTrnsPurchase(oscu, purchase) {
+        return this.post('insertTrnsPurchase', purchase, oscu);
     }
-    async getPurchaseTransactionInfo(headers, lastReqDt) {
-        return this.request('POST', '/getPurchaseTransactionInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    // ───────────────────────
+    // Stock
+    // ───────────────────────
+    async selectStockMoveList(oscu, lastReqDt) {
+        return this.post('selectStockMoveList', { lastReqDt }, oscu);
     }
-    async sendPurchaseTransactionInfo(headers, purchaseInfo) {
-        return this.request('POST', '/sendPurchaseTransactionInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...purchaseInfo,
-        });
+    async insertStockIO(oscu, stockData) {
+        return this.post('insertStockIO', stockData, oscu);
     }
-    async selectStockMoveList(headers, lastReqDt) {
-        return this.request('POST', '/selectStockMoveLists', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
+    async saveStockMaster(oscu, stockMaster) {
+        return this.post('saveStockMaster', stockMaster, oscu);
     }
-    async insertStockIO(headers, stockData) {
-        return this.request('POST', '/insert/stockIO', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...stockData,
-        });
+}
+// ─────────────────────────────────────────────
+// Module-level Singleton
+// ─────────────────────────────────────────────
+let _singleton = null;
+/**
+ * Get (or create) the module-level eTIMS client singleton.
+ * All routers must use this instead of `new EtimsOscuClient(...)` to share the token cache.
+ */
+export function getEtimsClient(config) {
+    if (!_singleton) {
+        _singleton = new EtimsOscuClient(config);
     }
-    async saveStockMaster(headers, stockMaster) {
-        return this.request('POST', '/save/stockMaster', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            ...stockMaster,
-        });
+    else {
+        // Update the config in case env vars changed (e.g. sandbox → prod switch)
+        // We do this by assigning the new config; the token cache is only invalidated
+        // if the tokenUrl changed (different env), since the old token won't be valid.
+        const prevUrl = _singleton.config.tokenUrl;
+        if (prevUrl !== config.tokenUrl) {
+            // Environment changed - kill the old singleton and the cached token
+            _singleton.clearToken().catch(() => undefined);
+            _singleton = new EtimsOscuClient(config);
+        }
     }
-    async selectCustomerPinInfo(headers, lastReqDt) {
-        return this.request('POST', '/customerPinInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
-    }
-    async selectTaxpayerInfo(headers, lastReqDt) {
-        return this.request('POST', '/selectTaxpayerInfo', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
-    }
-    async selectNoticeList(headers, lastReqDt) {
-        return this.request('POST', '/selectNoticeList', headers, {
-            tin: headers.tin,
-            bhfId: headers.bhfId,
-            lastReqDt,
-        });
-    }
-    async branchSendCustomerInfo(headers, customerInfo) {
-        // KRA docs: /saveBhfCustomer
-        return this.request('POST', '/saveBhfCustomer', headers, customerInfo);
-    }
-    async branchUserAccount(headers, userInfo) {
-        // KRA docs: /saveBhfUser
-        return this.request('POST', '/saveBhfUser', headers, userInfo);
-    }
+    return _singleton;
 }

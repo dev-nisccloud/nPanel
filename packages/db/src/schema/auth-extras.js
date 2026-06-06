@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { boolean, integer, index, jsonb, pgTable, text, timestamp, uniqueIndex, } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { user } from "./auth";
 export const apiKey = pgTable("api_key", {
     id: text("id").primaryKey(),
@@ -153,6 +154,9 @@ export const userMfaSession = pgTable("user_mfa_session", {
     index("user_mfa_session_userId_idx").on(table.userId),
     index("user_mfa_session_sessionId_idx").on(table.sessionId),
     index("user_mfa_session_verifiedAt_idx").on(table.verifiedAt),
+    index("user_mfa_session_pending_by_session_idx")
+        .on(table.sessionId)
+        .where(sql `${table.verifiedAt} IS NULL`),
 ]);
 export const userMfaChallenge = pgTable("user_mfa_challenge", {
     id: text("id").primaryKey(),

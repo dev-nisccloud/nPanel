@@ -8,7 +8,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
         input: {
             prompt: string;
             referenceImageUrls?: string[] | undefined;
-            aspectRatio?: "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9" | undefined;
+            aspectRatio?: "21:9" | "16:9" | "3:2" | "5:4" | "1:1" | "4:5" | "2:3" | "9:16" | "3:4" | "4:3" | undefined;
             outputFormat?: "png" | "jpg" | undefined;
             resolution?: "1K" | "2K" | "4K" | undefined;
             variations?: number | undefined;
@@ -16,7 +16,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
         };
         output: {
             generationId: string;
-            status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
+            status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
             variationsCount: number;
         };
         meta: object;
@@ -25,7 +25,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
         input: {
             prompt: string;
             referenceImageUrls?: string[] | undefined;
-            aspectRatio?: "1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9" | undefined;
+            aspectRatio?: "21:9" | "16:9" | "3:2" | "5:4" | "1:1" | "4:5" | "2:3" | "9:16" | "3:4" | "4:3" | undefined;
             outputFormat?: "png" | "jpg" | undefined;
             resolution?: "1K" | "2K" | "4K" | undefined;
             variations?: number | undefined;
@@ -79,7 +79,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
                 variationsCount: number;
                 modelId: string;
                 modelName: string | null;
-                status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
+                status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
                 errorMessage: string | null;
                 qstashMessageId: string | null;
                 startedAt: Date | null;
@@ -90,7 +90,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
                     id: string;
                     imageGeneratorGenerationId: string;
                     variationIndex: number;
-                    status: "PROCESSING" | "FAILED" | "COMPLETED";
+                    status: "PROCESSING" | "COMPLETED" | "FAILED";
                     errorMessage: string | null;
                     imageUrl: string | null;
                     imageKey: string | null;
@@ -127,7 +127,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
             variationsCount: number;
             modelId: string;
             modelName: string | null;
-            status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
+            status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
             errorMessage: string | null;
             qstashMessageId: string | null;
             startedAt: Date | null;
@@ -138,7 +138,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
                 id: string;
                 imageGeneratorGenerationId: string;
                 variationIndex: number;
-                status: "PROCESSING" | "FAILED" | "COMPLETED";
+                status: "PROCESSING" | "COMPLETED" | "FAILED";
                 errorMessage: string | null;
                 imageUrl: string | null;
                 imageKey: string | null;

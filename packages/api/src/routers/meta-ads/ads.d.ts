@@ -18,6 +18,7 @@ export declare const metaAdsAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             } | undefined;
         };
         output: {
+            success: boolean;
             data: {
                 id: any;
                 name: any;
@@ -68,6 +69,7 @@ export declare const metaAdsAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             adId: string;
         };
         output: {
+            success: boolean;
             data: {
                 id: any;
                 name: any;
@@ -94,6 +96,7 @@ export declare const metaAdsAdsRouter: import("@trpc/server").TRPCBuiltRouter<{
             publisherPlatform?: "facebook" | "instagram" | "audience_network" | "messenger" | undefined;
         };
         output: {
+            success: boolean;
             data: {
                 id: any;
                 adset_id: any;

@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { session, user } from "@npanel/db/schema/auth";
 import { userActivityLog, userProfile } from "@npanel/db/schema/auth-extras";
+import { mapUserAdminFields, mapUserEmailPreferences } from "../lib/user-extra-fields";
 // Zod schemas for API - independent from database schema
 const userInfoOutputSchema = z.object({
     id: z.string(),
@@ -127,6 +128,46 @@ function getActor(ctx) {
     }
     return { id: actor.id, role: actor.role };
 }
+const REGISTRANT_PROFILE_FIELD_LABELS = {
+    firstName: "First name",
+    lastName: "Last name",
+    address: "Street address",
+    city: "City",
+    country: "Country",
+    postalCode: "Postal code",
+    phone: "Phone number",
+};
+function getMissingRegistrantProfileFields(profile) {
+    if (!profile)
+        return Object.values(REGISTRANT_PROFILE_FIELD_LABELS);
+    const missing = [];
+    for (const key of Object.keys(REGISTRANT_PROFILE_FIELD_LABELS)) {
+        const value = profile[key];
+        if (!value || String(value).trim() === "") {
+            missing.push(REGISTRANT_PROFILE_FIELD_LABELS[key]);
+        }
+    }
+    return missing;
+}
+const customerForRegistrantOutputSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string(),
+    profileComplete: z.boolean(),
+    missingFields: z.array(z.string()),
+    profile: z
+        .object({
+        firstName: z.string().nullable(),
+        lastName: z.string().nullable(),
+        phone: z.string().nullable(),
+        address: z.string().nullable(),
+        city: z.string().nullable(),
+        state: z.string().nullable(),
+        country: z.string().nullable(),
+        postalCode: z.string().nullable(),
+    })
+        .nullable(),
+});
 export const userProfileRouter = router({
     /**
      * Get current user's full profile information
@@ -353,6 +394,8 @@ export const userProfileRouter = router({
                 lastLoginAt: u.lastLoginAt,
                 createdAt: u.createdAt,
                 updatedAt: u.updatedAt,
+                ...mapUserEmailPreferences(u),
+                ...mapUserAdminFields(u),
                 profile: mapProfileRow(p),
             };
         }
@@ -518,5 +561,61 @@ export const userProfileRouter = router({
             usersMap[uid] = userData;
         }
         return usersMap;
+    }),
+    /**
+     * Agency: list customer users with profile completeness for domain registrant selection.
+     */
+    listCustomersForRegistrant: protectedProcedure
+        .output(z.array(customerForRegistrantOutputSchema))
+        .query(async ({ ctx }) => {
+        const actor = getActor(ctx);
+        if (!isAgencyUserRole(actor.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can list customers for registrant selection.",
+            });
+        }
+        const rows = await db
+            .select({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            firstName: userProfile.firstName,
+            lastName: userProfile.lastName,
+            phone: userProfile.phone,
+            address: userProfile.address,
+            city: userProfile.city,
+            state: userProfile.state,
+            country: userProfile.country,
+            postalCode: userProfile.postalCode,
+            profileUserId: userProfile.userId,
+        })
+            .from(user)
+            .leftJoin(userProfile, eq(userProfile.userId, user.id))
+            .where(eq(user.role, "CUSTOMER"))
+            .orderBy(desc(user.createdAt));
+        return rows.map((row) => {
+            const profile = row.profileUserId
+                ? {
+                    firstName: row.firstName,
+                    lastName: row.lastName,
+                    phone: row.phone,
+                    address: row.address,
+                    city: row.city,
+                    state: row.state,
+                    country: row.country,
+                    postalCode: row.postalCode,
+                }
+                : null;
+            const missingFields = getMissingRegistrantProfileFields(profile);
+            return customerForRegistrantOutputSchema.parse({
+                id: row.id,
+                name: row.name,
+                email: row.email,
+                profile,
+                profileComplete: missingFields.length === 0,
+                missingFields,
+            });
+        });
     }),
 });

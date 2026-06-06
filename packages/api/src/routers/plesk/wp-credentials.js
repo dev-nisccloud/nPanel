@@ -2,20 +2,17 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { sendPleskRestRequest } from '../../lib/plesk/rest-client';
 import { protectedProcedure, router } from '../../trpc';
-
 const emptyToUndefined = (value) => {
     if (typeof value !== "string")
         return value;
     const trimmed = value.trim();
     return trimmed.length === 0 ? undefined : trimmed;
 };
-
 function asRecord(data) {
     if (!data || typeof data !== "object")
         return null;
     return data;
 }
-
 function parseAccountData(data) {
     const record = asRecord(data);
     if (!record)
@@ -28,7 +25,6 @@ function parseAccountData(data) {
         currentLanguage: typeof record.currentLanguage === "string" ? record.currentLanguage : undefined,
     };
 }
-
 function parseCredentialsData(data) {
     const record = asRecord(data);
     if (!record)
@@ -44,7 +40,6 @@ function parseCredentialsData(data) {
             : undefined,
     };
 }
-
 function extractNonEmptyPassword(...candidates) {
     for (const candidate of candidates) {
         if (typeof candidate === "string") {
@@ -55,7 +50,6 @@ function extractNonEmptyPassword(...candidates) {
     }
     return undefined;
 }
-
 async function getWpCredentials(installationId) {
     const endpoint = `/v1/installations/${installationId}/credentials`;
     const { data, isAuthError, isHostUnreachable, statusCode } = await sendPleskRestRequest(endpoint, 'GET');
@@ -69,7 +63,6 @@ async function getWpCredentials(installationId) {
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `WP Toolkit returned ${statusCode}` });
     return data;
 }
-
 async function getWpAccountSettings(installationId) {
     const endpoint = `/v1/installations/${installationId}/account`;
     const { data, isAuthError, isHostUnreachable, statusCode } = await sendPleskRestRequest(endpoint, 'GET');
@@ -83,7 +76,6 @@ async function getWpAccountSettings(installationId) {
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `WP Toolkit returned ${statusCode}` });
     return data;
 }
-
 function formatFormErrors(formErrors) {
     if (!formErrors || typeof formErrors !== 'object')
         return 'Validation failed';
@@ -98,7 +90,10 @@ function formatFormErrors(formErrors) {
     }
     return messages.length > 0 ? messages.join('; ') : 'Validation failed';
 }
-
+/**
+ * WP Toolkit account PATCH expects a complete payload (login, password, email, language).
+ * Partial bodies are treated as empty required fields.
+ */
 async function updateWpAccountSettings(installationId, changes) {
     const [accountRaw, credentialsRaw] = await Promise.all([
         getWpAccountSettings(installationId),
@@ -106,7 +101,9 @@ async function updateWpAccountSettings(installationId, changes) {
     ]);
     const account = parseAccountData(accountRaw);
     const credentials = parseCredentialsData(credentialsRaw);
-    const login = changes.login ?? account?.currentLogin ?? credentials?.credentials?.login;
+    const login = changes.login ??
+        account?.currentLogin ??
+        credentials?.credentials?.login;
     const email = changes.email ?? account?.currentEmail;
     const language = changes.language ?? account?.currentLanguage;
     const password = extractNonEmptyPassword(changes.password, changes.retainPassword, account?.currentPassword, credentials?.credentials?.password);
@@ -151,7 +148,6 @@ async function updateWpAccountSettings(installationId, changes) {
     }
     return data;
 }
-
 const updateAccountInputSchema = z
     .object({
     installationId: z.number(),
@@ -162,7 +158,6 @@ const updateAccountInputSchema = z
     language: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
 })
     .refine((value) => value.login || value.password || value.email || value.language, { message: 'At least one field must be provided to update account settings' });
-
 export const wpCredentialsRouter = router({
     get: protectedProcedure
         .input(z.object({ installationId: z.number() }))
