@@ -56,7 +56,7 @@ export function ZeepoHostingPlansCard({ result }: ZeepoHostingPlansCardProps) {
           )}
         </div>
 
-        {/* Pricing table — embedded removes full-page padding; overflow-x-auto scrolls on narrow chat columns */}
+        {/* Pricing table - embedded removes full-page padding; overflow-x-auto scrolls on narrow chat columns */}
         {result.plans.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             No plans available at the moment.

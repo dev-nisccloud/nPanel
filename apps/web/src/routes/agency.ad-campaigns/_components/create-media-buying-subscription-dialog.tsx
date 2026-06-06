@@ -143,7 +143,7 @@ export function CreateMediaBuyingSubscriptionDialog({
                     <SelectItem key={plan.id} value={plan.id}>
                       {plan.name}
                       {plan.agreedCommissionRate != null
-                        ? ` — ${plan.agreedCommissionRate}% of ad spend`
+                        ? ` - ${plan.agreedCommissionRate}% of ad spend`
                         : ""}
                     </SelectItem>
                   ))}

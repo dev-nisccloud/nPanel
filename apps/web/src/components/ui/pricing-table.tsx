@@ -449,7 +449,7 @@ export function PricingTable({
           )}
         </div>
 
-        {/* Plan selector cards — full width, independent of feature table columns */}
+        {/* Plan selector cards - full width, independent of feature table columns */}
         <div
           className={cn(
             "grid w-full gap-4 sm:gap-6",

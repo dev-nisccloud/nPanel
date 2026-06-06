@@ -21,7 +21,7 @@ import type { AgentHostingResourcesResult, AgentHostingResourceEntry } from "@/s
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso?: string | null): string {
-	if (!iso) return "—";
+	if (!iso) return "-";
 	try {
 		return new Intl.DateTimeFormat("en-KE", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(iso));
 	} catch {
@@ -86,7 +86,7 @@ function ResourceRow({ entry, isAgency }: { entry: AgentHostingResourceEntry; is
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex items-center gap-2 min-w-0">
 					<Server className="h-3.5 w-3.5 text-primary shrink-0" />
-					<span className="text-sm font-medium truncate">{entry.domain ?? "—"}</span>
+					<span className="text-sm font-medium truncate">{entry.domain ?? "-"}</span>
 				</div>
 				<div className="flex items-center gap-1.5 shrink-0">
 					{entry.sslEnabled ? (
@@ -168,7 +168,7 @@ export function ZeepoHostingResourcesCard({ result }: ZeepoHostingResourcesCardP
 				<div className="flex items-center gap-2">
 					<Server className="h-4 w-4 text-primary" />
 					<span className="text-sm font-semibold">
-						{result.isAgency ? "Hosting Resources" : `Hosting — ${result.teamName ?? "Your Organisation"}`}
+						{result.isAgency ? "Hosting Resources" : `Hosting - ${result.teamName ?? "Your Organisation"}`}
 					</span>
 				</div>
 				<div className="flex items-center gap-1.5">
@@ -190,7 +190,7 @@ export function ZeepoHostingResourcesCard({ result }: ZeepoHostingResourcesCardP
 			{result.pleskUnavailable && (
 				<div className="flex items-center gap-2 px-4 py-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
 					<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-					Live server stats are unavailable — showing billing records only.
+					Live server stats are unavailable - showing billing records only.
 				</div>
 			)}
 

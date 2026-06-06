@@ -16,6 +16,8 @@ import { HivelocityServersTable } from "./_components/hivelocity-servers-table";
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
 import { useHivelocityNiscProducts } from "@/hooks/use-hivelocity-nisc-products";
 import { buildHivelocityPlanForCheckout } from "@/lib/build-hivelocity-service-plan";
+import { HIVELOCITY_FACILITIES_QUERY_OPTIONS, HIVELOCITY_PLANS_QUERY_OPTIONS } from "@/lib/hivelocity-query-options";
+import { resolveClientErrorMessage } from "@/lib/public-error-message";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
 
 export default function VpsPage() {
@@ -29,11 +31,11 @@ export default function VpsPage() {
 	const [dialogIntent, setDialogIntent] = React.useState<"buy_now" | "add_to_cart">("buy_now");
 	const [filter, setFilter] = React.useState<VpsPlanFilterType>(DEFAULT_VPS_FILTER);
 
-	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined);
+	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined, HIVELOCITY_FACILITIES_QUERY_OPTIONS);
 
 	const plansQuery = trpc.hivelocity.getVpsPlans.useInfiniteQuery(
 		{ location: "MAIN", include_custom: false, limit, cursor: 0 },
-		{ getNextPageParam: (lastPage) => lastPage.data?.nextCursor ?? undefined },
+		{ ...HIVELOCITY_PLANS_QUERY_OPTIONS, getNextPageParam: (lastPage) => lastPage.data?.nextCursor ?? undefined },
 	);
 
 	const plans = React.useMemo(() => {
@@ -175,7 +177,9 @@ export default function VpsPage() {
 								</div>
 							) : plansQuery.error ? (
 								<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-									<p className="text-muted-foreground">Failed to load plans: {plansQuery.error.message}</p>
+									<p className="text-muted-foreground">
+										{resolveClientErrorMessage(plansQuery.error, "Failed to load plans. Please try again.")}
+									</p>
 								</div>
 							) : filteredPlans.length === 0 && activeFilterCount > 0 ? (
 								<div className="flex flex-col items-center justify-center h-64 border border-dashed rounded-lg gap-3">

@@ -25,7 +25,7 @@ type ProductFeature = {
 	description: string;
 };
 
-/** Pricing-table rows — order defines column order in getCreativesDesignPlansForPricing. */
+/** Pricing-table rows - order defines column order in getCreativesDesignPlansForPricing. */
 const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "monthly_assets",
@@ -50,7 +50,7 @@ const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "version_control",
 		label: "Version history",
-		description: "Every revision tracked — never lose an earlier draft",
+		description: "Every revision tracked - never lose an earlier draft",
 	},
 	{
 		key: "client_approval",
@@ -123,7 +123,7 @@ const PRODUCT = {
 	id: CREATIVES_DESIGN_PRODUCT_ID,
 	name: "Creatives & Design",
 	description:
-		"Professional creative production from Nisc Cloud — social posts, ad creatives, print, and brand assets delivered through your own review portal. Submit briefs, approve online, and keep every version in one library with AI quality scoring built in.",
+		"Professional creative production from Nisc Cloud - social posts, ad creatives, print, and brand assets delivered through your own review portal. Submit briefs, approve online, and keep every version in one library with AI quality scoring built in.",
 	category: "MARKETING",
 	serviceType: "creatives_design",
 	isActive: true,
@@ -214,7 +214,7 @@ const PLANS: PlanSeed[] = [
 		id: CREATIVES_DESIGN_PLAN_IDS.starter,
 		name: "Starter",
 		description:
-			"5 social creatives per month — ideal for small businesses building a consistent online presence.",
+			"5 social creatives per month - ideal for small businesses building a consistent online presence.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "5999.00",
@@ -243,7 +243,7 @@ const PLANS: PlanSeed[] = [
 		id: CREATIVES_DESIGN_PLAN_IDS.growth,
 		name: "Growth",
 		description:
-			"15 deliverables per month with ad creatives, creative direction, and faster turnaround — built for active campaigns.",
+			"15 deliverables per month with ad creatives, creative direction, and faster turnaround - built for active campaigns.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "14999.00",
@@ -275,7 +275,7 @@ const PLANS: PlanSeed[] = [
 		id: CREATIVES_DESIGN_PLAN_IDS.pro,
 		name: "Pro",
 		description:
-			"40 deliverables per month across social, ads, print, brand, and video — with priority production and a dedicated contact.",
+			"40 deliverables per month across social, ads, print, brand, and video - with priority production and a dedicated contact.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "34999.00",

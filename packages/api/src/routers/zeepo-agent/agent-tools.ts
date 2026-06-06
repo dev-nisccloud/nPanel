@@ -267,13 +267,13 @@ export type GetHostingResourcesArgs = z.infer<typeof getHostingResourcesArgsSche
 export const getHostingDetailArgsSchema = z.object({
 	/** The domain / primary domain of the hosting subscription to retrieve. */
 	domain: z.string().min(3).max(253),
-	/** Include DNS records. Default false — only set true when the user explicitly asks. */
+	/** Include DNS records. Default false - only set true when the user explicitly asks. */
 	include_dns: z.boolean().optional().default(false),
-	/** Include mail accounts summary. Default false — only set true when the user asks about mail/email accounts. */
+	/** Include mail accounts summary. Default false - only set true when the user asks about mail/email accounts. */
 	include_mail: z.boolean().optional().default(false),
-	/** Include subdomains list. Default false — only set true when the user asks about subdomains. */
+	/** Include subdomains list. Default false - only set true when the user asks about subdomains. */
 	include_subdomains: z.boolean().optional().default(false),
-	/** Include databases list. Default false — only set true when the user asks about databases. */
+	/** Include databases list. Default false - only set true when the user asks about databases. */
 	include_databases: z.boolean().optional().default(false),
 });
 export type GetHostingDetailArgs = z.infer<typeof getHostingDetailArgsSchema>;
@@ -382,7 +382,7 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
    - Agency: live Plesk data for ALL webspaces, enriched with billing info from the database.
    - Customer: shows only the team's web hosting subscriptions from the database.
    When to call: user asks "show my hosting", "list hosting plans", "what hosting do we have", "show all hosting resources", or any variant requesting a list of existing hosting accounts.
-   After results: the card is rendered in the UI — write a SHORT follow-up (2–4 sentences) covering total/active/suspended counts and highlighting any suspended or expiring subscriptions. NEVER echo raw field values (IP addresses, disk bytes, internal IDs).
+   After results: the card is rendered in the UI - write a SHORT follow-up (2–4 sentences) covering total/active/suspended counts and highlighting any suspended or expiring subscriptions. NEVER echo raw field values (IP addresses, disk bytes, internal IDs).
 
 6) get_hosting_detail  ← NISC CLOUD INTERNAL TOOL
    Purpose: fetch full live detail for a single hosting subscription identified by its primary domain name. Supports optional on-demand sections.
@@ -400,13 +400,13 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
      - databases: [{ name, type }]
    Authorization: agency can query any subscription; customer can only query subscriptions belonging to their organisation.
    When to call: user asks "show details for [domain] hosting", "get hosting info for [domain]", "how much disk is [domain] using", "is [domain] hosting active", "when does [domain] hosting expire".
-   IMPORTANT — set include flags based on what the user EXPLICITLY asks:
+   IMPORTANT - set include flags based on what the user EXPLICITLY asks:
    - Default (overview + billing only): all flags false.
    - User asks about DNS: include_dns = true.
    - User asks about email/mail accounts: include_mail = true.
    - User asks about subdomains: include_subdomains = true.
    - User asks about databases: include_databases = true.
-   After results: the detail card is already rendered in the UI — write a SHORT follow-up (1–3 sentences).
+   After results: the detail card is already rendered in the UI - write a SHORT follow-up (1–3 sentences).
    - Always: summarise status, disk usage, expiry.
    - If include_mail true: briefly list mail accounts (email address only) and suggest user ask for details on a specific one if they want more.
    - If include_dns/subdomains/databases true: note counts found; do NOT paste full raw data in text.
@@ -419,14 +419,14 @@ export const TOOL_DEFINITIONS_FOR_PROMPT = `Available tools (call any of them th
      - include_nameservers?: boolean (default false) - set true when the user asks for nameservers.
      - include_dns?        : boolean (default false) - set true when the user explicitly asks for DNS records. DNS is only returned when the domain has connected Plesk hosting; if it has no hosting the tool returns a note explaining this.
    Authorization: agency users can look up any portfolio domain; customer users can only look up domains owned by their organisation - the tool returns accessDenied: true for others.
-   Returns: { found, status, expiryDate, registrationDate, renewalDate, autoRenewal, isLocked, isDnssecEnabled, hasHosting, hostingPlanName, nameservers?, dnsRecords?, dnsNote? } — internal-only fields (source, registrantHandle, adminHandle, techHandle) are present in the payload but MUST NOT be shown or mentioned to the user.
+   Returns: { found, status, expiryDate, registrationDate, renewalDate, autoRenewal, isLocked, isDnssecEnabled, hasHosting, hostingPlanName, nameservers?, dnsRecords?, dnsNote? } - internal-only fields (source, registrantHandle, adminHandle, techHandle) are present in the payload but MUST NOT be shown or mentioned to the user.
    When to call: user asks "tell me about [domain]", "get details for [domain]", "check [domain]", "what nameservers does [domain] use", "show DNS for [domain]", "does [domain] have hosting".
    IMPORTANT - set include flags based on what the user EXPLICITLY asks for:
    - Default call (overview + hosting check only): both flags false.
    - User asks about nameservers: include_nameservers = true.
    - User asks about DNS records: include_dns = true.
    - User asks for "full details" or "everything": both true.
-   After results: the detail card is already rendered in the UI — write a SHORT plain-text follow-up (1–3 sentences) that ONLY mentions: status, expiry date, and hosting status. Do NOT narrate or repeat any other fields. NEVER mention or echo: source, registrantHandle, adminHandle, techHandle, isLocked value, isDnssecEnabled value, pleskSiteId, or any internal identifier. If include_nameservers was true, you may briefly list the nameservers in text. If include_dns was true and dnsRecords are present, you may note how many records were found — do NOT paste the full DNS table in text (the card already shows it). If dnsNote is present, quote it once briefly.
+   After results: the detail card is already rendered in the UI - write a SHORT plain-text follow-up (1–3 sentences) that ONLY mentions: status, expiry date, and hosting status. Do NOT narrate or repeat any other fields. NEVER mention or echo: source, registrantHandle, adminHandle, techHandle, isLocked value, isDnssecEnabled value, pleskSiteId, or any internal identifier. If include_nameservers was true, you may briefly list the nameservers in text. If include_dns was true and dnsRecords are present, you may note how many records were found - do NOT paste the full DNS table in text (the card already shows it). If dnsNote is present, quote it once briefly.
 
 8) get_web_hosting_plans  ← NISC CLOUD INTERNAL TOOL
    Purpose: fetch the current web/website hosting plans available on Nisc Cloud and display them as a purchasable pricing card. ALWAYS use this when the user asks about web hosting, website hosting, hosting plans, or wants to compare or buy a hosting package - never guess pricing or direct users elsewhere.

@@ -2,7 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { and, eq, ilike, sql } from "@npanel/db";
 import { db } from "@npanel/db";
-import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
+import {
+	niscClientSubscription,
+	niscProduct,
+	niscProductPlan,
+} from "@npanel/db/schema/products";
 import { team, teamMember } from "@npanel/db/schema/teams";
 
 export type TeamHivelocityResourceCategory = "vps" | "vds" | "dedicated";
@@ -23,8 +27,99 @@ export const teamHivelocityAccessSchema = z
 		}
 	});
 
-const isAgencyUserRole = (role: string | null | undefined) =>
+export const isAgencyUserRole = (role: string | null | undefined) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+
+export type TeamHivelocitySubscriptionContext = {
+	subscriptionId: string;
+	status: string;
+	name: string | null;
+	agreedPrice: string | null;
+	agreedCurrency: string | null;
+	billingCycle: string | null;
+	productId: string;
+	productName: string;
+	productPlanName: string | null;
+};
+
+function parseLinkedDeviceId(serviceRefs: unknown): number | null {
+	const refs = serviceRefs as Record<string, unknown> | null;
+	const raw = refs?.hivelocityDeviceId;
+	const n = typeof raw === "number" ? raw : typeof raw === "string" ? parseInt(raw, 10) : NaN;
+	return !Number.isNaN(n) && n > 0 ? n : null;
+}
+
+/** Subscription rows linked to Hivelocity devices for a team + product category. */
+export async function collectTeamHivelocitySubscriptionContext(
+	teamId: string,
+	category: TeamHivelocityResourceCategory,
+): Promise<Map<number, TeamHivelocitySubscriptionContext>> {
+	const productCond = productNameConditionForCategory(category);
+	const rows = await db
+		.select({
+			subscriptionId: niscClientSubscription.id,
+			status: niscClientSubscription.status,
+			name: niscClientSubscription.name,
+			agreedPrice: niscClientSubscription.agreedPrice,
+			agreedCurrency: niscClientSubscription.agreedCurrency,
+			billingCycle: niscClientSubscription.billingCycle,
+			productId: niscClientSubscription.productId,
+			productName: niscProduct.name,
+			productPlanName: niscProductPlan.name,
+			serviceRefs: niscClientSubscription.serviceRefs,
+		})
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+		.leftJoin(niscProductPlan, eq(niscClientSubscription.productPlanId, niscProductPlan.id))
+		.where(and(eq(niscClientSubscription.teamId, teamId), productCond));
+
+	const out = new Map<number, TeamHivelocitySubscriptionContext>();
+	for (const row of rows) {
+		const deviceId = parseLinkedDeviceId(row.serviceRefs);
+		if (deviceId == null) continue;
+		out.set(deviceId, {
+			subscriptionId: row.subscriptionId,
+			status: row.status,
+			name: row.name,
+			agreedPrice: row.agreedPrice,
+			agreedCurrency: row.agreedCurrency,
+			billingCycle: row.billingCycle,
+			productId: row.productId,
+			productName: row.productName,
+			productPlanName: row.productPlanName,
+		});
+	}
+	return out;
+}
+
+export function buildHivelocitySubscriptionServiceLabel(ctx: TeamHivelocitySubscriptionContext): string {
+	const trimmedName = ctx.name?.trim();
+	if (trimmedName) return trimmedName;
+	const base = ctx.productPlanName?.trim()
+		? `${ctx.productName} - ${ctx.productPlanName}`
+		: ctx.productName;
+	return base;
+}
+
+export function redactSuspendedHivelocityResourceForCustomer(
+	deviceId: number,
+	resourceType: TeamHivelocityResourceCategory,
+	sub: TeamHivelocitySubscriptionContext,
+) {
+	const amount = sub.agreedPrice != null ? Number.parseFloat(sub.agreedPrice) : 0;
+	return {
+		deviceId,
+		id: deviceId,
+		resourceType,
+		panelSuspended: true as const,
+		subscriptionId: sub.subscriptionId,
+		serviceLabel: buildHivelocitySubscriptionServiceLabel(sub),
+		reactivationAmount: Number.isFinite(amount) ? amount : 0,
+		reactivationCurrency: sub.agreedCurrency ?? "KES",
+		billingCycle: sub.billingCycle,
+		productId: sub.productId,
+	};
+}
 
 function productNameConditionForCategory(category: TeamHivelocityResourceCategory) {
 	if (category === "vps") return ilike(niscProduct.name, "%vps hosting%");
@@ -83,6 +178,38 @@ export async function collectHivelocityDeviceIdsForTeam(
 	return out;
 }
 
+async function assertHivelocitySubscriptionActiveForCustomer(params: {
+	teamId: string;
+	deviceId: number;
+	category: TeamHivelocityResourceCategory;
+	role: string | null | undefined;
+}): Promise<void> {
+	if (isAgencyUserRole(params.role)) return;
+
+	const productCond = productNameConditionForCategory(params.category);
+	const idStr = String(params.deviceId);
+	const [row] = await db
+		.select({ status: niscClientSubscription.status })
+		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+		.where(
+			and(
+				eq(niscClientSubscription.teamId, params.teamId),
+				productCond,
+				sql`(${niscClientSubscription.serviceRefs}->>'hivelocityDeviceId') = ${idStr}`,
+			),
+		)
+		.limit(1);
+
+	if (row?.status === "SUSPENDED") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message:
+				"This server has been suspended and is temporarily unavailable. Contact your provider to restore access.",
+		});
+	}
+}
+
 export async function assertHivelocityDeviceLinkedToTeam(params: {
 	teamSlug: string;
 	deviceId: number;
@@ -99,6 +226,12 @@ export async function assertHivelocityDeviceLinkedToTeam(params: {
 	if (!allowed.has(params.deviceId)) {
 		throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this server" });
 	}
+	await assertHivelocitySubscriptionActiveForCustomer({
+		teamId,
+		deviceId: params.deviceId,
+		category: params.category,
+		role: params.role,
+	});
 }
 
 type SessionUser = { id: string; role: string | null };

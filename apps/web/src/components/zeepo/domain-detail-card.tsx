@@ -26,7 +26,7 @@ import type {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso?: string | null): string {
-	if (!iso) return "—";
+	if (!iso) return "-";
 	try {
 		return new Intl.DateTimeFormat("en-KE", {
 			day: "2-digit",
@@ -162,7 +162,7 @@ function DnsTable({ records }: { records: AgentDomainDetailDnsRecord[] }) {
 							<td className="px-3 py-1.5 font-mono font-medium">{r.type}</td>
 							<td className="px-3 py-1.5 font-mono max-w-[180px] truncate" title={r.host}>{r.host || "@"}</td>
 							<td className="px-3 py-1.5 font-mono max-w-[200px] truncate" title={r.value}>{r.value}</td>
-							<td className="px-3 py-1.5 text-muted-foreground">{r.ttl ?? "—"}</td>
+							<td className="px-3 py-1.5 text-muted-foreground">{r.ttl ?? "-"}</td>
 						</tr>
 					))}
 				</tbody>
@@ -229,7 +229,7 @@ export function ZeepoDomainDetailCard({ result }: ZeepoDomainDetailCardProps) {
 					{isExpiringSoon && (
 						<div className="flex items-center gap-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 px-3 py-2 text-xs text-orange-700 dark:text-orange-400">
 							<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-							Domain expires in {days} day{days === 1 ? "" : "s"} — renewal recommended.
+							Domain expires in {days} day{days === 1 ? "" : "s"} - renewal recommended.
 						</div>
 					)}
 
@@ -257,13 +257,13 @@ export function ZeepoDomainDetailCard({ result }: ZeepoDomainDetailCardProps) {
 											: "text-amber-600 dark:text-amber-400",
 									)}
 								>
-									{result.autoRenewal === undefined ? "—" : result.autoRenewal ? "On" : "Off"}
+									{result.autoRenewal === undefined ? "-" : result.autoRenewal ? "On" : "Off"}
 								</span>
 							</InfoRow>
 							{(result.registrantHandle || result.registrantName) && (
 								<InfoRow label="Registrant">
 									<span className="text-sm">
-										{result.registrantName ?? result.registrantHandle ?? "—"}
+										{result.registrantName ?? result.registrantHandle ?? "-"}
 									</span>
 								</InfoRow>
 							)}

@@ -125,7 +125,7 @@ type ChatMessage =
     message: string;
     timestamp: Date;
     attachments?: ChatMessageAttachment[];
-    /** Agency agent display name — shown above bubble on agency view only */
+    /** Agency agent display name - shown above bubble on agency view only */
     senderLabel?: string;
   }
   | {
@@ -134,7 +134,7 @@ type ChatMessage =
     message: string;
     timestamp: Date;
     attachments?: ChatMessageAttachment[];
-    /** Agency agent display name — shown above bubble on agency view only */
+    /** Agency agent display name - shown above bubble on agency view only */
     senderLabel?: string;
   };
 
@@ -295,7 +295,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     userRole === "AGENCY_ADMIN" ||
     userRole === "AGENCY_SUPER_ADMIN";
 
-  // Optimistic local read tracker — clears unread badge immediately when chat opened
+  // Optimistic local read tracker - clears unread badge immediately when chat opened
   const [locallyReadIds, setLocallyReadIds] = React.useState<Set<string>>(new Set());
 
   // Data fetching hooks
@@ -994,7 +994,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 ) : (
                   <div className="divide-y divide-border">
                     {tickets.map((ticket) => {
-                      // Effective unread count — cleared immediately when chat is opened locally
+                      // Effective unread count - cleared immediately when chat is opened locally
                       const effectiveUnread = locallyReadIds.has(ticket.id) ? 0 : ticket.unreadCount;
                       // Title: agency shows customer name, customer shows ticket subject/number
                       const ticketTitle = isAgency
@@ -1044,7 +1044,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                             </span>
                           </button>
 
-                          {/* Actions menu — agency only */}
+                          {/* Actions menu - agency only */}
                           {isAgency && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

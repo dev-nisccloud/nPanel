@@ -728,14 +728,31 @@ export const niscServiceOrdersRouter = router({
 						});
 					}
 					if (
-						!/^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(
-							meta.hivelocityHostname.trim(),
-						)
+						meta.operation !== "vps_upgrade" &&
+						meta.operation !== "vps_reload" &&
+						meta.operation !== "vps_reactivate"
 					) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Server hostname must be a valid FQDN.",
-						});
+						if (
+							!/^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i.test(
+								meta.hivelocityHostname.trim(),
+							)
+						) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Server hostname must be a valid FQDN.",
+							});
+						}
+					} else if (
+						meta.operation === "vps_reactivate" ||
+						meta.operation === "vps_upgrade" ||
+						meta.operation === "vps_reload"
+					) {
+						if (product.serviceType !== "vps_hosting") {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "VPS in-place orders must use the VPS hosting product.",
+							});
+						}
 					}
 				}
 			}

@@ -41,6 +41,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { BuyNowDialogBodyScroll } from "@/components/buy-now-dialog-scroll";
 import {
 	Accordion,
 	AccordionContent,
@@ -150,6 +151,41 @@ export interface ServicePlanDetails {
     hourlyRateDisplay?: number;
     disabledBillingPeriods?: string[];
     stock?: "available" | "limited" | "unavailable";
+    /** In-place VPS scale-up from an existing instance (skips OS/hostname config). */
+    upgrade?: {
+      targetDeviceId: number;
+      currentHostname: string;
+      currentLocationName: string;
+      currentOsName: string;
+      currentMonthlyUsd: number;
+      targetMonthlyUsd: number;
+      upgradeDeltaUsd: number;
+      targetPlanName: string;
+      targetVcpu?: string;
+      targetMemory?: string;
+      targetDisk?: string;
+      targetDisplayMonthlyPrice?: number;
+    };
+    /** In-place VPS OS reload with a paid OS license (skips OS/hostname config). */
+    reload?: {
+      targetDeviceId: number;
+      currentHostname: string;
+      currentLocationName: string;
+      currentOsName: string;
+      targetOsName: string;
+      targetOsOptionId: number;
+      osPriceUsd: number;
+      hivelocityProductId: number;
+      publicSshKeyIds?: number[];
+    };
+    /** Restore a suspended VPS after customer payment (no upstream details in checkout UI). */
+    reactivate?: {
+      targetDeviceId: number;
+      subscriptionId: string;
+      serviceLabel: string;
+      reactivationAmount: number;
+      reactivationCurrency: string;
+    };
   };
 }
 
@@ -279,6 +315,10 @@ export function BuyNowDialog({
   agencyPortfolioCheckout = false,
 }: BuyNowDialogProps) {
   const isHivelocityPlan = Boolean(plan?.hivelocity);
+  const isHivelocityUpgrade = Boolean(plan?.hivelocity?.upgrade);
+  const isHivelocityReload = Boolean(plan?.hivelocity?.reload);
+  const isHivelocityReactivate = Boolean(plan?.hivelocity?.reactivate);
+  const isHivelocityInPlace = isHivelocityUpgrade || isHivelocityReload || isHivelocityReactivate;
   const isVpsOrVdsPlan =
     plan?.hivelocity?.productType === "VPS" || plan?.hivelocity?.productType === "VDS";
   const isSeoPlan = plan?.subType === "SEO";
@@ -306,9 +346,11 @@ export function BuyNowDialog({
     ? "seo_connect"
     : showDomainStep
       ? "domain"
-      : isHivelocityPlan
+      : isHivelocityPlan && !isHivelocityInPlace
         ? "hivelocity_config"
-        : shouldStartAtPayment
+        : isHivelocityInPlace
+          ? "review"
+          : shouldStartAtPayment
           ? "payment"
           : "review";
 
@@ -859,12 +901,12 @@ export function BuyNowDialog({
       setSelectedOsId(id);
       window.requestAnimationFrame(() => {
         if (!hivelocityHostnameSectionRef.current) return;
-        const viewport = dialogScrollContainerRef.current?.querySelector(
-          '[data-slot="scroll-area-viewport"]',
-        ) as HTMLElement | null;
+        const container = dialogScrollContainerRef.current;
+        const viewport =
+          (container?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null) ?? container;
         const target = hivelocityHostnameSectionRef.current;
-        if (!viewport) {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (!viewport || !target) {
+          target?.scrollIntoView({ behavior: "smooth", block: "start" });
           return;
         }
         const viewportRect = viewport.getBoundingClientRect();
@@ -881,6 +923,47 @@ export function BuyNowDialog({
   // Calculate pricing using useMemo to ensure proper reactivity
   const hivelocityInvoiceBreakdown = React.useMemo(() => {
     if (!plan?.hivelocity) return null;
+
+    if (plan.hivelocity.upgrade) {
+      const u = plan.hivelocity.upgrade;
+      const baseAmountExVat = plan.price;
+      return buildHivelocityInvoiceBreakdown({
+        serviceProductName: plan.planType,
+        planIdentifier: u.targetPlanName,
+        locationLabel: `${u.currentLocationName} · Device #${u.targetDeviceId} · Monthly increase`,
+        baseAmountExVat,
+        os: null,
+        addons: [],
+      });
+    }
+
+    if (plan.hivelocity.reload) {
+      const r = plan.hivelocity.reload;
+      return buildHivelocityInvoiceBreakdown({
+        serviceProductName: plan.planType,
+        planIdentifier: r.targetOsName,
+        locationLabel: `${r.currentLocationName} · Device #${r.targetDeviceId} · OS license`,
+        baseAmountExVat: 0,
+        os: {
+          id: r.targetOsOptionId,
+          name: r.targetOsName,
+          amountExVat: plan.price,
+        },
+        addons: [],
+      });
+    }
+
+    if (plan.hivelocity.reactivate) {
+      const r = plan.hivelocity.reactivate;
+      return buildHivelocityInvoiceBreakdown({
+        serviceProductName: plan.planType,
+        planIdentifier: r.serviceLabel,
+        locationLabel: "Restore suspended service access",
+        baseAmountExVat: plan.price,
+        os: null,
+        addons: [],
+      });
+    }
 
     const osDisplay = selectedOs
       ? convertOptionUsdToDisplay(encodeNumber(selectedOs.monthlyPrice), "os")
@@ -959,9 +1042,11 @@ export function BuyNowDialog({
         ? "seo_connect"
         : showDomainStep
           ? "domain"
-          : plan.hivelocity
-            ? "hivelocity_config"
-            : shouldStartAtPayment
+          : plan.hivelocity?.upgrade || plan.hivelocity?.reload
+            ? "review"
+            : plan.hivelocity
+              ? "hivelocity_config"
+              : shouldStartAtPayment
               ? "payment"
               : "review";
       setCurrentStep(first);
@@ -1151,7 +1236,104 @@ export function BuyNowDialog({
   });
 
   const buildHivelocityPaymentItem = React.useCallback((): CreateFromPaymentInput["items"][number] | null => {
-    if (!plan?.hivelocity || !hivelocityInvoiceBreakdown || !selectedOs) return null;
+    if (!plan?.hivelocity || !hivelocityInvoiceBreakdown) return null;
+
+    if (plan.hivelocity.upgrade) {
+      const u = plan.hivelocity.upgrade;
+      return {
+        productId: plan.productId,
+        productPlanId: null,
+        billingCycle: "MONTHLY",
+        description: `VPS upgrade to ${u.targetPlanName} (device ${u.targetDeviceId})`,
+        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+        itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
+        metadata: {
+          operation: "vps_upgrade",
+          hivelocityProductId: plan.hivelocity.hivelocityProductId,
+          hivelocityTargetDeviceId: u.targetDeviceId,
+          hivelocityCurrentProductId: undefined,
+          upgradeDeltaUsd: u.upgradeDeltaUsd,
+          hivelocityLocationName: u.currentLocationName,
+          hivelocityOsName: u.currentOsName,
+          hivelocityHostname: u.currentHostname,
+          hivelocityPeriod: "monthly",
+          hivelocityOptionIds: [],
+          basePriceUsd: u.upgradeDeltaUsd,
+          osPriceUsd: 0,
+          addonsPriceUsd: 0,
+          subtotalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.subtotalExVat),
+          totalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.totalIncVat),
+          usdToKesRate: usdToKesRate ?? undefined,
+          invoiceLines: hivelocityInvoiceBreakdown.lines,
+          productType: "VPS",
+        },
+      };
+    }
+
+    if (plan.hivelocity.reload) {
+      const r = plan.hivelocity.reload;
+      return {
+        productId: plan.productId,
+        productPlanId: null,
+        billingCycle: "MONTHLY",
+        description: `VPS OS reload to ${r.targetOsName} (device ${r.targetDeviceId})`,
+        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+        itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
+        metadata: {
+          operation: "vps_reload",
+          hivelocityProductId: r.hivelocityProductId,
+          hivelocityTargetDeviceId: r.targetDeviceId,
+          hivelocityLocationName: r.currentLocationName,
+          hivelocityOsName: r.targetOsName,
+          hivelocityOsOptionId: r.targetOsOptionId,
+          hivelocityHostname: r.currentHostname,
+          hivelocityPeriod: "monthly",
+          hivelocityOptionIds: [],
+          hivelocityPublicSshKeyIds: r.publicSshKeyIds,
+          basePriceUsd: 0,
+          osPriceUsd: r.osPriceUsd,
+          addonsPriceUsd: 0,
+          subtotalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.subtotalExVat),
+          totalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.totalIncVat),
+          usdToKesRate: usdToKesRate ?? undefined,
+          invoiceLines: hivelocityInvoiceBreakdown.lines,
+          productType: "VPS",
+        },
+      };
+    }
+
+    if (plan.hivelocity.reactivate) {
+      const r = plan.hivelocity.reactivate;
+      return {
+        productId: plan.productId,
+        productPlanId: null,
+        billingCycle: plan.billingCycle,
+        description: `Restore ${r.serviceLabel}`,
+        itemPrice: paymentTotalString(hivelocityInvoiceBreakdown.totalIncVat),
+        itemSubtotal: paymentTotalString(hivelocityInvoiceBreakdown.subtotalExVat),
+        metadata: {
+          operation: "vps_reactivate",
+          niscSubscriptionId: r.subscriptionId,
+          hivelocityProductId: plan.hivelocity!.hivelocityProductId,
+          hivelocityTargetDeviceId: r.targetDeviceId,
+          hivelocityLocationName: "Reactivation",
+          hivelocityOsName: "Reactivation",
+          hivelocityHostname: "reactivation.local",
+          hivelocityPeriod: "monthly",
+          hivelocityOptionIds: [],
+          basePriceUsd: r.reactivationAmount,
+          osPriceUsd: 0,
+          addonsPriceUsd: 0,
+          subtotalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.subtotalExVat),
+          totalKes: ceilConvertedPrice(hivelocityInvoiceBreakdown.totalIncVat),
+          usdToKesRate: usdToKesRate ?? undefined,
+          invoiceLines: hivelocityInvoiceBreakdown.lines,
+          productType: "VPS",
+        },
+      };
+    }
+
+    if (!selectedOs) return null;
 
     const osPriceUsd = getOptionUsdForBillingPeriod(
       encodeNumber(selectedOs.monthlyPrice),
@@ -2200,28 +2382,141 @@ export function BuyNowDialog({
               <div className="space-y-4 pr-4">
                 {plan.hivelocity ? (
                   <>
+                    {plan.hivelocity.upgrade ? (
+                      <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 px-3 py-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                        <p className="font-semibold">Before checkout</p>
+                        <p>
+                          The VPS must be powered off before the upgrade runs. Shut it down from the overview tab and wait until status is off, then complete payment.
+                        </p>
+                        <p>Your data is preserved during the upgrade. Downgrades are not supported.</p>
+                      </div>
+                    ) : null}
+                    {plan.hivelocity.reload ? (
+                      <div className="rounded-md border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 px-3 py-3 text-xs text-red-900 dark:text-red-200 space-y-1">
+                        <p className="font-semibold">Before checkout</p>
+                        <p>
+                          The VPS must be powered off before the reload runs. Shut it down from the overview tab and wait until status is off, then complete payment.
+                        </p>
+                        <p>All data on the primary disk will be permanently deleted when the reload starts.</p>
+                      </div>
+                    ) : null}
+                    {plan.hivelocity.reactivate ? (
+                      <div className="rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 px-3 py-3 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                        <p className="font-semibold">Service restoration</p>
+                        <p>
+                          Pay the recurring charge below to restore access. Your service will be reactivated automatically after payment is confirmed.
+                        </p>
+                      </div>
+                    ) : null}
                     <div className="rounded-xl border bg-muted/30 p-4">
                       <div className="font-semibold text-foreground line-clamp-2 break-words">{plan.planName}</div>
                       <div className="text-sm text-muted-foreground mt-1">{plan.planType}</div>
                       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                        <div className="rounded-md border bg-background/70 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Billing period</p>
-                          <p className="font-medium text-foreground mt-0.5">{getHivelocityPeriodLabel(hivelocityPeriod)}</p>
-                        </div>
-                        <div className="rounded-md border bg-background/70 px-3 py-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Location</p>
-                          <p className="font-medium text-foreground mt-0.5">
-                            {plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName}
-                          </p>
-                        </div>
-                        <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Operating system</p>
-                          <p className="font-medium text-foreground mt-0.5">{selectedOs?.name ?? "Not selected"}</p>
-                        </div>
-                        <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
-                          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hostname</p>
-                          <p className="font-medium text-foreground mt-0.5 break-all">{hostname || "Not provided"}</p>
-                        </div>
+                        {plan.hivelocity.reactivate ? (
+                          <>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Service</p>
+                              <p className="font-medium text-foreground mt-0.5">
+                                {plan.hivelocity.reactivate.serviceLabel}
+                              </p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Recurring charge</p>
+                              <p className="font-medium text-foreground mt-0.5">
+                                {formatPrice(plan.price, plan.currency)}
+                              </p>
+                            </div>
+                          </>
+                        ) : plan.hivelocity.reload ? (
+                          <>
+                            <div className="rounded-md border bg-background/70 px-3 py-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Device</p>
+                              <p className="font-medium text-foreground mt-0.5">#{plan.hivelocity.reload.targetDeviceId}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Location</p>
+                              <p className="font-medium text-foreground mt-0.5">{plan.hivelocity.reload.currentLocationName}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Target operating system</p>
+                              <p className="font-medium text-foreground mt-0.5">{plan.hivelocity.reload.targetOsName}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Replacing {plan.hivelocity.reload.currentOsName}
+                              </p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hostname</p>
+                              <p className="font-medium text-foreground mt-0.5 break-all">{plan.hivelocity.reload.currentHostname}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">OS license</p>
+                              <p className="font-medium text-foreground mt-0.5">
+                                {formatPrice(plan.price, plan.currency)}/mo
+                              </p>
+                            </div>
+                          </>
+                        ) : plan.hivelocity.upgrade ? (
+                          <>
+                            <div className="rounded-md border bg-background/70 px-3 py-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Device</p>
+                              <p className="font-medium text-foreground mt-0.5">#{plan.hivelocity.upgrade.targetDeviceId}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Location</p>
+                              <p className="font-medium text-foreground mt-0.5">{plan.hivelocity.upgrade.currentLocationName}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Target plan</p>
+                              <p className="font-medium text-foreground mt-0.5">{plan.hivelocity.upgrade.targetPlanName}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {[
+                                  plan.hivelocity.upgrade.targetVcpu && `${plan.hivelocity.upgrade.targetVcpu} vCPU`,
+                                  plan.hivelocity.upgrade.targetMemory && `${plan.hivelocity.upgrade.targetMemory} RAM`,
+                                  plan.hivelocity.upgrade.targetDisk && `${plan.hivelocity.upgrade.targetDisk} disk`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hostname</p>
+                              <p className="font-medium text-foreground mt-0.5 break-all">{plan.hivelocity.upgrade.currentHostname}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Pricing</p>
+                              <p className="font-medium text-foreground mt-0.5">
+                                Monthly increase: {formatPrice(plan.price, plan.currency)}/mo
+                              </p>
+                              {plan.hivelocity.upgrade.targetDisplayMonthlyPrice != null ? (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  New plan total after upgrade:{" "}
+                                  {formatPrice(plan.hivelocity.upgrade.targetDisplayMonthlyPrice, plan.currency)}/mo
+                                </p>
+                              ) : null}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="rounded-md border bg-background/70 px-3 py-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Billing period</p>
+                              <p className="font-medium text-foreground mt-0.5">{getHivelocityPeriodLabel(hivelocityPeriod)}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Location</p>
+                              <p className="font-medium text-foreground mt-0.5">
+                                {plan.hivelocity.locationDisplayName ?? plan.hivelocity.locationName}
+                              </p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Operating system</p>
+                              <p className="font-medium text-foreground mt-0.5">{selectedOs?.name ?? "Not selected"}</p>
+                            </div>
+                            <div className="rounded-md border bg-background/70 px-3 py-2 sm:col-span-2">
+                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Hostname</p>
+                              <p className="font-medium text-foreground mt-0.5 break-all">{hostname || "Not provided"}</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -2362,7 +2657,7 @@ export function BuyNowDialog({
 
       case "payment":
         return (
-          <div className="max-w-[calc(100%-0.75rem)] space-y-4 pr-2">
+          <div className="space-y-4">
             <div className="text-center py-2">
               <h3 className="text-lg font-semibold text-foreground mb-2">
                 Choose Payment Method
@@ -2745,7 +3040,7 @@ export function BuyNowDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "!grid max-h-[90vh] !flex !flex-col overflow-hidden w-full p-0 gap-0",
+          "flex max-h-[90vh] flex-col overflow-hidden w-full p-0 gap-0",
           currentStep === "team_billing" ? "sm:max-w-2xl" : "sm:max-w-[600px]",
         )}
       >
@@ -2795,13 +3090,9 @@ export function BuyNowDialog({
           ) : null}
         </DialogHeader>
 
-        <div ref={dialogScrollContainerRef} className="flex-1 min-h-0 px-6 overflow-hidden">
-          <ScrollArea className="h-full" thumbClassName="bg-primary">
-            <div className="py-4 min-w-0 w-full max-w-[calc(100%-0.5rem)] pr-4">
-              {renderStep()}
-            </div>
-          </ScrollArea>
-        </div>
+        <BuyNowDialogBodyScroll scrollRef={dialogScrollContainerRef}>
+          {renderStep()}
+        </BuyNowDialogBodyScroll>
 
         <DialogFooter
           className={cn(
@@ -2912,7 +3203,7 @@ export function BuyNowDialog({
                   Back
                 </Button>
               )}
-              {!showAgencyBillingStep && !showSeoConnectStep && !showDomainStep && isHivelocityPlan && (
+              {!showAgencyBillingStep && !showSeoConnectStep && !showDomainStep && isHivelocityPlan && !isHivelocityInPlace && (
                 <Button variant="outline" onClick={() => setCurrentStep("hivelocity_config")}>
                   Back
                 </Button>
