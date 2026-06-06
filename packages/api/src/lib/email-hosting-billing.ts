@@ -1,5 +1,5 @@
 /**
- * Email hosting — stable product and plan ids (seeded by apps/server).
+ * Email hosting - stable product and plan ids (seeded by apps/server).
  */
 
 export const NISC_EMAIL_HOSTING_PRODUCT_ID = "nisc-email-hosting";

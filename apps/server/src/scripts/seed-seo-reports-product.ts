@@ -26,7 +26,7 @@ type ProductFeature = {
 	description: string;
 };
 
-/** Pricing-table rows — agency deliverables customers expect from SEO (not platform UI). */
+/** Pricing-table rows - agency deliverables customers expect from SEO (not platform UI). */
 const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "websites",
@@ -76,7 +76,7 @@ const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "performance_reporting",
 		label: "Performance reporting",
-		description: "Clear reports on rankings, traffic, and conversions — delivered on a regular cadence",
+		description: "Clear reports on rankings, traffic, and conversions - delivered on a regular cadence",
 	},
 	{
 		key: "strategy_reviews",
@@ -94,7 +94,7 @@ const PRODUCT = {
 	id: NISC_SEO_REPORTS_PRODUCT_ID,
 	name: "SEO",
 	description:
-		"Done-for-you search engine optimization from Nisc Cloud — keyword strategy, on-page and technical fixes, content optimization, and off-page growth. Track rankings, traffic, and results anytime in your SEO Reports portal.",
+		"Done-for-you search engine optimization from Nisc Cloud - keyword strategy, on-page and technical fixes, content optimization, and off-page growth. Track rankings, traffic, and results anytime in your SEO Reports portal.",
 	category: "MARKETING",
 	serviceType: "nisc_seo_reports",
 	isActive: true,
@@ -105,7 +105,7 @@ const PRODUCT = {
 		"Technical SEO audits and fixes that unblock Google visibility",
 		"Content and local SEO support as your business grows",
 		"Off-page and competitor insights on higher plans",
-		"Live performance reports in your portal — see what we delivered",
+		"Live performance reports in your portal - see what we delivered",
 	],
 	isAddOn: false,
 	metadata: {
@@ -186,7 +186,7 @@ const PLANS: PlanSeed[] = [
 		id: NISC_SEO_REPORTS_PLAN_IDS.starter,
 		name: "Starter",
 		description:
-			"Essential SEO for one website — keyword research, on-page fixes, and monthly reporting to get you ranking.",
+			"Essential SEO for one website - keyword research, on-page fixes, and monthly reporting to get you ranking.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "9999.00",
@@ -214,7 +214,7 @@ const PLANS: PlanSeed[] = [
 		id: NISC_SEO_REPORTS_PLAN_IDS.growth,
 		name: "Growth",
 		description:
-			"Scale organic traffic across three sites — content optimization, local SEO, competitor insights, and bi-weekly strategy reviews.",
+			"Scale organic traffic across three sites - content optimization, local SEO, competitor insights, and bi-weekly strategy reviews.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "24999.00",
@@ -245,7 +245,7 @@ const PLANS: PlanSeed[] = [
 		id: NISC_SEO_REPORTS_PLAN_IDS.pro,
 		name: "Pro",
 		description:
-			"Full-service SEO for up to ten websites — aggressive content, advanced link building, weekly strategy, and priority technical support.",
+			"Full-service SEO for up to ten websites - aggressive content, advanced link building, weekly strategy, and priority technical support.",
 		pricingModel: "FIXED",
 		billingCycle: "MONTHLY",
 		priceKes: "59999.00",

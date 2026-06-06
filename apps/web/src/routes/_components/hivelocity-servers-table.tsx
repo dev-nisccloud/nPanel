@@ -5,6 +5,8 @@ import { Server, Search, RefreshCw, AlertCircle, Plus } from "lucide-react";
 import { skipToken } from "@tanstack/react-query";
 
 import { trpc } from "@/utils/trpc";
+import { HIVELOCITY_FACILITIES_QUERY_OPTIONS } from "@/lib/hivelocity-query-options";
+import { resolveClientErrorMessage } from "@/lib/public-error-message";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -151,13 +153,19 @@ function ServersTableSkeleton() {
 // Error state
 // ---------------------------------------------------------------------------
 
-function ServersTableError({ onRetry }: { onRetry: () => void }) {
+function ServersTableError({
+	onRetry,
+	errorMessage,
+}: {
+	onRetry: () => void;
+	errorMessage?: string;
+}) {
 	return (
 		<div className="flex flex-col items-center justify-center py-16 text-center">
 			<AlertCircle className="mb-4 h-10 w-10 text-muted-foreground" />
 			<h3 className="mb-1 text-base font-semibold">Failed to load servers</h3>
 			<p className="mb-4 text-sm text-muted-foreground max-w-xs">
-				Could not connect to the Hivelocity API. Check your API key in settings and try again.
+				{resolveClientErrorMessage({ message: errorMessage }, "Unable to load servers right now. Please try again.")}
 			</p>
 			<Button variant="outline" size="sm" onClick={onRetry}>
 				<RefreshCw className="mr-2 h-4 w-4" />
@@ -182,12 +190,12 @@ function emptyStateDescription(type: HivelocityServerType, teamScoped: boolean |
 		return "No dedicated servers are linked to your organization yet. Purchase dedicated servers hosting to manage them here, or change your search or filters.";
 	}
 	if (type === "vps") {
-		return "No VPS instances are provisioned in this Hivelocity account, or none match your search or filters.";
+		return "No VPS instances are provisioned yet, or none match your search or filters.";
 	}
 	if (type === "vds") {
-		return "No VDS servers are provisioned in this Hivelocity account, or none match your search or filters.";
+		return "No VDS servers are provisioned yet, or none match your search or filters.";
 	}
-	return "No dedicated servers are provisioned in this Hivelocity account, or none match your search or filters.";
+	return "No dedicated servers are provisioned yet, or none match your search or filters.";
 }
 
 function ServersTableEmpty({ type, teamScoped }: { type: HivelocityServerType; teamScoped?: boolean }) {
@@ -217,6 +225,49 @@ function normalizeResourceBasePath(base: string | undefined): string {
 		return b || "/agency";
 }
 
+function formatMs(ms: number | undefined): string {
+	return typeof ms === "number" && Number.isFinite(ms) ? `${ms}ms` : "—";
+}
+
+/** Dev-only: distinguish upstream API latency from our processing. */
+function ServersTimingDebug({ timing }: { timing: Record<string, unknown> | undefined }) {
+	if (!import.meta.env.DEV || !timing) return null;
+
+	const hivelocity = timing.hivelocity as
+		| { device?: { durationMs?: number; responseBytes?: number }; vps?: { durationMs?: number; responseBytes?: number }; parallelMs?: number }
+		| undefined;
+	const counts = timing.counts as { deviceRows?: number; vpsRows?: number; merged?: number } | undefined;
+	const db = timing.db as { teamLookupMs?: number; accessCheckMs?: number; subscriptionLookupMs?: number } | undefined;
+
+	return (
+		<details className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+			<summary className="cursor-pointer font-medium text-foreground">Load timing (debug)</summary>
+			<div className="mt-2 space-y-1 font-mono">
+				<p>Total: {formatMs(timing.totalMs as number)}</p>
+				{hivelocity ? (
+					<>
+						<p>Provider GET /device/: {formatMs(hivelocity.device?.durationMs)} ({hivelocity.device?.responseBytes ?? 0} bytes, {counts?.deviceRows ?? 0} rows)</p>
+						<p>Provider GET /vps/: {formatMs(hivelocity.vps?.durationMs)} ({hivelocity.vps?.responseBytes ?? 0} bytes, {counts?.vpsRows ?? 0} rows)</p>
+						<p>Parallel fetch wall time: {formatMs(hivelocity.parallelMs)}</p>
+					</>
+				) : null}
+				<p>Merge/normalize: {formatMs(timing.mergeMs as number)} ({counts?.merged ?? 0} merged)</p>
+				{typeof timing.scopeMs === "number" ? <p>Team scope filter: {formatMs(timing.scopeMs as number)}</p> : null}
+				{db ? (
+					<p>
+						DB: team {formatMs(db.teamLookupMs)}, access {formatMs(db.accessCheckMs)}, subscriptions {formatMs(db.subscriptionLookupMs)}
+					</p>
+				) : null}
+				<p>Filter/sort: {formatMs(timing.filterMs as number)} ({timing.filteredCount ?? 0} after filter)</p>
+				<p>Paginate: {formatMs(timing.paginateMs as number)} ({timing.returnedCount ?? 0} returned)</p>
+				<p className="pt-1 text-[11px] not-italic">
+					VPS tab still calls both /device/ and /vps/ even with few VPS servers. If /device/ is slow, the bottleneck is the provider returning the full account device list.
+				</p>
+			</div>
+		</details>
+	);
+}
+
 export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: HivelocityServersTableProps) {
 	const navigate = useNavigate();
 	const base = normalizeResourceBasePath(resourceBasePath);
@@ -228,7 +279,7 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 	const isTeamScoped = teamSlugTrim.length > 0;
 	const hideSubscriptionColumn = isTeamScoped;
 
-	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined);
+	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined, HIVELOCITY_FACILITIES_QUERY_OPTIONS);
 	const facilityOptions = React.useMemo(() => {
 		const list = facilitiesQuery.data?.data ?? [];
 		return [...list].sort((a, b) => a.title.localeCompare(b.title));
@@ -278,7 +329,14 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 	};
 
 	if (query.isLoading) return <ServersTableSkeleton />;
-	if (query.isError) return <ServersTableError onRetry={() => query.refetch()} />;
+	if (query.isError) {
+		return (
+			<ServersTableError
+				onRetry={() => query.refetch()}
+				errorMessage={query.error?.message}
+			/>
+		);
+	}
 
 	return (
 		<div className="space-y-3">
@@ -344,7 +402,6 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 							<TableHead>Status</TableHead>
 							<TableHead>Primary IP</TableHead>
 							<TableHead>Location</TableHead>
-							<TableHead>Billing</TableHead>
 							<TableHead>Created</TableHead>
 							{!hideSubscriptionColumn ? (
 								<TableHead className="pr-6 text-right">Subscription</TableHead>
@@ -354,7 +411,7 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 					<TableBody>
 						{items.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={hideSubscriptionColumn ? 6 : 7} className="py-0">
+								<TableCell colSpan={hideSubscriptionColumn ? 5 : 6} className="py-0">
 									<ServersTableEmpty type={type} teamScoped={isTeamScoped} />
 								</TableCell>
 							</TableRow>
@@ -376,6 +433,8 @@ export function HivelocityServersTable({ type, resourceBasePath, teamSlug }: Hiv
 					Showing {items.length} of {query.data.data.total} resources
 				</p>
 			)}
+
+			<ServersTimingDebug timing={(query.data as { timing?: Record<string, unknown> } | undefined)?.timing} />
 		</div>
 	);
 }
@@ -412,6 +471,42 @@ function ServersTableRows({
 				const isVps = resource.resourceType === "vps";
 				const resourceId = resource.deviceId ?? resource.id;
 				const isLinked = linkedSet.has(String(resourceId));
+				const isPanelSuspended = resource.panelSuspended === true;
+
+				if (isPanelSuspended) {
+					const detailPath =
+						type === "vps"
+							? `${resourceBasePath}/vps/${resourceId}`
+							: type === "vds"
+								? `${resourceBasePath}/vds/${resourceId}`
+								: `${resourceBasePath}/dedicated-servers/${resourceId}`;
+
+					return (
+						<TableRow
+							key={resourceId}
+							className="transition-colors hover:bg-muted/50 cursor-pointer bg-amber-50/40 dark:bg-amber-950/10"
+							onClick={() => onRowClick(resourceId)}
+						>
+							<TableCell className="pl-6 font-medium">
+								<Link
+									to={detailPath}
+									className="text-primary hover:underline break-words"
+									onClick={(e) => e.stopPropagation()}
+								>
+									{resource.serviceLabel || "Suspended service"}
+								</Link>
+							</TableCell>
+							<TableCell>
+								<Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 border-amber-200 dark:border-amber-800 text-xs font-medium">
+									Suspended
+								</Badge>
+							</TableCell>
+							<TableCell className="text-sm text-muted-foreground">—</TableCell>
+							<TableCell className="text-sm text-muted-foreground">—</TableCell>
+							<TableCell className="text-sm text-muted-foreground">—</TableCell>
+						</TableRow>
+					);
+				}
 
 				// Location handling
 				let locationLabel = "-";
@@ -423,15 +518,6 @@ function ServersTableRows({
 				} else if (isVps) {
 					locationLabel = resource.facilityCode || "-";
 				}
-
-				// Billing info
-				const billing = resource.billingInfo as any;
-				const priceLabel = billing?.price != null 
-					? `$${billing.price}` 
-					: resource.nextBillingValue != null 
-						? `$${resource.nextBillingValue}` 
-						: "-";
-				const periodLabel = billing?.period || "-";
 
 				return (
 					<TableRow
@@ -474,12 +560,6 @@ function ServersTableRows({
 						</TableCell>
 						<TableCell className="text-sm">
 							{locationLabel}
-						</TableCell>
-						<TableCell className="text-sm">
-							<div className="flex flex-col">
-								<span className="font-medium">{priceLabel}</span>
-								<span className="text-xs text-muted-foreground capitalize">{periodLabel}</span>
-							</div>
 						</TableCell>
 						<TableCell className="text-sm text-muted-foreground">
 							{resource.createdDate || "-"}

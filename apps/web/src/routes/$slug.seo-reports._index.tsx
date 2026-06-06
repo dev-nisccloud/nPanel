@@ -47,7 +47,7 @@ export default function TeamSeoReportsPage() {
         <div className="flex flex-col gap-2 mb-6">
           <h1 className="text-base font-semibold tracking-tight">SEO Reports</h1>
           <p className="text-sm text-muted-foreground">
-            Track the results of your managed SEO — rankings, traffic, and conversions from Google Search and Analytics.
+            Track the results of your managed SEO - rankings, traffic, and conversions from Google Search and Analytics.
           </p>
         </div>
 

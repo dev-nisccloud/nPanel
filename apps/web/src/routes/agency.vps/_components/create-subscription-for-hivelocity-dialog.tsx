@@ -109,7 +109,11 @@ export function CreateSubscriptionForHivelocityDialog({
       onSuccess?.();
     },
     onError: (error) => {
-      setSubmitError(error.message);
+      setSubmitError(
+        import.meta.env.DEV && error.message?.trim()
+          ? error.message.trim()
+          : "A system error occurred. Please try again.",
+      );
     },
   });
 
@@ -229,7 +233,7 @@ export function CreateSubscriptionForHivelocityDialog({
             Link {serviceType.toUpperCase()} to Subscription
           </DialogTitle>
           <DialogDescription>
-            Attach this Hivelocity device to a customer subscription for billing and management.
+            Attach this server to a customer subscription for billing and management.
           </DialogDescription>
         </DialogHeader>
 

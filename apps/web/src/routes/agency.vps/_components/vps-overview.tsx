@@ -12,7 +12,6 @@ import {
   Server,
   MapPin,
   Fingerprint,
-  ExternalLink,
   Copy,
   Disc,
   Pencil,
@@ -21,12 +20,11 @@ import {
   CreditCard,
   ShoppingBag,
   Zap,
+  Info,
   ArrowUpCircle,
   Package,
   Layers,
   CalendarDays,
-  Link as LinkIcon,
-  Plus
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,29 +36,46 @@ import { Label } from "@/components/ui/label";
 import { trpc } from "@/utils/trpc";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
 import { formatMoney, formatMoneyUsd } from "./money";
-import { CreateSubscriptionForHivelocityDialog } from "./create-subscription-for-hivelocity-dialog";
 import { useConfirm } from "@/hooks/use-confirm";
-import { Link } from "react-router";
-import { useHivelocityTeamTrpcInput } from "./team-hivelocity-access-context";
+import { useHivelocityTeamTrpcInput, useTeamHivelocityAccess } from "./team-hivelocity-access-context";
+import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
+import { useHivelocityNiscProducts } from "@/hooks/use-hivelocity-nisc-products";
+import {
+  buildHivelocityVpsUpgradePlanForCheckout,
+  computeVpsUpgradePricing,
+  extractHivelocityProductMonthlyUsd,
+} from "@/lib/build-hivelocity-vps-upgrade-plan";
+import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 
 interface VpsOverviewProps {
   deviceData: any;
   vpsData: any;
-  /** Prefix for subscription detail links, e.g. `/agency/subscriptions` or `/{teamSlug}/subscriptions`. */
-  subscriptionsPathPrefix?: string;
+  /** Customer team slug for checkout (omit on agency routes). */
+  teamSlug?: string;
 }
 
-export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/agency/subscriptions" }: VpsOverviewProps) {
+export function VpsOverview({
+  deviceData,
+  vpsData,
+  teamSlug,
+}: VpsOverviewProps) {
   const utils = trpc.useUtils();
   const teamTrpc = useHivelocityTeamTrpcInput();
+  const teamAccess = useTeamHivelocityAccess();
+  const isAgencyView = teamAccess == null;
 
   // Pricing & Localization
   const pricing = useHivelocityPricing("VPS");
+  const { productIdByType } = useHivelocityNiscProducts();
   const displayCurrency = pricing.usdToKesRate ? "KES" : "USD";
-  const showOriginalUsd = Boolean(pricing.settings?.base.marginType);
+  /** Wholesale/margin breakdown is agency-only; customers see final prices only. */
+  const showPricingBreakdown =
+    isAgencyView && Boolean(pricing.settings?.base.marginType);
+
+  const [upgradeBuyOpen, setUpgradeBuyOpen] = React.useState(false);
+  const [upgradePlan, setUpgradePlan] = React.useState<ServicePlanDetails | null>(null);
 
   // Editing State
   const [isEditing, setIsEditing] = React.useState(false);
@@ -76,12 +91,12 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
     deviceId: deviceData.deviceId,
     ...teamTrpc,
   });
-  const subscriptionLinkQuery = trpc.clientSubscriptions.getHasLinkedSubscriptionByHivelocityDeviceId.useQuery({ 
-    hivelocityDeviceId: deviceData.deviceId 
-  });
 
-  const [linkDialogOpen, setLinkDialogOpen] = React.useState(false);
-
+  const currentProductId = Number((deviceData as { productId?: number }).productId);
+  const currentProductQuery = trpc.hivelocity.getProduct.useQuery(
+    { productId: currentProductId },
+    { enabled: Number.isFinite(currentProductId) && currentProductId > 0 },
+  );
   const [BootDialog, confirmBoot] = useConfirm("Power on instance?", "This will start up your VPS instance. Are you sure you want to proceed?");
   const [ShutdownDialog, confirmShutdown] = useConfirm("Safe shutdown?", "This will initiate a graceful shutdown of your VPS instance. Are you sure you want to proceed?");
   const [RebootDialog, confirmReboot] = useConfirm("Reboot instance?", "This will perform a safe reboot of your VPS instance. Any unsaved data in memory will be lost. Are you sure you want to proceed?");
@@ -127,9 +142,18 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
     }
   });
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard`);
+  const copyToClipboard = async (text: string, label: string) => {
+    if (!text.trim()) {
+      toast.error(`Nothing to copy for ${label.toLowerCase()}.`);
+      return;
+    }
+
+    const ok = await copyTextToClipboard(text);
+    if (ok) {
+      toast.success(`${label} copied to clipboard`);
+    } else {
+      toast.error(`Could not copy ${label.toLowerCase()}. Select the value and copy manually.`);
+    }
   };
 
   const validateHostname = (hn: string) => {
@@ -167,6 +191,99 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
 
   const activeServices = (servicesQuery.data?.data as any[]) || [];
   const availableUpgrades = (upgradesQuery.data?.data as any[]) || [];
+  const currentPlanName = React.useMemo(() => {
+    const fromService = activeServices.find((s) => s?.productName)?.productName;
+    if (fromService) return String(fromService);
+    return vpsData?.productName || vpsData?.name || null;
+  }, [activeServices, vpsData]);
+
+  /** Total recurring bill (base + OS + add-ons) — for “what you pay today” display. */
+  const currentTotalMonthlyUsd = React.useMemo(() => {
+    const billing = deviceData.billingInfo as { price?: number } | undefined;
+    const fromBilling = Number(billing?.price ?? deviceData.nextBillingValue ?? 0);
+    if (Number.isFinite(fromBilling) && fromBilling > 0) return fromBilling;
+    return Number(vpsData?.monthlyPrice ?? 0) || 0;
+  }, [deviceData, vpsData]);
+
+  /**
+   * Current base VPS product monthly USD (inventory) — must match upgrade API `monthlyPrice` basis.
+   * Do not use total billing here; OS/add-on fees would zero out valid upgrade deltas.
+   */
+  const currentBaseMonthlyUsd = React.useMemo(() => {
+    const fromProduct = extractHivelocityProductMonthlyUsd(currentProductQuery.data?.data);
+    if (fromProduct > 0) return fromProduct;
+    return 0;
+  }, [currentProductQuery.data?.data]);
+
+  const currentDisplayMonthly = React.useMemo(() => {
+    if (currentTotalMonthlyUsd <= 0) return null;
+    const margined = pricing.applyMarginFor("base", currentTotalMonthlyUsd);
+    const amount = margined.final;
+    return displayCurrency === "KES" ? (pricing.toKes(amount) ?? amount) : amount;
+  }, [currentTotalMonthlyUsd, displayCurrency, pricing]);
+
+  const currentLocationName = React.useMemo(() => {
+    const loc = deviceData.location as { facility?: string; facility_title?: string } | undefined;
+    return loc?.facility || vpsData?.facilityCode || loc?.facility_title || "Unknown";
+  }, [deviceData, vpsData]);
+
+  const openUpgradeCheckout = React.useCallback(
+    (upgrade: {
+      productId: number;
+      name: string;
+      monthlyPrice: number;
+      vcpu?: string;
+      memory?: string;
+      disk?: string;
+    }) => {
+      const poweredOff = ["off", "stopped", "inactive", "shutdown"].includes(String(powerStatus).toLowerCase());
+      if (!poweredOff && !isPowerProcessing) {
+        toast.warning("Power off this VPS before upgrading. You can shut it down from the overview panel, then try again.");
+        return;
+      }
+      if (isPowerProcessing) {
+        toast.warning("Wait until the current power action finishes before starting an upgrade.");
+        return;
+      }
+      if (currentBaseMonthlyUsd <= 0) {
+        toast.error("Current plan pricing is still loading. Wait a moment and try again.");
+        return;
+      }
+
+      setUpgradePlan(
+        buildHivelocityVpsUpgradePlanForCheckout({
+          upgrade: {
+            productId: Number(upgrade.productId),
+            name: String(upgrade.name ?? "Upgrade plan"),
+            monthlyPrice: Number(upgrade.monthlyPrice) || 0,
+            vcpu: upgrade.vcpu,
+            memory: upgrade.memory,
+            disk: upgrade.disk,
+          },
+          deviceId: Number(deviceData.deviceId),
+          currentHostname: String(deviceData.hostname || deviceData.name || `vps-${deviceData.deviceId}`),
+          currentLocationName,
+          currentOsName: String(vpsData?.osName || "unchanged"),
+          currentMonthlyUsd: currentBaseMonthlyUsd,
+          displayCurrency,
+          niscProductId: productIdByType.VPS,
+          pricing,
+        }),
+      );
+      setUpgradeBuyOpen(true);
+    },
+    [
+      powerStatus,
+      isPowerProcessing,
+      deviceData,
+      currentLocationName,
+      vpsData,
+      currentBaseMonthlyUsd,
+      displayCurrency,
+      productIdByType.VPS,
+      pricing,
+    ],
+  );
 
   return (
     <div className="space-y-6">
@@ -400,71 +517,6 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Customer Subscription Link */}
-        <Card className="border-border/40 shadow-sm overflow-hidden flex flex-col xl:col-span-2">
-          <CardHeader className="bg-muted/30 pb-4 flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <LinkIcon className="h-5 w-5 text-primary" />
-                Customer Subscription Link
-              </CardTitle>
-              <CardDescription>Associate this hardware with a client-facing subscription</CardDescription>
-            </div>
-            {subscriptionLinkQuery.data?.hasLinked ? (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1.5 py-1 px-3">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
-                Linked to Subscription
-              </Badge>
-            ) : (
-              <Button 
-                size="sm" 
-                className="h-8 gap-2 bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-wider px-4"
-                onClick={() => setLinkDialogOpen(true)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Link to Subscription
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="pt-6">
-            {subscriptionLinkQuery.isLoading ? (
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : subscriptionLinkQuery.data?.hasLinked ? (
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/10 border border-dashed border-primary/20">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/10 text-primary">
-                    <Package className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold">Linked Subscription</p>
-                    <p className="text-xs text-muted-foreground">ID: {subscriptionLinkQuery.data.subscriptionId}</p>
-                  </div>
-                </div>
-                <Link to={`${subscriptionsPathPrefix}/${subscriptionLinkQuery.data.subscriptionId}`}>
-                  <Button variant="outline" size="sm" className="h-8 gap-2 text-[10px] uppercase font-bold">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    View Subscription
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
-                <div className="p-3 rounded-full bg-muted/20 text-muted-foreground/40">
-                  <LinkIcon className="h-6 w-6" />
-                </div>
-                <div className="max-w-md">
-                  <p className="text-sm font-bold text-foreground/80">No customer subscription linked</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Linking this VPS to a customer subscription allows you to automate billing, track revenue, and manage the lifecycle within nPanel.
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Active Subscriptions */}
         <Card className="border-border/40 shadow-sm overflow-hidden flex flex-col">
           <CardHeader className="bg-muted/30 pb-4">
@@ -492,7 +544,7 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
                         : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border-amber-500/20";
 
                   const baseUsd = Number(service.billedPrice || 0);
-                  const marginResult = pricing.applyMargin(baseUsd);
+                  const marginResult = pricing.applyMarginFor("base", baseUsd);
                   const finalPrice = marginResult.final;
                   const finalDisplayPrice = displayCurrency === "KES" ? pricing.toKes(finalPrice) : finalPrice;
 
@@ -520,7 +572,7 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
                              {formatMoney(finalDisplayPrice, displayCurrency)}
                            </p>
                            <div className="flex flex-col items-end gap-0.5 mt-1">
-                              {showOriginalUsd && (
+                              {showPricingBreakdown ? (
                                 <>
                                   <p className="text-[9px] font-medium text-emerald-600 uppercase">
                                     Original: {formatMoneyUsd(baseUsd)} • {formatMoney(pricing.toKes(baseUsd) || 0, "KES")}
@@ -529,7 +581,7 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
                                     Margin: {formatMoneyUsd(marginResult.marginAmount)} • {formatMoney(pricing.toKes(marginResult.marginAmount) || 0, "KES")}
                                   </p>
                                 </>
-                              )}
+                              ) : null}
                               <p className="text-[9px] text-muted-foreground font-bold">
                                 Next: {service.renewDate ? new Date(service.renewDate * 1000).toLocaleDateString() : "Auto-renew"}
                               </p>
@@ -589,117 +641,173 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
 
         {/* Upgrade Options */}
         <Card className="border-border/40 shadow-sm overflow-hidden">
-          <CardHeader className="bg-muted/30 pb-4">
+          <CardHeader className="bg-muted/30 pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <ArrowUpCircle className="h-5 w-5 text-primary" />
               Scale & Optimization
             </CardTitle>
-            <CardDescription>Available product upgrade paths</CardDescription>
+            <CardDescription>
+              {currentPlanName
+                ? `Upgrade paths above ${currentPlanName}`
+                : "Upgrade paths above your current plan"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
+            {!upgradesQuery.isLoading && availableUpgrades.length > 0 ? (
+              <div className="mx-4 mt-4 rounded-lg border border-primary/15 bg-primary/5 px-3 py-3 text-xs text-muted-foreground space-y-2">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-2 min-w-0">
+                    <p className="font-semibold text-foreground">How upgrade pricing works</p>
+                    <ul className="space-y-1.5 list-disc pl-4 leading-relaxed">
+                      {currentPlanName ? (
+                        <li>
+                          You are on <span className="font-semibold text-foreground">{currentPlanName}</span>
+                          {currentDisplayMonthly != null ? (
+                            <>
+                              {" "}
+                              at{" "}
+                              <span className="font-semibold text-foreground">
+                                {formatMoney(currentDisplayMonthly, displayCurrency)}/mo
+                              </span>{" "}
+                              today.
+                            </>
+                          ) : (
+                            " today."
+                          )}
+                        </li>
+                      ) : null}
+                      <li>
+                        Each <span className="font-semibold text-primary">+…/mo</span> price is the{" "}
+                        <span className="font-semibold text-foreground">extra base plan cost</span> to move to that
+                        tier (new VPS product price minus your current VPS product price). OS licenses and add-ons
+                        stay as they are.
+                      </li>
+                      <li>
+                        At checkout you are invoiced for that monthly increase (ex VAT). VAT is added on the payment
+                        step where applicable.
+                      </li>
+                      <li>
+                        After the upgrade completes, your subscription renews at the{" "}
+                        <span className="font-semibold text-foreground">new plan total</span>. Hover any + price to
+                        see that amount.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {upgradesQuery.isLoading ? (
-              <div className="p-8 space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+              <div className="p-6 space-y-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : availableUpgrades.length > 0 ? (
-              <Table>
-                <TableHeader className="bg-muted/10">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-[9px] font-bold uppercase pl-6">Product plan</TableHead>
-                    <TableHead className="text-[9px] font-bold uppercase">
-                      <div className="flex items-center gap-1.5">
-                        <Cpu className="h-3 w-3" />
-                        Resources
+              <div className="divide-y divide-border/40 mt-3">
+                {availableUpgrades.map((upgrade, idx) => {
+                  const upgradePricingReady =
+                    currentBaseMonthlyUsd > 0 || !currentProductQuery.isLoading;
+                  const upgradePricing = computeVpsUpgradePricing({
+                    targetMonthlyUsd: Number(upgrade.monthlyPrice) || 0,
+                    currentMonthlyUsd: currentBaseMonthlyUsd,
+                    displayCurrency,
+                    pricing,
+                  });
+                  return (
+                    <TooltipProvider key={upgrade.productId ?? idx}>
+                      <div
+                        className={`flex items-center gap-3 px-4 py-3 transition-colors group ${upgradePricingReady ? "hover:bg-primary/5 cursor-pointer" : "opacity-80"}`}
+                        onClick={() => {
+                          if (upgradePricingReady) openUpgradeCheckout(upgrade);
+                        }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold uppercase truncate">{upgrade.name}</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                            {upgrade.vcpu ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1">
+                                    <Cpu className="h-3 w-3 text-primary/60 shrink-0" />
+                                    <span className="text-[10px] font-bold">{upgrade.vcpu}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>vCPU Cores</TooltipContent>
+                              </Tooltip>
+                            ) : null}
+                            {upgrade.memory ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1">
+                                    <MemoryStick className="h-3 w-3 text-primary/60 shrink-0" />
+                                    <span className="text-[10px] font-bold">{upgrade.memory}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>Memory Allocation</TooltipContent>
+                              </Tooltip>
+                            ) : null}
+                            {upgrade.disk ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1">
+                                    <HardDrive className="h-3 w-3 text-primary/60 shrink-0" />
+                                    <span className="text-[10px] font-bold">{upgrade.disk}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>NVMe Storage</TooltipContent>
+                              </Tooltip>
+                            ) : null}
+                          </div>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="shrink-0 text-right min-w-[88px]">
+                              {!upgradePricingReady ? (
+                                <Skeleton className="h-5 w-20 ml-auto" />
+                              ) : (
+                                <p className="text-sm font-bold text-primary leading-tight">
+                                  +{formatMoney(upgradePricing.displayDelta, displayCurrency)}
+                                  <span className="text-[10px] text-muted-foreground uppercase ml-0.5">/mo</span>
+                                </p>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs space-y-1 text-xs">
+                            <p>
+                              {isAgencyView ? "New plan total: " : "Plan total after upgrade: "}
+                              {formatMoney(upgradePricing.displayTarget, displayCurrency)}/mo
+                            </p>
+                            {showPricingBreakdown ? (
+                              <>
+                                <p className="text-emerald-600">
+                                  Orig: {formatMoneyUsd(upgradePricing.deltaUsd)} ·{" "}
+                                  {formatMoney(pricing.toKes(upgradePricing.deltaUsd) || 0, "KES")}
+                                </p>
+                                <p className="text-orange-600">
+                                  Marg: {formatMoneyUsd(upgradePricing.deltaMarginUsd)} ·{" "}
+                                  {formatMoney(pricing.toKes(upgradePricing.deltaMarginUsd) || 0, "KES")}
+                                </p>
+                              </>
+                            ) : null}
+                          </TooltipContent>
+                        </Tooltip>
+                        <Button
+                          size="sm"
+                          className="h-7 shrink-0 gap-1.5 bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-wider px-3"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openUpgradeCheckout(upgrade);
+                          }}
+                          disabled={!upgradePricingReady}
+                        >
+                          <CreditCard className="h-3 w-3" />
+                          Upgrade
+                        </Button>
                       </div>
-                    </TableHead>
-                    <TableHead className="text-[9px] font-black uppercase tracking-widest">
-                      <div className="flex items-center gap-1.5">
-                        <CreditCard className="h-3 w-3" />
-                        Cost
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-[9px] font-bold uppercase text-right pr-6">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {availableUpgrades.map((upgrade, idx) => {
-                    const baseUsd = Number(upgrade.monthlyPrice || 0);
-                    const marginResult = pricing.applyMargin(baseUsd);
-                    const finalPrice = marginResult.final;
-                    const finalDisplayPrice = displayCurrency === "KES" ? pricing.toKes(finalPrice) : finalPrice;
-
-                    return (
-                      <TableRow key={idx} className="hover:bg-primary/5 transition-colors group cursor-pointer">
-                        <TableCell className="pl-6 py-4">
-                           <span className="text-xs font-bold uppercase">{upgrade.name}</span>
-                        </TableCell>
-                        <TableCell className="py-4">
-                           <div className="flex items-center gap-3">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1">
-                                      <Cpu className="h-3 w-3 text-primary/60" />
-                                      <span className="text-[10px] font-bold">{upgrade.vcpu}</span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>vCPU Cores</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1">
-                                      <MemoryStick className="h-3 w-3 text-primary/60" />
-                                      <span className="text-[10px] font-bold">{upgrade.memory}</span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Memory Allocation</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1">
-                                      <HardDrive className="h-3 w-3 text-primary/60" />
-                                      <span className="text-[10px] font-bold">{upgrade.disk}</span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent>NVMe Storage</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                           </div>
-                        </TableCell>
-                        <TableCell className="py-4">
-                           <div className="flex flex-col">
-                             <span className="text-sm font-bold text-primary">
-                               {formatMoney(finalDisplayPrice, displayCurrency)}
-                               <span className="text-[10px] text-muted-foreground uppercase ml-1">/mo</span>
-                             </span>
-                             {showOriginalUsd && (
-                               <div className="flex flex-col gap-0">
-                                 <span className="text-[9px] font-medium text-emerald-600 uppercase">
-                                   Orig: {formatMoneyUsd(baseUsd)} • {formatMoney(pricing.toKes(baseUsd) || 0, "KES")}
-                                 </span>
-                                 <span className="text-[9px] font-medium text-orange-600 uppercase">
-                                   Marg: {formatMoneyUsd(marginResult.marginAmount)} • {formatMoney(pricing.toKes(marginResult.marginAmount) || 0, "KES")}
-                                 </span>
-                               </div>
-                             )}
-                           </div>
-                        </TableCell>
-                        <TableCell className="pr-6 py-4 text-right">
-                           <Button size="sm" className="h-8 gap-2 bg-primary text-primary-foreground font-bold text-[10px] uppercase tracking-wider px-4">
-                              <CreditCard className="h-3.5 w-3.5" />
-                              Upgrade
-                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    </TooltipProvider>
+                  );
+                })}
+              </div>
             ) : (
               <div className="p-12 text-center text-muted-foreground">
                 <Zap className="h-10 w-10 mx-auto mb-3 opacity-20" />
@@ -710,34 +818,16 @@ export function VpsOverview({ deviceData, vpsData, subscriptionsPathPrefix = "/a
         </Card>
       </div>
       
-      <CreateSubscriptionSection 
-        deviceId={deviceData.deviceId}
-        deviceName={deviceData.name || deviceData.hostname}
-        isOpen={linkDialogOpen}
-        onOpenChange={setLinkDialogOpen}
-      />
+      {upgradePlan ? (
+        <BuyNowDialog
+          open={upgradeBuyOpen}
+          onOpenChange={setUpgradeBuyOpen}
+          plan={upgradePlan}
+          requireDomainStep={false}
+          teamSlug={teamSlug}
+          intent="buy_now"
+        />
+      ) : null}
     </div>
-  );
-}
-
-function CreateSubscriptionSection({ 
-  deviceId, 
-  deviceName, 
-  isOpen, 
-  onOpenChange 
-}: { 
-  deviceId: string | number; 
-  deviceName: string; 
-  isOpen: boolean; 
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <CreateSubscriptionForHivelocityDialog
-      open={isOpen}
-      onOpenChange={onOpenChange}
-      deviceId={deviceId}
-      deviceName={deviceName}
-      serviceType="vps"
-    />
   );
 }

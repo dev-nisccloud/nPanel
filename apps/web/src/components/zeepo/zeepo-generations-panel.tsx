@@ -149,7 +149,7 @@ export function ZeepoGenerationsPanel({
         </div>
       </button>
 
-      {/* Active progress bar — sits flush at the bottom of the bar */}
+      {/* Active progress bar - sits flush at the bottom of the bar */}
       {active && progressTotal > 0 ? (
         <div
           className="h-0.5 w-full bg-muted"

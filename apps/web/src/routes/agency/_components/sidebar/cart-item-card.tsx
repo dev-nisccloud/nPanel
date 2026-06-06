@@ -41,7 +41,7 @@ const getServiceTypeLabel = (type: string) => {
     case 'service':
       return 'Service';
     case "hivelocity":
-      return "Hivelocity";
+      return "Server";
     default:
       return 'Service';
   }

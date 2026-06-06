@@ -256,7 +256,7 @@ jobs:
             VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
-  # Production — runs on push/merge to the production branch (same flow as main → staging)
+  # Production - runs on push/merge to the production branch (same flow as main → staging)
   migrate-production:
     name: Migrate Database (Production)
     runs-on: ubuntu-latest

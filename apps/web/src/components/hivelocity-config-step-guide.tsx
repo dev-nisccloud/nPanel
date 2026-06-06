@@ -11,7 +11,14 @@ export type HivelocityConfigSectionStatus = {
 };
 
 function getScrollAreaViewport(container: HTMLElement | null): HTMLElement | null {
-	return container?.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
+	if (!container) return null;
+	const radixViewport = container.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
+	if (radixViewport) return radixViewport;
+	// Native overflow container (BuyNowDialogBodyScroll)
+	if (container.scrollHeight > container.clientHeight || getComputedStyle(container).overflowY !== "visible") {
+		return container;
+	}
+	return container;
 }
 
 /** Whether `target` is visible inside the dialog ScrollArea (not the OS table's inner scroll). */

@@ -17,9 +17,9 @@ const PLATFORM_TITLES: Record<AdPlatform, string> = {
 };
 
 const PLATFORM_DESCRIPTIONS: Record<AdPlatform, string> = {
-	meta: "We manage your Meta campaigns — targeting, budgets, creative, and optimization. Pay a commission on ad spend and track results with AI insights in your dashboard.",
-	google: "We manage your Google Ads campaigns — search, display, and performance max. Pay a commission on ad spend and track results with AI insights in your dashboard.",
-	linkedin: "We manage your LinkedIn Ads campaigns — B2B targeting, lead gen, and brand awareness. Pay a commission on ad spend and track results with AI insights in your dashboard.",
+	meta: "We manage your Meta campaigns - targeting, budgets, creative, and optimization. Pay a commission on ad spend and track results with AI insights in your dashboard.",
+	google: "We manage your Google Ads campaigns - search, display, and performance max. Pay a commission on ad spend and track results with AI insights in your dashboard.",
+	linkedin: "We manage your LinkedIn Ads campaigns - B2B targeting, lead gen, and brand awareness. Pay a commission on ad spend and track results with AI insights in your dashboard.",
 };
 
 type MediaBuyingPricingProps = {

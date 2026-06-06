@@ -42,6 +42,9 @@ import {
 	TeamHivelocityAccessProvider,
 	type TeamHivelocityAccess,
 } from "./team-hivelocity-access-context";
+import { VpsInstanceSuspendDialog } from "./vps-instance-suspend-dialog";
+import { useVpsInstanceSuspend } from "./use-vps-instance-suspend";
+import { VpsSuspendedPaywall } from "./vps-suspended-paywall";
 
 interface VpsDetailPageProps {
   deviceId: string;
@@ -96,15 +99,72 @@ export function VpsDetailPage({
         }
       : {};
 
-  const deviceQuery = trpc.hivelocity.getDeviceDetails.useQuery({ deviceId: id, ...teamInput });
-  const vpsQuery = trpc.hivelocity.getVpsDetails.useQuery({ deviceId: id, ...teamInput });
+  const isAgencyView = teamHivelocityAccess == null;
+  const customerTeamSlug = teamHivelocityAccess?.teamSlug ?? "";
+  const teamResourceCategory = teamHivelocityAccess?.teamResourceCategory ?? "vps";
 
-  const isLoading = deviceQuery.isLoading || vpsQuery.isLoading;
-  const isError = deviceQuery.isError || vpsQuery.isError;
+  const suspendedContextQuery = trpc.hivelocity.getCustomerSuspendedVpsContext.useQuery(
+    {
+      deviceId: id,
+      teamSlug: customerTeamSlug,
+      teamResourceCategory,
+    },
+    { enabled: !isAgencyView && customerTeamSlug.length > 0 },
+  );
+
+  const customerSuspended = !isAgencyView && suspendedContextQuery.data?.suspended === true;
+  const canLoadDeviceDetails =
+    isAgencyView ||
+    (suspendedContextQuery.isSuccess && suspendedContextQuery.data?.suspended === false);
+
+  const deviceQuery = trpc.hivelocity.getDeviceDetails.useQuery(
+    { deviceId: id, ...teamInput },
+    { enabled: canLoadDeviceDetails },
+  );
+  const vpsQuery = trpc.hivelocity.getVpsDetails.useQuery(
+    { deviceId: id, ...teamInput },
+    { enabled: canLoadDeviceDetails },
+  );
+  const subscriptionLinkQuery = trpc.clientSubscriptions.getHasLinkedSubscriptionByHivelocityDeviceId.useQuery(
+    { hivelocityDeviceId: id },
+    { enabled: isAgencyView },
+  );
+
+  const suspendActions = useVpsInstanceSuspend(id);
+  const instanceName =
+    deviceQuery.data?.data?.name ||
+    deviceQuery.data?.data?.hostname ||
+    `Device ${deviceId}`;
+
+  const isLoading =
+    (!isAgencyView && suspendedContextQuery.isLoading) ||
+    (canLoadDeviceDetails && (deviceQuery.isLoading || vpsQuery.isLoading));
+  const isError = canLoadDeviceDetails && (deviceQuery.isError || vpsQuery.isError);
   const deviceData = deviceQuery.data?.data;
   const vpsData = vpsQuery.data?.data;
 
-  if (isLoading) return <VpsDetailSkeleton />;
+  if (isLoading) {
+    return <VpsDetailSkeleton />;
+  }
+
+  if (customerSuspended && suspendedContextQuery.data?.suspended && customerTeamSlug) {
+    return (
+      <VpsSuspendedPaywall
+        deviceId={id}
+        teamSlug={customerTeamSlug}
+        context={{
+          subscriptionId: suspendedContextQuery.data.subscriptionId,
+          serviceLabel: suspendedContextQuery.data.serviceLabel,
+          amount: suspendedContextQuery.data.amount,
+          currency: suspendedContextQuery.data.currency,
+          billingCycle: suspendedContextQuery.data.billingCycle,
+          productId: suspendedContextQuery.data.productId,
+        }}
+        vpsListPath={vpsListPath}
+      />
+    );
+  }
+
   if (isError || !deviceData) {
     return (
       <div className="p-8 text-center">
@@ -113,6 +173,29 @@ export function VpsDetailPage({
       </div>
     );
   }
+
+  if (!deviceData) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-bold">Failed to load device details</h2>
+        <Button className="mt-4" onClick={() => deviceQuery.refetch()}>Retry</Button>
+      </div>
+    );
+  }
+
+  const linkedSubscriptionId = subscriptionLinkQuery.data?.subscriptionId;
+  const linkedSubscriptionStatus = subscriptionLinkQuery.data?.status;
+  const isPanelSuspended = linkedSubscriptionStatus === "SUSPENDED";
+  const canSuspendPanel =
+    isAgencyView &&
+    subscriptionLinkQuery.data?.hasLinked &&
+    linkedSubscriptionId &&
+    (linkedSubscriptionStatus === "ACTIVE" || linkedSubscriptionStatus === "PENDING");
+  const canReactivatePanel =
+    isAgencyView &&
+    subscriptionLinkQuery.data?.hasLinked &&
+    linkedSubscriptionId &&
+    isPanelSuspended;
 
   const getStatusBadge = (status: string | undefined) => {
     const s = (status || "unknown").toLowerCase();
@@ -166,7 +249,27 @@ export function VpsDetailPage({
 
           <div className="flex items-center gap-2">
             {getStatusBadge(deviceData.status)}
-            {teamHivelocityAccess == null ? (
+            {subscriptionLinkQuery.data?.hasLinked ? (
+              <Link to={`${subscriptionsPathPrefix}/${subscriptionLinkQuery.data.subscriptionId}`}>
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800 gap-1.5 py-1 px-3 hover:bg-green-100/80 transition-colors"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-600 shrink-0" />
+                  Linked to Subscription
+                </Badge>
+              </Link>
+            ) : null}
+            {isAgencyView && isPanelSuspended ? (
+              <Badge
+                variant="outline"
+                className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800 gap-1.5 py-1 px-3"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-600 shrink-0" />
+                Customer access suspended
+              </Badge>
+            ) : null}
+            {isAgencyView ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label="Page actions">
@@ -186,7 +289,37 @@ export function VpsDetailPage({
                   >
                     Refresh Data
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">Deprovision</DropdownMenuItem>
+                  {canSuspendPanel && linkedSubscriptionId ? (
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() =>
+                        suspendActions.requestSuspend(linkedSubscriptionId, instanceName)
+                      }
+                    >
+                      Deprovision
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canReactivatePanel && linkedSubscriptionId ? (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        suspendActions.requestReactivate(linkedSubscriptionId, instanceName)
+                      }
+                    >
+                      Restore customer access
+                    </DropdownMenuItem>
+                  ) : null}
+                  {isAgencyView &&
+                  !canSuspendPanel &&
+                  !canReactivatePanel &&
+                  !subscriptionLinkQuery.isLoading ? (
+                    <DropdownMenuItem
+                      disabled
+                      className="text-muted-foreground"
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      Deprovision (requires linked subscription)
+                    </DropdownMenuItem>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
@@ -223,7 +356,7 @@ export function VpsDetailPage({
                 <VpsOverview
                   deviceData={deviceData}
                   vpsData={vpsData}
-                  subscriptionsPathPrefix={subscriptionsPathPrefix}
+                  teamSlug={teamHivelocityAccess?.teamSlug}
                 />
               </TabsContent>
               <TabsContent value="terminal" forceMount className="data-[state=inactive]:hidden">
@@ -245,13 +378,19 @@ export function VpsDetailPage({
                 <VpsHistory deviceId={id} />
               </TabsContent>
               <TabsContent value="rescue">
-                <VpsRescue deviceId={id} />
+                <VpsRescue deviceId={id} deviceData={deviceData} vpsData={vpsData} />
               </TabsContent>
             </div>
           </Tabs>
         </div>
       </div>
     </div>
+      <VpsInstanceSuspendDialog
+        dialog={suspendActions.dialog}
+        isPending={suspendActions.isPending}
+        onOpenChange={suspendActions.setDialogOpen}
+        onConfirm={suspendActions.confirm}
+      />
     </TeamHivelocityAccessProvider>
   );
 }

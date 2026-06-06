@@ -1,8 +1,8 @@
 /**
- * Creatives & Design — stable product and plan ids (seeded by apps/server).
+ * Creatives & Design - stable product and plan ids (seeded by apps/server).
  */
 
-/** Stable product id — seeded by apps/server/src/scripts/seed-creatives-design-product.ts */
+/** Stable product id - seeded by apps/server/src/scripts/seed-creatives-design-product.ts */
 export const CREATIVES_DESIGN_PRODUCT_ID = "creatives-design";
 
 export const CREATIVES_DESIGN_PLAN_IDS = {

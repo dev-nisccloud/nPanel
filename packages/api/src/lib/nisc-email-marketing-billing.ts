@@ -1,8 +1,8 @@
 /**
- * Nisc Email Marketing — stable product and plan ids (seeded by apps/server).
+ * Nisc Email Marketing - stable product and plan ids (seeded by apps/server).
  */
 
-/** Stable product id — seeded by apps/server/src/scripts/seed-nisc-email-marketing-product.ts */
+/** Stable product id - seeded by apps/server/src/scripts/seed-nisc-email-marketing-product.ts */
 export const NISC_EMAIL_MARKETING_PRODUCT_ID = "nisc-email-marketing";
 
 export const NISC_EMAIL_MARKETING_PLAN_IDS = {

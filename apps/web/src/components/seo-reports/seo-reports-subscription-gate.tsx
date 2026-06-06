@@ -16,7 +16,7 @@ type SeoReportsSubscriptionGateProps = {
 export function SeoReportsSubscriptionGate({
 	children,
 	title = "SEO",
-	description = "We handle keyword strategy, on-page and technical SEO, content, and off-page growth — you track results anytime in SEO Reports. Choose a plan to get started.",
+	description = "We handle keyword strategy, on-page and technical SEO, content, and off-page growth - you track results anytime in SEO Reports. Choose a plan to get started.",
 }: SeoReportsSubscriptionGateProps) {
 	const { isCustomer, teamSlug } = useSeoReportsRoute();
 

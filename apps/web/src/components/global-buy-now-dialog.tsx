@@ -35,6 +35,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { BuyNowDialogBodyScroll, BuyNowStepBody } from "@/components/buy-now-dialog-scroll";
 import {
   MpesaPayButton,
   PaymentMethodAccordion,
@@ -230,21 +231,6 @@ interface SelectedAddOn {
   planName: string;
   price: number;
   currency: string;
-}
-
-/** Scrollable step body - avoids dialog overflow on small viewports. */
-function BuyNowStepScroll({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <ScrollArea className="h-[min(52vh,28rem)] w-full max-w-[calc(100%-0.5rem)]" thumbClassName="bg-primary">
-      <div className={cn("py-2 pl-1 pr-4", className)}>{children}</div>
-    </ScrollArea>
-  );
 }
 
 export function GlobalBuyNowDialog() {
@@ -1541,7 +1527,7 @@ export function GlobalBuyNowDialog() {
 
       case "hosting-upsell":
         return (
-          <BuyNowStepScroll>
+          <BuyNowStepBody>
             <HostingUpsellStep
               domainLabel={ctx?.domain?.domain}
               selected={upsellToServiceSelected(selectedUpsellPlans)}
@@ -1553,7 +1539,7 @@ export function GlobalBuyNowDialog() {
               onChangeHostingPlan={handleHostingBrowsePlans}
               onRemoveHosting={handleHostingRemove}
             />
-          </BuyNowStepScroll>
+          </BuyNowStepBody>
         );
 
       case "plan-selection":
@@ -1578,7 +1564,7 @@ export function GlobalBuyNowDialog() {
           );
         }
         return (
-          <BuyNowStepScroll>
+          <BuyNowStepBody>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
                 Choose a plan for <span className="font-medium text-foreground">{planSelectionProductName}</span>
@@ -1660,7 +1646,7 @@ export function GlobalBuyNowDialog() {
                 </div>
               )}
             </div>
-          </BuyNowStepScroll>
+          </BuyNowStepBody>
         );
 
       case "review":
@@ -1883,7 +1869,7 @@ export function GlobalBuyNowDialog() {
       case "team_billing":
         if (!checkoutTeamId) return null;
         return (
-          <BuyNowStepScroll className="space-y-4">
+          <BuyNowStepBody className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-foreground">Company billing details</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -1897,12 +1883,12 @@ export function GlobalBuyNowDialog() {
               initialData={teamBillingInitialData}
               onSaved={() => void handleTeamBillingSaved()}
             />
-          </BuyNowStepScroll>
+          </BuyNowStepBody>
         );
 
       case "payment":
         return (
-          <BuyNowStepScroll className="space-y-6">
+          <BuyNowStepBody className="space-y-6">
             <div className="text-center py-2">
               <h3 className="text-lg font-semibold text-foreground">Choose payment method</h3>
               <p className="text-sm text-muted-foreground">Select your preferred method</p>
@@ -2041,13 +2027,13 @@ export function GlobalBuyNowDialog() {
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Taxes</span><span>{formatPrice(effectiveTaxes, primaryCurr)}</span></div>
               <div className="flex justify-between font-bold text-lg border-t pt-2"><span>Total</span><span>{formatPrice(effectiveTotal, primaryCurr)}</span></div>
             </div>
-          </BuyNowStepScroll>
+          </BuyNowStepBody>
         );
 
       case "registrant_info":
         if (isCustomerDomainCheckout) {
           return (
-            <BuyNowStepScroll className="space-y-6">
+            <BuyNowStepBody className="space-y-6">
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-foreground">Complete your profile</h3>
                 <p className="text-sm text-muted-foreground">
@@ -2116,12 +2102,12 @@ export function GlobalBuyNowDialog() {
                   </div>
                 </div>
               )}
-            </BuyNowStepScroll>
+            </BuyNowStepBody>
           );
         }
 
         return (
-          <BuyNowStepScroll className="space-y-6">
+          <BuyNowStepBody className="space-y-6">
             <div className="text-center">
               <h3 className="text-lg font-semibold text-foreground">Registrant details</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -2334,7 +2320,7 @@ export function GlobalBuyNowDialog() {
                 </div>
               </div>
             </div>
-          </BuyNowStepScroll>
+          </BuyNowStepBody>
         );
 
       case "success":
@@ -2428,11 +2414,7 @@ export function GlobalBuyNowDialog() {
             {effectiveStep === "error" && "Payment could not be completed."}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 min-h-0 px-6 overflow-hidden">
-          <ScrollArea className="h-full" thumbClassName="bg-primary">
-            <div className="py-4 min-w-0 w-full max-w-[calc(100%-0.5rem)] pr-4">{renderStep()}</div>
-          </ScrollArea>
-        </div>
+        <BuyNowDialogBodyScroll>{renderStep()}</BuyNowDialogBodyScroll>
         <DialogFooter className="gap-2 px-6 pb-6 pt-4 flex-shrink-0 border-t">
           {effectiveStep === "product" && (
             <>

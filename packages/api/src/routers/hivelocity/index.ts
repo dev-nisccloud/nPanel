@@ -1,17 +1,41 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { protectedProcedure, router } from "../../trpc";
-import { getHivelocityEnvStatus, hivelocityRequest } from "../../lib/hivelocity-client";
+import { router } from "../../trpc";
+import { hivelocityProcedure } from "./procedures";
+import { isHivelocityDevelopmentMode } from "../../lib/hivelocity-errors";
+import {
+	getHivelocityEnvStatus,
+	hivelocityRequest,
+	hivelocityRequestTimed,
+	type HivelocityRequestTiming,
+} from "../../lib/hivelocity-client";
 import {
 	assertUserCanReadTeamCloud,
+	buildHivelocitySubscriptionServiceLabel,
 	collectHivelocityDeviceIdsForTeam,
+	collectTeamHivelocitySubscriptionContext,
 	getTeamIdBySlugForHivelocity,
+	isAgencyUserRole,
 	maybeAssertTeamHivelocityDeviceAccess,
+	redactSuspendedHivelocityResourceForCustomer,
 	teamHivelocityAccessSchema,
 } from "./team-hivelocity-access";
 import { getRedisClient } from "../../lib/redis";
+import { getCachedHivelocityFacilities, getCachedHivelocityInventory } from "../../lib/hivelocity-inventory-cache";
+import { normalizeVpsPasswordResetRequestResult } from "../../lib/hivelocity-vps-password-reset";
 import {
-	hivelocityFacilitiesResponseSchema,
+	assertValidSshPublicKey,
+	createHivelocitySshKey,
+	deleteHivelocitySshKey,
+	listHivelocitySshKeys,
+	updateVpsDeployedSshKeys,
+} from "../../lib/hivelocity-vps-ssh-keys";
+import { resolveCustomerVpsRecurringCharge } from "../../lib/hivelocity-customer-recurring-charge";
+import {
+	reactivateHivelocityVpsInstance,
+	suspendHivelocityVpsInstance,
+} from "../../lib/hivelocity-vps-instance-suspend";
+import {
 	normalizeHivelocityInventory,
 	hivelocityProductByIdResponseSchema,
 	hivelocityDeviceDumpSchema,
@@ -21,6 +45,8 @@ import {
 	type HivelocityDeviceDump,
 	type HivelocityVps,
 	type HivelocityAnyResource,
+	type HivelocityInventoryResponse,
+	type HivelocityProductStock,
 } from "../../types/hivelocity";
 
 const HivelocityPeriodSchema = z.enum([
@@ -65,27 +91,99 @@ const DedicatedPlansQuerySchema = z
 const VpsPlansQuerySchema = DedicatedPlansQuerySchema;
 const VdsPlansQuerySchema = DedicatedPlansQuerySchema;
 
-type DedicatedPlansCacheKey = string;
-let dedicatedPlansCache: Map<
-	DedicatedPlansCacheKey,
-	{ atMs: number; inventory: ReturnType<typeof normalizeHivelocityInventory> }
-> = new Map();
+type PlanProductKind = "dedicated" | "vps" | "vds";
 
-function buildCacheKey(input: z.infer<typeof DedicatedPlansQuerySchema> | undefined): DedicatedPlansCacheKey {
-	return JSON.stringify({
-		location: input?.location ?? "MAIN",
-		include_custom: input?.include_custom ?? false,
-		bonding_support: input?.bonding_support ?? null,
-	});
+function matchesPlanKind(product: HivelocityProductStock, kind: PlanProductKind): boolean {
+	if (kind === "vps") return product.is_vps === true;
+	if (kind === "vds") return product.is_vds === true;
+	return product.is_vps === false && product.is_vds === false;
 }
 
-/** Merged /device + /vps account resources (before list filters). */
-async function fetchMergedHivelocityResources(): Promise<HivelocityAnyResource[]> {
-	const [rawDevices, rawVps] = await Promise.all([
-		hivelocityRequest<unknown>("/device/", { requireApiKey: true }),
-		hivelocityRequest<unknown>("/vps/", { requireApiKey: true }),
-	]);
+function paginateHivelocityPlans(
+	inventory: HivelocityInventoryResponse,
+	kind: PlanProductKind,
+	opts: {
+		facilityCode?: string;
+		search?: string;
+		limit: number;
+		cursor: number;
+	},
+) {
+	const facilityCode = opts.facilityCode?.trim() || undefined;
+	const search = opts.search?.trim().toLowerCase() || "";
 
+	const all = Object.values(inventory).flat();
+	let rows = all.filter((p) => matchesPlanKind(p, kind));
+
+	if (facilityCode) {
+		rows = rows.filter((p) => p.data_center === facilityCode);
+	}
+
+	if (search.length > 0) {
+		rows = rows.filter((p) => {
+			const hay = [
+				p.product_name,
+				p.product_cpu,
+				p.product_memory,
+				p.product_drive,
+				p.product_bandwidth,
+				String(p.product_id),
+				p.data_center,
+			]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return hay.includes(search);
+		});
+	}
+
+	const stockRank = (s: string) => (s === "available" ? 0 : s === "limited" ? 1 : 2);
+	rows.sort((a, b) => {
+		const sr = stockRank(a.stock) - stockRank(b.stock);
+		if (sr !== 0) return sr;
+		const ap = a.product_monthly_price ?? Number.POSITIVE_INFINITY;
+		const bp = b.product_monthly_price ?? Number.POSITIVE_INFINITY;
+		if (ap !== bp) return ap - bp;
+		if (a.product_id !== b.product_id) return a.product_id - b.product_id;
+		return a.location_option_id - b.location_option_id;
+	});
+
+	const total = rows.length;
+	const items = rows.slice(opts.cursor, opts.cursor + opts.limit);
+	const nextCursor = opts.cursor + opts.limit < total ? opts.cursor + opts.limit : null;
+
+	return { items, total, nextCursor };
+}
+
+export type HivelocityResourcesFetchTiming = {
+	hivelocity: {
+		device: HivelocityRequestTiming;
+		vps: HivelocityRequestTiming;
+		parallelMs: number;
+	};
+	mergeMs: number;
+	counts: {
+		deviceRows: number;
+		vpsRows: number;
+		merged: number;
+	};
+};
+
+/** Merged /device + /vps account resources (before list filters). */
+async function fetchMergedHivelocityResources(): Promise<{
+	resources: HivelocityAnyResource[];
+	timing: HivelocityResourcesFetchTiming;
+}> {
+	const parallelStart = Date.now();
+	const [deviceResult, vpsResult] = await Promise.all([
+		hivelocityRequestTimed<unknown>("/device/", { requireApiKey: true }),
+		hivelocityRequestTimed<unknown>("/vps/", { requireApiKey: true }),
+	]);
+	const parallelMs = Date.now() - parallelStart;
+	const rawDevices = deviceResult.data;
+	const rawVps = vpsResult.data;
+
+	const mergeStart = Date.now();
 	const deviceArray = Array.isArray(rawDevices) ? rawDevices : [];
 	const deviceResources: HivelocityAnyResource[] = deviceArray
 		.map((item) => hivelocityDeviceDumpSchema.safeParse(item))
@@ -143,7 +241,24 @@ async function fetchMergedHivelocityResources(): Promise<HivelocityAnyResource[]
 		}
 	});
 
-	return mergedResources;
+	const mergeMs = Date.now() - mergeStart;
+
+	return {
+		resources: mergedResources,
+		timing: {
+			hivelocity: {
+				device: deviceResult.timing,
+				vps: vpsResult.timing,
+				parallelMs,
+			},
+			mergeMs,
+			counts: {
+				deviceRows: deviceArray.length,
+				vpsRows: vpsArray.length,
+				merged: mergedResources.length,
+			},
+		},
+	};
 }
 
 function resourceRowDeviceId(r: HivelocityAnyResource): number | null {
@@ -225,10 +340,14 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: quick integration check.
 	 */
-	healthCheck: protectedProcedure.query(() => {
+	healthCheck: hivelocityProcedure.query(() => {
+		const env = getHivelocityEnvStatus();
+		if (isHivelocityDevelopmentMode()) {
+			return { status: "OK", ...env };
+		}
 		return {
 			status: "OK",
-			...getHivelocityEnvStatus(),
+			configured: env.hasApiKey && env.hasBillingInfoId,
 		};
 	}),
 
@@ -236,7 +355,7 @@ export const hivelocityRouter = router({
 	 * Private: Get all facilities (inventory locations).
 	 * Docs: GET /inventory/locations (this endpoint is public per Hivelocity docs).
 	 */
-	getFacilities: protectedProcedure
+	getFacilities: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -245,13 +364,7 @@ export const hivelocityRouter = router({
 				.optional(),
 		)
 		.query(async ({ input }) => {
-			const raw = await hivelocityRequest<unknown>("/inventory/locations", {
-				query: {
-					vpsLocations: input?.vpsLocations,
-				},
-				requireApiKey: false,
-			});
-			const data = hivelocityFacilitiesResponseSchema.parse(raw);
+			const data = await getCachedHivelocityFacilities(input?.vpsLocations);
 			return { success: true, data };
 		}),
 
@@ -259,10 +372,10 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get product operating systems.
 	 * Docs: GET /product/{productId}/operating-systems
 	 *
-	 * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
-	 * while we finalize types. Switch to `protectedProcedure` before shipping.
+	 * NOTE: This is intentionally `hivelocityProcedure` so you can test and inspect the live response shape
+	 * while we finalize types. Switch to `hivelocityProcedure` before shipping.
 	 */
-	getProductOperatingSystems: protectedProcedure
+	getProductOperatingSystems: hivelocityProcedure
 		.input(z.object({ productId: z.number().int().positive() }))
 		.query(async ({ input }) => {
 			const raw = await hivelocityRequest<unknown>(`/product/${input.productId}/operating-systems`, {
@@ -275,10 +388,10 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get product options/add-ons.
 	 * Docs: GET /product/{productId}/options?groupBy=upgrade
 	 *
-	 * NOTE: This is intentionally `protectedProcedure` so you can test and inspect the live response shape
-	 * while we finalize types. Switch to `protectedProcedure` before shipping.
+	 * NOTE: This is intentionally `hivelocityProcedure` so you can test and inspect the live response shape
+	 * while we finalize types. Switch to `hivelocityProcedure` before shipping.
 	 */
-	getProductOptions: protectedProcedure
+	getProductOptions: hivelocityProcedure
 		.input(
 			z.object({
 				productId: z.number().int().positive(),
@@ -299,7 +412,7 @@ export const hivelocityRouter = router({
 	 *
 	 * NOTE: This creates billable resources in Hivelocity. Use only in test accounts.
 	 */
-	provisionComputeDevice: protectedProcedure
+	provisionComputeDevice: hivelocityProcedure
 		.input(
 			z.object({
 				productId: z.number().int().positive(),
@@ -337,7 +450,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Provision an instant bare metal device (legacy endpoint).
 	 * Docs: POST /bare-metal-devices/
 	 */
-	provisionBareMetalDevice: protectedProcedure
+	provisionBareMetalDevice: hivelocityProcedure
 		.input(
 			z.object({
 				productId: z.number().int().positive(),
@@ -370,7 +483,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get order by id (used to poll provisioning status).
 	 * Docs: GET /order/{orderId}
 	 */
-	getOrderById: protectedProcedure
+	getOrderById: hivelocityProcedure
 		.input(z.object({ orderId: z.number().int().positive() }))
 		.query(async ({ input }) => {
 			const raw = await hivelocityRequest<unknown>(`/order/${input.orderId}`, { requireApiKey: true });
@@ -381,7 +494,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get compute device by id.
 	 * Docs: GET /compute/{deviceId}
 	 */
-	getComputeDeviceById: protectedProcedure
+	getComputeDeviceById: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int().positive() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -393,7 +506,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get all compute devices.
 	 * Docs: GET /compute/
 	 */
-	getComputeDevices: protectedProcedure.query(async () => {
+	getComputeDevices: hivelocityProcedure.query(async () => {
 		const raw = await hivelocityRequest<unknown>("/compute/", { requireApiKey: true });
 		return { success: true, data: raw };
 	}),
@@ -407,7 +520,7 @@ export const hivelocityRouter = router({
 	 * - In practice, Hivelocity also supports filtering by `orderId` (used in their quickstart docs),
 	 *   so we expose it here for testing even if not present in the OpenAPI schema.
 	 */
-	getDevices: protectedProcedure
+	getDevices: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -431,7 +544,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get device IP assignments.
 	 * Docs: GET /device/{deviceId}/ips
 	 */
-	getDeviceIps: protectedProcedure
+	getDeviceIps: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int().positive() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -443,7 +556,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get all device services.
 	 * Docs: GET /device/{deviceId}/services
 	 */
-	getDeviceServices: protectedProcedure
+	getDeviceServices: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -469,7 +582,7 @@ export const hivelocityRouter = router({
 	 * Public (TEMP for development): Get available upgrade options for a VPS product.
 	 * Docs: GET /vps/{deviceId}/available-product-upgrades
 	 */
-	getVpsUpgrades: protectedProcedure
+	getVpsUpgrades: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int().positive() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -483,7 +596,7 @@ export const hivelocityRouter = router({
 	 * Private: Get all products.
 	 * Docs: GET /inventory/product
 	 */
-	getProducts: protectedProcedure.input(ProductsQuerySchema).query(async ({ input }) => {
+	getProducts: hivelocityProcedure.input(ProductsQuerySchema).query(async ({ input }) => {
 		const raw = await hivelocityRequest<unknown>("/inventory/product", {
 			query: {
 				location: input?.location,
@@ -506,241 +619,77 @@ export const hivelocityRouter = router({
 	 * - Hivelocity does not document native pagination for this endpoint, so we fetch once,
 	 *   normalize + filter server-side, then return a slice.
 	 */
-	getDedicatedServerPlans: protectedProcedure.input(DedicatedPlansQuerySchema).query(async ({ input }) => {
+	getDedicatedServerPlans: hivelocityProcedure.input(DedicatedPlansQuerySchema).query(async ({ input }) => {
 		const limit = input?.limit ?? 24;
 		const cursor = input?.cursor ?? 0;
-		const facilityCode = input?.facility_code?.trim() || undefined;
-		const search = input?.search?.trim().toLowerCase() || "";
 
-		// Cache the raw inventory for a short TTL to prevent re-fetching on every page click.
-		const cacheKey = buildCacheKey(input);
-		const now = Date.now();
-		const TTL_MS = 60_000;
-
-		const cached = dedicatedPlansCache.get(cacheKey);
-		let inventory: ReturnType<typeof normalizeHivelocityInventory>;
-
-		if (cached && now - cached.atMs < TTL_MS) {
-			inventory = cached.inventory;
-		} else {
-			const raw = await hivelocityRequest<unknown>("/inventory/product", {
-				query: {
-					location: input?.location,
-					include_custom: input?.include_custom,
-					bonding_support: input?.bonding_support,
-					group_by: "facility",
-				},
-				requireApiKey: true,
-			});
-
-			inventory = normalizeHivelocityInventory(raw);
-			dedicatedPlansCache.set(cacheKey, { atMs: now, inventory });
-		}
-
-		const all = Object.values(inventory).flat();
-		let dedicated = all.filter((p) => p.is_vps === false && p.is_vds === false);
-
-		if (facilityCode) {
-			dedicated = dedicated.filter((p) => p.data_center === facilityCode);
-		}
-
-		if (search.length > 0) {
-			dedicated = dedicated.filter((p) => {
-				const hay = [
-					p.product_name,
-					p.product_cpu,
-					p.product_memory,
-					p.product_drive,
-					p.product_bandwidth,
-					String(p.product_id),
-					p.data_center,
-				]
-					.filter(Boolean)
-					.join(" ")
-					.toLowerCase();
-				return hay.includes(search);
-			});
-		}
-
-		// Deterministic ordering to keep paging stable and prevent duplicates.
-		const stockRank = (s: string) => (s === "available" ? 0 : s === "limited" ? 1 : 2);
-		dedicated.sort((a, b) => {
-			const sr = stockRank(a.stock) - stockRank(b.stock);
-			if (sr !== 0) return sr;
-			const ap = a.product_monthly_price ?? Number.POSITIVE_INFINITY;
-			const bp = b.product_monthly_price ?? Number.POSITIVE_INFINITY;
-			if (ap !== bp) return ap - bp;
-			if (a.product_id !== b.product_id) return a.product_id - b.product_id;
-			return a.location_option_id - b.location_option_id;
+		const inventory = await getCachedHivelocityInventory({
+			location: input?.location,
+			include_custom: input?.include_custom,
+			bonding_support: input?.bonding_support,
 		});
 
-		const total = dedicated.length;
-		const items = dedicated.slice(cursor, cursor + limit);
-		const nextCursor = cursor + limit < total ? cursor + limit : null;
+		const data = paginateHivelocityPlans(inventory, "dedicated", {
+			facilityCode: input?.facility_code,
+			search: input?.search,
+			limit,
+			cursor,
+		});
 
-		return {
-			success: true,
-			data: {
-				items,
-				total,
-				nextCursor,
-			},
-		};
+		return { success: true, data };
 	}),
 
 	/**
 	 * Private: VPS plans (paginated).
 	 */
-	getVpsPlans: protectedProcedure.input(VpsPlansQuerySchema).query(async ({ input }) => {
+	getVpsPlans: hivelocityProcedure.input(VpsPlansQuerySchema).query(async ({ input }) => {
 		const limit = input?.limit ?? 24;
 		const cursor = input?.cursor ?? 0;
-		const facilityCode = input?.facility_code?.trim() || undefined;
-		const search = input?.search?.trim().toLowerCase() || "";
 
-		const cacheKey = buildCacheKey(input);
-		const now = Date.now();
-		const TTL_MS = 60_000;
-
-		const cached = dedicatedPlansCache.get(cacheKey);
-		let inventory: ReturnType<typeof normalizeHivelocityInventory>;
-
-		if (cached && now - cached.atMs < TTL_MS) {
-			inventory = cached.inventory;
-		} else {
-			const raw = await hivelocityRequest<unknown>("/inventory/product", {
-				query: {
-					location: input?.location,
-					include_custom: input?.include_custom,
-					bonding_support: input?.bonding_support,
-					group_by: "facility",
-				},
-				requireApiKey: true,
-			});
-
-			inventory = normalizeHivelocityInventory(raw);
-			dedicatedPlansCache.set(cacheKey, { atMs: now, inventory });
-		}
-
-		const all = Object.values(inventory).flat();
-		let rows = all.filter((p) => p.is_vps === true);
-
-		if (facilityCode) rows = rows.filter((p) => p.data_center === facilityCode);
-
-		if (search.length > 0) {
-			rows = rows.filter((p) => {
-				const hay = [
-					p.product_name,
-					p.product_cpu,
-					p.product_memory,
-					p.product_drive,
-					p.product_bandwidth,
-					String(p.product_id),
-					p.data_center,
-				]
-					.filter(Boolean)
-					.join(" ")
-					.toLowerCase();
-				return hay.includes(search);
-			});
-		}
-
-		const stockRank = (s: string) => (s === "available" ? 0 : s === "limited" ? 1 : 2);
-		rows.sort((a, b) => {
-			const sr = stockRank(a.stock) - stockRank(b.stock);
-			if (sr !== 0) return sr;
-			const ap = a.product_monthly_price ?? Number.POSITIVE_INFINITY;
-			const bp = b.product_monthly_price ?? Number.POSITIVE_INFINITY;
-			if (ap !== bp) return ap - bp;
-			if (a.product_id !== b.product_id) return a.product_id - b.product_id;
-			return a.location_option_id - b.location_option_id;
+		const inventory = await getCachedHivelocityInventory({
+			location: input?.location,
+			include_custom: input?.include_custom,
+			bonding_support: input?.bonding_support,
 		});
 
-		const total = rows.length;
-		const items = rows.slice(cursor, cursor + limit);
-		const nextCursor = cursor + limit < total ? cursor + limit : null;
+		const data = paginateHivelocityPlans(inventory, "vps", {
+			facilityCode: input?.facility_code,
+			search: input?.search,
+			limit,
+			cursor,
+		});
 
-		return { success: true, data: { items, total, nextCursor } };
+		return { success: true, data };
 	}),
 
 	/**
 	 * Private: VDS plans (paginated).
 	 */
-	getVdsPlans: protectedProcedure.input(VdsPlansQuerySchema).query(async ({ input }) => {
+	getVdsPlans: hivelocityProcedure.input(VdsPlansQuerySchema).query(async ({ input }) => {
 		const limit = input?.limit ?? 24;
 		const cursor = input?.cursor ?? 0;
-		const facilityCode = input?.facility_code?.trim() || undefined;
-		const search = input?.search?.trim().toLowerCase() || "";
 
-		const cacheKey = buildCacheKey(input);
-		const now = Date.now();
-		const TTL_MS = 60_000;
-
-		const cached = dedicatedPlansCache.get(cacheKey);
-		let inventory: ReturnType<typeof normalizeHivelocityInventory>;
-
-		if (cached && now - cached.atMs < TTL_MS) {
-			inventory = cached.inventory;
-		} else {
-			const raw = await hivelocityRequest<unknown>("/inventory/product", {
-				query: {
-					location: input?.location,
-					include_custom: input?.include_custom,
-					bonding_support: input?.bonding_support,
-					group_by: "facility",
-				},
-				requireApiKey: true,
-			});
-
-			inventory = normalizeHivelocityInventory(raw);
-			dedicatedPlansCache.set(cacheKey, { atMs: now, inventory });
-		}
-
-		const all = Object.values(inventory).flat();
-		let rows = all.filter((p) => p.is_vds === true);
-
-		if (facilityCode) rows = rows.filter((p) => p.data_center === facilityCode);
-
-		if (search.length > 0) {
-			rows = rows.filter((p) => {
-				const hay = [
-					p.product_name,
-					p.product_cpu,
-					p.product_memory,
-					p.product_drive,
-					p.product_bandwidth,
-					String(p.product_id),
-					p.data_center,
-				]
-					.filter(Boolean)
-					.join(" ")
-					.toLowerCase();
-				return hay.includes(search);
-			});
-		}
-
-		const stockRank = (s: string) => (s === "available" ? 0 : s === "limited" ? 1 : 2);
-		rows.sort((a, b) => {
-			const sr = stockRank(a.stock) - stockRank(b.stock);
-			if (sr !== 0) return sr;
-			const ap = a.product_monthly_price ?? Number.POSITIVE_INFINITY;
-			const bp = b.product_monthly_price ?? Number.POSITIVE_INFINITY;
-			if (ap !== bp) return ap - bp;
-			if (a.product_id !== b.product_id) return a.product_id - b.product_id;
-			return a.location_option_id - b.location_option_id;
+		const inventory = await getCachedHivelocityInventory({
+			location: input?.location,
+			include_custom: input?.include_custom,
+			bonding_support: input?.bonding_support,
 		});
 
-		const total = rows.length;
-		const items = rows.slice(cursor, cursor + limit);
-		const nextCursor = cursor + limit < total ? cursor + limit : null;
+		const data = paginateHivelocityPlans(inventory, "vds", {
+			facilityCode: input?.facility_code,
+			search: input?.search,
+			limit,
+			cursor,
+		});
 
-		return { success: true, data: { items, total, nextCursor } };
+		return { success: true, data };
 	}),
 
 	/**
 	 * Private: Get product by productId.
 	 * Docs: GET /inventory/product/{productId}
 	 */
-	getProduct: protectedProcedure
+	getProduct: hivelocityProcedure
 		.input(
 			z.object({
 				productId: z.number().int().positive(),
@@ -772,7 +721,7 @@ export const hivelocityRouter = router({
 	 * - Power-status filter ("on" | "off" | "all")
 	 * - Cursor-based pagination
 	 */
-	getMyDevices: protectedProcedure
+	getMyDevices: hivelocityProcedure
 		.input(
 			z.object({
 				search: z.string().trim().optional(),
@@ -861,7 +810,7 @@ export const hivelocityRouter = router({
 	 * - Facility filter (facilityCode)
 	 * - Cursor-based pagination
 	 */
-	getMyVpsInstances: protectedProcedure
+	getMyVpsInstances: hivelocityProcedure
 		.input(
 			z.object({
 				search: z.string().trim().optional(),
@@ -931,7 +880,7 @@ export const hivelocityRouter = router({
 	 * - Facility filter
 	 * - Cursor-based pagination over the merged + sorted result
 	 */
-	getMyAllResources: protectedProcedure
+	getMyAllResources: hivelocityProcedure
 		.input(
 			z.object({
 				type: z.enum(["dedicated", "vps", "vds", "all"]).default("all").optional(),
@@ -942,24 +891,56 @@ export const hivelocityRouter = router({
 			}).optional(),
 		)
 		.query(async ({ input }) => {
+			const totalStart = Date.now();
 			const limit = input?.limit ?? 50;
 			const cursor = input?.cursor ?? 0;
 			const search = input?.search?.toLowerCase() ?? "";
 			const facilityCode = input?.facilityCode?.trim() ?? "";
 			const typeFilter = input?.type ?? "all";
 
-			const mergedResources = await fetchMergedHivelocityResources();
-			const all = applyHivelocityResourceListFilters(mergedResources, typeFilter, search, facilityCode);
-			const { items, total, nextCursor, counts } = paginateHivelocityResourceList(all, limit, cursor);
+			const { resources: mergedResources, timing: fetchTiming } = await fetchMergedHivelocityResources();
 
-			return { success: true, data: { items, total, nextCursor, counts } };
+			const filterStart = Date.now();
+			const all = applyHivelocityResourceListFilters(mergedResources, typeFilter, search, facilityCode);
+			const filterMs = Date.now() - filterStart;
+
+			const paginateStart = Date.now();
+			const { items, total, nextCursor, counts } = paginateHivelocityResourceList(all, limit, cursor);
+			const paginateMs = Date.now() - paginateStart;
+			const totalMs = Date.now() - totalStart;
+
+			console.info(
+				`[hivelocity:getMyAllResources] type=${typeFilter} total=${totalMs}ms ` +
+					`deviceApi=${fetchTiming.hivelocity.device.durationMs}ms ` +
+					`vpsApi=${fetchTiming.hivelocity.vps.durationMs}ms ` +
+					`merge=${fetchTiming.mergeMs}ms filter=${filterMs}ms paginate=${paginateMs}ms ` +
+					`counts device=${fetchTiming.counts.deviceRows} vps=${fetchTiming.counts.vpsRows} merged=${fetchTiming.counts.merged} filtered=${all.length}`,
+			);
+
+			return {
+				success: true,
+				data: { items, total, nextCursor, counts },
+				...(isHivelocityDevelopmentMode()
+					? {
+							timing: {
+								...fetchTiming,
+								filterMs,
+								paginateMs,
+								totalMs,
+								filteredCount: all.length,
+								returnedCount: items.length,
+								typeFilter,
+							},
+						}
+					: {}),
+			};
 		}),
 
 	/**
 	 * Team-scoped server list: only Hivelocity devices linked to the team's NiscClientSubscription
 	 * (serviceRefs.hivelocityDeviceId) for products named VPS hosting, VDS hosting, or Dedicated servers hosting (case-insensitive).
 	 */
-	getTeamMyResources: protectedProcedure
+	getTeamMyResources: hivelocityProcedure
 		.input(
 			z.object({
 				teamSlug: z.string().min(1),
@@ -971,6 +952,7 @@ export const hivelocityRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			const totalStart = Date.now();
 			const session = ctx.session;
 			if (!session?.user?.id) {
 				throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
@@ -980,28 +962,164 @@ export const hivelocityRouter = router({
 			const search = input.search?.toLowerCase() ?? "";
 			const facilityCode = input.facilityCode?.trim() ?? "";
 
+			const teamLookupStart = Date.now();
+			const teamId = await getTeamIdBySlugForHivelocity(input.teamSlug);
+			const teamLookupMs = Date.now() - teamLookupStart;
+			if (!teamId) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
+			}
+
+			const accessStart = Date.now();
+			await assertUserCanReadTeamCloud(teamId, session.user.id, session.user.role);
+			const accessCheckMs = Date.now() - accessStart;
+
+			const subscriptionLookupStart = Date.now();
+			const allowed = await collectHivelocityDeviceIdsForTeam(teamId, input.type);
+			const subscriptionLookupMs = Date.now() - subscriptionLookupStart;
+
+			const { resources: merged, timing: fetchTiming } = await fetchMergedHivelocityResources();
+
+			const scopeStart = Date.now();
+			const scoped = merged.filter((r) => {
+				const id = resourceRowDeviceId(r);
+				return id != null && allowed.has(id) && r.resourceType === input.type;
+			});
+			const scopeMs = Date.now() - scopeStart;
+
+			const filterStart = Date.now();
+			const all = applyHivelocityResourceListFilters(scoped, input.type, search, facilityCode);
+			const filterMs = Date.now() - filterStart;
+
+			const paginateStart = Date.now();
+			let { items, total, nextCursor, counts } = paginateHivelocityResourceList(all, limit, cursor);
+			const paginateMs = Date.now() - paginateStart;
+
+			if (!isAgencyUserRole(session.user.role)) {
+				const subscriptionContext = await collectTeamHivelocitySubscriptionContext(teamId, input.type);
+				items = await Promise.all(
+					items.map(async (item) => {
+						const deviceId = resourceRowDeviceId(item);
+						if (deviceId == null) return item;
+						const sub = subscriptionContext.get(deviceId);
+						if (sub?.status !== "SUSPENDED") return item;
+
+						const redacted = redactSuspendedHivelocityResourceForCustomer(
+							deviceId,
+							input.type,
+							sub,
+						);
+						if (input.type !== "vps") return redacted;
+
+						const recurring = await resolveCustomerVpsRecurringCharge({
+							deviceId,
+							agreedPrice: sub.agreedPrice,
+							agreedCurrency: sub.agreedCurrency,
+							billingCycle: sub.billingCycle,
+						});
+
+						return {
+							...redacted,
+							reactivationAmount: recurring.amount,
+							reactivationCurrency: recurring.currency,
+							billingCycle: recurring.billingCycle ?? sub.billingCycle,
+						};
+					}),
+				);
+			}
+
+			const totalMs = Date.now() - totalStart;
+
+			console.info(
+				`[hivelocity:getTeamMyResources] type=${input.type} total=${totalMs}ms ` +
+					`teamLookup=${teamLookupMs}ms access=${accessCheckMs}ms subscriptions=${subscriptionLookupMs}ms ` +
+					`deviceApi=${fetchTiming.hivelocity.device.durationMs}ms vpsApi=${fetchTiming.hivelocity.vps.durationMs}ms ` +
+					`scope=${scopeMs}ms filter=${filterMs}ms paginate=${paginateMs}ms allowed=${allowed.size} filtered=${all.length}`,
+			);
+
+			return {
+				success: true,
+				data: { items, total, nextCursor, counts },
+				...(isHivelocityDevelopmentMode()
+					? {
+							timing: {
+								...fetchTiming,
+								db: { teamLookupMs, accessCheckMs, subscriptionLookupMs },
+								scopeMs,
+								filterMs,
+								paginateMs,
+								totalMs,
+								allowedDeviceCount: allowed.size,
+								filteredCount: all.length,
+								returnedCount: items.length,
+								typeFilter: input.type,
+							},
+						}
+					: {}),
+			};
+		}),
+
+	/**
+	 * Customer: payment context for a suspended VPS — no upstream device details.
+	 */
+	getCustomerSuspendedVpsContext: hivelocityProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int().positive(),
+				teamSlug: z.string().min(1),
+				teamResourceCategory: z.enum(["vps", "vds", "dedicated"]),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+			}
+			if (isAgencyUserRole(session.user.role)) {
+				return { suspended: false as const };
+			}
+
 			const teamId = await getTeamIdBySlugForHivelocity(input.teamSlug);
 			if (!teamId) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Team not found" });
 			}
 			await assertUserCanReadTeamCloud(teamId, session.user.id, session.user.role);
 
-			const allowed = await collectHivelocityDeviceIdsForTeam(teamId, input.type);
-			const merged = await fetchMergedHivelocityResources();
-			const scoped = merged.filter((r) => {
-				const id = resourceRowDeviceId(r);
-				return id != null && allowed.has(id) && r.resourceType === input.type;
-			});
-			const all = applyHivelocityResourceListFilters(scoped, input.type, search, facilityCode);
-			const { items, total, nextCursor, counts } = paginateHivelocityResourceList(all, limit, cursor);
+			const allowed = await collectHivelocityDeviceIdsForTeam(teamId, input.teamResourceCategory);
+			if (!allowed.has(input.deviceId)) {
+				throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this server" });
+			}
 
-			return { success: true, data: { items, total, nextCursor, counts } };
+			const subscriptionContext = await collectTeamHivelocitySubscriptionContext(
+				teamId,
+				input.teamResourceCategory,
+			);
+			const sub = subscriptionContext.get(input.deviceId);
+			if (!sub || sub.status !== "SUSPENDED") {
+				return { suspended: false as const };
+			}
+
+			const recurring = await resolveCustomerVpsRecurringCharge({
+				deviceId: input.deviceId,
+				agreedPrice: sub.agreedPrice,
+				agreedCurrency: sub.agreedCurrency,
+				billingCycle: sub.billingCycle,
+			});
+
+			return {
+				suspended: true as const,
+				subscriptionId: sub.subscriptionId,
+				serviceLabel: buildHivelocitySubscriptionServiceLabel(sub),
+				amount: recurring.amount,
+				currency: recurring.currency,
+				billingCycle: recurring.billingCycle,
+				productId: sub.productId,
+			};
 		}),
 
 	/**
 	 * Private: Get device details (standard /device/{id}).
 	 */
-	getDeviceDetails: protectedProcedure
+	getDeviceDetails: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1023,7 +1141,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get VPS-specific details (/vps/{id}).
 	 */
-	getVpsDetails: protectedProcedure
+	getVpsDetails: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1044,7 +1162,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get VPS event log.
 	 */
-	getVpsEvents: protectedProcedure
+	getVpsEvents: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1055,7 +1173,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get VPS metrics charts (Base64).
 	 */
-	getVpsMetrics: protectedProcedure
+	getVpsMetrics: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1081,7 +1199,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get VPS volumes.
 	 */
-	getVpsVolumes: protectedProcedure
+	getVpsVolumes: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1092,7 +1210,7 @@ export const hivelocityRouter = router({
 			return { success: true, data: raw };
 		}),
 
-	devicePowerAction: protectedProcedure
+	devicePowerAction: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1140,7 +1258,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get device power status (ON/OFF).
 	 */
-	getDevicePowerStatus: protectedProcedure
+	getDevicePowerStatus: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1178,7 +1296,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get device switch ports and IP assignments.
 	 */
-	getDevicePorts: protectedProcedure
+	getDevicePorts: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1189,7 +1307,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get initial SSH credentials (user, password, port).
 	 */
-	getDeviceInitialCreds: protectedProcedure
+	getDeviceInitialCreds: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1200,7 +1318,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get initial SSH password.
 	 */
-	getDeviceInitialPassword: protectedProcedure
+	getDeviceInitialPassword: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1211,7 +1329,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Check if facility supports IPMI whitelist.
 	 */
-	getIpmiWhitelistSupported: protectedProcedure
+	getIpmiWhitelistSupported: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.query(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1222,7 +1340,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get all VPS Snapshot Schedules for a device/facility.
 	 */
-	getVpsSnapshotSchedules: protectedProcedure
+	getVpsSnapshotSchedules: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1245,7 +1363,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Create a VPS Snapshot Schedule.
 	 */
-	createVpsSnapshotSchedule: protectedProcedure
+	createVpsSnapshotSchedule: hivelocityProcedure
 		.input(
 			hivelocityVpsSnapshotScheduleCreateSchema
 				.extend({ deviceId: z.number().int().optional() })
@@ -1265,7 +1383,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Create a new VPS Volume.
 	 */
-	createVpsVolume: protectedProcedure
+	createVpsVolume: hivelocityProcedure
 		.input(hivelocityVpsVolumeCreateSchema.and(teamHivelocityAccessSchema))
 		.mutation(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1281,7 +1399,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Resize a VPS Volume.
 	 */
-	resizeVpsVolume: protectedProcedure
+	resizeVpsVolume: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1305,7 +1423,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Delete a VPS Volume.
 	 */
-	deleteVpsVolume: protectedProcedure
+	deleteVpsVolume: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1328,7 +1446,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get a volume's list of upgradable sizes.
 	 */
-	getVpsVolumeAvailableSizes: protectedProcedure
+	getVpsVolumeAvailableSizes: hivelocityProcedure
 		.input(z.object({ volumeId: z.string() }))
 		.query(async ({ input }) => {
 			const raw = await hivelocityRequest<unknown>(`/vps/volume/${input.volumeId}/available-sizes`, {
@@ -1340,7 +1458,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Restore a VPS Volume Snapshot.
 	 */
-	restoreVpsSnapshot: protectedProcedure
+	restoreVpsSnapshot: hivelocityProcedure
 		.input(z.object({ 
 			snapshotId: z.string(),
 			facilityCode: z.string(),
@@ -1359,7 +1477,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Delete a VPS Volume Snapshot.
 	 */
-	deleteVpsSnapshot: protectedProcedure
+	deleteVpsSnapshot: hivelocityProcedure
 		.input(z.object({ 
 			snapshotId: z.string(),
 			facilityCode: z.string().optional(),
@@ -1378,7 +1496,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get all VPS Volume Snapshots available.
 	 */
-	getVpsSnapshots: protectedProcedure
+	getVpsSnapshots: hivelocityProcedure
 		.input(z.object({ 
 			facilityCode: z.string(),
 			clientId: z.number().int().optional()
@@ -1394,7 +1512,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Create a manual VPS Volume Snapshot.
 	 */
-	createVpsSnapshot: protectedProcedure
+	createVpsSnapshot: hivelocityProcedure
 		.input(z.object({
 			volumeId: z.string(),
 			name: z.string(),
@@ -1413,7 +1531,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Delete a VPS Snapshot Schedule.
 	 */
-	deleteVpsSnapshotSchedule: protectedProcedure
+	deleteVpsSnapshotSchedule: hivelocityProcedure
 		.input(z.object({ 
 			snapshotScheduleId: z.string(),
 			facilityCode: z.string()
@@ -1431,7 +1549,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Initiate an OS reload.
 	 */
-	reloadDevice: protectedProcedure
+	reloadDevice: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1456,7 +1574,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Update device metadata (name, hostname).
 	 */
-	updateDevice: protectedProcedure
+	updateDevice: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1479,8 +1597,9 @@ export const hivelocityRouter = router({
 
 	/**
 	 * Private: Request token to reset root password for VPS.
+	 * Token is emailed to the Hivelocity account contact — not returned in the published API schema.
 	 */
-	vpsRequestResetPasswordToken: protectedProcedure
+	vpsRequestResetPasswordToken: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.mutation(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1488,13 +1607,13 @@ export const hivelocityRouter = router({
 				method: "POST",
 				requireApiKey: true,
 			});
-			return { success: true, data: raw };
+			return { success: true, data: normalizeVpsPasswordResetRequestResult(raw) };
 		}),
 
 	/**
 	 * Private: Reset VPS root password (requires token and device to be powered off).
 	 */
-	vpsResetRootPassword: protectedProcedure
+	vpsResetRootPassword: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1515,9 +1634,35 @@ export const hivelocityRouter = router({
 		}),
 
 	/**
+	 * Private: List VPS ISOs available in a facility (GET /vps/iso).
+	 */
+	listVpsIsos: hivelocityProcedure
+		.input(z.object({ facilityCode: z.string().min(1) }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>("/vps/iso", {
+				query: { facilityCode: input.facilityCode },
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
+	 * Private: Get OS reload options for a device (GET /device/{deviceId}/reload).
+	 */
+	getDeviceReloadInfo: hivelocityProcedure
+		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
+		.query(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const raw = await hivelocityRequest<unknown>(`/device/${input.deviceId}/reload`, {
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/**
 	 * Private: Attach ISO to VPS.
 	 */
-	vpsAttachIso: protectedProcedure
+	vpsAttachIso: hivelocityProcedure
 		.input(
 			z
 				.object({
@@ -1539,7 +1684,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Detach ISO from VPS.
 	 */
-	vpsDetachIso: protectedProcedure
+	vpsDetachIso: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.mutation(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1553,7 +1698,7 @@ export const hivelocityRouter = router({
 	/**
 	 * Private: Get one-time browser console URL for VPS.
 	 */
-	vpsGetConsoleUrl: protectedProcedure
+	vpsGetConsoleUrl: hivelocityProcedure
 		.input(z.object({ deviceId: z.number().int() }).and(teamHivelocityAccessSchema))
 		.mutation(async ({ ctx, input }) => {
 			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
@@ -1565,9 +1710,110 @@ export const hivelocityRouter = router({
 		}),
 
 	/**
+	 * Private: List account SSH public keys (GET /ssh_key/).
+	 */
+	listSshKeys: hivelocityProcedure.query(async () => {
+		const data = await listHivelocitySshKeys();
+		return { success: true, data };
+	}),
+
+	/**
+	 * Private: Add an SSH public key to the account (POST /ssh_key/).
+	 */
+	createSshKey: hivelocityProcedure
+		.input(
+			z.object({
+				name: z.string().min(1).max(128),
+				publicKey: z.string().min(32).max(16_384),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			assertValidSshPublicKey(input.publicKey);
+			const data = await createHivelocitySshKey(input.name, input.publicKey);
+			return { success: true, data };
+		}),
+
+	/**
+	 * Private: Remove an SSH public key from the account (DELETE /ssh_key/{id}).
+	 */
+	deleteSshKey: hivelocityProcedure
+		.input(z.object({ sshKeyId: z.number().int() }))
+		.mutation(async ({ input }) => {
+			await deleteHivelocitySshKey(input.sshKeyId);
+			return { success: true };
+		}),
+
+	/**
+	 * Private: Replace SSH keys deployed on a VPS (PUT /vps/{deviceId}).
+	 * Instance must be powered off.
+	 */
+	updateVpsSshKeys: hivelocityProcedure
+		.input(
+			z
+				.object({
+					deviceId: z.number().int(),
+					sshKeyIds: z.array(z.number().int()),
+				})
+				.and(teamHivelocityAccessSchema),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await maybeAssertTeamHivelocityDeviceAccess({ ctx, input });
+			const data = await updateVpsDeployedSshKeys(input.deviceId, input.sshKeyIds);
+			return { success: true, data };
+		}),
+
+	/**
+	 * Agency: suspend customer panel access and power off the VPS upstream.
+	 */
+	suspendVpsInstance: hivelocityProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int(),
+				subscriptionId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+			}
+			const data = await suspendHivelocityVpsInstance({
+				deviceId: input.deviceId,
+				subscriptionId: input.subscriptionId,
+				userId: session.user.id,
+				role: session.user.role,
+			});
+			return { success: true, data };
+		}),
+
+	/**
+	 * Agency: restore customer panel access and boot the VPS if we powered it off on suspend.
+	 */
+	reactivateVpsInstance: hivelocityProcedure
+		.input(
+			z.object({
+				deviceId: z.number().int(),
+				subscriptionId: z.string().min(1),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const session = ctx.session;
+			if (!session?.user?.id) {
+				throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in" });
+			}
+			const data = await reactivateHivelocityVpsInstance({
+				deviceId: input.deviceId,
+				subscriptionId: input.subscriptionId,
+				userId: session.user.id,
+				role: session.user.role,
+			});
+			return { success: true, data };
+		}),
+
+	/**
 	 * Private: Get a short-lived ticket for authenticating cross-origin WebSockets.
 	 */
-	getWsTicket: protectedProcedure.mutation(async ({ ctx }) => {
+	getWsTicket: hivelocityProcedure.mutation(async ({ ctx }) => {
 		const redis = getRedisClient();
 		if (!redis) throw new Error("Redis required for WS tickets");
 		const ticket = crypto.randomUUID();

@@ -86,24 +86,95 @@ export const hivelocityInvoiceLineSchema = z.object({
 });
 export type HivelocityInvoiceLine = z.infer<typeof hivelocityInvoiceLineSchema>;
 
-export const hivelocityItemMetadataSchema = z.object({
-	hivelocityProductId: z.coerce.number().int().positive(),
-	hivelocityLocationName: z.string().min(1),
-	hivelocityOsName: z.string().min(1),
-	hivelocityHostname: z.string().min(1),
-	hivelocityPeriod: hivelocityPeriodSchema,
-	hivelocityOptionIds: z.array(z.coerce.number().int()).default([]),
-	/** Hivelocity product option id for the selected OS (Deployment API `options` array). */
-	hivelocityOsOptionId: z.coerce.number().int().optional(),
-	basePriceUsd: z.coerce.number().optional(),
-	osPriceUsd: z.coerce.number().optional(),
-	addonsPriceUsd: z.coerce.number().optional(),
-	subtotalKes: z.coerce.number().optional(),
-	totalKes: z.coerce.number().optional(),
-	usdToKesRate: z.coerce.number().optional(),
-	productType: z.enum(["DEDICATED_SERVERS", "VPS", "VDS"]).optional(),
-	invoiceLines: z.array(hivelocityInvoiceLineSchema).optional(),
-});
+export const hivelocityItemMetadataSchema = z
+	.object({
+		/** `provision` = new server via Deployment API; `vps_upgrade` = scale-up; `vps_reload` = wipe & reinstall OS; `vps_reactivate` = restore suspended VPS after payment. */
+		operation: z
+			.enum(["provision", "vps_upgrade", "vps_reload", "vps_reactivate"])
+			.default("provision"),
+		/** Linked NISC subscription restored when operation is `vps_reactivate`. */
+		niscSubscriptionId: z.string().min(1).optional(),
+		hivelocityProductId: z.coerce.number().int().positive(),
+		/** Existing VPS device id when operation is `vps_upgrade` or `vps_reload`. */
+		hivelocityTargetDeviceId: z.coerce.number().int().positive().optional(),
+		hivelocityCurrentProductId: z.coerce.number().int().positive().optional(),
+		upgradeDeltaUsd: z.coerce.number().optional(),
+		hivelocityLocationName: z.string().min(1),
+		hivelocityOsName: z.string().min(1),
+		hivelocityHostname: z.string().min(1),
+		hivelocityPeriod: hivelocityPeriodSchema,
+		hivelocityOptionIds: z.array(z.coerce.number().int()).default([]),
+		/** Hivelocity product option id for the selected OS (Deployment API `options` array). */
+		hivelocityOsOptionId: z.coerce.number().int().optional(),
+		/** SSH key ids to preserve on reload (POST /device/{id}/reload). */
+		hivelocityPublicSshKeyIds: z.array(z.coerce.number().int()).optional(),
+		basePriceUsd: z.coerce.number().optional(),
+		osPriceUsd: z.coerce.number().optional(),
+		addonsPriceUsd: z.coerce.number().optional(),
+		subtotalKes: z.coerce.number().optional(),
+		totalKes: z.coerce.number().optional(),
+		usdToKesRate: z.coerce.number().optional(),
+		productType: z.enum(["DEDICATED_SERVERS", "VPS", "VDS"]).optional(),
+		invoiceLines: z.array(hivelocityInvoiceLineSchema).optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.operation === "vps_upgrade" && !data.hivelocityTargetDeviceId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "hivelocityTargetDeviceId is required for VPS upgrades",
+				path: ["hivelocityTargetDeviceId"],
+			});
+		}
+		if (data.operation === "vps_upgrade" && data.productType && data.productType !== "VPS") {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "VPS upgrades require productType VPS",
+				path: ["productType"],
+			});
+		}
+		if (data.operation === "vps_reload" && !data.hivelocityTargetDeviceId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "hivelocityTargetDeviceId is required for VPS OS reloads",
+				path: ["hivelocityTargetDeviceId"],
+			});
+		}
+		if (data.operation === "vps_reload" && !data.hivelocityOsOptionId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "hivelocityOsOptionId is required for VPS OS reloads",
+				path: ["hivelocityOsOptionId"],
+			});
+		}
+		if (data.operation === "vps_reload" && data.productType && data.productType !== "VPS") {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "VPS OS reload orders require productType VPS",
+				path: ["productType"],
+			});
+		}
+		if (data.operation === "vps_reactivate" && !data.hivelocityTargetDeviceId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "hivelocityTargetDeviceId is required for VPS reactivation",
+				path: ["hivelocityTargetDeviceId"],
+			});
+		}
+		if (data.operation === "vps_reactivate" && !data.niscSubscriptionId) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "niscSubscriptionId is required for VPS reactivation",
+				path: ["niscSubscriptionId"],
+			});
+		}
+		if (data.operation === "vps_reactivate" && data.productType && data.productType !== "VPS") {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "VPS reactivation orders require productType VPS",
+				path: ["productType"],
+			});
+		}
+	});
 export type HivelocityItemMetadata = z.infer<typeof hivelocityItemMetadataSchema>;
 
 export const HIVELOCITY_SERVICE_TYPES = [

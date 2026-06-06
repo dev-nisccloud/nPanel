@@ -26,7 +26,7 @@ type ProductFeature = {
 	description: string;
 };
 
-/** Pricing-table rows — agency media buying deliverables (not platform UI). */
+/** Pricing-table rows - agency media buying deliverables (not platform UI). */
 const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "ad_accounts",
@@ -46,7 +46,7 @@ const PRODUCT_FEATURES: ProductFeature[] = [
 	{
 		key: "audience_targeting",
 		label: "Audience targeting",
-		description: "Research and refine who sees your ads — interests, demographics, and intent",
+		description: "Research and refine who sees your ads - interests, demographics, and intent",
 	},
 	{
 		key: "budget_management",
@@ -82,7 +82,7 @@ const PRODUCT_FEATURES: ProductFeature[] = [
 		key: "ai_campaign_analysis",
 		label: "AI campaign analysis",
 		description:
-			"AI-powered insights on spend efficiency, creative performance, and audience trends — included on every plan",
+			"AI-powered insights on spend efficiency, creative performance, and audience trends - included on every plan",
 	},
 	{
 		key: "strategy_reviews",
@@ -100,7 +100,7 @@ const PRODUCT = {
 	id: NISC_MEDIA_BUYING_PRODUCT_ID,
 	name: "Media Buying",
 	description:
-		"Done-for-you paid advertising from Nisc Cloud — Meta, Google, and LinkedIn campaigns managed by our media buying team. Pay a commission on ad spend each month; track live results and AI insights in your ad dashboard.",
+		"Done-for-you paid advertising from Nisc Cloud - Meta, Google, and LinkedIn campaigns managed by our media buying team. Pay a commission on ad spend each month; track live results and AI insights in your ad dashboard.",
 	category: "MARKETING",
 	serviceType: "media_buying",
 	isActive: true,
@@ -108,7 +108,7 @@ const PRODUCT = {
 	features: PRODUCT_FEATURES,
 	highlights: [
 		"Meta, Google & LinkedIn campaigns managed for you",
-		"Commission on ad spend — no fixed monthly retainer",
+		"Commission on ad spend - no fixed monthly retainer",
 		"Audience targeting, budget pacing, and conversion tracking",
 		"AI campaign analysis on every plan",
 		"Live performance dashboards for your linked ad accounts",
@@ -185,7 +185,7 @@ const PLANS: PlanSeed[] = [
 		id: NISC_MEDIA_BUYING_PLAN_IDS.starter,
 		name: "Starter",
 		description:
-			"One ad account on Meta, Google, or LinkedIn — ideal for businesses launching their first paid campaigns.",
+			"One ad account on Meta, Google, or LinkedIn - ideal for businesses launching their first paid campaigns.",
 		pricingModel: "COMMISSION",
 		commissionRate: "10.0000",
 		commissionBaseDescription: "Total monthly ad spend across linked accounts",

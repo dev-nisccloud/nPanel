@@ -1734,7 +1734,13 @@ export const clientSubscriptionsRouter = router({
     /** Check if a Hivelocity device id already has a linked NiscClientSubscription (serviceRefs.hivelocityDeviceId). */
     getHasLinkedSubscriptionByHivelocityDeviceId: protectedProcedure
         .input(z.object({ hivelocityDeviceId: z.union([z.string(), z.number()]) }))
-        .output(z.object({ hasLinked: z.boolean(), subscriptionId: z.string().nullable() }))
+        .output(
+            z.object({
+                hasLinked: z.boolean(),
+                subscriptionId: z.string().nullable(),
+                status: subscriptionStatusSchema.nullable(),
+            }),
+        )
         .query(async ({ ctx, input }) => {
             const session = ctx.session;
             if (!session?.user?.id) {
@@ -1746,7 +1752,10 @@ export const clientSubscriptionsRouter = router({
             const idStr = String(input.hivelocityDeviceId);
             const readScope = await buildSubscriptionReadScope(session.user.id, session.user.role);
             const [sub] = await db
-                .select({ id: niscClientSubscription.id })
+                .select({
+                    id: niscClientSubscription.id,
+                    status: niscClientSubscription.status,
+                })
                 .from(niscClientSubscription)
                 .where(
                     and(
@@ -1755,7 +1764,11 @@ export const clientSubscriptionsRouter = router({
                     ),
                 )
                 .limit(1);
-            return { hasLinked: !!sub, subscriptionId: sub?.id ?? null };
+            return {
+                hasLinked: !!sub,
+                subscriptionId: sub?.id ?? null,
+                status: sub?.status ?? null,
+            };
         }),
 
     /** Return Hivelocity device ids that already have a linked NiscClientSubscription (for batch check on list views). */

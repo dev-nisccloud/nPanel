@@ -21,6 +21,8 @@ import { HivelocityServersTable } from "./_components/hivelocity-servers-table";
 import { useHivelocityPricing } from "@/hooks/use-hivelocity-pricing";
 import { useHivelocityNiscProducts } from "@/hooks/use-hivelocity-nisc-products";
 import { buildHivelocityPlanForCheckout } from "@/lib/build-hivelocity-service-plan";
+import { HIVELOCITY_FACILITIES_QUERY_OPTIONS, HIVELOCITY_PLANS_QUERY_OPTIONS } from "@/lib/hivelocity-query-options";
+import { resolveClientErrorMessage } from "@/lib/public-error-message";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
 // import { toast } from "@/components/ui/sonner";
 
@@ -42,7 +44,7 @@ export default function DedicatedServersPage() {
 	const [dialogIntent, setDialogIntent] = React.useState<"buy_now" | "add_to_cart">("buy_now");
 	const [filter, setFilter] = React.useState<DedicatedFilter>(DEFAULT_FILTER);
 
-	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined);
+	const facilitiesQuery = trpc.hivelocity.getFacilities.useQuery(undefined, HIVELOCITY_FACILITIES_QUERY_OPTIONS);
 
 	const plansQuery = trpc.hivelocity.getDedicatedServerPlans.useInfiniteQuery(
 		{
@@ -54,6 +56,7 @@ export default function DedicatedServersPage() {
 			cursor: 0,
 		},
 		{
+			...HIVELOCITY_PLANS_QUERY_OPTIONS,
 			getNextPageParam: (lastPage) => lastPage.data?.nextCursor ?? undefined,
 		},
 	);
@@ -280,7 +283,7 @@ export default function DedicatedServersPage() {
 							) : plansQuery.error ? (
 								<div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
 									<p className="text-muted-foreground">
-										Failed to load plans: {plansQuery.error.message}
+										{resolveClientErrorMessage(plansQuery.error, "Failed to load plans. Please try again.")}
 									</p>
 								</div>
 							) : filteredPlans.length === 0 && activeFilterCount > 0 ? (

@@ -43,7 +43,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
             <NetworkIcon className="h-5 w-5 text-primary" />
             IP Address Assignments
           </CardTitle>
-          <CardDescription>Verified IP allocations from the Hivelocity network registry</CardDescription>
+          <CardDescription>Verified IP allocations for this instance</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -205,7 +205,7 @@ export function VpsNetwork({ deviceData, vpsData }: VpsNetworkProps) {
                    <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-lg border border-primary/10">
                       <Info className="h-3.5 w-3.5 text-primary" />
                       <p className="text-[10px] text-primary/80 font-medium">
-                        Statically routed subnets are applied automatically via the Hivelocity API.
+                        Statically routed subnets are applied automatically when configured.
                       </p>
                    </div>
                 </div>
