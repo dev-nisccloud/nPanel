@@ -1,28 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { toast } from "@/components/ui/sonner";
-import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@npanel/ui/components/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -30,15 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
-
-const inviteFormSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]).default("MEMBER"),
-});
-
-type FormData = z.infer<typeof inviteFormSchema>;
 
 interface InviteMemberDialogProps {
   open: boolean;
@@ -53,21 +35,21 @@ export function InviteMemberDialog({
   teamId,
   onSuccess,
 }: InviteMemberDialogProps) {
-  const form = useForm<FormData>({
-    resolver: zodResolver(inviteFormSchema),
-    defaultValues: {
-      email: "",
-      role: "MEMBER",
-    },
-  });
+  const [email, setEmail] = React.useState("");
+  const [role, setRole] = React.useState<"OWNER" | "ADMIN" | "MEMBER" | "VIEWER">("MEMBER");
+
+  React.useEffect(() => {
+    if (!open) {
+      setEmail("");
+      setRole("MEMBER");
+    }
+  }, [open]);
 
   const inviteMemberMutation = trpc.teams.inviteMember.useMutation({
     onSuccess: () => {
       toast.success("Invitation sent successfully");
-      form.reset({
-        email: "",
-        role: "MEMBER",
-      });
+      setEmail("");
+      setRole("MEMBER");
       onOpenChange(false);
       onSuccess?.();
     },
@@ -76,95 +58,93 @@ export function InviteMemberDialog({
     },
   });
 
-  const onSubmit = (data: FormData) => {
+  const handleSubmit = () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      toast.error("Email address is required");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     inviteMemberMutation.mutate({
       teamId,
-      email: data.email,
-      role: data.role,
+      email: trimmedEmail,
+      role,
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-8" hideClose>
-        <DialogHeader className="pb-6 space-y-2">
-          <DialogTitle className="text-xl">Invite Company Member</DialogTitle>
-          <DialogDescription className="pt-1 text-sm">
-            Send an invitation to join this company. The invitee will receive an email with instructions.
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Invite Team Member</DialogTitle>
+          <DialogDescription>
+            Send an invitation to join this organization. They will receive an email with instructions.
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email Address</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="user@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="space-y-6 py-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Invite Team Members</h2>
+          </div>
 
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="OWNER">Owner</SelectItem>
-                      <SelectItem value="VIEWER">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+          <div className="space-y-2">
+            <Label htmlFor="inviteEmail" className="text-sm font-medium">
+              Email Address <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="inviteEmail"
+              type="email"
+              placeholder="user@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11"
             />
+          </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  form.reset();
-                  onOpenChange(false);
-                }}
-                disabled={inviteMemberMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={inviteMemberMutation.isPending}
-              >
-                {inviteMemberMutation.isPending ? (
-                  <>
-                    <Spinner size={16} className="mr-2" />
-                    Sending...
-                  </>
-                ) : (
-                  "Send Invitation"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          <div className="space-y-2">
+            <Label htmlFor="inviteRole" className="text-sm font-medium">
+              Role
+            </Label>
+            <Select value={role} onValueChange={(value) => setRole(value as typeof role)}>
+              <SelectTrigger id="inviteRole" className="h-11 w-full">
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MEMBER">Member</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="OWNER">Owner</SelectItem>
+                <SelectItem value="VIEWER">Viewer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1 h-11"
+              disabled={inviteMemberMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              className="flex-1 h-11"
+              disabled={inviteMemberMutation.isPending}
+            >
+              {inviteMemberMutation.isPending ? "Sending..." : "Send Invitation"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
 }
-
-
