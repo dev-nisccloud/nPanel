@@ -18,9 +18,9 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
@@ -37,9 +37,9 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
@@ -57,16 +57,16 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
                     messages: {
                         id: string;
-                        createdAt: Date;
                         role: string;
+                        createdAt: Date;
                         metadata: unknown;
                         content: string | null;
                         toolCalls: unknown;
@@ -118,16 +118,16 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
                     messages: {
                         id: string;
-                        createdAt: Date;
                         role: string;
+                        createdAt: Date;
                         metadata: unknown;
                         content: string | null;
                         toolCalls: unknown;
@@ -156,7 +156,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 generationId?: string | undefined;
                 parentId?: string | undefined;
                 maskDataUrl?: string | undefined;
-                outputFormat?: "webp" | "png" | undefined;
+                outputFormat?: "png" | "webp" | undefined;
                 resolution?: "1 MP" | "2 MP" | undefined;
             };
             output: {
@@ -269,10 +269,10 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 sessionId: string;
                 generationId: string;
                 imageUrl: string;
-                style: "anime" | "cinematic" | "watercolor" | "oil_painting" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
+                style: "watercolor" | "oil_painting" | "cinematic" | "anime" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
                 parentId?: string | undefined;
                 customPrompt?: string | undefined;
-                outputFormat?: "webp" | "png" | undefined;
+                outputFormat?: "png" | "webp" | undefined;
                 resolution?: "1 MP" | "2 MP" | undefined;
             };
             output: {
@@ -399,7 +399,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 imageUrl: string;
                 parentId?: string | undefined;
                 prompt?: string | undefined;
-                outputFormat?: "webp" | "png" | undefined;
+                outputFormat?: "png" | "webp" | undefined;
             };
             output: {
                 variations: ({
@@ -447,8 +447,8 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
-                    description: string | null;
                     createdAt: Date;
+                    description: string | null;
                     balanceAfter: string;
                     operationType: string;
                     direction: string;

@@ -17,9 +17,9 @@ export declare function isPersistedUploadThingAsset(fileUrl: string, storageKey?
  */
 export declare function saveToNebMediaLibrary(params: SaveNebMediaLibraryParams): Promise<{
     id: string;
-    description: string | null;
     createdAt: Date;
     userId: string;
+    description: string | null;
     teamId: string | null;
     metadata: unknown;
     fileName: string;

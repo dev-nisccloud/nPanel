@@ -70,10 +70,10 @@ export declare const zeepoAgentImageEditsRouter: import("@trpc/server").TRPCBuil
             sessionId: string;
             generationId: string;
             imageUrl: string;
-            style: "anime" | "cinematic" | "watercolor" | "oil_painting" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
+            style: "watercolor" | "oil_painting" | "cinematic" | "anime" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
             parentId?: string | undefined;
             customPrompt?: string | undefined;
-            outputFormat?: "webp" | "png" | undefined;
+            outputFormat?: "png" | "webp" | undefined;
             resolution?: "1 MP" | "2 MP" | undefined;
         };
         output: {
@@ -221,7 +221,7 @@ export declare const zeepoAgentImageEditsRouter: import("@trpc/server").TRPCBuil
             imageUrl: string;
             parentId?: string | undefined;
             prompt?: string | undefined;
-            outputFormat?: "webp" | "png" | undefined;
+            outputFormat?: "png" | "webp" | undefined;
         };
         output: {
             variations: ({

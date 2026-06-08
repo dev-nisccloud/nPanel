@@ -52,9 +52,9 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
             output: {
                 id: string;
                 name: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
                 userId: string;
                 teamId: string | null;
                 metadata: unknown;
@@ -80,8 +80,8 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                     designId: string;
                     messages: {
                         id: string;
-                        createdAt: Date;
                         role: string;
+                        createdAt: Date;
                         metadata: unknown;
                         content: string;
                         sessionId: string;
@@ -136,9 +136,9 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                 data: {
                     id: string;
                     name: string;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
                     userId: string;
                     teamId: string | null;
                     metadata: unknown;

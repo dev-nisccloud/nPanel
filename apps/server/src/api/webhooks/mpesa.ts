@@ -13,6 +13,7 @@ import {
 import { sendEmail } from "@npanel/api/lib/email";
 import { renderPaymentReceiptEmail } from "@npanel/api/lib/email-templates";
 import { randomUUID } from "node:crypto";
+import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
 
 /**
  * M-Pesa Webhook Handler
@@ -64,6 +65,22 @@ export async function handleMpesaWebhook(c: Context) {
     const transaction = await db.query.paymentTransaction.findFirst({
       where: eq(paymentTransaction.checkoutRequestId, checkoutRequestId),
     });
+
+    if (transaction?.status === "SUCCESS" && isPaymentSuccessful(validatedCallback)) {
+      return c.json({
+        ResultCode: 0,
+        ResultDesc: "Already processed",
+      });
+    }
+
+    const idempotencyKey = `${checkoutRequestId}:${paymentStatus.resultCode}`;
+    const claimed = await claimWebhookEvent("mpesa", idempotencyKey);
+    if (!claimed) {
+      return c.json({
+        ResultCode: 0,
+        ResultDesc: "Duplicate callback",
+      });
+    }
 
     if (isPaymentSuccessful(validatedCallback)) {
       if (transaction) {

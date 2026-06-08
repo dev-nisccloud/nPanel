@@ -1,4 +1,5 @@
 import { request, Agent } from 'undici';
+import { withCircuitBreaker } from '../circuit-breaker';
 // Sentry removed; provide a no-op shim to avoid touching call sites
 const Sentry = {
     addBreadcrumb: (..._args) => { },
@@ -39,6 +40,9 @@ function isAuthError(error, statusCode) {
         statusCode === 403);
 }
 export async function sendPleskXmlRequest(xmlPayload) {
+    return withCircuitBreaker('plesk-xml', () => sendPleskXmlRequestUncached(xmlPayload));
+}
+async function sendPleskXmlRequestUncached(xmlPayload) {
     const PLESK_XML_ENDPOINT = process.env.PLESK_XML_ENDPOINT ??
         'https://your-plesk-host:8443/enterprise/control/agent.php';
     const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY;

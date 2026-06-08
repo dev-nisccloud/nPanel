@@ -10,3 +10,5 @@
  */
 export declare function resolveDatabaseUrl(): string;
 export declare function resolvePoolMax(): number;
+/** Per-query timeout applied on each new pool connection (ms). */
+export declare function resolveStatementTimeoutMs(): number;

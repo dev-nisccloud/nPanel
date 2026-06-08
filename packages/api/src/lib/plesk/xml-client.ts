@@ -1,4 +1,5 @@
 import { request, Agent } from 'undici';
+import { withCircuitBreaker } from '../circuit-breaker';
 // Sentry removed; provide a no-op shim to avoid touching call sites
 const Sentry = {
   addBreadcrumb: (..._args: any[]) => { },
@@ -63,6 +64,12 @@ function isAuthError(error: Error, statusCode?: number): boolean {
 }
 
 export async function sendPleskXmlRequest(
+  xmlPayload: string
+): Promise<PleskXmlResult> {
+  return withCircuitBreaker('plesk-xml', () => sendPleskXmlRequestUncached(xmlPayload));
+}
+
+async function sendPleskXmlRequestUncached(
   xmlPayload: string
 ): Promise<PleskXmlResult> {
   const PLESK_XML_ENDPOINT =

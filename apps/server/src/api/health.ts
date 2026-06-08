@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { db, getPoolMetrics, sql } from "@npanel/db";
+import { db, evaluatePoolHealth, getPoolMetrics, sql } from "@npanel/db";
 
 let lastHealthCheck: {
   timestamp: number;
@@ -36,10 +36,14 @@ export async function handleHealth(c: Context) {
       ),
     ]);
 
+    const pool = getPoolMetrics();
+    const poolHealth = evaluatePoolHealth(pool);
     const result = {
-      status: "healthy",
+      status: poolHealth.degraded ? "degraded" : "healthy",
       database: "connected",
-      pool: getPoolMetrics(),
+      pool,
+      poolWarnings: poolHealth.warnings,
+      serviceRole: pool.serviceRole,
     };
 
     lastHealthCheck = {
