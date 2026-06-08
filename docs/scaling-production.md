@@ -49,44 +49,44 @@ With defaults (`8` × 8 API + `4` × 20 workers = 144), use a pooler or raise Po
 
 Alert when `pool.waiting > 0` for sustained periods, `status` is `degraded`, or `poolWarnings` is non-empty.
 
-## GitHub Actions secrets (staging vs production)
+## GitHub Actions secrets (CI only)
 
-Worker URLs differ per environment. Use **`_STAGING`** and **`_PRODUCTION`** suffixes on GitHub environment secrets so `deploy.yml` injects the correct host.
+`deploy.yml` does **not** inject runtime app secrets. Cloud Run deploy uses the default **`merge`** strategy: env vars you set in the GCP console are preserved; CI only updates a small set of deployment knobs.
 
-### Staging (`main` branch → `staging` environment)
+### Repository secrets (all environments)
 
-Workers host (after first deploy): `https://npanel-workers-staging-664360361267.us-east1.run.app`  
-API webhooks stay on the API server URL.
-
-| Secret | Example value |
+| Secret | Purpose |
 |---|---|
-| `VITE_PUBLIC_APP_URL_STAGING` | `https://npanel-staging.nisccloud.com` |
-| `QSTASH_CAMPAIGN_WORKER_ENDPOINT_STAGING` | `https://npanel-workers-staging-….run.app/api/workers/send-campaign-emails` |
-| `QSTASH_NISC_ORDER_WORKER_ENDPOINT_STAGING` | `…/api/workers/process-nisc-order` |
-| `QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT_STAGING` | `…/api/workers/image-generator` |
-| `QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT_STAGING` | `…/api/workers/background-remover` |
-| `QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT_STAGING` | `…/api/workers/nisc-em-dispatch` |
-| `QSTASH_WORKER_ENDPOINT_STAGING` | `…/api/workers/publish-content` |
-| `QSTASH_LINKEDIN_WORKER_ENDPOINT_STAGING` | `…/api/workers/publish-linkedin-content` |
-| `QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING` | `…/api/workers/zeepo-canvas` |
-| `QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT_STAGING` | `…/api/workers/email-builder-ai` |
-| `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING` | `…/api/workers/meta-ads-analysis` |
-| `QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT_STAGING` | `…/api/workers/zeepo-agent` |
-| `QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT_STAGING` | `…/api/workers/nisc-email-builder` |
-| `REPLICATE_*_WEBHOOK_URL_STAGING` | API server host + `/api/webhooks/…` |
-| `QSTASH_TOKEN_STAGING` | Upstash QStash token (optional fallback: `QSTASH_TOKEN`) |
-| `QSTASH_CURRENT_SIGNING_KEY_STAGING` | QStash signing key |
-| `QSTASH_VITE_SIGNING_KEY_STAGING` | QStash next signing key |
-| `DISABLE_WORKER_ROUTES_STAGING` | `1` after QStash jobs verified on workers |
+| `GCP_PROJECT_ID` | Deploy target |
+| `GCP_REGION` | Cloud Run region |
+| `GCP_ARTIFACT_REGION` | Artifact Registry |
+| `GCP_ARTIFACT_REPO` | Docker repo name |
+| `GCP_SA_KEY` | Deploy service account JSON |
 
-### Production (`production` branch → `production` environment)
+### Environment secrets (migrations only)
 
-Workers host: `https://npanel-workers.nisccloud.com`  
-API webhooks: `https://npanel-server.nisccloud.com/api/webhooks/…`
+| Environment | Secret | Purpose |
+|---|---|---|
+| `staging` | `DATABASE_URL_STAGING` (or repo `DATABASE_URL`) | `migrate-staging` job |
+| `production` | `DATABASE_URL_PRODUCTION` | `migrate-production` job |
 
-Use the same secret names with **`_PRODUCTION`** instead of `_STAGING`.
+### Set on Cloud Run (not GitHub)
 
-Shared across environments (no suffix): `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `DATABASE_POOLER_URL_*`, `AWS_SES_*`, `RESEND_API_KEY`.
+Copy from `apps/server/.env.staging` or `.env.production` into each service in the GCP console:
+
+- `npanel-server-staging` / `npanel-server-production`
+- `npanel-workers-staging` / `npanel-workers-production`
+- `npanel-web-staging` / `npanel-web-production` (minimal; web gets `VITE_SERVER_URL` from CI)
+
+Includes auth, QStash worker URLs, Replicate webhooks, Redis, AWS SES, DigiTax, etc.
+
+### CI-managed Cloud Run vars (in `deploy.yml`)
+
+| Service | Vars set by pipeline |
+|---|---|
+| API | `NODE_ENV`, `HOSTNAME`, `DB_POOL_MAX` |
+| Workers | `NODE_ENV`, `HOSTNAME`, `NPANEL_SERVICE_ROLE=workers`, `DB_POOL_MAX` |
+| Web | `NODE_ENV`, `HOSTNAME`, `VITE_SERVER_URL` (resolved from live server URL) |
 
 ## Local development
 

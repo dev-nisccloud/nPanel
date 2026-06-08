@@ -134,44 +134,8 @@ jobs:
           flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 40 --max-instances 8 --min-instances 1'
           env_vars: |
             NODE_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
-            DATABASE_POOLER_URL=${{ secrets.DATABASE_POOLER_URL_STAGING || secrets.DATABASE_POOLER_URL }}
-            DB_POOL_MAX=12
-            UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
-            UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
             HOSTNAME=0.0.0.0
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
-            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-            VITE_PUBLIC_APP_URL=${{ secrets.VITE_PUBLIC_APP_URL_STAGING }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY }}
-            DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
-            QSTASH_TOKEN=${{ secrets.QSTASH_TOKEN_STAGING || secrets.QSTASH_TOKEN }}
-            QSTASH_CURRENT_SIGNING_KEY=${{ secrets.QSTASH_CURRENT_SIGNING_KEY_STAGING || secrets.QSTASH_CURRENT_SIGNING_KEY }}
-            QSTASH_VITE_SIGNING_KEY=${{ secrets.QSTASH_VITE_SIGNING_KEY_STAGING || secrets.QSTASH_VITE_SIGNING_KEY }}
-            QSTASH_URL=${{ secrets.QSTASH_URL || 'https://qstash.upstash.io' }}
-            DISABLE_WORKER_ROUTES=${{ secrets.DISABLE_WORKER_ROUTES_STAGING }}
-            QSTASH_CAMPAIGN_WORKER_ENDPOINT=${{ secrets.QSTASH_CAMPAIGN_WORKER_ENDPOINT_STAGING }}
-            QSTASH_NISC_ORDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_ORDER_WORKER_ENDPOINT_STAGING }}
-            QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT=${{ secrets.QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT_STAGING }}
-            QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT=${{ secrets.QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT_STAGING }}
-            QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT_STAGING }}
-            QSTASH_WORKER_ENDPOINT=${{ secrets.QSTASH_WORKER_ENDPOINT_STAGING }}
-            QSTASH_LINKEDIN_WORKER_ENDPOINT=${{ secrets.QSTASH_LINKEDIN_WORKER_ENDPOINT_STAGING }}
-            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL_STAGING }}
-            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT=${{ secrets.QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL=${{ secrets.REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL_STAGING }}
-            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL=${{ secrets.REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL_STAGING }}
-            QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_ZEEPO_AGENT_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_AGENT_WEBHOOK_URL_STAGING }}
-            REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL=${{ secrets.REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL_STAGING }}
-            BRAVE_SEARCH_API_KEY=${{ secrets.BRAVE_SEARCH_API_KEY }}
-            QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT_STAGING }}
+            DB_POOL_MAX=12
 
       - name: Health check
         continue-on-error: true
@@ -225,55 +189,15 @@ jobs:
           flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 20 --max-instances 4 --min-instances 0 --command bun --args src/workers-index.ts'
           env_vars: |
             NODE_ENV=production
-            NPANEL_SERVICE_ROLE=workers
-            DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
-            DATABASE_POOLER_URL=${{ secrets.DATABASE_POOLER_URL_STAGING || secrets.DATABASE_POOLER_URL }}
-            DB_POOL_MAX=20
-            UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
-            UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
             HOSTNAME=0.0.0.0
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
-            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-            VITE_PUBLIC_APP_URL=${{ secrets.VITE_PUBLIC_APP_URL_STAGING }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY }}
-            DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
-            QSTASH_TOKEN=${{ secrets.QSTASH_TOKEN_STAGING || secrets.QSTASH_TOKEN }}
-            QSTASH_CURRENT_SIGNING_KEY=${{ secrets.QSTASH_CURRENT_SIGNING_KEY_STAGING || secrets.QSTASH_CURRENT_SIGNING_KEY }}
-            QSTASH_VITE_SIGNING_KEY=${{ secrets.QSTASH_VITE_SIGNING_KEY_STAGING || secrets.QSTASH_VITE_SIGNING_KEY }}
-            QSTASH_URL=${{ secrets.QSTASH_URL || 'https://qstash.upstash.io' }}
-            QSTASH_CAMPAIGN_WORKER_ENDPOINT=${{ secrets.QSTASH_CAMPAIGN_WORKER_ENDPOINT_STAGING }}
-            QSTASH_NISC_ORDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_ORDER_WORKER_ENDPOINT_STAGING }}
-            QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT=${{ secrets.QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT_STAGING }}
-            QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT=${{ secrets.QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT_STAGING }}
-            QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT_STAGING }}
-            QSTASH_WORKER_ENDPOINT=${{ secrets.QSTASH_WORKER_ENDPOINT_STAGING }}
-            QSTASH_LINKEDIN_WORKER_ENDPOINT=${{ secrets.QSTASH_LINKEDIN_WORKER_ENDPOINT_STAGING }}
-            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL_STAGING }}
-            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT=${{ secrets.QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL=${{ secrets.REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL_STAGING }}
-            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL=${{ secrets.REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL_STAGING }}
-            QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT_STAGING }}
-            REPLICATE_ZEEPO_AGENT_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_AGENT_WEBHOOK_URL_STAGING }}
-            REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL=${{ secrets.REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL_STAGING }}
-            BRAVE_SEARCH_API_KEY=${{ secrets.BRAVE_SEARCH_API_KEY }}
-            QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT_STAGING }}
-            AWS_SES_REGION=${{ secrets.AWS_SES_REGION }}
-            AWS_SES_ACCESS_KEY_ID=${{ secrets.AWS_SES_ACCESS_KEY_ID }}
-            AWS_SES_SECRET_ACCESS_KEY=${{ secrets.AWS_SES_SECRET_ACCESS_KEY }}
-            SES_CONFIGURATION_SET=${{ secrets.SES_CONFIGURATION_SET }}
-            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            NPANEL_SERVICE_ROLE=workers
+            DB_POOL_MAX=20
 
       - name: Workers URL handoff
         run: |
           echo "✅ Workers service URL: ${{ steps.deploy.outputs.url }}"
-          echo "Set GitHub secrets QSTASH_*_WORKER_ENDPOINT_STAGING to this host + /api/workers/... paths."
-          echo "Then set DISABLE_WORKER_ROUTES_STAGING=1 on the API server when QStash jobs are verified."
+          echo "Runtime secrets live on Cloud Run (merge strategy preserves existing vars)."
+          echo "Copy apps/server/.env.staging onto npanel-server-staging and npanel-workers-staging in the console."
 
   # 2. Deploy npanel-web to Google Cloud Run (Staging)
   deploy-web-staging:
@@ -339,7 +263,7 @@ jobs:
         run: |
           docker build -f apps/web/Dockerfile \
             --build-arg VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }} \
-            --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET || 'build-time-placeholder-do-not-use-in-production' }} \
+            --build-arg BETTER_AUTH_SECRET=build-time-placeholder-do-not-use-in-production \
             -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
           docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
@@ -356,7 +280,6 @@ jobs:
             NODE_ENV=production
             HOSTNAME=0.0.0.0
             VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
 
   # Production - runs on push/merge to the production branch (same flow as main → staging)
   migrate-production:
@@ -435,44 +358,8 @@ jobs:
           flags: '--allow-unauthenticated --memory 2Gi --cpu-boost --concurrency 40 --max-instances 8 --min-instances 1'
           env_vars: |
             NODE_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
-            DATABASE_POOLER_URL=${{ secrets.DATABASE_POOLER_URL_PRODUCTION || secrets.DATABASE_POOLER_URL }}
-            DB_POOL_MAX=12
-            UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
-            UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
             HOSTNAME=0.0.0.0
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
-            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
-            VITE_PUBLIC_APP_URL=${{ secrets.VITE_PUBLIC_APP_URL_PRODUCTION }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY }}
-            DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
-            QSTASH_TOKEN=${{ secrets.QSTASH_TOKEN_PRODUCTION || secrets.QSTASH_TOKEN }}
-            QSTASH_CURRENT_SIGNING_KEY=${{ secrets.QSTASH_CURRENT_SIGNING_KEY_PRODUCTION || secrets.QSTASH_CURRENT_SIGNING_KEY }}
-            QSTASH_VITE_SIGNING_KEY=${{ secrets.QSTASH_VITE_SIGNING_KEY_PRODUCTION || secrets.QSTASH_VITE_SIGNING_KEY }}
-            QSTASH_URL=${{ secrets.QSTASH_URL || 'https://qstash.upstash.io' }}
-            DISABLE_WORKER_ROUTES=${{ secrets.DISABLE_WORKER_ROUTES_PRODUCTION }}
-            QSTASH_CAMPAIGN_WORKER_ENDPOINT=${{ secrets.QSTASH_CAMPAIGN_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_NISC_ORDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_ORDER_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT=${{ secrets.QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT=${{ secrets.QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_WORKER_ENDPOINT=${{ secrets.QSTASH_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_LINKEDIN_WORKER_ENDPOINT=${{ secrets.QSTASH_LINKEDIN_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL_PRODUCTION }}
-            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT=${{ secrets.QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL=${{ secrets.REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL_PRODUCTION }}
-            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL=${{ secrets.REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL_PRODUCTION }}
-            QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_ZEEPO_AGENT_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_AGENT_WEBHOOK_URL_PRODUCTION }}
-            REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL=${{ secrets.REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL_PRODUCTION }}
-            BRAVE_SEARCH_API_KEY=${{ secrets.BRAVE_SEARCH_API_KEY }}
-            QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT_PRODUCTION }}
+            DB_POOL_MAX=12
 
       - name: Health check
         continue-on-error: true
@@ -525,56 +412,16 @@ jobs:
           flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 20 --max-instances 4 --min-instances 0 --command bun --args src/workers-index.ts'
           env_vars: |
             NODE_ENV=production
-            NPANEL_SERVICE_ROLE=workers
-            DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
-            DATABASE_POOLER_URL=${{ secrets.DATABASE_POOLER_URL_PRODUCTION || secrets.DATABASE_POOLER_URL }}
-            DB_POOL_MAX=20
-            UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}
-            UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
             HOSTNAME=0.0.0.0
-            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
-            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
-            VITE_PUBLIC_APP_URL=${{ secrets.VITE_PUBLIC_APP_URL_PRODUCTION }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            DIGITAX_API_KEY=${{ secrets.DIGITAX_API_KEY }}
-            DIGITAX_API_URL=${{ secrets.DIGITAX_API_URL || 'https://api.digitax.tech/ke/v2' }}
-            QSTASH_TOKEN=${{ secrets.QSTASH_TOKEN_PRODUCTION || secrets.QSTASH_TOKEN }}
-            QSTASH_CURRENT_SIGNING_KEY=${{ secrets.QSTASH_CURRENT_SIGNING_KEY_PRODUCTION || secrets.QSTASH_CURRENT_SIGNING_KEY }}
-            QSTASH_VITE_SIGNING_KEY=${{ secrets.QSTASH_VITE_SIGNING_KEY_PRODUCTION || secrets.QSTASH_VITE_SIGNING_KEY }}
-            QSTASH_URL=${{ secrets.QSTASH_URL || 'https://qstash.upstash.io' }}
-            QSTASH_CAMPAIGN_WORKER_ENDPOINT=${{ secrets.QSTASH_CAMPAIGN_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_NISC_ORDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_ORDER_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT=${{ secrets.QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT=${{ secrets.QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_WORKER_ENDPOINT=${{ secrets.QSTASH_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_LINKEDIN_WORKER_ENDPOINT=${{ secrets.QSTASH_LINKEDIN_WORKER_ENDPOINT_PRODUCTION }}
-            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL_PRODUCTION }}
-            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT=${{ secrets.QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL=${{ secrets.REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL_PRODUCTION }}
-            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL=${{ secrets.REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL_PRODUCTION }}
-            QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT_PRODUCTION }}
-            REPLICATE_ZEEPO_AGENT_WEBHOOK_URL=${{ secrets.REPLICATE_ZEEPO_AGENT_WEBHOOK_URL_PRODUCTION }}
-            REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL=${{ secrets.REPLICATE_IMAGE_GENERATOR_WEBHOOK_URL_PRODUCTION }}
-            BRAVE_SEARCH_API_KEY=${{ secrets.BRAVE_SEARCH_API_KEY }}
-            QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT=${{ secrets.QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT_PRODUCTION }}
-            AWS_SES_REGION=${{ secrets.AWS_SES_REGION }}
-            AWS_SES_ACCESS_KEY_ID=${{ secrets.AWS_SES_ACCESS_KEY_ID }}
-            AWS_SES_SECRET_ACCESS_KEY=${{ secrets.AWS_SES_SECRET_ACCESS_KEY }}
-            SES_CONFIGURATION_SET=${{ secrets.SES_CONFIGURATION_SET }}
-            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            NPANEL_SERVICE_ROLE=workers
+            DB_POOL_MAX=20
 
       - name: Workers URL handoff
         run: |
           echo "✅ Workers service URL: ${{ steps.deploy.outputs.url }}"
           echo "Production workers custom domain: https://npanel-workers.nisccloud.com"
-          echo "Set QSTASH_*_WORKER_ENDPOINT_PRODUCTION secrets to that host + /api/workers/... paths."
-          echo "Then set DISABLE_WORKER_ROUTES_PRODUCTION=1 on the API server when verified."
+          echo "Runtime secrets live on Cloud Run (merge strategy preserves existing vars)."
+          echo "Copy apps/server/.env.production onto npanel-server-production and npanel-workers-production in the console."
 
   deploy-web-production:
     name: Deploy Web to Production
@@ -639,7 +486,7 @@ jobs:
         run: |
           docker build -f apps/web/Dockerfile \
             --build-arg VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }} \
-            --build-arg BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION || 'build-time-placeholder-do-not-use-in-production' }} \
+            --build-arg BETTER_AUTH_SECRET=build-time-placeholder-do-not-use-in-production \
             -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
             .
           docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
@@ -656,6 +503,5 @@ jobs:
             NODE_ENV=production
             HOSTNAME=0.0.0.0
             VITE_SERVER_URL=${{ steps.resolve-server-url.outputs.server_url }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
 
 
