@@ -247,8 +247,8 @@ function ServersTimingDebug({ timing }: { timing: Record<string, unknown> | unde
 				{hivelocity ? (
 					<>
 						<p>Provider GET /device/: {formatMs(hivelocity.device?.durationMs)} ({hivelocity.device?.responseBytes ?? 0} bytes, {counts?.deviceRows ?? 0} rows)</p>
-						<p>Provider GET /vps/: {formatMs(hivelocity.vps?.durationMs)} ({hivelocity.vps?.responseBytes ?? 0} bytes, {counts?.vpsRows ?? 0} rows)</p>
-						<p>Parallel fetch wall time: {formatMs(hivelocity.parallelMs)}</p>
+						<p>VPS rows from device list: {counts?.vpsRows ?? 0}</p>
+						<p>Fetch wall time: {formatMs(hivelocity.parallelMs)}</p>
 					</>
 				) : null}
 				<p>Merge/normalize: {formatMs(timing.mergeMs as number)} ({counts?.merged ?? 0} merged)</p>
@@ -260,9 +260,9 @@ function ServersTimingDebug({ timing }: { timing: Record<string, unknown> | unde
 				) : null}
 				<p>Filter/sort: {formatMs(timing.filterMs as number)} ({timing.filteredCount ?? 0} after filter)</p>
 				<p>Paginate: {formatMs(timing.paginateMs as number)} ({timing.returnedCount ?? 0} returned)</p>
-				<p className="pt-1 text-[11px] not-italic">
-					VPS tab still calls both /device/ and /vps/ even with few VPS servers. If /device/ is slow, the bottleneck is the provider returning the full account device list.
-				</p>
+				{/* <p className="pt-1 text-[11px] not-italic">
+					Server lists use GET /device/ only (Hivelocity docs: bare-metal + virtual devices). GET /vps/ is used on detail pages only.
+				</p> */}
 			</div>
 		</details>
 	);

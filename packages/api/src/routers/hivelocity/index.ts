@@ -42,9 +42,11 @@ import {
 	hivelocityVpsSchema,
 	hivelocityVpsSnapshotScheduleCreateSchema,
 	hivelocityVpsVolumeCreateSchema,
+	normalizeHivelocityVps,
 	type HivelocityDeviceDump,
 	type HivelocityVps,
 	type HivelocityAnyResource,
+	type HivelocityResourceType,
 	type HivelocityInventoryResponse,
 	type HivelocityProductStock,
 } from "../../types/hivelocity";
@@ -158,8 +160,10 @@ function paginateHivelocityPlans(
 export type HivelocityResourcesFetchTiming = {
 	hivelocity: {
 		device: HivelocityRequestTiming;
-		vps: HivelocityRequestTiming;
+		/** Not used for list views; kept for dev timing UI compatibility. */
+		vps?: HivelocityRequestTiming;
 		parallelMs: number;
+		source: "device";
 	};
 	mergeMs: number;
 	counts: {
@@ -169,93 +173,65 @@ export type HivelocityResourcesFetchTiming = {
 	};
 };
 
-/** Merged /device + /vps account resources (before list filters). */
-async function fetchMergedHivelocityResources(): Promise<{
+function classifyDeviceResourceType(device: HivelocityDeviceDump): HivelocityResourceType {
+	const typeStr = (device.deviceType ?? "").toUpperCase();
+	const groupStr = (device.deviceTypeGroup ?? "").toUpperCase();
+	if (typeStr.includes("VPS") || groupStr.includes("VPS")) return "vps";
+	if (typeStr.includes("VDS") || device.tags.some((t) => t.toUpperCase() === "VDS")) return "vds";
+	return "dedicated";
+}
+
+function parseDeviceResources(raw: unknown): HivelocityAnyResource[] {
+	const deviceArray = Array.isArray(raw) ? raw : [];
+	return deviceArray
+		.map((item) => hivelocityDeviceDumpSchema.safeParse(item))
+		.filter((r): r is { success: true; data: HivelocityDeviceDump } => r.success)
+		.map((r) => ({
+			...r.data,
+			resourceType: classifyDeviceResourceType(r.data),
+		}));
+}
+
+/**
+ * Account resources for server list views.
+ *
+ * Uses GET /device/ only (official docs: bare-metal + virtual devices).
+ * Avoids GET /vps/ on list loads — that endpoint is VPS-management-specific and
+ * can take 15s+ from Hivelocity while /device/ returns the same VPS rows in <1s.
+ */
+async function fetchHivelocityResourcesForList(
+	typeFilter: "dedicated" | "vps" | "vds" | "all" = "all",
+): Promise<{
 	resources: HivelocityAnyResource[];
 	timing: HivelocityResourcesFetchTiming;
 }> {
-	const parallelStart = Date.now();
-	const [deviceResult, vpsResult] = await Promise.all([
-		hivelocityRequestTimed<unknown>("/device/", { requireApiKey: true }),
-		hivelocityRequestTimed<unknown>("/vps/", { requireApiKey: true }),
-	]);
-	const parallelMs = Date.now() - parallelStart;
-	const rawDevices = deviceResult.data;
-	const rawVps = vpsResult.data;
+	const fetchStart = Date.now();
+	const deviceResult = await hivelocityRequestTimed<unknown>("/device/", { requireApiKey: true });
+	const parallelMs = Date.now() - fetchStart;
 
 	const mergeStart = Date.now();
-	const deviceArray = Array.isArray(rawDevices) ? rawDevices : [];
-	const deviceResources: HivelocityAnyResource[] = deviceArray
-		.map((item) => hivelocityDeviceDumpSchema.safeParse(item))
-		.filter((r): r is { success: true; data: HivelocityDeviceDump } => r.success)
-		.map((r) => {
-			const device = r.data;
-			const typeStr = (device.deviceType ?? "").toUpperCase();
-			const groupStr = (device.deviceTypeGroup ?? "").toUpperCase();
-
-			let resourceType: "dedicated" | "vds" | "vps" = "dedicated";
-			if (typeStr.includes("VPS") || groupStr.includes("VPS")) {
-				resourceType = "vps";
-			} else if (typeStr.includes("VDS") || device.tags.some((t) => t.toUpperCase() === "VDS")) {
-				resourceType = "vds";
-			}
-
-			return {
-				...device,
-				resourceType,
-			};
-		});
-
-	const vpsArray = Array.isArray(rawVps) ? rawVps : [];
-	const vpsMap = new Map<number, HivelocityVps>();
-	vpsArray.forEach((v) => {
-		const parsed = hivelocityVpsSchema.safeParse(v);
-		if (parsed.success) {
-			const deviceId = (parsed.data as any).deviceId || (parsed.data as any).id;
-			if (deviceId) vpsMap.set(Number(deviceId), parsed.data);
-		}
-	});
-
-	const mergedResources: HivelocityAnyResource[] = [];
-	const seenDeviceIds = new Set<number>();
-
-	deviceResources.forEach((dev: any) => {
-		const deviceId = dev.deviceId;
-		if (deviceId) seenDeviceIds.add(deviceId);
-
-		if (dev.resourceType === "vps" && deviceId && vpsMap.has(deviceId)) {
-			const vpsData = vpsMap.get(deviceId)!;
-			mergedResources.push({
-				...vpsData,
-				...dev,
-				resourceType: "vps" as const,
-			});
-		} else {
-			mergedResources.push(dev);
-		}
-	});
-
-	vpsMap.forEach((vps, deviceId) => {
-		if (!seenDeviceIds.has(deviceId)) {
-			mergedResources.push({ ...vps, resourceType: "vps" as const });
-		}
-	});
-
+	let resources = parseDeviceResources(deviceResult.data);
+	if (typeFilter !== "all") {
+		resources = resources.filter((r) => r.resourceType === typeFilter);
+	}
 	const mergeMs = Date.now() - mergeStart;
 
+	const deviceRows = Array.isArray(deviceResult.data) ? deviceResult.data.length : 0;
+	const vpsRows = resources.filter((r) => r.resourceType === "vps").length;
+
 	return {
-		resources: mergedResources,
+		resources,
 		timing: {
 			hivelocity: {
 				device: deviceResult.timing,
-				vps: vpsResult.timing,
 				parallelMs,
+				source: "device",
 			},
 			mergeMs,
 			counts: {
-				deviceRows: deviceArray.length,
-				vpsRows: vpsArray.length,
-				merged: mergedResources.length,
+				deviceRows,
+				vpsRows,
+				merged: resources.length,
 			},
 		},
 	};
@@ -300,7 +276,8 @@ function applyHivelocityResourceListFilters(
 			if (r.resourceType === "vps" && !("location" in r)) {
 				common.push((r as HivelocityVps).osName ?? "");
 				common.push((r as HivelocityVps).facilityCode ?? "");
-				common.push(r.id);
+				common.push(r.id ?? "");
+				common.push(String((r as HivelocityVps).deviceId ?? ""));
 			} else {
 				const d = r as HivelocityDeviceDump;
 				const loc = d.location as any;
@@ -799,16 +776,8 @@ export const hivelocityRouter = router({
 	/**
 	 * Get all VPS instances in the account (paginated + filtered).
 	 *
-	 * Docs: GET /vps/
-	 * Schema: VPS
-	 *
-	 * Note: This is a completely separate endpoint from /device/ with its own
-	 * schema - VPS instances are NOT returned by /device/.
-	 *
-	 * Supports:
-	 * - Free-text search (hostname, primaryIp, osName, id)
-	 * - Facility filter (facilityCode)
-	 * - Cursor-based pagination
+	 * List source: GET /device/ filtered to VPS rows (official docs include virtual
+	 * devices). GET /vps/ is reserved for per-instance VPS management on detail pages.
 	 */
 	getMyVpsInstances: hivelocityProcedure
 		.input(
@@ -825,40 +794,11 @@ export const hivelocityRouter = router({
 			const search = input?.search?.toLowerCase() ?? "";
 			const facilityCode = input?.facilityCode?.trim() ?? "";
 
-			const raw = await hivelocityRequest<unknown>("/vps/", { requireApiKey: true });
+			const { resources: instances } = await fetchHivelocityResourcesForList("vps");
+			let filtered = applyHivelocityResourceListFilters(instances, "vps", search, facilityCode);
 
-			const rawArray = Array.isArray(raw) ? raw : [];
-			let instances = rawArray
-				.map((item) => hivelocityVpsSchema.safeParse(item))
-				.filter((r): r is { success: true; data: HivelocityVps } => r.success)
-				.map((r) => r.data);
-
-			// Facility filter
-			if (facilityCode) {
-				instances = instances.filter(
-					(v) => v.facilityCode?.toLowerCase() === facilityCode.toLowerCase(),
-				);
-			}
-
-			// Search filter
-			if (search.length > 0) {
-				instances = instances.filter((v) => {
-					const haystack = [
-						v.hostname,
-						v.primaryIp ?? "",
-						v.osName ?? "",
-						v.facilityCode ?? "",
-						v.id,
-					]
-						.filter(Boolean)
-						.join(" ")
-						.toLowerCase();
-					return haystack.includes(search);
-				});
-			}
-
-			const total = instances.length;
-			const items = instances.slice(cursor, cursor + limit);
+			const total = filtered.length;
+			const items = filtered.slice(cursor, cursor + limit);
 			const nextCursor = cursor + limit < total ? cursor + limit : null;
 
 			return { success: true, data: { items, total, nextCursor } };
@@ -867,18 +807,8 @@ export const hivelocityRouter = router({
 	/**
 	 * Get ALL account resources in a single unified call (dedicated + VPS + VDS).
 	 *
-	 * Implementation:
-	 * - Fetches /device/ and /vps/ in parallel (Promise.all).
-	 * - Enriches each record with a `resourceType` discriminant:
-	 *   - "vps"  → came from /vps/
-	 *   - "vds"  → came from /device/ AND productName contains "VDS" (case-insensitive)
-	 *   - "dedicated" → all other /device/ records
-	 *
-	 * Supports:
-	 * - type: "dedicated" | "vps" | "vds" | "all"
-	 * - Free-text search
-	 * - Facility filter
-	 * - Cursor-based pagination over the merged + sorted result
+	 * Implementation: GET /device/ (official docs: bare-metal + virtual devices).
+	 * Classifies each row as dedicated, vds, or vps from deviceType/deviceTypeGroup.
 	 */
 	getMyAllResources: hivelocityProcedure
 		.input(
@@ -898,7 +828,8 @@ export const hivelocityRouter = router({
 			const facilityCode = input?.facilityCode?.trim() ?? "";
 			const typeFilter = input?.type ?? "all";
 
-			const { resources: mergedResources, timing: fetchTiming } = await fetchMergedHivelocityResources();
+			const { resources: mergedResources, timing: fetchTiming } =
+				await fetchHivelocityResourcesForList(typeFilter);
 
 			const filterStart = Date.now();
 			const all = applyHivelocityResourceListFilters(mergedResources, typeFilter, search, facilityCode);
@@ -912,7 +843,6 @@ export const hivelocityRouter = router({
 			console.info(
 				`[hivelocity:getMyAllResources] type=${typeFilter} total=${totalMs}ms ` +
 					`deviceApi=${fetchTiming.hivelocity.device.durationMs}ms ` +
-					`vpsApi=${fetchTiming.hivelocity.vps.durationMs}ms ` +
 					`merge=${fetchTiming.mergeMs}ms filter=${filterMs}ms paginate=${paginateMs}ms ` +
 					`counts device=${fetchTiming.counts.deviceRows} vps=${fetchTiming.counts.vpsRows} merged=${fetchTiming.counts.merged} filtered=${all.length}`,
 			);
@@ -977,7 +907,8 @@ export const hivelocityRouter = router({
 			const allowed = await collectHivelocityDeviceIdsForTeam(teamId, input.type);
 			const subscriptionLookupMs = Date.now() - subscriptionLookupStart;
 
-			const { resources: merged, timing: fetchTiming } = await fetchMergedHivelocityResources();
+			const { resources: merged, timing: fetchTiming } =
+				await fetchHivelocityResourcesForList(input.type);
 
 			const scopeStart = Date.now();
 			const scoped = merged.filter((r) => {
@@ -1032,7 +963,7 @@ export const hivelocityRouter = router({
 			console.info(
 				`[hivelocity:getTeamMyResources] type=${input.type} total=${totalMs}ms ` +
 					`teamLookup=${teamLookupMs}ms access=${accessCheckMs}ms subscriptions=${subscriptionLookupMs}ms ` +
-					`deviceApi=${fetchTiming.hivelocity.device.durationMs}ms vpsApi=${fetchTiming.hivelocity.vps.durationMs}ms ` +
+					`deviceApi=${fetchTiming.hivelocity.device.durationMs}ms ` +
 					`scope=${scopeMs}ms filter=${filterMs}ms paginate=${paginateMs}ms allowed=${allowed.size} filtered=${all.length}`,
 			);
 
@@ -1152,7 +1083,7 @@ export const hivelocityRouter = router({
 					console.error("Hivelocity VPS schema mismatch:", parsed.error);
 					return { success: true, data: (raw && typeof raw === 'object') ? raw : null };
 				}
-				return { success: true, data: parsed.data };
+				return { success: true, data: normalizeHivelocityVps(parsed.data) };
 			} catch (err) {
 				// VPS endpoint often 404s for non-Cloud devices that are still tagged as VPS
 				return { success: true, data: null };
