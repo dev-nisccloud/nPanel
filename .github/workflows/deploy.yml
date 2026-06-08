@@ -124,6 +124,9 @@ jobs:
             .
           docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
+      - name: Verify Cloud Run runtime env vars
+        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
+
       - name: Deploy Server to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -132,6 +135,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 40 --max-instances 8 --min-instances 1'
+          env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0
@@ -179,6 +183,9 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Verify Cloud Run runtime env vars
+        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
+
       - name: Deploy Workers to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -187,6 +194,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVER_SERVICE_NAME }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 20 --max-instances 4 --min-instances 0 --command bun --args src/workers-index.ts'
+          env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0
@@ -276,6 +284,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           flags: '--allow-unauthenticated --min-instances=1'
+          env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0
@@ -348,6 +357,9 @@ jobs:
             .
           docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
+      - name: Verify Cloud Run runtime env vars
+        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
+
       - name: Deploy Server to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -356,6 +368,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory 2Gi --cpu-boost --concurrency 40 --max-instances 8 --min-instances 1'
+          env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0
@@ -402,6 +415,9 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Verify Cloud Run runtime env vars
+        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
+
       - name: Deploy Workers to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -410,6 +426,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVER_SERVICE_NAME }}:${{ github.sha }}
           flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 20 --max-instances 4 --min-instances 0 --command bun --args src/workers-index.ts'
+          env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0
@@ -499,6 +516,7 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           flags: '--allow-unauthenticated --min-instances=1'
+          env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
             HOSTNAME=0.0.0.0

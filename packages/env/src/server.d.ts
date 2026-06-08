@@ -13,7 +13,7 @@ export declare const env: Readonly<{
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;
     DIGITAX_API_URL: string;
-    DIGITAX_API_KEY: string;
+    DIGITAX_API_KEY?: string | undefined;
     QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: string;
     REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL?: string | undefined;
     QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT?: string | undefined;

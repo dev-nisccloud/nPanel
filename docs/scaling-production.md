@@ -78,7 +78,15 @@ Copy from `apps/server/.env.staging` or `.env.production` into each service in t
 - `npanel-workers-staging` / `npanel-workers-production`
 - `npanel-web-staging` / `npanel-web-production` (minimal; web gets `VITE_SERVER_URL` from CI)
 
-Includes auth, QStash worker URLs, Replicate webhooks, Redis, AWS SES, DigiTax, etc.
+Includes auth, QStash worker URLs, Replicate webhooks, Redis, AWS SES, etc.
+
+**Boot-critical vars** (process exits before listening on `PORT` if any are missing):
+
+`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `CORS_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT`, `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT`, `REPLICATE_API_TOKEN`
+
+`DIGITAX_API_KEY` is optional at boot; set it when DigiTax / eTIMS routes are used.
+
+CI runs `scripts/verify-cloudrun-env.sh` before server and workers deploys to fail fast with a clear message instead of a 5-minute Cloud Run rollout timeout.
 
 ### CI-managed Cloud Run vars (in `deploy.yml`)
 
