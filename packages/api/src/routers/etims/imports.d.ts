@@ -5,30 +5,26 @@ export declare const etimsImportsRouter: import("@trpc/server").TRPCBuiltRouter<
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     /**
-     * Retrieve imported items from customs system
+     * Retrieve imported items from KRA customs system.
+     * POST /selectImportItemList
      */
     getImportedItems: import("@trpc/server").TRPCQueryProcedure<{
         input: {
-            tin: string;
-            bhfId: string;
             lastReqDt: string;
-            accessToken?: string | undefined;
-            cmcKey?: string | undefined;
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
         };
         meta: object;
     }>;
     /**
-     * Confirm imported items and map to local item codes
+     * Confirm an imported item and map it to a local item code.
+     * POST /updateImportItem
      */
     confirmImportedItem: import("@trpc/server").TRPCMutationProcedure<{
         input: {
-            tin: string;
-            bhfId: string;
-            conversion: {
+            item: {
                 taskCd: string;
                 dclDe: string;
                 itemSeq: number;
@@ -36,16 +32,14 @@ export declare const etimsImportsRouter: import("@trpc/server").TRPCBuiltRouter<
                 itemClsCd: string;
                 itemCd: string;
                 imptItemSttsCd: string;
-                remark: string | null;
-                modrNm: string;
                 modrId: string;
+                modrNm: string;
+                remark?: string | null | undefined;
             };
-            accessToken?: string | undefined;
-            cmcKey?: string | undefined;
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
         };
         meta: object;
     }>;

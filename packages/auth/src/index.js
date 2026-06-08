@@ -6,6 +6,12 @@ import { session, user } from "@npanel/db/schema/auth";
 import { env } from "@npanel/env/server";
 import { renderEmailVerificationEmail, renderPasswordResetSuccessEmail, renderResetPasswordEmail, } from "react-email-starter/src/email-templates";
 import { sendTransactionalEmail } from "./transactional-email";
+import { completeSignupSideEffects, isGoogleOAuthCallbackPath, isNewGoogleRegistration, sendGoogleSignupWelcomeEmail, } from "./signup-side-effects";
+import { applyStandardSessionExpiryByToken, validateAndRefreshIdleSessionById, } from "./session-enforcement";
+import { invalidateSessionCache } from "./session-cache";
+import { readCachedUserEnrichment, writeCachedUserEnrichment, } from "./user-enrich-cache";
+import { parseSignupTermsCookie, recordTermsAcceptance, rollbackSignupWithoutTerms, signupRequestAcceptsTerms, } from "./signup-terms";
+import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS } from "./session-policy";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -58,14 +64,27 @@ const resolvedTrustedOrigins = (() => {
     console.log("[Better Auth Config] No trusted origins configured, setting to undefined");
     return undefined;
 })();
-const frontendBaseUrl = () => process.env.APP_URL || process.env.CORS_ORIGIN || env.CORS_ORIGIN || "http://localhost:3002";
+const frontendBaseUrl = () => {
+    const raw = process.env.APP_URL || process.env.CORS_ORIGIN || env.CORS_ORIGIN || "http://localhost:3002";
+    // Avoid `//auth/...` when env has a trailing slash (e.g. http://host:5173/)
+    return raw.replace(/\/+$/, "");
+};
+/** User-facing origin for OAuth callbacks and redirects (must match the SPA / proxy origin). */
+const authBaseUrl = () => {
+    const raw = process.env.CORS_ORIGIN ||
+        process.env.APP_URL ||
+        process.env.VITE_PUBLIC_APP_URL ||
+        env.CORS_ORIGIN ||
+        env.BETTER_AUTH_URL;
+    return raw.replace(/\/+$/, "");
+};
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "pg",
         schema: authSchema,
     }),
     trustedOrigins: resolvedTrustedOrigins,
-    baseURL: undefined,
+    baseURL: authBaseUrl(),
     secret: env.BETTER_AUTH_SECRET,
     socialProviders: {
         google: {
@@ -74,9 +93,10 @@ export const auth = betterAuth({
         },
     },
     session: {
-        expiresIn: 60 * 60 * 2,
-        updateAge: 0,
-        disableSessionRefresh: true,
+        // 30-minute idle timeout; extended silently while the user is active.
+        expiresIn: STANDARD_SESSION_MAX_AGE_SEC,
+        updateAge: SESSION_TOUCH_THROTTLE_MS / 1000,
+        disableSessionRefresh: false,
     },
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
@@ -96,6 +116,13 @@ export const auth = betterAuth({
                             message: "No account found with this email address. The email may be invalid or not registered. Please check the address or sign up for an account.",
                         });
                     }
+                }
+            }
+            if (ctx.path.startsWith("/sign-up")) {
+                if (!signupRequestAcceptsTerms(ctx.body)) {
+                    throw new APIError("BAD_REQUEST", {
+                        message: "You must accept the Terms and Conditions before creating an account.",
+                    });
                 }
             }
             if (ctx.path === "/sign-in/email" || ctx.path.endsWith("/sign-in/email")) {
@@ -130,6 +157,24 @@ export const auth = betterAuth({
             }
         }),
         after: createAuthMiddleware(async (ctx) => {
+            const isSignOut = ctx.path === "/sign-out" ||
+                ctx.path.endsWith("/sign-out") ||
+                ctx.path.includes("sign-out");
+            if (isSignOut) {
+                const signOutSessionId = ctx.context.session?.session?.id;
+                if (typeof signOutSessionId === "string" && signOutSessionId.length > 0) {
+                    await invalidateSessionCache(signOutSessionId);
+                }
+            }
+            const newSessionToken = ctx.context.newSession?.session?.token;
+            if (typeof newSessionToken === "string" && newSessionToken.length > 0) {
+                try {
+                    await applyStandardSessionExpiryByToken(newSessionToken);
+                }
+                catch (error) {
+                    console.error("Failed to apply standard session expiry:", error);
+                }
+            }
             const isGetSession = 
             // Better Auth may call with different mount-relative paths depending on setup.
             // We just need to reliably detect the "get-session" endpoint.
@@ -154,27 +199,66 @@ export const auth = betterAuth({
                         sessionUserAgencyRoleId: sessionUser ? sessionUser.agencyRoleId : null,
                     });
                 }
+                const sessionId = ctx.context.session?.session?.id;
+                if (typeof sessionId === "string" && sessionId.length > 0) {
+                    const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+                    if (lifetime.status === "expired") {
+                        ctx.context.session = null;
+                        const returned = ctx.context.returned;
+                        if (returned && typeof returned === "object") {
+                            returned.session = null;
+                            returned.user = null;
+                        }
+                        return;
+                    }
+                    if (lifetime.extended) {
+                        const returned = ctx.context.returned;
+                        if (returned?.session && typeof returned.session === "object") {
+                            returned.session.expiresAt = lifetime.expiresAt;
+                        }
+                        if (ctx.context.session?.session) {
+                            ctx.context.session.session.expiresAt = lifetime.expiresAt;
+                        }
+                    }
+                }
             }
             if (ctx.context.session?.user) {
                 const sessionUser = ctx.context.session.user;
                 // Always enrich DB-backed status+role when we have a session.
                 // This makes session payload consistent even if Better Auth calls the
                 // session endpoint under different internal mount paths.
-                const rows = await db
-                    .select({
-                    status: user.status,
-                    role: user.role,
-                    lastAccessedTeamId: user.lastAccessedTeamId,
-                    createdAt: user.createdAt,
-                })
-                    .from(user)
-                    .where(eq(user.id, sessionUser.id))
-                    .limit(1);
-                const userWithStatusRole = rows[0];
+                let userWithStatusRole = await readCachedUserEnrichment(sessionUser.id);
+                if (!userWithStatusRole) {
+                    const rows = await db
+                        .select({
+                        status: user.status,
+                        role: user.role,
+                        lastAccessedTeamId: user.lastAccessedTeamId,
+                        createdAt: user.createdAt,
+                        image: user.image,
+                    })
+                        .from(user)
+                        .where(eq(user.id, sessionUser.id))
+                        .limit(1);
+                    const row = rows[0];
+                    if (row) {
+                        await writeCachedUserEnrichment(sessionUser.id, row);
+                        userWithStatusRole = {
+                            status: row.status,
+                            role: row.role,
+                            lastAccessedTeamId: row.lastAccessedTeamId,
+                            createdAt: row.createdAt.toISOString(),
+                            image: row.image,
+                        };
+                    }
+                }
                 if (userWithStatusRole) {
                     const normalizedRole = typeof userWithStatusRole.role === "string"
                         ? userWithStatusRole.role.trim().toUpperCase()
                         : userWithStatusRole.role;
+                    const createdAt = typeof userWithStatusRole.createdAt === "string"
+                        ? new Date(userWithStatusRole.createdAt)
+                        : userWithStatusRole.createdAt;
                     if (process.env.NODE_ENV !== "production" && isGetSession) {
                         console.log("[auth][get-session][enrich]", {
                             userId: sessionUser.id,
@@ -193,7 +277,8 @@ export const auth = betterAuth({
                         status: userWithStatusRole.status,
                         role: normalizedRole,
                         lastAccessedTeamId: userWithStatusRole.lastAccessedTeamId ?? sessionUser.lastAccessedTeamId,
-                        createdAt: userWithStatusRole.createdAt,
+                        createdAt,
+                        image: userWithStatusRole.image ?? sessionUser.image ?? null,
                     };
                     ctx.context.session.user = enrichedUser;
                     // If this is a get-session call, we MUST return the enriched data in the response.
@@ -208,16 +293,8 @@ export const auth = betterAuth({
             if (ctx.path === "/sign-in/email" || ctx.path.endsWith("/sign-in/email")) {
                 const newSession = ctx.context.newSession;
                 if (newSession) {
-                    const rememberMe = ctx.body?.rememberMe === true;
                     try {
                         await db.transaction(async (tx) => {
-                            if (rememberMe && newSession.session?.token) {
-                                const thirtyDaysFromNow = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000);
-                                await tx
-                                    .update(session)
-                                    .set({ expiresAt: thirtyDaysFromNow })
-                                    .where(eq(session.token, newSession.session.token));
-                            }
                             await tx
                                 .update(user)
                                 .set({ lastLoginAt: new Date() })
@@ -263,8 +340,7 @@ export const auth = betterAuth({
                                 description: "User successfully logged in",
                                 metadata: {
                                     loginMethod: "email_password",
-                                    rememberMe,
-                                    sessionDuration: rememberMe ? "30 days" : "2 hours",
+                                    sessionDuration: "30 minutes idle",
                                 },
                                 ipAddress: ctx.headers?.get("x-forwarded-for") ||
                                     ctx.headers?.get("x-real-ip") ||
@@ -331,117 +407,65 @@ export const auth = betterAuth({
             }
             if (ctx.path.startsWith("/sign-up")) {
                 const newSession = ctx.context.newSession;
-                if (newSession) {
+                if (newSession?.user?.id) {
+                    try {
+                        await recordTermsAcceptance(newSession.user.id);
+                    }
+                    catch (error) {
+                        console.error("Failed to record terms acceptance on sign-up:", error);
+                    }
+                    void completeSignupSideEffects({
+                        userId: newSession.user.id,
+                        sessionId: newSession.session?.id,
+                        emailVerified: Boolean(newSession.user.emailVerified),
+                        signupMethod: "email_password",
+                        headers: ctx.headers,
+                    }).catch((error) => console.error("Failed to log signup / create signup notification:", error));
+                }
+            }
+            if (isGoogleOAuthCallbackPath(ctx.path)) {
+                const newSession = ctx.context.newSession;
+                if (newSession?.user) {
                     const signupUserId = newSession.user.id;
-                    const signupEmailVerified = newSession.user.emailVerified;
-                    const signupHeaders = ctx.headers;
-                    void db
-                        .transaction(async (tx) => {
-                        await tx.insert(userActivityLog).values({
-                            id: crypto.randomUUID(),
-                            userId: signupUserId,
-                            action: "SIGNUP_SUCCESS",
-                            description: "User successfully signed up",
-                            metadata: {
-                                signupMethod: "email_password",
-                                emailVerified: signupEmailVerified,
-                            },
-                            ipAddress: signupHeaders?.get("x-forwarded-for") ||
-                                signupHeaders?.get("x-real-ip") ||
-                                "unknown",
-                            userAgent: signupHeaders?.get("user-agent") || "unknown",
-                            createdAt: new Date(),
-                        });
-                        const ipAddress = signupHeaders?.get("x-forwarded-for") ||
-                            signupHeaders?.get("x-real-ip") ||
-                            null;
-                        const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
-                        const message = `Your account was successfully created${ipDisplay}. Welcome to npanel!`;
-                        const nid = crypto.randomUUID();
-                        await tx.insert(notification).values({
-                            id: nid,
-                            userId: signupUserId,
-                            teamId: null,
-                            type: "SYSTEM",
-                            priority: "NORMAL",
-                            title: "Account Created",
-                            message,
-                            link: null,
-                            metadata: { ipAddress, signupMethod: "email_password" },
-                            seen: false,
-                            readAt: null,
-                            createdAt: new Date(),
-                            updatedAt: new Date(),
-                        });
-                        await tx.insert(notificationActivityLog).values({
-                            id: crypto.randomUUID(),
-                            notificationId: nid,
-                            userId: signupUserId,
-                            action: "CREATE",
-                            description: "Signup notification created",
-                            metadata: { ipAddress, signupMethod: "email_password" },
-                            ipAddress,
-                            userAgent: signupHeaders?.get("user-agent") || null,
-                            createdAt: new Date(),
-                        });
-                        const settingsRows = await tx
-                            .select({ id: userMfaSettings.id })
-                            .from(userMfaSettings)
-                            .where(eq(userMfaSettings.userId, signupUserId))
+                    void (async () => {
+                        const rows = await db
+                            .select({ createdAt: user.createdAt })
+                            .from(user)
+                            .where(eq(user.id, signupUserId))
                             .limit(1);
-                        if (settingsRows[0]) {
-                            await tx
-                                .update(userMfaSettings)
-                                .set({
-                                setupRequired: true,
-                                emailOtpEnabled: false,
-                                preferredMethod: "EMAIL_OTP",
-                                updatedAt: new Date(),
-                            })
-                                .where(eq(userMfaSettings.userId, signupUserId));
+                        if (!isNewGoogleRegistration(ctx.context.returned, rows[0]?.createdAt)) {
+                            return;
                         }
-                        else {
-                            await tx.insert(userMfaSettings).values({
-                                id: crypto.randomUUID(),
-                                userId: signupUserId,
-                                setupRequired: true,
-                                emailOtpEnabled: false,
-                                preferredMethod: "EMAIL_OTP",
-                                createdAt: new Date(),
-                                updatedAt: new Date(),
+                        if (!parseSignupTermsCookie(ctx.headers?.get("cookie"))) {
+                            try {
+                                await rollbackSignupWithoutTerms(signupUserId, newSession.session?.id);
+                            }
+                            catch (error) {
+                                console.error("Failed to rollback Google sign-up without terms:", error);
+                            }
+                            throw new APIError("BAD_REQUEST", {
+                                message: "You must accept the Terms and Conditions before signing up with Google.",
                             });
                         }
-                        if (newSession.session?.id) {
-                            const existingMfaSession = await tx
-                                .select({ id: userMfaSession.id })
-                                .from(userMfaSession)
-                                .where(eq(userMfaSession.sessionId, newSession.session.id))
-                                .limit(1);
-                            if (!existingMfaSession[0]) {
-                                await tx.insert(userMfaSession).values({
-                                    id: crypto.randomUUID(),
-                                    userId: signupUserId,
-                                    sessionId: newSession.session.id,
-                                    requiredAt: new Date(),
-                                    verifiedAt: null,
-                                    createdAt: new Date(),
-                                    updatedAt: new Date(),
-                                });
-                            }
-                            else {
-                                await tx
-                                    .update(userMfaSession)
-                                    .set({
-                                    userId: signupUserId,
-                                    requiredAt: new Date(),
-                                    verifiedAt: null,
-                                    updatedAt: new Date(),
-                                })
-                                    .where(eq(userMfaSession.sessionId, newSession.session.id));
-                            }
+                        try {
+                            await recordTermsAcceptance(signupUserId);
                         }
-                    })
-                        .catch((error) => console.error("Failed to log signup / create signup notification:", error));
+                        catch (error) {
+                            console.error("Failed to record terms acceptance for Google sign-up:", error);
+                        }
+                        await completeSignupSideEffects({
+                            userId: signupUserId,
+                            sessionId: newSession.session?.id,
+                            emailVerified: Boolean(newSession.user.emailVerified),
+                            signupMethod: "google",
+                            headers: ctx.headers,
+                        });
+                        await sendGoogleSignupWelcomeEmail({
+                            userId: signupUserId,
+                            email: newSession.user.email,
+                            name: newSession.user.name,
+                        });
+                    })().catch((error) => console.error("Failed Google signup side effects / welcome email:", error));
                 }
             }
             if (ctx.path === "/sign-out") {

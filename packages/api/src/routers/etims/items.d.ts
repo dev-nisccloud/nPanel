@@ -4,22 +4,29 @@ export declare const etimsItemsRouter: import("@trpc/server").TRPCBuiltRouter<{
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
-    /**
-     * Create or update item/product information
-     */
+    getItemList: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            lastReqDt: string;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
     saveItem: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             item: {
+                itemCd: string;
                 itemClsCd: string;
                 itemTyCd: "1" | "2" | "3";
                 itemNm: string;
                 taxTyCd: "A" | "B" | "C" | "D" | "E";
                 dftPrc: number;
-                regrNm: string;
                 regrId: string;
-                modrNm: string;
+                regrNm: string;
                 modrId: string;
-                itemCd?: string | undefined;
+                modrNm: string;
                 itemStdNm?: string | null | undefined;
                 orgnNatCd?: string | undefined;
                 pkgUnitCd?: string | undefined;
@@ -30,7 +37,7 @@ export declare const etimsItemsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 grpPrcL2?: number | undefined;
                 grpPrcL3?: number | undefined;
                 grpPrcL4?: number | undefined;
-                grpPrcL5?: number | null | undefined;
+                grpPrcL5?: number | undefined;
                 addInfo?: string | null | undefined;
                 sftyQty?: number | null | undefined;
                 isrcAplcbYn?: "Y" | "N" | undefined;
@@ -39,34 +46,17 @@ export declare const etimsItemsRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
             requiresReinitialization?: undefined;
             errorMessage?: undefined;
         } | {
             success: boolean;
             data: null;
             requiresReinitialization: boolean;
-            errorMessage: any;
+            errorMessage: string;
         };
         meta: object;
     }>;
-    /**
-     * Retrieve saved items
-     */
-    getItemInfo: import("@trpc/server").TRPCQueryProcedure<{
-        input: {
-            lastReqDt: string;
-            bhfId?: string | undefined;
-        };
-        output: {
-            success: boolean;
-            data: any;
-        };
-        meta: object;
-    }>;
-    /**
-     * Define composite items (items made from other items)
-     */
     saveItemComposition: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             composition: {
@@ -75,11 +65,13 @@ export declare const etimsItemsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 cpstQty: number;
                 regrId: string;
                 regrNm: string;
+                modrId?: string | undefined;
+                modrNm?: string | undefined;
             };
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
         };
         meta: object;
     }>;

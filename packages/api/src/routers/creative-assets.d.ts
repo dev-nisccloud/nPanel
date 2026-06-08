@@ -765,4 +765,86 @@ export declare const creativeAssetsRouter: import("@trpc/server").TRPCBuiltRoute
         };
         meta: object;
     }>;
+    /** Synchronous AI vision analysis (Replicate Claude Haiku); persists one row per run. Asset creator or super admin. */
+    runAiImageAnalysis: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            creativeAssetVersionId: string;
+            userContext?: string | undefined;
+        };
+        output: {
+            analysisId: string;
+            detail: {
+                headline: string;
+                modelLabel: string;
+                overallRatingScaleMax: number;
+                overallRatingValue: number;
+                overallRatingReason: string;
+                overallRatingBand: string | null;
+                confidenceScore: number | null;
+                ratingSummary: string;
+                overallSummary: string;
+                scores: {
+                    id: string;
+                    label: string;
+                    value: number;
+                    max: number;
+                    note: string;
+                }[];
+                sections: {
+                    title: string;
+                    body: string;
+                }[];
+                recommendations: string[];
+            };
+        };
+        meta: object;
+    }>;
+    /** History + latest payloads for AI analysis tab (same access as viewing the version comments). */
+    listAiImageAnalyses: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            versionId: string;
+        };
+        output: {
+            id: string;
+            creativeAssetId: string;
+            creativeAssetVersionId: string;
+            status: string;
+            model: string | null;
+            summary: string | null;
+            overallRatingScaleMax: number;
+            overallRatingValue: number | null;
+            overallRatingReason: string | null;
+            overallRatingBand: string | null;
+            confidenceScore: number | null;
+            errorMessage: string | null;
+            processingStartedAt: Date | null;
+            createdAt: Date;
+            completedAt: Date | null;
+            userContext: string | null;
+            detail: {
+                headline: string;
+                modelLabel: string;
+                overallRatingScaleMax: number;
+                overallRatingValue: number;
+                overallRatingReason: string;
+                overallRatingBand: string | null;
+                confidenceScore: number | null;
+                ratingSummary: string;
+                overallSummary: string;
+                scores: {
+                    id: string;
+                    label: string;
+                    value: number;
+                    max: number;
+                    note: string;
+                }[];
+                sections: {
+                    title: string;
+                    body: string;
+                }[];
+                recommendations: string[];
+            } | null;
+        }[];
+        meta: object;
+    }>;
 }>>;

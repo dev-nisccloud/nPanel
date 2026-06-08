@@ -1,9 +1,20 @@
+export type ManualRegistrantDetails = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    address: string;
+    city: string;
+    country: string;
+    postalCode?: string | null;
+    phone: string;
+    state?: string | null;
+};
 export type EnsureOpenProviderResult = {
     subscriptionId?: string;
     pendingVerification: boolean;
 };
 export declare function ensureOpenProviderAndRegisterDomain(params: {
-    ownerId: string;
+    ownerId: string | null;
     createdBy: string;
     domainName: string;
     orderId: string;
@@ -16,6 +27,11 @@ export declare function ensureOpenProviderAndRegisterDomain(params: {
     billingCycle: string | null;
     itemPrice: string;
     currency: string;
+    nameServers?: Array<{
+        name: string;
+        ip?: string;
+    }>;
+    manualDetails?: ManualRegistrantDetails;
 }): Promise<EnsureOpenProviderResult>;
 /** Result of ensureOpenProviderAndTransferDomain. */
 export type EnsureOpenProviderTransferResult = {
@@ -48,4 +64,7 @@ export declare function ensureOpenProviderAndTransferDomain(params: {
         ip?: string;
     }>;
     period?: number;
+    manualDetails?: ManualRegistrantDetails;
+    domainTransferRequestId?: string | null;
+    orderCreatedAt?: Date | null;
 }): Promise<EnsureOpenProviderTransferResult>;

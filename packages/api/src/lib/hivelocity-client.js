@@ -18,7 +18,18 @@ function buildUrl(path, query) {
     }
     return url.toString();
 }
-export async function hivelocityRequest(path, options = {}) {
+function shouldLogHivelocityTiming(durationMs) {
+    if (process.env.HIVELOCITY_DEBUG_TIMING === "true")
+        return true;
+    return durationMs >= 500;
+}
+export function logHivelocityRequestTiming(timing) {
+    if (!shouldLogHivelocityTiming(timing.durationMs))
+        return;
+    console.info(`[hivelocity] ${timing.method} ${timing.path} ${timing.durationMs}ms status=${timing.status} bytes=${timing.responseBytes}`);
+}
+/** Like `hivelocityRequest` but also returns per-call timing for diagnostics. */
+export async function hivelocityRequestTimed(path, options = {}) {
     const apiKey = getHivelocityApiKey();
     if (options.requireApiKey && !apiKey) {
         throw new TRPCError({
@@ -26,9 +37,11 @@ export async function hivelocityRequest(path, options = {}) {
             message: "HIVELOCITY_API_KEY environment variable is not set",
         });
     }
+    const method = options.method ?? "GET";
+    const startedAt = Date.now();
     const hasBody = options.body !== undefined;
     const resp = await fetch(buildUrl(path, options.query), {
-        method: options.method ?? "GET",
+        method,
         headers: {
             Accept: "application/json",
             ...(hasBody ? { "Content-Type": "application/json" } : {}),
@@ -39,6 +52,15 @@ export async function hivelocityRequest(path, options = {}) {
     });
     // Hivelocity responses are JSON; still guard for non-JSON error pages.
     const text = await resp.text();
+    const durationMs = Date.now() - startedAt;
+    const timing = {
+        path,
+        method,
+        durationMs,
+        responseBytes: text.length,
+        status: resp.status,
+    };
+    logHivelocityRequestTiming(timing);
     let json = null;
     try {
         json = text.length ? JSON.parse(text) : null;
@@ -47,11 +69,21 @@ export async function hivelocityRequest(path, options = {}) {
         json = null;
     }
     if (!resp.ok) {
-        const messageFromBody = (json && typeof json === "object" && json !== null && "message" in json && typeof json.message === "string")
-            ? json.message
-            : text?.slice(0, 500) || `${resp.status} ${resp.statusText}`;
+        let messageFromBody = text?.slice(0, 500) || `${resp.status} ${resp.statusText}`;
+        if (json && typeof json === "object" && json !== null) {
+            const body = json;
+            if (typeof body.message === "string" && body.message.trim()) {
+                messageFromBody = body.message;
+            }
+            else if (Array.isArray(body.errors) && body.errors.length > 0) {
+                messageFromBody = body.errors.map((e) => String(e)).join("; ");
+            }
+        }
         if (resp.status === 401 || resp.status === 403) {
             throw new TRPCError({ code: "UNAUTHORIZED", message: messageFromBody });
+        }
+        if (resp.status === 400) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: messageFromBody });
         }
         if (resp.status === 404) {
             throw new TRPCError({ code: "NOT_FOUND", message: messageFromBody });
@@ -64,12 +96,18 @@ export async function hivelocityRequest(path, options = {}) {
             message: `Hivelocity API error: ${resp.status} ${resp.statusText}. ${messageFromBody}`,
         });
     }
-    return json ?? null;
+    return { data: json ?? null, timing };
+}
+export async function hivelocityRequest(path, options = {}) {
+    const { data } = await hivelocityRequestTimed(path, options);
+    return data;
 }
 export function getHivelocityEnvStatus() {
     const apiKey = getHivelocityApiKey();
+    const billingInfoId = process.env.HIVELOCITY_BILLING_INFO_ID?.trim();
     return {
         hasApiKey: !!apiKey,
+        hasBillingInfoId: !!billingInfoId,
         baseUrl: HIVELOCITY_BASE_URL,
     };
 }

@@ -6,10 +6,17 @@ import {
   nextIdleSessionExpiry,
   SESSION_TOUCH_THROTTLE_MS,
   STANDARD_SESSION_MAX_AGE_SEC,
+  type IdleSessionValidation,
 } from "./session-policy";
+import {
+  invalidateSessionCache,
+  readCachedSessionValidation,
+  writeCachedSessionValidation,
+} from "./session-cache";
 
 export async function invalidateSessionById(sessionId: string): Promise<void> {
   await db.delete(session).where(eq(session.id, sessionId));
+  await invalidateSessionCache(sessionId);
 }
 
 /** Set initial idle window when a session is first created. */
@@ -23,9 +30,7 @@ export async function applyStandardSessionExpiryByToken(
     .where(eq(session.token, sessionToken));
 }
 
-export type IdleSessionValidation =
-  | { status: "expired" }
-  | { status: "valid"; expiresAt: Date; extended: boolean };
+export type { IdleSessionValidation } from "./session-policy";
 
 /**
  * Expire idle sessions and silently extend active ones (throttled).
@@ -34,6 +39,11 @@ export type IdleSessionValidation =
 export async function validateAndRefreshIdleSessionById(
   sessionId: string,
 ): Promise<IdleSessionValidation> {
+  const cached = await readCachedSessionValidation(sessionId);
+  if (cached) {
+    return cached;
+  }
+
   const rows = await db
     .select({
       expiresAt: session.expiresAt,
@@ -44,17 +54,29 @@ export async function validateAndRefreshIdleSessionById(
     .limit(1);
 
   const row = rows[0];
-  if (!row) return { status: "expired" };
+  if (!row) {
+    const expired: IdleSessionValidation = { status: "expired" };
+    await writeCachedSessionValidation(sessionId, expired);
+    return expired;
+  }
 
   const now = new Date();
   if (isSessionLifetimeExpired(row.expiresAt, now)) {
     await invalidateSessionById(sessionId);
-    return { status: "expired" };
+    const expired: IdleSessionValidation = { status: "expired" };
+    await writeCachedSessionValidation(sessionId, expired);
+    return expired;
   }
 
   const sinceLastTouchMs = now.getTime() - row.updatedAt.getTime();
   if (sinceLastTouchMs < SESSION_TOUCH_THROTTLE_MS) {
-    return { status: "valid", expiresAt: row.expiresAt, extended: false };
+    const valid: IdleSessionValidation = {
+      status: "valid",
+      expiresAt: row.expiresAt,
+      extended: false,
+    };
+    await writeCachedSessionValidation(sessionId, valid);
+    return valid;
   }
 
   const expiresAt = nextIdleSessionExpiry(now);
@@ -63,7 +85,9 @@ export async function validateAndRefreshIdleSessionById(
     .set({ expiresAt, updatedAt: now })
     .where(eq(session.id, sessionId));
 
-  return { status: "valid", expiresAt, extended: true };
+  const extended: IdleSessionValidation = { status: "valid", expiresAt, extended: true };
+  await writeCachedSessionValidation(sessionId, extended);
+  return extended;
 }
 
 /** @deprecated Use validateAndRefreshIdleSessionById */

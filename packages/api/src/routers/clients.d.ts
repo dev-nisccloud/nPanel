@@ -17,6 +17,17 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             lastLoginAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            generalEmailsAccepted: boolean | null;
+            invoiceEmailsAccepted: boolean | null;
+            supportEmailsAccepted: boolean | null;
+            productEmailsAccepted: boolean | null;
+            domainEmailsAccepted: boolean | null;
+            affiliateEmailsAccepted: boolean | null;
+            marketingEmailsAccepted: boolean | null;
+            smsMarketingAccepted: boolean | null;
+            adminNotes: string | null;
+            howDidYouFindUs: string | null;
+            acceptedTermsAndConditions: boolean | null;
         }[];
         meta: object;
     }>;
@@ -26,6 +37,17 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             email: string;
             password: string;
             role?: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | undefined;
+            generalEmailsAccepted?: boolean | null | undefined;
+            invoiceEmailsAccepted?: boolean | null | undefined;
+            supportEmailsAccepted?: boolean | null | undefined;
+            productEmailsAccepted?: boolean | null | undefined;
+            domainEmailsAccepted?: boolean | null | undefined;
+            affiliateEmailsAccepted?: boolean | null | undefined;
+            marketingEmailsAccepted?: boolean | null | undefined;
+            smsMarketingAccepted?: boolean | null | undefined;
+            adminNotes?: string | null | undefined;
+            howDidYouFindUs?: string | null | undefined;
+            acceptedTermsAndConditions?: boolean | null | undefined;
         };
         output: {
             id: string;
@@ -38,6 +60,17 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             lastLoginAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            generalEmailsAccepted: boolean | null;
+            invoiceEmailsAccepted: boolean | null;
+            supportEmailsAccepted: boolean | null;
+            productEmailsAccepted: boolean | null;
+            domainEmailsAccepted: boolean | null;
+            affiliateEmailsAccepted: boolean | null;
+            marketingEmailsAccepted: boolean | null;
+            smsMarketingAccepted: boolean | null;
+            adminNotes: string | null;
+            howDidYouFindUs: string | null;
+            acceptedTermsAndConditions: boolean | null;
         };
         meta: object;
     }>;
@@ -47,6 +80,17 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             name?: string | undefined;
             email?: string | undefined;
             role?: "CUSTOMER" | "AGENCY_USER" | "AGENCY_ADMIN" | "AGENCY_SUPER_ADMIN" | undefined;
+            generalEmailsAccepted?: boolean | null | undefined;
+            invoiceEmailsAccepted?: boolean | null | undefined;
+            supportEmailsAccepted?: boolean | null | undefined;
+            productEmailsAccepted?: boolean | null | undefined;
+            domainEmailsAccepted?: boolean | null | undefined;
+            affiliateEmailsAccepted?: boolean | null | undefined;
+            marketingEmailsAccepted?: boolean | null | undefined;
+            smsMarketingAccepted?: boolean | null | undefined;
+            adminNotes?: string | null | undefined;
+            howDidYouFindUs?: string | null | undefined;
+            acceptedTermsAndConditions?: boolean | null | undefined;
         };
         output: {
             id: string;
@@ -59,6 +103,17 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             lastLoginAt: Date | null;
             createdAt: Date;
             updatedAt: Date;
+            generalEmailsAccepted: boolean | null;
+            invoiceEmailsAccepted: boolean | null;
+            supportEmailsAccepted: boolean | null;
+            productEmailsAccepted: boolean | null;
+            domainEmailsAccepted: boolean | null;
+            affiliateEmailsAccepted: boolean | null;
+            marketingEmailsAccepted: boolean | null;
+            smsMarketingAccepted: boolean | null;
+            adminNotes: string | null;
+            howDidYouFindUs: string | null;
+            acceptedTermsAndConditions: boolean | null;
         };
         meta: object;
     }>;
@@ -200,6 +255,108 @@ export declare const clientsRouter: import("@trpc/server").TRPCBuiltRouter<{
             message: string;
             verificationId?: string | null | undefined;
         };
+        meta: object;
+    }>;
+    getTeams: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId: string;
+        };
+        output: {
+            id: string;
+            name: string;
+            slug: string;
+            role: string;
+            isActive: boolean;
+            createdAt: Date;
+            logoUrl: string | null;
+        }[];
+        meta: object;
+    }>;
+    getInvoiceBillingSummary: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId: string;
+        };
+        output: {
+            currency: string;
+            totalInvoices: number;
+            totalAmount: number;
+            buckets: {
+                key: "cancelled" | "paid" | "draft" | "unpaid" | "refunded";
+                label: string;
+                count: number;
+                amount: number;
+            }[];
+        };
+        meta: object;
+    }>;
+    getInvoices: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId: string;
+        };
+        output: {
+            id: string;
+            invoiceNumber: string | null;
+            customerName: string | null;
+            customerEmail: string | null;
+            status: string;
+            amount: string | null;
+            currency: string;
+            dueDate: Date | null;
+            issueDate: Date | null;
+            createdAt: Date;
+        }[];
+        meta: object;
+    }>;
+    getSubscriptions: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId: string;
+        };
+        output: {
+            id: string;
+            teamId: string | null;
+            status: string;
+            billingCycle: string;
+            subscriptionDate: Date | null;
+            nextRenewalDate: Date | null;
+            autoRenew: boolean;
+            notes: string | null;
+            createdAt: Date;
+        }[];
+        meta: object;
+    }>;
+    getQuotations: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId: string;
+        };
+        output: {
+            id: string;
+            quotationNumber: string | null;
+            customerName: string | null;
+            customerEmail: string | null;
+            status: string;
+            amount: string | null;
+            currency: string;
+            issueDate: Date | null;
+            createdAt: Date;
+        }[];
+        meta: object;
+    }>;
+    getTransactions: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            userId: string;
+        };
+        output: {
+            id: string;
+            gateway: string;
+            amount: string;
+            currency: string;
+            status: string;
+            receiptNumber: string | null;
+            accountReference: string | null;
+            initiatedAt: Date;
+            processedAt: Date | null;
+            createdAt: Date;
+        }[];
         meta: object;
     }>;
 }>>;

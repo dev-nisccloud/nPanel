@@ -157,7 +157,7 @@ export async function renderServiceRenewalReminderEmail({ recipientName, service
     }));
 }
 // --- Nisc order & OpenProvider verification ---
-/** Super-admin email when QStash processing completes successfully. */
+/** Super-admin email when QStash processing completes successfully (same layout family as OrderFailedEmail). */
 export async function renderNiscOrderConfirmationEmail({ customerName, orderNumber, orderDate, totalAmount, currency, orderItems, orderLink, }) {
     return render(NiscAdminOrderConfirmedEmail({
         customerName,

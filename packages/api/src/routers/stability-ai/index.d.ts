@@ -12,7 +12,7 @@ export declare const stabilityAiRouter: import("@trpc/server").TRPCBuiltRouter<{
             prompt: string;
             negativePrompt?: string | undefined;
             aspectRatio?: "1:1" | "2:3" | "3:2" | "4:5" | "5:4" | "9:16" | "16:9" | "21:9" | "9:21" | undefined;
-            stylePreset?: "3d-model" | "analog-film" | "anime" | "cinematic" | "comic-book" | "digital-art" | "enhance" | "fantasy-art" | "isometric" | "line-art" | "low-poly" | "modeling-compound" | "neon-punk" | "origami" | "photographic" | "pixel-art" | "tile-texture" | undefined;
+            stylePreset?: "cinematic" | "anime" | "3d-model" | "analog-film" | "comic-book" | "digital-art" | "enhance" | "fantasy-art" | "isometric" | "line-art" | "low-poly" | "modeling-compound" | "neon-punk" | "origami" | "photographic" | "pixel-art" | "tile-texture" | undefined;
             seed?: number | undefined;
             outputFormat?: "png" | "webp" | "jpeg" | undefined;
             model?: "core" | "ultra" | "sd3" | undefined;

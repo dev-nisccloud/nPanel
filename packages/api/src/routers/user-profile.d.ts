@@ -91,7 +91,7 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
     getUserById: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             userId: string;
-            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "status" | "email" | "emailVerified" | "role" | "lastLoginAt" | "image" | "profile")[] | undefined;
+            fields?: ("id" | "name" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "createdAt" | "updatedAt" | "profile")[] | undefined;
         };
         output: Record<string, unknown>;
         meta: object;
@@ -103,9 +103,33 @@ export declare const userProfileRouter: import("@trpc/server").TRPCBuiltRouter<{
     getUsersByIds: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             userIds: string[];
-            fields?: ("id" | "name" | "createdAt" | "updatedAt" | "status" | "email" | "emailVerified" | "role" | "lastLoginAt" | "image" | "profile")[] | undefined;
+            fields?: ("id" | "name" | "email" | "emailVerified" | "role" | "status" | "lastLoginAt" | "image" | "createdAt" | "updatedAt" | "profile")[] | undefined;
         };
         output: Record<string, any>;
+        meta: object;
+    }>;
+    /**
+     * Agency: list customer users with profile completeness for domain registrant selection.
+     */
+    listCustomersForRegistrant: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            id: string;
+            name: string;
+            email: string;
+            profileComplete: boolean;
+            missingFields: string[];
+            profile: {
+                firstName: string | null;
+                lastName: string | null;
+                phone: string | null;
+                address: string | null;
+                city: string | null;
+                state: string | null;
+                country: string | null;
+                postalCode: string | null;
+            } | null;
+        }[];
         meta: object;
     }>;
 }>>;

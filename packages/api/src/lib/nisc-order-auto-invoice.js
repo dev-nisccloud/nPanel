@@ -1,6 +1,6 @@
 /**
- * Auto-create invoice for a completed Nisc order when team has complete billing settings.
- * Used by the process-nisc-order worker.
+ * Auto-create invoice for a Nisc order before provisioning (team billing or user profile).
+ * Used by the process-nisc-order worker via nisc-order-invoice-delivery.
  */
 import * as crypto from "crypto";
 import { eq, sql } from "@npanel/db";
@@ -8,9 +8,12 @@ import { isTeamBillingComplete } from "../schemas/team-billing";
 import { db } from "@npanel/db";
 import { invoice, invoiceActivityLog, invoiceCounter, invoiceLineItem, } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
+import { buildNiscOrderInvoiceLineItemCopy } from "./nisc-order-invoice-line-items";
+import { hivelocityInvoiceLineSchema } from "../routers/nisc-service-orders-schemas";
+import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc-order-tax";
 const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
 const FROM_DETAILS = {
-    name: "Nisc Cloud®",
+    name: "Nisc Cloud Limited",
     email: "accounts@nisccloud.com",
     address: "P.O BOX 21615 - 00505",
     city: "Nairobi",
@@ -25,41 +28,19 @@ const BANK_PAYMENT_DETAILS = {
     branchName: "Hurlingham",
     branchCode: "045",
     accountNumber: "2052676528",
-    accountName: "Nisc Cloud®",
+    accountName: "Nisc Cloud Limited",
     swiftCode: "BARCKENX",
     qrCodeValue: "www.nisccloud.com",
 };
-const TAX_PERCENTAGE = 16;
+const TAX_PERCENTAGE = NISC_ORDER_VAT_PERCENTAGE;
 export { isTeamBillingComplete };
-function formatDateForInvoice(d) {
-    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-function addBillingCycleToDate(start, billingCycle) {
-    if (!billingCycle)
-        return null;
-    const end = new Date(start);
-    if (billingCycle === "MONTHLY") {
-        end.setMonth(end.getMonth() + 1);
-        return end;
-    }
-    if (billingCycle === "YEARLY") {
-        end.setFullYear(end.getFullYear() + 1);
-        return end;
-    }
-    if (billingCycle === "BIENNIALLY") {
-        end.setFullYear(end.getFullYear() + 2);
-        return end;
-    }
-    return null;
-}
 export async function createInvoiceForNiscOrder(_prisma, order, billing, createdBy) {
     const now = new Date();
     const issueDate = now;
     const dueDate = null; // Already paid; schema allows null
     const subtotalNum = order.orderItems.reduce((sum, i) => sum + parseFloat(i.itemSubtotal || "0"), 0);
-    const taxAmount = Math.round(subtotalNum * (TAX_PERCENTAGE / 100) * 100) / 100;
-    const totalNum = subtotalNum + taxAmount;
-    const subtotal = subtotalNum.toFixed(2);
+    const { subtotal: subtotalRounded, tax: taxAmount, total: totalNum } = computeNiscOrderTotalsWithTax(subtotalNum);
+    const subtotal = subtotalRounded.toFixed(2);
     const tax = taxAmount.toFixed(2);
     const total = totalNum.toFixed(2);
     const currency = order.currency || "KES";
@@ -129,31 +110,62 @@ export async function createInvoiceForNiscOrder(_prisma, order, billing, created
         updatedAt: now,
     });
     const subscriptionDate = order.createdAt ?? now;
-    const lineItems = order.orderItems.map((item, index) => {
-        const itemDesc = (item.description ?? "").trim().toLowerCase();
-        const isDomainRegistration = itemDesc === "registration";
-        const isDomainTransfer = itemDesc === "transfer";
-        const isDomainItem = isDomainRegistration || isDomainTransfer;
-        const name = isDomainItem
-            ? `Domains - (${isDomainRegistration ? "Registration" : "Transfer"})`
-            : `${item.product.name}${item.productPlan ? ` - ${item.productPlan.name}` : ""}`;
-        const domainBrackets = item.primaryDomain?.trim() ? `(${item.primaryDomain})` : "";
-        const expiryDate = addBillingCycleToDate(subscriptionDate, item.billingCycle ?? null);
-        const subStartStr = formatDateForInvoice(subscriptionDate);
-        const subEndStr = expiryDate ? formatDateForInvoice(expiryDate) : "";
-        const subscriptionPart = subEndStr !== "" ? `Subscription: ${subStartStr} - ${subEndStr}` : `Subscription: ${subStartStr} -`;
-        const description = [domainBrackets, subscriptionPart].filter(Boolean).join(". ");
-        return {
+    const lineItems = [];
+    let position = 0;
+    for (const item of order.orderItems) {
+        const rawMeta = item.metadata;
+        const invoiceLinesRaw = rawMeta &&
+            typeof rawMeta === "object" &&
+            "invoiceLines" in rawMeta &&
+            Array.isArray(rawMeta.invoiceLines)
+            ? rawMeta.invoiceLines
+            : null;
+        const hivelocityLines = invoiceLinesRaw
+            ?.map((line) => hivelocityInvoiceLineSchema.safeParse(line))
+            .filter((r) => r.success)
+            .map((r) => r.data);
+        if (hivelocityLines && hivelocityLines.length > 0) {
+            const { description: subscriptionPeriod } = buildNiscOrderInvoiceLineItemCopy({
+                ...item,
+                product: {
+                    name: item.product.name,
+                    serviceType: item.product.serviceType ?? null,
+                },
+            }, subscriptionDate);
+            for (const line of hivelocityLines) {
+                const amount = line.amountExVat.toFixed(2);
+                lineItems.push({
+                    id: crypto.randomUUID(),
+                    invoiceId: newInvoiceId,
+                    position: position++,
+                    name: line.name,
+                    description: line.description?.trim() ||
+                        (line.kind === "base" ? subscriptionPeriod : undefined),
+                    quantity: 1,
+                    price: amount,
+                    total: amount,
+                });
+            }
+            continue;
+        }
+        const { name, description } = buildNiscOrderInvoiceLineItemCopy({
+            ...item,
+            product: {
+                name: item.product.name,
+                serviceType: item.product.serviceType ?? null,
+            },
+        }, subscriptionDate);
+        lineItems.push({
             id: crypto.randomUUID(),
             invoiceId: newInvoiceId,
-            position: index,
+            position: position++,
             name,
-            description: description || undefined,
+            description,
             quantity: 1,
             price: item.itemPrice,
             total: item.itemSubtotal,
-        };
-    });
+        });
+    }
     for (const item of lineItems) {
         await db.insert(invoiceLineItem).values({
             id: item.id,

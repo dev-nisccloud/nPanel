@@ -13,12 +13,14 @@ export declare const seoAutomatedReportInputSchema: z.ZodObject<{
     ga4PropertyId: z.ZodOptional<z.ZodString>;
     from: z.ZodString;
     to: z.ZodString;
+    teamSlug: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 /** GA4-only report input (no GSC site linking). */
 export declare const seoGa4ReportInputSchema: z.ZodObject<{
     ga4PropertyId: z.ZodString;
     from: z.ZodString;
     to: z.ZodString;
+    teamSlug: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 /** GA4 property for independent listing (no domain matching). */
 export declare const seoGa4PropertySchema: z.ZodObject<{
@@ -34,6 +36,11 @@ export declare const seoManageableSiteSchema: z.ZodObject<{
     ga4DisplayName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, z.core.$strip>;
 export type SeoManageableSite = z.infer<typeof seoManageableSiteSchema>;
+/** Optional team scope for listing / reporting (customer team context). */
+export declare const seoTeamScopeInputSchema: z.ZodObject<{
+    teamSlug: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>;
+export type SeoTeamScopeInput = z.infer<typeof seoTeamScopeInputSchema>;
 export declare const seoTimeSeriesDataSchema: z.ZodObject<{
     date: z.ZodString;
     clicks: z.ZodDefault<z.ZodNumber>;

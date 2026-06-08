@@ -11,6 +11,7 @@ export declare const seoReportsRouter: import("@trpc/server").TRPCBuiltRouter<{
             from: string;
             to: string;
             ga4PropertyId?: string | undefined;
+            teamSlug?: string | undefined;
         };
         output: {
             summary: {
@@ -149,7 +150,9 @@ export declare const seoReportsRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     listManageableSites: import("@trpc/server").TRPCQueryProcedure<{
-        input: void;
+        input: {
+            teamSlug?: string | undefined;
+        } | undefined;
         output: {
             siteUrl: string;
             permissionLevel?: string | null | undefined;
@@ -160,7 +163,9 @@ export declare const seoReportsRouter: import("@trpc/server").TRPCBuiltRouter<{
     }>;
     /** List GA4 properties independently (no GSC domain matching). User selects which property to view. */
     listGa4Properties: import("@trpc/server").TRPCQueryProcedure<{
-        input: void;
+        input: {
+            teamSlug?: string | undefined;
+        } | undefined;
         output: {
             propertyId: string;
             displayName: string;
@@ -174,6 +179,7 @@ export declare const seoReportsRouter: import("@trpc/server").TRPCBuiltRouter<{
             ga4PropertyId: string;
             from: string;
             to: string;
+            teamSlug?: string | undefined;
         };
         output: {
             summary: {

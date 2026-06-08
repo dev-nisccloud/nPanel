@@ -6,29 +6,51 @@
  */
 import { and, eq, isNull } from "@npanel/db";
 import { db } from "@npanel/db";
-import { niscClientSubscriptionActivityLog, niscClientSubscriptionUsage, niscClientSubscriptionUsageActivityLog, niscProductPlanUsage, } from "@npanel/db/schema/products";
+import { niscClientSubscriptionActivityLog, niscClientSubscriptionUsage, niscClientSubscriptionUsageActivityLog, niscProductPlan, niscProductPlanUsage, } from "@npanel/db/schema/products";
 import { randomUUID } from "node:crypto";
 export async function provisionInitialUsageCreditsForSubscription(params) {
     const { subscriptionId, productId, productPlanId, performedByUserId } = params;
+    const mode = params.mode ?? "reset";
     if (!productPlanId) {
         return { created: 0 };
     }
+    const plan = await db.query.niscProductPlan.findFirst({
+        where: eq(niscProductPlan.id, productPlanId),
+        columns: { metadata: true },
+    });
+    const planMeta = (plan?.metadata ?? {});
+    const accumulateFromPlan = mode === "accumulate" || Boolean(planMeta.accumulateCredits);
     const planUsages = await db.query.niscProductPlanUsage.findMany({
         where: and(eq(niscProductPlanUsage.productId, productId), eq(niscProductPlanUsage.productPlanId, productPlanId), isNull(niscProductPlanUsage.userId), isNull(niscProductPlanUsage.teamId)),
     });
     let created = 0;
     for (const pu of planUsages) {
+        const existing = await db.query.niscClientSubscriptionUsage.findFirst({
+            where: and(eq(niscClientSubscriptionUsage.subscriptionId, subscriptionId), eq(niscClientSubscriptionUsage.usageKind, pu.usageKind)),
+        });
+        const limitNum = Number.parseFloat(pu.limitValue);
+        const limitAdd = Number.isFinite(limitNum) ? limitNum : 0;
+        const existingNum = existing ? Number.parseFloat(existing.credits) : 0;
+        const existingBal = Number.isFinite(existingNum) ? existingNum : 0;
+        const balanceBefore = existing?.credits ?? "0";
+        const overrideCredits = params.tokenGrantOverride != null && Number.isFinite(params.tokenGrantOverride)
+            ? String(Math.max(0, Math.floor(params.tokenGrantOverride)))
+            : null;
+        const newCredits = overrideCredits ??
+            (existing && accumulateFromPlan
+                ? String(existingBal + limitAdd)
+                : pu.limitValue);
         const inserted = await db
             .insert(niscClientSubscriptionUsage)
             .values({
             id: randomUUID(),
             subscriptionId,
             usageKind: pu.usageKind,
-            credits: pu.limitValue,
+            credits: newCredits,
         })
             .onConflictDoUpdate({
             target: [niscClientSubscriptionUsage.subscriptionId, niscClientSubscriptionUsage.usageKind],
-            set: { credits: pu.limitValue },
+            set: { credits: newCredits },
         })
             .returning({ id: niscClientSubscriptionUsage.id });
         const usage = inserted[0];
@@ -40,16 +62,18 @@ export async function provisionInitialUsageCreditsForSubscription(params) {
             subscriptionUsageId: usage.id,
             userId: performedByUserId,
             action: "CREDIT_ADD",
-            description: "Initial credits from plan (subscription creation)",
+            description: accumulateFromPlan
+                ? "Credits added from plan (accumulate)"
+                : "Initial credits from plan (subscription creation)",
             metadata: {
-                source: "initial_from_plan",
+                source: accumulateFromPlan ? "accumulate_from_plan" : "initial_from_plan",
                 usageKind: pu.usageKind,
                 limitValue: pu.limitValue,
                 productPlanUsageId: pu.id,
-                amount: pu.limitValue,
-                balanceBefore: "0",
-                balanceAfter: pu.limitValue,
-                reason: "initial_creation",
+                amount: accumulateFromPlan ? pu.limitValue : pu.limitValue,
+                balanceBefore,
+                balanceAfter: newCredits,
+                reason: accumulateFromPlan ? "accumulate" : "initial_creation",
             },
         });
         created += 1;

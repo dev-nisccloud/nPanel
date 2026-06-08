@@ -13,7 +13,25 @@ export const env = createEnv({
         GOOGLE_CLIENT_ID: z.string().min(1),
         GOOGLE_CLIENT_SECRET: z.string().min(1),
         DIGITAX_API_URL: z.string().url().default("https://api.digitax.tech/ke/v2"),
-        DIGITAX_API_KEY: z.string().min(1),
+        /** Required only when DigiTax / eTIMS routes are used */
+        DIGITAX_API_KEY: z.string().min(1).optional(),
+        QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: z.string().url(),
+        /** Optional until Replicate webhooks are configured for this environment */
+        REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL: z.string().url().optional(),
+        /** Zeepo AI Agent (chat) - optional until configured */
+        QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT: z.string().url().optional(),
+        REPLICATE_ZEEPO_AGENT_WEBHOOK_URL: z.string().url().optional(),
+        /** Zeepo AI Agent: optional Replicate text model id from `MODELS` (category text) for chat orchestration */
+        ZEEPO_AGENT_CHAT_MODEL_ID: z.string().min(1).optional(),
+        /** Brave Search LLM Context API key - enables web_search tool in Zeepo Agent */
+        BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
+        QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url().optional(),
+        REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url().optional(),
+        /** Nisc Email Builder (neb) - standalone AI HTML builder */
+        QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT: z.string().url().optional(),
+        QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),
+        REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL: z.string().url().optional(),
+        REPLICATE_API_TOKEN: z.string().min(1),
     },
     runtimeEnv: process.env,
     emptyStringAsUndefined: true,

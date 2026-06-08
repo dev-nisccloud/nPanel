@@ -52,8 +52,8 @@ export declare const hivelocityProductStockSchema: z.ZodObject<{
     product_id: z.ZodNumber;
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
-        unavailable: "unavailable";
         available: "available";
+        unavailable: "unavailable";
         limited: "limited";
     }>;
     data_center: z.ZodString;
@@ -119,8 +119,8 @@ export declare const hivelocityProductByIdResponseSchema: z.ZodUnion<readonly [z
     product_id: z.ZodNumber;
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
-        unavailable: "unavailable";
         available: "available";
+        unavailable: "unavailable";
         limited: "limited";
     }>;
     data_center: z.ZodString;
@@ -163,8 +163,8 @@ export declare const hivelocityProductByIdResponseSchema: z.ZodUnion<readonly [z
     product_id: z.ZodNumber;
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
-        unavailable: "unavailable";
         available: "available";
+        unavailable: "unavailable";
         limited: "limited";
     }>;
     data_center: z.ZodString;
@@ -205,3 +205,214 @@ export declare const hivelocityProductByIdResponseSchema: z.ZodUnion<readonly [z
     product_display_price: z.ZodOptional<z.ZodNumber>;
 }, z.core.$loose>]>;
 export type HivelocityProductByIdResponse = z.infer<typeof hivelocityProductByIdResponseSchema>;
+/**
+ * Hivelocity Device (GET /device/ → Device-dump)
+ *
+ * Schema matches the official Hivelocity OpenAPI v2 spec exactly.
+ *
+ * Key field notes (verified from the swagger JSON):
+ * - Only `name` is marked required per the spec.
+ * - `powerStatus` is typed as `object` in the spec (NOT a string).
+ *   Using z.unknown() so the object never causes parse failures.
+ * - `location`    is also typed as `object` (not a string).
+ * - `name`        is the user-given custom name.
+ * - `status`      is "active" | "inactive" (device lifecycle, not power).
+ * - `deviceType`  is the hardware description ("1U Server", "VDS", etc).
+ */
+export declare const hivelocityDeviceDumpSchema: z.ZodObject<{
+    name: z.ZodString;
+    deviceId: z.ZodOptional<z.ZodNumber>;
+    hostname: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    primaryIp: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    status: z.ZodOptional<z.ZodString>;
+    deviceType: z.ZodOptional<z.ZodString>;
+    deviceTypeGroup: z.ZodOptional<z.ZodString>;
+    powerStatus: z.ZodOptional<z.ZodUnknown>;
+    location: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
+        facility: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        facility_title: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        rack: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        rack_id: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+        row_name: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        position: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    }, z.core.$strip>, z.ZodUnknown]>>;
+    billingInfo: z.ZodOptional<z.ZodObject<{
+        period: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        price: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+    }, z.core.$strip>>;
+    tags: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    displayedTags: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        value: z.ZodAny;
+    }, z.core.$strip>>>;
+    isManaged: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    ipmiEnabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    hasCancellation: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    isReload: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    spsStatus: z.ZodOptional<z.ZodString>;
+    monitorsUp: z.ZodOptional<z.ZodNumber>;
+    monitorsTotal: z.ZodOptional<z.ZodNumber>;
+    servicePlan: z.ZodOptional<z.ZodNumber>;
+    productId: z.ZodOptional<z.ZodNumber>;
+    lastInvoiceId: z.ZodOptional<z.ZodNumber>;
+    createdDate: z.ZodOptional<z.ZodString>;
+}, z.core.$loose>;
+export type HivelocityDeviceDump = z.infer<typeof hivelocityDeviceDumpSchema>;
+export declare const hivelocityDevicesResponseSchema: z.ZodArray<z.ZodObject<{
+    name: z.ZodString;
+    deviceId: z.ZodOptional<z.ZodNumber>;
+    hostname: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    primaryIp: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    status: z.ZodOptional<z.ZodString>;
+    deviceType: z.ZodOptional<z.ZodString>;
+    deviceTypeGroup: z.ZodOptional<z.ZodString>;
+    powerStatus: z.ZodOptional<z.ZodUnknown>;
+    location: z.ZodOptional<z.ZodUnion<[z.ZodObject<{
+        facility: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        facility_title: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        rack: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        rack_id: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+        row_name: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        position: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+    }, z.core.$strip>, z.ZodUnknown]>>;
+    billingInfo: z.ZodOptional<z.ZodObject<{
+        period: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+        price: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+    }, z.core.$strip>>;
+    tags: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    displayedTags: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        value: z.ZodAny;
+    }, z.core.$strip>>>;
+    isManaged: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    ipmiEnabled: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    hasCancellation: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    isReload: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    spsStatus: z.ZodOptional<z.ZodString>;
+    monitorsUp: z.ZodOptional<z.ZodNumber>;
+    monitorsTotal: z.ZodOptional<z.ZodNumber>;
+    servicePlan: z.ZodOptional<z.ZodNumber>;
+    productId: z.ZodOptional<z.ZodNumber>;
+    lastInvoiceId: z.ZodOptional<z.ZodNumber>;
+    createdDate: z.ZodOptional<z.ZodString>;
+}, z.core.$loose>>;
+/**
+ * Hivelocity VPS Instance (GET /vps/ → VPS)
+ *
+ * Dedicated VPS instances in the account. These come from a completely separate
+ * endpoint and schema from bare-metal devices.
+ *
+ * Fields from the `VPS` definition in the official OpenAPI spec.
+ */
+export declare const hivelocityVpsSchema: z.ZodObject<{
+    id: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>, z.ZodTransform<string, string | number>>>;
+    hostname: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    status: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    primaryIp: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    cpus: z.ZodOptional<z.ZodNumber>;
+    memory: z.ZodOptional<z.ZodNumber>;
+    disk: z.ZodOptional<z.ZodNumber>;
+    osName: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    facilityCode: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    networkId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+    hostId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+    storageId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+    createdAt: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+}, z.core.$loose>;
+export type HivelocityVps = z.infer<typeof hivelocityVpsSchema>;
+export declare const hivelocityVpsListResponseSchema: z.ZodArray<z.ZodObject<{
+    id: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>, z.ZodTransform<string, string | number>>>;
+    hostname: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    status: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    primaryIp: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    cpus: z.ZodOptional<z.ZodNumber>;
+    memory: z.ZodOptional<z.ZodNumber>;
+    disk: z.ZodOptional<z.ZodNumber>;
+    osName: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    facilityCode: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    networkId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+    hostId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+    storageId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+    createdAt: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
+}, z.core.$loose>>;
+export declare const hivelocityVpsSnapshotScheduleSchema: z.ZodObject<{
+    snapshotScheduleId: z.ZodOptional<z.ZodString>;
+    volumeId: z.ZodString;
+    intervalType: z.ZodEnum<{
+        MONTHLY: "MONTHLY";
+        DAILY: "DAILY";
+        WEEKLY: "WEEKLY";
+        HOURLY: "HOURLY";
+    }>;
+    timezone: z.ZodString;
+    hour: z.ZodOptional<z.ZodNumber>;
+    minute: z.ZodOptional<z.ZodNumber>;
+    day: z.ZodOptional<z.ZodNumber>;
+    weekday: z.ZodOptional<z.ZodNumber>;
+    maxSnapshots: z.ZodNumber;
+}, z.core.$loose>;
+export type HivelocityVpsSnapshotSchedule = z.infer<typeof hivelocityVpsSnapshotScheduleSchema>;
+export declare const hivelocityVpsSnapshotScheduleCreateSchema: z.ZodObject<{
+    timezone: z.ZodString;
+    day: z.ZodOptional<z.ZodNumber>;
+    volumeId: z.ZodString;
+    intervalType: z.ZodEnum<{
+        MONTHLY: "MONTHLY";
+        DAILY: "DAILY";
+        WEEKLY: "WEEKLY";
+        HOURLY: "HOURLY";
+    }>;
+    hour: z.ZodOptional<z.ZodNumber>;
+    minute: z.ZodOptional<z.ZodNumber>;
+    weekday: z.ZodOptional<z.ZodNumber>;
+    maxSnapshots: z.ZodNumber;
+    facilityCode: z.ZodString;
+    clientId: z.ZodOptional<z.ZodNumber>;
+}, z.core.$loose>;
+export declare const hivelocityVpsVolumeSchema: z.ZodObject<{
+    volumeId: z.ZodString;
+    deviceId: z.ZodNumber;
+    facilityCode: z.ZodString;
+    size: z.ZodNumber;
+    type: z.ZodEnum<{
+        ROOT: "ROOT";
+        DATADISK: "DATADISK";
+    }>;
+    createdAt: z.ZodOptional<z.ZodString>;
+}, z.core.$loose>;
+export type HivelocityVpsVolume = z.infer<typeof hivelocityVpsVolumeSchema>;
+export declare const hivelocityVpsVolumeCreateSchema: z.ZodObject<{
+    deviceId: z.ZodNumber;
+    size: z.ZodNumber;
+}, z.core.$strip>;
+export declare const hivelocityVpsVolumeUpdateSchema: z.ZodObject<{
+    deviceId: z.ZodOptional<z.ZodNumber>;
+    size: z.ZodNumber;
+}, z.core.$strip>;
+export declare const hivelocityVpsVolumeDeleteSchema: z.ZodObject<{
+    deviceId: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>;
+export declare const hivelocityVpsSnapshotRestoreSchema: z.ZodObject<{
+    facilityCode: z.ZodString;
+    clientId: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>;
+export declare const hivelocityNetworkTaskSchema: z.ZodObject<{
+    taskId: z.ZodString;
+    clientId: z.ZodOptional<z.ZodNumber>;
+    deviceId: z.ZodOptional<z.ZodNumber>;
+    result: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    metaData: z.ZodOptional<z.ZodString>;
+    taskCreated: z.ZodOptional<z.ZodUnknown>;
+    taskUpdated: z.ZodOptional<z.ZodUnknown>;
+}, z.core.$loose>;
+export type HivelocityNetworkTask = z.infer<typeof hivelocityNetworkTaskSchema>;
+export type HivelocityResourceType = "dedicated" | "vds" | "vps";
+/** Bare-metal device enriched with a computed resource-type discriminant. */
+export type HivelocityDeviceResource = HivelocityDeviceDump & {
+    resourceType: "dedicated" | "vds";
+};
+/** VPS instance enriched with a resource-type discriminant. */
+export type HivelocityVpsResource = HivelocityVps & {
+    resourceType: "vps";
+};
+export type HivelocityAnyResource = HivelocityDeviceResource | HivelocityVpsResource;

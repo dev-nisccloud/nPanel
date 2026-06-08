@@ -183,7 +183,11 @@ export class DigiTaxClient {
   private apiKey: string;
 
   constructor(apiKey?: string, baseUrl?: string) {
-    this.apiKey = apiKey ?? env.DIGITAX_API_KEY;
+    const resolvedKey = apiKey ?? env.DIGITAX_API_KEY;
+    if (!resolvedKey?.trim()) {
+      throw new Error("DIGITAX_API_KEY is not configured");
+    }
+    this.apiKey = resolvedKey;
     this.baseUrl = baseUrl ?? env.DIGITAX_API_URL;
   }
 

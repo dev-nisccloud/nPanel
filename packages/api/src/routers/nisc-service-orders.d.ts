@@ -4,6 +4,16 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    getSummary: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            total: number;
+            completed: number;
+            failed: number;
+            pending: number;
+        };
+        meta: object;
+    }>;
     getAll: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             userId?: string | undefined;
@@ -24,6 +34,9 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                 currency: string;
                 notes: string | null;
                 failureReason: string | null;
+                invoiceId: string | null;
+                invoiceNumber: string | null;
+                metadata: unknown;
                 createdAt: Date;
                 completedAt: Date | null;
                 user: {
@@ -60,47 +73,34 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
+            userId: string | null;
             teamId: string | null;
+            metadata: unknown;
             invoiceNumber: string | null;
-            status: string;
             subtotal: string;
             currency: string;
-            metadata: unknown;
             createdBy: string | null;
             invoiceId: string | null;
             total: string;
             notes: string | null;
-            userId: string | null;
+            completedAt: Date | null;
             orderNumber: string;
             niscProductPromoId: string | null;
             processedAt: Date | null;
-            completedAt: Date | null;
             failureReason: string | null;
             qstashMessageId: string | null;
             paymentTransactionId: string | null;
-            team: {
-                id: string;
-                name: string;
-                slug: string;
-                baseCurrency: string;
-                logoUrl: string | null;
-                isActive: boolean;
-                createdAt: Date;
-                updatedAt: Date;
-                createdById: string;
-            } | null;
             user: {
                 id: string;
                 name: string;
-                createdAt: Date;
-                updatedAt: Date;
-                status: string;
                 email: string;
                 emailVerified: boolean;
                 role: string;
                 agencyRoleId: string | null;
+                status: string;
                 lastAccessedTeamId: string | null;
                 lastLoginAt: Date | null;
                 image: string | null;
@@ -109,17 +109,41 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                 notificationSoundVolume: number | null;
                 browserNotificationPermission: string | null;
                 notificationPreferencesUpdatedAt: Date | null;
+                generalEmailsAccepted: boolean | null;
+                invoiceEmailsAccepted: boolean | null;
+                supportEmailsAccepted: boolean | null;
+                productEmailsAccepted: boolean | null;
+                domainEmailsAccepted: boolean | null;
+                affiliateEmailsAccepted: boolean | null;
+                marketingEmailsAccepted: boolean | null;
+                smsMarketingAccepted: boolean | null;
+                adminNotes: string | null;
+                howDidYouFindUs: string | null;
+                acceptedTermsAndConditions: boolean | null;
+                createdAt: Date;
+                updatedAt: Date;
+            } | null;
+            team: {
+                id: string;
+                name: string;
+                createdAt: Date;
+                updatedAt: Date;
+                slug: string;
+                baseCurrency: string;
+                logoUrl: string | null;
+                isActive: boolean;
+                createdById: string;
             } | null;
             niscProductPromo: {
                 id: string;
                 name: string;
-                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
                 description: string | null;
+                isActive: boolean;
+                code: string;
                 productId: string | null;
                 productPlanId: string | null;
-                code: string;
                 discountType: string;
                 discountValue: string | null;
                 discountCurrency: string | null;
@@ -131,11 +155,11 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
             } | null;
             orderItems: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
-                metadata: unknown;
                 description: string | null;
+                metadata: unknown;
                 productId: string;
                 billingCycle: string | null;
                 productPlanId: string | null;
@@ -148,63 +172,18 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                 provisioningErrorDetails: unknown;
                 niscClientSubscriptionId: string | null;
                 domainSubscriptionId: string | null;
-                product: {
-                    id: string;
-                    name: string;
-                    isActive: boolean;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    metadata: unknown;
-                    description: string | null;
-                    category: string;
-                    serviceType: string;
-                    sortOrder: number;
-                    features: unknown;
-                    highlights: unknown;
-                    isAddOn: boolean;
-                };
-                productPlan: {
-                    id: string;
-                    name: string;
-                    isActive: boolean;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    currency: string | null;
-                    metadata: unknown;
-                    description: string | null;
-                    price: string | null;
-                    sortOrder: number;
-                    highlights: unknown;
-                    productId: string;
-                    pricingModel: string;
-                    billingCycle: string | null;
-                    setupFee: string | null;
-                    cost: string | null;
-                    costCurrency: string | null;
-                    commissionRate: string | null;
-                    commissionBase: string | null;
-                    commissionBaseDescription: string | null;
-                    planFeatures: unknown;
-                    isPopular: boolean;
-                    isRecommended: boolean;
-                    isDefault: boolean;
-                    pleskServicePlanId: string | null;
-                    pleskFilterId: string | null;
-                    pleskIpAddress: string | null;
-                    hostingType: string | null;
-                } | null;
                 niscClientSubscription: {
                     id: string;
                     name: string | null;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
-                    status: string;
-                    metadata: unknown;
+                    userId: string | null;
                     description: string | null;
+                    teamId: string | null;
+                    metadata: unknown;
                     notes: string | null;
                     recordedBy: string | null;
-                    userId: string | null;
                     productId: string;
                     pricingModel: string;
                     billingCycle: string | null;
@@ -241,18 +220,63 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                     serviceRefs: unknown;
                     hostingSubscriptionId: string | null;
                 } | null;
+                product: {
+                    id: string;
+                    name: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    description: string | null;
+                    isActive: boolean;
+                    metadata: unknown;
+                    category: string;
+                    serviceType: string;
+                    sortOrder: number;
+                    features: unknown;
+                    highlights: unknown;
+                    isAddOn: boolean;
+                };
+                productPlan: {
+                    id: string;
+                    name: string;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    description: string | null;
+                    isActive: boolean;
+                    metadata: unknown;
+                    currency: string | null;
+                    price: string | null;
+                    sortOrder: number;
+                    highlights: unknown;
+                    productId: string;
+                    pricingModel: string;
+                    billingCycle: string | null;
+                    setupFee: string | null;
+                    cost: string | null;
+                    costCurrency: string | null;
+                    commissionRate: string | null;
+                    commissionBase: string | null;
+                    commissionBaseDescription: string | null;
+                    planFeatures: unknown;
+                    isPopular: boolean;
+                    isRecommended: boolean;
+                    isDefault: boolean;
+                    pleskServicePlanId: string | null;
+                    pleskFilterId: string | null;
+                    pleskIpAddress: string | null;
+                    hostingType: string | null;
+                } | null;
                 domainSubscription: {
                     id: string;
                     name: string | null;
+                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    teamId: string | null;
-                    status: string;
-                    metadata: unknown;
+                    userId: string | null;
                     description: string | null;
+                    teamId: string | null;
+                    metadata: unknown;
                     notes: string | null;
                     recordedBy: string | null;
-                    userId: string | null;
                     productId: string;
                     pricingModel: string;
                     billingCycle: string | null;
@@ -305,16 +329,10 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
             items: {
                 productId: string;
                 productPlanId: string;
+                metadata: unknown;
                 billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
                 primaryDomain?: string | undefined;
                 domainSubscriptionId?: string | undefined;
-                metadata?: {
-                    transferAuthCode?: string | undefined;
-                    nameServers?: {
-                        name: string;
-                        ip?: string | undefined;
-                    }[] | undefined;
-                } | undefined;
             }[];
             userId?: string | undefined;
             teamId?: string | undefined;
@@ -323,42 +341,42 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
+            userId: string | null;
             teamId: string | null;
+            metadata: unknown;
             invoiceNumber: string | null;
-            status: string;
             subtotal: string;
             currency: string;
-            metadata: unknown;
             createdBy: string | null;
             invoiceId: string | null;
             total: string;
             notes: string | null;
-            userId: string | null;
+            completedAt: Date | null;
             orderNumber: string;
             niscProductPromoId: string | null;
             processedAt: Date | null;
-            completedAt: Date | null;
             failureReason: string | null;
             qstashMessageId: string | null;
             paymentTransactionId: string | null;
-            team: {
-                id: string;
-                name: string;
-            } | null;
             user: {
                 id: string;
                 name: string;
                 email: string;
             } | null;
+            team: {
+                id: string;
+                name: string;
+            } | null;
             orderItems: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
-                metadata: unknown;
                 description: string | null;
+                metadata: unknown;
                 productId: string;
                 billingCycle: string | null;
                 productPlanId: string | null;
@@ -400,55 +418,50 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                 primaryDomain?: string | undefined;
                 description?: string | undefined;
                 domainSubscriptionId?: string | undefined;
-                metadata?: {
-                    transferAuthCode?: string | undefined;
-                    nameServers?: {
-                        name: string;
-                        ip?: string | undefined;
-                    }[] | undefined;
-                } | undefined;
+                metadata?: Record<string, unknown> | null | undefined;
             }[];
             currency?: string | undefined;
             teamId?: string | undefined;
+            billedForUserId?: string | undefined;
         };
         output: {
             id: string;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
+            userId: string | null;
             teamId: string | null;
+            metadata: unknown;
             invoiceNumber: string | null;
-            status: string;
             subtotal: string;
             currency: string;
-            metadata: unknown;
             createdBy: string | null;
             invoiceId: string | null;
             total: string;
             notes: string | null;
-            userId: string | null;
+            completedAt: Date | null;
             orderNumber: string;
             niscProductPromoId: string | null;
             processedAt: Date | null;
-            completedAt: Date | null;
             failureReason: string | null;
             qstashMessageId: string | null;
             paymentTransactionId: string | null;
-            team: {
-                id: string;
-                name: string;
-            } | null;
             user: {
                 id: string;
                 name: string;
                 email: string;
             } | null;
+            team: {
+                id: string;
+                name: string;
+            } | null;
             orderItems: {
                 id: string;
+                status: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
-                metadata: unknown;
                 description: string | null;
+                metadata: unknown;
                 productId: string;
                 billingCycle: string | null;
                 productPlanId: string | null;

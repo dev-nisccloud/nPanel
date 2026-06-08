@@ -9,7 +9,9 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
      * Used by agency-side campaign creation dropdown.
      */
     listAllVerified: import("@trpc/server").TRPCQueryProcedure<{
-        input: Record<string, never> | undefined;
+        input: {
+            teamId?: string | undefined;
+        } | undefined;
         output: {
             domains: {
                 id: string;
@@ -26,7 +28,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+            status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -46,7 +48,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+            status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -66,7 +68,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+            status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -104,7 +106,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
     listLegacy: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
+            status?: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -113,7 +115,7 @@ export declare const niscEmailMarketingDomainsRouter: import("@trpc/server").TRP
             domains: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
+                status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;

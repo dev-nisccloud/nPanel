@@ -7,8 +7,8 @@ export declare const quotationStatusSchema: z.ZodEnum<{
     DRAFT: "DRAFT";
     SENT: "SENT";
     ACCEPTED: "ACCEPTED";
-    DECLINED: "DECLINED";
     EXPIRED: "EXPIRED";
+    DECLINED: "DECLINED";
     CANCELLED: "CANCELLED";
 }>;
 export type QuotationStatusType = z.infer<typeof quotationStatusSchema>;
@@ -62,8 +62,8 @@ export declare const quotationCreateInputSchema: z.ZodObject<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        DECLINED: "DECLINED";
         EXPIRED: "EXPIRED";
+        DECLINED: "DECLINED";
         CANCELLED: "CANCELLED";
     }>>;
     token: z.ZodOptional<z.ZodString>;
@@ -83,6 +83,7 @@ export declare const quotationCreateInputSchema: z.ZodObject<{
     quotationNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    linkedUserId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     tax: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -121,13 +122,14 @@ export declare const quotationUpdateInputSchema: z.ZodObject<{
     quotationNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    linkedUserId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     token: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodOptional<z.ZodEnum<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        DECLINED: "DECLINED";
         EXPIRED: "EXPIRED";
+        DECLINED: "DECLINED";
         CANCELLED: "CANCELLED";
     }>>;
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -150,12 +152,13 @@ export declare const quotationSummarySchema: z.ZodObject<{
     quotationNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    linkedUserId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        DECLINED: "DECLINED";
         EXPIRED: "EXPIRED";
+        DECLINED: "DECLINED";
         CANCELLED: "CANCELLED";
     }>;
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -170,12 +173,13 @@ export declare const quotationDetailSchema: z.ZodObject<{
     quotationNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    linkedUserId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        DECLINED: "DECLINED";
         EXPIRED: "EXPIRED";
+        DECLINED: "DECLINED";
         CANCELLED: "CANCELLED";
     }>;
     amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -228,8 +232,8 @@ export declare const quotationListFiltersSchema: z.ZodObject<{
         DRAFT: "DRAFT";
         SENT: "SENT";
         ACCEPTED: "ACCEPTED";
-        DECLINED: "DECLINED";
         EXPIRED: "EXPIRED";
+        DECLINED: "DECLINED";
         CANCELLED: "CANCELLED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
@@ -243,12 +247,13 @@ export declare const quotationListResponseSchema: z.ZodObject<{
         quotationNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        linkedUserId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
         status: z.ZodEnum<{
             DRAFT: "DRAFT";
             SENT: "SENT";
             ACCEPTED: "ACCEPTED";
-            DECLINED: "DECLINED";
             EXPIRED: "EXPIRED";
+            DECLINED: "DECLINED";
             CANCELLED: "CANCELLED";
         }>;
         amount: z.ZodNullable<z.ZodOptional<z.ZodString>>;

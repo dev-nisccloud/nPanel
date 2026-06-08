@@ -5,47 +5,110 @@ export declare const etimsSalesRouter: import("@trpc/server").TRPCBuiltRouter<{
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     /**
-     * Submit sales transaction and generate tax invoice
+     * Submit a sales transaction to KRA and generate a tax invoice.
+     * POST /saveTrnsSalesOsdc
      */
     sendSalesTransaction: import("@trpc/server").TRPCMutationProcedure<{
         input: {
-            transaction: any;
+            transaction: {
+                trdInvcNo: string | number;
+                invcNo: number;
+                orgInvcNo: number;
+                salesTyCd: string;
+                rcptTyCd: string;
+                salesSttsCd: string;
+                cfmDt: string;
+                salesDt: string;
+                totItemCnt: number;
+                taxblAmtA: number;
+                taxblAmtB: number;
+                taxblAmtC: number;
+                taxblAmtD: number;
+                taxblAmtE: number;
+                taxRtA: number;
+                taxRtB: number;
+                taxRtC: number;
+                taxRtD: number;
+                taxRtE: number;
+                taxAmtA: number;
+                taxAmtB: number;
+                taxAmtC: number;
+                taxAmtD: number;
+                taxAmtE: number;
+                totTaxblAmt: number;
+                totTaxAmt: number;
+                totAmt: number;
+                prchrAcptcYn: "Y" | "N";
+                regrId: string;
+                regrNm: string;
+                modrId: string;
+                modrNm: string;
+                receipt: {
+                    rcptPbctDt: string;
+                    prchrAcptcYn: "Y" | "N";
+                    custTin?: string | null | undefined;
+                    custMblNo?: string | null | undefined;
+                    trdeNm?: string | null | undefined;
+                    adrs?: string | null | undefined;
+                    topMsg?: string | null | undefined;
+                    btmMsg?: string | null | undefined;
+                };
+                itemList: {
+                    itemSeq: number;
+                    itemCd: string;
+                    itemNm: string;
+                    pkgUnitCd: string;
+                    pkg: number;
+                    qtyUnitCd: string;
+                    qty: number;
+                    prc: number;
+                    splyAmt: number;
+                    dcRt: number;
+                    dcAmt: number;
+                    taxTyCd: "A" | "B" | "C" | "D" | "E";
+                    taxblAmt: number;
+                    taxAmt: number;
+                    totAmt: number;
+                    itemClsCd?: string | null | undefined;
+                    bcd?: string | null | undefined;
+                    isrccCd?: string | null | undefined;
+                    isrccNm?: string | null | undefined;
+                    isrcRt?: number | null | undefined;
+                    isrcAmt?: number | null | undefined;
+                }[];
+                custTin?: string | null | undefined;
+                custNm?: string | null | undefined;
+                pmtTyCd?: string | null | undefined;
+                stockRlsDt?: string | null | undefined;
+                cnclReqDt?: string | null | undefined;
+                cnclDt?: string | null | undefined;
+                rfdDt?: string | null | undefined;
+                rfdRsnCd?: string | null | undefined;
+                remark?: string | null | undefined;
+            };
         };
         output: {
             success: boolean;
-            data: any;
+            data: unknown;
             errorMessage?: undefined;
         } | {
             success: boolean;
             data: null;
-            errorMessage: any;
+            errorMessage: string;
         };
         meta: object;
     }>;
     /**
-     * Retrieve sales transaction history
+     * Retrieve sales transaction history.
+     * POST /selectTrnsPurchaseSalesList
      */
     getSalesTransactions: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             lastReqDt: string;
-            bhfId?: string | undefined;
         };
         output: {
             success: boolean;
-            data: any;
-        };
-        meta: object;
-    }>;
-    /**
-     * Get detailed invoice information by invoice number
-     */
-    getInvoiceDetail: import("@trpc/server").TRPCQueryProcedure<{
-        input: {
-            invcNo: string;
-        };
-        output: {
-            success: boolean;
-            data: any;
+            data: unknown;
         };
         meta: object;
     }>;

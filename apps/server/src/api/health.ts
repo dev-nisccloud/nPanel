@@ -1,9 +1,13 @@
 import { Context } from "hono";
-import { db, sql } from "@npanel/db";
+import { db, evaluatePoolHealth, getPoolMetrics, sql } from "@npanel/db";
 
 let lastHealthCheck: {
   timestamp: number;
-  result: { status: string; database: string };
+  result: {
+    status: string;
+    database: string;
+    pool: ReturnType<typeof getPoolMetrics>;
+  };
 } | null = null;
 
 const HEALTH_CHECK_CACHE_MS = 5000;
@@ -32,9 +36,14 @@ export async function handleHealth(c: Context) {
       ),
     ]);
 
+    const pool = getPoolMetrics();
+    const poolHealth = evaluatePoolHealth(pool);
     const result = {
-      status: "healthy",
+      status: poolHealth.degraded ? "degraded" : "healthy",
       database: "connected",
+      pool,
+      poolWarnings: poolHealth.warnings,
+      serviceRole: pool.serviceRole,
     };
 
     lastHealthCheck = {
@@ -54,6 +63,7 @@ export async function handleHealth(c: Context) {
       status: "unhealthy",
       timestamp: new Date().toISOString(),
       database: "disconnected",
+      pool: getPoolMetrics(),
       error: error instanceof Error ? error.message : "Unknown error",
       environment: process.env.NODE_ENV,
     }, 503);

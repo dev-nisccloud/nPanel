@@ -1,12 +1,29 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../../trpc";
 import { sendPleskRestRequest } from "../../lib/plesk/rest-client";
+import { sanitizeHotlinkDomains, sanitizeHotlinkExtensions, toHotlinkPutBody, } from "../../lib/plesk/hotlink-protection";
+import { extractTaskFromResponse, parseBackupsFlatList, parseBackupsMetaList, parseHotlinkSettingsFlat, parseHotlinkSettingsMeta, parseIntegrityInfo, parseWpCronMeta, tryNormalizeWpToolkitTaskUrl, } from "../../lib/plesk/wp-meta-parser";
+function asRecord(data) {
+    if (!data || typeof data !== "object" || Array.isArray(data))
+        return null;
+    return data;
+}
 export const wpFeaturesRouter = router({
     // --- Integrity ---
     getIntegrityInfo: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
-        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/integrity`);
+        const res = await sendPleskRestRequest(`/v1/installations/${input.installationId}/features/integrity`);
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+            return {
+                status: undefined,
+                available: false,
+                tasks: [],
+                message: "Unable to load integrity status",
+            };
+        }
+        return parseIntegrityInfo(res.data);
     }),
     // --- Debug ---
     updateDebugStatus: protectedProcedure
@@ -48,9 +65,81 @@ export const wpFeaturesRouter = router({
     getHotlinkProtectionSettings: protectedProcedure
         .input(z.object({ installationId: z.number() }))
         .query(async ({ input }) => {
-        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/hotlink-protection/settings`);
+        const base = `/v1/installations/${input.installationId}/features/hotlink-protection`;
+        const metaRes = await sendPleskRestRequest(`${base}/settings/meta`);
+        if (metaRes.statusCode >= 200 && metaRes.statusCode < 300 && metaRes.data) {
+            const parsed = parseHotlinkSettingsMeta(metaRes.data);
+            return {
+                data: parsed,
+                source: "meta",
+            };
+        }
+        const flatRes = await sendPleskRestRequest(`${base}/settings`);
+        if (flatRes.statusCode >= 200 && flatRes.statusCode < 300 && flatRes.data) {
+            const parsed = parseHotlinkSettingsFlat(flatRes.data);
+            return {
+                data: {
+                    ...parsed,
+                    defaultDomains: [],
+                    defaultFileExtensions: [],
+                },
+                source: "settings",
+            };
+        }
+        if (flatRes.isAuthError || metaRes.isAuthError) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid Plesk credentials" });
+        }
+        if (flatRes.isHostUnreachable || metaRes.isHostUnreachable) {
+            throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Plesk host is unreachable" });
+        }
+        throw new TRPCError({
+            code: flatRes.statusCode === 404 ? "NOT_FOUND" : "INTERNAL_SERVER_ERROR",
+            message: "Failed to load hotlink protection settings",
+        });
     }),
-    // Note: Skipping complex meta endpoint for now, focusing on enabling/disabling
+    updateHotlinkProtectionSettings: protectedProcedure
+        .input(z.object({
+        installationId: z.number(),
+        domains: z.array(z.string()),
+        fileExtensions: z.array(z.string()),
+    }))
+        .mutation(async ({ input }) => {
+        const domains = sanitizeHotlinkDomains(input.domains);
+        const fileExtensions = sanitizeHotlinkExtensions(input.fileExtensions);
+        const body = toHotlinkPutBody(domains, fileExtensions);
+        const res = await sendPleskRestRequest(`/v1/installations/${input.installationId}/features/hotlink-protection/settings`, "PUT", body);
+        if (res.isHostUnreachable) {
+            throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Plesk host is unreachable" });
+        }
+        if (res.isAuthError) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid Plesk credentials" });
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+            throw new TRPCError({
+                code: res.statusCode === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+                message: "Failed to update hotlink protection settings",
+            });
+        }
+        return { data: parseHotlinkSettingsFlat(res.data) };
+    }),
+    resetHotlinkProtectionSettings: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .mutation(async ({ input }) => {
+        const res = await sendPleskRestRequest(`/v1/installations/${input.installationId}/features/hotlink-protection/settings`, "DELETE", { delete: true });
+        if (res.isHostUnreachable) {
+            throw new TRPCError({ code: "SERVICE_UNAVAILABLE", message: "Plesk host is unreachable" });
+        }
+        if (res.isAuthError) {
+            throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid Plesk credentials" });
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+            throw new TRPCError({
+                code: res.statusCode === 404 ? "NOT_FOUND" : "BAD_REQUEST",
+                message: "Failed to reset hotlink protection settings",
+            });
+        }
+        return { data: parseHotlinkSettingsFlat(res.data) };
+    }),
     // --- Indexing ---
     toggleIndexing: protectedProcedure
         .input(z.object({
@@ -94,6 +183,73 @@ export const wpFeaturesRouter = router({
     }))
         .mutation(async ({ input }) => {
         return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/maintenance/status`, 'PUT', { status: input.status });
+    }),
+    getMaintenanceTemplateUrl: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        const res = await sendPleskRestRequest(`/v1/installations/${input.installationId}/features/maintenance/template-customization-url`);
+        if (res.statusCode >= 200 && res.statusCode < 300 && res.data && typeof res.data === "object") {
+            const url = res.data.url;
+            return { url: typeof url === "string" ? url : null };
+        }
+        return { url: null };
+    }),
+    restoreMaintenanceTemplate: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .mutation(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/maintenance/template`, "DELETE", { delete: true });
+    }),
+    getBackupsMeta: protectedProcedure
+        .input(z.object({
+        installationId: z.number(),
+        showAllBackups: z.boolean().optional(),
+    }))
+        .query(async ({ input }) => {
+        const qs = input.showAllBackups ? "?showAllBackups=true" : "";
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/backups/meta${qs}`);
+    }),
+    getSmartUpdateResult: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/smart/result`);
+    }),
+    getSmartPhpUpdateStub: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/php/stub`);
+    }),
+    getSmartPhpUpdateResult: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/php/result`);
+    }),
+    acceptSmartPhpUpdate: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .mutation(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/php/result`, "POST", { confirm: true });
+    }),
+    discardSmartPhpUpdate: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .mutation(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/updates/php/result`, "DELETE", { delete: true });
+    }),
+    runSmartPhpUpdate: protectedProcedure
+        .input(z.object({
+        installationId: z.number(),
+        newSubDomain: z
+            .object({
+            parentDomain: z.string(),
+            name: z.string().optional(),
+        })
+            .optional(),
+        php: z.string().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { installationId, ...body } = input;
+        return sendPleskRestRequest("/v1/smart-php-updater", "POST", {
+            installationId,
+            ...body,
+        });
     }),
     // --- Nginx Caching ---
     toggleNginxCaching: protectedProcedure
@@ -148,13 +304,25 @@ export const wpFeaturesRouter = router({
         return sendPleskRestRequest('/v1/security-measures');
     }),
     getSecurityStatus: protectedProcedure
-        .input(z.object({
-        installationsIds: z.array(z.number())
+        .input(z
+        .object({
+        installationsIds: z.array(z.number()).optional(),
+        /** @deprecated use installationsIds - kept for mistyped clients */
+        installationIds: z.array(z.number()).optional(),
+    })
+        .transform((v) => ({
+        installationsIds: v.installationsIds ?? v.installationIds ?? [],
+    }))
+        .refine((v) => v.installationsIds.length > 0, {
+        message: "At least one installation id is required",
     }))
         .query(async ({ input }) => {
-        // Using simpler filtering for now
-        const query = input.installationsIds.map(id => `installationsIds[]=${id}`).join('&');
-        return sendPleskRestRequest(`/v1/security-measures/checker?${query}`);
+        const query = input.installationsIds.map((id) => `installationsIds[]=${id}`).join("&");
+        const res = await sendPleskRestRequest(`/v1/security-measures/checker?${query}`);
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+            return res.data;
+        }
+        return { data: [] };
     }),
     resolveSecurityMeasure: protectedProcedure
         .input(z.object({
@@ -180,7 +348,31 @@ export const wpFeaturesRouter = router({
         backupSettings: z.boolean().default(true)
     }))
         .mutation(async ({ input }) => {
-        return sendPleskRestRequest('/v1/features/backups/creator', 'POST', input);
+        const res = await sendPleskRestRequest('/v1/features/backups/creator', 'POST', input);
+        if (res.isHostUnreachable) {
+            throw new TRPCError({ code: 'SERVICE_UNAVAILABLE', message: 'Plesk host is unreachable' });
+        }
+        if (res.isAuthError) {
+            throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid Plesk credentials' });
+        }
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+            const msg = asRecord(res.data)?.meta && typeof asRecord(res.data)?.meta?.message === 'string'
+                ? String((asRecord(res.data)?.meta).message)
+                : 'Failed to start backup';
+            throw new TRPCError({ code: 'BAD_REQUEST', message: msg });
+        }
+        const task = extractTaskFromResponse(res.data);
+        const rawUrl = typeof res.data?.url === 'string'
+            ? res.data.url
+            : null;
+        const taskUrl = rawUrl && rawUrl.includes('background-tasks')
+            ? tryNormalizeWpToolkitTaskUrl(rawUrl)
+            : null;
+        return {
+            taskUrl,
+            task,
+            started: Boolean(taskUrl || task?.id),
+        };
     }),
     restoreBackup: protectedProcedure
         .input(z.object({
@@ -204,6 +396,161 @@ export const wpFeaturesRouter = router({
         fileName: z.string()
     }))
         .mutation(async ({ input }) => {
-        return sendPleskRestRequest(`/v1/installations/${input.installationId}/backups?files[]=${input.fileName}`, 'DELETE', { delete: true });
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/backups?files[]=${encodeURIComponent(input.fileName)}`, 'DELETE', { delete: true });
+    }),
+    getBackupsList: protectedProcedure
+        .input(z.object({
+        installationId: z.number(),
+        showAllBackups: z.boolean().optional(),
+    }))
+        .query(async ({ input }) => {
+        const qs = input.showAllBackups ? "?showAllBackups=true" : "";
+        const [metaRes, flatRes] = await Promise.all([
+            sendPleskRestRequest(`/v1/installations/${input.installationId}/backups/meta${qs}`),
+            sendPleskRestRequest(`/v1/installations/${input.installationId}/backups`),
+        ]);
+        const metaParsed = metaRes.statusCode >= 200 && metaRes.statusCode < 300
+            ? parseBackupsMetaList(metaRes.data)
+            : { items: [] };
+        const flat = flatRes.statusCode >= 200 && flatRes.statusCode < 300
+            ? parseBackupsFlatList(flatRes.data)
+            : [];
+        const byName = new Map();
+        for (const item of [...metaParsed.items, ...flat]) {
+            byName.set(item.fileName, { ...byName.get(item.fileName), ...item });
+        }
+        return {
+            items: Array.from(byName.values()),
+            fileManagerUrl: metaParsed.fileManagerUrl,
+            limit: metaParsed.limit,
+            dirName: metaParsed.dirName,
+        };
+    }),
+    // --- Updates checker ---
+    getUpdatesChecker: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        const q = `installationsIds[]=${input.installationId}`;
+        return sendPleskRestRequest(`/v1/updates-checker?${q}`);
+    }),
+    startUpdatesCheck: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .mutation(async ({ input }) => {
+        return sendPleskRestRequest("/v1/updates-checker", "POST", {
+            installationsIds: [input.installationId],
+            skipBrokenInstallations: false,
+            skipInfectedInstallations: false,
+            skipUnsupportedInstallations: false,
+        });
+    }),
+    // --- Vulnerabilities ---
+    getVulnerabilities: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        const q = `installationsIds[]=${input.installationId}`;
+        return sendPleskRestRequest(`/v1/vulnerabilities-checker?${q}`);
+    }),
+    startVulnerabilityCheck: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .mutation(async ({ input }) => {
+        return sendPleskRestRequest("/v1/vulnerabilities-checker", "POST", {
+            installationsIds: [input.installationId],
+            skipBrokenInstallations: false,
+            skipInfectedInstallations: false,
+            skipUnsupportedInstallations: false,
+        });
+    }),
+    // --- Security measures (start check) ---
+    startSecurityCheck: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .mutation(async ({ input }) => {
+        return sendPleskRestRequest("/v1/security-measures/checker", "POST", {
+            installationsIds: [input.installationId],
+            skipBrokenInstallations: false,
+            skipInfectedInstallations: false,
+            skipUnsupportedInstallations: false,
+        });
+    }),
+    // --- Security policies ---
+    getSecurityPolicies: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/vulnerability/security-policies`);
+    }),
+    updateSecurityPolicies: protectedProcedure
+        .input(z.object({
+        installationId: z.number(),
+        core: z
+            .object({
+            updateVulnerable: z.boolean().optional(),
+            applyVirtualPatches: z.boolean().optional(),
+        })
+            .optional(),
+        plugins: z
+            .object({
+            updateVulnerable: z.boolean().optional(),
+            deactivateVulnerable: z.boolean().optional(),
+            applyVirtualPatches: z.boolean().optional(),
+        })
+            .optional(),
+        themes: z
+            .object({
+            updateVulnerable: z.boolean().optional(),
+            applyVirtualPatches: z.boolean().optional(),
+        })
+            .optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { installationId, ...body } = input;
+        return sendPleskRestRequest(`/v1/installations/${installationId}/features/vulnerability/security-policies`, "PATCH", body);
+    }),
+    updateVulnerabilityFiltering: protectedProcedure
+        .input(z.object({ installationId: z.number(), status: z.boolean() }))
+        .mutation(async ({ input }) => {
+        return sendPleskRestRequest(`/v1/installations/${input.installationId}/features/vulnerability/filtering`, "PATCH", { status: input.status });
+    }),
+    applyVirtualPatches: protectedProcedure
+        .input(z.object({
+        installationId: z.number(),
+        status: z.boolean(),
+        dryRun: z.boolean().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { installationId, status, dryRun } = input;
+        const qs = dryRun ? "?dry-run=true" : "";
+        return sendPleskRestRequest(`/v1/features/virtual-patches/protector${qs}`, "POST", {
+            installationsIds: [installationId],
+            status,
+            skipBrokenInstallations: false,
+            skipInfectedInstallations: false,
+            skipUnsupportedInstallations: false,
+        });
+    }),
+    // --- WP-Cron takeover ---
+    getWpCronTakeoverMeta: protectedProcedure
+        .input(z.object({ installationId: z.number() }))
+        .query(async ({ input }) => {
+        const res = await sendPleskRestRequest(`/v1/installations/${input.installationId}/features/wp-cron-takeover/meta`);
+        if (res.statusCode >= 200 && res.statusCode < 300 && res.data) {
+            return { data: parseWpCronMeta(res.data) };
+        }
+        return { data: null };
+    }),
+    updateWpCronTakeover: protectedProcedure
+        .input(z.object({
+        installationId: z.number(),
+        status: z.boolean().optional(),
+        taskReplacementStatus: z.boolean().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        const { installationId, ...body } = input;
+        return sendPleskRestRequest(`/v1/installations/${installationId}/features/wp-cron-takeover`, "PATCH", body);
+    }),
+    // --- License ---
+    getLicenseInfo: protectedProcedure.query(async () => {
+        return sendPleskRestRequest("/v1/license-info");
+    }),
+    refreshLicenseInfo: protectedProcedure.mutation(async () => {
+        return sendPleskRestRequest("/v1/license-info/updater", "POST", { confirm: true });
     }),
 });

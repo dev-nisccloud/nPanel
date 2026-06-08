@@ -51,7 +51,7 @@ export declare const cronWorkflowRunRouter: import("@trpc/server").TRPCBuiltRout
         input: {
             id: string;
             name?: string | undefined;
-            status?: "running" | "completed" | "failed" | "paused" | "cancelled" | undefined;
+            status?: "running" | "cancelled" | "completed" | "failed" | "paused" | undefined;
             lastError?: string | null | undefined;
         };
         output: {

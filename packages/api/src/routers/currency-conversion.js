@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { Redis } from "@upstash/redis";
+import { convertPriceWithCeil } from "../lib/convert-price";
 // Lazy-loaded Redis client instance
 let redisInstance = null;
 /**
@@ -357,7 +358,7 @@ export const currencyConversionRouter = router({
                 }
                 return {
                     originalAmount: amount,
-                    convertedAmount: Math.round(amount * rate * 100) / 100, // Round to 2 decimal places
+                    convertedAmount: convertPriceWithCeil(amount, currency, targetCurrency, rate),
                     rate,
                     currency: targetCurrency,
                 };

@@ -82,6 +82,7 @@ function buildQuotationData(input) {
     const data = {
         customerName: stringOrNull(input.customerName),
         customerEmail: stringOrNull(input.customerEmail),
+        linkedUserId: input.linkedUserId ?? null,
         quotationNumber: stringOrNull(input.quotationNumber),
         token: input.token ?? crypto.randomUUID(),
         status: input.status ?? "DRAFT",
@@ -122,6 +123,7 @@ function buildQuotationUpdateData(input, userId) {
     };
     set("customerName", stringOrNull(input.customerName));
     set("customerEmail", stringOrNull(input.customerEmail));
+    set("linkedUserId", input.linkedUserId ?? null);
     set("quotationNumber", stringOrNull(input.quotationNumber));
     set("status", input.status);
     set("amount", stringOrNull(input.amount));
@@ -180,6 +182,7 @@ function mapQuotationDetail(row) {
         quotationNumber: row.quotationNumber,
         customerName: row.customerName,
         customerEmail: row.customerEmail,
+        linkedUserId: row.linkedUserId ?? null,
         status: row.status,
         amount: row.amount,
         currency: row.currency,

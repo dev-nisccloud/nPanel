@@ -22,4 +22,18 @@ export declare const wpCredentialsRouter: import("@trpc/server").TRPCBuiltRouter
         };
         meta: object;
     }>;
+    updateAccount: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            installationId: number;
+            login: unknown;
+            password: unknown;
+            retainPassword: unknown;
+            email: unknown;
+            language: unknown;
+        };
+        output: {
+            data: any;
+        };
+        meta: object;
+    }>;
 }>>;

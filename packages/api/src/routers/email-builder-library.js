@@ -33,10 +33,13 @@ const createFromUploadSchema = z.object({
 });
 const listLibraryItemsSchema = z.object({
     page: z.number().min(1).default(1),
-    limit: z.number().min(1).max(100).default(20),
+    limit: z.number().min(1).max(100).default(40),
     teamId: z.string().optional(),
     onlyImages: z.boolean().default(true),
     search: z.string().optional(),
+});
+const deleteLibraryItemSchema = z.object({
+    id: z.string(),
 });
 const isAgencyUserRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 export const emailBuilderLibraryRouter = router({
@@ -130,8 +133,9 @@ export const emailBuilderLibraryRouter = router({
             whereConditions.push(eq(emailBuilderLibrary.teamId, teamId));
         }
         else {
+            // Personal library - only assets this user uploaded
+            whereConditions.push(eq(emailBuilderLibrary.userId, userId));
             if (!isAgencyUserRole(userRole)) {
-                whereConditions.push(eq(emailBuilderLibrary.userId, userId));
                 whereConditions.push(isNull(emailBuilderLibrary.teamId));
             }
         }
@@ -156,5 +160,30 @@ export const emailBuilderLibraryRouter = router({
             data: items,
             nextPage: items.length === limit ? page + 1 : null,
         };
+    }),
+    /** Delete a library asset the current user owns. */
+    delete: protectedProcedure
+        .input(deleteLibraryItemSchema)
+        .mutation(async ({ ctx, input }) => {
+        const userId = ctx.session?.user?.id;
+        if (!userId) {
+            throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+        const item = await db.query.emailBuilderLibrary.findFirst({
+            where: eq(emailBuilderLibrary.id, input.id),
+        });
+        if (!item) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Image not found" });
+        }
+        if (item.userId !== userId) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "You can only delete your own library images",
+            });
+        }
+        await db
+            .delete(emailBuilderLibrary)
+            .where(eq(emailBuilderLibrary.id, input.id));
+        return { success: true };
     }),
 });

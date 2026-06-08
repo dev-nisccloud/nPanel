@@ -6,9 +6,10 @@ import { z } from "zod";
 const nullableString = z.string().optional().nullable();
 /** Billing cycle for subscription/plan – API enum. */
 export const billingCycleSchema = z.enum(["MONTHLY", "YEARLY", "BIENNIALLY"]);
-/** Product reference (name only) in an order item. */
+/** Product reference in an order item. */
 export const orderItemProductSchema = z.object({
     name: z.string(),
+    serviceType: nullableString,
 });
 /** Product plan reference (name only), optional for items without a plan. */
 export const orderItemProductPlanSchema = z.object({
@@ -21,6 +22,7 @@ export const niscOrderItemForInvoiceSchema = z.object({
     primaryDomain: nullableString,
     billingCycle: nullableString,
     description: nullableString,
+    metadata: z.record(z.unknown()).optional().nullable(),
     product: orderItemProductSchema,
     productPlan: orderItemProductPlanSchema,
 });

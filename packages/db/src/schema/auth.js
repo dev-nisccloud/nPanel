@@ -17,6 +17,17 @@ export const user = pgTable("user", {
     notificationSoundVolume: integer("notification_sound_volume").default(100),
     browserNotificationPermission: text("browser_notification_permission").default("default"),
     notificationPreferencesUpdatedAt: timestamp("notification_preferences_updated_at"),
+    generalEmailsAccepted: boolean("general_emails_accepted").default(false),
+    invoiceEmailsAccepted: boolean("invoice_emails_accepted").default(false),
+    supportEmailsAccepted: boolean("support_emails_accepted").default(false),
+    productEmailsAccepted: boolean("product_emails_accepted").default(false),
+    domainEmailsAccepted: boolean("domain_emails_accepted").default(false),
+    affiliateEmailsAccepted: boolean("affiliate_emails_accepted").default(false),
+    marketingEmailsAccepted: boolean("marketing_emails_accepted").default(false),
+    smsMarketingAccepted: boolean("sms_marketing_accepted").default(false),
+    adminNotes: text("admin_notes"),
+    howDidYouFindUs: text("how_did_you_find_us"),
+    acceptedTermsAndConditions: boolean("accepted_terms_and_conditions"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
         .defaultNow()
@@ -41,7 +52,10 @@ export const session = pgTable("session", {
     userId: text("user_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
-}, (table) => [index("session_userId_idx").on(table.userId)]);
+}, (table) => [
+    index("session_userId_idx").on(table.userId),
+    index("session_expires_at_idx").on(table.expiresAt),
+]);
 export const account = pgTable("account", {
     id: text("id").primaryKey(),
     accountId: text("account_id").notNull(),

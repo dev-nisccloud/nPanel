@@ -1,15 +1,13 @@
 import { request, Agent } from 'undici';
+import { withCircuitBreaker } from '../circuit-breaker';
 // Sentry removed; provide a no-op shim to avoid touching call sites
 const Sentry = {
     addBreadcrumb: (..._args) => { },
     captureException: (..._args) => { },
 };
-const PLESK_XML_ENDPOINT = process.env.PLESK_XML_ENDPOINT ??
-    'https://your-plesk-host:8443/enterprise/control/agent.php';
 // TEMPORARILY COMMENTED OUT - Testing secret key only authentication
 // const PLESK_XML_USERNAME = process.env.PLESK_XML_USERNAME ?? 'admin';
 // const PLESK_XML_PASSWORD = process.env.PLESK_XML_PASSWORD ?? 'your-password';
-const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY; // Required - secret key authentication only
 // Connection pool for better performance
 const pleskAgent = new Agent({
     connections: 5, // Connection pool size
@@ -42,6 +40,12 @@ function isAuthError(error, statusCode) {
         statusCode === 403);
 }
 export async function sendPleskXmlRequest(xmlPayload) {
+    return withCircuitBreaker('plesk-xml', () => sendPleskXmlRequestUncached(xmlPayload));
+}
+async function sendPleskXmlRequestUncached(xmlPayload) {
+    const PLESK_XML_ENDPOINT = process.env.PLESK_XML_ENDPOINT ??
+        'https://your-plesk-host:8443/enterprise/control/agent.php';
+    const PLESK_SECRET_KEY = process.env.PLESK_SECRET_KEY;
     console.log('Starting Plesk XML request...');
     console.log('PLESK_XML_ENDPOINT:', PLESK_XML_ENDPOINT);
     console.log('Has SECRET_KEY:', !!PLESK_SECRET_KEY);

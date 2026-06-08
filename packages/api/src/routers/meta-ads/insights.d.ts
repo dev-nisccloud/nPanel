@@ -54,4 +54,76 @@ export declare const metaAdsInsightsRouter: import("@trpc/server").TRPCBuiltRout
         };
         meta: object;
     }>;
+    /**
+     * Trigger a new AI campaign analysis
+     */
+    triggerAiAnalysis: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            campaignId: string;
+            data: any;
+            internalCampaignId?: string | undefined;
+        };
+        output: {
+            success: boolean;
+            analysisId: string;
+            status: string;
+        };
+        meta: object;
+    }>;
+    /**
+     * Get the status of a specific analysis
+     */
+    getAnalysisStatus: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            analysisId: string;
+        };
+        output: {
+            status: string;
+            analysis: string | null;
+            errorMessage: string | null;
+        };
+        meta: object;
+    }>;
+    /**
+     * List all analyses for a campaign
+     */
+    listAnalyses: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            campaignId: string;
+        };
+        output: {
+            id: string;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+            metadata: unknown;
+            errorMessage: string | null;
+            campaignId: string;
+            internalCampaignId: string | null;
+            analysis: string | null;
+        }[];
+        meta: object;
+    }>;
+    /**
+     * Get the latest completed analysis for a campaign
+     */
+    getLatestAnalysis: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            campaignId: string;
+        };
+        output: {
+            id: string;
+            status: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+            metadata: unknown;
+            errorMessage: string | null;
+            campaignId: string;
+            internalCampaignId: string | null;
+            analysis: string | null;
+        } | null;
+        meta: object;
+    }>;
 }>>;

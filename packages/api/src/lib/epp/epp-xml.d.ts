@@ -112,3 +112,31 @@ export interface DomainTransferParams {
  * Build EPP domain:transfer command with op="request" (RFC 5731).
  */
 export declare function buildDomainTransferXml(params: DomainTransferParams): string;
+/**
+ * Build EPP domain:info command (RFC 5731).
+ */
+export declare function buildDomainInfoXml(domain: string, authInfo?: string): string;
+/**
+ * Build EPP contact:info command (RFC 5733).
+ */
+export declare function buildContactInfoXml(id: string, authInfo?: string): string;
+/**
+ * Build EPP domain:update command (RFC 5731) for nameservers.
+ */
+export declare function buildDomainUpdateXml(params: {
+    domain: string;
+    addNs?: string[];
+    remNs?: string[];
+    authInfo?: string;
+}): string;
+/**
+ * Build EPP host:check command (RFC 5732).
+ */
+export declare function buildHostCheckXml(hosts: string[]): string;
+/**
+ * Build EPP host:create command (RFC 5732).
+ */
+export declare function buildHostCreateXml(host: string, ips?: {
+    v4?: string[];
+    v6?: string[];
+}): string;

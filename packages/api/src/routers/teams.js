@@ -10,6 +10,7 @@ import { hostingSubscription } from "@npanel/db/schema/hosting";
 import { team, teamInvite, teamMember } from "@npanel/db/schema/teams";
 import { renderTeamInviteEmail } from "../lib/email-templates";
 import { getSesClient, sendSesRawEmail } from "../lib/ses-client";
+import { provisionZeepoCustomerSignupWelcome } from "../lib/zeepo-agent-signup-provisioning";
 const isAgencyRole = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
 async function assertTeamMutationAccess(teamId, actorUserId, actorRole) {
@@ -99,6 +100,7 @@ const createTeamInputSchema = z.object({
 });
 const createTeamOutputSchema = z.object({
     success: z.boolean(),
+    isFirstTeam: z.boolean(),
     team: z.object({
         id: z.string(),
         name: z.string(),
@@ -184,7 +186,7 @@ export const teamsRouter = router({
         }
         // Get user's name for email personalization
         const [inviter] = await db
-            .select({ name: user.name, email: user.email })
+            .select({ name: user.name, email: user.email, role: user.role })
             .from(user)
             .where(eq(user.id, userId))
             .limit(1);
@@ -347,8 +349,26 @@ export const teamsRouter = router({
                 });
             }
         }
+        // Sign-up welcome tokens (email/password or Google): granted when a customer creates their
+        // first organization on /create-team - signup method does not matter, only teams.create.
+        const customerRole = inviter?.role ?? "CUSTOMER";
+        const [ownedTeamCountRow] = await db
+            .select({ count: count() })
+            .from(team)
+            .where(eq(team.createdById, userId));
+        const isFirstTeam = (ownedTeamCountRow?.count ?? 0) === 1;
+        if (customerRole === "CUSTOMER" && createdTeam.createdById === userId && isFirstTeam) {
+            void provisionZeepoCustomerSignupWelcome({
+                userId,
+                teamId: createdTeam.id,
+                userRole: customerRole,
+            }).catch((err) => {
+                console.error("[teams.create] Zeepo signup welcome provisioning failed:", err);
+            });
+        }
         return {
             success: true,
+            isFirstTeam,
             team: {
                 id: createdTeam.id,
                 name: createdTeam.name,

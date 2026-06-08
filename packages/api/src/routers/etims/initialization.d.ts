@@ -5,10 +5,12 @@ export declare const etimsInitializationRouter: import("@trpc/server").TRPCBuilt
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     /**
-     * Initialize OSCU device and obtain communication key (cmcKey)
-     */
-    /**
-     * Initialize OSCU device and obtain communication key (cmcKey)
+     * Initialize the OSCU device with KRA and obtain the cmcKey.
+     *
+     * Correct endpoint: POST /selectInitOsdcInfo
+     * Headers:  Authorization: Bearer <token>  (NO tin/bhfId/cmcKey yet)
+     * Body:     { tin, bhfId, dvcSrlNo }
+     * Response: { resultCd: "000", data: { info: { cmcKey, ... } } }
      */
     initializeDevice: import("@trpc/server").TRPCMutationProcedure<{
         input: {
@@ -19,30 +21,14 @@ export declare const etimsInitializationRouter: import("@trpc/server").TRPCBuilt
         };
         output: {
             success: boolean;
-            data: {
-                configId: string;
-                resultCd?: string;
-                resultMsg?: string;
-                data?: {
-                    info?: {
-                        cmcKey?: string;
-                    };
-                    cmcKey?: string;
-                };
-                responseHeader?: {
-                    customerMessage?: string;
-                    debugMessage?: string;
-                };
-                responseBody?: {
-                    resultCd?: string;
-                    resultMsg?: string;
-                    data?: {
-                        info?: {
-                            cmcKey?: string;
-                        };
-                        cmcKey?: string;
-                    } | null;
-                };
+            cmcKey: string;
+            configId: string;
+            info: {
+                cmcKey?: string;
+                taxprNm?: string;
+                bhfNm?: string;
+                sdcId?: string;
+                mrcNo?: string;
             };
         };
         meta: object;

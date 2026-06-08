@@ -37,6 +37,8 @@ export type Context = {
     createCaller?: (ctx: Context) => unknown;
     ipAddress?: string | null;
     apiKeyError?: string | null;
+    /** The raw Hono request, useful for URL and header inspection. */
+    req: HonoContext["req"];
 };
 export type CreateContextOptions = {
     context: HonoContext;

@@ -5,8 +5,7 @@ import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
 import { apiKey } from "@npanel/db/schema/auth-extras";
 import { user } from "@npanel/db/schema/auth";
-import { and, isNull } from "@npanel/db";
-import { userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
+import { resolveMfaContextState } from "./lib/mfa-context";
 
 type AuthSessionNonNull = NonNullable<
   Awaited<ReturnType<typeof auth.api.getSession>>
@@ -172,35 +171,10 @@ export async function createContext({
   let mfaSetupRequired = false;
   const sessionUserId = session?.user?.id;
   if (typeof sessionUserId === "string" && sessionUserId.length > 0 && sessionId) {
-    const mfaRows = await db
-      .select({
-        id: userMfaSettings.id,
-      })
-      .from(userMfaSettings)
-      .where(
-        and(
-          eq(userMfaSettings.userId, sessionUserId),
-          eq(userMfaSettings.emailOtpEnabled, true),
-        ),
-      )
-      .limit(1);
-
-    mfaRequired = Boolean(mfaRows[0]);
+    const mfaState = await resolveMfaContextState(sessionUserId, sessionId);
+    mfaRequired = mfaState.mfaRequired;
+    mfaVerified = mfaState.mfaVerified;
     mfaSetupRequired = false;
-
-    if (mfaRequired) {
-      const pendingRows = await db
-        .select({ id: userMfaSession.id })
-        .from(userMfaSession)
-        .where(
-          and(
-            eq(userMfaSession.sessionId, sessionId),
-            isNull(userMfaSession.verifiedAt),
-          ),
-        )
-        .limit(1);
-      mfaVerified = !pendingRows[0];
-    }
   }
 
   return {

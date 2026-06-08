@@ -1,47 +1,28 @@
 "use client";
 
 import * as React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { toast } from "@/components/ui/sonner";
-import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@npanel/ui/components/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
-
-const editFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").optional(),
-  baseCurrency: z.string().length(3, "Currency must be a 3-letter code").optional(),
-  logoUrl: z.string().url("Invalid URL").nullable().optional(),
-  isActive: z.boolean().optional(),
-}).refine(
-  (data) => {
-    return data.name !== undefined || data.baseCurrency !== undefined || data.logoUrl !== undefined || data.isActive !== undefined;
-  },
-  {
-    message: "At least one field must be provided for update",
-  },
-);
-
-type FormData = z.infer<typeof editFormSchema>;
 
 interface EditTeamDialogProps {
   open: boolean;
@@ -56,36 +37,50 @@ export function EditTeamDialog({
   teamId,
   onSuccess,
 }: EditTeamDialogProps) {
+  const [formData, setFormData] = React.useState({
+    teamName: "",
+    currency: "KES",
+    logoUrl: "" as string | null,
+    teamLogo: null as File | null,
+    isActive: true,
+  });
+
   const { data: team, isLoading } = trpc.teams.getById.useQuery(
     { teamId },
-    { enabled: open && !!teamId }
+    { enabled: open && !!teamId },
   );
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(editFormSchema),
-    defaultValues: {
-      name: "",
-      baseCurrency: "",
-      logoUrl: null,
-      isActive: true,
-    },
-  });
+  const utils = trpc.useUtils();
 
   React.useEffect(() => {
     if (team) {
-      form.reset({
-        name: team.name,
-        baseCurrency: team.baseCurrency,
+      setFormData({
+        teamName: team.name,
+        currency: team.baseCurrency,
         logoUrl: team.logoUrl,
+        teamLogo: null,
         isActive: team.isActive,
       });
     }
-  }, [team, form]);
+  }, [team]);
+
+  React.useEffect(() => {
+    if (!open) {
+      setFormData({
+        teamName: "",
+        currency: "KES",
+        logoUrl: null,
+        teamLogo: null,
+        isActive: true,
+      });
+    }
+  }, [open]);
 
   const updateTeamMutation = trpc.teams.update.useMutation({
     onSuccess: () => {
       toast.success("Team updated successfully");
-      form.reset();
+      utils.teams.getAll.invalidate();
+      utils.teams.getById.invalidate({ teamId });
       onOpenChange(false);
       onSuccess?.();
     },
@@ -94,183 +89,212 @@ export function EditTeamDialog({
     },
   });
 
-  const onSubmit = (data: FormData) => {
-    if (!team) return;
-
-    const submitData: any = { teamId };
-
-    if (data.name !== undefined && data.name !== team.name) {
-      submitData.name = data.name;
-    }
-
-    if (data.baseCurrency !== undefined && data.baseCurrency !== team.baseCurrency) {
-      submitData.baseCurrency = data.baseCurrency;
-    }
-
-    if (data.logoUrl !== undefined && data.logoUrl !== team.logoUrl) {
-      submitData.logoUrl = data.logoUrl;
-    }
-
-    if (data.isActive !== undefined && data.isActive !== team.isActive) {
-      submitData.isActive = data.isActive;
-    }
-
-    if (Object.keys(submitData).length > 1) {
-      updateTeamMutation.mutate(submitData);
-    } else {
-      toast.info("No changes to save");
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, teamLogo: file }));
     }
   };
 
-  if (isLoading) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+  const handleSubmit = () => {
+    if (!team) return;
+
+    if (!formData.teamName.trim()) {
+      toast.error("Team name is required");
+      return;
+    }
+
+    if (formData.teamName.trim().length < 2) {
+      toast.error("Team name must be at least 2 characters");
+      return;
+    }
+
+    if (formData.teamName.trim().length > 100) {
+      toast.error("Team name must be less than 100 characters");
+      return;
+    }
+
+    const submitData: {
+      teamId: string;
+      name?: string;
+      baseCurrency?: string;
+      logoUrl?: string | null;
+      isActive?: boolean;
+    } = { teamId };
+
+    if (formData.teamName.trim() !== team.name) {
+      submitData.name = formData.teamName.trim();
+    }
+
+    if (formData.currency !== team.baseCurrency) {
+      submitData.baseCurrency = formData.currency;
+    }
+
+    if (formData.logoUrl !== team.logoUrl) {
+      submitData.logoUrl = formData.logoUrl;
+    }
+
+    if (formData.isActive !== team.isActive) {
+      submitData.isActive = formData.isActive;
+    }
+
+    if (Object.keys(submitData).length === 1) {
+      toast.info("No changes to save");
+      return;
+    }
+
+    updateTeamMutation.mutate(submitData);
+  };
+
+  const logoPreview = formData.teamLogo
+    ? URL.createObjectURL(formData.teamLogo)
+    : formData.logoUrl || null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Team</DialogTitle>
+          <DialogDescription>
+            Update team details. The team slug cannot be changed after creation.
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner size={32} />
           </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  if (!team) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        ) : !team ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-destructive mb-4">Team not found</p>
             <Button onClick={() => onOpenChange(false)} variant="outline">
               Close
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+        ) : (
+          <div className="space-y-6 py-4">
+            <div className="flex flex-col items-center space-y-3">
+              <Label className="text-sm font-medium">Team logo</Label>
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/25 flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors group overflow-hidden">
+                  {logoPreview ? (
+                    <img
+                      src={logoPreview}
+                      alt="Team logo"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <Upload className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
+            </div>
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6" hideClose>
-        <DialogHeader className="pb-4">
-          <DialogTitle>Edit Team</DialogTitle>
-          <DialogDescription>
-            Update team information. Only changed fields will be updated. Slug cannot be changed.
-          </DialogDescription>
-        </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="editTeamName" className="text-sm font-medium">
+                Team Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="editTeamName"
+                placeholder="Enter your team name"
+                value={formData.teamName}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, teamName: e.target.value }))
+                }
+                className="h-11"
+              />
+            </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Slug - read-only */}
-            <FormItem>
-              <FormLabel>Slug (Read-only)</FormLabel>
-              <FormControl>
-                <Input value={team.slug} disabled className="font-mono" />
-              </FormControl>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Slug</Label>
+              <Input value={team.slug} disabled className="h-11 font-mono" />
               <p className="text-xs text-muted-foreground">
                 Team slug cannot be changed after creation
               </p>
-            </FormItem>
+            </div>
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Team Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="My Team" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="editCurrency" className="text-sm font-medium">
+                Default Currency
+              </Label>
+              <Select
+                value={formData.currency}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, currency: value }))
+                }
+              >
+                <SelectTrigger id="editCurrency" className="h-11 w-full">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="KES">Kenyan Shillings (KES)</SelectItem>
+                  <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                  <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-            <FormField
-              control={form.control}
-              name="baseCurrency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Base Currency</FormLabel>
-                  <FormControl>
-                    <Input placeholder="KES" maxLength={3} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="editLogoUrl" className="text-sm font-medium">
+                Logo URL
+              </Label>
+              <Input
+                id="editLogoUrl"
+                type="url"
+                placeholder="https://example.com/logo.png"
+                value={formData.logoUrl || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    logoUrl: e.target.value || null,
+                    teamLogo: null,
+                  }))
+                }
+                className="h-11"
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="logoUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Logo URL</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="url" 
-                      placeholder="https://example.com/logo.png" 
-                      value={field.value || ""}
-                      onChange={(e) => field.onChange(e.target.value || null)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Active status</Label>
+                <p className="text-xs text-muted-foreground">
+                  Inactive teams are hidden from most workflows
+                </p>
+              </div>
+              <Switch
+                checked={formData.isActive}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({ ...prev, isActive: checked }))
+                }
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="isActive"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Active Status</FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                      Whether the team is active or inactive
-                    </p>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter className="gap-2 sm:gap-0">
+            <div className="flex gap-3 pt-2">
               <Button
-                type="button"
                 variant="outline"
-                onClick={() => {
-                  form.reset();
-                  onOpenChange(false);
-                }}
+                onClick={() => onOpenChange(false)}
+                className="flex-1 h-11"
                 disabled={updateTeamMutation.isPending}
               >
                 Cancel
               </Button>
               <Button
-                type="submit"
+                onClick={handleSubmit}
+                className="flex-1 h-11"
                 disabled={updateTeamMutation.isPending}
               >
-                {updateTeamMutation.isPending ? (
-                  <>
-                    <Spinner size={16} className="mr-2" />
-                    Updating...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
+                {updateTeamMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
-
-

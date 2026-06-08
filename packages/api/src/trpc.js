@@ -1,7 +1,41 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { logBuffer } from "./lib/log-buffer";
+import { checkRateLimit, resolveProcedureRateLimit } from "./lib/rate-limit";
 export const t = initTRPC.context().create();
 export const router = t.router;
+/**
+ * Redis-backed rate limiting. Skipped when Redis is unavailable.
+ */
+const rateLimitMiddleware = t.middleware(async ({ ctx, next, path }) => {
+    const limits = resolveProcedureRateLimit(path);
+    const ip = (ctx.ipAddress ?? "unknown").split(",")[0]?.trim() || "unknown";
+    let bucketKey;
+    let limit;
+    if (ctx.session?.user?.id) {
+        bucketKey = `user:${ctx.session.user.id}:${path}`;
+        limit = limits.authenticated;
+    }
+    else if (ctx.apiKey?.id) {
+        bucketKey = `apikey:${ctx.apiKey.id}:${path}`;
+        limit = limits.apiKey;
+    }
+    else {
+        bucketKey = `ip:${ip}:${path}`;
+        limit = limits.anonymous;
+    }
+    const result = await checkRateLimit({
+        key: bucketKey,
+        limit,
+        windowSec: limits.windowSec,
+    });
+    if (!result.allowed) {
+        throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "Rate limit exceeded. Please try again shortly.",
+        });
+    }
+    return next();
+});
 /**
  * Global logging middleware that captures request details and pushes them to a background buffer.
  */
@@ -64,7 +98,10 @@ const apiKeyGuard = t.middleware(async ({ ctx, next, path }) => {
     }
     return next();
 });
-export const publicProcedure = t.procedure.use(loggingMiddleware).use(apiKeyGuard);
+export const publicProcedure = t.procedure
+    .use(rateLimitMiddleware)
+    .use(loggingMiddleware)
+    .use(apiKeyGuard);
 export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
     if (!ctx.session?.user) {
         throw new TRPCError({

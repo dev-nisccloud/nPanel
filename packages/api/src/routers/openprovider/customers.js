@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../../trpc';
+import { router, protectedProcedure, publicProcedure } from '../../trpc';
+import { submitContactEmailVerification } from '../../lib/openprovider-contact-verification';
 import { createOpenProviderClient, OpenProviderApiError } from '../../lib/openprovider-client';
 // Validation schemas
 const CustomerRequestSchema = z.object({
@@ -50,6 +51,11 @@ const EmailVerificationStatusSchema = z.object({
     is_suspended: z.boolean().optional(),
     limit: z.number().min(1).max(1000).optional().default(100),
     offset: z.number().min(0).optional().default(0),
+});
+const ContactEmailVerificationCallbackSchema = z.object({
+    email: z.string().email('Valid email is required'),
+    authCode: z.string().min(1, 'Verification code is required').max(128),
+    approve: z.enum(['yes', 'no']),
 });
 const CustomerUpdateRequestSchema = z.object({
     handle: z.string().min(1, 'Handle is required'),
@@ -603,6 +609,35 @@ export const openProviderCustomersRouter = router({
             throw new TRPCError({
                 code: 'INTERNAL_SERVER_ERROR',
                 message: 'Internal server error',
+            });
+        }
+    }),
+    /**
+     * Public ICANN gTLD contact email verification callback (branded confirmation page).
+     * Proxies approve/reject to OpenProvider using email + authCode from the verification email link.
+     */
+    completeContactEmailVerification: publicProcedure
+        .input(ContactEmailVerificationCallbackSchema)
+        .mutation(async ({ input }) => {
+        try {
+            const result = await submitContactEmailVerification({
+                email: input.email,
+                authCode: input.authCode,
+                approve: input.approve,
+            });
+            return {
+                success: result.status === 'Ok' || result.status === 'Rejected',
+                status: result.status,
+                message: result.message,
+            };
+        }
+        catch (error) {
+            console.error('Contact email verification callback error:', error);
+            throw new TRPCError({
+                code: 'INTERNAL_SERVER_ERROR',
+                message: error instanceof Error
+                    ? error.message
+                    : 'Failed to process contact email verification',
             });
         }
     }),

@@ -34,4 +34,8 @@ export * from "./imagegen-studio";
 export * from "./meta-ads";
 export * from "./cron-workflow-runs";
 export * from "./api-logs";
+export * from "./ip-records";
+export * from "./zeepo-canvas";
+export * from "./zeepo-agent";
+export * from "./nisc-email-builder";
 export {};

@@ -53,7 +53,7 @@ Your App API
   SES fires event → SNS Topic (because config set has SNS destination)
     │
     ▼
-  SNS POSTs JSON to your webhook URL (POST /webhooks/sns)
+  SNS POSTs JSON to your webhook URL (POST /api/webhooks/sns)
     │
     ▼
   Your webhook updates email status in DB
@@ -373,22 +373,18 @@ policy doesn't allow it. You must add an explicit permission.
 5. You will see a JSON editor with a default policy. You need to **add** a new
    statement to the existing `Statement` array.
 
-Replace the entire policy JSON with this (substitute your actual values):
+Replace the entire policy JSON with **one** `AllowSESPublish` statement (substitute your values).
+
+> **Do not use `"Action": "SNS:*"`** (uppercase). SNS topic policies reject it with
+> `Policy statement action out of service scope`. Use lowercase `sns:Publish` only.
+> You do not need a separate “management” statement — your IAM user already manages the topic.
+
+**nPanel production example** (account `847766693391`):
 
 ```json
 {
   "Version": "2012-10-17",
-  "Id": "notification-policy",
   "Statement": [
-    {
-      "Sid": "AllowSNSManagement",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::YOUR_ACCOUNT_ID:root"
-      },
-      "Action": "SNS:*",
-      "Resource": "arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:myapp-ses-events"
-    },
     {
       "Sid": "AllowSESPublish",
       "Effect": "Allow",
@@ -396,11 +392,13 @@ Replace the entire policy JSON with this (substitute your actual values):
         "Service": "ses.amazonaws.com"
       },
       "Action": "sns:Publish",
-      "Resource": "arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:myapp-ses-events",
+      "Resource": "arn:aws:sns:us-east-1:847766693391:npanel-email-marketing-sns-topic-production",
       "Condition": {
         "StringEquals": {
-          "AWS:SourceAccount": "YOUR_ACCOUNT_ID",
-          "AWS:SourceArn": "arn:aws:ses:us-east-1:YOUR_ACCOUNT_ID:configuration-set/myapp-config-set"
+          "AWS:SourceAccount": "847766693391"
+        },
+        "ArnLike": {
+          "AWS:SourceArn": "arn:aws:ses:us-east-1:847766693391:configuration-set/npanel-email-marketing-config-set-production"
         }
       }
     }
@@ -408,13 +406,40 @@ Replace the entire policy JSON with this (substitute your actual values):
 }
 ```
 
-Replace these three placeholders:
-- `YOUR_ACCOUNT_ID` → your 12-digit AWS account ID
-  (find it in the top right of the console next to your username, click your
-  username and it shows under "Account ID")
-- Confirm region is `us-east-1` throughout
-- Confirm topic name is `myapp-ses-events`
-- Confirm configuration set name is `myapp-config-set`
+**nPanel naming by environment:**
+
+| Environment | SNS topic | Configuration set |
+|---|---|---|
+| Development | `npanel-email-marketing-sns-topic-dev` | `npanel-email-marketing-config-set` |
+| Staging | `npanel-email-marketing-sns-topic-staging` | `npanel-email-marketing-config-set-staging` |
+| Production | `npanel-email-marketing-sns-topic-production` | `npanel-email-marketing-config-set-production` |
+
+Generic template (replace `YOUR_ACCOUNT_ID`, topic name, and config set name):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowSESPublish",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ses.amazonaws.com"
+      },
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:us-east-1:YOUR_ACCOUNT_ID:YOUR_SNS_TOPIC_NAME",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceAccount": "YOUR_ACCOUNT_ID"
+        },
+        "ArnLike": {
+          "AWS:SourceArn": "arn:aws:ses:us-east-1:YOUR_ACCOUNT_ID:configuration-set/YOUR_CONFIG_SET_NAME"
+        }
+      }
+    }
+  ]
+}
+```
 
 6. Click **Save changes**.
 
@@ -436,8 +461,9 @@ to expose your local server temporarily.
 3. Scroll down and click **Create subscription**.
 4. Under **Protocol**, select **HTTPS**.
 5. Under **Endpoint**, type the full URL of your webhook.
-   Example: `https://api.yourapp.com/webhooks/sns`
-   > This must exactly match the route your app listens on for SNS messages.
+   Example: `https://npanel-server.nisccloud.com/api/webhooks/sns`
+   > nPanel listens on **`/api/webhooks/sns`** (not `/webhooks/sns`). Use the **API**
+   > server host, not workers or the web SPA.
 6. Leave **Enable raw message delivery** unchecked.
    (If checked, your endpoint won't receive the SNS metadata   you need it.)
 7. Click **Create subscription**.

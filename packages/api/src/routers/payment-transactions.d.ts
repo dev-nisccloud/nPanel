@@ -5,11 +5,31 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    /**
+     * Agency only: record an external payment (M-Pesa receipt, bank transfer, etc.) in payment_transaction
+     * so checkout can proceed via createFromPayment using the returned checkoutRequestId.
+     */
+    recordManual: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            transactionReference: string;
+            amount: number;
+            currency?: string | undefined;
+            accountReference?: string | undefined;
+            transactionDesc?: string | undefined;
+            teamId?: string | undefined;
+            notes?: string | undefined;
+        };
+        output: {
+            transactionId: `${string}-${string}-${string}-${string}-${string}`;
+            checkoutRequestId: string;
+        };
+        meta: object;
+    }>;
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             limit?: number | undefined;
             offset?: number | undefined;
-            status?: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED" | undefined;
+            status?: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED" | undefined;
             gateway?: "MPESA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE" | undefined;
         };
         output: {
@@ -19,7 +39,7 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
                 teamId: string | null;
                 userName: string | null;
                 gateway: "MPESA" | "OTHER" | "STRIPE" | "PAYPAL" | "FLUTTERWAVE";
-                status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
+                status: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
                 amount: string;
                 currency: string;
                 accountReference: string | null;
@@ -58,7 +78,7 @@ export declare const paymentTransactionsRouter: import("@trpc/server").TRPCBuilt
             accountReference: string | null;
             transactionDesc: string | null;
             phoneNumber: string | null;
-            status: "PENDING" | "PROCESSING" | "CANCELLED" | "FAILED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
+            status: "PENDING" | "PROCESSING" | "FAILED" | "CANCELLED" | "REFUNDED" | "SUCCESS" | "PARTIALLY_REFUNDED";
             rawResponse: unknown;
             rawError: unknown;
             initiatedAt: Date;

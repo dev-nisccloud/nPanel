@@ -23,8 +23,8 @@ const PROFILE_REQUIRED = [
     "postalCode",
     "phone",
 ];
-/** EPP result code 2303 = contact already exists (idempotent success for ensure). */
-const EPP_CODE_OBJECT_EXISTS = "2303";
+/** EPP result code 2302 = object already exists (idempotent success for ensure). */
+const EPP_CODE_OBJECT_EXISTS = "2302";
 const EPP_CODE_SUCCESS = "1000";
 function getEppResult(parsed) {
     const response = parsed?.epp?.response;
@@ -60,9 +60,9 @@ function normalizePhoneToE164(phone, countryCode) {
     }
     return phone.startsWith("+") ? phone : `+${digits || phone}`;
 }
-/** Build EPP contact id from userId (alphanumeric + hyphen only; max 20 chars for safety). */
+/** Build EPP contact id from userId (alphanumeric only; max 16 chars for EPP compliance). */
 function buildKenicContactId(userId) {
-    const safe = userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 16);
+    const safe = userId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 11);
     return `nisc-${safe}`;
 }
 /** Build EPP contact create params from user profile (same shape as OpenProvider flow). */
@@ -85,60 +85,86 @@ function buildKenicContactParams(profile, email, userId) {
         email: email.trim(),
     };
 }
-/**
- * Ensure the owner has a KENIC EPP contact (registrant). Creates CustomerIntegration
- * with platformCustomerId = contact id if not present; creates the contact via EPP if needed.
- */
-export async function ensureKenicIntegration(ownerId, createdBy, logContext) {
-    const [userRow] = await db
-        .select({
-        id: user.id,
-        email: user.email,
-        profileUserId: userProfile.userId,
-        firstName: userProfile.firstName,
-        lastName: userProfile.lastName,
-        phone: userProfile.phone,
-        address: userProfile.address,
-        city: userProfile.city,
-        state: userProfile.state,
-        country: userProfile.country,
-        postalCode: userProfile.postalCode,
-    })
-        .from(user)
-        .leftJoin(userProfile, eq(userProfile.userId, user.id))
-        .where(eq(user.id, ownerId))
-        .limit(1);
-    if (!userRow?.profileUserId) {
-        throw new Error("User or profile not found. Complete your profile information and retry.");
+export async function ensureKenicIntegration(ownerId, createdBy, options) {
+    void niscLog("ensure_kenic_integration_start", {
+        ownerId,
+        createdBy,
+        hasManualDetails: !!options?.manualDetails,
+        manualDetails: options?.manualDetails,
+        ...options?.logContext,
+    });
+    let profile;
+    let email;
+    let contactLookupId;
+    if (options?.manualDetails) {
+        profile = options.manualDetails;
+        email = options.manualDetails.email;
+        // Use a stable but unique identifier for manual registrations based on email
+        const hash = crypto.createHash("md5").update(email.toLowerCase()).digest("hex").slice(0, 8);
+        contactLookupId = `nisc-man-${hash}`;
+        // For manual registrations, we skip the customerIntegration lookup and proceed to EPP
     }
-    const profile = {
-        firstName: userRow.firstName,
-        lastName: userRow.lastName,
-        address: userRow.address,
-        city: userRow.city,
-        state: userRow.state,
-        country: userRow.country,
-        postalCode: userRow.postalCode,
-        phone: userRow.phone,
-    };
-    const missing = PROFILE_REQUIRED.filter((k) => !profile[k] || String(profile[k]).trim() === "");
+    else {
+        if (!ownerId) {
+            throw new Error("Owner ID is required for KENIC domain registration.");
+        }
+        const [userRow] = await db
+            .select({
+            id: user.id,
+            email: user.email,
+            profileUserId: userProfile.userId,
+            firstName: userProfile.firstName,
+            lastName: userProfile.lastName,
+            phone: userProfile.phone,
+            address: userProfile.address,
+            city: userProfile.city,
+            state: userProfile.state,
+            country: userProfile.country,
+            postalCode: userProfile.postalCode,
+        })
+            .from(user)
+            .leftJoin(userProfile, eq(userProfile.userId, user.id))
+            .where(eq(user.id, ownerId))
+            .limit(1);
+        if (!userRow?.profileUserId) {
+            throw new Error("User or profile not found. Complete your profile information and retry.");
+        }
+        profile = {
+            firstName: userRow.firstName,
+            lastName: userRow.lastName,
+            address: userRow.address,
+            city: userRow.city,
+            state: userRow.state,
+            country: userRow.country,
+            postalCode: userRow.postalCode,
+            phone: userRow.phone,
+        };
+        email = userRow.email;
+        contactLookupId = ownerId;
+        const [integrationRow] = await db
+            .select({
+            id: customerIntegration.id,
+            platformCustomerId: customerIntegration.platformCustomerId,
+        })
+            .from(customerIntegration)
+            .where(and(eq(customerIntegration.userId, ownerId), eq(customerIntegration.platform, "KENIC")))
+            .limit(1);
+        if (integrationRow?.platformCustomerId) {
+            const expectedId = buildKenicContactId(contactLookupId);
+            if (integrationRow.platformCustomerId === expectedId) {
+                return { contactId: integrationRow.platformCustomerId };
+            }
+            // If the stored ID doesn't match our current naming/length convention,
+            // we proceed to EPP to ensure the correct one is created/synced.
+        }
+    }
+    const missing = PROFILE_REQUIRED.filter((k) => !profile[k] ||
+        String(profile[k]).trim() === "");
     if (missing.length > 0) {
-        throw new Error("Complete your profile information (first name, last name, address, city, country, postal code, phone) and retry.");
+        throw new Error(`Complete registrant information (${missing.join(", ")}) and retry domain registration.`);
     }
-    const [integrationRow] = await db
-        .select({
-        id: customerIntegration.id,
-        platformCustomerId: customerIntegration.platformCustomerId,
-    })
-        .from(customerIntegration)
-        .where(and(eq(customerIntegration.userId, ownerId), eq(customerIntegration.platform, "KENIC")))
-        .limit(1);
-    let integration = integrationRow ?? null;
-    if (integration?.platformCustomerId) {
-        return { contactId: integration.platformCustomerId };
-    }
-    const contactId = buildKenicContactId(ownerId);
-    const contactParams = buildKenicContactParams(profile, userRow.email ?? "", ownerId);
+    const contactId = buildKenicContactId(contactLookupId);
+    const contactParams = buildKenicContactParams(profile, email, contactLookupId);
     let socket;
     try {
         const config = getKenicEppConfig(true);
@@ -160,13 +186,17 @@ export async function ensureKenicIntegration(ownerId, createdBy, logContext) {
         const contactResult = getEppResult(contactParsed);
         sendFrame(socket, buildLogoutXml());
         await readFrame(socket);
-        if (logContext) {
+        if (options?.logContext) {
             void niscLog("processor_api_raw_response", {
-                niscOrderId: logContext.niscOrderId,
-                orderItemId: logContext.orderItemId,
+                niscOrderId: options.logContext.niscOrderId,
+                orderItemId: options.logContext.orderItemId,
                 provider: "kenic",
                 call: "contactCreate",
-                rawResponse: { code: contactResult.code, msg: contactResult.msg, raw: contactXml },
+                rawResponse: {
+                    code: contactResult.code,
+                    msg: contactResult.msg,
+                    raw: contactXml,
+                },
             });
         }
         // 1000 = created; 2303 = contact already exists (e.g. from a previous run)
@@ -178,34 +208,44 @@ export async function ensureKenicIntegration(ownerId, createdBy, logContext) {
             ? getResData(contactParsed)?.["contact:creData"]?.["contact:id"] ?? contactId
             : contactId;
         const finalContactId = String(resolvedId ?? contactId);
-        if (!integration) {
-            await db.insert(customerIntegration).values({
-                id: crypto.randomUUID(),
-                userId: ownerId,
-                platform: "KENIC",
-                platformCustomerId: finalContactId,
-                isCreated: true,
-                isActive: true,
-                createdBy,
-                createdAt: now,
-                lastSyncedAt: now,
-                updatedAt: now,
-                platformData: { contactId: finalContactId },
-            });
+        if (!options?.manualDetails) {
+            const now = new Date();
+            const [existingIntegration] = await db
+                .select()
+                .from(customerIntegration)
+                .where(and(eq(customerIntegration.userId, ownerId), eq(customerIntegration.platform, "KENIC")))
+                .limit(1);
+            if (!existingIntegration) {
+                await db.insert(customerIntegration).values({
+                    id: crypto.randomUUID(),
+                    userId: ownerId,
+                    platform: "KENIC",
+                    platformCustomerId: finalContactId,
+                    isCreated: true,
+                    isActive: true,
+                    createdBy,
+                    createdAt: now,
+                    lastSyncedAt: now,
+                    updatedAt: now,
+                    platformData: { contactId: finalContactId },
+                });
+            }
+            else {
+                await db
+                    .update(customerIntegration)
+                    .set({
+                    platformCustomerId: finalContactId,
+                    lastSyncedAt: now,
+                    updatedAt: now,
+                    platformData: { contactId: finalContactId },
+                })
+                    .where(eq(customerIntegration.id, existingIntegration.id));
+            }
         }
-        else {
-            await db
-                .update(customerIntegration)
-                .set({
-                platformCustomerId: finalContactId,
-                isCreated: true,
-                isActive: true,
-                lastSyncedAt: now,
-                updatedAt: now,
-                platformData: { contactId: finalContactId },
-            })
-                .where(eq(customerIntegration.id, integration.id));
-        }
+        void niscLog("ensure_kenic_integration_success", {
+            contactId: finalContactId,
+            ...options?.logContext,
+        });
         return { contactId: finalContactId };
     }
     finally {
@@ -220,12 +260,21 @@ export async function registerKenicDomain(params) {
         throw new Error(`Domain ${params.domainName} is not a KENIC TLD. Use OpenProvider for other TLDs.`);
     }
     const period = params.period ?? 1;
+    const authInfo = crypto.randomBytes(12).toString("base64url");
     const createParams = {
         name: params.domainName,
         period,
         registrant: params.registrantContactId,
         adminContacts: [params.registrantContactId],
         techContacts: [params.registrantContactId],
+        authInfo,
+        ...(params.nameServers &&
+            params.nameServers.length > 0 && {
+            ns: {
+                type: "hostObj",
+                hosts: params.nameServers.map((ns) => ns.name),
+            },
+        }),
     };
     if (params.orderId && params.orderItemId) {
         void niscLog("processor_register_domain_request", {

@@ -28,7 +28,7 @@ export declare const hostingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 subscriptionDate: string | null;
                 billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
                 nextRenewalDate: string | null;
-                status: "PENDING" | "ACTIVE" | "PROCESSING" | "EXPIRED" | "CANCELLED" | "SUSPENDED" | "FAILED";
+                status: "ACTIVE" | "PENDING" | "PROCESSING" | "FAILED" | "EXPIRED" | "SUSPENDED" | "CANCELLED";
                 autoRenew: boolean;
             } | null;
         };
@@ -55,6 +55,7 @@ export declare const hostingRouter: import("@trpc/server").TRPCBuiltRouter<{
     getHostingByDomainName: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             domainName: string;
+            teamId?: string | undefined;
         };
         output: {
             hasHosting: boolean;

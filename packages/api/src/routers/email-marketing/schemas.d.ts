@@ -14,9 +14,9 @@ export type EmailDomainStatus = z.infer<typeof emailDomainStatusSchema>;
 export declare const emailCampaignStatusSchema: z.ZodEnum<{
     DRAFT: "DRAFT";
     SCHEDULED: "SCHEDULED";
-    CANCELLED: "CANCELLED";
-    FAILED: "FAILED";
     COMPLETED: "COMPLETED";
+    FAILED: "FAILED";
+    CANCELLED: "CANCELLED";
 }>;
 export type EmailCampaignStatus = z.infer<typeof emailCampaignStatusSchema>;
 export declare const audienceContactStatusSchema: z.ZodEnum<{
@@ -162,9 +162,9 @@ export declare const campaignListFiltersSchema: z.ZodObject<{
     status: z.ZodOptional<z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
-        CANCELLED: "CANCELLED";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
+        CANCELLED: "CANCELLED";
     }>>;
     search: z.ZodOptional<z.ZodString>;
     limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
@@ -189,9 +189,9 @@ export declare const campaignSummarySchema: z.ZodObject<{
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
-        CANCELLED: "CANCELLED";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
+        CANCELLED: "CANCELLED";
     }>;
     recipientCount: z.ZodNumber;
     userId: z.ZodString;
@@ -210,9 +210,9 @@ export declare const campaignDetailSchema: z.ZodObject<{
     status: z.ZodEnum<{
         DRAFT: "DRAFT";
         SCHEDULED: "SCHEDULED";
-        CANCELLED: "CANCELLED";
-        FAILED: "FAILED";
         COMPLETED: "COMPLETED";
+        FAILED: "FAILED";
+        CANCELLED: "CANCELLED";
     }>;
     recipientCount: z.ZodNumber;
     userId: z.ZodString;
@@ -246,9 +246,9 @@ export declare const campaignListResponseSchema: z.ZodObject<{
         status: z.ZodEnum<{
             DRAFT: "DRAFT";
             SCHEDULED: "SCHEDULED";
-            CANCELLED: "CANCELLED";
-            FAILED: "FAILED";
             COMPLETED: "COMPLETED";
+            FAILED: "FAILED";
+            CANCELLED: "CANCELLED";
         }>;
         recipientCount: z.ZodNumber;
         userId: z.ZodString;
