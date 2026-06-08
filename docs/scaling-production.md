@@ -49,9 +49,7 @@ With defaults (`8` × 8 API + `4` × 20 workers = 144), use a pooler or raise Po
 
 Alert when `pool.waiting > 0` for sustained periods, `status` is `degraded`, or `poolWarnings` is non-empty.
 
-## GitHub Actions secrets (CI only)
-
-`deploy.yml` does **not** inject runtime app secrets. Cloud Run deploy uses the default **`merge`** strategy: env vars you set in the GCP console are preserved; CI only updates a small set of deployment knobs.
+## GitHub Actions secrets
 
 ### Repository secrets (all environments)
 
@@ -63,37 +61,38 @@ Alert when `pool.waiting > 0` for sustained periods, `status` is `degraded`, or 
 | `GCP_ARTIFACT_REPO` | Docker repo name |
 | `GCP_SA_KEY` | Deploy service account JSON |
 
-### Environment secrets (migrations only)
+### Environment secrets (`staging` / `production`)
 
-| Environment | Secret | Purpose |
-|---|---|---|
-| `staging` | `DATABASE_URL_STAGING` (or repo `DATABASE_URL`) | `migrate-staging` job |
-| `production` | `DATABASE_URL_PRODUCTION` | `migrate-production` job |
+Set per GitHub environment (values differ between staging and production):
 
-### Set on Cloud Run (not GitHub)
+| Secret | Purpose |
+|---|---|
+| `DATABASE_URL_STAGING` or `DATABASE_URL` | Staging migrations + server/workers deploy |
+| `DATABASE_URL_PRODUCTION` | Production migrations + server/workers deploy |
+| `BETTER_AUTH_SECRET_STAGING` | Staging boot |
+| `BETTER_AUTH_URL_STAGING` | Staging boot |
+| `CORS_ORIGIN_STAGING` | Staging boot |
+| `BETTER_AUTH_SECRET_PRODUCTION` | Production boot |
+| `BETTER_AUTH_URL_PRODUCTION` | Production boot |
+| `CORS_ORIGIN_PRODUCTION` | Production boot |
+| `GOOGLE_CLIENT_ID` | Boot |
+| `GOOGLE_CLIENT_SECRET` | Boot |
+| `QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING` | Staging boot |
+| `QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION` | Production boot |
+| `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING` | Staging boot |
+| `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION` | Production boot |
+| `REPLICATE_API_TOKEN` | Boot |
 
-Copy from `apps/server/.env.staging` or `.env.production` into each service in the GCP console:
+Add more secrets to `deploy.yml` as features need them (e.g. `QSTASH_TOKEN`, `AWS_SES_*`, `UPSTASH_REDIS_*`). `DIGITAX_API_KEY` is optional at boot.
 
-- `npanel-server-staging` / `npanel-server-production`
-- `npanel-workers-staging` / `npanel-workers-production`
-- `npanel-web-staging` / `npanel-web-production` (minimal; web gets `VITE_SERVER_URL` from CI)
-
-Includes auth, QStash worker URLs, Replicate webhooks, Redis, AWS SES, etc.
-
-**Boot-critical vars** (process exits before listening on `PORT` if any are missing):
-
-`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `CORS_ORIGIN`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT`, `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT`, `REPLICATE_API_TOKEN`
-
-`DIGITAX_API_KEY` is optional at boot; set it when DigiTax / eTIMS routes are used.
-
-CI runs `scripts/verify-cloudrun-env.sh` before server and workers deploys to fail fast with a clear message instead of a 5-minute Cloud Run rollout timeout.
+Deploy uses **`merge`**: CI updates the vars above; anything else already on Cloud Run is kept.
 
 ### CI-managed Cloud Run vars (in `deploy.yml`)
 
 | Service | Vars set by pipeline |
 |---|---|
-| API | `NODE_ENV`, `HOSTNAME`, `DB_POOL_MAX` |
-| Workers | `NODE_ENV`, `HOSTNAME`, `NPANEL_SERVICE_ROLE=workers`, `DB_POOL_MAX` |
+| API | Boot secrets above + `NODE_ENV`, `HOSTNAME`, `DB_POOL_MAX` |
+| Workers | Boot secrets above + `NODE_ENV`, `HOSTNAME`, `NPANEL_SERVICE_ROLE=workers`, `DB_POOL_MAX` |
 | Web | `NODE_ENV`, `HOSTNAME`, `VITE_SERVER_URL` (resolved from live server URL) |
 
 ## Local development
