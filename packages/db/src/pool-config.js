@@ -33,3 +33,13 @@ export function resolvePoolMax() {
     // Local dev / single combined server (workers + API on one process).
     return 30;
 }
+/** Per-query timeout applied on each new pool connection (ms). */
+export function resolveStatementTimeoutMs() {
+    const raw = process.env.DB_STATEMENT_TIMEOUT_MS?.trim();
+    if (!raw)
+        return 30_000;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0)
+        return 30_000;
+    return Math.floor(n);
+}

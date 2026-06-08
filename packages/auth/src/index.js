@@ -9,6 +9,7 @@ import { sendTransactionalEmail } from "./transactional-email";
 import { completeSignupSideEffects, isGoogleOAuthCallbackPath, isNewGoogleRegistration, sendGoogleSignupWelcomeEmail, } from "./signup-side-effects";
 import { applyStandardSessionExpiryByToken, validateAndRefreshIdleSessionById, } from "./session-enforcement";
 import { invalidateSessionCache } from "./session-cache";
+import { readCachedUserEnrichment, writeCachedUserEnrichment, } from "./user-enrich-cache";
 import { parseSignupTermsCookie, recordTermsAcceptance, rollbackSignupWithoutTerms, signupRequestAcceptsTerms, } from "./signup-terms";
 import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS } from "./session-policy";
 import { betterAuth } from "better-auth";
@@ -226,22 +227,38 @@ export const auth = betterAuth({
                 // Always enrich DB-backed status+role when we have a session.
                 // This makes session payload consistent even if Better Auth calls the
                 // session endpoint under different internal mount paths.
-                const rows = await db
-                    .select({
-                    status: user.status,
-                    role: user.role,
-                    lastAccessedTeamId: user.lastAccessedTeamId,
-                    createdAt: user.createdAt,
-                    image: user.image,
-                })
-                    .from(user)
-                    .where(eq(user.id, sessionUser.id))
-                    .limit(1);
-                const userWithStatusRole = rows[0];
+                let userWithStatusRole = await readCachedUserEnrichment(sessionUser.id);
+                if (!userWithStatusRole) {
+                    const rows = await db
+                        .select({
+                        status: user.status,
+                        role: user.role,
+                        lastAccessedTeamId: user.lastAccessedTeamId,
+                        createdAt: user.createdAt,
+                        image: user.image,
+                    })
+                        .from(user)
+                        .where(eq(user.id, sessionUser.id))
+                        .limit(1);
+                    const row = rows[0];
+                    if (row) {
+                        await writeCachedUserEnrichment(sessionUser.id, row);
+                        userWithStatusRole = {
+                            status: row.status,
+                            role: row.role,
+                            lastAccessedTeamId: row.lastAccessedTeamId,
+                            createdAt: row.createdAt.toISOString(),
+                            image: row.image,
+                        };
+                    }
+                }
                 if (userWithStatusRole) {
                     const normalizedRole = typeof userWithStatusRole.role === "string"
                         ? userWithStatusRole.role.trim().toUpperCase()
                         : userWithStatusRole.role;
+                    const createdAt = typeof userWithStatusRole.createdAt === "string"
+                        ? new Date(userWithStatusRole.createdAt)
+                        : userWithStatusRole.createdAt;
                     if (process.env.NODE_ENV !== "production" && isGetSession) {
                         console.log("[auth][get-session][enrich]", {
                             userId: sessionUser.id,
@@ -260,7 +277,7 @@ export const auth = betterAuth({
                         status: userWithStatusRole.status,
                         role: normalizedRole,
                         lastAccessedTeamId: userWithStatusRole.lastAccessedTeamId ?? sessionUser.lastAccessedTeamId,
-                        createdAt: userWithStatusRole.createdAt,
+                        createdAt,
                         image: userWithStatusRole.image ?? sessionUser.image ?? null,
                     };
                     ctx.context.session.user = enrichedUser;

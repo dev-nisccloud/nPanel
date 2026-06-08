@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import * as schema from "./schema";
+export { evaluatePoolHealth, type PoolHealthEvaluation } from "./pool-health";
 export declare const db: import("drizzle-orm/node-postgres").NodePgDatabase<typeof schema> & {
     $client: Pool;
 };

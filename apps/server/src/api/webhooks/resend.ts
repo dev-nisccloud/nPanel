@@ -11,6 +11,7 @@ import {
   type EmailEventType
 } from "@npanel/api/routers/email-marketing/schemas";
 import { randomUUID } from "node:crypto";
+import { claimWebhookEvent } from "@npanel/api/lib/webhook-idempotency";
 
 /** Resend webhook payload shape */
 interface ResendWebhookPayload {
@@ -34,9 +35,10 @@ export async function handleResendWebhook(c: Context) {
     let payload: ResendWebhookPayload;
 
     const secret = process.env.RESEND_WEBHOOK_SECRET;
+    const svixId = req.headers.get("svix-id");
     if (secret) {
       const headers = {
-        "svix-id": req.headers.get("svix-id") ?? "",
+        "svix-id": svixId ?? "",
         "svix-timestamp": req.headers.get("svix-timestamp") ?? "",
         "svix-signature": req.headers.get("svix-signature") ?? "",
       };
@@ -49,6 +51,13 @@ export async function handleResendWebhook(c: Context) {
       }
     } else {
       payload = JSON.parse(rawBody) as ResendWebhookPayload;
+    }
+
+    if (svixId) {
+      const claimed = await claimWebhookEvent("resend", svixId);
+      if (!claimed) {
+        return c.json({ received: true, reason: "duplicate" }, 200);
+      }
     }
 
     // Svix may wrap the event in { data: { type, created_at, data } }

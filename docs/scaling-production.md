@@ -47,7 +47,46 @@ With defaults (`8` × 8 API + `4` × 20 workers = 144), use a pooler or raise Po
 }
 ```
 
-Alert when `pool.waiting > 0` for sustained periods or when `idle === 0` with high traffic.
+Alert when `pool.waiting > 0` for sustained periods, `status` is `degraded`, or `poolWarnings` is non-empty.
+
+## GitHub Actions secrets (staging vs production)
+
+Worker URLs differ per environment. Use **`_STAGING`** and **`_PRODUCTION`** suffixes on GitHub environment secrets so `deploy.yml` injects the correct host.
+
+### Staging (`main` branch → `staging` environment)
+
+Workers host (after first deploy): `https://npanel-workers-staging-664360361267.us-east1.run.app`  
+API webhooks stay on the API server URL.
+
+| Secret | Example value |
+|---|---|
+| `VITE_PUBLIC_APP_URL_STAGING` | `https://npanel-staging.nisccloud.com` |
+| `QSTASH_CAMPAIGN_WORKER_ENDPOINT_STAGING` | `https://npanel-workers-staging-….run.app/api/workers/send-campaign-emails` |
+| `QSTASH_NISC_ORDER_WORKER_ENDPOINT_STAGING` | `…/api/workers/process-nisc-order` |
+| `QSTASH_IMAGE_GENERATOR_WORKER_ENDPOINT_STAGING` | `…/api/workers/image-generator` |
+| `QSTASH_BACKGROUND_REMOVER_WORKER_ENDPOINT_STAGING` | `…/api/workers/background-remover` |
+| `QSTASH_NISC_EM_DISPATCH_WORKER_ENDPOINT_STAGING` | `…/api/workers/nisc-em-dispatch` |
+| `QSTASH_WORKER_ENDPOINT_STAGING` | `…/api/workers/publish-content` |
+| `QSTASH_LINKEDIN_WORKER_ENDPOINT_STAGING` | `…/api/workers/publish-linkedin-content` |
+| `QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING` | `…/api/workers/zeepo-canvas` |
+| `QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT_STAGING` | `…/api/workers/email-builder-ai` |
+| `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING` | `…/api/workers/meta-ads-analysis` |
+| `QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT_STAGING` | `…/api/workers/zeepo-agent` |
+| `QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT_STAGING` | `…/api/workers/nisc-email-builder` |
+| `REPLICATE_*_WEBHOOK_URL_STAGING` | API server host + `/api/webhooks/…` |
+| `QSTASH_TOKEN_STAGING` | Upstash QStash token (optional fallback: `QSTASH_TOKEN`) |
+| `QSTASH_CURRENT_SIGNING_KEY_STAGING` | QStash signing key |
+| `QSTASH_VITE_SIGNING_KEY_STAGING` | QStash next signing key |
+| `DISABLE_WORKER_ROUTES_STAGING` | `1` after QStash jobs verified on workers |
+
+### Production (`production` branch → `production` environment)
+
+Workers host: `https://npanel-workers.nisccloud.com`  
+API webhooks: `https://npanel-server.nisccloud.com/api/webhooks/…`
+
+Use the same secret names with **`_PRODUCTION`** instead of `_STAGING`.
+
+Shared across environments (no suffix): `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `DATABASE_POOLER_URL_*`, `AWS_SES_*`, `RESEND_API_KEY`.
 
 ## Local development
 
