@@ -14,7 +14,8 @@ export const env = createEnv({
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     DIGITAX_API_URL: z.string().url().default("https://api.digitax.tech/ke/v2"),
-    DIGITAX_API_KEY: z.string().min(1),
+    /** Required only when DigiTax / eTIMS routes are used */
+    DIGITAX_API_KEY: z.string().min(1).optional(),
     QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: z.string().url(),
     /** Optional until Replicate webhooks are configured for this environment */
     REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL: z.string().url().optional(),
