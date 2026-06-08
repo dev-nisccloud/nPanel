@@ -2,6 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { getDicebearUrl } from "@/lib/utils";
 import type { Event } from "@/mock-data/events";
 import { getEventDuration } from "./calendar-utils";
 
@@ -88,7 +89,7 @@ export function EventCard({ event, style, onClick }: EventCardProps) {
                     className="size-5 border-2 border-background"
                   >
                     <AvatarImage
-                      src={`https://api.dicebear.com/9.x/glass/svg?seed=${participant}`}
+                      src={getDicebearUrl(participant)}
                     />
                   </Avatar>
                 ))}
