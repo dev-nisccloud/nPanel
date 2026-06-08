@@ -124,9 +124,6 @@ jobs:
             .
           docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
-      - name: Verify Cloud Run runtime env vars
-        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
-
       - name: Deploy Server to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -140,6 +137,15 @@ jobs:
             NODE_ENV=production
             HOSTNAME=0.0.0.0
             DB_POOL_MAX=12
+            DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_STAGING }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_STAGING }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING }}
+            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
+            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
 
       - name: Health check
         continue-on-error: true
@@ -183,9 +189,6 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Verify Cloud Run runtime env vars
-        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
-
       - name: Deploy Workers to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -200,12 +203,19 @@ jobs:
             HOSTNAME=0.0.0.0
             NPANEL_SERVICE_ROLE=workers
             DB_POOL_MAX=20
+            DATABASE_URL=${{ secrets.DATABASE_URL_STAGING || secrets.DATABASE_URL }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_STAGING }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_STAGING }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING }}
+            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
+            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
 
       - name: Workers URL handoff
         run: |
           echo "✅ Workers service URL: ${{ steps.deploy.outputs.url }}"
-          echo "Runtime secrets live on Cloud Run (merge strategy preserves existing vars)."
-          echo "Copy apps/server/.env.staging onto npanel-server-staging and npanel-workers-staging in the console."
 
   # 2. Deploy npanel-web to Google Cloud Run (Staging)
   deploy-web-staging:
@@ -357,9 +367,6 @@ jobs:
             .
           docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
-      - name: Verify Cloud Run runtime env vars
-        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
-
       - name: Deploy Server to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -373,6 +380,15 @@ jobs:
             NODE_ENV=production
             HOSTNAME=0.0.0.0
             DB_POOL_MAX=12
+            DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION }}
+            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
+            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
 
       - name: Health check
         continue-on-error: true
@@ -415,9 +431,6 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Verify Cloud Run runtime env vars
-        run: bash scripts/verify-cloudrun-env.sh "${{ env.SERVICE_NAME }}" "${{ env.REGION }}"
-
       - name: Deploy Workers to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
@@ -432,6 +445,15 @@ jobs:
             HOSTNAME=0.0.0.0
             NPANEL_SERVICE_ROLE=workers
             DB_POOL_MAX=20
+            DATABASE_URL=${{ secrets.DATABASE_URL_PRODUCTION }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET_PRODUCTION }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
+            CORS_ORIGIN=${{ secrets.CORS_ORIGIN_PRODUCTION }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION }}
+            QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
+            REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
 
       - name: Workers URL handoff
         run: |
