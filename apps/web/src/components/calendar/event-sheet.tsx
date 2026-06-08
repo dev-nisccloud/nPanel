@@ -25,6 +25,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { getDicebearUrl } from "@/lib/utils";
 import type { Event } from "@/mock-data/events";
 import { useState } from "react";
 import { Kbd } from "@/components/ui/kbd";
@@ -213,7 +214,7 @@ export function EventSheet({ event, open, onOpenChange }: EventSheetProps) {
                   >
                     <Avatar className="size-7 border-[1.4px] border-background shrink-0">
                       <AvatarImage
-                        src={`https://api.dicebear.com/9.x/glass/svg?seed=${participant.id}`}
+                        src={getDicebearUrl(participant.id)}
                       />
                     </Avatar>
                     <div className="flex-1 min-w-0">

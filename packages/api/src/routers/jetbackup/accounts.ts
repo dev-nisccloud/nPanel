@@ -1,38 +1,22 @@
-import { publicProcedure, router } from "../../trpc";
-import { sendJetBackupRequest } from "../../lib/jetbackup/client";
-import { JetBackupAccount, JetBackupListResponse } from "../../types/jetbackup";
+import { protectedProcedure, router } from "../../trpc";
+import { JetBackupAccount, JetBackupListResponse, Tag } from "../../types/jetbackup";
 import { z } from "zod";
-
-const listSchema = z.object({
-  page: z.number().optional(),
-  limit: z.number().optional(),
-  search: z.string().optional(),
-  orderby: z.string().optional(),
-  order: z.enum(["asc", "desc"]).optional(),
-});
+import { idSchema, jetbackupCall, listSchema } from "./_helpers";
 
 export const jetbackupAccountsRouter = router({
-  list: publicProcedure
+  list: protectedProcedure
     .input(listSchema)
     .query(async ({ input }) => {
-      const result = await sendJetBackupRequest<JetBackupListResponse<JetBackupAccount>>("listAccounts", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall<JetBackupListResponse<JetBackupAccount>>("listAccounts", input);
     }),
 
-  get: publicProcedure
-    .input(z.object({ _id: z.string() }))
+  get: protectedProcedure
+    .input(idSchema)
     .query(async ({ input }) => {
-      const result = await sendJetBackupRequest<JetBackupAccount>("getAccount", { _id: input._id });
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall<JetBackupAccount>("getAccount", input);
     }),
 
-  manage: publicProcedure
+  manage: protectedProcedure
     .input(z.object({
       action: z.enum(["create", "modify"]),
       _id: z.string().optional(),
@@ -42,39 +26,87 @@ export const jetbackupAccountsRouter = router({
       tags: z.array(z.string()).optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await sendJetBackupRequest<any>("manageAccount", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall("manageAccount", input);
     }),
 
-  createOnDemand: publicProcedure
+  listTags: protectedProcedure
+    .input(listSchema)
+    .query(async ({ input }) => {
+      return jetbackupCall<JetBackupListResponse<Tag>>("listTags", input);
+    }),
+
+  manageTag: protectedProcedure
     .input(z.object({
-      username: z.string(),
-      type: z.number(),
-      destination_id: z.string().optional(),
-      notify: z.number().optional().default(1),
+      action: z.enum(["create", "modify", "delete"]),
+      _id: z.string().optional(),
+      name: z.string().optional(),
+      color: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await sendJetBackupRequest<any>("createBackupOnDemand", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall("manageTag", input);
     }),
 
-  deleteSnapshots: publicProcedure
+  listAssignable: protectedProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ input }) => {
+      return jetbackupCall("listAssignableAccounts", input);
+    }),
+
+  reassign: protectedProcedure
+    .input(z.object({
+      username: z.string(),
+      assignable_id: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return jetbackupCall("reassignAccount", input);
+    }),
+
+  reassignMulti: protectedProcedure
+    .input(z.object({
+      usernames: z.array(z.string()),
+      assignable_id: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return jetbackupCall("reassignAccountMulti", input);
+    }),
+
+  createOnDemand: protectedProcedure
+    .input(z.object({
+      account_id: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      return jetbackupCall("createBackupOnDemand", input);
+    }),
+
+  manageExcludeList: protectedProcedure
+    .input(z.object({
+      action: z.enum(["add", "remove"]),
+      username: z.string(),
+      paths: z.array(z.string()),
+    }))
+    .mutation(async ({ input }) => {
+      return jetbackupCall("manageAccountExecludeList", input);
+    }),
+
+  getExcludeList: protectedProcedure
+    .input(z.object({ username: z.string() }))
+    .query(async ({ input }) => {
+      return jetbackupCall("getAccountExcludeList", input);
+    }),
+
+  listPackages: protectedProcedure
+    .input(listSchema)
+    .query(async ({ input }) => {
+      return jetbackupCall("listAccountPackages", input);
+    }),
+
+  deleteSnapshots: protectedProcedure
     .input(z.object({
       username: z.string(),
       destination_id: z.string(),
       type: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await sendJetBackupRequest<any>("deleteAccountSnapshots", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall("deleteAccountSnapshots", input);
     }),
 });

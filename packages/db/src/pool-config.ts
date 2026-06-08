@@ -42,3 +42,26 @@ export function resolveStatementTimeoutMs(): number {
   if (!Number.isFinite(n) || n <= 0) return 30_000;
   return Math.floor(n);
 }
+
+/**
+ * Apply Postgres session options via the libpq `options` connection parameter.
+ * Avoids pool.on("connect") + client.query(), which races with pg-pool checkout
+ * and triggers "client is already executing a query" deprecations in pg@8.
+ */
+export function buildPoolConnectionString(
+  baseUrl: string,
+  statementTimeoutMs: number,
+): string {
+  const option = `-c statement_timeout=${statementTimeoutMs}`;
+
+  try {
+    const parsed = new URL(baseUrl);
+    const existing = parsed.searchParams.get("options");
+    parsed.searchParams.set("options", existing ? `${existing} ${option}` : option);
+    return parsed.toString();
+  } catch {
+    const encoded = encodeURIComponent(option);
+    const sep = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${sep}options=${encoded}`;
+  }
+}

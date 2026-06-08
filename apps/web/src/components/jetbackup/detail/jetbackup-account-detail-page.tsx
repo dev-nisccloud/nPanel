@@ -1,0 +1,106 @@
+"use client";
+
+import * as React from "react";
+import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { JetBackupAccountBackupsTab } from "../tabs/account-backups-tab";
+import { JetBackupAccountDetailsPanel } from "../tabs/account-details-panel";
+import { JetBackupLogsTab } from "../tabs/logs-tab";
+import { JetBackupErrorState } from "../primitives";
+import { trpc } from "@/utils/trpc";
+import { jetbackupQueryOptions } from "../query-options";
+import {
+  JetBackupAccountSettingsShell,
+  type JetBackupAccountTab,
+} from "./jetbackup-account-settings-shell";
+import { JetBackupAccountHeader } from "./jetbackup-account-header";
+
+export interface JetBackupAccountDetailPageProps {
+  accountId: string;
+  backPath: string;
+  readOnly?: boolean;
+}
+
+function AccountDetailSkeleton() {
+  return (
+    <div className="@container/main flex flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8">
+      <div className="mx-auto w-full max-w-4xl space-y-5">
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-4 w-64" />
+        <Skeleton className="h-20 w-full rounded-lg" />
+        <div className="flex gap-8">
+          <Skeleton className="hidden h-40 w-44 rounded-lg md:block" />
+          <Skeleton className="h-64 flex-1 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function JetBackupAccountDetailPage({
+  accountId,
+  backPath,
+  readOnly = false,
+}: JetBackupAccountDetailPageProps) {
+  const [activeTab, setActiveTab] = React.useState<JetBackupAccountTab>("backups");
+
+  const { data, isLoading, isError, error, refetch } = trpc.jetbackup.accounts.get.useQuery(
+    { _id: accountId },
+    jetbackupQueryOptions,
+  );
+
+  if (isLoading) return <AccountDetailSkeleton />;
+  if (isError || !data) {
+    return (
+      <div className="@container/main flex flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8">
+        <div className="mx-auto w-full max-w-4xl space-y-5">
+          <Link to={backPath}>
+            <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to accounts
+            </Button>
+          </Link>
+          <JetBackupErrorState
+            title="Failed to load account"
+            message={error?.message}
+            onRetry={() => refetch()}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const account = data as Record<string, unknown>;
+  const username = String(account.username ?? "");
+
+  return (
+    <div className="@container/main flex flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8">
+      <JetBackupAccountSettingsShell
+        title="Backup account"
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        backAction={
+          <Link to={backPath}>
+            <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2 text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to accounts
+            </Button>
+          </Link>
+        }
+        header={<JetBackupAccountHeader account={account} />}
+      >
+        {activeTab === "backups" && (
+          <JetBackupAccountBackupsTab
+            accountId={accountId}
+            username={username}
+            readOnly={readOnly}
+          />
+        )}
+        {activeTab === "details" && <JetBackupAccountDetailsPanel account={account} />}
+        {activeTab === "activity" && <JetBackupLogsTab username={username} />}
+      </JetBackupAccountSettingsShell>
+    </div>
+  );
+}
