@@ -127,8 +127,11 @@ function DomainSearchContent() {
           rawSearchQuery={domainSearch.rawSearchQueryForResults}
           error={domainSearch.error}
           isDomainInCart={domainSearch.isDomainInCart}
+          isDomainBundleInCart={domainSearch.isDomainBundleInCart}
           onAddToCart={domainSearch.handleAddToCart}
           onRemoveFromCart={domainSearch.handleRemoveFromCart}
+          onAddDomainBundle={domainSearch.handleAddDomainBundle}
+          onRemoveDomainBundle={domainSearch.handleRemoveDomainBundle}
           onLoadingChange={setIsSearching}
         />
       )}

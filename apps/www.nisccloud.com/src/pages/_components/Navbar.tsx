@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+
+const NPANEL_URL = import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccloud.com";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Menu, X, ChevronDown, Globe, Server, Mail, Shield, Cpu, Megaphone,
@@ -7,6 +9,8 @@ import {
   Target, AtSign, ScanLine, Database, Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
+import { FlowButton } from "@/components/ui/flow-button.tsx";
+import { LandingCartButton } from "@/pages/_components/LandingCartButton.tsx";
 import { useNavigate, useLocation } from "react-router-dom";
 // import { useTheme } from "next-themes";
 
@@ -219,35 +223,19 @@ export default function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
-          {/* <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
-            aria-label="Toggle dark mode"
-          >
-            {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
-          </button> */}
-          <button
-            type="button"
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border/60 hover:border-border rounded-full transition-all duration-200 cursor-pointer hover:bg-muted/40"
-          >
-            <LogIn size={14} />
-            Login
-          </button>
-          <Button
+          <LandingCartButton />
+          {/* <FlowButton
+            text="Login"
             size="sm"
-            onClick={() => navigate("/contact")}
-            className="relative overflow-hidden cursor-pointer font-semibold tracking-wide rounded-full px-5 bg-primary text-primary-foreground hover:bg-primary/80
-              before:absolute before:inset-0 before:rounded-[inherit]
-              before:bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.55)_50%,transparent_75%,transparent_100%)]
-              before:bg-[length:250%_250%,100%_100%]
-              before:bg-[position:200%_0,0_0]
-              before:bg-no-repeat
-              before:transition-[background-position]
-              before:duration-700
-              hover:before:bg-[position:-100%_0,0_0]"
-          >
-            Get Started
-          </Button>
+            icon={LogIn}
+            onClick={() => { window.location.href = NPANEL_URL; }}
+          /> */}
+          <FlowButton
+            text="Get Started"
+            size="sm"
+            variant="filled"
+            onClick={() => { window.location.href = NPANEL_URL; }}
+          />
         </div>
 
         {/* Mobile toggle */}
@@ -317,16 +305,23 @@ export default function Navbar() {
                 );
               })}
               <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer border border-border"
-                >
-                  <LogIn size={15} />
-                  Login to nPanel
-                </button>
-                <Button size="sm" onClick={() => { navigate("/contact"); setOpen(false); }} className="bg-primary text-primary-foreground w-full cursor-pointer font-semibold rounded-full">
-                  Get Started
-                </Button>
+                <div className="flex justify-center pb-1">
+                  <LandingCartButton />
+                </div>
+                {/* <FlowButton
+                  text="Login to nPanel"
+                  size="sm"
+                  icon={LogIn}
+                  onClick={() => { window.location.href = NPANEL_URL; setOpen(false); }}
+                  className="w-full justify-center"
+                /> */}
+                <FlowButton
+                  text="Get Started"
+                  size="sm"
+                  variant="filled"
+                  onClick={() => { window.location.href = NPANEL_URL; setOpen(false); }}
+                  className="w-full justify-center"
+                />
               </div>
             </div>
           </motion.div>
