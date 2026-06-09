@@ -48,7 +48,8 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { useCartStore } from "@/stores/cart-store";
-import type { CartItem, DomainCartItem, HivelocityCartItem } from "@/stores/cart-store";
+import type { CartItem, DomainCartItem, DomainBundleCartItem, HivelocityCartItem } from "@/stores/cart-store";
+import { getDomainBundleCartLineCurrency, getDomainBundleCartLinePrice } from "@/stores/cart-store";
 import { CartItemCard } from "@/routes/agency/_components/sidebar/cart-item-card";
 import { authClient } from "@/lib/auth-client";
 import { BuyNowDomainProductStep } from "@/components/buy-now-domain-product-step";
@@ -501,6 +502,13 @@ export function GlobalBuyNowDialog() {
         const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) : null;
         return sum + (o ?? base);
       }
+      if (item.type === "domain_bundle") {
+        const bundle = item as DomainBundleCartItem;
+        const base = getDomainBundleCartLinePrice(bundle);
+        const key = `cart-bundle:${item.id}`;
+        const o = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) : null;
+        return sum + (o ?? base);
+      }
       if (item.type === "hivelocity") {
         const hv = item as HivelocityCartItem;
         const b = Number(hv.subtotalExVat ?? hv.totalPrice ?? 0) || 0;
@@ -830,25 +838,67 @@ export function GlobalBuyNowDialog() {
         return;
       }
       if (isCartMode) {
-        const domains = getDomains();
-        if (!domainsProductId || domains.length === 0) return;
-        const rows = domains.map((d) => {
-          const price = getDomainCartLineBasePrice(d);
-          return { d, price };
-        });
-        const orderItems = rows.map((r) => {
-          const key = `cart-domain:${r.d.id}`;
-          const line = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? r.price : r.price;
-          return {
-            productId: domainsProductId,
-            primaryDomain: r.d.domain,
-            description: "registration",
-            productPlanId: null,
-            itemPrice: str(line),
-            itemSubtotal: str(line),
-            metadata: registrantOrderMetadata,
-          };
-        });
+        if (!domainsProductId) return;
+        const orderItems: Array<{
+          productId: string;
+          primaryDomain: string;
+          description: string;
+          productPlanId: null;
+          billingCycle?: "YEARLY";
+          itemPrice: string;
+          itemSubtotal: string;
+          metadata?: Record<string, unknown>;
+        }> = [];
+
+        for (const item of items) {
+          if (item.type === "domain_bundle") {
+            const bundle = item as DomainBundleCartItem;
+            const key = `cart-bundle:${item.id}`;
+            const bundlePrice = isAgencyUser
+              ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? getDomainBundleCartLinePrice(bundle)
+              : getDomainBundleCartLinePrice(bundle);
+            const domainNames = bundle.domains.map((d) => d.domain).filter(Boolean);
+            bundle.domains.forEach((domainResult, idx) => {
+              orderItems.push({
+                productId: domainsProductId,
+                primaryDomain: domainResult.domain,
+                description: "registration",
+                productPlanId: null,
+                billingCycle: "YEARLY",
+                itemPrice: idx === 0 ? str(bundlePrice) : "0",
+                itemSubtotal: idx === 0 ? str(bundlePrice) : "0",
+                metadata: {
+                  ...registrantOrderMetadata,
+                  [DOMAIN_BUNDLE_METADATA_KEY]: {
+                    bundleId: bundle.bundleId,
+                    bundleLabel: bundle.bundleLabel,
+                    bundlePrice,
+                    domains: domainNames,
+                    isBundleLeadItem: idx === 0,
+                  },
+                },
+              });
+            });
+            continue;
+          }
+
+          if (item.type === "domain" && item.price) {
+            const price = getDomainCartLineBasePrice(item);
+            const key = `cart-domain:${item.id}`;
+            const line = isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? price : price;
+            orderItems.push({
+              productId: domainsProductId,
+              primaryDomain: item.domain,
+              description: "registration",
+              productPlanId: null,
+              itemPrice: str(line),
+              itemSubtotal: str(line),
+              metadata: registrantOrderMetadata,
+            });
+          }
+        }
+
+        if (orderItems.length === 0) return;
         createOrderFromPayment.mutate({
           checkoutRequestId: checkoutRequestIdParam,
           items: orderItems,
@@ -1784,6 +1834,11 @@ export function GlobalBuyNowDialog() {
                       overrideKey = `cart-domain:${item.id}`;
                       overrideCurrency = getDomainCartLineCurrency(item);
                       catalogExVat = getDomainCartLineBasePrice(item);
+                    } else if (item.type === "domain_bundle") {
+                      const bundle = item as DomainBundleCartItem;
+                      overrideKey = `cart-bundle:${item.id}`;
+                      overrideCurrency = getDomainBundleCartLineCurrency(bundle);
+                      catalogExVat = getDomainBundleCartLinePrice(bundle);
                     } else if (item.type === "hivelocity") {
                       const hv = item as HivelocityCartItem;
                       overrideKey = `cart-hivelocity:${item.id}`;

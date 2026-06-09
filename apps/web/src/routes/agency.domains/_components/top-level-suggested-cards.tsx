@@ -71,8 +71,16 @@ export interface TopLevelSuggestedCardsProps {
 	/** Raw query (e.g. "example.com") to derive exact match TLD. */
 	rawSearchQuery: string;
 	isDomainInCart: (domain: string) => boolean;
+	isDomainBundleInCart: (domainNames: string[]) => boolean;
 	onAddToCart: (result: DomainSearchResult) => void;
 	onRemoveFromCart: (domain: string) => void;
+	onAddDomainBundle: (params: {
+		domains: DomainSearchResult[];
+		bundlePrice: number;
+		bundleCurrency?: string;
+		bundleLabel?: string;
+	}) => void;
+	onRemoveDomainBundle: (domainNames: string[]) => void;
 	onLoadingChange?: (loading: boolean) => void;
 }
 
@@ -87,8 +95,11 @@ export function TopLevelSuggestedCards({
 	searchQuery,
 	rawSearchQuery,
 	isDomainInCart,
+	isDomainBundleInCart,
 	onAddToCart,
 	onRemoveFromCart,
+	onAddDomainBundle,
+	onRemoveDomainBundle,
 	onLoadingChange,
 }: TopLevelSuggestedCardsProps) {
 	const currencyContext = useCurrency();
@@ -406,6 +417,9 @@ function TopLevelCardsInner({
 					byDomain={byDomain}
 					kenicCoKe={kenicCoKe}
 					kenicKe={kenicKe}
+					isDomainBundleInCart={isDomainBundleInCart}
+					onAddDomainBundle={onAddDomainBundle}
+					onRemoveDomainBundle={onRemoveDomainBundle}
 				/>
 			);
 		}
@@ -558,6 +572,9 @@ function BundleCard({
 	byDomain,
 	kenicCoKe,
 	kenicKe,
+	isDomainBundleInCart,
+	onAddDomainBundle,
+	onRemoveDomainBundle,
 }: {
 	searchName: string;
 	bundleInfo: { items: { tld: string; domain: string; basePrice: number; currency: string }[] };
@@ -566,6 +583,14 @@ function BundleCard({
 	byDomain: Map<string, DomainSearchResult>;
 	kenicCoKe: KenicCardItem | null;
 	kenicKe: KenicCardItem | null;
+	isDomainBundleInCart: (domainNames: string[]) => boolean;
+	onAddDomainBundle: (params: {
+		domains: DomainSearchResult[];
+		bundlePrice: number;
+		bundleCurrency?: string;
+		bundleLabel?: string;
+	}) => void;
+	onRemoveDomainBundle: (domainNames: string[]) => void;
 }) {
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
 	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
@@ -624,6 +649,31 @@ function BundleCard({
 			}),
 		});
 	};
+
+	const bundleDomains = React.useMemo(() => buildBundleDomainResults(), [buildBundleDomainResults]);
+	const bundleDomainNames = React.useMemo(
+		() => bundleDomains.map((d) => d.domain).filter(Boolean),
+		[bundleDomains],
+	);
+	const bundleReady =
+		bundleTotalKes != null && bundleDomains.length === bundleInfo.items.length;
+	const bundleInCart = bundleReady && isDomainBundleInCart(bundleDomainNames);
+
+	const handleBundleCartToggle = (e?: React.MouseEvent) => {
+		e?.preventDefault();
+		if (!bundleReady || bundleTotalKes == null) return;
+		if (bundleInCart) {
+			onRemoveDomainBundle(bundleDomainNames);
+			return;
+		}
+		onAddDomainBundle({
+			domains: bundleDomains,
+			bundlePrice: bundleTotalKes,
+			bundleCurrency: DISPLAY_CURRENCY,
+			bundleLabel: formatDomainBundleLabel(bundleDomainNames),
+		});
+	};
+
 	return (
 		<div key="bundle" className="bg-card border border-border rounded-lg p-4 md:p-5 hover:shadow-md transition-shadow flex flex-col relative min-h-[200px]">
 			<Badge className="absolute top-2 right-2 text-[10px] bg-primary text-primary-foreground">Bundle & save</Badge>
@@ -671,6 +721,16 @@ function BundleCard({
 					disabled={!domainsProductId || bundleTotalKes == null}
 				>
 					Get deal
+				</Button>
+				<Button
+					size="sm"
+					variant={bundleInCart ? "destructive" : "outline"}
+					onClick={handleBundleCartToggle}
+					className="h-8 w-8 p-0"
+					disabled={!bundleReady && !bundleInCart}
+					title={bundleInCart ? "Remove bundle from cart" : "Add bundle to cart"}
+				>
+					{bundleInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
 				</Button>
 			</div>
 		</div>

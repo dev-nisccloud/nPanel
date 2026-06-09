@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Trash2, Globe, Server, Wrench, Layers } from "lucide-react";
+import { Trash2, Globe, Server, Wrench, Layers, Package } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useCartStore, type CartItem, type DomainCartItem, type HivelocityCartItem } from "@/stores/cart-store";
+import { useCartStore, type CartItem, type DomainCartItem, type DomainBundleCartItem, type HivelocityCartItem } from "@/stores/cart-store";
+import { getDomainBundleCartLineCurrency, getDomainBundleCartLinePrice } from "@/stores/cart-store";
 import { getHivelocityPeriodLabel, type HivelocityPeriod } from "@/lib/hivelocity-checkout";
 
 interface CartItemCardProps {
@@ -15,7 +16,6 @@ interface CartItemCardProps {
   hideRemoveButton?: boolean;
 }
 
-// Helper function to get service icon based on type
 const getServiceIcon = (type: string) => {
   switch (type) {
     case 'domain':
@@ -24,6 +24,8 @@ const getServiceIcon = (type: string) => {
       return <Server className="h-4 w-4" />;
     case 'service':
       return <Wrench className="h-4 w-4" />;
+    case "domain_bundle":
+      return <Package className="h-4 w-4" />;
     case "hivelocity":
       return <Layers className="h-4 w-4" />;
     default:
@@ -31,7 +33,6 @@ const getServiceIcon = (type: string) => {
   }
 };
 
-// Helper function to get service type label
 const getServiceTypeLabel = (type: string) => {
   switch (type) {
     case 'domain':
@@ -40,6 +41,8 @@ const getServiceTypeLabel = (type: string) => {
       return 'Hosting';
     case 'service':
       return 'Service';
+    case "domain_bundle":
+      return "Domain bundle";
     case "hivelocity":
       return "Server";
     default:
@@ -47,7 +50,6 @@ const getServiceTypeLabel = (type: string) => {
   }
 };
 
-// Helper function to format price
 const formatPrice = (price?: number, currency?: string) => {
   if (price === undefined || price === null || Number.isNaN(price)) return 'Price not available';
   if (price === 0) return "Free";
@@ -57,13 +59,11 @@ const formatPrice = (price?: number, currency?: string) => {
   }).format(price);
 };
 
-// Helper function to get billing cycle label
 const getBillingCycleLabel = (item: CartItem): string => {
   switch (item.type) {
     case 'domain':
       return 'Annual';
     case 'hosting':
-      // Check if billingCycle exists in the item (it might be added when item is created)
       const hostingItem = item as any;
       if (hostingItem.billingCycle) {
         const cycleMap: Record<string, string> = {
@@ -87,6 +87,8 @@ const getBillingCycleLabel = (item: CartItem): string => {
         return cycleMap[serviceItem.billingCycle] || 'One-time';
       }
       return 'One-time';
+    case 'domain_bundle':
+      return 'Bundle · 1 year';
     case "hivelocity":
       return (item as any).billingCycle || "Monthly";
     default:
@@ -94,7 +96,6 @@ const getBillingCycleLabel = (item: CartItem): string => {
   }
 };
 
-// Helper function to get service name
 const getServiceName = (item: CartItem) => {
   switch (item.type) {
     case 'domain':
@@ -103,6 +104,8 @@ const getServiceName = (item: CartItem) => {
       return (item as any).plan || 'Hosting Plan';
     case 'service':
       return (item as any).name || 'Service';
+    case 'domain_bundle':
+      return (item as DomainBundleCartItem).bundleLabel;
     case "hivelocity":
       return (item as HivelocityCartItem).planName;
     default:
@@ -110,7 +113,6 @@ const getServiceName = (item: CartItem) => {
   }
 };
 
-// Helper function to get service price (currency-aware)
 const getServicePrice = (item: CartItem) => {
   switch (item.type) {
     case 'domain':
@@ -135,6 +137,11 @@ const getServicePrice = (item: CartItem) => {
       return { price: (item as any).price, currency: (item as any).currency };
     case 'service':
       return { price: (item as any).price, currency: (item as any).currency };
+    case 'domain_bundle':
+      return {
+        price: getDomainBundleCartLinePrice(item as DomainBundleCartItem),
+        currency: getDomainBundleCartLineCurrency(item as DomainBundleCartItem),
+      };
     case "hivelocity":
       return { price: (item as HivelocityCartItem).totalPrice, currency: (item as HivelocityCartItem).currency };
     default:
@@ -152,15 +159,12 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
   return (
     <div className="group border rounded-lg bg-card hover:shadow-sm transition-shadow">
       <div className="p-4">
-        {/* Header Row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* Icon */}
             <div className="flex-shrink-0 p-2 rounded-md bg-muted">
               {getServiceIcon(item.type)}
             </div>
             
-            {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="secondary" className="text-xs font-medium">
@@ -174,6 +178,24 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
               <h3 className="font-medium text-sm leading-tight truncate" title={serviceName}>
                 {serviceName}
               </h3>
+
+              {item.type === "domain_bundle" ? (
+                <div className="mt-2 space-y-2">
+                  <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs">
+                    Bundle & save
+                  </Badge>
+                  <ul className="rounded-md border bg-muted/20 px-3 py-2 text-xs space-y-1">
+                    {(item as DomainBundleCartItem).domains.map((entry) => (
+                      <li key={entry.domain} className="text-foreground truncate" title={entry.domain}>
+                        {entry.domain}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[11px] text-muted-foreground">
+                    Purchased as one bundle — {(item as DomainBundleCartItem).domains.length} domains
+                  </p>
+                </div>
+              ) : null}
 
               {item.type === "hivelocity" ? (
                 <div className="mt-2 space-y-2">
@@ -270,7 +292,6 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
             </div>
           </div>
           
-          {/* Remove Button */}
           {!hideRemoveButton && (
             <Button
               size="icon"
@@ -285,7 +306,6 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
         
         <Separator className="my-3" />
         
-        {/* Price Row */}
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
             {item.type === "hivelocity" ? "Subtotal (ex VAT)" : "Price"}

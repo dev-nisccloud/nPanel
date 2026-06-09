@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useCartStore } from "@/stores/cart-store";
+import { createDomainBundleCartItem } from "@npanel/cart-store";
 import { stripKenyanTldFromQuery } from "@/routes/agency.domains/_components/kenic-card-schema";
 
 // Shared domain search result type
@@ -56,8 +57,13 @@ export interface DomainPricingHook {
 const selectCartDomainNames = (state: ReturnType<typeof useCartStore.getState>) => {
   const domainNames: string[] = [];
   for (const item of state.items) {
-    if (item.type === "domain" && (item as any).domain) {
-      domainNames.push((item as any).domain);
+    if (item.type === "domain" && item.domain) {
+      domainNames.push(item.domain);
+    }
+    if (item.type === "domain_bundle") {
+      for (const entry of item.domains) {
+        if (entry.domain) domainNames.push(entry.domain);
+      }
     }
   }
   return domainNames.sort().join(",");
@@ -79,7 +85,10 @@ export function useDomainSearch(
 
   const { selectedCurrency } = pricingHook;
   const addDomain = useCartStore((state) => state.addDomain);
+  const addDomainBundle = useCartStore((state) => state.addDomainBundle);
   const removeDomainByName = useCartStore((state) => state.removeDomainByName);
+  const removeDomainBundleByDomains = useCartStore((state) => state.removeDomainBundleByDomains);
+  const isDomainBundleInCart = useCartStore((state) => state.isDomainBundleInCart);
   const cartDomainNamesHash = useCartStore(selectCartDomainNames);
 
   const cartDomainSet = React.useMemo(() => {
@@ -184,6 +193,40 @@ export function useDomainSearch(
     removeDomainByName(domain);
   }, [removeDomainByName]);
 
+  const handleAddDomainBundle = React.useCallback(
+    (params: {
+      domains: DomainSearchResult[];
+      bundlePrice: number;
+      bundleCurrency?: string;
+      bundleLabel?: string;
+    }) => {
+      const domainNames = params.domains.map((d) => d.domain).filter(Boolean);
+      if (isDomainBundleInCart(domainNames)) return;
+      addDomainBundle(
+        createDomainBundleCartItem({
+          domains: params.domains.map((result) => ({
+            domain: result.domain,
+            status: result.status,
+            reason: result.reason,
+            price: result.price,
+          })),
+          bundlePrice: params.bundlePrice,
+          bundleCurrency: params.bundleCurrency,
+          bundleLabel: params.bundleLabel,
+          addedInCurrency: selectedCurrency,
+        }),
+      );
+    },
+    [addDomainBundle, isDomainBundleInCart, selectedCurrency],
+  );
+
+  const handleRemoveDomainBundle = React.useCallback(
+    (domainNames: string[]) => {
+      removeDomainBundleByDomains(domainNames);
+    },
+    [removeDomainBundleByDomains],
+  );
+
   return {
     domainName,
     setDomainName,
@@ -192,8 +235,11 @@ export function useDomainSearch(
     error,
     setError,
     isDomainInCart,
+    isDomainBundleInCart,
     handleAddToCart,
     handleRemoveFromCart,
+    handleAddDomainBundle,
+    handleRemoveDomainBundle,
     triggerSearch,
     sanitizeDomainName,
   };

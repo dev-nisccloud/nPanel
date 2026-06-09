@@ -1,5 +1,9 @@
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import type { DomainBundleCheckoutContext } from "@/stores/global-buy-now-store";
+import {
+  createBundleId,
+  formatDomainBundleLabel,
+} from "@npanel/cart-store";
 
 /** All bundle prices are converted to KES, summed, then a single 15% margin is applied. */
 export const BUNDLE_TARGET_CURRENCY = "KES";
@@ -7,25 +11,7 @@ export const BUNDLE_GLOBAL_MARGIN_MULTIPLIER = 1.15;
 
 export type BundleBasePrice = { amount: number; currency: string };
 
-function createBundleId(): string {
-	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-		return crypto.randomUUID();
-	}
-	return `bundle-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
-
-/** Build a display label such as `example.com + .co.ke + .info`. */
-export function formatDomainBundleLabel(domainNames: string[]): string {
-	if (domainNames.length === 0) return "Domain bundle";
-	const [first, ...rest] = domainNames;
-	const firstTld = first?.includes(".") ? first.split(".").slice(1).join(".") : first;
-	const parts = [first ?? "bundle"];
-	for (const name of rest) {
-		const tld = name.includes(".") ? name.split(".").slice(1).join(".") : name;
-		parts.push(`.${tld}`);
-	}
-	return parts.join(" + ");
-}
+export { formatDomainBundleLabel };
 
 /** Reseller/base price for a domain search result (no per-domain margin). */
 export function getDomainResultBasePrice(result: DomainSearchResult): BundleBasePrice | null {

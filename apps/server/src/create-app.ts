@@ -43,6 +43,7 @@ import { handleMyIp } from "./api/my-ip";
 import { ensureClientIpOnRequest, readClientIpFromHeaders } from "./request-client-ip";
 import { apiKeyAuth } from "./middleware/auth-middleware";
 import { handleExternalImageGeneration } from "./api/ai/image-generator";
+import { createCorsOriginMatcher } from "./cors-origins";
 
 export type NpanelServiceRole = "api" | "workers" | "all";
 
@@ -92,7 +93,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use(
     "/*",
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: createCorsOriginMatcher(env.CORS_ORIGIN),
       allowMethods: ["GET", "POST", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization", "upstash-signature"],
       credentials: true,

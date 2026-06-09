@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { FlowButton } from "@/components/ui/flow-button.tsx";
+import { LandingCartButton } from "@/pages/_components/LandingCartButton.tsx";
 import { useNavigate, useLocation } from "react-router-dom";
 // import { useTheme } from "next-themes";
 
@@ -222,6 +223,7 @@ export default function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
+          <LandingCartButton />
           {/* <FlowButton
             text="Login"
             size="sm"
@@ -303,6 +305,9 @@ export default function Navbar() {
                 );
               })}
               <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
+                <div className="flex justify-center pb-1">
+                  <LandingCartButton />
+                </div>
                 {/* <FlowButton
                   text="Login to nPanel"
                   size="sm"

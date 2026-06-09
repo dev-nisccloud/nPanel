@@ -26,8 +26,16 @@ interface DomainSearchResultsProps {
   rawSearchQuery: string;
   error: string | null;
   isDomainInCart: (domain: string) => boolean;
+  isDomainBundleInCart: (domainNames: string[]) => boolean;
   onAddToCart: (result: DomainSearchResult) => void;
   onRemoveFromCart: (domain: string) => void;
+  onAddDomainBundle: (params: {
+    domains: DomainSearchResult[];
+    bundlePrice: number;
+    bundleCurrency?: string;
+    bundleLabel?: string;
+  }) => void;
+  onRemoveDomainBundle: (domainNames: string[]) => void;
   /** Called when any part (Kenyan or sections) starts/stops loading; use for search button spinner. */
   onLoadingChange?: (loading: boolean) => void;
 }
@@ -46,8 +54,11 @@ export function DomainSearchResults({
   rawSearchQuery,
   error,
   isDomainInCart,
+  isDomainBundleInCart,
   onAddToCart,
   onRemoveFromCart,
+  onAddDomainBundle,
+  onRemoveDomainBundle,
   onLoadingChange,
 }: DomainSearchResultsProps) {
   const currencyContext = useCurrency();
@@ -159,8 +170,11 @@ export function DomainSearchResults({
                 searchQuery={searchQuery.trim()}
                 rawSearchQuery={rawSearchQuery.trim()}
                 isDomainInCart={isDomainInCart}
+                isDomainBundleInCart={isDomainBundleInCart}
                 onAddToCart={onAddToCart}
                 onRemoveFromCart={onRemoveFromCart}
+                onAddDomainBundle={onAddDomainBundle}
+                onRemoveDomainBundle={onRemoveDomainBundle}
                 onLoadingChange={(loading) => reportLoading("top-suggested", loading)}
               />
             )}
