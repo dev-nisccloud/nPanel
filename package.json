@@ -40,6 +40,7 @@
     "check-types": "NODE_OPTIONS='--max-old-space-size=8192' turbo check-types",
     "typecheck": "NODE_OPTIONS='--max-old-space-size=8192' tsc --noEmit",
     "dev:web": "turbo -F web dev",
+    "dev:www.nisccloud.com": "turbo -F www.nisccloud.com dev",
     "dev:server": "turbo -F server dev",
     "db:push": "turbo -F @npanel/db db:push",
     "db:studio": "turbo -F @npanel/db db:studio",

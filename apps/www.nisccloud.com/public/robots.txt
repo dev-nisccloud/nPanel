@@ -1,0 +1,31 @@
+# Nisc Cloud — robots.txt
+
+# Allow all standard crawlers
+User-agent: *
+Allow: /
+
+# OpenAI GPT crawler
+User-agent: GPTBot
+Allow: /
+
+# Anthropic Claude crawler
+User-agent: ClaudeBot
+Allow: /
+
+# Common Crawl (used by many AI training datasets)
+User-agent: CCBot
+Allow: /
+
+# Google Extended (Gemini)
+User-agent: Google-Extended
+Allow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# Meta AI crawler
+User-agent: FacebookBot
+Allow: /
+
+Sitemap: https://nisccloud.co.ke/sitemap.xml
