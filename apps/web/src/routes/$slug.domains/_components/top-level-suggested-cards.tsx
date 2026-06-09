@@ -16,6 +16,7 @@ import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
 import { getCustomerRetailDisplayPrice } from "./customer-domain-display-price";
 import { createDomainBundleCheckoutContext, formatDomainBundleLabel } from "@/lib/domain-bundle-checkout";
+import { useBundleTotalKes } from "@/hooks/use-bundle-total-kes";
 
 const formatPrice = (price?: number, currency?: string) => {
 	if (price == null || price === undefined) return "N/A";
@@ -218,26 +219,11 @@ export function TopLevelSuggestedCards({
 		return { items };
 	}, [kenicCoKe, kenicKe, openProviderPriced]);
 
-	// Convert bundle base prices to KES, then sum and add 15% markup. Start before paint.
-	const [bundleTotalKes, setBundleTotalKes] = React.useState<number | null>(null);
-	React.useLayoutEffect(() => {
-		if (!bundleInfo?.items.length || !convertPricesBatch) {
-			setBundleTotalKes(null);
-			return;
-		}
-		let cancelled = false;
-		const prices = bundleInfo.items.map((i) => ({ amount: i.basePrice, currency: i.currency }));
-		convertPricesBatch(prices, TARGET_CURRENCY)
-			.then((converted) => {
-				if (cancelled || !converted?.length) return;
-				const totalBaseKes = (converted as Array<{ convertedAmount: number }>).reduce((sum, c) => sum + (c.convertedAmount ?? 0), 0);
-				setBundleTotalKes(Math.ceil(totalBaseKes * 1.15));
-			})
-			.catch(() => {
-				if (!cancelled) setBundleTotalKes(null);
-			});
-		return () => { cancelled = true; };
-	}, [bundleInfo, convertPricesBatch]);
+	const bundleBasePrices = React.useMemo(
+		() => bundleInfo?.items.map((i) => ({ amount: i.basePrice, currency: i.currency })) ?? [],
+		[bundleInfo],
+	);
+	const bundleTotalKes = useBundleTotalKes(bundleBasePrices, convertPricesBatch);
 
 	// Priced results for OpenProvider single-TLD cards (for cart/dialog)
 	const byDomain = React.useMemo(() => {
@@ -398,12 +384,10 @@ function TopLevelCardsInner({
 					searchName={name}
 					bundleInfo={bundleInfo}
 					bundleTotalKes={bundleTotalKes}
-					retailPricingReady={retailPricingReady}
 					formatPrice={formatPrice}
 					byDomain={byDomain}
 					kenicCoKe={kenicCoKe}
 					kenicKe={kenicKe}
-					getPricingInfo={getPricingInfo}
 				/>
 			);
 		}
@@ -525,22 +509,18 @@ function BundleCard({
 	searchName,
 	bundleInfo,
 	bundleTotalKes,
-	retailPricingReady,
 	formatPrice,
 	byDomain,
 	kenicCoKe,
 	kenicKe,
-	getPricingInfo,
 }: {
 	searchName: string;
 	bundleInfo: { items: { tld: string; domain: string; basePrice: number; currency: string }[] };
 	bundleTotalKes: number | null;
-	retailPricingReady: boolean;
 	formatPrice: (price?: number, currency?: string) => string;
 	byDomain: Map<string, DomainSearchResult>;
 	kenicCoKe: KenicCardItem | null;
 	kenicKe: KenicCardItem | null;
-	getPricingInfo: (domain: string, original: number, currency: string) => { finalPrice: number; marginAmount: number; marginType: string | null; marginValue: string | null; currency: string };
 }) {
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
 	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
@@ -556,40 +536,24 @@ function BundleCard({
 		for (const item of bundleInfo.items) {
 			if (item.tld === "co.ke" && kenicCoKe) {
 				const currency = kenicCoKe.currency ?? "KES";
-				const createCalc = getPricingInfo(kenicCoKe.domain, kenicCoKe.createPrice ?? 0, currency);
+				const basePrice = kenicCoKe.createPrice ?? 0;
 				results.push({
 					domain: kenicCoKe.domain,
 					status: "free",
 					price: {
-						product: { price: createCalc.finalPrice, currency },
-						reseller: { price: createCalc.finalPrice, currency },
-						calculated: {
-							originalPrice: kenicCoKe.createPrice ?? 0,
-							marginAmount: createCalc.marginAmount,
-							finalPrice: createCalc.finalPrice,
-							currency: createCalc.currency,
-							marginType: createCalc.marginType,
-							marginValue: createCalc.marginValue,
-						},
+						product: { price: basePrice, currency },
+						reseller: { price: basePrice, currency },
 					},
 				});
 			} else if (item.tld === "ke" && kenicKe) {
 				const currency = kenicKe.currency ?? "KES";
-				const createCalc = getPricingInfo(kenicKe.domain, kenicKe.createPrice ?? 0, currency);
+				const basePrice = kenicKe.createPrice ?? 0;
 				results.push({
 					domain: kenicKe.domain,
 					status: "free",
 					price: {
-						product: { price: createCalc.finalPrice, currency },
-						reseller: { price: createCalc.finalPrice, currency },
-						calculated: {
-							originalPrice: kenicKe.createPrice ?? 0,
-							marginAmount: createCalc.marginAmount,
-							finalPrice: createCalc.finalPrice,
-							currency: createCalc.currency,
-							marginType: createCalc.marginType,
-							marginValue: createCalc.marginValue,
-						},
+						product: { price: basePrice, currency },
+						reseller: { price: basePrice, currency },
 					},
 				});
 			} else {
@@ -598,10 +562,10 @@ function BundleCard({
 			}
 		}
 		return results;
-	}, [bundleInfo.items, byDomain, getPricingInfo, kenicCoKe, kenicKe]);
+	}, [bundleInfo.items, byDomain, kenicCoKe, kenicKe]);
 
 	const handleGetDeal = () => {
-		if (!domainsProductId || bundleTotalKes == null || !retailPricingReady) return;
+		if (!domainsProductId || bundleTotalKes == null) return;
 		const domains = buildBundleDomainResults();
 		if (domains.length !== bundleInfo.items.length) return;
 		openForProduct({
@@ -638,7 +602,7 @@ function BundleCard({
 				) : null}
 			</div>
 			<div className="text-base font-bold text-foreground mb-2 line-clamp-2 break-words">
-				{retailPricingReady && bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "-"}
+				{bundleTotalKes != null ? formatPrice(bundleTotalKes, DISPLAY_CURRENCY) : "-"}
 			</div>
 			{TLD_WHY_CHOOSE.bundle ? (
 				<div>
@@ -659,7 +623,7 @@ function BundleCard({
 					variant="default"
 					onClick={handleGetDeal}
 					className="text-xs h-8 px-3"
-					disabled={!domainsProductId || bundleTotalKes == null || !retailPricingReady}
+					disabled={!domainsProductId || bundleTotalKes == null}
 				>
 					Get deal
 				</Button>

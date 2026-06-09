@@ -32,7 +32,8 @@ import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { trpc } from "@/utils/trpc";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { useCurrency } from "./currency-context";
-import { createDomainBundleCheckoutContext, formatDomainBundleLabel } from "@/lib/domain-bundle-checkout";
+import { createDomainBundleCheckoutContext, formatDomainBundleLabel, getDomainResultsBasePrices } from "@/lib/domain-bundle-checkout";
+import { useBundleTotalKes } from "@/hooks/use-bundle-total-kes";
 
 interface PromotionalCardsProps {
   searchQuery: string;
@@ -318,11 +319,9 @@ function BundleCard({
     enabled: true,
   });
   const currencyContext = useCurrency();
-  const pricingHook = useDomainPricing(currencyContext);
+  const { convertPricesBatch } = currencyContext;
 
   // searchQuery is already sanitized when passed from PromotionalCards
-  const bundleTlds = ['com', 'co.ke', 'info', 'online'];
-  const bundleDomains = bundleTlds.map(tld => `${searchQuery}.${tld}`);
 
   // Process bundle domains from batched data - only show if ALL are available
   const bundleResults = React.useMemo(() => {
@@ -386,91 +385,22 @@ function BundleCard({
     return results;
   }, [bundleData, searchQuery]);
 
-  // Calculate pricing with markup and convert to KES
-  // OPTIMIZATION: Use ref to track pricing calculation to avoid duplicate calculations
-  const pricedBundleResultsRef = React.useRef<DomainSearchResult[]>([]);
-  const [pricedBundleResults, setPricedBundleResults] = React.useState<DomainSearchResult[]>([]);
-  const pricingCalculationRef = React.useRef<string>('');
-  
-  const { calculatePricesBatch } = pricingHook;
-
-  React.useEffect(() => {
-    if (bundleResults.length === 0) {
-      setPricedBundleResults([]);
-      pricedBundleResultsRef.current = [];
-      return;
-    }
-
-    if (!calculatePricesBatch) {
-      setPricedBundleResults(bundleResults);
-      pricedBundleResultsRef.current = bundleResults;
-      return;
-    }
-
-    // OPTIMIZATION: Create a stable key to avoid duplicate calculations
-    const resultKey = bundleResults.map(r => `${r.domain}-${r.status}-${r.price?.reseller?.price || 0}`).join('|');
-    
-    // Skip if already calculated for this result
-    if (pricingCalculationRef.current === resultKey && pricedBundleResultsRef.current.length > 0) {
-      return;
-    }
-
-    pricingCalculationRef.current = resultKey;
-    
-    // OPTIMIZATION: Use setTimeout to defer non-critical calculations and batch them
-    const timer = setTimeout(() => {
-      calculatePricesBatch(bundleResults).then((priced) => {
-        pricedBundleResultsRef.current = priced;
-        setPricedBundleResults(priced);
-      }).catch((error) => {
-        console.error('Failed to calculate bundle pricing:', error);
-        // Fallback to original results if pricing fails
-        setPricedBundleResults(bundleResults);
-      });
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [bundleResults, calculatePricesBatch]);
-
-  // Calculate total bundle price in KES (ensure all prices are in KES)
-  const bundleTotal = React.useMemo(() => {
-    return pricedBundleResults.reduce((sum, result) => {
-      const calculated = result.price?.calculated;
-      // Use convertedPrice if available (should be in KES), otherwise use finalPrice
-      const price = calculated
-        ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
-        : result.price?.reseller?.price || 0;
-      // All prices should already be in KES after pricing hook conversion
-      return sum + price;
-    }, 0);
-  }, [pricedBundleResults]);
-
-  // Calculate original total for discount calculation (also in KES)
-  const originalTotal = React.useMemo(() => {
-    return pricedBundleResults.reduce((sum, result) => {
-      const calculated = result.price?.calculated;
-      // Use originalPrice and convert if needed, or use reseller price
-      const price = calculated?.originalPrice ?? result.price?.reseller?.price ?? 0;
-      // If original currency is not KES and we have conversion info, we'd need to convert
-      // For now, assume pricing hook handles this or prices are already comparable
-      return sum + price;
-    }, 0);
-  }, [pricedBundleResults]);
-
-  const discountPercent = originalTotal > bundleTotal
-    ? Math.round(((originalTotal - bundleTotal) / originalTotal) * 100)
-    : 0;
+  const bundleBasePrices = React.useMemo(
+    () => getDomainResultsBasePrices(bundleResults),
+    [bundleResults],
+  );
+  const bundleTotalKes = useBundleTotalKes(bundleBasePrices, convertPricesBatch);
 
   const handleGetDeal = () => {
-    if (!domainsProductId || pricedBundleResults.length === 0 || bundleTotal <= 0) return;
+    if (!domainsProductId || bundleResults.length === 0 || bundleTotalKes == null) return;
     openForProduct({
       productId: domainsProductId,
       productName: "Domains",
       domainBundle: createDomainBundleCheckoutContext({
-        domains: pricedBundleResults,
-        bundlePrice: bundleTotal,
+        domains: bundleResults,
+        bundlePrice: bundleTotalKes,
         bundleCurrency: "KES",
-        bundleLabel: formatDomainBundleLabel(pricedBundleResults.map((d) => d.domain)),
+        bundleLabel: formatDomainBundleLabel(bundleResults.map((d) => d.domain)),
       }),
     });
   };
@@ -486,11 +416,9 @@ function BundleCard({
     );
   }
 
-  if (pricedBundleResults.length === 0) {
+  if (bundleResults.length === 0) {
     return null;
   }
-
-  const bundleDisplay = bundleDomains.map(d => d.split('.')[0] === searchQuery ? d.split('.').slice(1).join('.') : d.split('.').pop()).join(' + .');
 
   return (
     <>
@@ -505,21 +433,10 @@ function BundleCard({
           <h3 className="text-lg font-bold text-card-foreground mb-2">
             {searchQuery}.<span className="text-purple-600 dark:text-purple-400">com</span> + .<span className="text-purple-600 dark:text-purple-400">co.ke</span> + .<span className="text-purple-600 dark:text-purple-400">info</span> + .<span className="text-purple-600 dark:text-purple-400">online</span>
           </h3>
-          
-          {discountPercent > 0 && (
-            <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 mb-2">
-              Save {discountPercent}%
-            </Badge>
-          )}
 
           <div className="flex items-baseline gap-2">
-            {originalTotal > bundleTotal && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(originalTotal, 'KES')}
-              </span>
-            )}
             <span className="text-2xl font-bold text-card-foreground">
-              {formatPrice(bundleTotal, 'KES')}/1st yr
+              {bundleTotalKes != null ? formatPrice(bundleTotalKes, 'KES') : '-'}/1st yr
             </span>
           </div>
         </div>
@@ -541,7 +458,7 @@ function BundleCard({
             variant="default"
             onClick={handleGetDeal}
             className="px-4"
-            disabled={!domainsProductId || bundleTotal <= 0}
+            disabled={!domainsProductId || bundleTotalKes == null}
           >
             Get deal
           </Button>

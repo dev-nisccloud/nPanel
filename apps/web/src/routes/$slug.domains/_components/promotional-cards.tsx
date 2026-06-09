@@ -33,7 +33,8 @@ import { trpc } from "@/utils/trpc";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { useCurrency } from "./currency-context";
 import { getCustomerRetailDisplayPrice } from "./customer-domain-display-price";
-import { createDomainBundleCheckoutContext, formatDomainBundleLabel } from "@/lib/domain-bundle-checkout";
+import { createDomainBundleCheckoutContext, formatDomainBundleLabel, getDomainResultsBasePrices } from "@/lib/domain-bundle-checkout";
+import { useBundleTotalKes } from "@/hooks/use-bundle-total-kes";
 
 interface PromotionalCardsProps {
   searchQuery: string;
@@ -303,13 +304,6 @@ function BundleCard({
     enabled: true,
   });
   const currencyContext = useCurrency();
-  const pricingHook = useDomainPricing(currencyContext);
-  const { calculatePricesBatch, hasDefaultSetting, isLoadingTldSettings } = pricingHook;
-  const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
-
-  // searchQuery is already sanitized when passed from PromotionalCards
-  const bundleTlds = ['com', 'co.ke', 'info', 'online'];
-  const bundleDomains = bundleTlds.map(tld => `${searchQuery}.${tld}`);
 
   // Process bundle domains from batched data - only show if ALL are available
   const bundleResults = React.useMemo(() => {
@@ -373,71 +367,22 @@ function BundleCard({
     return results;
   }, [bundleData, searchQuery]);
 
-  // Calculate pricing with markup and convert to KES
-  // OPTIMIZATION: Use ref to track pricing calculation to avoid duplicate calculations
-  const pricedBundleResultsRef = React.useRef<DomainSearchResult[]>([]);
-  const [pricedBundleResults, setPricedBundleResults] = React.useState<DomainSearchResult[]>([]);
-  const pricingCalculationRef = React.useRef<string>('');
-  
-  React.useEffect(() => {
-    if (bundleResults.length === 0) {
-      setPricedBundleResults([]);
-      pricedBundleResultsRef.current = [];
-      return;
-    }
-
-    if (!calculatePricesBatch) {
-      setPricedBundleResults(bundleResults);
-      pricedBundleResultsRef.current = bundleResults;
-      return;
-    }
-
-    // OPTIMIZATION: Create a stable key to avoid duplicate calculations
-    const resultKey = bundleResults.map(r => `${r.domain}-${r.status}-${r.price?.reseller?.price || 0}`).join('|');
-    
-    // Skip if already calculated for this result
-    if (pricingCalculationRef.current === resultKey && pricedBundleResultsRef.current.length > 0) {
-      return;
-    }
-
-    pricingCalculationRef.current = resultKey;
-    
-    // OPTIMIZATION: Use setTimeout to defer non-critical calculations and batch them
-    const timer = setTimeout(() => {
-      calculatePricesBatch(bundleResults).then((priced) => {
-        pricedBundleResultsRef.current = priced;
-        setPricedBundleResults(priced);
-      }).catch((error) => {
-        console.error('Failed to calculate bundle pricing:', error);
-        // Fallback to original results if pricing fails
-        setPricedBundleResults(bundleResults);
-      });
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [bundleResults, calculatePricesBatch]);
-
-  const bundleCustomerTotal = React.useMemo(() => {
-    if (!retailPricingReady || pricedBundleResults.length === 0) return null;
-    let sum = 0;
-    for (const r of pricedBundleResults) {
-      const { displayPrice } = getCustomerRetailDisplayPrice(r);
-      if (displayPrice == null || Number.isNaN(displayPrice)) return null;
-      sum += displayPrice;
-    }
-    return sum;
-  }, [pricedBundleResults, retailPricingReady]);
+  const bundleBasePrices = React.useMemo(
+    () => getDomainResultsBasePrices(bundleResults),
+    [bundleResults],
+  );
+  const bundleTotalKes = useBundleTotalKes(bundleBasePrices, currencyContext.convertPricesBatch);
 
   const handleGetDeal = () => {
-    if (!domainsProductId || bundleCustomerTotal == null || pricedBundleResults.length === 0) return;
+    if (!domainsProductId || bundleTotalKes == null || bundleResults.length === 0) return;
     openForProduct({
       productId: domainsProductId,
       productName: "Domains",
       domainBundle: createDomainBundleCheckoutContext({
-        domains: pricedBundleResults,
-        bundlePrice: bundleCustomerTotal,
+        domains: bundleResults,
+        bundlePrice: bundleTotalKes,
         bundleCurrency: "KES",
-        bundleLabel: formatDomainBundleLabel(pricedBundleResults.map((d) => d.domain)),
+        bundleLabel: formatDomainBundleLabel(bundleResults.map((d) => d.domain)),
       }),
     });
   };
@@ -453,7 +398,7 @@ function BundleCard({
     );
   }
 
-  if (pricedBundleResults.length === 0) {
+  if (bundleResults.length === 0) {
     return null;
   }
 
@@ -473,7 +418,7 @@ function BundleCard({
           
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-card-foreground">
-              {bundleCustomerTotal != null ? formatPrice(bundleCustomerTotal, 'KES') : '-'}/1st yr
+              {bundleTotalKes != null ? formatPrice(bundleTotalKes, 'KES') : '-'}/1st yr
             </span>
           </div>
         </div>
@@ -495,7 +440,7 @@ function BundleCard({
             variant="default"
             onClick={handleGetDeal}
             className="px-4"
-            disabled={!domainsProductId || bundleCustomerTotal == null}
+            disabled={!domainsProductId || bundleTotalKes == null}
           >
             Get deal
           </Button>
@@ -505,9 +450,6 @@ function BundleCard({
     </>
   );
 }
-
-// Bundle Buy Now Dialog Component (kept for future use; domain bundle "Get deal" has no-op for now)
-function BundleBuyNowDialog({
 
 // Promotional Cards Skeleton
 function PromotionalCardsSkeleton() {
