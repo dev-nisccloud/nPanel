@@ -268,7 +268,7 @@ export const agencysidebarItems: NavGroup[] = [
       {
         title: "Backups & Restore",
         url: "/agency/backup-restore",
-        icon: (props: any) => React.createElement(Icons.Hosting, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        icon: (props: any) => React.createElement(Icons.BACKUP, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "JetBackup 5", url: "/agency/backup-restore/jetbackup5" },
         ],
