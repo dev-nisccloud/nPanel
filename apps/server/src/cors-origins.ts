@@ -1,3 +1,8 @@
+/** Vercel deployment origins that are always allowed regardless of env config. */
+const HARDCODED_ALLOWED_ORIGINS = [
+  "https://nisccloud-website.vercel.app",
+];
+
 /**
  * Resolve allowed browser origins for Hono CORS.
  * CORS_ORIGIN is the primary app origin; CORS_EXTRA_ORIGINS adds comma-separated URLs
@@ -12,6 +17,10 @@ export function resolveCorsAllowedOrigins(primaryOrigin: string): string[] {
   };
 
   add(primaryOrigin);
+
+  for (const o of HARDCODED_ALLOWED_ORIGINS) {
+    add(o);
+  }
 
   const extra = process.env.CORS_EXTRA_ORIGINS;
   if (extra) {
@@ -37,21 +46,6 @@ export function isLocalDevOrigin(origin: string): boolean {
   }
 }
 
-/**
- * Allow Vercel preview deployments (*.vercel.app) as trusted origins.
- * Only active when ALLOW_VERCEL_PREVIEW_ORIGINS=true is set, so production
- * servers that don't need this remain locked down.
- */
-export function isVercelPreviewOrigin(origin: string): boolean {
-  if (process.env.ALLOW_VERCEL_PREVIEW_ORIGINS !== "true") return false;
-  try {
-    const { hostname } = new URL(origin);
-    return hostname.endsWith(".vercel.app");
-  } catch {
-    return false;
-  }
-}
-
 export function createCorsOriginMatcher(primaryOrigin: string) {
   const allowed = resolveCorsAllowedOrigins(primaryOrigin);
   const isProd = process.env.NODE_ENV === "production";
@@ -61,7 +55,6 @@ export function createCorsOriginMatcher(primaryOrigin: string) {
     const normalized = origin.replace(/\/+$/, "");
     if (allowed.includes(normalized)) return origin;
     if (!isProd && isLocalDevOrigin(origin)) return origin;
-    if (isVercelPreviewOrigin(origin)) return origin;
     return null;
   };
 }
