@@ -194,7 +194,7 @@ export default function Navbar() {
             {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
           </button>
           <button
-            onClick={() => navigate("https://npanel.nisccloud.co.ke")}
+            type="button"
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer font-medium"
           >
             <LogIn size={15} />
@@ -278,7 +278,7 @@ export default function Navbar() {
               })}
               <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
                 <button
-                  onClick={() => { window.location.href = "https://npanel.nisccloud.co.ke"; setOpen(false); }}
+                  type="button"
                   className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer border border-border"
                 >
                   <LogIn size={15} />

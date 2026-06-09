@@ -181,8 +181,8 @@ export default function DashboardPreview() {
                 ))}
               </ul>
               <Button
+                type="button"
                 className="rounded-full px-6 h-10 font-bold gap-2 cursor-pointer mt-2"
-                onClick={() => window.open("https://npanel.nisccloud.co.ke", "_blank")}
               >
                 Explore nPanel
                 <ArrowRight size={14} />

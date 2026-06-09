@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { DefaultProviders } from "./components/providers/default.tsx";
-import AuthCallback from "./pages/auth/Callback.tsx";
 import Index from "./pages/Index.tsx";
 import ServicesPage from "./pages/services/page.tsx";
 import ContactPage from "./pages/contact/page.tsx";
@@ -48,8 +47,6 @@ export default function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/work" element={<WorkPage />} />
           <Route path="/work/:slug" element={<CaseStudyDetailPage />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-
           {/* Hosting routes */}
           <Route path="/hosting" element={<HostingPage />} />
           <Route path="/hosting/shared" element={<SharedHostingPage />} />
