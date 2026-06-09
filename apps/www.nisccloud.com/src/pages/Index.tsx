@@ -1,6 +1,5 @@
 import Navbar from "./_components/Navbar.tsx";
 import Hero from "./_components/Hero.tsx";
-import TrustedBy from "./_components/TrustedBy.tsx";
 import PainAgitation from "./_components/PainAgitation.tsx";
 import NeedSelector from "./_components/NeedSelector.tsx";
 import AtomApproach from "./_components/AtomApproach.tsx";
@@ -18,7 +17,6 @@ export default function Index() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
       <Hero />
-      <TrustedBy />
       <NeedSelector />
       <PainAgitation />
       <AtomApproach />
