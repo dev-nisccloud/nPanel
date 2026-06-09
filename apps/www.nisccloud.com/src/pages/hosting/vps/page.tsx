@@ -108,7 +108,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     headline: "Your VPS ready in under 5 minutes",
     body: "Choose your OS, add your SSH key, and click deploy. No waiting, no provisioning delays. Your AMD EPYC-powered server is live and accessible in minutes.",
     bullets: [
-      "Ubuntu, Debian, CentOS, AlmaLinux — your choice",
+      "Ubuntu, Debian, CentOS, AlmaLinux - your choice",
       "SSH access available within 5 minutes of payment",
       "One-click LAMP, LEMP, Docker, and Node.js stacks",
     ],
@@ -182,7 +182,7 @@ export default function VpsHostingPage() {
     <ServicePageShell
       badge="VPS Servers"
       headline={<>Dedicated Power. <span className="text-primary">Kenyan Speed.</span> VPS Built for Serious Businesses.</>}
-      subtext="Full root access, guaranteed resources, and Nairobi-based infrastructure. Deploy your custom stack in minutes — no shared resources, no compromises."
+      subtext="Full root access, guaranteed resources, and Nairobi-based infrastructure. Deploy your custom stack in minutes - no shared resources, no compromises."
       serviceType="hosting"
       heroIllustration={<VpsIllustration />}
       heroTrustBadge={{ line1: "AMD EPYC Processors", line2: "Deployed in under 5 minutes" }}
@@ -196,7 +196,7 @@ export default function VpsHostingPage() {
         {
           icon: <Server size={20} />,
           title: "Guaranteed Dedicated Resources",
-          desc: "Unlike shared hosting, your CPU cores, RAM, and SSD are yours alone. No noisy neighbours, no resource contention — consistent performance at all times.",
+          desc: "Unlike shared hosting, your CPU cores, RAM, and SSD are yours alone. No noisy neighbours, no resource contention - consistent performance at all times.",
         },
         {
           icon: <Cpu size={20} />,
@@ -308,7 +308,7 @@ export default function VpsHostingPage() {
         { num: "04", title: "Monitor and Scale", desc: "Use our monitoring dashboard to track CPU, RAM, disk, and network usage. Scale up resources with one click when your business demands it." },
       ]}
       whyPoints={[
-        { title: "Guaranteed Resources — Not Shared", desc: "Every vCPU and GB of RAM is dedicated to your VPS alone. You always get the performance you are paying for." },
+        { title: "Guaranteed Resources - Not Shared", desc: "Every vCPU and GB of RAM is dedicated to your VPS alone. You always get the performance you are paying for." },
         { title: "Kenyan Data Residency", desc: "Your data stays in Kenya. Critical for fintech companies, healthcare platforms, and government projects that must comply with local data protection laws." },
         { title: "Upgrade Without Downtime", desc: "Need more RAM or CPU? We upgrade your VPS resources live in most cases. No migration, no rebuild, no downtime for your users." },
         { title: "Enterprise Networking Infrastructure", desc: "Redundant 10 Gbps uplinks, BGP routing, and carrier-grade switches ensure your server is always reachable with the lowest possible latency." },

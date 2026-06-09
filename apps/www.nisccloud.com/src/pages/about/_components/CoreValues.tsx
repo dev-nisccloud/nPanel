@@ -22,7 +22,7 @@ const values = [
     icon: Heart,
     title: "Client-Obsessed",
     description:
-      "We treat every business like it's our own. Your wins are our wins — and your challenges wake us up at night.",
+      "We treat every business like it's our own. Your wins are our wins - and your challenges wake us up at night.",
     color: "text-pink-400",
     bg: "bg-pink-400/10",
   },
@@ -38,7 +38,7 @@ const values = [
     icon: Lightbulb,
     title: "Always Learning",
     description:
-      "Digital evolves daily. We invest heavily in staying ahead — so you never have to worry if your strategy is outdated.",
+      "Digital evolves daily. We invest heavily in staying ahead - so you never have to worry if your strategy is outdated.",
     color: "text-primary",
     bg: "bg-primary/10",
   },

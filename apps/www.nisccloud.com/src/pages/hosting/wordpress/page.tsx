@@ -90,10 +90,10 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "WordPress Performance",
     headline: "3x faster than generic hosting. From day one.",
-    body: "Our stack is tuned specifically for WordPress — PHP 8.3, MariaDB, OPcache, and LiteSpeed Cache pre-configured. Sites that used to take 4 seconds now load in under 1.3 seconds on our platform.",
+    body: "Our stack is tuned specifically for WordPress - PHP 8.3, MariaDB, OPcache, and LiteSpeed Cache pre-configured. Sites that used to take 4 seconds now load in under 1.3 seconds on our platform.",
     bullets: [
       "LiteSpeed Cache pre-installed and configured automatically",
-      "PHP 8.3 with OPcache — fastest WordPress execution available",
+      "PHP 8.3 with OPcache - fastest WordPress execution available",
       "HTTP/2 multiplexing for parallel asset loading",
     ],
     mockupRight: true,
@@ -114,7 +114,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
               </div>
             ))}
           </div>
-          <div className="mt-3 text-center text-xs font-bold text-primary">3x faster — same WordPress site</div>
+          <div className="mt-3 text-center text-xs font-bold text-primary">3x faster - same WordPress site</div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
@@ -134,9 +134,9 @@ const showcaseBlocks: ShowcaseBlock[] = [
     headline: "Test everything. Break nothing.",
     body: "One-click staging environments let you test plugin updates, redesigns, and new features on a full clone of your live site. Push to production only when you are 100% confident. Available on Business and Agency plans.",
     bullets: [
-      "One-click staging site creation — no technical setup required",
+      "One-click staging site creation - no technical setup required",
       "Auto WordPress updates tested on staging before going live",
-      "30-day backup retention — restore any version in one click",
+      "30-day backup retention - restore any version in one click",
     ],
     mockupRight: false,
     mockup: (
@@ -154,8 +154,8 @@ const showcaseBlocks: ShowcaseBlock[] = [
             </div>
             <div className="bg-muted/40 rounded-xl p-2.5 text-muted-foreground">
               <div className="font-semibold mb-1 text-foreground">Last push to live:</div>
-              <div>WooCommerce 8.5.0 — tested ✓</div>
-              <div>Elementor Pro 3.21 — tested ✓</div>
+              <div>WooCommerce 8.5.0 - tested ✓</div>
+              <div>Elementor Pro 3.21 - tested ✓</div>
             </div>
           </div>
         </div>
@@ -168,8 +168,8 @@ export default function WordPressHostingPage() {
   return (
     <ServicePageShell
       badge="WordPress Hosting"
-      headline={<>WordPress Hosting <span className="text-primary">Built for Kenya</span> — Fast, Secure and Managed</>}
-      subtext="Purpose-built WordPress infrastructure with auto-updates, daily backups, and a staging environment. Focus on your business — we handle the technical complexity."
+      headline={<>WordPress Hosting <span className="text-primary">Built for Kenya</span> - Fast, Secure and Managed</>}
+      subtext="Purpose-built WordPress infrastructure with auto-updates, daily backups, and a staging environment. Focus on your business - we handle the technical complexity."
       serviceType="hosting"
       heroIllustration={<WordPressIllustration />}
       heroTrustBadge={{ line1: "PHP 8.3 and LiteSpeed Cache", line2: "3x faster than generic hosting" }}
@@ -183,12 +183,12 @@ export default function WordPressHostingPage() {
         {
           icon: <Globe size={20} />,
           title: "WordPress-Optimised Stack",
-          desc: "PHP 8.3, MariaDB 10.11, OPcache, and LiteSpeed — every layer is tuned for WordPress. Your site loads fast whether you have 10 or 10,000 visitors per day.",
+          desc: "PHP 8.3, MariaDB 10.11, OPcache, and LiteSpeed - every layer is tuned for WordPress. Your site loads fast whether you have 10 or 10,000 visitors per day.",
         },
         {
           icon: <Zap size={20} />,
           title: "Built-In WP Caching",
-          desc: "LiteSpeed Cache plugin pre-installed and configured. Static pages served directly from cache — dramatically reducing server load and page load times.",
+          desc: "LiteSpeed Cache plugin pre-installed and configured. Static pages served directly from cache - dramatically reducing server load and page load times.",
         },
         {
           icon: <Shield size={20} />,
@@ -213,12 +213,12 @@ export default function WordPressHostingPage() {
         {
           icon: <Lock size={20} />,
           title: "Free SSL and HTTP/2",
-          desc: "Free SSL certificate provisioned instantly. HTTP/2 multiplexing means multiple resources load in parallel — critical for WordPress sites with many assets.",
+          desc: "Free SSL certificate provisioned instantly. HTTP/2 multiplexing means multiple resources load in parallel - critical for WordPress sites with many assets.",
         },
         {
           icon: <Headphones size={20} />,
           title: "WordPress Expert Support",
-          desc: "Our Nairobi support team are certified WordPress developers. We solve plugin conflicts, theme issues, and performance problems — not just server tickets.",
+          desc: "Our Nairobi support team are certified WordPress developers. We solve plugin conflicts, theme issues, and performance problems - not just server tickets.",
         },
       ]}
       plans={[
@@ -288,18 +288,18 @@ export default function WordPressHostingPage() {
         { id: "wp-addon-cdn", label: "Global CDN (50+ edge locations)", price: 400, period: "mo" },
       ]}
       process={[
-        { num: "01", title: "Pick Your Plan", desc: "Choose based on how many sites you need. WP Business is perfect for most Kenyan businesses — includes staging and malware scanning." },
+        { num: "01", title: "Pick Your Plan", desc: "Choose based on how many sites you need. WP Business is perfect for most Kenyan businesses - includes staging and malware scanning." },
         { num: "02", title: "WordPress Auto-Installed", desc: "Within 15 minutes, a clean WordPress installation is ready with your chosen domain, free SSL, and LiteSpeed Cache pre-configured." },
-        { num: "03", title: "We Migrate Your Existing Site", desc: "Already have a WordPress site? Our team migrates it for free — database, files, plugins, and all — with under 10 minutes of downtime." },
+        { num: "03", title: "We Migrate Your Existing Site", desc: "Already have a WordPress site? Our team migrates it for free - database, files, plugins, and all - with under 10 minutes of downtime." },
         { num: "04", title: "Optimise and Launch", desc: "We run a performance audit, configure caching, and make sure your site loads under 2 seconds before handing over the keys." },
       ]}
       whyPoints={[
-        { title: "Managed So You Don't Have To", desc: "Updates, backups, security patches — we handle all of it automatically. You focus on content and customers, not server administration." },
+        { title: "Managed So You Don't Have To", desc: "Updates, backups, security patches - we handle all of it automatically. You focus on content and customers, not server administration." },
         { title: "WooCommerce Ready Out of the Box", desc: "Sell products online with WooCommerce on infrastructure optimised for e-commerce. M-Pesa payment gateway integration support included." },
-        { title: "Nairobi Data Centre — Low Latency", desc: "Kenyan visitors experience sub-50ms server response times. Your WooCommerce checkout is fast, reducing cart abandonment." },
+        { title: "Nairobi Data Centre - Low Latency", desc: "Kenyan visitors experience sub-50ms server response times. Your WooCommerce checkout is fast, reducing cart abandonment." },
         { title: "Free Expert Migration", desc: "We have migrated over 200 WordPress sites to Nisc Cloud with zero data loss. Our team handles the entire process while your current site stays live." },
-        { title: "Real WordPress Developers on Support", desc: "When something breaks, you reach a WordPress developer — not a first-line agent reading from a script. Problems get solved, not escalated endlessly." },
-        { title: "Scales to 100,000 Monthly Visitors", desc: "Our WordPress plans handle traffic spikes gracefully. Black Friday, product launches, viral posts — your site stays up." },
+        { title: "Real WordPress Developers on Support", desc: "When something breaks, you reach a WordPress developer - not a first-line agent reading from a script. Problems get solved, not escalated endlessly." },
+        { title: "Scales to 100,000 Monthly Visitors", desc: "Our WordPress plans handle traffic spikes gracefully. Black Friday, product launches, viral posts - your site stays up." },
       ]}
       faqs={[
         { q: "Can you migrate my existing WordPress site?", a: "Yes, and it is completely free. Our WordPress migration team will move your entire site including all plugins, themes, media, and database with minimal downtime. We typically complete migrations within 24 hours." },

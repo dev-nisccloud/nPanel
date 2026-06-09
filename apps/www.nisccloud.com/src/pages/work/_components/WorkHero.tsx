@@ -38,7 +38,7 @@ export default function WorkHero() {
           className="text-xl text-muted-foreground text-balance"
         >
           Every case study below is a real client, real challenge, and real
-          outcome — powered by the Atom Approach.
+          outcome - powered by the Atom Approach.
         </motion.p>
       </div>
     </section>

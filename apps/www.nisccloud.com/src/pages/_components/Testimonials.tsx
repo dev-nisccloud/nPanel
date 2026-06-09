@@ -27,7 +27,7 @@ const testimonials: Testimonial[] = [
   {
     name: "Grace W.",
     role: "Marketing Director, BuildAfrica",
-    text: "The AI automation tools alone are worth it — we create social media content, email campaigns, and landing pages in minutes. Plus the dedicated server never goes down.",
+    text: "The AI automation tools alone are worth it - we create social media content, email campaigns, and landing pages in minutes. Plus the dedicated server never goes down.",
     initials: "GW",
     accentClass: "bg-emerald-500/20 text-emerald-400",
   },

@@ -112,7 +112,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     headline: "Nairobi servers. Under 50ms latency for Kenyan visitors.",
     body: "When your website is hosted locally, Kenyan visitors experience dramatically faster load times. Our Nairobi data centre means your site loads before your competitor's even starts.",
     bullets: [
-      "LiteSpeed web server — 6× faster than Apache hosting",
+      "LiteSpeed web server - 6× faster than Apache hosting",
       "NVMe SSD storage with sub-1ms disk read times",
       "CDN integration available for global audiences",
     ],
@@ -139,7 +139,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
             </div>
           </div>
           <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-2.5 text-xs text-green-600">
-            <span className="font-bold">✓</span> Nairobi server — 47ms to Safaricom users
+            <span className="font-bold">✓</span> Nairobi server - 47ms to Safaricom users
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -158,11 +158,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "cPanel Management",
     headline: "Manage your hosting with a clean, simple dashboard",
-    body: "cPanel gives you complete control over your hosting account — create email addresses, manage files, install WordPress with one click, and view resource usage — all without technical knowledge.",
+    body: "cPanel gives you complete control over your hosting account - create email addresses, manage files, install WordPress with one click, and view resource usage - all without technical knowledge.",
     bullets: [
       "One-click WordPress, Joomla, and 50+ app installer",
       "Create professional email addresses like you@yourbusiness.co.ke",
-      "Daily automatic backups — restore any file in one click",
+      "Daily automatic backups - restore any file in one click",
     ],
     mockupRight: false,
     mockup: (
@@ -198,7 +198,7 @@ export default function SharedHostingPage() {
     <ServicePageShell
       badge="Shared Web Hosting Kenya"
       headline={<>Fast, Reliable Web Hosting <span className="text-primary">Built for Kenya</span></>}
-      subtext="Host your Kenyan business website on NVMe SSD servers in Nairobi. Get free SSL, cPanel, daily backups, and 24/7 local support — starting at just KES 350/mo. The fastest shared hosting in Kenya."
+      subtext="Host your Kenyan business website on NVMe SSD servers in Nairobi. Get free SSL, cPanel, daily backups, and 24/7 local support - starting at just KES 350/mo. The fastest shared hosting in Kenya."
       serviceType="hosting"
       plansUnderHero
       trustStats={[
@@ -212,33 +212,33 @@ export default function SharedHostingPage() {
       features={[
         {
           icon: <Server size={20} />,
-          title: "Local Nairobi Servers — Fastest for Kenya",
-          desc: "Your website is hosted on servers physically located in Nairobi, Kenya. Kenyan visitors load your site in under 2 seconds — critical for Google rankings and M-Pesa conversions.",
+          title: "Local Nairobi Servers - Fastest for Kenya",
+          desc: "Your website is hosted on servers physically located in Nairobi, Kenya. Kenyan visitors load your site in under 2 seconds - critical for Google rankings and M-Pesa conversions.",
         },
         {
           icon: <Zap size={20} />,
-          title: "LiteSpeed Web Server — 6× Faster",
+          title: "LiteSpeed Web Server - 6× Faster",
           desc: "LiteSpeed is up to 6× faster than Apache. Our built-in server-level cache ensures your pages load instantly for customers in Nairobi, Mombasa, Kisumu, and beyond.",
         },
         {
           icon: <Shield size={20} />,
-          title: "Free SSL Certificate — Google-Required",
-          desc: "Every hosting plan includes a free Let's Encrypt SSL certificate. Google requires HTTPS to rank well. Your visitors stay safe and your SEO improves — automatically.",
+          title: "Free SSL Certificate - Google-Required",
+          desc: "Every hosting plan includes a free Let's Encrypt SSL certificate. Google requires HTTPS to rank well. Your visitors stay safe and your SEO improves - automatically.",
         },
         {
           icon: <Globe size={20} />,
           title: "One-Click WordPress Installer",
-          desc: "Deploy WordPress, Joomla, WooCommerce, or 50+ apps in under 60 seconds via Softaculous. No technical knowledge needed — your website goes live in minutes.",
+          desc: "Deploy WordPress, Joomla, WooCommerce, or 50+ apps in under 60 seconds via Softaculous. No technical knowledge needed - your website goes live in minutes.",
         },
         {
           icon: <Mail size={20} />,
           title: "Professional Business Email Included",
-          desc: "Create branded email addresses like info@yourbusiness.co.ke. Look professional, build client trust, and access email via Outlook, Gmail, or our webmail — free on every plan.",
+          desc: "Create branded email addresses like info@yourbusiness.co.ke. Look professional, build client trust, and access email via Outlook, Gmail, or our webmail - free on every plan.",
         },
         {
           icon: <HardDrive size={20} />,
-          title: "NVMe SSD Storage — 10× Faster",
-          desc: "All plans run on ultra-fast NVMe SSD storage — 10× faster than traditional hard drives. Your database queries, file access, and WordPress admin run at full speed.",
+          title: "NVMe SSD Storage - 10× Faster",
+          desc: "All plans run on ultra-fast NVMe SSD storage - 10× faster than traditional hard drives. Your database queries, file access, and WordPress admin run at full speed.",
         },
         {
           icon: <Clock size={20} />,
@@ -318,29 +318,29 @@ export default function SharedHostingPage() {
         { id: "addon-spam", label: "Advanced Spam Filter (SpamExperts)", price: 200, period: "mo" },
       ]}
       process={[
-        { num: "01", title: "Choose Your Plan", desc: "Pick a plan that fits your website size and traffic. Not sure? Start with Business — our most popular option for growing Kenyan businesses." },
-        { num: "02", title: "Register or Transfer Domain", desc: "Claim your .co.ke or .com domain. We'll guide you through the setup or handle the transfer from your current registrar — free of charge." },
+        { num: "01", title: "Choose Your Plan", desc: "Pick a plan that fits your website size and traffic. Not sure? Start with Business - our most popular option for growing Kenyan businesses." },
+        { num: "02", title: "Register or Transfer Domain", desc: "Claim your .co.ke or .com domain. We'll guide you through the setup or handle the transfer from your current registrar - free of charge." },
         { num: "03", title: "Hosting Active in 30 Minutes", desc: "Within 30 minutes of M-Pesa payment, your cPanel is live, SSL is active, and your email is ready. No waiting for business hours." },
         { num: "04", title: "Launch Your Website", desc: "Install WordPress with one click, import your existing site, or let our Nairobi team migrate it for free. You're live and ready for customers." },
       ]}
       whyPoints={[
-        { title: "Servers in Nairobi — Fastest for .co.ke Sites", desc: "Data sovereignty + speed. Kenyan visitors load your site in under 2 seconds. Critical for Google Kenya rankings and customer trust." },
-        { title: "99.9% Uptime — Backed by SLA Credits", desc: "We put our money where our mouth is. Miss SLA? You receive service credits automatically. No questions, no forms." },
-        { title: "Free Website Migration", desc: "Moving from Truehost, Hostpinnacle, or any other host? Our team migrates your site, databases, and emails for free — zero downtime." },
+        { title: "Servers in Nairobi - Fastest for .co.ke Sites", desc: "Data sovereignty + speed. Kenyan visitors load your site in under 2 seconds. Critical for Google Kenya rankings and customer trust." },
+        { title: "99.9% Uptime - Backed by SLA Credits", desc: "We put our money where our mouth is. Miss SLA? You receive service credits automatically. No questions, no forms." },
+        { title: "Free Website Migration", desc: "Moving from Truehost, Hostpinnacle, or any other host? Our team migrates your site, databases, and emails for free - zero downtime." },
         { title: "No Hidden Fees in KES", desc: "Every price is in Kenyan Shillings. No USD surprises, no renewal shocks, no charges for features listed as free." },
-        { title: "M-Pesa Accepted — Instant Activation", desc: "Pay via M-Pesa and your hosting account is active before you finish your transaction. 24/7 including weekends." },
+        { title: "M-Pesa Accepted - Instant Activation", desc: "Pay via M-Pesa and your hosting account is active before you finish your transaction. 24/7 including weekends." },
         { title: "Trusted by 500+ Kenyan Businesses", desc: "From Nairobi startups to Mombasa SMEs, Nisc Cloud powers businesses across all 47 counties with local expertise." },
       ]}
       faqs={[
         { q: "What is the best web hosting in Kenya?", a: "Nisc Cloud offers the fastest shared hosting in Kenya with NVMe SSD servers in Nairobi, 99.9% uptime SLA, free SSL, and local support in English and Swahili. Starting at KES 350/mo." },
         { q: "Can I host a .co.ke website with you?", a: "Absolutely. We are a KENIC-accredited registrar specialising in .co.ke domain registration and hosting. Your .co.ke domain and hosting are managed under one account." },
-        { q: "How fast is setup after M-Pesa payment?", a: "Your hosting account is provisioned within 30 minutes of M-Pesa confirmation — 24/7 including weekends and public holidays. You'll have cPanel access via email." },
+        { q: "How fast is setup after M-Pesa payment?", a: "Your hosting account is provisioned within 30 minutes of M-Pesa confirmation - 24/7 including weekends and public holidays. You'll have cPanel access via email." },
         { q: "Is WordPress hosting included?", a: "Yes. All shared hosting plans include a one-click WordPress installer via Softaculous. For WordPress-specific optimisation, see our dedicated WordPress Hosting plans." },
-        { q: "What happens if I need more space?", a: "We notify you at 80% usage. Upgrade your plan instantly from cPanel — no migration, no downtime. We never suspend without warning." },
-        { q: "Do you offer a money-back guarantee?", a: "Yes. 30-day money-back guarantee on all new hosting accounts. Contact our team and we process your full refund — no questions asked." },
+        { q: "What happens if I need more space?", a: "We notify you at 80% usage. Upgrade your plan instantly from cPanel - no migration, no downtime. We never suspend without warning." },
+        { q: "Do you offer a money-back guarantee?", a: "Yes. 30-day money-back guarantee on all new hosting accounts. Contact our team and we process your full refund - no questions asked." },
       ]}
       pricingNote="All prices in KES. Save 20% with annual billing. M-Pesa accepted. 30-day money-back guarantee."
-      ctaHeadline="Get the Best Web Hosting in Kenya — From KES 350/mo"
+      ctaHeadline="Get the Best Web Hosting in Kenya - From KES 350/mo"
       ctaSubtext="Join 500+ local businesses already on Nisc Cloud. NVMe SSD servers in Nairobi, free SSL, daily backups, and local support in English and Swahili."
       showcaseBlocks={showcaseBlocks}
     />

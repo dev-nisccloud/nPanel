@@ -1,7 +1,7 @@
 /**
- * SEO Reports — stable product and plan ids (seeded by apps/server).
+ * SEO Reports - stable product and plan ids (seeded by apps/server).
  */
-/** Stable product id — seeded by apps/server/src/scripts/seed-seo-reports-product.ts */
+/** Stable product id - seeded by apps/server/src/scripts/seed-seo-reports-product.ts */
 export const NISC_SEO_REPORTS_PRODUCT_ID = "nisc-seo-reports";
 export const NISC_SEO_REPORTS_PLAN_IDS = {
     starter: "nisc-seo-reports-plan-starter",

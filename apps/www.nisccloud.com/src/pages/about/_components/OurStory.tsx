@@ -12,7 +12,7 @@ export default function OurStory() {
       year: "2020",
       title: "The Atom Approach",
       description:
-        "After serving 50+ clients, we distilled our best practices into a repeatable framework — Create, Launch, Market, Automate — that consistently delivers results.",
+        "After serving 50+ clients, we distilled our best practices into a repeatable framework - Create, Launch, Market, Automate - that consistently delivers results.",
     },
     {
       year: "2022",
@@ -24,7 +24,7 @@ export default function OurStory() {
       year: "2024",
       title: "300+ Launches",
       description:
-        "Today, Nisc Cloud has helped over 300 businesses launch, grow, and automate — and we're just getting started.",
+        "Today, Nisc Cloud has helped over 300 businesses launch, grow, and automate - and we're just getting started.",
     },
   ];
 
@@ -64,7 +64,7 @@ export default function OurStory() {
             </h2>
             <p className="text-muted-foreground">
               Every great agency has an origin story. Ours began with a
-              frustration — too many businesses were leaving growth on the
+              frustration - too many businesses were leaving growth on the
               table because they lacked the right systems.
             </p>
           </motion.div>

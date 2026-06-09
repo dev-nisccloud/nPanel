@@ -197,7 +197,7 @@ export function VpsOverview({
     return vpsData?.productName || vpsData?.name || null;
   }, [activeServices, vpsData]);
 
-  /** Total recurring bill (base + OS + add-ons) — for “what you pay today” display. */
+  /** Total recurring bill (base + OS + add-ons) - for “what you pay today” display. */
   const currentTotalMonthlyUsd = React.useMemo(() => {
     const billing = deviceData.billingInfo as { price?: number } | undefined;
     const fromBilling = Number(billing?.price ?? deviceData.nextBillingValue ?? 0);
@@ -206,7 +206,7 @@ export function VpsOverview({
   }, [deviceData, vpsData]);
 
   /**
-   * Current base VPS product monthly USD (inventory) — must match upgrade API `monthlyPrice` basis.
+   * Current base VPS product monthly USD (inventory) - must match upgrade API `monthlyPrice` basis.
    * Do not use total billing here; OS/add-on fees would zero out valid upgrade deltas.
    */
   const currentBaseMonthlyUsd = React.useMemo(() => {

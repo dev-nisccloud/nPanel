@@ -6,7 +6,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Speed & Performance",
     headline: "Sub-2 second load. Every time. Everywhere.",
-    body: "Over 78% of Kenyan internet users are on mobile — often on congested 3G. We engineer every site to load instantly even on Safaricom's busiest networks. Speed isn't a feature; it's the foundation.",
+    body: "Over 78% of Kenyan internet users are on mobile - often on congested 3G. We engineer every site to load instantly even on Safaricom's busiest networks. Speed isn't a feature; it's the foundation.",
     bullets: [
       "95+ Google PageSpeed score on every site we build",
       "CDN delivery, image compression, and lazy loading built in",
@@ -53,7 +53,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     headline: "Built to turn browsers into buyers",
     body: "A website that doesn't generate leads is just an expensive brochure. Every page we build is engineered with strategic CTAs, lead capture forms, and WhatsApp chat funnels that work around the clock.",
     bullets: [
-      "WhatsApp chat integration — customers contact you in one tap",
+      "WhatsApp chat integration - customers contact you in one tap",
       "Strategic CTA placement based on scroll heatmap data",
       "Lead capture forms with instant email + SMS notification",
     ],
@@ -92,7 +92,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "SEO-Ready from Day One",
     headline: "Rank on Google before you pay a single ad",
-    body: "Most agencies build websites first, then think about SEO. We bake in proper structure, schema markup, sitemap, and Core Web Vitals compliance from the wireframe stage — so you start ranking from launch day.",
+    body: "Most agencies build websites first, then think about SEO. We bake in proper structure, schema markup, sitemap, and Core Web Vitals compliance from the wireframe stage - so you start ranking from launch day.",
     bullets: [
       "Proper H1–H6 hierarchy, canonical tags, and schema markup",
       "XML sitemap and Google Search Console submission on launch",
@@ -141,7 +141,7 @@ export default function WebsiteDesignPage() {
         {
           icon: <Monitor size={20} />,
           title: "Pixel-Perfect Design",
-          desc: "Custom designs built in Figma first, then coded with precision. Every pixel is deliberate — no page builder templates or generic themes.",
+          desc: "Custom designs built in Figma first, then coded with precision. Every pixel is deliberate - no page builder templates or generic themes.",
         },
         {
           icon: <Smartphone size={20} />,
@@ -240,22 +240,22 @@ export default function WebsiteDesignPage() {
       ]}
       process={[
         { num: "01", title: "Discovery & Wireframe", desc: "We map your user journey, define your site structure, and build wireframes showing exactly how every page will flow before a single pixel is designed." },
-        { num: "02", title: "Design in Figma", desc: "Full visual designs are created and shared with you for approval. You see the finished look before development begins — no surprises." },
+        { num: "02", title: "Design in Figma", desc: "Full visual designs are created and shared with you for approval. You see the finished look before development begins - no surprises." },
         { num: "03", title: "Build & Optimise", desc: "We code the site, integrate all tools, run speed and security tests, and QA every element across mobile, tablet, and desktop." },
         { num: "04", title: "Launch & Handover", desc: "We deploy to your domain, submit to Google Search Console, and hand over a full training guide so you can manage your site confidently." },
       ]}
       whyPoints={[
-        { title: "We Build for Kenyan Connections", desc: "Sites optimised for Safaricom, Airtel, and Telkom networks — fast even on patchy 3G — because real Kenyan customers don't have fibre at home." },
+        { title: "We Build for Kenyan Connections", desc: "Sites optimised for Safaricom, Airtel, and Telkom networks - fast even on patchy 3G - because real Kenyan customers don't have fibre at home." },
         { title: "No Page Builders", desc: "We don't use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for maximum performance, flexibility, and longevity." },
-        { title: "SEO-Ready from Day One", desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage — saving you months of retrofit work." },
-        { title: "Conversion Architecture", desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales — not just looking pretty." },
+        { title: "SEO-Ready from Day One", desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage - saving you months of retrofit work." },
+        { title: "Conversion Architecture", desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales - not just looking pretty." },
         { title: "Transparent Fixed Pricing", desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know exactly what you're getting and when." },
         { title: "Post-Launch Support Included", desc: "Every plan includes post-launch support. We're available to fix bugs, make updates, and answer questions well after your site goes live." },
       ]}
       faqs={[
         { q: "How long does it take to build a website?", a: "Essential sites (up to 5 pages) are delivered in 10 days. Professional sites take 14 days. Enterprise projects take 21 days. These timelines assume you provide content and feedback promptly." },
         { q: "Do I need to provide the content?", a: "You provide the basic information about your business. We offer professional copywriting as an add-on (KES 20,000) if you want us to write compelling web copy that converts visitors." },
-        { q: "Will my website rank on Google?", a: "We build every site with on-page SEO fundamentals — proper tags, site structure, speed, and schema. For ongoing rankings growth, we recommend pairing with our SEO service." },
+        { q: "Will my website rank on Google?", a: "We build every site with on-page SEO fundamentals - proper tags, site structure, speed, and schema. For ongoing rankings growth, we recommend pairing with our SEO service." },
         { q: "What platform will my website be built on?", a: "Depending on your needs: React (fastest, most flexible), WordPress (easiest for self-management), or a headless CMS. We recommend the best platform for your specific goals during discovery." },
         { q: "Can I update the website myself after launch?", a: "Yes. If built on WordPress or a CMS, we provide a full training session. If on React, we handle updates for you through our maintenance plan." },
         { q: "Do you provide hosting?", a: "Yes. We recommend and set up hosting on Nisc Cloud or AWS Kenya region for optimal local speed. Hosting is separate from development cost." },

@@ -2,10 +2,10 @@ import { motion } from "motion/react";
 import { Check, Bot, Workflow, MessageSquare, BarChart3 } from "lucide-react";
 
 const features = [
-  { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel — we build custom automations that move leads through your funnel on autopilot." },
+  { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel - we build custom automations that move leads through your funnel on autopilot." },
   { icon: MessageSquare, title: "AI Chatbots", desc: "Intelligent chatbots trained on your brand voice to qualify leads, answer questions, and book calls 24/7." },
-  { icon: Bot, title: "Email Sequences", desc: "Drip campaigns triggered by behavior: sign-ups, cart abandonment, re-engagement, upsell — fully automated." },
-  { icon: BarChart3, title: "Reporting Dashboards", desc: "Unified real-time dashboards showing all your KPIs — traffic, conversions, revenue — in one place." },
+  { icon: Bot, title: "Email Sequences", desc: "Drip campaigns triggered by behavior: sign-ups, cart abandonment, re-engagement, upsell - fully automated." },
+  { icon: BarChart3, title: "Reporting Dashboards", desc: "Unified real-time dashboards showing all your KPIs - traffic, conversions, revenue - in one place." },
 ];
 
 const included = [
@@ -59,7 +59,7 @@ export default function AutomateDetail() {
             className="order-1 lg:order-2"
           >
             <div className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ backgroundColor: "oklch(0.78 0.16 150 / 0.1)", borderColor: "oklch(0.78 0.16 150 / 0.3)", color: "oklch(0.78 0.16 150)" }}>
-              04 — AUTOMATE
+              04 - AUTOMATE
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Your Business.<br />

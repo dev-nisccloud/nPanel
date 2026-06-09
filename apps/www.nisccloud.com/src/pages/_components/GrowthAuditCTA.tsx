@@ -57,7 +57,7 @@ export default function GrowthAuditCTA() {
           </h2>
 
           <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
-            Book a free growth audit. We will review your brand, website, hosting, marketing, and customer acquisition setup — then show you exactly what to fix first.
+            Book a free growth audit. We will review your brand, website, hosting, marketing, and customer acquisition setup - then show you exactly what to fix first.
           </p>
 
           {/* What we review */}
@@ -83,7 +83,7 @@ export default function GrowthAuditCTA() {
             <ArrowRight size={17} />
           </Button>
           <p className="text-xs text-muted-foreground mt-4">
-            No commitment. No pitch. Just an honest plan for your business — in 30 minutes.
+            No commitment. No pitch. Just an honest plan for your business - in 30 minutes.
           </p>
         </motion.div>
       </div>

@@ -45,7 +45,7 @@ export default function BlogPage() {
             <span className="text-primary">Move the Needle</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Practical guides on branding, SEO, hosting, AI automation, and digital growth — written for Kenyan businesses.
+            Practical guides on branding, SEO, hosting, AI automation, and digital growth - written for Kenyan businesses.
           </p>
         </motion.div>
 

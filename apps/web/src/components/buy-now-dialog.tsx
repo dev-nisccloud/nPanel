@@ -858,7 +858,7 @@ export function BuyNowDialog({
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
   const [paymentAmount, setPaymentAmount] = React.useState<string>("");
   const [accountReference, setAccountReference] = React.useState<string>("");
-  /** Canonical checkout values — used for STK push when the payer is not agency. */
+  /** Canonical checkout values - used for STK push when the payer is not agency. */
   const intendedPaymentAmountRef = React.useRef("");
   const intendedAccountReferenceRef = React.useRef("");
   
@@ -1168,7 +1168,7 @@ export function BuyNowDialog({
     }
   };
 
-  // Amount validation (agency only — customers pay the computed order total)
+  // Amount validation (agency only - customers pay the computed order total)
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isAgencyUser) return;
     const value = e.target.value;

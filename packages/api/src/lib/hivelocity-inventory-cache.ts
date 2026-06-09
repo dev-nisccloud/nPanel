@@ -8,7 +8,7 @@ import {
 } from "../types/hivelocity";
 
 const REDIS_PREFIX = "hivelocity";
-const INVENTORY_TTL_SECONDS = 600; // 10 min — inventory changes infrequently
+const INVENTORY_TTL_SECONDS = 600; // 10 min - inventory changes infrequently
 const FACILITIES_TTL_SECONDS = 1800; // 30 min
 const MEMORY_TTL_MS = 60_000; // fast L1 for hot paths within a single process
 

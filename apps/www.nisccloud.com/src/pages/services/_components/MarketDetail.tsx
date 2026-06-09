@@ -35,14 +35,14 @@ export default function MarketDetail() {
             transition={{ duration: 0.6 }}
           >
             <div className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ backgroundColor: "oklch(0.70 0.22 240 / 0.1)", borderColor: "oklch(0.70 0.22 240 / 0.3)", color: "oklch(0.70 0.22 240)" }}>
-              03 — MARKET
+              03 - MARKET
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Full-Stack Growth.<br />
               <span style={{ color: "oklch(0.70 0.22 240)" }}>Data-Driven Results.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              We don't run campaigns in silos. Every channel — SEO, paid ads, social, email — feeds into one unified growth strategy with a single ROI goal.
+              We don't run campaigns in silos. Every channel - SEO, paid ads, social, email - feeds into one unified growth strategy with a single ROI goal.
             </p>
             <ul className="grid grid-cols-2 gap-2 mb-8">
               {included.map((item) => (

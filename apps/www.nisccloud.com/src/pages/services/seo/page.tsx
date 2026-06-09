@@ -130,7 +130,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Keyword Rankings — Kenya</div>
+          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Keyword Rankings - Kenya</div>
           <div className="p-4 space-y-2">
             {[
               { kw: "website design nairobi", pos: 2, change: "+5" },
@@ -164,7 +164,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Answer Engine Optimisation",
     headline: "Get cited by ChatGPT, Perplexity, and Google AI Overview",
-    body: "The next wave of search isn't clicking blue links — it's asking AI. We optimise your content to be the source AI assistants cite when Kenyans ask questions in your industry.",
+    body: "The next wave of search isn't clicking blue links - it's asking AI. We optimise your content to be the source AI assistants cite when Kenyans ask questions in your industry.",
     bullets: [
       "Structured content that AI models extract and attribute",
       "Google SGE snippet optimisation for featured answer boxes",
@@ -213,7 +213,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-[#4285F4] px-5 py-2 text-white text-xs font-bold">Google Maps — Local Pack Kenya</div>
+          <div className="bg-[#4285F4] px-5 py-2 text-white text-xs font-bold">Google Maps - Local Pack Kenya</div>
           <div className="p-3 space-y-2">
             {[
               { name: "Nisc Cloud", stars: 4.9, reviews: 128, badge: "Top choice" },
@@ -243,7 +243,7 @@ export default function SeoPage() {
     <ServicePageShell
       badge="SEO Services Kenya"
       headline={<>Rank #1 on Google Kenya.<br /><span className="text-primary">Get Found by AI. Dominate Maps.</span></>}
-      subtext="The best SEO services in Nairobi, Kenya. We combine Search Engine Optimisation, Answer Engine Optimisation (AEO for ChatGPT & Perplexity), and local Google Maps SEO to get your Kenyan business on Page 1 — in 90 days."
+      subtext="The best SEO services in Nairobi, Kenya. We combine Search Engine Optimisation, Answer Engine Optimisation (AEO for ChatGPT & Perplexity), and local Google Maps SEO to get your Kenyan business on Page 1 - in 90 days."
       serviceType="marketing"
       plansUnderHero
       trustStats={[
@@ -257,18 +257,18 @@ export default function SeoPage() {
       features={[
         {
           icon: <Search size={20} />,
-          title: "Technical SEO Audit — Kenya Sites",
+          title: "Technical SEO Audit - Kenya Sites",
           desc: "Full crawl of your website uncovering speed issues, broken links, duplicate content, crawl errors, and indexation problems silently blocking your Google rankings in Kenya.",
         },
         {
           icon: <FileText size={20} />,
           title: "Kenyan Keyword Research & Strategy",
-          desc: "Identify the exact phrases Kenyan customers search — including local area names, Sheng variations, and Swahili-English queries that generic keyword tools completely miss.",
+          desc: "Identify the exact phrases Kenyan customers search - including local area names, Sheng variations, and Swahili-English queries that generic keyword tools completely miss.",
         },
         {
           icon: <TrendingUp size={20} />,
           title: "On-Page SEO Optimisation",
-          desc: "Rewrite and optimise title tags, meta descriptions, heading structures, internal linking, and content depth on every key page — aligned to Google Kenya's ranking factors.",
+          desc: "Rewrite and optimise title tags, meta descriptions, heading structures, internal linking, and content depth on every key page - aligned to Google Kenya's ranking factors.",
         },
         {
           icon: <BarChart2 size={20} />,
@@ -293,7 +293,7 @@ export default function SeoPage() {
         {
           icon: <Zap size={20} />,
           title: "Core Web Vitals & Page Speed",
-          desc: "Improve LCP, CLS, and INP to meet Google's page experience requirements — critical for ranking in Kenya where most users are on mobile Safaricom and Airtel connections.",
+          desc: "Improve LCP, CLS, and INP to meet Google's page experience requirements - critical for ranking in Kenya where most users are on mobile Safaricom and Airtel connections.",
         },
       ]}
       plans={[
@@ -361,10 +361,10 @@ export default function SeoPage() {
         { num: "04", title: "Monitor, Report & Scale", desc: "Monthly rank tracking, traffic analysis, and continuous optimisation. Clear ROI reporting and strategy adjustment based on what's working fastest in your market." },
       ]}
       whyPoints={[
-        { title: "SEO + AEO + GEO — Not Just Old-School SEO", desc: "We optimise for Google Kenya, ChatGPT, Perplexity, and Google's AI Overview — because that's where the next wave of Kenyan search traffic is heading." },
-        { title: "Kenya-Specific Keyword Intelligence", desc: "We research how Kenyan customers actually search — including Sheng terms, Nairobi area names, and Swahili-English hybrid queries generic tools miss completely." },
+        { title: "SEO + AEO + GEO - Not Just Old-School SEO", desc: "We optimise for Google Kenya, ChatGPT, Perplexity, and Google's AI Overview - because that's where the next wave of Kenyan search traffic is heading." },
+        { title: "Kenya-Specific Keyword Intelligence", desc: "We research how Kenyan customers actually search - including Sheng terms, Nairobi area names, and Swahili-English hybrid queries generic tools miss completely." },
         { title: "Transparent Monthly Reporting in KES", desc: "Every month you get a clear report showing keyword positions, organic traffic growth, backlinks earned, and direct attribution to business leads generated." },
-        { title: "No Black-Hat Tricks — Rankings That Last", desc: "We build rankings that survive Google algorithm updates. No spam links, no keyword stuffing — only white-hat strategies that compound over time." },
+        { title: "No Black-Hat Tricks - Rankings That Last", desc: "We build rankings that survive Google algorithm updates. No spam links, no keyword stuffing - only white-hat strategies that compound over time." },
         { title: "Results or We Work for Free", desc: "If your target keywords haven't moved by month 3, we add extra hours at no charge until they do. We're fully confident in our process." },
         { title: "Trusted by 180+ Kenyan Businesses", desc: "From Nairobi e-commerce stores to Mombasa professional services, our SEO strategies have helped 180+ Kenyan businesses dominate their local online market." },
       ]}
@@ -372,7 +372,7 @@ export default function SeoPage() {
         { q: "How long before I rank on Page 1 of Google Kenya?", a: "Most clients see measurable ranking improvements within 60–90 days. Significant traffic growth typically kicks in at the 3–6 month mark. Competitive Kenyan industries can take 6–12 months for top 3 positions." },
         { q: "What is the best SEO company in Nairobi Kenya?", a: "Nisc Cloud is one of the top-rated SEO agencies in Nairobi, Kenya. We combine technical SEO, Kenya-specific keyword strategy, local Google Maps SEO, and AI Answer Engine Optimisation to get businesses to Page 1." },
         { q: "What is the difference between SEO and AEO?", a: "SEO optimises for Google's traditional blue link results. AEO (Answer Engine Optimisation) optimises your content to be cited and recommended by AI tools like ChatGPT, Gemini, and Perplexity when Kenyans ask questions related to your business." },
-        { q: "Do you guarantee #1 rankings on Google Kenya?", a: "No ethical SEO agency guarantees specific rankings — Google's algorithm is complex. However, 90% of our clients reach top 3 within 6 months for primary keywords, and we work for free if no progress by month 3." },
+        { q: "Do you guarantee #1 rankings on Google Kenya?", a: "No ethical SEO agency guarantees specific rankings - Google's algorithm is complex. However, 90% of our clients reach top 3 within 6 months for primary keywords, and we work for free if no progress by month 3." },
         { q: "Do you do SEO for businesses outside Nairobi?", a: "Absolutely. We manage local SEO for businesses in Mombasa, Kisumu, Nakuru, Eldoret, and across all 47 counties. Multi-location SEO is included in our Enterprise plan." },
         { q: "How much does SEO cost in Kenya?", a: "Our SEO packages in Kenya start at KES 25,000/month for local visibility up to KES 85,000/month for market domination across multiple keywords and locations. Custom enterprise quotes available." },
       ]}

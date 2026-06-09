@@ -2,9 +2,9 @@ import { motion } from "motion/react";
 import { LayoutDashboard, Headphones, BarChart3, Bot, ShieldCheck, Users } from "lucide-react";
 
 const pillars = [
-  { icon: LayoutDashboard, label: "All-in-One", desc: "One team, one dashboard, one invoice. Create, host, market, automate — no juggling vendors." },
-  { icon: Headphones, label: "24/7 Support", desc: "Real humans, always on. No ticket queues, no wait times — we pick up." },
-  { icon: BarChart3, label: "Data-Driven", desc: "Every decision backed by analytics. We don't guess — we measure, optimise, and scale." },
+  { icon: LayoutDashboard, label: "All-in-One", desc: "One team, one dashboard, one invoice. Create, host, market, automate - no juggling vendors." },
+  { icon: Headphones, label: "24/7 Support", desc: "Real humans, always on. No ticket queues, no wait times - we pick up." },
+  { icon: BarChart3, label: "Data-Driven", desc: "Every decision backed by analytics. We don't guess - we measure, optimise, and scale." },
   { icon: Bot, label: "Zeepo AI-Powered", desc: "Built-in AI that creates content, runs campaigns, and automates your entire marketing stack." },
   { icon: ShieldCheck, label: "Enterprise Security", desc: "SSL, WAF, DDoS protection, GDPR compliance, and 99.9% uptime SLA on every plan." },
   { icon: Users, label: "Local Market Experts", desc: "We know Kenya. Our strategists understand your customers, your competition, and your market." },
@@ -36,7 +36,7 @@ export default function OnePlatform() {
             Everything You Need. One Platform.
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Stop juggling 5 vendors. One dashboard, one team, one invoice — from brand creation to market domination.
+            Stop juggling 5 vendors. One dashboard, one team, one invoice - from brand creation to market domination.
           </p>
         </motion.div>
 

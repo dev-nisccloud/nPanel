@@ -8,7 +8,7 @@ export declare function assertValidSshPublicKey(publicKey: string): void;
 export declare function listHivelocitySshKeys(): Promise<HivelocitySshKey[]>;
 export declare function createHivelocitySshKey(name: string, publicKey: string): Promise<HivelocitySshKey>;
 export declare function deleteHivelocitySshKey(sshKeyId: number): Promise<void>;
-/** VPS catalog product for PUT /vps/{deviceId} — not the generic /device/ productId. */
+/** VPS catalog product for PUT /vps/{deviceId} - not the generic /device/ productId. */
 export declare function resolveVpsCurrentProductId(deviceId: number): Promise<number>;
 /** Run over an existing SSH session (Terminal tab) when provider PUT deploy is unavailable. */
 export declare function buildAuthorizedKeysInstallScript(publicKeys: string[]): string;

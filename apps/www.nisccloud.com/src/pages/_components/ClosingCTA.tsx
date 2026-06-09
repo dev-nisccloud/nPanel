@@ -42,7 +42,7 @@ export default function ClosingCTA() {
           </h2>
 
           <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto">
-            We create your brand, take it online, make it grow, and automate it — all under one roof, one team, one invoice.
+            We create your brand, take it online, make it grow, and automate it - all under one roof, one team, one invoice.
           </p>
 
           {/* Perks */}

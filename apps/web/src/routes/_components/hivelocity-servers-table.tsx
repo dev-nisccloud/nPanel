@@ -226,7 +226,7 @@ function normalizeResourceBasePath(base: string | undefined): string {
 }
 
 function formatMs(ms: number | undefined): string {
-	return typeof ms === "number" && Number.isFinite(ms) ? `${ms}ms` : "—";
+	return typeof ms === "number" && Number.isFinite(ms) ? `${ms}ms` : "-";
 }
 
 /** Dev-only: distinguish upstream API latency from our processing. */
@@ -501,9 +501,9 @@ function ServersTableRows({
 									Suspended
 								</Badge>
 							</TableCell>
-							<TableCell className="text-sm text-muted-foreground">—</TableCell>
-							<TableCell className="text-sm text-muted-foreground">—</TableCell>
-							<TableCell className="text-sm text-muted-foreground">—</TableCell>
+							<TableCell className="text-sm text-muted-foreground">-</TableCell>
+							<TableCell className="text-sm text-muted-foreground">-</TableCell>
+							<TableCell className="text-sm text-muted-foreground">-</TableCell>
 						</TableRow>
 					);
 				}

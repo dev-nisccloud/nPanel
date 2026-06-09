@@ -57,7 +57,7 @@ export type ServicePageShellProps = {
   pricingNote?: string;
   /** Optional alternating showcase blocks rendered after features */
   showcaseBlocks?: ShowcaseBlock[];
-  /** Optional hero image URL — defaults to a generic service illustration */
+  /** Optional hero image URL - defaults to a generic service illustration */
   heroImage?: string;
   /** Optional JSX illustration to render instead of heroImage */
   heroIllustration?: React.ReactNode;
@@ -91,7 +91,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
     <section className="max-w-7xl mx-auto px-4 md:px-8 py-20">
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold mb-3">Everything You Get</h2>
-        <p className="text-muted-foreground max-w-xl mx-auto">A complete, battle-tested system — nothing is an afterthought.</p>
+        <p className="text-muted-foreground max-w-xl mx-auto">A complete, battle-tested system - nothing is an afterthought.</p>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {features.map((f, i) => (
@@ -371,7 +371,7 @@ export default function ServicePageShell({
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      {/* Hero — two-column: text left, illustration right */}
+      {/* Hero - two-column: text left, illustration right */}
       <section className="pt-28 pb-0 px-4 max-w-7xl mx-auto">
         <div className="relative flex flex-col lg:flex-row items-center gap-10 lg:gap-16 min-h-[480px]">
           {/* Gradient background blob */}
@@ -466,7 +466,7 @@ export default function ServicePageShell({
         <ServiceShowcaseSection blocks={showcaseBlocks} />
       )}
 
-      {/* Pricing — only if not already shown under hero */}
+      {/* Pricing - only if not already shown under hero */}
       {!plansUnderHero && (
         <div id="pricing">
           <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={setSelectedPlan} />

@@ -55,7 +55,7 @@ const team = [
   {
     name: "Sofia Delgado",
     role: "Client Success Lead",
-    bio: "The glue that holds client relationships together. Ensures every engagement delivers on its promises — and then some.",
+    bio: "The glue that holds client relationships together. Ensures every engagement delivers on its promises - and then some.",
     image:
       "https://images.unsplash.com/photo-1681949287382-052ea3954a51?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzIwMTN8MHwxfHNlYXJjaHw4fHx0ZWNoJTIwdGVhbSUyMHByb2Zlc3Npb25hbHMlMjBvZmZpY2UlMjBjb2xsYWJvcmF0aW9ufGVufDB8fHx8MTc3NzYxOTExNnww&ixlib=rb-4.1.0&q=80&w=400",
     accent: "border-pink-400",

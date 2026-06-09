@@ -10,7 +10,7 @@ const tabs = [
     icon: LayoutDashboard,
     image: "https://hercules-cdn.com/file_jLLWeWPpwCBV44YLcf6RS6wg",
     headline: "Your Business at a Glance",
-    desc: "See domains, orders, invoices, subscriptions, website visitors and email campaign performance — all from one screen the moment you log in.",
+    desc: "See domains, orders, invoices, subscriptions, website visitors and email campaign performance - all from one screen the moment you log in.",
     points: ["Domains & hosting status", "Orders & invoices summary", "Website traffic (30-day chart)", "Email campaign performance"],
     color: "oklch(0.55 0.18 195)",
   },
@@ -30,7 +30,7 @@ const tabs = [
     icon: TrendingUp,
     image: "https://hercules-cdn.com/file_Xlak0r0hue2UNA9W07ZSTkGa",
     headline: "Track Every Marketing Result",
-    desc: "Monitor SEO rankings, Google Ads, Meta campaigns, and social media growth. See what's working and where to invest next — all in real time.",
+    desc: "Monitor SEO rankings, Google Ads, Meta campaigns, and social media growth. See what's working and where to invest next - all in real time.",
     points: ["Social media analytics", "Ad spend & ROAS tracking", "SEO ranking movements", "Lead generation funnels"],
     color: "oklch(0.58 0.22 25)",
   },
@@ -40,7 +40,7 @@ const tabs = [
     icon: Mail,
     image: "https://hercules-cdn.com/file_W78KZEqOP2TVuD53comVsMZG",
     headline: "Manage Clients & Campaigns",
-    desc: "Run email campaigns, manage client accounts, track billing, and handle KRA eTIMS from a single unified panel — no extra tools needed.",
+    desc: "Run email campaigns, manage client accounts, track billing, and handle KRA eTIMS from a single unified panel - no extra tools needed.",
     points: ["Email marketing campaigns", "Client & billing management", "KRA eTIMS integration", "CRM & service orders"],
     color: "oklch(0.52 0.18 160)",
   },
@@ -77,13 +77,13 @@ export default function DashboardPreview() {
           className="text-center mb-10"
         >
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4">
-            NPANEL — YOUR COMMAND CENTER
+            NPANEL - YOUR COMMAND CENTER
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-balance">
             One Dashboard to Run Your Entire Business
           </h2>
           <p className="text-muted-foreground text-base max-w-2xl mx-auto">
-            No more 5 logins and 5 vendor calls. nPanel gives you a single screen to manage your cloud, track marketing, handle billing, and stay in full control — 24/7.
+            No more 5 logins and 5 vendor calls. nPanel gives you a single screen to manage your cloud, track marketing, handle billing, and stay in full control - 24/7.
           </p>
         </motion.div>
 
@@ -131,7 +131,7 @@ export default function DashboardPreview() {
             transition={{ duration: 0.35 }}
             className="grid lg:grid-cols-5 gap-8 items-center"
           >
-            {/* Screenshot — wider */}
+            {/* Screenshot - wider */}
             <div className="lg:col-span-3 relative">
               <div className="rounded-2xl overflow-hidden border border-border/60 shadow-2xl shadow-primary/10">
                 <div className="flex items-center gap-1.5 px-4 py-3 bg-muted/60 border-b border-border/40">

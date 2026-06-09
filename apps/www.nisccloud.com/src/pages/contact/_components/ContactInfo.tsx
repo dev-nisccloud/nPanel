@@ -36,7 +36,7 @@ const contactDetails = [
 ];
 
 const whyUs = [
-  { icon: MessageSquare, text: "Free strategy session on first call — no sales pitch" },
+  { icon: MessageSquare, text: "Free strategy session on first call - no sales pitch" },
   { icon: Calendar, text: "Proposals delivered within 48 hours of enquiry" },
 ];
 

@@ -56,14 +56,14 @@ export default function LaunchDetail() {
             className="order-1 lg:order-2"
           >
             <div className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ backgroundColor: "oklch(0.75 0.18 180 / 0.1)", borderColor: "oklch(0.75 0.18 180 / 0.3)", color: "oklch(0.75 0.18 180)" }}>
-              02 — LAUNCH
+              02 - LAUNCH
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Enterprise Cloud.<br />
               <span style={{ color: "oklch(0.75 0.18 180)" }}>Startup Speed.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              We host on the same infrastructure used by Fortune 500s — then make it accessible to any business. From domain to deployment, we handle everything so you can focus on growth.
+              We host on the same infrastructure used by Fortune 500s - then make it accessible to any business. From domain to deployment, we handle everything so you can focus on growth.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (

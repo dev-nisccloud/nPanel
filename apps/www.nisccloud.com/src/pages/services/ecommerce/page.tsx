@@ -6,9 +6,9 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "M-Pesa Checkout",
     headline: "Payments your customers already trust",
-    body: "M-Pesa is how Kenya buys online. We integrate directly with Safaricom's Daraja API — not a wrapper — so customers pay in one STK Push tap and you receive funds instantly.",
+    body: "M-Pesa is how Kenya buys online. We integrate directly with Safaricom's Daraja API - not a wrapper - so customers pay in one STK Push tap and you receive funds instantly.",
     bullets: [
-      "STK Push — zero typing, just approve on your phone",
+      "STK Push - zero typing, just approve on your phone",
       "99.9% payment reliability via direct Daraja API",
       "Visa, Mastercard, and bank transfer also supported",
     ],
@@ -84,7 +84,7 @@ export default function EcommercePage() {
     <ServicePageShell
       badge="E-commerce Store Development"
       headline={<>Sell Online With<br /><span className="text-primary">M-Pesa Built Right In</span></>}
-      subtext="Launch a fully-featured online store that accepts M-Pesa, Visa, and bank transfers — optimised for Kenyan shoppers on mobile. We build stores that process orders while you sleep."
+      subtext="Launch a fully-featured online store that accepts M-Pesa, Visa, and bank transfers - optimised for Kenyan shoppers on mobile. We build stores that process orders while you sleep."
       serviceType="marketing"
       trustStats={[
         { value: "120+", label: "Online Stores Launched" },
@@ -96,7 +96,7 @@ export default function EcommercePage() {
         {
           icon: <CreditCard size={20} />,
           title: "M-Pesa & Card Payments",
-          desc: "Native M-Pesa STK Push integration via Daraja API plus Visa, Mastercard, and bank transfer — all payments settled directly to your account.",
+          desc: "Native M-Pesa STK Push integration via Daraja API plus Visa, Mastercard, and bank transfer - all payments settled directly to your account.",
         },
         {
           icon: <Smartphone size={20} />,
@@ -106,7 +106,7 @@ export default function EcommercePage() {
         {
           icon: <ShoppingCart size={20} />,
           title: "Complete Store Management",
-          desc: "Add products, manage inventory, set prices and discounts, create categories, and manage orders from a simple dashboard — no technical skills needed.",
+          desc: "Add products, manage inventory, set prices and discounts, create categories, and manage orders from a simple dashboard - no technical skills needed.",
         },
         {
           icon: <Package size={20} />,
@@ -116,7 +116,7 @@ export default function EcommercePage() {
         {
           icon: <Truck size={20} />,
           title: "Delivery & Logistics Integration",
-          desc: "Connect with Kenya's top couriers — G4S, Sendy, Fargo, and custom rates. Automated order confirmation SMS and delivery tracking for customers.",
+          desc: "Connect with Kenya's top couriers - G4S, Sendy, Fargo, and custom rates. Automated order confirmation SMS and delivery tracking for customers.",
         },
         {
           icon: <BarChart2 size={20} />,
@@ -211,14 +211,14 @@ export default function EcommercePage() {
         { title: "Training & Ongoing Support", desc: "We don't just hand over the keys. Full training sessions, video walkthroughs, and a dedicated support channel ensure you succeed long-term." },
       ]}
       faqs={[
-        { q: "How does M-Pesa payment integration work for my customers?", a: "When a customer checks out, they enter their M-Pesa number and receive an automatic STK Push prompt on their phone. They enter their M-Pesa PIN and payment is confirmed instantly — no lipa na M-Pesa number copying required." },
+        { q: "How does M-Pesa payment integration work for my customers?", a: "When a customer checks out, they enter their M-Pesa number and receive an automatic STK Push prompt on their phone. They enter their M-Pesa PIN and payment is confirmed instantly - no lipa na M-Pesa number copying required." },
         { q: "How quickly are M-Pesa payments settled to my account?", a: "M-Pesa business payments settle to your Safaricom account in real-time. Card payments settle within 1-3 business days depending on your chosen payment gateway (Pesapal, Flutterwave, or DPO)." },
         { q: "Can I manage the store myself after launch?", a: "Yes. We build on platforms with user-friendly dashboards (WooCommerce or custom). We provide full training covering product management, order processing, and reporting." },
         { q: "What happens if I need to add more products later?", a: "All plans allow adding products after launch. We also provide a bulk import template so you can upload hundreds of products via CSV in minutes." },
         { q: "Can the store handle flash sales and high traffic?", a: "Yes. We deploy on cloud infrastructure with auto-scaling, CDN, and caching. Your store stays fast and available even during promotional spikes and Black Friday events." },
         { q: "Do you integrate with Jumia or other marketplaces?", a: "For Enterprise plans, we can build integrations with Jumia Seller API and other marketplaces so your inventory syncs across all sales channels from one dashboard." },
       ]}
-      ctaHeadline="Start Selling Online — With M-Pesa — This Month"
+      ctaHeadline="Start Selling Online - With M-Pesa - This Month"
       ctaSubtext="Kenya's e-commerce market is growing 30% year-on-year. Every month without an online store is revenue going to your competitors. Let's launch yours."
       pricingNote="One-time development fee. Hosting and payment gateway fees billed separately."
       showcaseBlocks={showcaseBlocks}

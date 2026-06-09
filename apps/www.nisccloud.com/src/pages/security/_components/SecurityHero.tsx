@@ -40,7 +40,7 @@ export default function SecurityHero() {
               <span className="text-primary">Your Website</span>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-xl">
-              Get peace of mind with comprehensive website protection at an affordable price — SSL certificates, malware removal, firewall, and daily backups, all managed by our security experts.
+              Get peace of mind with comprehensive website protection at an affordable price - SSL certificates, malware removal, firewall, and daily backups, all managed by our security experts.
             </p>
             <div className="flex flex-wrap gap-2 mb-8">
               {trustPoints.map((p) => (
@@ -123,7 +123,7 @@ function SecurityIllustration() {
         <div className="space-y-1.5">
           {[
             { event: "SQL injection attempt blocked", time: "2m ago", danger: true },
-            { event: "Malware scan completed — clean", time: "1h ago", danger: false },
+            { event: "Malware scan completed - clean", time: "1h ago", danger: false },
             { event: "SSL renewed automatically", time: "3d ago", danger: false },
           ].map((e, i) => (
             <div key={i} className="flex items-center justify-between gap-2">

@@ -18,7 +18,7 @@ function EmailIllustration() {
         </div>
         <div className="p-4 space-y-2">
           {[
-            { from: "james@client.co.ke", subj: "Re: Project Proposal — KES 250K", time: "9:42", unread: true },
+            { from: "james@client.co.ke", subj: "Re: Project Proposal - KES 250K", time: "9:42", unread: true },
             { from: "support@bank.co.ke", subj: "Your invoice is ready", time: "8:15", unread: false },
             { from: "orders@supplier.co.ke", subj: "Order #4521 dispatched", time: "Yest", unread: false },
           ].map(({ from, subj, time, unread }) => (
@@ -115,7 +115,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Deliverability",
     headline: "Your emails land in inboxes, not spam",
-    body: "We configure DKIM, SPF, and DMARC for every account. These technical standards tell Gmail, Outlook, and other providers that your emails are legitimate — dramatically improving inbox delivery rates.",
+    body: "We configure DKIM, SPF, and DMARC for every account. These technical standards tell Gmail, Outlook, and other providers that your emails are legitimate - dramatically improving inbox delivery rates.",
     bullets: [
       "99%+ email delivery rate across all major providers",
       "DKIM, SPF, and DMARC configured on setup day",
@@ -160,7 +160,7 @@ export default function EmailHostingPage() {
     <ServicePageShell
       badge="Business Email Hosting"
       headline={<>Professional Email That <span className="text-primary">Builds Trust</span> with Every Message</>}
-      subtext="Send email from your own domain — you@yourbusiness.co.ke. Enterprise spam filtering, generous mailbox storage, and 99.9% delivery reliability for Kenyan businesses."
+      subtext="Send email from your own domain - you@yourbusiness.co.ke. Enterprise spam filtering, generous mailbox storage, and 99.9% delivery reliability for Kenyan businesses."
       serviceType="hosting"
       heroIllustration={<EmailIllustration />}
       heroTrustBadge={{ line1: "DKIM, SPF and DMARC configured", line2: "Setup in under 30 minutes" }}
@@ -204,7 +204,7 @@ export default function EmailHostingPage() {
         {
           icon: <Lock size={20} />,
           title: "DKIM, SPF and DMARC Configured",
-          desc: "We configure DKIM signatures, SPF records, and DMARC policies for you. Your emails land in inboxes — not spam folders — at major providers like Gmail and Outlook.",
+          desc: "We configure DKIM signatures, SPF records, and DMARC policies for you. Your emails land in inboxes - not spam folders - at major providers like Gmail and Outlook.",
         },
         {
           icon: <BarChart2 size={20} />,
@@ -284,9 +284,9 @@ export default function EmailHostingPage() {
       ]}
       whyPoints={[
         { title: "Builds Immediate Credibility", desc: "Emails from you@yourbusiness.co.ke are taken 5x more seriously than Gmail or Yahoo addresses. Land bigger clients by looking established from day one." },
-        { title: "Deliverability-First Infrastructure", desc: "Our mail servers maintain pristine IP reputation. DKIM, SPF, and DMARC are configured for you, ensuring your emails reach inboxes — not junk folders." },
+        { title: "Deliverability-First Infrastructure", desc: "Our mail servers maintain pristine IP reputation. DKIM, SPF, and DMARC are configured for you, ensuring your emails reach inboxes - not junk folders." },
         { title: "99% Spam Catch Rate", desc: "SpamExperts AI-powered filtering catches 99%+ of inbound spam and malware. Your team spends less time cleaning their inbox and more time doing real work." },
-        { title: "Works with Any Device or App", desc: "Standard IMAP/SMTP means your email works perfectly with Outlook, Gmail app, Apple Mail, Thunderbird, Android, or iOS — no proprietary clients required." },
+        { title: "Works with Any Device or App", desc: "Standard IMAP/SMTP means your email works perfectly with Outlook, Gmail app, Apple Mail, Thunderbird, Android, or iOS - no proprietary clients required." },
         { title: "Scales as Your Team Grows", desc: "Add new mailboxes in seconds from your dashboard. No support tickets, no waiting. Grow from 5 to 500 employees without migrating email providers." },
         { title: "Kenyan Support Who Understand Business Email", desc: "Our team has configured email for hundreds of Kenyan businesses. Whether it's M-Pesa notification forwarding or complex routing rules, we have seen it before." },
       ]}
