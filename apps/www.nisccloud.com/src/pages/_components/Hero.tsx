@@ -1,5 +1,28 @@
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { useState, useEffect } from "react";
 import { ArrowRight, Zap, Paintbrush, Server, TrendingUp, Bot } from "lucide-react";
+
+const clients = [
+  { name: "Amarom", logo: "/clients/amarom2.png" },
+  { name: "Defen Group", logo: "/clients/defen-group-logo.png" },
+  { name: "Liveright", logo: "/clients/liveright-logo.png" },
+  { name: "MMA", logo: "/clients/mma-logo.png" },
+  { name: "Stanjo", logo: "/clients/stanjo.png" },
+  { name: "Epitome", logo: "/clients/epitome-logo.png" },
+  { name: "Luxewrap", logo: "/clients/luxewrap-logo.png" },
+  { name: "Medplus", logo: "/clients/medplus-logo.png" },
+  { name: "Farma24", logo: "/clients/farma24-logo.png" },
+  { name: "Ashut", logo: "/clients/ashut-logo.png" },
+  { name: "Trelanbrams", logo: "/clients/trelanbrams-logo.png" },
+  { name: "Datini", logo: "/clients/datini-logo.png" },
+  { name: "HB", logo: "/clients/hb-logo.webp" },
+  { name: "Cruises Bob", logo: "/clients/cruisesbob-logo.png" },
+  { name: "Insaac", logo: "/clients/insaac2.png" },
+  { name: "2tokee", logo: "/clients/2tokee.png" },
+  { name: "APL", logo: "/clients/apl-logo.png" },
+] as const;
+
+const allClients = [...clients, ...clients];
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
 
@@ -22,6 +45,39 @@ const socialProof = [
   { dot: "bg-primary", text: "99.9% Uptime" },
   { dot: "bg-amber-400", text: "Results in 30 Days" },
 ];
+
+const cyclingWords = ["Create.", "Launch.", "Grow."];
+
+function CyclingWord() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % cyclingWords.length);
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <span
+      className="inline-block overflow-hidden align-bottom"
+      style={{ height: "1.08em", verticalAlign: "bottom" }}
+    >
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={index}
+          className="inline-block text-primary"
+          initial={{ opacity: 0, y: "100%" }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: "-100%" }}
+          transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {cyclingWords[index]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
 
 function PlatformPreview() {
   return (
@@ -125,10 +181,9 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.08 }}
-            className="text-5xl md:text-6xl lg:text-[66px] font-bold leading-[1.06] tracking-tight text-balance mb-5"
+            className="text-5xl md:text-6xl lg:text-[66px] font-bold tracking-tight leading-[1.08] mb-5"
           >
-            Create. Launch.<br />
-            <span className="text-primary">Grow.</span>
+            <span className="text-foreground">Built to </span><CyclingWord />
           </motion.h1>
 
           <motion.p
@@ -187,6 +242,44 @@ export default function Hero() {
           className="hidden lg:flex justify-center items-center"
         >
           <PlatformPreview />
+        </motion.div>
+
+        {/* Trusted by — full-width row below both columns */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="col-span-full pb-4"
+        >
+          <p className="text-center text-xs font-mono font-semibold tracking-widest text-muted-foreground/60 uppercase mb-6">
+            Trusted by businesses across Kenya
+          </p>
+          <div className="relative overflow-hidden">
+            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+            <div className="flex overflow-hidden">
+              <motion.div
+                className="flex gap-10 items-center shrink-0"
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{ duration: 42, repeat: Infinity, ease: "linear" }}
+              >
+                {allClients.map((client, i) => (
+                  <div
+                    key={`${client.name}-${i}`}
+                    className="flex items-center justify-center opacity-50 hover:opacity-90 grayscale hover:grayscale-0 transition-all duration-300 shrink-0 px-1"
+                    title={client.name}
+                  >
+                    <img
+                      src={client.logo}
+                      alt={client.name}
+                      className="h-7 w-auto max-w-[120px] object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </motion.div>
+            </div>
+          </div>
         </motion.div>
 
       </div>

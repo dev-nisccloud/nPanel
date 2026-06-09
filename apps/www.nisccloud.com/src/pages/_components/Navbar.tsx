@@ -2,13 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Menu, X, ChevronDown, Globe, Server, Mail, Shield, Cpu, Megaphone,
-  Palette, ShoppingCart, PenTool, BarChart2, Bot, Zap, Sun, Moon,
-  Sparkles, LogIn, TrendingUp, Users, HardDrive, Lock, MonitorSmartphone,
+  Palette, ShoppingCart, PenTool, BarChart2, Bot, Zap,
+  LogIn, TrendingUp, Users, HardDrive, Lock, MonitorSmartphone,
   Target, AtSign, ScanLine, Database, Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useTheme } from "next-themes";
+// import { useTheme } from "next-themes";
 
 type SubItem = {
   label: string;
@@ -126,7 +126,7 @@ export default function Navbar() {
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { theme, setTheme } = useTheme();
+  // const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setOpen(false);
@@ -159,7 +159,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2.5 cursor-pointer shrink-0" onClick={handleLogoClick}>
-          <img src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-8 w-auto object-contain" />
+          <img src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-14 w-auto object-contain" />
         </div>
 
         {/* Desktop nav */}
@@ -219,27 +219,34 @@ export default function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
-          <button
+          {/* <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
             aria-label="Toggle dark mode"
           >
             {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
-          </button>
+          </button> */}
           <button
             type="button"
-            className="flex items-center gap-1.5 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer font-medium"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border/60 hover:border-border rounded-full transition-all duration-200 cursor-pointer hover:bg-muted/40"
           >
-            <LogIn size={15} />
+            <LogIn size={14} />
             Login
           </button>
           <Button
             size="sm"
             onClick={() => navigate("/contact")}
-            className="gap-1.5 bg-primary text-primary-foreground hover:opacity-90 cursor-pointer font-semibold tracking-wide rounded-full px-5"
+            className="relative overflow-hidden cursor-pointer font-semibold tracking-wide rounded-full px-5 bg-primary text-primary-foreground hover:bg-primary/80
+              before:absolute before:inset-0 before:rounded-[inherit]
+              before:bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.55)_50%,transparent_75%,transparent_100%)]
+              before:bg-[length:250%_250%,100%_100%]
+              before:bg-[position:200%_0,0_0]
+              before:bg-no-repeat
+              before:transition-[background-position]
+              before:duration-700
+              hover:before:bg-[position:-100%_0,0_0]"
           >
             Get Started
-            <Sparkles size={14} />
           </Button>
         </div>
 
@@ -317,8 +324,8 @@ export default function Navbar() {
                   <LogIn size={15} />
                   Login to nPanel
                 </button>
-                <Button size="sm" onClick={() => { navigate("/contact"); setOpen(false); }} className="gap-1.5 bg-primary text-primary-foreground w-full cursor-pointer font-semibold rounded-full">
-                  Get Started <Sparkles size={13} />
+                <Button size="sm" onClick={() => { navigate("/contact"); setOpen(false); }} className="bg-primary text-primary-foreground w-full cursor-pointer font-semibold rounded-full">
+                  Get Started
                 </Button>
               </div>
             </div>
