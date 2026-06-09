@@ -1,3 +1,8 @@
+/** Vercel deployment origins that are always allowed regardless of env config. */
+const HARDCODED_ALLOWED_ORIGINS = [
+  "https://nisccloud-website.vercel.app",
+];
+
 /**
  * Resolve allowed browser origins for Hono CORS.
  * CORS_ORIGIN is the primary app origin; CORS_EXTRA_ORIGINS adds comma-separated URLs
@@ -12,6 +17,10 @@ export function resolveCorsAllowedOrigins(primaryOrigin: string): string[] {
   };
 
   add(primaryOrigin);
+
+  for (const o of HARDCODED_ALLOWED_ORIGINS) {
+    add(o);
+  }
 
   const extra = process.env.CORS_EXTRA_ORIGINS;
   if (extra) {

@@ -1,0 +1,14 @@
+{
+  "buildCommand": "cd ../.. && turbo build --filter=www.nisccloud.com",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://npanel-server.nisccloud.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
