@@ -19,3 +19,10 @@ export {
 } from "./domain-bundle-cart";
 export { initCartStorageSync, readMergedPersistedCart, syncCartFromSharedStorage } from "./cart-storage-sync";
 export { crossOriginCartStorage } from "./persist-storage";
+export {
+  CART_URL_PARAM,
+  buildCartHandoffUrl,
+  serializeCartToUrlParam,
+  parseCartFromUrlParam,
+  importCartFromUrl,
+} from "./cart-url-handoff";

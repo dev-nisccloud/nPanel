@@ -1,4 +1,4 @@
-import { useCartStore } from "@npanel/cart-store";
+import { useCartStore, buildCartHandoffUrl } from "@npanel/cart-store";
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -6,6 +6,7 @@ import { NPANEL_APP } from "@/lib/domain-search/api.ts";
 
 export function LandingCartButton() {
   const itemCount = useCartStore((state) => state.getItemCount());
+  const items = useCartStore((state) => state.items);
 
   return (
     <Button
@@ -13,7 +14,7 @@ export function LandingCartButton() {
       variant="outline"
       className="relative shrink-0 cursor-pointer"
       onClick={() => {
-        window.location.href = NPANEL_APP;
+        window.location.href = buildCartHandoffUrl(NPANEL_APP, items);
       }}
       title={itemCount > 0 ? "Continue checkout in nPanel" : "Open nPanel"}
     >
