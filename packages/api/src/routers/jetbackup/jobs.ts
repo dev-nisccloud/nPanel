@@ -1,39 +1,22 @@
-import { publicProcedure, router } from "../../trpc";
-import { sendJetBackupRequest } from "../../lib/jetbackup/client";
+import { protectedProcedure, router } from "../../trpc";
 import { BackupJob, CloneJob, JetBackupListResponse } from "../../types/jetbackup";
 import { z } from "zod";
-
-const listSchema = z.object({
-  page: z.number().optional(),
-  limit: z.number().optional(),
-  search: z.string().optional(),
-  orderby: z.string().optional(),
-  order: z.enum(["asc", "desc"]).optional(),
-});
+import { idSchema, jetbackupCall, listSchema } from "./_helpers";
 
 export const jetbackupJobsRouter = router({
-  // Backup Jobs
-  listBackup: publicProcedure
+  listBackup: protectedProcedure
     .input(listSchema)
     .query(async ({ input }) => {
-      const result = await sendJetBackupRequest<JetBackupListResponse<BackupJob>>("listBackupJob", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall<JetBackupListResponse<BackupJob>>("listBackupJobs", input);
     }),
 
-  getBackup: publicProcedure
-    .input(z.object({ _id: z.string() }))
+  getBackup: protectedProcedure
+    .input(idSchema)
     .query(async ({ input }) => {
-      const result = await sendJetBackupRequest<BackupJob>("getBackupJob", { _id: input._id });
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall<BackupJob>("getBackupJob", input);
     }),
 
-  manageBackup: publicProcedure
+  manageBackup: protectedProcedure
     .input(z.object({
       action: z.enum(["create", "modify"]),
       _id: z.string().optional(),
@@ -45,47 +28,45 @@ export const jetbackupJobsRouter = router({
       account_filter_id: z.string().optional(),
       retain: z.number().optional(),
       ttl: z.number().optional(),
+      notify: z.number().optional(),
+      compress: z.number().optional(),
+      encrypt: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await sendJetBackupRequest<any>("manageBackupJob", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall("manageBackupJob", input);
     }),
 
-  runBackupManually: publicProcedure
-    .input(z.object({ _id: z.string() }))
+  duplicateBackup: protectedProcedure
+    .input(idSchema)
     .mutation(async ({ input }) => {
-      const result = await sendJetBackupRequest<any>("runBackupJobManually", { _id: input._id });
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall("duplicateBackupJob", input);
     }),
 
-  // Clone Jobs
-  listClone: publicProcedure
+  runBackupManually: protectedProcedure
+    .input(idSchema)
+    .mutation(async ({ input }) => {
+      return jetbackupCall("runBackupJobManually", input);
+    }),
+
+  deleteBackup: protectedProcedure
+    .input(idSchema)
+    .mutation(async ({ input }) => {
+      return jetbackupCall("deleteBackupJob", input);
+    }),
+
+  listClone: protectedProcedure
     .input(listSchema)
     .query(async ({ input }) => {
-      const result = await sendJetBackupRequest<JetBackupListResponse<CloneJob>>("listCloneJobs", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall<JetBackupListResponse<CloneJob>>("listCloneJobs", input);
     }),
 
-  getClone: publicProcedure
-    .input(z.object({ _id: z.string() }))
+  getClone: protectedProcedure
+    .input(idSchema)
     .query(async ({ input }) => {
-      const result = await sendJetBackupRequest<CloneJob>("getCloneJob", { _id: input._id });
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall<CloneJob>("getCloneJob", input);
     }),
 
-  manageClone: publicProcedure
+  manageClone: protectedProcedure
     .input(z.object({
       action: z.enum(["create", "modify"]),
       _id: z.string().optional(),
@@ -97,20 +78,24 @@ export const jetbackupJobsRouter = router({
       account_filter_id: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
-      const result = await sendJetBackupRequest<any>("manageCloneJob", input);
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall("manageCloneJob", input);
     }),
 
-  runCloneManually: publicProcedure
-    .input(z.object({ _id: z.string() }))
+  duplicateClone: protectedProcedure
+    .input(idSchema)
     .mutation(async ({ input }) => {
-      const result = await sendJetBackupRequest<any>("runCloneJobManually", { _id: input._id });
-      if (!result.success) {
-        throw new Error(result.message);
-      }
-      return result.data;
+      return jetbackupCall("duplicateCloneJob", input);
+    }),
+
+  runCloneManually: protectedProcedure
+    .input(idSchema)
+    .mutation(async ({ input }) => {
+      return jetbackupCall("runCloneJobManually", input);
+    }),
+
+  deleteClone: protectedProcedure
+    .input(idSchema)
+    .mutation(async ({ input }) => {
+      return jetbackupCall("deleteCloneJob", input);
     }),
 });

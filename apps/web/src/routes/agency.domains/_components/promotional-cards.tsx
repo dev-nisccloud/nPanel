@@ -32,6 +32,8 @@ import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { trpc } from "@/utils/trpc";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import { useCurrency } from "./currency-context";
+import { createDomainBundleCheckoutContext, formatDomainBundleLabel, getDomainResultsBasePrices } from "@/lib/domain-bundle-checkout";
+import { useBundleTotalKes } from "@/hooks/use-bundle-total-kes";
 
 interface PromotionalCardsProps {
   searchQuery: string;
@@ -305,22 +307,21 @@ function SearchTldCard({
 // Bundle Card Component
 function BundleCard({ 
   searchQuery, 
-  onAddToCart, 
-  onRemoveFromCart, 
-  isDomainInCart,
   bundleData,
   isLoadingBundle 
-}: Omit<PromotionalCardsProps, 'searchQuery'> & { 
+}: { 
   searchQuery: string;
   bundleData: { com: any; info: any; online: any };
   isLoadingBundle: boolean;
 }) {
+  const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
+  const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
+    enabled: true,
+  });
   const currencyContext = useCurrency();
-  const pricingHook = useDomainPricing(currencyContext);
+  const { convertPricesBatch } = currencyContext;
 
   // searchQuery is already sanitized when passed from PromotionalCards
-  const bundleTlds = ['com', 'co.ke', 'info', 'online'];
-  const bundleDomains = bundleTlds.map(tld => `${searchQuery}.${tld}`);
 
   // Process bundle domains from batched data - only show if ALL are available
   const bundleResults = React.useMemo(() => {
@@ -384,100 +385,24 @@ function BundleCard({
     return results;
   }, [bundleData, searchQuery]);
 
-  // Calculate pricing with markup and convert to KES
-  // OPTIMIZATION: Use ref to track pricing calculation to avoid duplicate calculations
-  const pricedBundleResultsRef = React.useRef<DomainSearchResult[]>([]);
-  const [pricedBundleResults, setPricedBundleResults] = React.useState<DomainSearchResult[]>([]);
-  const pricingCalculationRef = React.useRef<string>('');
-  
-  const { calculatePricesBatch } = pricingHook;
+  const bundleBasePrices = React.useMemo(
+    () => getDomainResultsBasePrices(bundleResults),
+    [bundleResults],
+  );
+  const bundleTotalKes = useBundleTotalKes(bundleBasePrices, convertPricesBatch);
 
-  React.useEffect(() => {
-    if (bundleResults.length === 0) {
-      setPricedBundleResults([]);
-      pricedBundleResultsRef.current = [];
-      return;
-    }
-
-    if (!calculatePricesBatch) {
-      setPricedBundleResults(bundleResults);
-      pricedBundleResultsRef.current = bundleResults;
-      return;
-    }
-
-    // OPTIMIZATION: Create a stable key to avoid duplicate calculations
-    const resultKey = bundleResults.map(r => `${r.domain}-${r.status}-${r.price?.reseller?.price || 0}`).join('|');
-    
-    // Skip if already calculated for this result
-    if (pricingCalculationRef.current === resultKey && pricedBundleResultsRef.current.length > 0) {
-      return;
-    }
-
-    pricingCalculationRef.current = resultKey;
-    
-    // OPTIMIZATION: Use setTimeout to defer non-critical calculations and batch them
-    const timer = setTimeout(() => {
-      calculatePricesBatch(bundleResults).then((priced) => {
-        pricedBundleResultsRef.current = priced;
-        setPricedBundleResults(priced);
-      }).catch((error) => {
-        console.error('Failed to calculate bundle pricing:', error);
-        // Fallback to original results if pricing fails
-        setPricedBundleResults(bundleResults);
-      });
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [bundleResults, calculatePricesBatch]);
-
-  // Calculate total bundle price in KES (ensure all prices are in KES)
-  const bundleTotal = React.useMemo(() => {
-    return pricedBundleResults.reduce((sum, result) => {
-      const calculated = result.price?.calculated;
-      // Use convertedPrice if available (should be in KES), otherwise use finalPrice
-      const price = calculated
-        ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
-        : result.price?.reseller?.price || 0;
-      // All prices should already be in KES after pricing hook conversion
-      return sum + price;
-    }, 0);
-  }, [pricedBundleResults]);
-
-  // Calculate original total for discount calculation (also in KES)
-  const originalTotal = React.useMemo(() => {
-    return pricedBundleResults.reduce((sum, result) => {
-      const calculated = result.price?.calculated;
-      // Use originalPrice and convert if needed, or use reseller price
-      const price = calculated?.originalPrice ?? result.price?.reseller?.price ?? 0;
-      // If original currency is not KES and we have conversion info, we'd need to convert
-      // For now, assume pricing hook handles this or prices are already comparable
-      return sum + price;
-    }, 0);
-  }, [pricedBundleResults]);
-
-  const discountPercent = originalTotal > bundleTotal
-    ? Math.round(((originalTotal - bundleTotal) / originalTotal) * 100)
-    : 0;
-
-  const allInCart = bundleDomains.every(domain => isDomainInCart(domain));
-  const anyInCart = bundleDomains.some(domain => isDomainInCart(domain));
-
-  const handleCartAction = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-    try {
-      if (allInCart) {
-        bundleDomains.forEach(domain => onRemoveFromCart(domain));
-      } else {
-        pricedBundleResults.forEach(result => {
-          if (result && result.domain && !isDomainInCart(result.domain)) {
-            onAddToCart(result);
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error handling bundle cart action:', error);
-    }
+  const handleGetDeal = () => {
+    if (!domainsProductId || bundleResults.length === 0 || bundleTotalKes == null) return;
+    openForProduct({
+      productId: domainsProductId,
+      productName: "Domains",
+      domainBundle: createDomainBundleCheckoutContext({
+        domains: bundleResults,
+        bundlePrice: bundleTotalKes,
+        bundleCurrency: "KES",
+        bundleLabel: formatDomainBundleLabel(bundleResults.map((d) => d.domain)),
+      }),
+    });
   };
 
   if (isLoadingBundle) {
@@ -491,11 +416,9 @@ function BundleCard({
     );
   }
 
-  if (pricedBundleResults.length === 0) {
+  if (bundleResults.length === 0) {
     return null;
   }
-
-  const bundleDisplay = bundleDomains.map(d => d.split('.')[0] === searchQuery ? d.split('.').slice(1).join('.') : d.split('.').pop()).join(' + .');
 
   return (
     <>
@@ -510,21 +433,10 @@ function BundleCard({
           <h3 className="text-lg font-bold text-card-foreground mb-2">
             {searchQuery}.<span className="text-purple-600 dark:text-purple-400">com</span> + .<span className="text-purple-600 dark:text-purple-400">co.ke</span> + .<span className="text-purple-600 dark:text-purple-400">info</span> + .<span className="text-purple-600 dark:text-purple-400">online</span>
           </h3>
-          
-          {discountPercent > 0 && (
-            <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 mb-2">
-              Save {discountPercent}%
-            </Badge>
-          )}
 
           <div className="flex items-baseline gap-2">
-            {originalTotal > bundleTotal && (
-              <span className="text-sm text-muted-foreground line-through">
-                {formatPrice(originalTotal, 'KES')}
-              </span>
-            )}
             <span className="text-2xl font-bold text-card-foreground">
-              {formatPrice(bundleTotal, 'KES')}/1st yr
+              {bundleTotalKes != null ? formatPrice(bundleTotalKes, 'KES') : '-'}/1st yr
             </span>
           </div>
         </div>
@@ -543,236 +455,17 @@ function BundleCard({
         <div className="flex items-center justify-center gap-2">
           <Button
             size="sm"
-            variant="outline"
-            onClick={() => { /* Get deal ? logic left blank for now */ }}
-            className="px-4 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+            variant="default"
+            onClick={handleGetDeal}
+            className="px-4"
+            disabled={!domainsProductId || bundleTotalKes == null}
           >
             Get deal
-          </Button>
-          <Button
-            size="sm"
-            variant={allInCart ? "destructive" : "outline"}
-            onClick={handleCartAction}
-            className="h-9 w-9 p-0"
-            title={allInCart ? "Remove from cart" : "Add to cart"}
-          >
-            {allInCart ? (
-              <XCircle className="h-4 w-4" />
-            ) : (
-              <ShoppingCart className="h-4 w-4" />
-            )}
           </Button>
         </div>
       </div>
 
     </>
-  );
-}
-
-// Bundle Buy Now Dialog Component (kept for future use; domain bundle "Get deal" has no-op for now)
-function BundleBuyNowDialog({
-  open,
-  onOpenChange,
-  domains,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  domains: DomainSearchResult[];
-}) {
-  const [duration, setDuration] = React.useState(1);
-  const [couponCode, setCouponCode] = React.useState("");
-  const [showCouponInput, setShowCouponInput] = React.useState(false);
-
-  // Calculate totals for all domains (all should be in KES after pricing hook)
-  const domainTotals = domains.map(domain => {
-    const calculated = domain.price?.calculated;
-    const displayPrice = calculated
-      ? ((calculated as any).convertedPrice ?? calculated.finalPrice)
-      : domain.price?.reseller?.price ?? 0;
-    
-    return {
-      domain: domain.domain,
-      price: displayPrice,
-    };
-  });
-
-  // Calculate original total for renewal info (in original currency, will display in KES)
-  const originalTotalPerYear = domains.reduce((sum, domain) => {
-    const calculated = domain.price?.calculated;
-    // Use originalPrice if available, otherwise reseller price
-    const price = calculated?.originalPrice ?? domain.price?.reseller?.price ?? 0;
-    return sum + price;
-  }, 0);
-
-  const subtotal = domainTotals.reduce((sum, item) => sum + item.price, 0) * duration;
-  const taxRate = 0.16;
-  const taxes = subtotal * taxRate;
-  const couponDiscount = 0;
-  const total = subtotal + taxes - couponDiscount;
-
-  const handlePayment = () => {
-    console.log("Proceeding to payment for bundle", { domains, duration, couponCode, total });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] overflow-x-hidden w-full">
-        <DialogHeader className="min-w-0 w-full">
-          <DialogTitle className="line-clamp-1 break-words truncate min-w-0 w-full max-w-full">
-            Buy {domains.map(d => d.domain).join(' + ')}
-          </DialogTitle>
-          <DialogDescription>
-            Review the details and proceed to checkout.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {/* Bundle Domains */}
-          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-medium truncate">
-                    {domains.map((d, i) => (
-                      <React.Fragment key={d.domain}>
-                        {d.domain}
-                        {i < domains.length - 1 && <span className="text-muted-foreground mx-1">+</span>}
-                      </React.Fragment>
-                    ))}
-                  </span>
-                </div>
-                <Select
-                  value={duration.toString()}
-                  onValueChange={(value) => setDuration(parseInt(value))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {duration} {duration === 1 ? 'year' : 'years'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 year</SelectItem>
-                    <SelectItem value="2">2 years</SelectItem>
-                    <SelectItem value="3">3 years</SelectItem>
-                    <SelectItem value="4">4 years</SelectItem>
-                    <SelectItem value="5">5 years</SelectItem>
-                    <SelectItem value="10">10 years</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="text-right flex-shrink-0">
-                {originalTotalPerYear * duration > subtotal && (
-                  <div className="text-sm text-muted-foreground line-through">
-                    {formatPrice(originalTotalPerYear * duration, 'KES')}
-                  </div>
-                )}
-                <div className="font-semibold text-lg">
-                  {formatPrice(subtotal, 'KES')}
-                </div>
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Domains renew at {formatPrice(originalTotalPerYear, 'KES')}/year on {new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-            </div>
-            <div className="flex items-start gap-2 text-xs text-muted-foreground">
-              <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-              <span>FREE domain privacy protection included</span>
-            </div>
-          </div>
-
-          {/* Coupon Code */}
-          <div className="space-y-2">
-            {!showCouponInput ? (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Coupon code</span>
-                <Button
-                  variant="link"
-                  className="h-auto p-0 text-primary"
-                  onClick={() => setShowCouponInput(true)}
-                >
-                  Add
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowCouponInput(false);
-                    setCouponCode("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Taxes & Fees */}
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Taxes & fees</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>16% VAT tax has been applied according to Kenyan regulations.</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <span>{formatPrice(taxes, 'KES')}</span>
-          </div>
-
-          {/* Sub Total */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Sub Total</span>
-            <span>{formatPrice(subtotal, 'KES')}</span>
-          </div>
-
-          {/* Total */}
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between font-bold text-lg">
-              <span>Total</span>
-              <span>{formatPrice(total, 'KES')}</span>
-            </div>
-          </div>
-
-          {/* Legal Text */}
-          <p className="text-xs text-muted-foreground">
-            By checking out, you agree with our{" "}
-            <a href="/terms" className="text-primary underline hover:text-primary/80">
-              Terms of Service
-            </a>{" "}
-            and confirm that you have read our{" "}
-            <a href="/privacy" className="text-primary underline hover:text-primary/80">
-              Privacy Policy
-            </a>
-            . You can cancel recurring payments at any time.
-          </p>
-        </div>
-
-        <DialogFooter className="gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            className="text-primary"
-          >
-            Cancel
-          </Button>
-          <Button onClick={handlePayment} className="bg-primary text-primary-foreground">
-            Choose payment method
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -845,7 +538,6 @@ export function PromotionalCards(props: PromotionalCardsProps) {
   const bundleCard = (
     <BundleCard 
       key="bundle"
-      {...props} 
       searchQuery={sanitizedQuery}
       bundleData={promotionalData}
       isLoadingBundle={props.isLoading ?? false}

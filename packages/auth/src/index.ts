@@ -902,6 +902,9 @@ export const auth = betterAuth<BetterAuthOptions>({
     expiresIn: 3600,
   },
   advanced: {
+    ipAddress: {
+      ipAddressHeaders: ["x-forwarded-for", "x-real-ip", "cf-connecting-ip"],
+    },
     defaultCookieAttributes: {
       // In production, the web SPA (npanel-web) and the API server (npanel-server) are on
       // separate Cloud Run subdomains under "run.app", which is in the Public Suffix List.

@@ -191,3 +191,52 @@ export interface LogItem {
   message: string;
   date: number;
 }
+
+// 9.8 Account Filters
+export interface AccountFilter {
+  _id: string;
+  name: string;
+  group_id?: string;
+  rules?: Record<string, unknown>[];
+}
+
+export interface AccountFilterGroup {
+  _id: string;
+  name: string;
+}
+
+// 9.12 Queue Priorities
+export interface QueuePriority {
+  _id: string;
+  name: string;
+  priority: number;
+  type?: number;
+}
+
+// 9.17 Restore Conditions
+export interface RestoreCondition {
+  _id: string;
+  name: string;
+  rules?: Record<string, unknown>[];
+}
+
+// 9.18 File Permissions
+export interface FilePermission {
+  _id: string;
+  name: string;
+}
+
+// 9.19 Plugins
+export interface Plugin {
+  _id: string;
+  name: string;
+  version?: string;
+  enabled?: number;
+}
+
+export interface PluginPackage {
+  _id: string;
+  name: string;
+  code?: string;
+  version?: string;
+}

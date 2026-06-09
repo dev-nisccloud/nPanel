@@ -40,6 +40,7 @@ import { handleReplicateWebhook } from "./api/webhooks/replicate-image-generator
 import { handleResendWebhook } from "./api/webhooks/resend";
 import { handleSnsWebhook } from "./api/webhooks/sns";
 import { handleMyIp } from "./api/my-ip";
+import { ensureClientIpOnRequest, readClientIpFromHeaders } from "./request-client-ip";
 import { apiKeyAuth } from "./middleware/auth-middleware";
 import { handleExternalImageGeneration } from "./api/ai/image-generator";
 
@@ -78,6 +79,16 @@ export function createApp(options: CreateAppOptions = {}) {
   const app = new Hono();
 
   app.use(logger());
+  app.use("*", async (c, next) => {
+    if (!readClientIpFromHeaders(c.req.raw.headers)) {
+      try {
+        c.req.raw.headers.set("x-forwarded-for", "127.0.0.1");
+      } catch {
+        // Request headers may be immutable; auth handler clones with IP below.
+      }
+    }
+    await next();
+  });
   app.use(
     "/*",
     cors({
@@ -119,7 +130,7 @@ export function createApp(options: CreateAppOptions = {}) {
         }
       }
 
-      return auth.handler(c.req.raw);
+      return auth.handler(ensureClientIpOnRequest(c.req.raw));
     });
 
     app.use("/trpc/*", trpcMiddleware);

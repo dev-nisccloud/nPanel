@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { getDicebearUrl } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
 import {
   Sidebar,
@@ -266,7 +267,7 @@ export function CalendarSidebar({
 
         <div className="flex items-center gap-3">
           <Avatar className="size-7 border-2 border-background">
-            <AvatarImage src="https://api.dicebear.com/9.x/glass/svg?seed=user" />
+            <AvatarImage src={getDicebearUrl("user")} />
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-foreground truncate">LN</p>

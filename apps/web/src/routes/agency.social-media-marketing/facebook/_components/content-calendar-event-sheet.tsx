@@ -49,6 +49,7 @@ import { Dropzone, DropzoneEmptyState } from "@/components/ui/shadcn-io/dropzone
 import { Progress } from "@/components/ui/progress";
 import { uploadFiles } from "@/hooks/use-uploadthing";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+import { getDicebearUrl } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
 interface ContentCalendarPost {
@@ -595,7 +596,7 @@ export function ContentCalendarEventSheet({
 										<div className="flex items-center gap-2">
 											<Avatar className="size-8">
 												<AvatarImage
-													src={`https://api.dicebear.com/9.x/glass/svg?seed=${currentPost.pageTokenId || currentPost.id}`}
+													src={getDicebearUrl(currentPost.pageTokenId || currentPost.id)}
 												/>
 											</Avatar>
 											<div className="flex-1">
@@ -907,7 +908,7 @@ export function ContentCalendarEventSheet({
 												<AvatarImage
 													src={
 														currentPost.creator.image ||
-														`https://api.dicebear.com/9.x/glass/svg?seed=${currentPost.creator.id}`
+														getDicebearUrl(currentPost.creator.id)
 													}
 												/>
 											</Avatar>
@@ -927,7 +928,7 @@ export function ContentCalendarEventSheet({
 										<div className="flex items-start gap-3">
 											<Avatar className="size-7 border-[1.4px] border-background shrink-0">
 												<AvatarImage
-													src={`https://api.dicebear.com/9.x/glass/svg?seed=${currentPost.createdBy}`}
+													src={getDicebearUrl(currentPost.createdBy)}
 												/>
 											</Avatar>
 											<div className="flex-1 min-w-0">

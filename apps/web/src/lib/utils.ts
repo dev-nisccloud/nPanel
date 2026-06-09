@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** DiceBear "initial-face" avatar URL seeded from a name, email, or id. */
+export function getDicebearUrl(seed: string) {
+  return `https://api.dicebear.com/10.x/initial-face/svg?seed=${encodeURIComponent(seed)}`;
+}
+
 export const getInitials = (str: string): string => {
   if (typeof str !== "string" || !str.trim()) return "?";
 
