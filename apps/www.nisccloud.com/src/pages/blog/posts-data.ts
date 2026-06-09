@@ -29,7 +29,7 @@ export const posts: Post[] = [
     category: "Brand Strategy",
     title: "Why Every Kenyan SME Needs a Digital Identity Before Anything Else",
     excerpt:
-      "Before you run ads, post on social media, or build a website — you need a brand. We break down why identity comes first and how to get it right without breaking the bank.",
+      "Before you run ads, post on social media, or build a website - you need a brand. We break down why identity comes first and how to get it right without breaking the bank.",
     readTime: "6 min read",
     date: "Apr 28, 2025",
     featured: true,
@@ -44,19 +44,19 @@ export const posts: Post[] = [
       { type: "h2", text: "What 'Digital Identity' Actually Means" },
       {
         type: "p",
-        text: "Your digital identity is the sum of every impression your business makes online — your logo, colours, tone of voice, website layout, social media presence, and even how you respond to reviews. When these elements are consistent and intentional, they build trust. When they're scattered, potential customers quietly move on.",
+        text: "Your digital identity is the sum of every impression your business makes online - your logo, colours, tone of voice, website layout, social media presence, and even how you respond to reviews. When these elements are consistent and intentional, they build trust. When they're scattered, potential customers quietly move on.",
       },
       {
         type: "blockquote",
-        text: "A business without a consistent brand is like a shop with no signage. People might stumble in, but they rarely come back — and they never refer.",
+        text: "A business without a consistent brand is like a shop with no signage. People might stumble in, but they rarely come back - and they never refer.",
       },
       { type: "h2", text: "The 3 Pillars of a Strong Digital Identity" },
       {
         type: "ol",
         items: [
-          "Visual Identity — Logo, colour palette, typography, and imagery that are distinctly yours. Consistency here is more important than being 'beautiful'.",
-          "Voice & Messaging — The words you use, the promises you make, and the story you tell. Your tone should be the same whether you're posting on Instagram or replying to a client email.",
-          "Owned Digital Assets — A professional website, a branded email address, and a claimed Google Business Profile. These are the non-negotiables.",
+          "Visual Identity - Logo, colour palette, typography, and imagery that are distinctly yours. Consistency here is more important than being 'beautiful'.",
+          "Voice & Messaging - The words you use, the promises you make, and the story you tell. Your tone should be the same whether you're posting on Instagram or replying to a client email.",
+          "Owned Digital Assets - A professional website, a branded email address, and a claimed Google Business Profile. These are the non-negotiables.",
         ],
       },
       {
@@ -70,7 +70,7 @@ export const posts: Post[] = [
       { type: "h2", text: "Why SMEs Skip This Step (And Pay for It Later)" },
       {
         type: "p",
-        text: "The most common reason we hear: 'We'll sort out the branding later, once we start making money.' But this is backwards. Without a brand, your marketing spend is wasted — ads drive traffic to a website or social profile that doesn't convert because it looks untrustworthy.",
+        text: "The most common reason we hear: 'We'll sort out the branding later, once we start making money.' But this is backwards. Without a brand, your marketing spend is wasted - ads drive traffic to a website or social profile that doesn't convert because it looks untrustworthy.",
       },
       {
         type: "ul",
@@ -78,7 +78,7 @@ export const posts: Post[] = [
           "You spend more on ads because your conversion rate is low.",
           "Customers choose better-looking competitors even if your product is superior.",
           "You can't charge premium prices without a premium-looking brand.",
-          "Word-of-mouth referrals drop — people don't refer brands they'd be embarrassed to share.",
+          "Word-of-mouth referrals drop - people don't refer brands they'd be embarrassed to share.",
         ],
       },
       {
@@ -95,23 +95,23 @@ export const posts: Post[] = [
       {
         type: "ol",
         items: [
-          "Audit — Where do you currently stand? What exists, what's inconsistent, what's missing?",
-          "Position — Who are you, who do you serve, and what makes you different?",
-          "Design — Visual identity system: logo, colours, fonts, photography style.",
-          "Platform — Website, Google Business Profile, branded social profiles.",
-          "Voice — Brand messaging guide: tagline, elevator pitch, tone of voice.",
+          "Audit - Where do you currently stand? What exists, what's inconsistent, what's missing?",
+          "Position - Who are you, who do you serve, and what makes you different?",
+          "Design - Visual identity system: logo, colours, fonts, photography style.",
+          "Platform - Website, Google Business Profile, branded social profiles.",
+          "Voice - Brand messaging guide: tagline, elevator pitch, tone of voice.",
         ],
       },
       {
         type: "closing",
-        text: "Your brand is the foundation everything else is built on. Get it right first, and every other investment — ads, SEO, social media — multiplies in effectiveness. Get in touch with our brand team today for a free digital identity audit.",
+        text: "Your brand is the foundation everything else is built on. Get it right first, and every other investment - ads, SEO, social media - multiplies in effectiveness. Get in touch with our brand team today for a free digital identity audit.",
       },
     ],
   },
   {
     slug: "what-is-aeo-geo-and-why-seo-alone-is-not-enough",
     category: "SEO / AEO / GEO",
-    title: "What is AEO & GEO — And Why SEO Alone Is No Longer Enough in 2025",
+    title: "What is AEO & GEO - And Why SEO Alone Is No Longer Enough in 2025",
     excerpt:
       "Google is no longer the only search engine that matters. ChatGPT, Perplexity, and Google SGE are changing how people find businesses. Here's how to rank everywhere.",
     readTime: "8 min read",
@@ -123,15 +123,15 @@ export const posts: Post[] = [
     content: [
       {
         type: "intro",
-        text: "In 2020, SEO meant ranking on Google. In 2025, your potential customers are asking ChatGPT, searching Perplexity, and getting AI-generated summaries on Google SGE — often without ever clicking your website. If you're not optimised for these new surfaces, you're invisible to a growing segment of your market.",
+        text: "In 2020, SEO meant ranking on Google. In 2025, your potential customers are asking ChatGPT, searching Perplexity, and getting AI-generated summaries on Google SGE - often without ever clicking your website. If you're not optimised for these new surfaces, you're invisible to a growing segment of your market.",
       },
       { type: "h2", text: "The Three Search Disciplines You Need to Know" },
       {
         type: "ul",
         items: [
-          "SEO (Search Engine Optimisation) — Classic Google/Bing ranking through keywords, backlinks, and technical optimisation. Still essential, but no longer sufficient.",
-          "AEO (Answer Engine Optimisation) — Getting your business cited as the answer in AI tools like ChatGPT, Gemini, and Perplexity. Requires structured, authoritative content.",
-          "GEO (Generative Engine Optimisation) — Optimising to appear inside AI-generated summaries on Google SGE and Bing Copilot. Different signals from traditional SEO.",
+          "SEO (Search Engine Optimisation) - Classic Google/Bing ranking through keywords, backlinks, and technical optimisation. Still essential, but no longer sufficient.",
+          "AEO (Answer Engine Optimisation) - Getting your business cited as the answer in AI tools like ChatGPT, Gemini, and Perplexity. Requires structured, authoritative content.",
+          "GEO (Generative Engine Optimisation) - Optimising to appear inside AI-generated summaries on Google SGE and Bing Copilot. Different signals from traditional SEO.",
         ],
       },
       {
@@ -162,7 +162,7 @@ export const posts: Post[] = [
         type: "ul",
         items: [
           "Build author profiles with credentials on all content.",
-          "Keep content updated — AI summaries favour recent, accurate information.",
+          "Keep content updated - AI summaries favour recent, accurate information.",
           "Use structured data (FAQ, HowTo, Article schema).",
           "Earn mentions from authoritative Kenyan news sites and industry blogs.",
           "Create comprehensive, in-depth content that covers topics fully.",
@@ -184,7 +184,7 @@ export const posts: Post[] = [
     category: "E-commerce",
     title: "The Complete M-Pesa E-commerce Checklist for Kenyan Businesses",
     excerpt:
-      "From STK push integration to order fulfilment automation — everything you need to launch a profitable online store in Kenya, step by step.",
+      "From STK push integration to order fulfilment automation - everything you need to launch a profitable online store in Kenya, step by step.",
     readTime: "10 min read",
     date: "Apr 15, 2025",
     gradient: "from-emerald-500/20 via-primary/10 to-transparent",
@@ -199,11 +199,11 @@ export const posts: Post[] = [
       {
         type: "ol",
         items: [
-          "Business Registration — You need a registered entity (sole proprietor or limited company) to apply for M-Pesa business payments.",
-          "M-Pesa Paybill or Till Number — Apply through your business bank or directly via Safaricom Business. This is required for STK push payments.",
-          "Daraja API Access — Register at developer.safaricom.co.ke for API credentials. You'll need sandbox testing before going live.",
-          "SSL Certificate — Mandatory for any e-commerce site handling payments. We include this in all hosting packages.",
-          "Product Photography — Poor photos are the #1 conversion killer. Invest in decent product images before launch.",
+          "Business Registration - You need a registered entity (sole proprietor or limited company) to apply for M-Pesa business payments.",
+          "M-Pesa Paybill or Till Number - Apply through your business bank or directly via Safaricom Business. This is required for STK push payments.",
+          "Daraja API Access - Register at developer.safaricom.co.ke for API credentials. You'll need sandbox testing before going live.",
+          "SSL Certificate - Mandatory for any e-commerce site handling payments. We include this in all hosting packages.",
+          "Product Photography - Poor photos are the #1 conversion killer. Invest in decent product images before launch.",
         ],
       },
       {
@@ -218,10 +218,10 @@ export const posts: Post[] = [
       {
         type: "ul",
         items: [
-          "STK Push (Recommended) — Customer enters their phone number, receives a push notification on their phone, enters PIN, and payment is confirmed automatically. Highest conversion rate.",
-          "Paybill Manual Entry — Customer manually types your Paybill number. More friction but no API required. Good for starting out.",
-          "Payment Aggregators (Pesapal, DPO, Flutterwave) — Handle multiple payment methods including cards and M-Pesa. More setup but broader coverage.",
-          "iPay / JamboPay — Local Kenyan payment gateways with competitive rates and good local support.",
+          "STK Push (Recommended) - Customer enters their phone number, receives a push notification on their phone, enters PIN, and payment is confirmed automatically. Highest conversion rate.",
+          "Paybill Manual Entry - Customer manually types your Paybill number. More friction but no API required. Good for starting out.",
+          "Payment Aggregators (Pesapal, DPO, Flutterwave) - Handle multiple payment methods including cards and M-Pesa. More setup but broader coverage.",
+          "iPay / JamboPay - Local Kenyan payment gateways with competitive rates and good local support.",
         ],
       },
       {
@@ -241,7 +241,7 @@ export const posts: Post[] = [
         items: [
           "Set up abandoned cart recovery via SMS and WhatsApp (much higher open rates than email in Kenya).",
           "Add Google Analytics 4 and Meta Pixel from day one to build retargeting audiences.",
-          "Create a loyalty points system — Kenyans respond exceptionally well to loyalty programmes.",
+          "Create a loyalty points system - Kenyans respond exceptionally well to loyalty programmes.",
           "List on Jumia and Jiji as additional channels while building your own store's traffic.",
           "Run periodic WhatsApp broadcast promotions to your customer list.",
         ],
@@ -257,7 +257,7 @@ export const posts: Post[] = [
     category: "AI Automation",
     title: "Zeepo AI Explained: How We're Replacing Your Sales Team With Smart Bots",
     excerpt:
-      "CRM automation, WhatsApp chatbots, AI-generated follow-ups — Zeepo AI is the engine that keeps working while you sleep. Here's the full picture.",
+      "CRM automation, WhatsApp chatbots, AI-generated follow-ups - Zeepo AI is the engine that keeps working while you sleep. Here's the full picture.",
     readTime: "7 min read",
     date: "Apr 10, 2025",
     gradient: "from-orange-500/20 via-primary/10 to-transparent",
@@ -266,7 +266,7 @@ export const posts: Post[] = [
     content: [
       {
         type: "intro",
-        text: "What if your business could respond to every lead within 60 seconds, qualify them automatically, send a personalised follow-up at the perfect time, and book a demo — all while you sleep? That's not science fiction. That's Zeepo AI.",
+        text: "What if your business could respond to every lead within 60 seconds, qualify them automatically, send a personalised follow-up at the perfect time, and book a demo - all while you sleep? That's not science fiction. That's Zeepo AI.",
       },
       { type: "h2", text: "What Is Zeepo AI?" },
       {
@@ -285,11 +285,11 @@ export const posts: Post[] = [
       {
         type: "ol",
         items: [
-          "WhatsApp AI Chatbot — Trained on your business FAQs, product catalogue, and pricing. Handles 80% of inbound queries without human intervention.",
-          "Lead Scoring Engine — Automatically scores and prioritises leads based on behaviour, source, and intent signals.",
-          "AI Follow-Up Sequences — Personalised follow-up messages generated and sent at optimal times based on lead behaviour.",
-          "CRM Auto-Population — Lead data from all sources (website forms, WhatsApp, Instagram DMs) flows into a single CRM automatically.",
-          "Appointment Booking Bot — Qualifies leads and books discovery calls directly into your team's calendar.",
+          "WhatsApp AI Chatbot - Trained on your business FAQs, product catalogue, and pricing. Handles 80% of inbound queries without human intervention.",
+          "Lead Scoring Engine - Automatically scores and prioritises leads based on behaviour, source, and intent signals.",
+          "AI Follow-Up Sequences - Personalised follow-up messages generated and sent at optimal times based on lead behaviour.",
+          "CRM Auto-Population - Lead data from all sources (website forms, WhatsApp, Instagram DMs) flows into a single CRM automatically.",
+          "Appointment Booking Bot - Qualifies leads and books discovery calls directly into your team's calendar.",
         ],
       },
       {
@@ -314,7 +314,7 @@ export const posts: Post[] = [
       },
       {
         type: "closing",
-        text: "Zeepo AI isn't a tool you set up and forget — it's a system that gets smarter over time. Book a live demo to see it in action with a simulated version of your own business workflow.",
+        text: "Zeepo AI isn't a tool you set up and forget - it's a system that gets smarter over time. Book a live demo to see it in action with a simulated version of your own business workflow.",
       },
     ],
   },
@@ -323,7 +323,7 @@ export const posts: Post[] = [
     category: "Cloud Hosting",
     title: "Shared Hosting vs VPS in Kenya: Which One Does Your Business Actually Need?",
     excerpt:
-      "Not all hosting is equal. We help you pick the right tier — from shared hosting at KES 350/mo to managed VPS — without overpaying for resources you'll never use.",
+      "Not all hosting is equal. We help you pick the right tier - from shared hosting at KES 350/mo to managed VPS - without overpaying for resources you'll never use.",
     readTime: "5 min read",
     date: "Apr 5, 2025",
     gradient: "from-cyan-500/20 via-primary/10 to-transparent",
@@ -337,7 +337,7 @@ export const posts: Post[] = [
       { type: "h2", text: "Shared Hosting: What It Is and Who It's For" },
       {
         type: "p",
-        text: "Shared hosting puts your website on a server alongside hundreds of other websites. You share CPU, RAM, and bandwidth. This makes it very affordable — our shared plans start at KES 350/month — but it means your performance can be affected by other sites on the server.",
+        text: "Shared hosting puts your website on a server alongside hundreds of other websites. You share CPU, RAM, and bandwidth. This makes it very affordable - our shared plans start at KES 350/month - but it means your performance can be affected by other sites on the server.",
       },
       {
         type: "ul",
@@ -345,7 +345,7 @@ export const posts: Post[] = [
           "Best for: New businesses, brochure websites, portfolios, small blogs.",
           "Monthly visitors: Up to ~10,000 monthly visitors comfortably.",
           "Typical cost: KES 350–1,200/month.",
-          "Management: Fully managed — no technical knowledge required.",
+          "Management: Fully managed - no technical knowledge required.",
         ],
       },
       {
@@ -359,7 +359,7 @@ export const posts: Post[] = [
       { type: "h2", text: "VPS Hosting: When You've Outgrown Shared" },
       {
         type: "p",
-        text: "A Virtual Private Server gives you a dedicated slice of a physical server. Your resources are yours alone — CPU, RAM, and storage are not shared. This means consistent performance, more control, and the ability to handle significantly more traffic.",
+        text: "A Virtual Private Server gives you a dedicated slice of a physical server. Your resources are yours alone - CPU, RAM, and storage are not shared. This means consistent performance, more control, and the ability to handle significantly more traffic.",
       },
       {
         type: "ul",
@@ -367,14 +367,14 @@ export const posts: Post[] = [
           "Best for: E-commerce stores, growing SaaS apps, high-traffic blogs, custom software.",
           "Monthly visitors: 10,000 to 500,000+ depending on configuration.",
           "Typical cost: KES 3,500–15,000/month.",
-          "Management: Managed VPS available — we handle all server administration.",
+          "Management: Managed VPS available - we handle all server administration.",
         ],
       },
       {
         type: "callout",
         icon: "🏗️",
         title: "The Decision Framework",
-        text: "If your site is generating revenue, getting more than 5,000 visitors/month, or running an e-commerce store, move to VPS. The performance difference is significant and slow load times directly reduce sales — Google data shows a 1-second delay reduces conversions by 7%.",
+        text: "If your site is generating revenue, getting more than 5,000 visitors/month, or running an e-commerce store, move to VPS. The performance difference is significant and slow load times directly reduce sales - Google data shows a 1-second delay reduces conversions by 7%.",
       },
       { type: "h2", text: "Migration: Moving from Shared to VPS" },
       {
@@ -383,7 +383,7 @@ export const posts: Post[] = [
       },
       {
         type: "closing",
-        text: "Not sure which tier you need? Use our hosting recommendation tool or chat with our team — we'll audit your current site and recommend the right hosting for your specific traffic and use case.",
+        text: "Not sure which tier you need? Use our hosting recommendation tool or chat with our team - we'll audit your current site and recommend the right hosting for your specific traffic and use case.",
       },
     ],
   },
@@ -401,12 +401,12 @@ export const posts: Post[] = [
     content: [
       {
         type: "intro",
-        text: "The Google vs Meta debate is one of the most common questions we get from new clients. After managing over KES 50 million in combined ad spend across dozens of Kenyan businesses, we have enough data to give you a definitive answer — for most industries.",
+        text: "The Google vs Meta debate is one of the most common questions we get from new clients. After managing over KES 50 million in combined ad spend across dozens of Kenyan businesses, we have enough data to give you a definitive answer - for most industries.",
       },
       { type: "h2", text: "The Core Difference: Intent vs Interruption" },
       {
         type: "p",
-        text: "Google Ads captures demand: the user is actively searching for what you sell. You show up at the moment of intent. Meta Ads (Facebook and Instagram) creates demand: the user wasn't thinking about your product, but your ad interrupts their scroll and plants the idea. Both work — but they work differently, at different stages of the customer journey.",
+        text: "Google Ads captures demand: the user is actively searching for what you sell. You show up at the moment of intent. Meta Ads (Facebook and Instagram) creates demand: the user wasn't thinking about your product, but your ad interrupts their scroll and plants the idea. Both work - but they work differently, at different stages of the customer journey.",
       },
       {
         type: "stat-row",
@@ -420,7 +420,7 @@ export const posts: Post[] = [
       {
         type: "ul",
         items: [
-          "High-intent services: Plumbers, lawyers, dentists, accountants, IT services — people search when they have a problem.",
+          "High-intent services: Plumbers, lawyers, dentists, accountants, IT services - people search when they have a problem.",
           "B2B lead generation: Decision-makers research solutions on Google.",
           "E-commerce product searches: 'Buy [product] in Nairobi' type queries.",
           "Local service businesses: Google Maps ads convert extremely well for local services.",
@@ -430,10 +430,10 @@ export const posts: Post[] = [
       {
         type: "ul",
         items: [
-          "Fashion, beauty, and lifestyle brands — Instagram is a discovery platform.",
-          "Consumer products with visual appeal — food, home décor, fitness.",
-          "Events and entertainment — Facebook Events and Instagram Stories.",
-          "Brand awareness at scale — cost per impression is lower than Google.",
+          "Fashion, beauty, and lifestyle brands - Instagram is a discovery platform.",
+          "Consumer products with visual appeal - food, home décor, fitness.",
+          "Events and entertainment - Facebook Events and Instagram Stories.",
+          "Brand awareness at scale - cost per impression is lower than Google.",
           "Retargeting warm audiences who visited your website.",
         ],
       },
@@ -450,7 +450,7 @@ export const posts: Post[] = [
       },
       {
         type: "closing",
-        text: "The honest answer is: you need both, but the right split depends entirely on your industry and customer journey. Get a free paid media audit from our team — we'll show you exactly where your KES should go.",
+        text: "The honest answer is: you need both, but the right split depends entirely on your industry and customer journey. Get a free paid media audit from our team - we'll show you exactly where your KES should go.",
       },
     ],
   },
@@ -468,12 +468,12 @@ export const posts: Post[] = [
     content: [
       {
         type: "intro",
-        text: "You've heard that 'content is king'. What nobody tells small business owners is that consistency is the queen — and she runs the kingdom. Sporadic posting with inconsistent visuals and messaging is doing more damage to your brand than not posting at all.",
+        text: "You've heard that 'content is king'. What nobody tells small business owners is that consistency is the queen - and she runs the kingdom. Sporadic posting with inconsistent visuals and messaging is doing more damage to your brand than not posting at all.",
       },
       { type: "h2", text: "The Revenue Link You're Missing" },
       {
         type: "p",
-        text: "Lucidpress research found that consistent brand presentation across all platforms increases revenue by an average of 23%. The mechanism is simple: consistency builds familiarity, familiarity builds trust, trust drives purchase decisions. On social media, your audience sees your content repeatedly — and every touchpoint is either reinforcing or eroding that trust.",
+        text: "Lucidpress research found that consistent brand presentation across all platforms increases revenue by an average of 23%. The mechanism is simple: consistency builds familiarity, familiarity builds trust, trust drives purchase decisions. On social media, your audience sees your content repeatedly - and every touchpoint is either reinforcing or eroding that trust.",
       },
       {
         type: "stat-row",
@@ -487,11 +487,11 @@ export const posts: Post[] = [
       {
         type: "ol",
         items: [
-          "Profile Photo — Same logo, same crop, across all platforms. Never use a personal photo for a business account.",
-          "Cover Images / Banners — Updated seasonally but always on-brand in colour and style.",
-          "Post Templates — Use 3-5 Canva or Adobe Express templates for different content types (tips, promotions, testimonials, behind-the-scenes).",
-          "Colour Palette — Never deviate from your 2-3 brand colours. Ever.",
-          "Typography — Stick to 1-2 fonts. Mixing fonts is the fastest way to look unprofessional.",
+          "Profile Photo - Same logo, same crop, across all platforms. Never use a personal photo for a business account.",
+          "Cover Images / Banners - Updated seasonally but always on-brand in colour and style.",
+          "Post Templates - Use 3-5 Canva or Adobe Express templates for different content types (tips, promotions, testimonials, behind-the-scenes).",
+          "Colour Palette - Never deviate from your 2-3 brand colours. Ever.",
+          "Typography - Stick to 1-2 fonts. Mixing fonts is the fastest way to look unprofessional.",
         ],
       },
       {
@@ -504,7 +504,7 @@ export const posts: Post[] = [
       {
         type: "ul",
         items: [
-          "Create a simple Brand Bible — one document with your logo files, colour codes (HEX, CMYK), fonts, and approved imagery style.",
+          "Create a simple Brand Bible - one document with your logo files, colour codes (HEX, CMYK), fonts, and approved imagery style.",
           "Build 4 weeks of content templates in Canva. All team members use only these templates.",
           "Batch-create content monthly. One day per month to create 20-30 posts is more efficient than daily scrambling.",
           "Use a scheduling tool (Buffer, Later, or Meta Business Suite) to maintain a consistent posting cadence.",
@@ -520,7 +520,7 @@ export const posts: Post[] = [
   {
     slug: "email-marketing-still-works-2025",
     category: "Email Marketing",
-    title: "Email Marketing Still Works — You're Just Doing It Wrong",
+    title: "Email Marketing Still Works - You're Just Doing It Wrong",
     excerpt:
       "42:1 ROI. Email is still the highest-returning channel in digital marketing. The problem is most businesses treat it as an afterthought. Here's the playbook.",
     readTime: "7 min read",
@@ -531,7 +531,7 @@ export const posts: Post[] = [
     content: [
       {
         type: "intro",
-        text: "Every few years someone declares email marketing dead. Every year it proves them wrong. In 2025, email still delivers an average return of KES 4,200 for every KES 100 spent — higher than any other digital marketing channel. The problem isn't email. The problem is how most businesses use it.",
+        text: "Every few years someone declares email marketing dead. Every year it proves them wrong. In 2025, email still delivers an average return of KES 4,200 for every KES 100 spent - higher than any other digital marketing channel. The problem isn't email. The problem is how most businesses use it.",
       },
       { type: "h2", text: "Why Most Business Email Fails" },
       {
@@ -539,9 +539,9 @@ export const posts: Post[] = [
         items: [
           "Sending from a Gmail or free email address (destroys deliverability and trust).",
           "Treating email as a broadcast channel rather than a conversation.",
-          "No segmentation — everyone gets the same email regardless of what they bought or how they engaged.",
+          "No segmentation - everyone gets the same email regardless of what they bought or how they engaged.",
           "Sending too infrequently (monthly newsletter no one remembers signing up for).",
-          "No automation — manually sending emails instead of building sequences that work 24/7.",
+          "No automation - manually sending emails instead of building sequences that work 24/7.",
         ],
       },
       {
@@ -556,11 +556,11 @@ export const posts: Post[] = [
       {
         type: "ol",
         items: [
-          "Welcome Sequence (5 emails, 10 days) — Introduce your brand, deliver on the lead magnet, share social proof, and make a soft offer.",
-          "Abandoned Cart Recovery (3 emails, 72 hours) — Remind, reassure, and incentivise. Recovers 15-20% of abandoned carts on average.",
-          "Post-Purchase Nurture (4 emails, 30 days) — Onboarding, usage tips, and a request for a review or referral.",
-          "Re-engagement Campaign (3 emails) — Win back subscribers who haven't opened in 90+ days before removing them from your list.",
-          "Lead Nurture Drip (8-10 emails, 6 weeks) — For B2B, nurture leads from interest to sales conversation readiness.",
+          "Welcome Sequence (5 emails, 10 days) - Introduce your brand, deliver on the lead magnet, share social proof, and make a soft offer.",
+          "Abandoned Cart Recovery (3 emails, 72 hours) - Remind, reassure, and incentivise. Recovers 15-20% of abandoned carts on average.",
+          "Post-Purchase Nurture (4 emails, 30 days) - Onboarding, usage tips, and a request for a review or referral.",
+          "Re-engagement Campaign (3 emails) - Win back subscribers who haven't opened in 90+ days before removing them from your list.",
+          "Lead Nurture Drip (8-10 emails, 6 weeks) - For B2B, nurture leads from interest to sales conversation readiness.",
         ],
       },
       {

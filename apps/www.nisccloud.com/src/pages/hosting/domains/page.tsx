@@ -94,7 +94,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     headline: "Check 200+ extensions instantly",
     body: "Search for your perfect domain across .co.ke, .com, .org, .net, and 200+ extensions simultaneously. Get smart alternative suggestions if your first choice is taken.",
     bullets: [
-      "KENIC-accredited .co.ke registrar — registered at source",
+      "KENIC-accredited .co.ke registrar - registered at source",
       "Instant activation upon M-Pesa payment confirmation",
       "Free WHOIS privacy protection on all eligible extensions",
     ],
@@ -134,7 +134,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     headline: "Never lose a domain by accident",
     body: "Auto-renewal, email + SMS expiry alerts at 90, 30, and 7 days, and a 30-day grace period after expiry protect your most valuable digital asset from accidental loss.",
     bullets: [
-      "Auto-renewal option — domain secured forever automatically",
+      "Auto-renewal option - domain secured forever automatically",
       "Email + SMS alerts at 90, 30, and 7 days before expiry",
       "Full DNS management with 5-minute global propagation",
     ],
@@ -177,9 +177,9 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Domain Extensions",
     headline: "Every extension your Kenyan brand needs",
-    body: "Register local Kenyan extensions for credibility with Kenyan customers, global extensions to protect your brand internationally, and niche extensions for specialized businesses — all from one dashboard.",
+    body: "Register local Kenyan extensions for credibility with Kenyan customers, global extensions to protect your brand internationally, and niche extensions for specialized businesses - all from one dashboard.",
     bullets: [
-      ".co.ke signals a Kenyan business — builds local trust instantly",
+      ".co.ke signals a Kenyan business - builds local trust instantly",
       "Bundle .co.ke + .com to protect your brand from copycats",
       "Resell or manage multiple extensions under one account",
     ],
@@ -219,7 +219,7 @@ export default function DomainsPage() {
     <ServicePageShell
       badge="Domain Registration Kenya"
       headline={<>Register Your <span className="text-primary">.co.ke Domain</span> in Kenya Today</>}
-      subtext="KENIC-accredited domain registrar in Kenya. Register .co.ke, .com, .org, and 200+ extensions with instant activation, free WHOIS privacy, and full DNS management. M-Pesa accepted — domain live in under 3 minutes."
+      subtext="KENIC-accredited domain registrar in Kenya. Register .co.ke, .com, .org, and 200+ extensions with instant activation, free WHOIS privacy, and full DNS management. M-Pesa accepted - domain live in under 3 minutes."
       serviceType="hosting"
       plansUnderHero
       trustStats={[
@@ -234,11 +234,11 @@ export default function DomainsPage() {
         {
           icon: <Globe size={20} />,
           title: "KENIC-Accredited .co.ke Registrar",
-          desc: "Nisc Cloud is an officially accredited KENIC registrar. Your .co.ke, .or.ke, .ac.ke, and .go.ke domains are registered directly with the Kenyan registry — no middlemen.",
+          desc: "Nisc Cloud is an officially accredited KENIC registrar. Your .co.ke, .or.ke, .ac.ke, and .go.ke domains are registered directly with the Kenyan registry - no middlemen.",
         },
         {
           icon: <Search size={20} />,
-          title: "Instant Domain Search — 200+ Extensions",
+          title: "Instant Domain Search - 200+ Extensions",
           desc: "Search your ideal domain across 200+ extensions simultaneously. Get smart alternative suggestions if your first choice is taken, including regional and niche extensions.",
         },
         {
@@ -258,13 +258,13 @@ export default function DomainsPage() {
         },
         {
           icon: <Award size={20} />,
-          title: "Free DNS Management — Anycast Speed",
+          title: "Free DNS Management - Anycast Speed",
           desc: "Full DNS control with a clean interface. Create A, CNAME, MX, TXT, SRV records. DNS propagates globally in under 5 minutes via our Anycast DNS network.",
         },
         {
           icon: <Zap size={20} />,
           title: "Instant Activation via M-Pesa",
-          desc: "Domains activate immediately upon M-Pesa payment confirmation — 24/7. Your domain is live and resolving before you finish your M-Pesa transaction.",
+          desc: "Domains activate immediately upon M-Pesa payment confirmation - 24/7. Your domain is live and resolving before you finish your M-Pesa transaction.",
         },
         {
           icon: <MapPin size={20} />,
@@ -339,15 +339,15 @@ export default function DomainsPage() {
         { num: "04", title: "Connect Your Website", desc: "Point DNS to your hosting, set up MX records for email, or connect to any website builder. Our team helps with configuration for free." },
       ]}
       whyPoints={[
-        { title: "Official KENIC-Accredited Registrar Kenya", desc: "We are one of Kenya's few KENIC-accredited registrars. Your .co.ke registration is handled directly at the source — no third-party resellers." },
-        { title: "KES Pricing — No USD Currency Shocks", desc: "All domain prices are in Kenyan Shillings. Pay what you see — no currency conversion fees, no hidden charges at renewal time." },
-        { title: "M-Pesa Domain Registration in 3 Minutes", desc: "The only Kenyan domain registrar where you can register a domain entirely via M-Pesa in under 3 minutes — 24/7 including public holidays." },
+        { title: "Official KENIC-Accredited Registrar Kenya", desc: "We are one of Kenya's few KENIC-accredited registrars. Your .co.ke registration is handled directly at the source - no third-party resellers." },
+        { title: "KES Pricing - No USD Currency Shocks", desc: "All domain prices are in Kenyan Shillings. Pay what you see - no currency conversion fees, no hidden charges at renewal time." },
+        { title: "M-Pesa Domain Registration in 3 Minutes", desc: "The only Kenyan domain registrar where you can register a domain entirely via M-Pesa in under 3 minutes - 24/7 including public holidays." },
         { title: "Expiry Protection & 30-Day Grace Period", desc: "Expired domains are held for 30 days before release. We exhaust every renewal attempt before any domain is lost." },
-        { title: "Free DNS Hosting Included Forever", desc: "DNS hosting is included free with every domain — forever. No separate fees, no zone file complexity, just a clean interface." },
-        { title: "Free Transfer Support — Fast & Easy", desc: "Moving a domain from another registrar? Our team handles the entire process for free. Most transfers complete in 5–7 days." },
+        { title: "Free DNS Hosting Included Forever", desc: "DNS hosting is included free with every domain - forever. No separate fees, no zone file complexity, just a clean interface." },
+        { title: "Free Transfer Support - Fast & Easy", desc: "Moving a domain from another registrar? Our team handles the entire process for free. Most transfers complete in 5–7 days." },
       ]}
       faqs={[
-        { q: "How do I register a .co.ke domain in Kenya?", a: "Register a .co.ke domain with Nisc Cloud — Kenya's KENIC-accredited registrar. Search your domain, pay via M-Pesa, and it's active in under 3 minutes. Cost: KES 999/year." },
+        { q: "How do I register a .co.ke domain in Kenya?", a: "Register a .co.ke domain with Nisc Cloud - Kenya's KENIC-accredited registrar. Search your domain, pay via M-Pesa, and it's active in under 3 minutes. Cost: KES 999/year." },
         { q: "What documents are needed for .co.ke registration?", a: "Most .co.ke domains require only a valid Kenyan contact. For .or.ke you need NGO/org registration proof. For .ac.ke you need evidence of an educational institution. We guide you through all requirements." },
         { q: "Can I transfer my domain to Nisc Cloud?", a: "Yes. We accept transfers from any ICANN-accredited registrar. For .co.ke domains, we coordinate with KENIC directly. The process takes 5–7 days and we provide full transfer support at no charge." },
         { q: "What happens if my domain expires?", a: "You receive reminders at 90, 30, and 7 days before expiry. After expiry, your domain enters a 30-day grace period where you can still renew at the standard rate." },

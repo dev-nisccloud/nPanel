@@ -30,7 +30,7 @@ export default function DomainSearch() {
     setResult(null);
     setSearchedDomain(clean.includes(".") ? clean : `${clean}.co.ke`);
 
-    // Simulate a check — in production this calls the OpenProvider/KENIC API
+    // Simulate a check - in production this calls the OpenProvider/KENIC API
     setTimeout(() => {
       setLoading(false);
       // Deterministic mock based on query length for demo

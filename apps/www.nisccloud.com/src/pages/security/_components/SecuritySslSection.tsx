@@ -11,7 +11,7 @@ const sslOptions = [
     points: [
       "Available in DV, OV and EV SSL certificates",
       "Protect one site, multiple sites or subdomains",
-      "1-year validity period — longer terms available",
+      "1-year validity period - longer terms available",
       "Full management and control",
     ],
     from: 999,
@@ -23,12 +23,12 @@ const sslOptions = [
   {
     type: "We'll do it for you",
     name: "Managed SSL Service",
-    desc: "Our Nisc Cloud experts handle the installation, maintenance and updates for you — so you can focus on running your business.",
+    desc: "Our Nisc Cloud experts handle the installation, maintenance and updates for you - so you can focus on running your business.",
     points: [
       "Includes one DV SSL certificate",
       "Protect one site, multiple sites or subdomains",
       "Terms up to 5 years available",
-      "Hands-off — we handle everything",
+      "Hands-off - we handle everything",
     ],
     from: 2000,
     period: "yr",
@@ -100,7 +100,7 @@ export default function SecuritySslSection() {
           transition={{ duration: 0.5 }}
           className="mt-12 text-center max-w-2xl mx-auto"
         >
-          <h3 className="text-xl font-bold mb-3">Beyond SSL — Get Comprehensive Website Security</h3>
+          <h3 className="text-xl font-bold mb-3">Beyond SSL - Get Comprehensive Website Security</h3>
           <p className="text-muted-foreground text-sm leading-relaxed">
             SSL encrypts your traffic. Now add malware detection and removal, daily backups, and a Web Application Firewall to truly protect your website from every angle.
           </p>

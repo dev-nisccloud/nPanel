@@ -79,7 +79,7 @@ function pickPositiveInt(...values) {
     }
     return null;
 }
-/** VPS catalog product for PUT /vps/{deviceId} — not the generic /device/ productId. */
+/** VPS catalog product for PUT /vps/{deviceId} - not the generic /device/ productId. */
 export async function resolveVpsCurrentProductId(deviceId) {
     const current = await hivelocityRequest(`/vps/${deviceId}/current-product`, {
         requireApiKey: true,

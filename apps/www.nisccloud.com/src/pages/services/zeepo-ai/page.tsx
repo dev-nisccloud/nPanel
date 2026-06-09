@@ -6,10 +6,10 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "AI Lead Response",
     headline: "First to respond wins. Always.",
-    body: "Studies show 78% of buyers choose the first business to respond. Our AI replies within 90 seconds — on WhatsApp, your website, Facebook, and Instagram — so you're always first, even at 2am.",
+    body: "Studies show 78% of buyers choose the first business to respond. Our AI replies within 90 seconds - on WhatsApp, your website, Facebook, and Instagram - so you're always first, even at 2am.",
     bullets: [
       "90-second average lead response time, 24/7 including weekends",
-      "Full conversation in English or Swahili — AI switches automatically",
+      "Full conversation in English or Swahili - AI switches automatically",
       "Hot lead alerts sent instantly to your WhatsApp when AI qualifies a buyer",
     ],
     mockupRight: true,
@@ -25,7 +25,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
               { from: "customer", msg: "Habari, ninataka kununua laptop", time: "10:42" },
               { from: "ai", msg: "Karibu! Tunao laptops kuanzia KES 35,000. Unataka specs gani? 💻", time: "10:42" },
               { from: "customer", msg: "Core i5, 8GB RAM", time: "10:43" },
-              { from: "ai", msg: "Perfect! Tuna Lenovo IdeaPad — KES 42,000. Nitakupeleka catalogu sasa 👉", time: "10:43" },
+              { from: "ai", msg: "Perfect! Tuna Lenovo IdeaPad - KES 42,000. Nitakupeleka catalogu sasa 👉", time: "10:43" },
             ].map(({ from, msg, time }) => (
               <div key={time + from} className={`flex ${from === "ai" ? "justify-start" : "justify-end"}`}>
                 <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs ${from === "ai" ? "bg-muted text-foreground" : "bg-[#25D366] text-white"}`}>
@@ -42,11 +42,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Business Intelligence",
     headline: "Know exactly how many leads your AI converts",
-    body: "Monthly AI performance reports show conversations handled, leads qualified, appointments booked, and revenue attributed to AI interactions. No guesswork — pure ROI visibility.",
+    body: "Monthly AI performance reports show conversations handled, leads qualified, appointments booked, and revenue attributed to AI interactions. No guesswork - pure ROI visibility.",
     bullets: [
       "Conversion analytics updated daily in your dashboard",
       "A/B tested message flows to improve conversion rate monthly",
-      "CRM sync — all lead data in HubSpot, Zoho, or Google Sheets",
+      "CRM sync - all lead data in HubSpot, Zoho, or Google Sheets",
     ],
     mockupRight: false,
     mockup: (
@@ -79,7 +79,7 @@ export default function AiAutomationPage() {
     <ServicePageShell
       badge="AI Automation"
       headline={<>Automate Your Business.<br /><span className="text-primary">Grow Without the Overhead.</span></>}
-      subtext="Our AI platform handles your lead follow-up, customer support, appointment booking, and sales nurturing — 24 hours a day, 7 days a week, in English and Swahili. Stop losing leads to slow responses and scale without hiring."
+      subtext="Our AI platform handles your lead follow-up, customer support, appointment booking, and sales nurturing - 24 hours a day, 7 days a week, in English and Swahili. Stop losing leads to slow responses and scale without hiring."
       serviceType="marketing"
       trustStats={[
         { value: "24/7", label: "AI Always Available" },
@@ -91,7 +91,7 @@ export default function AiAutomationPage() {
         {
           icon: <Bot size={20} />,
           title: "AI Sales Assistant",
-          desc: "Qualify leads, answer product questions, and guide prospects through your sales funnel automatically — even at midnight when your team is offline.",
+          desc: "Qualify leads, answer product questions, and guide prospects through your sales funnel automatically - even at midnight when your team is offline.",
         },
         {
           icon: <MessageSquare size={20} />,
@@ -101,7 +101,7 @@ export default function AiAutomationPage() {
         {
           icon: <Zap size={20} />,
           title: "Instant Lead Response",
-          desc: "Respond to every new lead within 90 seconds — on WhatsApp, your website, Facebook, or Instagram. Speed of response is the biggest factor in lead conversion.",
+          desc: "Respond to every new lead within 90 seconds - on WhatsApp, your website, Facebook, or Instagram. Speed of response is the biggest factor in lead conversion.",
         },
         {
           icon: <Calendar size={20} />,
@@ -116,7 +116,7 @@ export default function AiAutomationPage() {
         {
           icon: <BarChart2 size={20} />,
           title: "Conversion Analytics",
-          desc: "See exactly how many leads the AI handled, how many converted, where prospects dropped off, and what messages perform best — with actionable monthly reports.",
+          desc: "See exactly how many leads the AI handled, how many converted, where prospects dropped off, and what messages perform best - with actionable monthly reports.",
         },
         {
           icon: <Shield size={20} />,
@@ -126,7 +126,7 @@ export default function AiAutomationPage() {
         {
           icon: <Sparkles size={20} />,
           title: "Swahili & English Support",
-          desc: "Fully bilingual AI that switches between English and Swahili based on the customer's preference — because your customers communicate in both languages.",
+          desc: "Fully bilingual AI that switches between English and Swahili based on the customer's preference - because your customers communicate in both languages.",
         },
       ]}
       plans={[
@@ -194,9 +194,9 @@ export default function AiAutomationPage() {
         { num: "04", title: "Launch & Optimise", desc: "Go live, monitor every conversation, and optimise monthly. AI performance improves over time as it handles more real interactions." },
       ]}
       whyPoints={[
-        { title: "Kenyan Business Context Built In", desc: "Our AI understands M-Pesa, Kenyan business hours, local terminology, and Swahili — unlike generic chatbot tools built for Western markets." },
-        { title: "Never Lose a Lead to Slow Response", desc: "Studies show 78% of buyers choose the company that responds first. Our AI ensures you're always first — even when you're sleeping or in a meeting." },
-        { title: "Not a Bot, a Business Tool", desc: "It doesn't just answer FAQs. It qualifies leads, books appointments, collects payments, and hands off complex cases — a full sales and support team member." },
+        { title: "Kenyan Business Context Built In", desc: "Our AI understands M-Pesa, Kenyan business hours, local terminology, and Swahili - unlike generic chatbot tools built for Western markets." },
+        { title: "Never Lose a Lead to Slow Response", desc: "Studies show 78% of buyers choose the company that responds first. Our AI ensures you're always first - even when you're sleeping or in a meeting." },
+        { title: "Not a Bot, a Business Tool", desc: "It doesn't just answer FAQs. It qualifies leads, books appointments, collects payments, and hands off complex cases - a full sales and support team member." },
         { title: "Works With Your Existing Tools", desc: "Integrates with Google Calendar, HubSpot, Zoho CRM, Google Sheets, M-Pesa, and hundreds of other tools via Zapier and native APIs." },
         { title: "Pay Less Than One Employee", desc: "A human sales assistant in Nairobi costs KES 40,000–80,000/month plus benefits. Our AI covers the same workload at a fraction of the cost, 24/7." },
         { title: "Your Team Stays Human", desc: "AI handles the repetitive, volume work so your team focuses on high-value relationships, complex deals, and the things that genuinely need a human touch." },
@@ -204,7 +204,7 @@ export default function AiAutomationPage() {
       faqs={[
         { q: "Will customers know they're talking to AI?", a: "You choose. We can configure the AI to be transparent, or to operate under your brand. Most clients choose a branded assistant with clear AI disclosure when directly asked." },
         { q: "What happens when the AI can't answer a question?", a: "When it encounters a question outside its knowledge base, or a frustrated customer, it immediately alerts your team via WhatsApp or email with the full conversation context." },
-        { q: "Can the AI handle M-Pesa payments through WhatsApp?", a: "Yes — for Enterprise clients. We integrate with the Safaricom Daraja API to enable customers to pay via M-Pesa STK Push directly within a WhatsApp conversation." },
+        { q: "Can the AI handle M-Pesa payments through WhatsApp?", a: "Yes - for Enterprise clients. We integrate with the Safaricom Daraja API to enable customers to pay via M-Pesa STK Push directly within a WhatsApp conversation." },
         { q: "How long does setup take?", a: "AI Starter takes 5 business days. Growth takes 10 days. Enterprise takes 2–3 weeks depending on integration complexity. We handle everything." },
         { q: "Can the AI be trained on my specific products and prices?", a: "Yes. During onboarding we collect all your product/service information, pricing, policies, and FAQs. The AI is trained specifically on your business." },
         { q: "Is the conversation data secure?", a: "All conversation data is encrypted, stored securely, and never shared with third parties. You own all your data and can export it at any time." },

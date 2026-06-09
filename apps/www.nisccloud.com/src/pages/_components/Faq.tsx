@@ -9,11 +9,11 @@ const faqs = [
     items: [
       {
         q: "What does 'A-to-Z digital partner' mean?",
-        a: "It means we handle every digital need your business has — from creating your brand identity and building your website, to hosting it on the cloud, running your marketing campaigns, and automating your growth with Zeepo AI. You work with one team, get one invoice, and never have to juggle multiple agencies.",
+        a: "It means we handle every digital need your business has - from creating your brand identity and building your website, to hosting it on the cloud, running your marketing campaigns, and automating your growth with Zeepo AI. You work with one team, get one invoice, and never have to juggle multiple agencies.",
       },
       {
         q: "How is Nisc Cloud different from hiring separate agencies?",
-        a: "When you hire separate agencies for design, hosting, SEO, and ads — they don't talk to each other. Your brand looks different everywhere, strategies conflict, and you spend time coordinating. At Nisc Cloud, everything is integrated under one strategy, one brand voice, and one accountable team.",
+        a: "When you hire separate agencies for design, hosting, SEO, and ads - they don't talk to each other. Your brand looks different everywhere, strategies conflict, and you spend time coordinating. At Nisc Cloud, everything is integrated under one strategy, one brand voice, and one accountable team.",
       },
       {
         q: "Do you serve businesses outside Kenya?",
@@ -51,7 +51,7 @@ const faqs = [
       },
       {
         q: "What is AEO and GEO?",
-        a: "AEO (Answer Engine Optimisation) means optimising your content to appear in AI-powered search tools like ChatGPT, Perplexity, and Google's AI Overviews. GEO (Generative Engine Optimisation) targets Google Maps and local AI results. Together with traditional SEO, they ensure customers find you everywhere they search — not just on Google.",
+        a: "AEO (Answer Engine Optimisation) means optimising your content to appear in AI-powered search tools like ChatGPT, Perplexity, and Google's AI Overviews. GEO (Generative Engine Optimisation) targets Google Maps and local AI results. Together with traditional SEO, they ensure customers find you everywhere they search - not just on Google.",
       },
       {
         q: "Do I need a minimum ad spend budget for paid advertising?",
@@ -68,7 +68,7 @@ const faqs = [
     items: [
       {
         q: "What is Zeepo AI?",
-        a: "Zeepo AI is our proprietary AI-powered marketing automation platform. It creates content (blog posts, social captions, ad copy), automates your email sequences, manages CRM workflows, runs chatbot flows, and nurtures leads automatically — so your marketing runs 24/7 even when your team is offline.",
+        a: "Zeepo AI is our proprietary AI-powered marketing automation platform. It creates content (blog posts, social captions, ad copy), automates your email sequences, manages CRM workflows, runs chatbot flows, and nurtures leads automatically - so your marketing runs 24/7 even when your team is offline.",
       },
       {
         q: "Do I need technical knowledge to use Zeepo AI?",
@@ -85,7 +85,7 @@ const faqs = [
       },
       {
         q: "Is there a contract or can I cancel anytime?",
-        a: "Monthly services (hosting, SEO, ads, social media) are month-to-month with 30 days notice to cancel. One-off projects (website design, brand identity) are paid per milestone. We do not lock clients into long-term contracts — we earn your business every month.",
+        a: "Monthly services (hosting, SEO, ads, social media) are month-to-month with 30 days notice to cancel. One-off projects (website design, brand identity) are paid per milestone. We do not lock clients into long-term contracts - we earn your business every month.",
       },
       {
         q: "What does your '30-day results' guarantee mean?",

@@ -50,7 +50,7 @@ export default function AboutHero() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="text-xl text-muted-foreground text-balance max-w-2xl mx-auto"
         >
-          Nisc Cloud is a digital growth agency built on one belief — that
+          Nisc Cloud is a digital growth agency built on one belief - that
           every business deserves a systematic, science-backed approach to
           scaling online.
         </motion.p>

@@ -295,7 +295,7 @@ export default function OrderDialog({ open, onClose, plan, addons = [], serviceT
                       onChange={(e) => setSelectedDomain(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground mt-2.5 leading-relaxed">
-                      You'll update your nameservers after checkout — we'll walk you through every step.
+                      You'll update your nameservers after checkout - we'll walk you through every step.
                     </p>
                   </div>
                 )}

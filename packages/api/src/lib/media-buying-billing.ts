@@ -1,8 +1,8 @@
 /**
- * Media Buying — stable product and plan ids (seeded by apps/server).
+ * Media Buying - stable product and plan ids (seeded by apps/server).
  */
 
-/** Stable product id — seeded by apps/server/src/scripts/seed-media-buying-product.ts */
+/** Stable product id - seeded by apps/server/src/scripts/seed-media-buying-product.ts */
 export const NISC_MEDIA_BUYING_PRODUCT_ID = "nisc-media-buying";
 
 export const NISC_MEDIA_BUYING_PLAN_IDS = {

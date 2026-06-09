@@ -29,10 +29,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const services = [
-  { value: "create", label: "01 — Create (Brand & Web Design)" },
-  { value: "launch", label: "02 — Launch (Cloud Hosting)" },
-  { value: "market", label: "03 — Market (Digital Marketing)" },
-  { value: "automate", label: "04 — Automate (Marketing Automation)" },
+  { value: "create", label: "01 - Create (Brand & Web Design)" },
+  { value: "launch", label: "02 - Launch (Cloud Hosting)" },
+  { value: "market", label: "03 - Market (Digital Marketing)" },
+  { value: "automate", label: "04 - Automate (Marketing Automation)" },
   { value: "full", label: "Full Growth Stack (All 4 Pillars)" },
   { value: "custom", label: "Custom / Not Sure Yet" },
 ];

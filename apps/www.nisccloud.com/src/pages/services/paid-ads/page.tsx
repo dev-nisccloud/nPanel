@@ -6,7 +6,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Campaign Performance",
     headline: "Every shilling tracked. Every lead attributed.",
-    body: "We set up conversion tracking before the first ad runs. You see exactly how many leads and sales each campaign generated — not just clicks and impressions that don't pay the bills.",
+    body: "We set up conversion tracking before the first ad runs. You see exactly how many leads and sales each campaign generated - not just clicks and impressions that don't pay the bills.",
     bullets: [
       "Google Tag Manager, Meta Pixel, and server-side tracking configured",
       "Weekly performance reports with cost-per-lead breakdowns",
@@ -39,7 +39,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Audience Targeting",
     headline: "Reach Nairobi estate residents. Not random people.",
-    body: "We target by postcode, estate, income bracket, and interests — so your ads reach the exact Kenyan consumer most likely to buy from you, not waste budget on the wrong audience.",
+    body: "We target by postcode, estate, income bracket, and interests - so your ads reach the exact Kenyan consumer most likely to buy from you, not waste budget on the wrong audience.",
     bullets: [
       "Hyper-local geo-targeting down to Nairobi estate level",
       "Lookalike audiences built from your best existing customers",
@@ -78,7 +78,7 @@ export default function PaidAdsPage() {
     <ServicePageShell
       badge="Paid Advertising Management"
       headline={<>Google, Meta & TikTok Ads<br /><span className="text-primary">That Actually Make Money</span></>}
-      subtext="Stop burning budget on ads that get clicks but no customers. We run performance-first advertising campaigns on Google, Facebook, Instagram, and TikTok — engineered to deliver measurable ROI for Kenyan businesses."
+      subtext="Stop burning budget on ads that get clicks but no customers. We run performance-first advertising campaigns on Google, Facebook, Instagram, and TikTok - engineered to deliver measurable ROI for Kenyan businesses."
       serviceType="marketing"
       trustStats={[
         { value: "KES 85M+", label: "Ad Spend Managed Annually" },
@@ -95,12 +95,12 @@ export default function PaidAdsPage() {
         {
           icon: <TrendingUp size={20} />,
           title: "Conversion-Focused Ad Creative",
-          desc: "We write copy and design visuals specifically for Kenyan audiences — culturally relevant ads that stop the scroll and drive action, not just impressions.",
+          desc: "We write copy and design visuals specifically for Kenyan audiences - culturally relevant ads that stop the scroll and drive action, not just impressions.",
         },
         {
           icon: <BarChart2 size={20} />,
           title: "Rigorous A/B Testing",
-          desc: "Continuously test headlines, images, audiences, and landing pages to find what converts best — then scale winners and kill losers without hesitation.",
+          desc: "Continuously test headlines, images, audiences, and landing pages to find what converts best - then scale winners and kill losers without hesitation.",
         },
         {
           icon: <Globe size={20} />,
@@ -110,7 +110,7 @@ export default function PaidAdsPage() {
         {
           icon: <Megaphone size={20} />,
           title: "Meta (Facebook & Instagram) Ads",
-          desc: "Full-funnel Meta campaigns — awareness, consideration, and retargeting — that build brand and drive conversions across the biggest social platforms in Kenya.",
+          desc: "Full-funnel Meta campaigns - awareness, consideration, and retargeting - that build brand and drive conversions across the biggest social platforms in Kenya.",
         },
         {
           icon: <Zap size={20} />,
@@ -195,10 +195,10 @@ export default function PaidAdsPage() {
       ]}
       whyPoints={[
         { title: "We Speak Kenyan Consumer", desc: "Ad copy that works in New York doesn't work in Nairobi. We craft messaging, visuals, and offers tuned to Kenyan culture and buying behaviour." },
-        { title: "No Wasted Impressions", desc: "We obsess over targeting precision. Every impression should be seen by someone likely to buy — not wasted on the wrong audience just to hit reach numbers." },
+        { title: "No Wasted Impressions", desc: "We obsess over targeting precision. Every impression should be seen by someone likely to buy - not wasted on the wrong audience just to hit reach numbers." },
         { title: "Management Fee Separate from Ad Spend", desc: "Our management fee is fixed. Your ad spend goes 100% to the platforms. No hidden markups on ad spend, no conflict of interest." },
         { title: "Conversion Tracking That's Actually Set Up", desc: "Most agencies run ads without proper conversion tracking. We set up Google Tag Manager, Meta Pixel, and server-side tracking so every lead is attributed." },
-        { title: "Accountable, Measurable Results", desc: "We agree on KPIs upfront — cost per lead, cost per sale, ROAS. Every report shows progress against these metrics. No vanity numbers." },
+        { title: "Accountable, Measurable Results", desc: "We agree on KPIs upfront - cost per lead, cost per sale, ROAS. Every report shows progress against these metrics. No vanity numbers." },
         { title: "Creative That Converts, Not Just Looks Good", desc: "Pretty ads don't always convert. We test direct-response creative, testimonial ads, and offer-led copy alongside brand creative to find what actually drives sales." },
       ]}
       faqs={[

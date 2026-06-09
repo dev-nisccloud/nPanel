@@ -121,11 +121,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "M-Pesa Requirement",
     headline: "SSL is mandatory for M-Pesa integration",
-    body: "Safaricom requires all M-Pesa API callback URLs to use HTTPS with a valid SSL certificate. If you plan to accept M-Pesa payments online, SSL is not optional — it is a hard technical requirement.",
+    body: "Safaricom requires all M-Pesa API callback URLs to use HTTPS with a valid SSL certificate. If you plan to accept M-Pesa payments online, SSL is not optional - it is a hard technical requirement.",
     bullets: [
       "Required by Safaricom Daraja API for all M-Pesa integrations",
       "PCI-DSS compliance mandates HTTPS for any payment data",
-      "Free installation included — we configure your server for you",
+      "Free installation included - we configure your server for you",
     ],
     mockupRight: false,
     mockup: (
@@ -176,7 +176,7 @@ export default function SslPage() {
         {
           icon: <Lock size={20} />,
           title: "256-Bit Encryption",
-          desc: "Industry-standard 256-bit AES encryption protects all data transmitted between your visitors' browsers and your server — the same strength used by banks and governments.",
+          desc: "Industry-standard 256-bit AES encryption protects all data transmitted between your visitors' browsers and your server - the same strength used by banks and governments.",
         },
         {
           icon: <Shield size={20} />,
@@ -186,12 +186,12 @@ export default function SslPage() {
         {
           icon: <Globe size={20} />,
           title: "Google SEO Ranking Boost",
-          desc: "Google has confirmed HTTPS as a ranking signal. Secure sites rank higher in Kenyan and global search results — a direct, measurable benefit to your online visibility.",
+          desc: "Google has confirmed HTTPS as a ranking signal. Secure sites rank higher in Kenyan and global search results - a direct, measurable benefit to your online visibility.",
         },
         {
           icon: <Award size={20} />,
           title: "Globally Trusted Certificate Authorities",
-          desc: "Our SSL certificates are issued by DigiCert, Sectigo, and GlobalSign — the most trusted CAs in the world. Compatible with 99.9% of browsers and mobile devices.",
+          desc: "Our SSL certificates are issued by DigiCert, Sectigo, and GlobalSign - the most trusted CAs in the world. Compatible with 99.9% of browsers and mobile devices.",
         },
         {
           icon: <Zap size={20} />,
@@ -206,7 +206,7 @@ export default function SslPage() {
         {
           icon: <CheckCircle size={20} />,
           title: "Wildcard and Multi-Domain Support",
-          desc: "Secure unlimited subdomains with one Wildcard certificate. Multi-Domain (SAN) certificates cover multiple sites under a single certificate — reducing cost and complexity.",
+          desc: "Secure unlimited subdomains with one Wildcard certificate. Multi-Domain (SAN) certificates cover multiple sites under a single certificate - reducing cost and complexity.",
         },
         {
           icon: <Server size={20} />,
@@ -286,16 +286,16 @@ export default function SslPage() {
         { title: "HTTPS is No Longer Optional", desc: "Google marks all HTTP websites as 'Not Secure'. Without SSL, you lose visitor trust, Google ranking, and customers who see the warning and leave immediately." },
         { title: "Protects Your Customers' Data", desc: "SSL encrypts credit card numbers, personal details, and login credentials in transit. A legal and ethical obligation for any website that collects user data in Kenya." },
         { title: "Increases Conversion Rates", desc: "Studies show that HTTPS and the padlock icon increase conversion rates by up to 30% on e-commerce sites. Customers buy more when they feel secure." },
-        { title: "Free Installation Included", desc: "We don't just sell you a certificate — we install it. Our team configures Apache, Nginx, or cPanel to enforce HTTPS and resolve every mixed-content warning." },
-        { title: "Expiry Reminders — Never Go Unsecured", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
+        { title: "Free Installation Included", desc: "We don't just sell you a certificate - we install it. Our team configures Apache, Nginx, or cPanel to enforce HTTPS and resolve every mixed-content warning." },
+        { title: "Expiry Reminders - Never Go Unsecured", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
         { title: "Works on All Kenyan Business Websites", desc: "Our SSL certificates work on cPanel, Plesk, AWS, Azure, and standalone Linux/Windows servers. Whatever platform your Kenyan website runs on, we have you covered." },
       ]}
       faqs={[
         { q: "What is the difference between DV, OV, and EV certificates?", a: "DV (Domain Validated) proves you control the domain and issues in minutes. OV (Organisation Validated) also verifies your business details. EV (Extended Validation) provides the highest trust level. For most Kenyan business websites, OV is the recommended choice." },
-        { q: "My hosting already includes a free SSL — why would I buy one?", a: "Free Let's Encrypt SSL is great for basic sites. Paid certificates offer higher warranty coverage, OV/EV business verification, better customer support, and compatibility with legacy systems that don't trust Let's Encrypt." },
-        { q: "Will you install the SSL on my server?", a: "Yes — free installation is included on every SSL certificate purchase. We handle the complete installation, HTTPS redirection setup, and mixed-content testing regardless of your hosting platform." },
-        { q: "What is a Wildcard SSL certificate?", a: "A Wildcard SSL (available as an add-on) secures your main domain plus all its subdomains — e.g. *.yourbusiness.co.ke covers shop.yourbusiness.co.ke, mail.yourbusiness.co.ke, and any other subdomain you create." },
-        { q: "Is SSL required for accepting M-Pesa payments?", a: "Yes. Safaricom's M-Pesa API requires your callback URLs to use HTTPS with a valid SSL certificate. Any website collecting payment information must have SSL — it is non-negotiable." },
+        { q: "My hosting already includes a free SSL - why would I buy one?", a: "Free Let's Encrypt SSL is great for basic sites. Paid certificates offer higher warranty coverage, OV/EV business verification, better customer support, and compatibility with legacy systems that don't trust Let's Encrypt." },
+        { q: "Will you install the SSL on my server?", a: "Yes - free installation is included on every SSL certificate purchase. We handle the complete installation, HTTPS redirection setup, and mixed-content testing regardless of your hosting platform." },
+        { q: "What is a Wildcard SSL certificate?", a: "A Wildcard SSL (available as an add-on) secures your main domain plus all its subdomains - e.g. *.yourbusiness.co.ke covers shop.yourbusiness.co.ke, mail.yourbusiness.co.ke, and any other subdomain you create." },
+        { q: "Is SSL required for accepting M-Pesa payments?", a: "Yes. Safaricom's M-Pesa API requires your callback URLs to use HTTPS with a valid SSL certificate. Any website collecting payment information must have SSL - it is non-negotiable." },
         { q: "What happens if my SSL expires?", a: "An expired SSL certificate causes browsers to show a full-page security warning that blocks most visitors. We send reminders well in advance and can set up auto-renewal so this never happens to you." },
       ]}
       pricingNote="Prices shown are per year. Multi-year discounts available. Free installation included on all plans."

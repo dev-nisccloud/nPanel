@@ -50,13 +50,13 @@ const services = [
   {
     icon: Megaphone,
     title: "Paid Advertising",
-    desc: "Google, Meta, and TikTok ad campaigns optimized for ROAS. Performance-based pricing — we win when you win.",
+    desc: "Google, Meta, and TikTok ad campaigns optimized for ROAS. Performance-based pricing - we win when you win.",
     tag: "Market",
   },
   {
     icon: Share2,
     title: "Social Media",
-    desc: "End-to-end social management — strategy, content creation, scheduling, community, and analytics.",
+    desc: "End-to-end social management - strategy, content creation, scheduling, community, and analytics.",
     tag: "Market",
   },
   {
@@ -74,13 +74,13 @@ const services = [
   {
     icon: Bot,
     title: "Zeepo AI Content",
-    desc: "AI-generated blog posts, social captions, ad copy, and email sequences — on demand, on brand.",
+    desc: "AI-generated blog posts, social captions, ad copy, and email sequences - on demand, on brand.",
     tag: "Zeepo AI",
   },
   {
     icon: Workflow,
     title: "Marketing Automation",
-    desc: "CRM workflows, lead scoring, chatbot flows, and AI-powered nurture sequences — your business on autopilot.",
+    desc: "CRM workflows, lead scoring, chatbot flows, and AI-powered nurture sequences - your business on autopilot.",
     tag: "Zeepo AI",
   },
 ];
@@ -119,7 +119,7 @@ export default function Services() {
             Every Service. One Team.
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            All the tools your Kenyan business needs to grow — packaged as one integrated ecosystem.
+            All the tools your Kenyan business needs to grow - packaged as one integrated ecosystem.
           </p>
         </motion.div>
 

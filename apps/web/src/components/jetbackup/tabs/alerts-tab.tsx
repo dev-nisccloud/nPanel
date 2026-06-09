@@ -74,7 +74,7 @@ export function JetBackupAlertsTab() {
             {alerts.map((alert) => {
               const sendLog = alert.send_logs?.[0];
               const sendSuccess = isSuccessStatus(sendLog?.status, sendLog?.message);
-              const owner = alert.owner_name || alert.owner || "—";
+              const owner = alert.owner_name || alert.owner || "-";
 
               return (
                 <div

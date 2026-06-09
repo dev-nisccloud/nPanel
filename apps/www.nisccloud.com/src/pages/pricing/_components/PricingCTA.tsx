@@ -29,7 +29,7 @@ export default function PricingCTA() {
             <br />a Custom Package.
           </h2>
           <p className="text-muted-foreground text-base mb-8 max-w-md mx-auto">
-            Every brand is different. Talk to our team and we'll design a plan around your exact goals and budget — no pressure.
+            Every brand is different. Talk to our team and we'll design a plan around your exact goals and budget - no pressure.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button

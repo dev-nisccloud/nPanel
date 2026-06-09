@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
     href: "/security",
     children: [
       { label: "Website Security", desc: "Malware scanning, cleanup & firewall", href: "/security", icon: <Shield size={16} /> },
-      { label: "SSL Certificates", desc: "DV, OV & EV SSL — self or managed install", href: "/security", icon: <Lock size={16} /> },
+      { label: "SSL Certificates", desc: "DV, OV & EV SSL - self or managed install", href: "/security", icon: <Lock size={16} /> },
       { label: "Web Application Firewall", desc: "Block hackers & DDoS attacks", href: "/security", icon: <Flame size={16} /> },
       { label: "Daily Malware Scanning", desc: "Scan up to 4× daily with instant alerts", href: "/security", icon: <ScanLine size={16} /> },
       { label: "Secure Daily Backups", desc: "Encrypted off-site backup & restore", href: "/security", icon: <Database size={16} /> },
@@ -69,7 +69,17 @@ const navItems: NavItem[] = [
   { label: "Help", href: "/help" },
 ];
 
-function MegaDropdown({ item, onClose }: { item: NavItem; onClose: () => void }) {
+function MegaDropdown({
+  item,
+  onClose,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  item: NavItem;
+  onClose: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+}) {
   const navigate = useNavigate();
   if (!item.children) return null;
 
@@ -79,7 +89,9 @@ function MegaDropdown({ item, onClose }: { item: NavItem; onClose: () => void })
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[580px] bg-popover border border-border rounded-2xl shadow-2xl z-50 overflow-hidden"
+      className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[580px] bg-popover border border-border rounded-2xl shadow-2xl z-50 overflow-hidden"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div className="p-4 grid grid-cols-2 gap-1">
         {item.children.map((child) => (
@@ -113,6 +125,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
+  const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -120,15 +133,18 @@ export default function Navbar() {
     setActiveDropdown(null);
   }, [location.pathname]);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) {
-        setActiveDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const openDropdown = (href: string) => {
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
+    setActiveDropdown(href);
+  };
+
+  const scheduleClose = () => {
+    closeTimeout.current = setTimeout(() => setActiveDropdown(null), 140);
+  };
+
+  const cancelClose = () => {
+    if (closeTimeout.current) clearTimeout(closeTimeout.current);
+  };
 
   const handleLogoClick = () => {
     if (location.pathname === "/") {
@@ -150,20 +166,29 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {
             const hasDropdown = !!item.children;
+            const isCurrentPage = location.pathname === item.href || (item.href !== "/" && location.pathname.startsWith(item.href));
             return (
-              <div key={item.href} className="relative">
+              <div
+                key={item.href}
+                className="relative"
+                onMouseLeave={() => { if (hasDropdown) scheduleClose(); }}
+              >
                 <button
                   onClick={() => {
                     if (hasDropdown) {
-                      setActiveDropdown(activeDropdown === item.href ? null : item.href);
+                      activeDropdown === item.href ? scheduleClose() : openDropdown(item.href);
                     } else {
                       navigate(item.href);
                       setActiveDropdown(null);
                     }
                   }}
-                  onMouseEnter={() => { if (hasDropdown) setActiveDropdown(item.href); }}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
-                    activeDropdown === item.href ? "text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  onMouseEnter={() => { if (hasDropdown) openDropdown(item.href); }}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer font-medium ${
+                    activeDropdown === item.href
+                      ? "text-primary bg-primary/5"
+                      : isCurrentPage
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
                   {item.label}
@@ -174,9 +199,17 @@ export default function Navbar() {
                     />
                   )}
                 </button>
+                {isCurrentPage && !hasDropdown && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                )}
                 <AnimatePresence>
                   {activeDropdown === item.href && hasDropdown && (
-                    <MegaDropdown item={item} onClose={() => setActiveDropdown(null)} />
+                    <MegaDropdown
+                      item={item}
+                      onClose={() => setActiveDropdown(null)}
+                      onMouseEnter={cancelClose}
+                      onMouseLeave={scheduleClose}
+                    />
                   )}
                 </AnimatePresence>
               </div>

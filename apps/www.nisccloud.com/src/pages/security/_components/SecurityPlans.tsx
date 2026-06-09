@@ -54,7 +54,7 @@ const plans = [
       "SSL certificate included",
       "Daily malware scanning (4×/day)",
       "Unlimited site cleanup and repair",
-      "Unlimited storage — secure daily backup",
+      "Unlimited storage - secure daily backup",
       "Up to 5× faster performance",
       "DDoS protection + CDN acceleration",
       "Web Application Firewall (WAF)",

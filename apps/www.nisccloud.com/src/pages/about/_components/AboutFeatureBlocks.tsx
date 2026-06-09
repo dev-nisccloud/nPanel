@@ -7,7 +7,7 @@ const items = [
     tagColor: "#3b82f6",
     headline: "We started because businesses like yours deserved better",
     description:
-      "We saw too many talented entrepreneurs with great products losing to less capable competitors — simply because they lacked the right online presence and strategy. We decided to change that.",
+      "We saw too many talented entrepreneurs with great products losing to less capable competitors - simply because they lacked the right online presence and strategy. We decided to change that.",
     bullets: [
       "Founded to level the playing field for local businesses",
       "Built by marketers, designers & engineers who've seen both sides",
@@ -23,11 +23,11 @@ const items = [
   {
     tag: "OUR PROMISE",
     tagColor: "#10b981",
-    headline: "One team that handles everything — and genuinely cares",
+    headline: "One team that handles everything - and genuinely cares",
     description:
-      "No more chasing five vendors. No more strategy meetings that lead nowhere. With Nisc Cloud, one team owns every part of your digital growth — and you'll feel the difference from day one.",
+      "No more chasing five vendors. No more strategy meetings that lead nowhere. With Nisc Cloud, one team owns every part of your digital growth - and you'll feel the difference from day one.",
     bullets: [
-      "Single point of contact — no department ping-pong",
+      "Single point of contact - no department ping-pong",
       "Strategy, creative, tech & marketing under one roof",
       "Weekly progress updates, transparent reporting",
       "We treat your budget like it's our own money",
@@ -41,14 +41,14 @@ const items = [
   {
     tag: "OUR METHOD",
     tagColor: "#8b5cf6",
-    headline: "The Atom Approach — four steps, zero gaps",
+    headline: "The Atom Approach - four steps, zero gaps",
     description:
       "Most agencies pick one thing they're good at. We built a complete system: Create your brand, take you online, market you to the right people, then automate your growth. It's a sequence that compounds.",
     bullets: [
-      "Create — brand, website, and identity in 7 days",
-      "Host — always-on cloud infrastructure and business email",
-      "Market — SEO, paid ads, social, and email working together",
-      "Automate — AI and workflows growing your business 24/7",
+      "Create - brand, website, and identity in 7 days",
+      "Host - always-on cloud infrastructure and business email",
+      "Market - SEO, paid ads, social, and email working together",
+      "Automate - AI and workflows growing your business 24/7",
     ],
     stat: { value: "4×", label: "average return on ad spend" },
     imageUrl: "https://hercules-cdn.com/file_53JVa6cfTRen7L8auPX8h3a6",

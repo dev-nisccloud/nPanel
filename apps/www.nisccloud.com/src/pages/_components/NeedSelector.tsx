@@ -43,7 +43,7 @@ const tabs: Tab[] = [
     headline: "Your brand is the leading",
     highlight: "platform for growth!",
     subtext:
-      "We build identities that stand out, convert, and scale — from logo to live website, all under one roof.",
+      "We build identities that stand out, convert, and scale - from logo to live website, all under one roof.",
     image: "https://hercules-cdn.com/file_iRuRYMoDty5JbvoBwlLyrLKA",
     features: [
       { icon: Target, label: "Brand Strategy & Positioning", desc: "From KES 15,000", href: "/services/brand-identity" },
@@ -63,7 +63,7 @@ const tabs: Tab[] = [
     headline: "Fast, reliable hosting",
     highlight: "built for Kenya.",
     subtext:
-      "Everything you need to launch and scale your online presence — domain, hosting, email, SSL, all in one place.",
+      "Everything you need to launch and scale your online presence - domain, hosting, email, SSL, all in one place.",
     image: "https://hercules-cdn.com/file_yDWDEz6sDDJXMOBUEpmE9ZOp",
     features: [
       { icon: HardDrive, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
@@ -154,11 +154,11 @@ export default function NeedSelector() {
             What Do You Need Today?
           </h2>
           <p className="text-muted-foreground text-base max-w-lg mx-auto">
-            Pick your goal — we'll show you exactly how we deliver it.
+            Pick your goal - we'll show you exactly how we deliver it.
           </p>
         </motion.div>
 
-        {/* Tab bar — card-style buttons with borders */}
+        {/* Tab bar - card-style buttons with borders */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-3">
           {tabs.map((t, i) => {
             const isActive = activeTab === i;
@@ -227,7 +227,7 @@ export default function NeedSelector() {
                 </p>
               </div>
 
-              {/* Features — clean list: title + from price + arrow, no border */}
+              {/* Features - clean list: title + from price + arrow, no border */}
               <div className="flex flex-col">
                 {tab.features.map((f, i) => (
                   <motion.button

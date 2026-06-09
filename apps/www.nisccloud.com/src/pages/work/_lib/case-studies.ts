@@ -24,7 +24,7 @@ export const caseStudies: CaseStudy[] = [
     category: "Full Atom",
     tagline: "From zero to $1.2M in 14 months",
     description:
-      "A sustainable lifestyle brand needed a complete digital presence — brand identity, Shopify store, paid acquisition, and post-purchase automation.",
+      "A sustainable lifestyle brand needed a complete digital presence - brand identity, Shopify store, paid acquisition, and post-purchase automation.",
     coverImage:
       "https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
     accentColor: "text-green-400",
@@ -43,7 +43,7 @@ export const caseStudies: CaseStudy[] = [
     services: ["Brand & Web Design", "Shopify Development", "Paid Social", "Email Automation"],
     testimonial: {
       quote:
-        "Nisc Cloud didn't just build our website — they built our entire business engine. We'd still be figuring out ads if it wasn't for them.",
+        "Nisc Cloud didn't just build our website - they built our entire business engine. We'd still be figuring out ads if it wasn't for them.",
       author: "Camille Osei",
       role: "Founder, Verdant Co.",
     },
@@ -74,7 +74,7 @@ export const caseStudies: CaseStudy[] = [
     services: ["Website Redesign", "Google Ads", "Local SEO", "CRM Integration"],
     testimonial: {
       quote:
-        "We went from chasing referrals to having a full calendar. The phone just doesn't stop — in the best way possible.",
+        "We went from chasing referrals to having a full calendar. The phone just doesn't stop - in the best way possible.",
       author: "Derek Holt",
       role: "Managing Partner, Apex Realty Group",
     },
@@ -117,7 +117,7 @@ export const caseStudies: CaseStudy[] = [
     category: "Automate",
     tagline: "Cut CAC by 52% with a full-funnel automation stack",
     description:
-      "A B2B SaaS startup needed to scale pipeline without scaling headcount — so we built a fully automated demand-gen and nurture engine.",
+      "A B2B SaaS startup needed to scale pipeline without scaling headcount - so we built a fully automated demand-gen and nurture engine.",
     coverImage:
       "https://images.unsplash.com/photo-1642132652866-6fa262d3161f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
     accentColor: "text-primary",
@@ -146,7 +146,7 @@ export const caseStudies: CaseStudy[] = [
     client: "Harbour Eats",
     industry: "Food & Hospitality",
     category: "Create",
-    tagline: "A restaurant brand built to last — and to rank",
+    tagline: "A restaurant brand built to last - and to rank",
     description:
       "A multi-location restaurant group needed a brand refresh, a new website, and an online ordering experience that actually converted.",
     coverImage:

@@ -29,12 +29,12 @@ export function JetBackupAccountDetailsPanel({
         title="Account"
         description="JetBackup identity and hosting metadata for this backup account."
       >
-        <DetailRow label="Display name" value={String(account.nickname ?? account.username ?? "—")} />
-        <DetailRow label="Username" value={String(account.username ?? "—")} />
-        <DetailRow label="Domain" value={String(account.domain ?? "—")} />
+        <DetailRow label="Display name" value={String(account.nickname ?? account.username ?? "-")} />
+        <DetailRow label="Username" value={String(account.username ?? "-")} />
+        <DetailRow label="Domain" value={String(account.domain ?? "-")} />
         <DetailRow
           label="Owner"
-          value={String(account.owner_nickname ?? account.owner ?? "—")}
+          value={String(account.owner_nickname ?? account.owner ?? "-")}
         />
         <DetailRow
           label="Created"

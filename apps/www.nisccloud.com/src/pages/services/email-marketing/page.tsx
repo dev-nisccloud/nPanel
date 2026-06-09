@@ -6,7 +6,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Campaign Analytics",
     headline: "Email that earns more than it costs",
-    body: "Email delivers KES 380 back for every KES 10 spent — the highest ROI of any marketing channel. We design, write, and automate campaigns engineered to convert your list into recurring revenue.",
+    body: "Email delivers KES 380 back for every KES 10 spent - the highest ROI of any marketing channel. We design, write, and automate campaigns engineered to convert your list into recurring revenue.",
     bullets: [
       "Average 42% open rate vs industry standard of 21%",
       "A/B tested subject lines on every campaign send",
@@ -16,7 +16,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Campaign Report — May</div>
+          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Campaign Report - May</div>
           <div className="p-4">
             <div className="grid grid-cols-2 gap-2 mb-3">
               {[["Sent","5,200"],["Opened","42.8%"],["Clicked","18.4%"],["Revenue","KES 84,000"]].map(([l,v]) => (
@@ -39,7 +39,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Automation Flows",
     headline: "Your email list works while you sleep",
-    body: "We build automated email sequences that respond to customer behaviour — new subscribers, abandoned carts, purchase anniversaries, and re-engagement — so the right message reaches each person at exactly the right moment.",
+    body: "We build automated email sequences that respond to customer behaviour - new subscribers, abandoned carts, purchase anniversaries, and re-engagement - so the right message reaches each person at exactly the right moment.",
     bullets: [
       "7-touch welcome sequence for every new subscriber",
       "Abandoned cart recovery emails with personalised product pulls",
@@ -49,13 +49,13 @@ const showcaseBlocks: ShowcaseBlock[] = [
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Automation Flow — Welcome Series</div>
+          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Automation Flow - Welcome Series</div>
           <div className="p-4 space-y-2.5">
             {[
               { step: "Day 0", action: "Welcome email + 10% discount code", status: "active" },
               { step: "Day 2", action: "Brand story + top 3 products", status: "active" },
               { step: "Day 5", action: "Customer testimonial showcase", status: "active" },
-              { step: "Day 7", action: "Discount reminder — expires soon", status: "active" },
+              { step: "Day 7", action: "Discount reminder - expires soon", status: "active" },
             ].map(({ step, action, status }) => (
               <div key={step} className="flex items-center gap-2.5 text-xs">
                 <div className="w-14 shrink-0 text-primary font-bold">{step}</div>
@@ -75,7 +75,7 @@ export default function EmailMarketingPage() {
     <ServicePageShell
       badge="Email Marketing"
       headline={<>Turn Your Email List<br /><span className="text-primary">Into a Revenue Machine</span></>}
-      subtext="Email still delivers the highest ROI of any marketing channel — KES 380 for every KES 10 spent. We design, write, and automate campaigns that convert subscribers into customers, and customers into loyal repeat buyers."
+      subtext="Email still delivers the highest ROI of any marketing channel - KES 380 for every KES 10 spent. We design, write, and automate campaigns that convert subscribers into customers, and customers into loyal repeat buyers."
       serviceType="marketing"
       trustStats={[
         { value: "42%", label: "Average Open Rate (2× industry)" },
@@ -87,7 +87,7 @@ export default function EmailMarketingPage() {
         {
           icon: <Mail size={20} />,
           title: "Professional Email Design",
-          desc: "Pixel-perfect HTML email templates designed for your brand. Mobile-responsive layouts tested across all major email clients — Gmail, Outlook, Apple Mail, and Android.",
+          desc: "Pixel-perfect HTML email templates designed for your brand. Mobile-responsive layouts tested across all major email clients - Gmail, Outlook, Apple Mail, and Android.",
         },
         {
           icon: <Users size={20} />,
@@ -97,12 +97,12 @@ export default function EmailMarketingPage() {
         {
           icon: <RefreshCw size={20} />,
           title: "Automation Sequences",
-          desc: "Welcome series, abandoned cart recovery, post-purchase follow-ups, and win-back campaigns — triggered automatically based on subscriber behaviour.",
+          desc: "Welcome series, abandoned cart recovery, post-purchase follow-ups, and win-back campaigns - triggered automatically based on subscriber behaviour.",
         },
         {
           icon: <Target size={20} />,
           title: "A/B Subject Line Testing",
-          desc: "Every campaign tests 2–3 subject lines on a subset of your list. The winner gets sent to everyone — maximising opens without extra effort.",
+          desc: "Every campaign tests 2–3 subject lines on a subset of your list. The winner gets sent to everyone - maximising opens without extra effort.",
         },
         {
           icon: <BarChart2 size={20} />,
@@ -112,12 +112,12 @@ export default function EmailMarketingPage() {
         {
           icon: <Zap size={20} />,
           title: "Behavioural Triggers",
-          desc: "Send emails based on what subscribers do — visited a product page, clicked a link, made a purchase. Behaviour-based emails convert 3× better than blasts.",
+          desc: "Send emails based on what subscribers do - visited a product page, clicked a link, made a purchase. Behaviour-based emails convert 3× better than blasts.",
         },
         {
           icon: <Shield size={20} />,
           title: "Deliverability Management",
-          desc: "We maintain pristine sender reputation via DKIM, SPF, DMARC, and IP warming. Your emails land in inboxes — not spam folders — at every major provider.",
+          desc: "We maintain pristine sender reputation via DKIM, SPF, DMARC, and IP warming. Your emails land in inboxes - not spam folders - at every major provider.",
         },
         {
           icon: <Inbox size={20} />,
@@ -187,16 +187,16 @@ export default function EmailMarketingPage() {
       process={[
         { num: "01", title: "List Audit & Strategy", desc: "We audit your existing list health, segment structure, and historical campaign performance to identify quick wins and build your 90-day email marketing strategy." },
         { num: "02", title: "Template & Automation Build", desc: "Design your branded email templates, build your welcome sequence, and configure all automation flows before the first campaign sends." },
-        { num: "03", title: "Campaign Execution", desc: "Monthly campaigns planned, written, designed, and A/B tested. We manage everything — all you do is approve the final copy before it sends." },
+        { num: "03", title: "Campaign Execution", desc: "Monthly campaigns planned, written, designed, and A/B tested. We manage everything - all you do is approve the final copy before it sends." },
         { num: "04", title: "Optimise & Scale", desc: "Monthly performance review identifies your best-performing content, highest-converting segments, and new automation opportunities to grow revenue month-on-month." },
       ]}
       whyPoints={[
         { title: "KES 380 ROI Per KES 10 Spent", desc: "Email marketing outperforms every other digital channel. We build strategies that maximise this ROI for Kenyan businesses specifically." },
-        { title: "We Write Your Emails", desc: "Our copywriters craft every subject line and email body. You don't need to find time to write — we produce content in your brand voice after onboarding." },
+        { title: "We Write Your Emails", desc: "Our copywriters craft every subject line and email body. You don't need to find time to write - we produce content in your brand voice after onboarding." },
         { title: "Segmentation That Actually Works", desc: "Most email lists are treated as one blob. We segment by behaviour, purchase history, and geography to send hyper-relevant messages that convert at 3× the industry average." },
-        { title: "Automation Running 24/7", desc: "Once built, your automation flows work continuously. A subscriber joins at 2am on a Sunday and immediately enters your welcome sequence — no manual work required." },
-        { title: "Deliverability First Infrastructure", desc: "We manage your sender reputation, list hygiene, and technical email configuration so your campaigns reach inboxes — not spam folders — at Gmail, Outlook, and beyond." },
-        { title: "Transparent Reporting", desc: "Monthly reports show exactly what your email programme earned. Open rate, click rate, revenue attributed, and list growth — every number in plain English." },
+        { title: "Automation Running 24/7", desc: "Once built, your automation flows work continuously. A subscriber joins at 2am on a Sunday and immediately enters your welcome sequence - no manual work required." },
+        { title: "Deliverability First Infrastructure", desc: "We manage your sender reputation, list hygiene, and technical email configuration so your campaigns reach inboxes - not spam folders - at Gmail, Outlook, and beyond." },
+        { title: "Transparent Reporting", desc: "Monthly reports show exactly what your email programme earned. Open rate, click rate, revenue attributed, and list growth - every number in plain English." },
       ]}
       faqs={[
         { q: "Do I need to already have an email list?", a: "No. We can help you build your list from scratch using your website, social media, and in-store channels. We'll set up lead magnets, sign-up forms, and list-building strategies alongside your campaigns." },
@@ -207,7 +207,7 @@ export default function EmailMarketingPage() {
         { q: "How quickly can we start sending campaigns?", a: "Email Starter clients can send their first campaign within 7 days of onboarding. Growth and Pro plans include automation build-out which takes 10–14 days before launch." },
       ]}
       ctaHeadline="Your Email List Is Money Waiting to Be Unlocked"
-      ctaSubtext="Most Kenyan businesses have an email list and never use it properly. We turn your list into a predictable monthly revenue channel — starting this month."
+      ctaSubtext="Most Kenyan businesses have an email list and never use it properly. We turn your list into a predictable monthly revenue channel - starting this month."
       pricingNote="Monthly retainer. No long-term contract. Cancel with 30-day notice."
       showcaseBlocks={showcaseBlocks}
     />

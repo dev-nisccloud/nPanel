@@ -54,7 +54,7 @@ const categories: Category[] = [
       {
         title: "How to upload files via File Manager",
         summary: "Upload HTML files, images, and assets directly through cPanel File Manager.",
-        content: `In cPanel, open File Manager. Navigate to the public_html folder — this is your website's root directory. Click Upload in the top menu. Drag and drop your files or click Select File to browse. Files upload immediately. For websites, ensure your main file is named index.html or index.php. For WordPress sites, use File Manager only for uploads and themes — avoid editing core files.`,
+        content: `In cPanel, open File Manager. Navigate to the public_html folder - this is your website's root directory. Click Upload in the top menu. Drag and drop your files or click Select File to browse. Files upload immediately. For websites, ensure your main file is named index.html or index.php. For WordPress sites, use File Manager only for uploads and themes - avoid editing core files.`,
         tags: ["file manager", "upload", "cpanel"],
       },
     ],
@@ -73,13 +73,13 @@ const categories: Category[] = [
       },
       {
         title: "How to set up DNS records for your domain",
-        summary: "A and CNAME records explained — point your domain to any service.",
-        content: `Log into your Nisc Cloud dashboard and select your domain. Go to DNS Management. To point your domain to a hosting server, add an A Record with the name @ and the value set to your server's IP address. To point www to your main domain, add a CNAME Record with name www pointing to yourdomain.co.ke. For email, you will need MX records — your hosting provider supplies these. Changes take up to 24 hours to propagate.`,
+        summary: "A and CNAME records explained - point your domain to any service.",
+        content: `Log into your Nisc Cloud dashboard and select your domain. Go to DNS Management. To point your domain to a hosting server, add an A Record with the name @ and the value set to your server's IP address. To point www to your main domain, add a CNAME Record with name www pointing to yourdomain.co.ke. For email, you will need MX records - your hosting provider supplies these. Changes take up to 24 hours to propagate.`,
         tags: ["dns", "a record", "cname", "mx"],
       },
       {
         title: "How to enable Auto-Renewal for your domain",
-        summary: "Never let your domain expire accidentally — enable auto-renewal today.",
+        summary: "Never let your domain expire accidentally - enable auto-renewal today.",
         content: `In your Nisc Cloud account, navigate to My Domains. Click on the domain you want to protect. Click Domain Settings. Toggle Auto-Renewal to ON. Ensure your payment method is up to date under Billing. We will automatically renew your domain 30 days before expiry and send you a notification email. You will also receive reminders at 60, 30, and 7 days before expiry even with auto-renewal enabled.`,
         tags: ["auto-renewal", "domain", "expiry"],
       },
@@ -106,7 +106,7 @@ const categories: Category[] = [
       {
         title: "Why are my emails going to spam?",
         summary: "Troubleshoot email deliverability issues and fix common spam problems.",
-        content: `The most common reasons emails go to spam: (1) Missing DKIM, SPF, or DMARC records — contact support and we will configure these for you free of charge. (2) Sending bulk or promotional emails from your business email account — use a dedicated email marketing service instead. (3) Your email content contains spam trigger words like "FREE!!!" or "CLICK HERE NOW". (4) Your recipient's mailbox is full. (5) Low sender reputation — avoid sending to invalid email addresses. Contact our support team and we will audit your email authentication settings at no cost.`,
+        content: `The most common reasons emails go to spam: (1) Missing DKIM, SPF, or DMARC records - contact support and we will configure these for you free of charge. (2) Sending bulk or promotional emails from your business email account - use a dedicated email marketing service instead. (3) Your email content contains spam trigger words like "FREE!!!" or "CLICK HERE NOW". (4) Your recipient's mailbox is full. (5) Low sender reputation - avoid sending to invalid email addresses. Contact our support team and we will audit your email authentication settings at no cost.`,
         tags: ["spam", "deliverability", "dkim", "spf"],
       },
     ],
@@ -120,13 +120,13 @@ const categories: Category[] = [
       {
         title: "How to install an SSL certificate on cPanel",
         summary: "Step-by-step SSL installation for your cPanel hosting account.",
-        content: `Free Let's Encrypt SSL: In cPanel, go to Security > SSL/TLS Status. Click Run AutoSSL. This installs a free SSL certificate on all your domains automatically. Paid SSL certificates: Once you receive your certificate files from us, go to cPanel > Security > SSL/TLS > Manage SSL Sites. Select your domain, paste in your Certificate (CRT), Private Key, and CA Bundle. Click Install Certificate. Your site will now load on HTTPS. Contact our team if you need us to handle the full installation — it is included free with every certificate purchase.`,
+        content: `Free Let's Encrypt SSL: In cPanel, go to Security > SSL/TLS Status. Click Run AutoSSL. This installs a free SSL certificate on all your domains automatically. Paid SSL certificates: Once you receive your certificate files from us, go to cPanel > Security > SSL/TLS > Manage SSL Sites. Select your domain, paste in your Certificate (CRT), Private Key, and CA Bundle. Click Install Certificate. Your site will now load on HTTPS. Contact our team if you need us to handle the full installation - it is included free with every certificate purchase.`,
         tags: ["ssl", "installation", "cpanel", "https"],
       },
       {
         title: "What is the difference between HTTP and HTTPS?",
         summary: "Why your website needs HTTPS and what happens without it.",
-        content: `HTTP (HyperText Transfer Protocol) is the standard for transferring data between browsers and websites. HTTPS is the secure version — it encrypts all data using SSL/TLS so third parties cannot intercept or read it. Without HTTPS: Google Chrome shows a "Not Secure" warning in your address bar, Google ranks your site lower in search results, customers see a warning page before entering your site, and M-Pesa payment integrations will not work. With HTTPS: customers see the padlock icon, your Google ranking improves, data is encrypted end-to-end, and you are PCI-DSS compliant for payment processing.`,
+        content: `HTTP (HyperText Transfer Protocol) is the standard for transferring data between browsers and websites. HTTPS is the secure version - it encrypts all data using SSL/TLS so third parties cannot intercept or read it. Without HTTPS: Google Chrome shows a "Not Secure" warning in your address bar, Google ranks your site lower in search results, customers see a warning page before entering your site, and M-Pesa payment integrations will not work. With HTTPS: customers see the padlock icon, your Google ranking improves, data is encrypted end-to-end, and you are PCI-DSS compliant for payment processing.`,
         tags: ["http", "https", "security", "google"],
       },
     ],
@@ -146,7 +146,7 @@ const categories: Category[] = [
       {
         title: "How to install LAMP stack on Ubuntu VPS",
         summary: "Install Apache, MySQL, and PHP on your Ubuntu VPS in under 10 minutes.",
-        content: `After connecting via SSH, run these commands in order: sudo apt update && sudo apt upgrade -y (update packages). sudo apt install apache2 -y (install Apache web server). sudo apt install mysql-server -y (install MySQL). sudo mysql_secure_installation (secure your MySQL installation). sudo apt install php libapache2-mod-php php-mysql -y (install PHP). sudo systemctl restart apache2 (restart Apache). Your LAMP stack is now running. Test it by visiting your server IP in a browser — you should see the Apache default page. Upload your website files to /var/www/html/.`,
+        content: `After connecting via SSH, run these commands in order: sudo apt update && sudo apt upgrade -y (update packages). sudo apt install apache2 -y (install Apache web server). sudo apt install mysql-server -y (install MySQL). sudo mysql_secure_installation (secure your MySQL installation). sudo apt install php libapache2-mod-php php-mysql -y (install PHP). sudo systemctl restart apache2 (restart Apache). Your LAMP stack is now running. Test it by visiting your server IP in a browser - you should see the Apache default page. Upload your website files to /var/www/html/.`,
         tags: ["lamp", "apache", "mysql", "php", "ubuntu"],
       },
     ],

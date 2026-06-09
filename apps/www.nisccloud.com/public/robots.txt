@@ -1,4 +1,4 @@
-# Nisc Cloud — robots.txt
+# Nisc Cloud - robots.txt
 
 # Allow all standard crawlers
 User-agent: *
@@ -28,4 +28,4 @@ Allow: /
 User-agent: FacebookBot
 Allow: /
 
-Sitemap: https://nisccloud.co.ke/sitemap.xml
+Sitemap: https://nisccloud.com/sitemap.xml

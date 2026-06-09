@@ -1,15 +1,15 @@
 # Nisc Cloud
 
-> Kenya's A-to-Z digital partner. We create your brand from scratch, deploy it online, market it to generate real customers and sales, then automate everything with Zeepo AI — all under one roof, one team, one invoice.
+> Kenya's A-to-Z digital partner. We create your brand from scratch, deploy it online, market it to generate real customers and sales, then automate everything with Zeepo AI - all under one roof, one team, one invoice.
 
 ## What We Do
 
 Nisc Cloud provides end-to-end digital services for Kenyan businesses and businesses across Africa. Our four-step Atom Approach covers the full business digital lifecycle:
 
-1. **Create** — Brand identity, logo design, website design and development, e-commerce stores, creative assets, and brand copywriting.
-2. **Host** — Enterprise cloud hosting, domain registration (.co.ke, .com, .africa), business email (@yourdomain), SSL certificates, CDN, DDoS protection, and 99.9% uptime SLA.
-3. **Market** — SEO / AEO / GEO (Google, AI search engines, Google Maps), Google Ads, Meta Ads, TikTok Ads, social media management, email marketing, and lead generation funnels.
-4. **Automate with Zeepo AI** — AI-powered content creation, automated marketing campaigns, CRM workflows, chatbot flows, lead nurturing sequences, and AI email campaigns.
+1. **Create** - Brand identity, logo design, website design and development, e-commerce stores, creative assets, and brand copywriting.
+2. **Host** - Enterprise cloud hosting, domain registration (.co.ke, .com, .africa), business email (@yourdomain), SSL certificates, CDN, DDoS protection, and 99.9% uptime SLA.
+3. **Market** - SEO / AEO / GEO (Google, AI search engines, Google Maps), Google Ads, Meta Ads, TikTok Ads, social media management, email marketing, and lead generation funnels.
+4. **Automate with Zeepo AI** - AI-powered content creation, automated marketing campaigns, CRM workflows, chatbot flows, lead nurturing sequences, and AI email campaigns.
 
 ## Why Nisc Cloud
 
@@ -52,24 +52,24 @@ Automated sequences, newsletters, and transactional emails. From KES 1,500/mo.
 ### Lead Generation
 Funnels, landing pages, and qualified lead systems. From KES 30,000/mo.
 
-### Zeepo AI — AI Content Writer
+### Zeepo AI - AI Content Writer
 Blog posts, social captions, and ad copy on demand. From KES 1,500/mo.
 
-### Zeepo AI — Marketing Automation
+### Zeepo AI - Marketing Automation
 CRM workflows, chatbot flows, and AI-powered lead nurturing. From KES 1,500/mo.
 
 ## Contact
 
-- Website: https://nisccloud.co.ke
+- Website: https://nisccloud.com
 - Email: hello@nisccloud.com
 - Phone: +254 700 000 000
-- Location: Nairobi, Kenya — serving clients remotely worldwide
+- Location: Nairobi, Kenya - serving clients remotely worldwide
 
 ## Pages
 
-- Homepage: https://nisccloud.co.ke/
-- Services: https://nisccloud.co.ke/services
-- Pricing: https://nisccloud.co.ke/pricing
-- Case Studies / Work: https://nisccloud.co.ke/work
-- About: https://nisccloud.co.ke/about
-- Contact: https://nisccloud.co.ke/contact
+- Homepage: https://nisccloud.com/
+- Services: https://nisccloud.com/services
+- Pricing: https://nisccloud.com/pricing
+- Case Studies / Work: https://nisccloud.com/work
+- About: https://nisccloud.com/about
+- Contact: https://nisccloud.com/contact

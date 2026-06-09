@@ -180,7 +180,7 @@ export function VpsSshKeysSection({ deviceId }: VpsSshKeysSectionProps) {
     } else {
       installScriptRef.current?.focus();
       installScriptRef.current?.select();
-      toast.error("Could not copy automatically. The script is selected — press Ctrl+C to copy.");
+      toast.error("Could not copy automatically. The script is selected - press Ctrl+C to copy.");
     }
   };
 
@@ -222,7 +222,7 @@ export function VpsSshKeysSection({ deviceId }: VpsSshKeysSectionProps) {
                   {isPowerTransitioning
                     ? "A power action is in progress. Wait until the instance is fully off before applying keys."
                     : isPoweredOff
-                      ? "Instance is off — you can apply SSH key changes."
+                      ? "Instance is off - you can apply SSH key changes."
                       : "Shut down this VPS from Overview, then apply your key selection."}
                 </AlertDescription>
               </Alert>

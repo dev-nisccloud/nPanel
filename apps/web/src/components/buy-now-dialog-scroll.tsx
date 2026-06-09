@@ -15,7 +15,7 @@ type BuyNowDialogBodyScrollProps = {
 /**
  * Single scroll container for buy-now dialog bodies.
  * Uses native overflow (not nested Radix ScrollArea) so accordion expand/collapse
- * reliably updates scroll height — e.g. manual payment fields stay reachable.
+ * reliably updates scroll height - e.g. manual payment fields stay reachable.
  */
 export function BuyNowDialogBodyScroll({
 	children,
@@ -39,7 +39,7 @@ export function BuyNowDialogBodyScroll({
 	);
 }
 
-/** Step content padding wrapper — scroll is handled by BuyNowDialogBodyScroll. */
+/** Step content padding wrapper - scroll is handled by BuyNowDialogBodyScroll. */
 export function BuyNowStepBody({
 	children,
 	className,

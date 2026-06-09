@@ -53,7 +53,7 @@ const categories: Category[] = [
         id: "shared",
         label: "Web Hosting",
         icon: Layers,
-        description: "NVMe-powered shared hosting — the fastest way to launch your website in Kenya.",
+        description: "NVMe-powered shared hosting - the fastest way to launch your website in Kenya.",
         plans: [
           {
             id: "starter",
@@ -91,7 +91,7 @@ const categories: Category[] = [
         id: "wordpress",
         label: "WordPress",
         icon: Zap,
-        description: "Optimised WordPress hosting — pre-configured for speed, security, and easy management.",
+        description: "Optimised WordPress hosting - pre-configured for speed, security, and easy management.",
         plans: [
           {
             id: "wp-starter",
@@ -129,7 +129,7 @@ const categories: Category[] = [
         id: "vps",
         label: "VPS",
         icon: Database,
-        description: "Virtual Private Servers — dedicated vCPUs, guaranteed RAM, full root access.",
+        description: "Virtual Private Servers - dedicated vCPUs, guaranteed RAM, full root access.",
         plans: [
           {
             id: "vps-s",
@@ -167,7 +167,7 @@ const categories: Category[] = [
         id: "vds",
         label: "VDS",
         icon: HardDrive,
-        description: "Virtual Dedicated Servers — bare-metal performance with the flexibility of virtualisation.",
+        description: "Virtual Dedicated Servers - bare-metal performance with the flexibility of virtualisation.",
         plans: [
           {
             id: "vds-s",
@@ -205,7 +205,7 @@ const categories: Category[] = [
         id: "dedicated",
         label: "Dedicated",
         icon: Building2,
-        description: "Bare-metal dedicated servers — 100% resources, zero noisy neighbours.",
+        description: "Bare-metal dedicated servers - 100% resources, zero noisy neighbours.",
         plans: [
           {
             id: "ded-entry",
@@ -252,7 +252,7 @@ const categories: Category[] = [
         id: "kenyan",
         label: "Kenyan TLDs",
         icon: Globe,
-        description: "Register a .co.ke or .ke domain — Kenya's most trusted extensions.",
+        description: "Register a .co.ke or .ke domain - Kenya's most trusted extensions.",
         plans: [
           {
             id: "coke",
@@ -328,7 +328,7 @@ const categories: Category[] = [
         id: "business-email",
         label: "Business Email",
         icon: Mail,
-        description: "Professional yourname@yourdomain.com — fast, secure, and ad-free.",
+        description: "Professional yourname@yourdomain.com - fast, secure, and ad-free.",
         plans: [
           {
             id: "email-starter",
@@ -356,7 +356,7 @@ const categories: Category[] = [
         id: "microsoft",
         label: "Microsoft 365",
         icon: Package,
-        description: "Microsoft-powered email + full productivity suite — Exchange, Teams, OneDrive.",
+        description: "Microsoft-powered email + full productivity suite - Exchange, Teams, OneDrive.",
         plans: [
           {
             id: "m365-ess",
@@ -399,7 +399,7 @@ const categories: Category[] = [
           {
             id: "ssl-dv",
             name: "DV SSL",
-            tagline: "Domain validation — instant issuance",
+            tagline: "Domain validation - instant issuance",
             from: 999,
             period: "yr",
             features: ["Domain validation", "256-bit encryption", "Free reissues", "HTTPS padlock", "99.9% browser trust", "24/7 support"],
@@ -419,7 +419,7 @@ const categories: Category[] = [
           {
             id: "ssl-ev",
             name: "EV SSL",
-            tagline: "Highest trust — e-commerce & fintech",
+            tagline: "Highest trust - e-commerce & fintech",
             from: 8000,
             period: "yr",
             highlight: "Green bar / verified company",
@@ -432,7 +432,7 @@ const categories: Category[] = [
         id: "web-security",
         label: "Web Security",
         icon: ShieldCheck,
-        description: "All-in-one malware scanning, cleanup, firewall and CDN — protect your site 24/7.",
+        description: "All-in-one malware scanning, cleanup, firewall and CDN - protect your site 24/7.",
         plans: [
           {
             id: "ws-standard",
@@ -469,7 +469,7 @@ const categories: Category[] = [
         id: "seo-service",
         label: "SEO / AEO",
         icon: TrendingUp,
-        description: "Rank #1 on Google and AI search — strategy, implementation, and monthly reporting.",
+        description: "Rank #1 on Google and AI search - strategy, implementation, and monthly reporting.",
         plans: [
           {
             id: "seo-starter",
@@ -573,7 +573,7 @@ const categories: Category[] = [
         id: "bundles",
         label: "All-in-One Bundles",
         icon: Cpu,
-        description: "Brand + hosting + marketing bundled — designed for Kenyan businesses that want everything managed for them.",
+        description: "Brand + hosting + marketing bundled - designed for Kenyan businesses that want everything managed for them.",
         plans: [
           {
             id: "launchpad",

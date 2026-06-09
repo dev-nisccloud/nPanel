@@ -49,7 +49,7 @@ export default function ServiceHero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8"
         >
-          Four fully integrated service pillars — each powerful alone, unstoppable together. No handoffs, no gaps, no finger-pointing.
+          Four fully integrated service pillars - each powerful alone, unstoppable together. No handoffs, no gaps, no finger-pointing.
         </motion.p>
 
         <motion.div

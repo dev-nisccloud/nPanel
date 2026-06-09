@@ -116,9 +116,6 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <span>© {new Date().getFullYear()} Nisc Cloud. All rights reserved.</span>
-          <span className="font-mono text-xs tracking-widest uppercase">
-            Powered by the Atom Approach™
-          </span>
         </div>
       </div>
     </footer>

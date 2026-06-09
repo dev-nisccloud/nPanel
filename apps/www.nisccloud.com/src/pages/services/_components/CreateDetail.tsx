@@ -30,14 +30,14 @@ export default function CreateDetail() {
             transition={{ duration: 0.6 }}
           >
             <div className="inline-flex items-center gap-2 bg-[oklch(0.72_0.2_210/0.1)] border border-[oklch(0.72_0.2_210/0.3)] rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ color: "oklch(0.72 0.2 210)" }}>
-              01 — CREATE
+              01 - CREATE
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               We Build Your<br />
               <span style={{ color: "oklch(0.72 0.2 210)" }}>Brand from Zero.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              Before you can launch, you need an identity that commands attention. We craft every visual and verbal element of your brand — ensuring it's built to scale and impossible to ignore.
+              Before you can launch, you need an identity that commands attention. We craft every visual and verbal element of your brand - ensuring it's built to scale and impossible to ignore.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (

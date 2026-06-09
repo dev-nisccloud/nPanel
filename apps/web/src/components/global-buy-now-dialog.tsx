@@ -265,7 +265,7 @@ export function GlobalBuyNowDialog() {
   const [mpesaPhoneNumber, setMpesaPhoneNumber] = React.useState("");
   const [paymentAmount, setPaymentAmount] = React.useState("");
   const [accountReference, setAccountReference] = React.useState("");
-  /** Canonical checkout values — STK push for customers always uses these, not form state. */
+  /** Canonical checkout values - STK push for customers always uses these, not form state. */
   const intendedPaymentAmountRef = React.useRef("");
   const intendedAccountReferenceRef = React.useRef("");
   const [accountRefError, setAccountRefError] = React.useState("");
