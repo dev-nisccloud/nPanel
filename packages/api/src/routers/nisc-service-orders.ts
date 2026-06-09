@@ -20,6 +20,10 @@ import { protectedProcedure, router } from "../trpc";
 import { enqueueNiscOrderProcessing } from "../lib/qstash/nisc-order-worker";
 import { userIsAgencyStaff } from "../lib/domain-transfer-access";
 import { isKenicDomain } from "../lib/epp/kenic-tlds";
+import {
+	isDomainBundleLeadItem,
+	orderItemsIncludeDomainBundle,
+} from "../lib/domain-bundle-order";
 import { processNiscOrder } from "../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
 import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
@@ -662,10 +666,20 @@ export const niscServiceOrdersRouter = router({
 			// Align line items with the amount actually paid (supports editable M-Pesa test amounts).
 			const paidAmountRaw = transaction.paidAmount ?? transaction.amount;
 			const paidAmountNum = Number.parseFloat(paidAmountRaw);
-			if (Number.isFinite(paidAmountNum) && paidAmountNum > 0 && input.items.length === 1) {
-				const paidStr = String(Math.ceil(paidAmountNum));
-				input.items[0]!.itemPrice = paidStr;
-				input.items[0]!.itemSubtotal = paidStr;
+			const isBundleOrder = orderItemsIncludeDomainBundle(input.items);
+			const bundleLeadIndex = isBundleOrder
+				? input.items.findIndex((item) => isDomainBundleLeadItem(item.metadata))
+				: -1;
+			if (Number.isFinite(paidAmountNum) && paidAmountNum > 0) {
+				if (input.items.length === 1) {
+					const paidStr = String(Math.ceil(paidAmountNum));
+					input.items[0]!.itemPrice = paidStr;
+					input.items[0]!.itemSubtotal = paidStr;
+				} else if (bundleLeadIndex >= 0) {
+					const paidStr = String(Math.ceil(paidAmountNum));
+					input.items[bundleLeadIndex]!.itemPrice = paidStr;
+					input.items[bundleLeadIndex]!.itemSubtotal = paidStr;
+				}
 			}
 
 			for (const item of input.items) {

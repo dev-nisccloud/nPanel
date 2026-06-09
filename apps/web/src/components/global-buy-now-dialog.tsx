@@ -52,6 +52,8 @@ import type { CartItem, DomainCartItem, HivelocityCartItem } from "@/stores/cart
 import { CartItemCard } from "@/routes/agency/_components/sidebar/cart-item-card";
 import { authClient } from "@/lib/auth-client";
 import { BuyNowDomainProductStep } from "@/components/buy-now-domain-product-step";
+import { BuyNowDomainBundleProductStep } from "@/components/buy-now-domain-bundle-product-step";
+import { DOMAIN_BUNDLE_METADATA_KEY } from "@npanel/api/lib/domain-bundle-order";
 import {
   HostingUpsellStep,
   HostingPlanSelectionStep,
@@ -305,6 +307,8 @@ export function GlobalBuyNowDialog() {
   const isCartMode = mode === "cart";
   const isTransferMode = mode === "transfer";
   const ctx = productContext;
+  const isDomainBundle = Boolean(ctx?.domainBundle?.domains?.length);
+  const bundleCtx = ctx?.domainBundle ?? null;
   const hasDomain = !!ctx?.domain?.domain;
   const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, {
     enabled: open && (isCartMode || !!ctx?.productId),
@@ -320,13 +324,13 @@ export function GlobalBuyNowDialog() {
           !!i.productName?.toLowerCase().includes("domain")
       );
     }
-    const isDomain = hasDomain || !!ctx?.productName?.toLowerCase().includes("domain");
+    const isDomain = hasDomain || isDomainBundle || !!ctx?.productName?.toLowerCase().includes("domain");
     return !!isDomain;
-  }, [isTransferMode, isCartMode, items, domainsProductId, hasDomain, ctx?.productName]);
+  }, [isTransferMode, isCartMode, items, domainsProductId, hasDomain, isDomainBundle, ctx?.productName]);
 
   const { data: addOnsData = [] } = trpc.products.getAddOnsForProduct.useQuery(
     { baseProductId: ctx?.productId ?? "" },
-    { enabled: open && !!ctx?.productId && !isCartMode }
+    { enabled: open && !!ctx?.productId && !isCartMode && !isDomainBundle }
   );
   const { data: webHostingPricing, isLoading: isLoadingWebHostingPricing } =
     trpc.products.getHostingPlansForPricing.useQuery(undefined, {
@@ -451,7 +455,9 @@ export function GlobalBuyNowDialog() {
 
   const displayCurrency = isTransferMode && transferContext
     ? transferContext.currency
-    : ctx?.domain?.price?.calculated
+    : isDomainBundle && bundleCtx
+      ? bundleCtx.bundleCurrency
+      : ctx?.domain?.price?.calculated
       ? (ctx.domain.price.calculated as { displayCurrency?: string })?.displayCurrency ?? (ctx.domain.price.calculated as { currency?: string })?.currency ?? "KES"
       : ctx?.domain?.price?.reseller?.currency ?? "KES";
   const domainDisplayPrice = (() => {
@@ -460,11 +466,14 @@ export function GlobalBuyNowDialog() {
     const v = calc?.convertedPrice ?? calc?.finalPrice ?? ctx.domain.price?.reseller?.price ?? 0;
     return typeof v === "number" && isFinite(v) ? v : 0;
   })();
-  const domainTotal = hasDomain ? domainDisplayPrice * duration : 0;
-  const addOnsTotal = selectedAddOns.reduce((s, a) => s + a.price, 0);
-  const upsellTotal = selectedUpsellPlans.reduce((s, p) => s + p.price, 0);
-  const mainPlanTotal = selectedMainPlan ? selectedMainPlan.price : 0;
-  const productSubtotal = domainTotal + addOnsTotal + upsellTotal + mainPlanTotal;
+  const domainTotal = hasDomain && !isDomainBundle ? domainDisplayPrice * duration : 0;
+  const bundleTotal = isDomainBundle && bundleCtx ? bundleCtx.bundlePrice : 0;
+  const addOnsTotal = isDomainBundle ? 0 : selectedAddOns.reduce((s, a) => s + a.price, 0);
+  const upsellTotal = isDomainBundle ? 0 : selectedUpsellPlans.reduce((s, p) => s + p.price, 0);
+  const mainPlanTotal = isDomainBundle ? 0 : selectedMainPlan ? selectedMainPlan.price : 0;
+  const productSubtotal = isDomainBundle
+    ? bundleTotal
+    : domainTotal + addOnsTotal + upsellTotal + mainPlanTotal;
 
   const totalsByCurrency = getTotalsByCurrency();
   const currenciesInCart = getCurrenciesInCart();
@@ -508,6 +517,13 @@ export function GlobalBuyNowDialog() {
 
   const effectiveProductFlowSubtotal = React.useMemo(() => {
     if (isCartMode || isTransferMode) return productSubtotal;
+    if (isDomainBundle && bundleCtx) {
+      const bundleEff =
+        isAgencyUser
+          ? parsePriceOverrideInput(priceOverrideByKey["product-bundle"]) ?? bundleTotal
+          : bundleTotal;
+      return bundleEff;
+    }
     const domainEff =
       isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey["product-domain"]) ?? domainTotal : domainTotal;
     const addOnEff = selectedAddOns.reduce((s, a) => {
@@ -528,6 +544,9 @@ export function GlobalBuyNowDialog() {
   }, [
     isCartMode,
     isTransferMode,
+    isDomainBundle,
+    bundleCtx,
+    bundleTotal,
     productSubtotal,
     isAgencyUser,
     priceOverrideByKey,
@@ -656,7 +675,44 @@ export function GlobalBuyNowDialog() {
     },
   });
 
+  const buildDomainBundleOrderItems = React.useCallback(() => {
+    if (!ctx?.productId || !bundleCtx?.domains?.length) return [];
+    const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
+    const linePrice = (key: string, base: number) =>
+      isAgencyUser ? parsePriceOverrideInput(priceOverrideByKey[key]) ?? base : base;
+    const bundlePrice = linePrice("product-bundle", bundleTotal);
+    const domainNames = bundleCtx.domains.map((d) => d.domain).filter(Boolean);
+
+    return bundleCtx.domains.map((domainResult, idx) => ({
+      productId: ctx.productId,
+      primaryDomain: domainResult.domain,
+      description: "registration",
+      productPlanId: null,
+      billingCycle: "YEARLY" as const,
+      itemPrice: idx === 0 ? str(bundlePrice) : "0",
+      itemSubtotal: idx === 0 ? str(bundlePrice) : "0",
+      metadata: {
+        ...registrantOrderMetadata,
+        [DOMAIN_BUNDLE_METADATA_KEY]: {
+          bundleId: bundleCtx.bundleId,
+          bundleLabel: bundleCtx.bundleLabel,
+          bundlePrice,
+          domains: domainNames,
+          isBundleLeadItem: idx === 0,
+        },
+      },
+    }));
+  }, [
+    ctx,
+    bundleCtx,
+    bundleTotal,
+    isAgencyUser,
+    priceOverrideByKey,
+    registrantOrderMetadata,
+  ]);
+
   const buildDomainProductOrderItems = React.useCallback(() => {
+    if (isDomainBundle) return buildDomainBundleOrderItems();
     if (!ctx?.productId || !ctx?.domain?.domain) return [];
     const str = (n: number) => (Number.isFinite(n) ? String(n) : "0");
     const domainName = ctx.domain.domain;
@@ -721,6 +777,8 @@ export function GlobalBuyNowDialog() {
 
     return items;
   }, [
+    isDomainBundle,
+    buildDomainBundleOrderItems,
     ctx,
     domainTotal,
     isAgencyUser,
@@ -1245,7 +1303,9 @@ export function GlobalBuyNowDialog() {
         setCurrentStep("product");
       }
     } else if (currentStep === "registrant_info") {
-      if (isDomainProduct) {
+      if (isDomainBundle) {
+        setCurrentStep("product");
+      } else if (isDomainProduct) {
         setCurrentStep("hosting-upsell");
       } else {
         setCurrentStep("review");
@@ -1461,6 +1521,20 @@ export function GlobalBuyNowDialog() {
     switch (effectiveStep) {
       case "product": {
         if (!ctx) return null;
+        if (isDomainBundle && bundleCtx) {
+          return (
+            <BuyNowDomainBundleProductStep
+              bundleLabel={bundleCtx.bundleLabel}
+              domains={bundleCtx.domains}
+              bundlePrice={
+                isAgencyUser
+                  ? parsePriceOverrideInput(priceOverrideByKey["product-bundle"]) ?? bundleTotal
+                  : bundleTotal
+              }
+              displayCurrency={displayCurrency}
+            />
+          );
+        }
         if (hasDomain && ctx.domain) {
           return (
             <BuyNowDomainProductStep
@@ -1772,9 +1846,42 @@ export function GlobalBuyNowDialog() {
         }
         return (
           <div className="space-y-4">
+            {isDomainBundle && bundleCtx ? (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="min-w-0">
+                    <div className="font-medium">Domains bundle</div>
+                    <div className="text-sm text-muted-foreground break-words">{bundleCtx.bundleLabel}</div>
+                    <div className="text-xs text-muted-foreground mt-1">1 year registration for all domains</div>
+                  </div>
+                  <div className="font-semibold shrink-0">
+                    {formatPrice(
+                      isAgencyUser
+                        ? parsePriceOverrideInput(priceOverrideByKey["product-bundle"]) ?? bundleTotal
+                        : bundleTotal,
+                      displayCurrency,
+                    )}
+                  </div>
+                </div>
+                <ul className="space-y-1.5 border-t border-border/60 pt-3">
+                  {bundleCtx.domains.map((d) => (
+                    <li key={d.domain} className="text-sm text-foreground truncate">
+                      {d.domain}
+                    </li>
+                  ))}
+                </ul>
+                {priceOverrideField(
+                  "product-bundle",
+                  displayCurrency,
+                  isAgencyUser
+                    ? parsePriceOverrideInput(priceOverrideByKey["product-bundle"]) ?? bundleTotal
+                    : bundleTotal,
+                )}
+              </div>
+            ) : null}
             <ScrollArea className="h-[300px] w-full" thumbClassName="bg-primary">
               <div className="space-y-4 pr-4">
-                {hasDomain && ctx?.domain && (
+                {hasDomain && ctx?.domain && !isDomainBundle && (
                   <div className="bg-muted/50 rounded-lg p-4 flex flex-col gap-1">
                     <div className="flex justify-between gap-4">
                       <div>
@@ -2361,7 +2468,10 @@ export function GlobalBuyNowDialog() {
 
   const getTitle = () => {
     if (isCartMode) return totalItems === 1 ? "Complete your purchase" : `Review ${totalItems} items`;
-    if (effectiveStep === "product") return `Buy ${hasDomain ? ctx?.domain?.domain ?? ctx?.productName : ctx?.productName}`;
+    if (effectiveStep === "product") {
+      if (isDomainBundle && bundleCtx) return `Get deal: ${bundleCtx.bundleLabel}`;
+      return `Buy ${hasDomain ? ctx?.domain?.domain ?? ctx?.productName : ctx?.productName}`;
+    }
     if (effectiveStep === "hosting-upsell") return "Add cloud hosting";
     if (effectiveStep === "plan-selection") {
       if (upsellBrowseTarget) {
@@ -2395,7 +2505,7 @@ export function GlobalBuyNowDialog() {
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
-            {effectiveStep === "product" && "Add optional services and proceed."}
+            {effectiveStep === "product" && (isDomainBundle ? "Review bundle details and continue." : "Add optional services and proceed.")}
             {effectiveStep === "hosting-upsell" &&
               "Add website or email hosting for your domain, or skip to checkout."}
             {effectiveStep === "plan-selection" &&
@@ -2421,6 +2531,10 @@ export function GlobalBuyNowDialog() {
               <Button variant="ghost" onClick={() => close()}>Cancel</Button>
               <Button
                 onClick={() => {
+                  if (isDomainBundle) {
+                    goToDomainCheckoutStep();
+                    return;
+                  }
                   if (isDomainProduct) setCurrentStep("hosting-upsell");
                   else if (!hasDomain && ctx?.productId) {
                     setPlanSelectionProductId(ctx.productId);
@@ -2432,7 +2546,13 @@ export function GlobalBuyNowDialog() {
                   } else setCurrentStep("review");
                 }}
               >
-                {isDomainProduct ? "Continue" : !hasDomain && ctx?.productId ? "Select plan" : "Proceed to checkout"}
+                {isDomainBundle
+                  ? "Continue"
+                  : isDomainProduct
+                    ? "Continue"
+                    : !hasDomain && ctx?.productId
+                      ? "Select plan"
+                      : "Proceed to checkout"}
               </Button>
             </>
           )}
