@@ -454,10 +454,10 @@ function ExtensionsSection() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden pt-10 pb-0">
-      {/* bg glow */}
+    <section className="relative pt-10 pb-0">
+      {/* bg glow — clipped inside its own layer so it never bleeds horizontally */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{
           background:
             "radial-gradient(ellipse 80% 55% at 50% 0%, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent)",
@@ -559,9 +559,9 @@ export default function DomainsPage() {
       <FaqSection />
 
       {/* Final CTA */}
-      <section className="relative overflow-hidden py-24">
+      <section className="relative py-24">
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none overflow-hidden"
           style={{
             background:
               "radial-gradient(ellipse 70% 60% at 50% 50%, color-mix(in srgb, var(--color-primary) 8%, transparent), transparent)",

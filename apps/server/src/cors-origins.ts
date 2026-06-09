@@ -37,6 +37,21 @@ export function isLocalDevOrigin(origin: string): boolean {
   }
 }
 
+/**
+ * Allow Vercel preview deployments (*.vercel.app) as trusted origins.
+ * Only active when ALLOW_VERCEL_PREVIEW_ORIGINS=true is set, so production
+ * servers that don't need this remain locked down.
+ */
+export function isVercelPreviewOrigin(origin: string): boolean {
+  if (process.env.ALLOW_VERCEL_PREVIEW_ORIGINS !== "true") return false;
+  try {
+    const { hostname } = new URL(origin);
+    return hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}
+
 export function createCorsOriginMatcher(primaryOrigin: string) {
   const allowed = resolveCorsAllowedOrigins(primaryOrigin);
   const isProd = process.env.NODE_ENV === "production";
@@ -46,6 +61,7 @@ export function createCorsOriginMatcher(primaryOrigin: string) {
     const normalized = origin.replace(/\/+$/, "");
     if (allowed.includes(normalized)) return origin;
     if (!isProd && isLocalDevOrigin(origin)) return origin;
+    if (isVercelPreviewOrigin(origin)) return origin;
     return null;
   };
 }
