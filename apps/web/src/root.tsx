@@ -17,6 +17,7 @@ import RootLoading from "@/components/root-loading";
 import { sessionGateClientMiddleware } from "@/middleware/session-gate.client";
 import { GlobalBuyNowDialogWrapper } from "@/components/global-buy-now-dialog-wrapper";
 import { CartStorageSync } from "@/components/cart-storage-sync";
+import { CART_RESCUE_SCRIPT } from "@npanel/cart-store";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
 import { SessionLifetimeGuard } from "@/components/session-lifetime-guard";
@@ -70,6 +71,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        {/* Rescue _cart URL param into sessionStorage before React/middleware runs */}
+        <script dangerouslySetInnerHTML={{ __html: CART_RESCUE_SCRIPT }} />
         <Meta />
         <Links />
       </head>

@@ -21,8 +21,11 @@ export { initCartStorageSync, readMergedPersistedCart, syncCartFromSharedStorage
 export { crossOriginCartStorage } from "./persist-storage";
 export {
   CART_URL_PARAM,
+  CART_SESSION_KEY,
+  CART_RESCUE_SCRIPT,
   buildCartHandoffUrl,
   serializeCartToUrlParam,
   parseCartFromUrlParam,
   importCartFromUrl,
+  importCartFromSessionStorage,
 } from "./cart-url-handoff";
