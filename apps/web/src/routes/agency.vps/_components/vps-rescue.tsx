@@ -518,7 +518,7 @@ export function VpsRescue({ deviceId, deviceData, vpsData }: VpsRescueProps) {
               <p className="text-sm font-medium">ISO mounted</p>
               <p className="text-xs text-muted-foreground mt-1 mb-6 max-w-sm">
                 {attachedIso?.name ?? attachedIsoId}
-                {attachedIso?.description ? ` — ${attachedIso.description}` : ""}
+                {attachedIso?.description ? ` - ${attachedIso.description}` : ""}
               </p>
             </>
           ) : (

@@ -20,6 +20,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@intercom/messenger-js-sdk": "^0.0.19",
     "@npanel/api": "workspace:*",
+    "@npanel/cart-store": "workspace:*",
     "@npanel/auth": "workspace:*",
     "@npanel/env": "workspace:*",
     "@npanel/location": "workspace:*",

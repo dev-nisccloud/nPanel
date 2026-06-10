@@ -107,7 +107,7 @@ export function JetBackupQueueTab() {
             <JetBackupMinimalRow
               key={group._id}
               title={formatQueueType(group.type ?? queueType)}
-              subtitle={subtitle || "—"}
+              subtitle={subtitle || "-"}
               badge={formatQueueStatus(group.status)}
               badgeVariant={status === "failed" ? "destructive" : "default"}
               badgeClassName={jetbackupSuccessBadgeClass(isSuccess)}

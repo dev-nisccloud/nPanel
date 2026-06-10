@@ -16,6 +16,7 @@ import { NotFoundPage } from "@/components/not-found-page";
 import RootLoading from "@/components/root-loading";
 import { sessionGateClientMiddleware } from "@/middleware/session-gate.client";
 import { GlobalBuyNowDialogWrapper } from "@/components/global-buy-now-dialog-wrapper";
+import { CartStorageSync } from "@/components/cart-storage-sync";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
 import { SessionLifetimeGuard } from "@/components/session-lifetime-guard";
@@ -94,6 +95,7 @@ export default function App() {
           storageKey="vite-ui-theme"
         >
           <PreferencesStoreProvider themeMode={DEFAULT_THEME_MODE} themePreset={DEFAULT_THEME_PRESET}>
+            <CartStorageSync />
             <Suspense fallback={<RootLoading />}>
               <Outlet />
             </Suspense>

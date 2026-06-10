@@ -803,7 +803,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     /**
-     * Customer: payment context for a suspended VPS — no upstream device details.
+     * Customer: payment context for a suspended VPS - no upstream device details.
      */
     getCustomerSuspendedVpsContext: import("@trpc/server").TRPCQueryProcedure<{
         input: {
@@ -1232,7 +1232,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
     }>;
     /**
      * Private: Request token to reset root password for VPS.
-     * Token is emailed to the Hivelocity account contact — not returned in the published API schema.
+     * Token is emailed to the Hivelocity account contact - not returned in the published API schema.
      */
     vpsRequestResetPasswordToken: import("@trpc/server").TRPCMutationProcedure<{
         input: {

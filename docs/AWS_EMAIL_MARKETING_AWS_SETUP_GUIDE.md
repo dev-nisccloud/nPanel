@@ -377,7 +377,7 @@ Replace the entire policy JSON with **one** `AllowSESPublish` statement (substit
 
 > **Do not use `"Action": "SNS:*"`** (uppercase). SNS topic policies reject it with
 > `Policy statement action out of service scope`. Use lowercase `sns:Publish` only.
-> You do not need a separate “management” statement — your IAM user already manages the topic.
+> You do not need a separate “management” statement - your IAM user already manages the topic.
 
 **nPanel production example** (account `847766693391`):
 

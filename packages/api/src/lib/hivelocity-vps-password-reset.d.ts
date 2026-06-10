@@ -2,8 +2,8 @@
  * Hivelocity VPS root password reset helpers.
  *
  * Official flow (developers.hivelocity.net):
- * - POST /vps/{deviceId}/reset-password — emails a token to the account email; no token in documented response.
- * - PUT  /vps/{deviceId}/reset-password — body { token }; VPS must be powered off.
+ * - POST /vps/{deviceId}/reset-password - emails a token to the account email; no token in documented response.
+ * - PUT  /vps/{deviceId}/reset-password - body { token }; VPS must be powered off.
  * - New password appears on the device in my.hivelocity ~5–10 min; GET /device/{deviceId}/initial-creds may return it.
  */
 export declare function extractVpsResetTokenFromResponse(raw: unknown): string | null;

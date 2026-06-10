@@ -254,7 +254,7 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
               Infrastructure Credentials
             </CardTitle>
             <CardDescription className="text-xs">
-              Initial root password — set your own over SSH for long-term access.
+              Initial root password - set your own over SSH for long-term access.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 px-6 pt-0">
@@ -266,7 +266,7 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
               <AlertDescription className="space-y-2 text-[11px] font-medium leading-snug text-amber-900/90 dark:text-amber-200/90">
                 <p>
                   The root password below is only shown here for about 7 days after provisioning (or a reset). After
-                  that it is hidden in this panel — not removed from your server.
+                  that it is hidden in this panel - not removed from your server.
                 </p>
                 <p>
                   SSH in and run <span className="rounded bg-amber-200/60 px-1 font-mono font-bold dark:bg-amber-900/50">passwd</span>{" "}
@@ -364,7 +364,7 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
                       <p className="text-sm font-bold text-foreground">Request received</p>
                       <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-sm">
                         We&apos;ll reset your root password for you. Your new password will be updated here in a few
-                        minutes — usually within 10 minutes.
+                        minutes - usually within 10 minutes.
                       </p>
                     </div>
                     {customerResetInProgress ? (
@@ -385,7 +385,7 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
                     <AlertDescription className="text-[10px] font-medium leading-relaxed opacity-90 space-y-2">
                       <p>
                         Your reset request was submitted, but the new password is not available yet. Refresh this page
-                        in a few minutes — it may still be processing.
+                        in a few minutes - it may still be processing.
                       </p>
                       <p>
                         If it still hasn&apos;t updated, reach out to our support team or submit a ticket using the
@@ -453,7 +453,7 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
                       Root credential recovery
                     </DialogTitle>
                     <DialogDescription>
-                      Password reset is a two-step process. The verification code is emailed to your provider account —
+                      Password reset is a two-step process. The verification code is emailed to your provider account -
                       it is not shown in this panel.
                     </DialogDescription>
                   </DialogHeader>
@@ -467,7 +467,7 @@ export function VpsAccess({ deviceData, onTabChange }: VpsAccessProps) {
                           <AlertDescription className="text-[10px] font-medium leading-relaxed opacity-90 space-y-1.5">
                             <p>1. Power off the VPS instance.</p>
                             <p>
-                              2. Request a verification code — it is sent to the email on your infrastructure provider
+                              2. Request a verification code - it is sent to the email on your infrastructure provider
                               account.
                             </p>
                             <p>
