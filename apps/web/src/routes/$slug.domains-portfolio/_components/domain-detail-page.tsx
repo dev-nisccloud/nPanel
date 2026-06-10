@@ -28,6 +28,7 @@ import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
 import { DomainPortfolioContactInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
+import { DomainTransferSecuritySection } from "@/components/domain-transfer-security-section";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DomainDetailPageProps {
@@ -403,6 +404,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     domain={domain}
                     getStatusBadge={getStatusBadge}
                     shouldShowRenew={shouldShowRenew}
+                    openProviderId={openProviderId}
                   />
 
                   {/* Contact Information Card */}
@@ -633,11 +635,13 @@ function ToolsSection({
 function DomainHeaderCard({
   domain,
   getStatusBadge,
-  shouldShowRenew
+  shouldShowRenew,
+  openProviderId,
 }: {
   domain: DomainPortfolio;
   getStatusBadge: () => React.ReactNode;
   shouldShowRenew: boolean;
+  openProviderId: number | null;
 }) {
   const expiryDate = new Date(domain.expiryDate);
   const now = new Date();
@@ -731,6 +735,15 @@ function DomainHeaderCard({
               )}
             </div>
           </div>
+
+          <DomainTransferSecuritySection
+            source="openprovider"
+            domainName={domain.domain}
+            openProviderId={openProviderId}
+            isLocked={domain.isLocked}
+            isLockable={domain.isLockable}
+            isPrivateWhois={domain.isPrivateWhois}
+          />
         </div>
       </CardContent>
     </Card>
