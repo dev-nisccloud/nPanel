@@ -1,15 +1,23 @@
 import { useEffect } from "react";
-import { initCartStorageSync, importCartFromUrl } from "@npanel/cart-store";
+import { initCartStorageSync, importCartFromUrl, importCartFromSessionStorage } from "@npanel/cart-store";
 
 /**
  * Keeps the in-memory cart in sync with shared storage (dashboard ↔ landing page).
- * Also imports any cart items passed via the `_cart` URL param — used when the
- * landing page is on a different origin (e.g. Vercel preview) and can't share a cookie.
+ *
+ * Import priority on mount:
+ *  1. `_cart` URL param — present when user navigates directly from landing page
+ *     while already logged in (or when no auth gate fires).
+ *  2. sessionStorage rescue key — written by the inline <head> script before
+ *     React/middleware runs.  Survives the login redirect so items are available
+ *     after the user authenticates.
+ *  3. Cookie / localStorage sync — keeps cart in sync across tabs and subdomains.
  */
 export function CartStorageSync() {
   useEffect(() => {
-    // URL-based handoff runs first so cookie/localStorage sync doesn't race it.
-    importCartFromUrl();
+    // Try URL param first (user was already logged in when they arrived).
+    const importedFromUrl = importCartFromUrl();
+    // Fall back to sessionStorage rescue (user had to log in first).
+    if (!importedFromUrl) importCartFromSessionStorage();
     return initCartStorageSync();
   }, []);
   return null;

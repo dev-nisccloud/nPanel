@@ -1,6 +1,9 @@
-import { motion, AnimatePresence } from "motion/react";
-import { useState, useEffect } from "react";
-import { ArrowRight, Zap, Paintbrush, Server, TrendingUp, Bot } from "lucide-react";
+import { motion } from "motion/react";
+import { ArrowRight, ChevronRight, Zap } from "lucide-react";
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text.tsx";
+import { WorldMap } from "@/components/ui/map.tsx";
+import { Typewriter } from "@/components/ui/typewriter.tsx";
+import { cn } from "@/lib/utils.ts";
 
 const clients = [
   { name: "Amarom", logo: "/clients/amarom2.png" },
@@ -26,118 +29,31 @@ const allClients = [...clients, ...clients];
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
 
-const services = [
-  { icon: Paintbrush, label: "Create", sub: "Brand & Web Design" },
-  { icon: Server, label: "Host", sub: "Cloud & Domains" },
-  { icon: TrendingUp, label: "Market", sub: "SEO & Paid Ads" },
-  { icon: Bot, label: "Automate", sub: "Zeepo AI" },
-];
+const nairobiHub = { lat: -1.2921, lng: 36.8219, label: "Nairobi" };
 
-const metrics = [
-  { value: "500+", label: "Businesses" },
-  { value: "99.9%", label: "Uptime" },
-  { value: "+143%", label: "Revenue" },
-  { value: "30 days", label: "Results" },
-];
+/** One representative city per region — avoids clustered pins (e.g. NYC / DC / Toronto). */
+const globalDestinations = [
+  { lat: 51.5074, lng: -0.1278, label: "London" },
+  { lat: 40.7128, lng: -74.006, label: "New York" },
+  { lat: -23.5505, lng: -46.6333, label: "São Paulo" },
+  { lat: -33.9249, lng: 18.4241, label: "Cape Town" },
+  { lat: 25.2048, lng: 55.2708, label: "Dubai" },
+  { lat: 19.076, lng: 72.8777, label: "Mumbai" },
+  { lat: 1.3521, lng: 103.8198, label: "Singapore" },
+  { lat: 35.6762, lng: 139.6503, label: "Tokyo" },
+  { lat: -33.8688, lng: 151.2093, label: "Sydney" },
+] as const;
+
+const heroMapDots = globalDestinations.map((end, index) => ({
+  start: index === 0 ? nairobiHub : { lat: nairobiHub.lat, lng: nairobiHub.lng },
+  end,
+}));
 
 const socialProof = [
   { dot: "bg-emerald-400", text: "500+ Businesses Powered" },
   { dot: "bg-primary", text: "99.9% Uptime" },
   { dot: "bg-amber-400", text: "Results in 30 Days" },
 ];
-
-const cyclingWords = ["Create.", "Launch.", "Grow."];
-
-function CyclingWord() {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setIndex((i) => (i + 1) % cyclingWords.length);
-    }, 2600);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <span
-      className="inline-block overflow-hidden align-bottom"
-      style={{ height: "1.08em", verticalAlign: "bottom" }}
-    >
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={index}
-          className="inline-block text-primary"
-          initial={{ opacity: 0, y: "100%" }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: "-100%" }}
-          transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
-        >
-          {cyclingWords[index]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
-}
-
-function PlatformPreview() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: 0.3 }}
-      className="w-full max-w-[460px] bg-card border border-border rounded-2xl shadow-xl overflow-hidden"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <img src="/nisccloud-logo.svg" alt="Nisc Cloud" className="h-6 w-auto" />
-          <span className="text-sm font-semibold text-foreground">Nisc Cloud Platform</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-xs text-muted-foreground">Active</span>
-        </div>
-      </div>
-
-      {/* Service grid */}
-      <div className="p-4 grid grid-cols-2 gap-2.5">
-        {services.map((s) => (
-          <div
-            key={s.label}
-            className="flex items-start gap-3 p-3.5 bg-muted/40 hover:bg-muted/70 rounded-xl transition-colors cursor-default"
-          >
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
-              <s.icon size={15} />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground leading-none mb-1">{s.label}</div>
-              <div className="text-xs text-muted-foreground">{s.sub}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Metrics strip */}
-      <div className="grid grid-cols-4 border-t border-border">
-        {metrics.map((m, i) => (
-          <div
-            key={m.label}
-            className={`px-2 py-4 text-center ${i < 3 ? "border-r border-border" : ""}`}
-          >
-            <div className="text-base font-bold text-primary leading-none mb-1">{m.value}</div>
-            <div className="text-[10px] text-muted-foreground leading-none">{m.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div className="px-5 py-3.5 bg-muted/30 border-t border-border flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">Trusted across Kenya & Africa</span>
-        <span className="text-xs font-mono text-muted-foreground/50">nisccloud.com</span>
-      </div>
-    </motion.div>
-  );
-}
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -171,10 +87,20 @@ export default function Hero() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-medium mb-7"
+            className="mb-7"
           >
-            <Zap size={11} className="fill-primary" />
-            Kenya's All-In-One Digital Partner
+            <AnimatedGradientText className="mx-0 rounded-full text-xs">
+              <Zap size={11} className="shrink-0 fill-[#ffaa40] text-[#ffaa40]" />
+              <hr className="mx-2 h-4 w-px shrink-0 border-0 bg-border" />
+              <span
+                className={cn(
+                  "inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent",
+                )}
+              >
+                Kenya&apos;s All-In-One Digital Partner
+              </span>
+              <ChevronRight className="ml-1 size-3 text-muted-foreground transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
+            </AnimatedGradientText>
           </motion.div>
 
           <motion.h1
@@ -183,7 +109,17 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.08 }}
             className="text-5xl md:text-6xl lg:text-[66px] font-bold tracking-tight leading-[1.08] mb-5"
           >
-            <span className="text-foreground">Built to </span><CyclingWord />
+            <span className="text-foreground">Built to </span>
+            <Typewriter
+              text={["Create.", "Launch.", "Grow."]}
+              speed={65}
+              waitTime={1800}
+              deleteSpeed={35}
+              initialDelay={400}
+              className="text-primary"
+              cursorChar="|"
+              hideCursorOnType
+            />
           </motion.h1>
 
           <motion.p
@@ -234,14 +170,28 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Right: clean platform card */}
+        {/* Right: global connectivity map */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.25 }}
-          className="hidden lg:flex justify-center items-center"
+          className="flex w-full flex-col gap-5 lg:gap-6"
         >
-          <PlatformPreview />
+          <div className="space-y-1.5 text-center lg:text-left">
+            <p className="text-base font-semibold tracking-tight text-foreground">
+              Fast everywhere. Secure always.
+            </p>
+            <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground lg:mx-0 lg:max-w-sm">
+              A global server network that keeps your site loading anywhere, everywhere
+            </p>
+          </div>
+          <WorldMap
+            dots={heroMapDots}
+            lineColor="#38b6ff"
+            showLabels
+            blend
+            className="w-full max-w-2xl mx-auto lg:mx-0 lg:max-w-none [mask-image:linear-gradient(to_bottom,transparent,black_8%,black_92%,transparent)]"
+          />
         </motion.div>
 
         {/* Trusted by — full-width row below both columns */}
