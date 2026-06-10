@@ -5,6 +5,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip.tsx";
 import { CATEGORY_PILLS } from "@/lib/domain-search/tld-sections.ts";
@@ -154,46 +155,48 @@ export function DomainSearchResults({
             More options
           </h3>
           <div className="bg-transparent rounded-lg py-3 px-1">
-            <ScrollArea className="w-full">
-              <div className="flex gap-2 flex-nowrap w-max pb-4 pr-2">
-                {CATEGORY_PILLS.map(({ sectionId, label }) => {
-                  const isActive = selectedCategoryId === sectionId;
-                  const tooltip = getSectionTooltip(sectionId);
-                  const pill = (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCategoryId(sectionId)}
-                      className={`
-                        shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer
-                        ${
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-background text-foreground border border-border hover:bg-muted/50"
-                        }
-                      `}
-                    >
-                      {label}
-                    </button>
-                  );
-                  return (
-                    <React.Fragment key={sectionId}>
-                      {tooltip ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>{pill}</TooltipTrigger>
-                          <TooltipContent side="bottom" sideOffset={6} className="max-w-xs text-center">
-                            {tooltip}
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        pill
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            <TooltipProvider key={searchQuery} delayDuration={200} skipDelayDuration={0}>
+              <ScrollArea className="w-full">
+                <div className="flex gap-2 flex-nowrap w-max pb-4 pr-2">
+                  {CATEGORY_PILLS.map(({ sectionId, label }) => {
+                    const isActive = selectedCategoryId === sectionId;
+                    const tooltip = getSectionTooltip(sectionId);
+                    const pill = (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategoryId(sectionId)}
+                        className={`
+                          shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer
+                          ${
+                            isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-background text-foreground border border-border hover:bg-muted/50"
+                          }
+                        `}
+                      >
+                        {label}
+                      </button>
+                    );
+                    return (
+                      <React.Fragment key={sectionId}>
+                        {tooltip ? (
+                          <Tooltip disableHoverableContent>
+                            <TooltipTrigger asChild>{pill}</TooltipTrigger>
+                            <TooltipContent side="bottom" sideOffset={6} className="max-w-xs text-center">
+                              {tooltip}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          pill
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </TooltipProvider>
           </div>
           <div className="mt-4">
             {CATEGORY_PILLS.map(({ sectionId }) => {

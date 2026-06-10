@@ -283,8 +283,11 @@ export function TopLevelSuggestedCards({
 			getPricingInfo={getPricingInfo}
 			retailPricingReady={retailPricingReady}
 			isDomainInCart={isDomainInCart}
+			isDomainBundleInCart={isDomainBundleInCart}
 			onAddToCart={onAddToCart}
 			onRemoveFromCart={onRemoveFromCart}
+			onAddDomainBundle={onAddDomainBundle}
+			onRemoveDomainBundle={onRemoveDomainBundle}
 			formatPrice={formatPrice}
 		/>
 	);
@@ -303,8 +306,11 @@ function TopLevelCardsInner({
 	getPricingInfo,
 	retailPricingReady,
 	isDomainInCart,
+	isDomainBundleInCart,
 	onAddToCart,
 	onRemoveFromCart,
+	onAddDomainBundle,
+	onRemoveDomainBundle,
 	formatPrice,
 }: {
 	showCoKe: boolean;
@@ -319,8 +325,16 @@ function TopLevelCardsInner({
 	getPricingInfo: (domain: string, original: number, currency: string) => { finalPrice: number; marginAmount: number; marginType: string | null; marginValue: string | null; currency: string };
 	retailPricingReady: boolean;
 	isDomainInCart: (domain: string) => boolean;
+	isDomainBundleInCart: (domainNames: string[]) => boolean;
 	onAddToCart: (r: DomainSearchResult) => void;
 	onRemoveFromCart: (domain: string) => void;
+	onAddDomainBundle: (params: {
+		domains: DomainSearchResult[];
+		bundlePrice: number;
+		bundleCurrency?: string;
+		bundleLabel?: string;
+	}) => void;
+	onRemoveDomainBundle: (domainNames: string[]) => void;
 	formatPrice: (price?: number, currency?: string) => string;
 }) {
 	const cards: React.ReactNode[] = [];
