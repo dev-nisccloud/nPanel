@@ -1,25 +1,23 @@
 "use client";
 
-import * as React from "react";
 import { ShoppingCart, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/stores/cart-store";
-import { CheckoutDialog } from "./checkout-dialog";
+import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 
 export function CartSummary() {
-  const { 
-    items, 
-    getItemCount, 
+  const {
+    getItemCount,
     getTotalsByCurrency,
     getCurrenciesInCart,
   } = useCartStore();
-  
+  const openForCart = useGlobalBuyNowStore((s) => s.openForCart);
+
   const totalItems = getItemCount();
   const totalsByCurrency = getTotalsByCurrency();
   const currenciesInCart = getCurrenciesInCart();
-  const [checkoutOpen, setCheckoutOpen] = React.useState(false);
 
   // Format price with currency support
   const formatPrice = (price: number, currency: string = 'USD') => {
@@ -30,7 +28,7 @@ export function CartSummary() {
   };
 
   const handleCheckout = () => {
-    setCheckoutOpen(true);
+    openForCart();
   };
 
   if (totalItems === 0) {
@@ -95,17 +93,14 @@ export function CartSummary() {
 
       <Separator />
 
-      {/* Checkout Button */}
-      <Button 
-        className="w-full h-11 font-medium" 
+      {/* Checkout Button - opens global buy-now dialog in cart mode */}
+      <Button
+        className="w-full h-11 font-medium"
         onClick={handleCheckout}
       >
         <CreditCard className="h-4 w-4 mr-2" />
         Proceed to Checkout
       </Button>
-
-      {/* Checkout Dialog */}
-      <CheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
     </div>
   );
 }

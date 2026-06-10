@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Check, ChevronRight, X, Search, Globe, Plus, Minus, Sparkles } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
@@ -111,8 +117,17 @@ export default function OrderDialog({ open, onClose, plan, addons = [], serviceT
     : [];
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden rounded-3xl border border-border shadow-2xl">
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-lg p-0 overflow-hidden rounded-3xl border border-border shadow-2xl"
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{plan?.name ?? "Place order"}</DialogTitle>
+          <DialogDescription>
+            Configure your {serviceType} plan, domain options, and checkout details.
+          </DialogDescription>
+        </DialogHeader>
         {/* Gradient header */}
         <div className="bg-gradient-to-br from-primary/15 via-primary/8 to-transparent px-7 pt-7 pb-5 border-b border-border/60">
           <div className="flex items-start justify-between">

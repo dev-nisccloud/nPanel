@@ -238,7 +238,7 @@ interface SelectedAddOn {
 
 export function GlobalBuyNowDialog() {
   const { open, mode, productContext, transferContext, close } = useGlobalBuyNowStore();
-  const { items, getTotalsByCurrency, getCurrenciesInCart, getItemCount, clearCart, getDomains } = useCartStore();
+  const { items, getTotalsByCurrency, getCurrenciesInCart, getItemCount, clearCart } = useCartStore();
 
   const [currentStep, setCurrentStep] = React.useState<Step>("review");
   const [couponCode, setCouponCode] = React.useState("");
@@ -319,10 +319,12 @@ export function GlobalBuyNowDialog() {
     if (isTransferMode) return true;
     if (isCartMode) {
       return items.some(
-        (i) => 
-          i.productId === domainsProductId || 
-          !!i.description?.toLowerCase().includes("domain") || 
-          !!i.productName?.toLowerCase().includes("domain")
+        (i) =>
+          i.type === "domain" ||
+          i.type === "domain_bundle" ||
+          i.productId === domainsProductId ||
+          !!i.description?.toLowerCase().includes("domain") ||
+          !!i.productName?.toLowerCase().includes("domain"),
       );
     }
     const isDomain = hasDomain || isDomainBundle || !!ctx?.productName?.toLowerCase().includes("domain");
@@ -899,10 +901,18 @@ export function GlobalBuyNowDialog() {
         }
 
         if (orderItems.length === 0) return;
+        const cartBilledForUserId =
+          isAgencyUser &&
+          registrantType === "existing_customer" &&
+          selectedExistingCustomerId.trim()
+            ? selectedExistingCustomerId.trim()
+            : undefined;
         createOrderFromPayment.mutate({
           checkoutRequestId: checkoutRequestIdParam,
           items: orderItems,
           currency: primaryCurrency,
+          ...(checkoutTeamId ? { teamId: checkoutTeamId } : {}),
+          ...(cartBilledForUserId ? { billedForUserId: cartBilledForUserId } : {}),
         });
         return;
       }
@@ -918,7 +928,9 @@ export function GlobalBuyNowDialog() {
         checkoutRequestId: checkoutRequestIdParam,
         items: orderItems,
         currency: displayCurrency,
-        ...(ctx?.teamId ? { teamId: ctx.teamId } : {}),
+        ...((checkoutTeamId ?? ctx?.teamId)
+          ? { teamId: checkoutTeamId ?? ctx?.teamId }
+          : {}),
         ...(billedForUserId ? { billedForUserId } : {}),
       });
     },
@@ -926,9 +938,10 @@ export function GlobalBuyNowDialog() {
       isTransferMode,
       transferContext,
       isCartMode,
-      getDomains,
+      items,
       domainsProductId,
       primaryCurrency,
+      checkoutTeamId,
       ctx,
       displayCurrency,
       createOrderFromPayment,
@@ -937,7 +950,6 @@ export function GlobalBuyNowDialog() {
       registrantOrderMetadata,
       registrantType,
       selectedExistingCustomerId,
-      domainTotal,
       buildDomainProductOrderItems,
     ]
   );
@@ -1335,11 +1347,12 @@ export function GlobalBuyNowDialog() {
         setSelectedPlanId(null);
         setCurrentStep("hosting-upsell");
       }
-    } else if (currentStep === "review" && !isCartMode && ctx) {
+    } else if (currentStep === "review" && (isCartMode || ctx)) {
       if (isDomainProduct && registrantStepCompleted) {
         setCurrentStep("registrant_info");
         return;
       }
+      if (isCartMode) return;
       if (selectedMainPlan) {
         setPlanSelectionProductId(ctx.productId);
         setPlanSelectionProductName(ctx.productName);
@@ -1353,7 +1366,9 @@ export function GlobalBuyNowDialog() {
         setCurrentStep("product");
       }
     } else if (currentStep === "registrant_info") {
-      if (isDomainBundle) {
+      if (isCartMode) {
+        setCurrentStep("review");
+      } else if (isDomainBundle) {
         setCurrentStep("product");
       } else if (isDomainProduct) {
         setCurrentStep("hosting-upsell");
@@ -1896,6 +1911,14 @@ export function GlobalBuyNowDialog() {
               <p className="text-xs text-muted-foreground">
                 By checking out you agree to our Terms of Service and Privacy Policy.
               </p>
+              {isCustomerDomainCheckout && !userInfoQuery.isLoading && !isProfileComplete ? (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>
+                    Complete your profile on the next step before payment. Domain orders require address, phone, and related details.
+                  </span>
+                </div>
+              ) : null}
             </div>
           );
         }
@@ -2671,10 +2694,10 @@ export function GlobalBuyNowDialog() {
                 {isCartMode ? "Cancel" : isTransferMode ? "Cancel" : "Back"}
               </Button>
               <Button onClick={proceedFromReview}>
-                {isTransferMode || isCartMode
-                  ? "Proceed to payment"
-                  : isDomainProduct && !registrantStepCompleted
-                    ? "Continue to registrant details"
+                {isDomainProduct && !registrantStepCompleted
+                  ? "Continue to registrant details"
+                  : isCartMode || isTransferMode
+                    ? "Proceed to payment"
                     : "Choose payment method"}
               </Button>
             </>

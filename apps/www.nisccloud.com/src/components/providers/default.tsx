@@ -7,7 +7,7 @@ import { CartStorageSync } from "../CartStorageSync.tsx";
 export function DefaultProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider>
-      <TooltipProvider>
+      <TooltipProvider delayDuration={200}>
         <ThemeProvider>
           <CartStorageSync />
           <Toaster />
