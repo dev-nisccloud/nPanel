@@ -82,6 +82,7 @@ export function WorldMap({
   const projectPoint = useCallback(
     (lat: number, lng: number) => {
       const pin = map.getPin({ lat, lng });
+      if (!pin) return { x: 0, y: 0 };
       return { x: pin.x, y: pin.y };
     },
     [map],
