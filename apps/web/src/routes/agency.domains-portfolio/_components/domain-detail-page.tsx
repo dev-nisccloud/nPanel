@@ -28,6 +28,7 @@ import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
 import { DomainPortfolioContactInfo, type KenicRegistrantInfo } from "./domain-portfolio-contact-info";
+import { DomainTransferSecuritySection } from "@/components/domain-transfer-security-section";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DomainDetailPageProps {
@@ -73,7 +74,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   }, [opDomainsData, kenicDomainsData, domainId]);
 
   // 4. Fetch live KENIC info if applicable
-  const { data: kenicLiveInfo, isLoading: isKenicLiveLoading } = trpc.kenic.domainList.info.useQuery(
+  const {
+    data: kenicLiveInfo,
+    isLoading: isKenicLiveLoading,
+    refetch: refetchKenicLiveInfo,
+  } = trpc.kenic.domainList.info.useQuery(
     { domain: domain?.domain ?? "" },
     { enabled: !!domain && (domain as any)?.source === "kenic" }
   );
@@ -85,10 +90,11 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
       return {
         ...domain,
         nameservers: kenicLiveInfo.data.nameservers,
-        status: kenicLiveInfo.data.status as any,
+        status: (kenicLiveInfo.data.status as DomainPortfolio["status"]) ?? domain.status,
         expiryDate: kenicLiveInfo.data.exDate || domain.expiryDate,
         registrationDate: kenicLiveInfo.data.crDate || domain.registrationDate,
         registrantInfo: kenicLiveInfo.data.registrantInfo,
+        isLocked: kenicLiveInfo.data.isTransferLocked ?? domain.isLocked,
       };
     }
     return domain;
@@ -118,6 +124,18 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
 
   const existingSubscription = isKenic ? kenicSubscription : opSubscription;
   const hasExistingSubscription = !!existingSubscription;
+
+  const kenicStatuses = kenicLiveInfo?.data?.allStatuses ?? [];
+  const kenicIsLocked =
+    kenicLiveInfo?.data?.isTransferLocked ??
+    kenicStatuses.some(
+      (s: { status?: string }) => s.status?.toLowerCase() === "clienttransferprohibited"
+    );
+  const kenicServerTransferLocked =
+    kenicLiveInfo?.data?.isServerTransferLocked ??
+    kenicStatuses.some(
+      (s: { status?: string }) => s.status?.toLowerCase() === "servertransferprohibited"
+    );
 
   const domainNameWithoutTld = React.useMemo(() => {
     if (!mergedDomain?.domain) return "";
@@ -221,14 +239,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               </Button>
             </Link>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-semibold tracking-tight">Domain Details</h1>
-                {isKenic && (
-                  <Badge variant="outline" className="text-[10px] h-4 border-orange-300 text-orange-700 dark:border-orange-600 dark:text-orange-400">
-                    KENIC
-                  </Badge>
-                )}
-              </div>
+              <h1 className="text-base font-semibold tracking-tight">Domain Details</h1>
               <p className="text-xs text-muted-foreground">Manage and monitor your domain</p>
             </div>
           </div>
@@ -346,6 +357,13 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     domain={mergedDomain as DomainPortfolio}
                     getStatusBadge={getStatusBadge}
                     shouldShowRenew={shouldShowRenew}
+                    source={(mergedDomain as { source?: "kenic" | "openprovider" }).source ?? "openprovider"}
+                    openProviderId={openProviderId}
+                    kenicAuthInfo={kenicLiveInfo?.data?.authInfo}
+                    kenicIsLocked={kenicIsLocked}
+                    kenicServerTransferLocked={kenicServerTransferLocked}
+                    onKenicAuthCodeUpdated={() => void refetchKenicLiveInfo()}
+                    onKenicLockUpdated={() => void refetchKenicLiveInfo()}
                   />
 
                   {/* Contact Information Card */}
@@ -560,11 +578,25 @@ function ToolsSection({
 function DomainHeaderCard({
   domain,
   getStatusBadge,
-  shouldShowRenew
+  shouldShowRenew,
+  source,
+  openProviderId,
+  kenicAuthInfo,
+  kenicIsLocked,
+  kenicServerTransferLocked,
+  onKenicAuthCodeUpdated,
+  onKenicLockUpdated,
 }: {
   domain: DomainPortfolio;
   getStatusBadge: () => React.ReactNode;
   shouldShowRenew: boolean;
+  source: "openprovider" | "kenic";
+  openProviderId: number | null;
+  kenicAuthInfo?: string | null;
+  kenicIsLocked?: boolean;
+  kenicServerTransferLocked?: boolean;
+  onKenicAuthCodeUpdated?: () => void;
+  onKenicLockUpdated?: () => void;
 }) {
   const expiryDate = new Date(domain.expiryDate);
   const now = new Date();
@@ -658,6 +690,19 @@ function DomainHeaderCard({
               )}
             </div>
           </div>
+
+          <DomainTransferSecuritySection
+            source={source}
+            domainName={domain.domain}
+            openProviderId={openProviderId}
+            isLocked={source === "kenic" ? kenicIsLocked : domain.isLocked}
+            isLockable={source === "kenic" ? !kenicServerTransferLocked : domain.isLockable}
+            isPrivateWhois={domain.isPrivateWhois}
+            kenicServerTransferLocked={kenicServerTransferLocked}
+            kenicAuthInfo={kenicAuthInfo}
+            onKenicAuthCodeUpdated={onKenicAuthCodeUpdated}
+            onKenicLockUpdated={onKenicLockUpdated}
+          />
         </div>
       </CardContent>
     </Card>

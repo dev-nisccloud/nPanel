@@ -408,20 +408,43 @@ export function buildDomainUpdateXml(params: {
 	addNs?: string[];
 	remNs?: string[];
 	authInfo?: string;
+	addStatus?: string[];
+	remStatus?: string[];
 }): string {
-	let addEl = "";
+	const addParts: string[] = [];
 	if (params.addNs && params.addNs.length > 0) {
 		const ns = params.addNs.map((n) => `          <domain:hostObj>${escapeXml(n)}</domain:hostObj>`).join("\n");
-		addEl = `\n      <domain:add>\n        <domain:ns>\n${ns}\n        </domain:ns>\n      </domain:add>`;
+		addParts.push(`        <domain:ns>\n${ns}\n        </domain:ns>`);
 	}
+	if (params.addStatus && params.addStatus.length > 0) {
+		for (const status of params.addStatus) {
+			addParts.push(`        <domain:status s="${escapeXml(status)}"/>`);
+		}
+	}
+	const addEl =
+		addParts.length > 0
+			? `\n      <domain:add>\n${addParts.join("\n")}\n      </domain:add>`
+			: "";
 
-	let remEl = "";
+	const remParts: string[] = [];
 	if (params.remNs && params.remNs.length > 0) {
 		const ns = params.remNs.map((n) => `          <domain:hostObj>${escapeXml(n)}</domain:hostObj>`).join("\n");
-		remEl = `\n      <domain:rem>\n        <domain:ns>\n${ns}\n        </domain:ns>\n      </domain:rem>`;
+		remParts.push(`        <domain:ns>\n${ns}\n        </domain:ns>`);
 	}
+	if (params.remStatus && params.remStatus.length > 0) {
+		for (const status of params.remStatus) {
+			remParts.push(`        <domain:status s="${escapeXml(status)}"/>`);
+		}
+	}
+	const remEl =
+		remParts.length > 0
+			? `\n      <domain:rem>\n${remParts.join("\n")}\n      </domain:rem>`
+			: "";
 
-	const chgEl = ""; // Used for registrant/authInfo changes if needed
+	const chgEl =
+		params.authInfo != null
+			? `\n      <domain:chg>\n        <domain:authInfo>\n          <domain:pw>${escapeXml(params.authInfo)}</domain:pw>\n        </domain:authInfo>\n      </domain:chg>`
+			: "";
 
 	return `<?xml version="1.0" encoding="UTF-8"?>
 <epp xmlns="urn:ietf:params:xml:ns:epp-1.0" xmlns:domain="urn:ietf:params:xml:ns:domain-1.0">

@@ -128,6 +128,8 @@ export declare function buildDomainUpdateXml(params: {
     addNs?: string[];
     remNs?: string[];
     authInfo?: string;
+    addStatus?: string[];
+    remStatus?: string[];
 }): string;
 /**
  * Build EPP host:check command (RFC 5732).
