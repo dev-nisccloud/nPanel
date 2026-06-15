@@ -32,7 +32,7 @@ export function serializeCartToUrlParam(items: CartItem[]): string {
 
 /**
  * Returns true when the current page and the target URL share a cookie domain,
- * meaning the Zustand persist cookie already syncs the cart — no URL param needed.
+ * meaning the Zustand persist cookie already syncs the cart  no URL param needed.
  *
  * Covers:
  *  - same hostname (localhost → localhost, 192.168.x.x → 192.168.x.x)
@@ -47,7 +47,7 @@ function sharesCookieDomain(baseUrl: string): boolean {
     const targetHost = new URL(baseUrl).hostname;
     const currentHost = window.location.hostname;
     if (targetHost === currentHost) return true;
-    // IP addresses — only same-IP counts
+    // IP addresses  only same-IP counts
     if (/^\d+\.\d+\.\d+\.\d+$/.test(targetHost)) return false;
     const getRoot = (h: string) => h.split(".").slice(-2).join(".");
     const targetRoot = getRoot(targetHost);
@@ -66,7 +66,7 @@ function sharesCookieDomain(baseUrl: string): boolean {
  * (e.g. Vercel preview → production dashboard).
  *
  * On same-domain deployments (production, local dev) the shared cookie already
- * syncs the cart — skipping serialization keeps navigation instant.
+ * syncs the cart  skipping serialization keeps navigation instant.
  *
  * @param baseUrl  The dashboard URL (e.g. "https://npanel.nisccloud.com")
  * @param items    Cart items to attach
@@ -123,14 +123,14 @@ export function importCartFromUrl(): boolean {
   const raw = params.get(CART_URL_PARAM);
   if (!raw) return false;
 
-  // Strip the param immediately — regardless of whether the payload is valid.
+  // Strip the param immediately  regardless of whether the payload is valid.
   params.delete(CART_URL_PARAM);
   const cleanUrl = params.toString()
     ? `${window.location.pathname}?${params.toString()}${window.location.hash}`
     : `${window.location.pathname}${window.location.hash}`;
   window.history.replaceState({}, "", cleanUrl);
 
-  // Discard the sessionStorage rescue copy — URL import takes priority.
+  // Discard the sessionStorage rescue copy  URL import takes priority.
   try { sessionStorage.removeItem(CART_SESSION_KEY); } catch { /* ignore */ }
 
   const incoming = parseCartFromUrlParam(raw);
@@ -153,7 +153,7 @@ export function importCartFromSessionStorage(): boolean {
   try { raw = sessionStorage.getItem(CART_SESSION_KEY); } catch { /* ignore */ }
   if (!raw) return false;
 
-  // Clear immediately — only import once.
+  // Clear immediately  only import once.
   try { sessionStorage.removeItem(CART_SESSION_KEY); } catch { /* ignore */ }
 
   const incoming = parseCartFromUrlParam(raw);
