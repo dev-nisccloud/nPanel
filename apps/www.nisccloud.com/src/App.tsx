@@ -33,11 +33,13 @@ import EmailMarketingPage from "./pages/services/email-marketing/page.tsx";
 import SecurityPage from "./pages/security/page.tsx";
 
 import HelpCentrePage from "./pages/help/page.tsx";
+import ScrollToTop from "./components/ScrollToTop.tsx";
 
 export default function App() {
   return (
     <DefaultProviders>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/services" element={<ServicesPage />} />

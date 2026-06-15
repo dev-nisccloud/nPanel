@@ -1,21 +1,13 @@
 "use client";
 
-import * as React from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { JetBackupAccountBackupsTab } from "../tabs/account-backups-tab";
-import { JetBackupAccountDetailsPanel } from "../tabs/account-details-panel";
-import { JetBackupLogsTab } from "../tabs/logs-tab";
 import { JetBackupErrorState } from "../primitives";
 import { trpc } from "@/utils/trpc";
 import { jetbackupQueryOptions } from "../query-options";
-import {
-  JetBackupAccountSettingsShell,
-  type JetBackupAccountTab,
-} from "./jetbackup-account-settings-shell";
-import { JetBackupAccountHeader } from "./jetbackup-account-header";
+import { JetBackupAccountDetailContent } from "./jetbackup-account-detail-content";
 
 export interface JetBackupAccountDetailPageProps {
   accountId: string;
@@ -44,8 +36,6 @@ export function JetBackupAccountDetailPage({
   backPath,
   readOnly = false,
 }: JetBackupAccountDetailPageProps) {
-  const [activeTab, setActiveTab] = React.useState<JetBackupAccountTab>("backups");
-
   const { data, isLoading, isError, error, refetch } = trpc.jetbackup.accounts.get.useQuery(
     { _id: accountId },
     jetbackupQueryOptions,
@@ -73,14 +63,13 @@ export function JetBackupAccountDetailPage({
   }
 
   const account = data as Record<string, unknown>;
-  const username = String(account.username ?? "");
 
   return (
     <div className="@container/main flex flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8">
-      <JetBackupAccountSettingsShell
-        title="Backup account"
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
+      <JetBackupAccountDetailContent
+        accountId={accountId}
+        account={account}
+        readOnly={readOnly}
         backAction={
           <Link to={backPath}>
             <Button variant="ghost" size="sm" className="-ml-2 h-8 px-2 text-muted-foreground hover:text-foreground">
@@ -89,18 +78,7 @@ export function JetBackupAccountDetailPage({
             </Button>
           </Link>
         }
-        header={<JetBackupAccountHeader account={account} />}
-      >
-        {activeTab === "backups" && (
-          <JetBackupAccountBackupsTab
-            accountId={accountId}
-            username={username}
-            readOnly={readOnly}
-          />
-        )}
-        {activeTab === "details" && <JetBackupAccountDetailsPanel account={account} />}
-        {activeTab === "activity" && <JetBackupLogsTab username={username} />}
-      </JetBackupAccountSettingsShell>
+      />
     </div>
   );
 }

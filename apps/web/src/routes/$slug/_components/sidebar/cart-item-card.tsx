@@ -202,7 +202,7 @@ export function CartItemCard({ item, onRemove, hideRemoveButton = false }: CartI
                     ))}
                   </ul>
                   <p className="text-[11px] text-muted-foreground">
-                    Purchased as one bundle — {(item as DomainBundleCartItem).domains.length} domains
+                    Purchased as one bundle  {(item as DomainBundleCartItem).domains.length} domains
                   </p>
                 </div>
               ) : null}
