@@ -12,9 +12,9 @@ export declare const zeepoAgentSessionsRouter: import("@trpc/server").TRPCBuiltR
         output: {
             data: {
                 id: string;
-                status: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: string;
                 userId: string;
                 teamId: string | null;
                 title: string | null;
@@ -31,9 +31,9 @@ export declare const zeepoAgentSessionsRouter: import("@trpc/server").TRPCBuiltR
         output: {
             data: {
                 id: string;
-                status: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: string;
                 userId: string;
                 teamId: string | null;
                 title: string | null;
@@ -51,16 +51,16 @@ export declare const zeepoAgentSessionsRouter: import("@trpc/server").TRPCBuiltR
         output: {
             data: {
                 id: string;
-                status: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: string;
                 userId: string;
                 teamId: string | null;
                 title: string | null;
                 messages: {
                     id: string;
-                    role: string;
                     createdAt: Date;
+                    role: string;
                     metadata: unknown;
                     content: string | null;
                     toolCalls: unknown;

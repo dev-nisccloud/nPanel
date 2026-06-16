@@ -49,7 +49,7 @@ type EmailEditCanvasProps = {
 	html: string;
 
 	width: number;
--
+
 	iframeDocRef: React.MutableRefObject<Document | null>;
 
 	selectedId: string | null;

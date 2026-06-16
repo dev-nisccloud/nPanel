@@ -48,7 +48,7 @@ export type ServicePageShellProps = {
   serviceType: "hosting" | "marketing";
   plans: OrderPlan[];
   addons?: Addon[];
-  features: Feature[];
+  features?: Feature[];
   process?: ProcessStep[];
   whyPoints?: WhyPoint[];
   faqs?: FaqItem[];
@@ -687,7 +687,7 @@ export default function ServicePageShell({
   serviceType,
   plans,
   addons = [],
-  features,
+  features = [],
   process,
   whyPoints,
   faqs,
@@ -729,7 +729,7 @@ export default function ServicePageShell({
         </div>
       )}
 
-      <FeaturesGrid features={features} />
+      {features && features.length > 0 && <FeaturesGrid features={features} />}
 
       {showcaseBlocks && showcaseBlocks.length > 0 && (
         <ServiceShowcaseSection blocks={showcaseBlocks} />

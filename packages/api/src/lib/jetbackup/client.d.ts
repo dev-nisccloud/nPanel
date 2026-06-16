@@ -18,5 +18,6 @@ export interface JetBackupResult<T = any> {
     message: string;
     success: boolean;
     statusCode: number;
+    system?: JetBackupResponse['system'];
 }
 export declare function sendJetBackupRequest<T = any>(functionName: string, params?: Record<string, any>): Promise<JetBackupResult<T>>;

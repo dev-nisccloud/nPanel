@@ -1,4 +1,4 @@
-import { LogEntry, LogItem, JetBackupListResponse } from "../../types/jetbackup";
+import { JetBackupListResponse, LogEntry, LogItem } from "../../types/jetbackup";
 export declare const jetbackupLogsRouter: import("@trpc/server").TRPCBuiltRouter<{
     ctx: import("../..").Context;
     meta: object;
@@ -15,14 +15,14 @@ export declare const jetbackupLogsRouter: import("@trpc/server").TRPCBuiltRouter
             type?: number | undefined;
             username?: string | undefined;
         };
-        output: JetBackupListResponse<LogEntry> | null;
+        output: JetBackupListResponse<LogEntry>;
         meta: object;
     }>;
     get: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             _id: string;
         };
-        output: LogEntry | null;
+        output: LogEntry;
         meta: object;
     }>;
     listItems: import("@trpc/server").TRPCQueryProcedure<{
@@ -31,14 +31,21 @@ export declare const jetbackupLogsRouter: import("@trpc/server").TRPCBuiltRouter
             page?: number | undefined;
             limit?: number | undefined;
         };
-        output: JetBackupListResponse<LogItem> | null;
+        output: JetBackupListResponse<LogItem>;
+        meta: object;
+    }>;
+    getItem: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            _id: string;
+        };
+        output: LogItem;
         meta: object;
     }>;
     delete: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id: string;
         };
-        output: any;
+        output: unknown;
         meta: object;
     }>;
 }>>;

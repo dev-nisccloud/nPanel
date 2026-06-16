@@ -11,6 +11,7 @@ import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { buildNiscOrderInvoiceLineItemCopy } from "./nisc-order-invoice-line-items";
 import { hivelocityInvoiceLineSchema } from "../routers/nisc-service-orders-schemas";
 import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc-order-tax";
+import { buildDomainBundleInvoiceLineDescription, buildDomainBundleInvoiceLineName, groupDomainBundleItemsForInvoice, } from "./domain-bundle-order";
 const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
 const FROM_DETAILS = {
     name: "Nisc Cloud Limited",
@@ -112,7 +113,31 @@ export async function createInvoiceForNiscOrder(_prisma, order, billing, created
     const subscriptionDate = order.createdAt ?? now;
     const lineItems = [];
     let position = 0;
-    for (const item of order.orderItems) {
+    const { bundleGroups, nonBundleItems } = groupDomainBundleItemsForInvoice(order.orderItems);
+    for (const group of bundleGroups) {
+        const lead = group.leadItem;
+        const { description: subscriptionPeriod } = buildNiscOrderInvoiceLineItemCopy({
+            ...lead,
+            product: {
+                name: lead.product.name,
+                serviceType: lead.product.serviceType ?? null,
+            },
+        }, subscriptionDate);
+        const bundleSubtotal = parseFloat(lead.itemSubtotal || "0") > 0
+            ? lead.itemSubtotal
+            : String(group.bundlePrice);
+        lineItems.push({
+            id: crypto.randomUUID(),
+            invoiceId: newInvoiceId,
+            position: position++,
+            name: buildDomainBundleInvoiceLineName(group.domains),
+            description: buildDomainBundleInvoiceLineDescription(group.domains, subscriptionPeriod),
+            quantity: 1,
+            price: bundleSubtotal,
+            total: bundleSubtotal,
+        });
+    }
+    for (const item of nonBundleItems) {
         const rawMeta = item.metadata;
         const invoiceLinesRaw = rawMeta &&
             typeof rawMeta === "object" &&

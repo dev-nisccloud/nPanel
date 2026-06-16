@@ -93,9 +93,9 @@ export declare const metaAdsInsightsRouter: import("@trpc/server").TRPCBuiltRout
         };
         output: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             userId: string;
             metadata: unknown;
             errorMessage: string | null;
@@ -114,9 +114,9 @@ export declare const metaAdsInsightsRouter: import("@trpc/server").TRPCBuiltRout
         };
         output: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             userId: string;
             metadata: unknown;
             errorMessage: string | null;

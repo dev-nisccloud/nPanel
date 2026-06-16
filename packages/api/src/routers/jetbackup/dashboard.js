@@ -1,41 +1,33 @@
-import { publicProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { sendJetBackupRequest } from "../../lib/jetbackup/client";
 import { DashboardDetails, SystemInfo } from "../../types/jetbackup";
 import { z } from "zod";
+import { jetbackupCall } from "./_helpers";
 export const jetbackupDashboardRouter = router({
-    getDetails: publicProcedure.query(async () => {
-        const result = await sendJetBackupRequest("getDashboardDetails");
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+    getDetails: protectedProcedure.query(async () => {
+        return jetbackupCall("getDashboardDetails");
     }),
-    testConnection: publicProcedure.query(async () => {
+    testConnection: protectedProcedure.query(async () => {
         const result = await sendJetBackupRequest("getInfo");
         return {
             success: result.success,
             message: result.message,
             timestamp: new Date().toISOString(),
+            system: result.system ?? null,
+            data: result.data,
         };
     }),
-    getInfo: publicProcedure.query(async () => {
-        const result = await sendJetBackupRequest("getInfo");
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+    getInfo: protectedProcedure.query(async () => {
+        return jetbackupCall("getInfo");
     }),
-    getStatistics: publicProcedure
+    getStatistics: protectedProcedure
         .input(z.object({
         range: z.string().optional().default("7d"),
     }))
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("getStatistics", {
-            range: input.range,
-        });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("getStatistics", { range: input.range });
+    }),
+    listShowcase: protectedProcedure.query(async () => {
+        return jetbackupCall("listShowcase");
     }),
 });

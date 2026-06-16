@@ -53,8 +53,8 @@ export declare const hivelocityProductStockSchema: z.ZodObject<{
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
         available: "available";
-        unavailable: "unavailable";
         limited: "limited";
+        unavailable: "unavailable";
     }>;
     data_center: z.ZodString;
     location_option_id: z.ZodNumber;
@@ -120,8 +120,8 @@ export declare const hivelocityProductByIdResponseSchema: z.ZodUnion<readonly [z
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
         available: "available";
-        unavailable: "unavailable";
         limited: "limited";
+        unavailable: "unavailable";
     }>;
     data_center: z.ZodString;
     location_option_id: z.ZodNumber;
@@ -164,8 +164,8 @@ export declare const hivelocityProductByIdResponseSchema: z.ZodUnion<readonly [z
     product_name: z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>;
     stock: z.ZodEnum<{
         available: "available";
-        unavailable: "unavailable";
         limited: "limited";
+        unavailable: "unavailable";
     }>;
     data_center: z.ZodString;
     location_option_id: z.ZodNumber;
@@ -297,21 +297,49 @@ export declare const hivelocityDevicesResponseSchema: z.ZodArray<z.ZodObject<{
     createdDate: z.ZodOptional<z.ZodString>;
 }, z.core.$loose>>;
 /**
- * Hivelocity VPS Instance (GET /vps/ → VPS)
+ * Hivelocity VPS network interface (GET /vps/ → VPS.nics[]).
+ * Official OpenAPI: VPSNetworkInterface.
+ */
+export declare const hivelocityVpsNicSchema: z.ZodObject<{
+    ipAddress: z.ZodOptional<z.ZodString>;
+    gateway: z.ZodOptional<z.ZodString>;
+    netmask: z.ZodOptional<z.ZodString>;
+    macAddress: z.ZodOptional<z.ZodString>;
+    networkId: z.ZodOptional<z.ZodString>;
+    networkName: z.ZodOptional<z.ZodString>;
+    nicId: z.ZodOptional<z.ZodString>;
+    nicName: z.ZodOptional<z.ZodString>;
+}, z.core.$loose>;
+/**
+ * Hivelocity VPS Instance (GET /vps/ or GET /vps/{deviceId} → VPS)
  *
- * Dedicated VPS instances in the account. These come from a completely separate
- * endpoint and schema from bare-metal devices.
- *
- * Fields from the `VPS` definition in the official OpenAPI spec.
+ * Fields from the official OpenAPI v2 `VPS` schema. List views use GET /device/
+ * (bare-metal + virtual devices); this schema is for VPS-specific endpoints.
  */
 export declare const hivelocityVpsSchema: z.ZodObject<{
+    deviceId: z.ZodOptional<z.ZodNumber>;
     id: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>, z.ZodTransform<string, string | number>>>;
     hostname: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     status: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     primaryIp: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    vcpu: z.ZodOptional<z.ZodNumber>;
     cpus: z.ZodOptional<z.ZodNumber>;
     memory: z.ZodOptional<z.ZodNumber>;
     disk: z.ZodOptional<z.ZodNumber>;
+    templateId: z.ZodOptional<z.ZodString>;
+    isoId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    cloudInit: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    sshKeyIds: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+    nics: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        ipAddress: z.ZodOptional<z.ZodString>;
+        gateway: z.ZodOptional<z.ZodString>;
+        netmask: z.ZodOptional<z.ZodString>;
+        macAddress: z.ZodOptional<z.ZodString>;
+        networkId: z.ZodOptional<z.ZodString>;
+        networkName: z.ZodOptional<z.ZodString>;
+        nicId: z.ZodOptional<z.ZodString>;
+        nicName: z.ZodOptional<z.ZodString>;
+    }, z.core.$loose>>>;
     osName: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     facilityCode: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     networkId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
@@ -320,14 +348,32 @@ export declare const hivelocityVpsSchema: z.ZodObject<{
     createdAt: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
 }, z.core.$loose>;
 export type HivelocityVps = z.infer<typeof hivelocityVpsSchema>;
+/** Normalize official VPS API payload for UI consumers. */
+export declare function normalizeHivelocityVps(raw: HivelocityVps): HivelocityVps;
 export declare const hivelocityVpsListResponseSchema: z.ZodArray<z.ZodObject<{
+    deviceId: z.ZodOptional<z.ZodNumber>;
     id: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>, z.ZodTransform<string, string | number>>>;
     hostname: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     status: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     primaryIp: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
+    vcpu: z.ZodOptional<z.ZodNumber>;
     cpus: z.ZodOptional<z.ZodNumber>;
     memory: z.ZodOptional<z.ZodNumber>;
     disk: z.ZodOptional<z.ZodNumber>;
+    templateId: z.ZodOptional<z.ZodString>;
+    isoId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    cloudInit: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    sshKeyIds: z.ZodOptional<z.ZodArray<z.ZodNumber>>;
+    nics: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        ipAddress: z.ZodOptional<z.ZodString>;
+        gateway: z.ZodOptional<z.ZodString>;
+        netmask: z.ZodOptional<z.ZodString>;
+        macAddress: z.ZodOptional<z.ZodString>;
+        networkId: z.ZodOptional<z.ZodString>;
+        networkName: z.ZodOptional<z.ZodString>;
+        nicId: z.ZodOptional<z.ZodString>;
+        nicName: z.ZodOptional<z.ZodString>;
+    }, z.core.$loose>>>;
     osName: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     facilityCode: z.ZodOptional<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string, string | null>>>;
     networkId: z.ZodOptional<z.ZodNullable<z.ZodPipe<z.ZodUnion<readonly [z.ZodString, z.ZodNull]>, z.ZodTransform<string | null, string | null>>>>;
@@ -340,9 +386,9 @@ export declare const hivelocityVpsSnapshotScheduleSchema: z.ZodObject<{
     volumeId: z.ZodString;
     intervalType: z.ZodEnum<{
         MONTHLY: "MONTHLY";
+        HOURLY: "HOURLY";
         DAILY: "DAILY";
         WEEKLY: "WEEKLY";
-        HOURLY: "HOURLY";
     }>;
     timezone: z.ZodString;
     hour: z.ZodOptional<z.ZodNumber>;
@@ -354,16 +400,16 @@ export declare const hivelocityVpsSnapshotScheduleSchema: z.ZodObject<{
 export type HivelocityVpsSnapshotSchedule = z.infer<typeof hivelocityVpsSnapshotScheduleSchema>;
 export declare const hivelocityVpsSnapshotScheduleCreateSchema: z.ZodObject<{
     timezone: z.ZodString;
-    day: z.ZodOptional<z.ZodNumber>;
     volumeId: z.ZodString;
     intervalType: z.ZodEnum<{
         MONTHLY: "MONTHLY";
+        HOURLY: "HOURLY";
         DAILY: "DAILY";
         WEEKLY: "WEEKLY";
-        HOURLY: "HOURLY";
     }>;
     hour: z.ZodOptional<z.ZodNumber>;
     minute: z.ZodOptional<z.ZodNumber>;
+    day: z.ZodOptional<z.ZodNumber>;
     weekday: z.ZodOptional<z.ZodNumber>;
     maxSnapshots: z.ZodNumber;
     facilityCode: z.ZodString;
@@ -411,8 +457,8 @@ export type HivelocityResourceType = "dedicated" | "vds" | "vps";
 export type HivelocityDeviceResource = HivelocityDeviceDump & {
     resourceType: "dedicated" | "vds";
 };
-/** VPS instance enriched with a resource-type discriminant. */
-export type HivelocityVpsResource = HivelocityVps & {
+/** VPS instance enriched with a resource-type discriminant (device list or /vps/ detail). */
+export type HivelocityVpsResource = (HivelocityVps | HivelocityDeviceDump) & {
     resourceType: "vps";
 };
 export type HivelocityAnyResource = HivelocityDeviceResource | HivelocityVpsResource;

@@ -90,6 +90,51 @@ export async function trpcQuery<T>(procedure: string, input?: unknown): Promise<
   return parseTrpcBatch(res) as T;
 }
 
+// --- Shared hosting plans ---
+
+export type SharedHostingPlan = {
+  id: string;
+  name: string;
+  niscPrice: string | null;
+  niscCurrency: string;
+  billingCycle: string;
+  isPopular: boolean;
+  isRecommended: boolean;
+  productId: string;
+  productName: string;
+  featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+};
+
+export type ProductFeatureRow = {
+  key: string;
+  label: string;
+};
+
+export type SharedHostingPricingData = {
+  plans: SharedHostingPlan[];
+  productFeatures: ProductFeatureRow[];
+};
+
+export async function fetchSharedHostingPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
+    "products.getHostingPlansForPricing"
+  );
+  return {
+    plans: res?.plans ?? [],
+    productFeatures: res?.productFeatures ?? [],
+  };
+}
+
+export async function fetchEmailHostingPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
+    "products.getEmailHostingPlansForPricing"
+  );
+  return {
+    plans: res?.plans ?? [],
+    productFeatures: res?.productFeatures ?? [],
+  };
+}
+
 // --- Specific fetchers ---
 
 export async function fetchVpsPlansPublic(cursor: number = 0, limit: number = 24) {

@@ -25,7 +25,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -45,7 +45,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -61,7 +61,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
         list: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 teamId?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED" | undefined;
+                status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
                 search?: string | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -70,7 +70,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
                 domains: {
                     id: string;
                     domainName: string;
-                    status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+                    status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                     resendDomainId: string | null;
                     userId: string;
                     teamId: string | null;
@@ -89,12 +89,12 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
                 verificationStatus?: string | null | undefined;
                 verificationData?: unknown;
                 dnsRecords?: unknown;
-                status?: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED" | undefined;
+                status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
             };
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -123,7 +123,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
             output: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -162,7 +162,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
                 name: string;
                 subject: string;
                 fromEmail: string;
-                status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+                status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED";
                 recipientCount: number;
                 userId: string;
                 teamId: string | null;
@@ -196,7 +196,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
                 name: string;
                 subject: string;
                 fromEmail: string;
-                status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+                status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED";
                 recipientCount: number;
                 userId: string;
                 teamId: string | null;
@@ -224,7 +224,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
         list: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 teamId?: string | null | undefined;
-                status?: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED" | undefined;
+                status?: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED" | undefined;
                 search?: string | undefined;
                 limit?: number | undefined;
                 offset?: number | undefined;
@@ -235,7 +235,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
                     name: string;
                     subject: string;
                     fromEmail: string;
-                    status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+                    status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED";
                     recipientCount: number;
                     userId: string;
                     teamId: string | null;
@@ -267,7 +267,7 @@ export declare const emailMarketingRouter: import("@trpc/server").TRPCBuiltRoute
                 name: string;
                 subject: string;
                 fromEmail: string;
-                status: "DRAFT" | "SCHEDULED" | "FAILED" | "COMPLETED" | "CANCELLED";
+                status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "FAILED" | "CANCELLED";
                 recipientCount: number;
                 userId: string;
                 teamId: string | null;

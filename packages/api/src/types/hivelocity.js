@@ -201,15 +201,30 @@ export const hivelocityDeviceDumpSchema = z
 export const hivelocityDevicesResponseSchema = z.array(hivelocityDeviceDumpSchema);
 // ---------------------------------------------------------------------------
 /**
- * Hivelocity VPS Instance (GET /vps/ → VPS)
+ * Hivelocity VPS network interface (GET /vps/ → VPS.nics[]).
+ * Official OpenAPI: VPSNetworkInterface.
+ */
+export const hivelocityVpsNicSchema = z
+    .object({
+    ipAddress: z.string().optional(),
+    gateway: z.string().optional(),
+    netmask: z.string().optional(),
+    macAddress: z.string().optional(),
+    networkId: z.string().optional(),
+    networkName: z.string().optional(),
+    nicId: z.string().optional(),
+    nicName: z.string().optional(),
+})
+    .passthrough();
+/**
+ * Hivelocity VPS Instance (GET /vps/ or GET /vps/{deviceId} → VPS)
  *
- * Dedicated VPS instances in the account. These come from a completely separate
- * endpoint and schema from bare-metal devices.
- *
- * Fields from the `VPS` definition in the official OpenAPI spec.
+ * Fields from the official OpenAPI v2 `VPS` schema. List views use GET /device/
+ * (bare-metal + virtual devices); this schema is for VPS-specific endpoints.
  */
 export const hivelocityVpsSchema = z
     .object({
+    deviceId: z.number().int().optional(),
     id: z.union([z.string(), z.number()]).transform((v) => String(v)).optional(),
     hostname: z
         .union([z.string(), z.null()])
@@ -223,12 +238,18 @@ export const hivelocityVpsSchema = z
         .union([z.string(), z.null()])
         .transform((v) => v ?? "")
         .optional(),
-    // vCPU count
+    // Official field: vcpu (vCPU count)
+    vcpu: z.number().int().optional(),
+    // Legacy alias observed in some responses
     cpus: z.number().int().optional(),
-    // RAM in GB
+    // Official field: memory in MB
     memory: z.number().optional(),
-    // Primary disk in GB
     disk: z.number().optional(),
+    templateId: z.string().optional(),
+    isoId: z.string().nullable().optional(),
+    cloudInit: z.string().nullable().optional(),
+    sshKeyIds: z.array(z.number().int()).optional(),
+    nics: z.array(hivelocityVpsNicSchema).optional(),
     osName: z
         .union([z.string(), z.null()])
         .transform((v) => v ?? "")
@@ -259,6 +280,13 @@ export const hivelocityVpsSchema = z
         .optional(),
 })
     .passthrough();
+/** Normalize official VPS API payload for UI consumers. */
+export function normalizeHivelocityVps(raw) {
+    const primaryIp = raw.primaryIp || raw.nics?.[0]?.ipAddress || "";
+    const cpus = raw.cpus ?? raw.vcpu;
+    const id = raw.id ?? (raw.deviceId != null ? String(raw.deviceId) : undefined);
+    return { ...raw, primaryIp, cpus, id };
+}
 export const hivelocityVpsListResponseSchema = z.array(hivelocityVpsSchema);
 // ---------------------------------------------------------------------------
 // Storage & Snapshot Resources

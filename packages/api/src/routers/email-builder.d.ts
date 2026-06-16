@@ -18,10 +18,10 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 json: string;
                 id: string;
                 name: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                description: string | null;
                 teamId: string | null;
                 isPublic: boolean;
                 thumbnailUrl: string | null;
@@ -41,10 +41,10 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 json: string;
                 id: string;
                 name: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                description: string | null;
                 teamId: string | null;
                 isPublic: boolean;
                 thumbnailUrl: string | null;
@@ -125,10 +125,10 @@ export declare const emailBuilderRouter: import("@trpc/server").TRPCBuiltRouter<
                 json: string;
                 id: string;
                 name: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
                 userId: string;
-                description: string | null;
                 teamId: string | null;
                 isPublic: boolean;
                 thumbnailUrl: string | null;

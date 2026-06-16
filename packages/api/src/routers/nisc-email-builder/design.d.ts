@@ -46,9 +46,9 @@ export declare const nebDesignRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             id: string;
             name: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             userId: string;
             teamId: string | null;
             metadata: unknown;
@@ -74,8 +74,8 @@ export declare const nebDesignRouter: import("@trpc/server").TRPCBuiltRouter<{
                 designId: string;
                 messages: {
                     id: string;
-                    role: string;
                     createdAt: Date;
+                    role: string;
                     metadata: unknown;
                     content: string;
                     sessionId: string;
@@ -130,9 +130,9 @@ export declare const nebDesignRouter: import("@trpc/server").TRPCBuiltRouter<{
             data: {
                 id: string;
                 name: string;
-                status: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: string;
                 userId: string;
                 teamId: string | null;
                 metadata: unknown;

@@ -12,3 +12,9 @@ export declare function resolveDatabaseUrl(): string;
 export declare function resolvePoolMax(): number;
 /** Per-query timeout applied on each new pool connection (ms). */
 export declare function resolveStatementTimeoutMs(): number;
+/**
+ * Apply Postgres session options via the libpq `options` connection parameter.
+ * Avoids pool.on("connect") + client.query(), which races with pg-pool checkout
+ * and triggers "client is already executing a query" deprecations in pg@8.
+ */
+export declare function buildPoolConnectionString(baseUrl: string, statementTimeoutMs: number): string;

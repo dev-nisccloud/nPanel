@@ -1,34 +1,22 @@
-import { publicProcedure, router } from "../../trpc";
-import { sendJetBackupRequest } from "../../lib/jetbackup/client";
+import { protectedProcedure, router } from "../../trpc";
 import { Destination, JetBackupListResponse } from "../../types/jetbackup";
 import { z } from "zod";
-const listSchema = z.object({
-    page: z.number().optional(),
-    limit: z.number().optional(),
-    search: z.string().optional(),
-    orderby: z.string().optional(),
-    order: z.enum(["asc", "desc"]).optional(),
-});
+import { idSchema, jetbackupCall, listSchema } from "./_helpers";
 export const jetbackupDestinationsRouter = router({
-    list: publicProcedure
+    list: protectedProcedure
         .input(listSchema)
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("listDestinations", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("listDestinations", input);
     }),
-    get: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    listTypes: protectedProcedure.query(async () => {
+        return jetbackupCall("listDestinationsTypes");
+    }),
+    get: protectedProcedure
+        .input(idSchema)
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("getDestination", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("getDestination", input);
     }),
-    manage: publicProcedure
+    manage: protectedProcedure
         .input(z.object({
         action: z.enum(["create", "modify"]),
         _id: z.string().optional(),
@@ -36,51 +24,31 @@ export const jetbackupDestinationsRouter = router({
         type: z.string().optional(),
         threads: z.number().optional(),
         disk_limit: z.number().optional(),
-        options: z.record(z.any()).optional(),
+        options: z.record(z.string(), z.unknown()).optional(),
         dr: z.number().optional(),
         readonly: z.number().optional(),
     }))
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("manageDestination", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("manageDestination", input);
     }),
-    delete: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    delete: protectedProcedure
+        .input(idSchema)
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("deleteDestination", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("deleteDestination", input);
     }),
-    validate: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    validate: protectedProcedure
+        .input(idSchema)
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("validateDestination", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("validateDestination", input);
     }),
-    reindex: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    reindex: protectedProcedure
+        .input(idSchema)
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("reindexDestination", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("reindexDestination", input);
     }),
-    runIntegrityCheck: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    runIntegrityCheck: protectedProcedure
+        .input(idSchema)
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("runIntegrityCheck", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("runIntegrityCheck", input);
     }),
 });

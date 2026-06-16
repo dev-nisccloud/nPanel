@@ -21,7 +21,7 @@ export declare const subscriptionsSuspendRouter: import("@trpc/server").TRPCBuil
     suspend: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             id: number;
-            suspendedBy?: "admin" | "reseller" | "customer" | undefined;
+            suspendedBy?: "customer" | "admin" | "reseller" | undefined;
         };
         output: {
             raw: string;
