@@ -7,7 +7,7 @@ export declare const jetbackupDashboardRouter: import("@trpc/server").TRPCBuiltR
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     getDetails: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
-        output: DashboardDetails | null;
+        output: DashboardDetails;
         meta: object;
     }>;
     testConnection: import("@trpc/server").TRPCQueryProcedure<{
@@ -16,19 +16,35 @@ export declare const jetbackupDashboardRouter: import("@trpc/server").TRPCBuiltR
             success: boolean;
             message: string;
             timestamp: string;
+            system: {
+                version: string;
+                tier: string;
+                type: string;
+                disableui: boolean;
+                dr: boolean;
+                agreement_panel: boolean;
+                agreement: boolean;
+                licenseIssue: boolean;
+            } | null;
+            data: SystemInfo | null;
         };
         meta: object;
     }>;
     getInfo: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
-        output: SystemInfo | null;
+        output: SystemInfo;
         meta: object;
     }>;
     getStatistics: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             range?: string | undefined;
         };
-        output: any;
+        output: unknown;
+        meta: object;
+    }>;
+    listShowcase: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: unknown;
         meta: object;
     }>;
 }>>;

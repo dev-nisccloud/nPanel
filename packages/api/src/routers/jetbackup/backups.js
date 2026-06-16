@@ -1,78 +1,94 @@
-import { publicProcedure, router } from "../../trpc";
-import { sendJetBackupRequest } from "../../lib/jetbackup/client";
-import { BackupSnapshot, BackupItem, JetBackupListResponse } from "../../types/jetbackup";
+import { protectedProcedure, router } from "../../trpc";
+import { BackupItem, BackupSnapshot, JetBackupListResponse } from "../../types/jetbackup";
 import { z } from "zod";
-const listSchema = z.object({
-    page: z.number().optional(),
-    limit: z.number().optional(),
-    search: z.string().optional(),
-    orderby: z.string().optional(),
-    order: z.enum(["asc", "desc"]).optional(),
-    type: z.number().optional(),
+import { idSchema, jetbackupCall, JETBACKUP_BACKUP_TYPE_ACCOUNTS, JETBACKUP_CONTAINS_FULL_ACCOUNT, listSchema, queueItemSchema, } from "./_helpers";
+const backupListSchema = listSchema.extend({
+    type: z.number().default(JETBACKUP_BACKUP_TYPE_ACCOUNTS),
+    contains: z.number().default(JETBACKUP_CONTAINS_FULL_ACCOUNT),
+    account_id: z.string().optional(),
     destination_id: z.string().optional(),
 });
 export const jetbackupBackupsRouter = router({
-    list: publicProcedure
-        .input(listSchema)
+    list: protectedProcedure
+        .input(backupListSchema)
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("listBackups", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("listBackups", input);
     }),
-    listForAccount: publicProcedure
-        .input(z.object({
-        username: z.string().optional(),
-        type: z.number(),
-        contains: z.number().optional(),
+    listForAccount: protectedProcedure
+        .input(listSchema.extend({
+        account_id: z.string(),
+        type: z.number().default(JETBACKUP_BACKUP_TYPE_ACCOUNTS),
+        contains: z.number().default(JETBACKUP_CONTAINS_FULL_ACCOUNT),
         destination_id: z.string().optional(),
     }))
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("listBackupForAccounts", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("listBackups", input);
     }),
-    getItems: publicProcedure
+    listLatestForAccounts: protectedProcedure
+        .input(z.object({
+        account_id: z.string().optional(),
+        username: z.string().optional(),
+        type: z.number().default(JETBACKUP_BACKUP_TYPE_ACCOUNTS),
+        contains: z.number().default(JETBACKUP_CONTAINS_FULL_ACCOUNT),
+        destination_id: z.string().optional(),
+    }))
+        .query(async ({ input }) => {
+        return jetbackupCall("listBackupForAccounts", input);
+    }),
+    listForType: protectedProcedure
+        .input(z.object({
+        type: z.number().default(JETBACKUP_BACKUP_TYPE_ACCOUNTS),
+        contains: z.number().default(JETBACKUP_CONTAINS_FULL_ACCOUNT),
+    }))
+        .query(async ({ input }) => {
+        return jetbackupCall("listBackupForType", input);
+    }),
+    listForTypeName: protectedProcedure
+        .input(listSchema.extend({
+        account_id: z.string(),
+        name: z.string(),
+        type: z.number().default(JETBACKUP_BACKUP_TYPE_ACCOUNTS),
+        contains: z.number().default(JETBACKUP_CONTAINS_FULL_ACCOUNT),
+    }))
+        .query(async ({ input }) => {
+        return jetbackupCall("listBackupForTypeName", input);
+    }),
+    listAccountsByFilters: protectedProcedure
+        .input(z.object({
+        filter: z.record(z.string(), z.unknown()),
+    }))
+        .query(async ({ input }) => {
+        return jetbackupCall("listAccountsByFilters", input);
+    }),
+    getItems: protectedProcedure
         .input(z.object({
         parent_id: z.string(),
         type: z.number(),
     }))
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("getBackupItems", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("getBackupItems", input);
     }),
-    addQueueItems: publicProcedure
-        .input(z.object({
-        items: z.array(z.object({
-            parent_id: z.string(),
-            type: z.number(), // 1=Backup, 2=Restore, 3=Download
-            item_id: z.string().optional(),
-            username: z.string().optional(),
-        })),
-    }))
-        .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("addQueueItems", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
-    }),
-    manageLock: publicProcedure
+    getItem: protectedProcedure
         .input(z.object({
         _id: z.string(),
-        lock: z.number(), // 1 to lock, 0 to unlock
+        parent_id: z.string(),
+    }))
+        .query(async ({ input }) => {
+        return jetbackupCall("getBackupItem", input);
+    }),
+    addQueueItems: protectedProcedure
+        .input(z.object({
+        items: z.array(queueItemSchema),
     }))
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("manageBackupLock", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("addQueueItems", input);
+    }),
+    manageLock: protectedProcedure
+        .input(z.object({
+        _id: z.string(),
+        lock: z.number(),
+    }))
+        .mutation(async ({ input }) => {
+        return jetbackupCall("manageBackupLock", input);
     }),
 });

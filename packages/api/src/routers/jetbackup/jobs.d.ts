@@ -13,14 +13,14 @@ export declare const jetbackupJobsRouter: import("@trpc/server").TRPCBuiltRouter
             orderby?: string | undefined;
             order?: "asc" | "desc" | undefined;
         };
-        output: JetBackupListResponse<BackupJob> | null;
+        output: JetBackupListResponse<BackupJob>;
         meta: object;
     }>;
     getBackup: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             _id: string;
         };
-        output: BackupJob | null;
+        output: BackupJob;
         meta: object;
     }>;
     manageBackup: import("@trpc/server").TRPCMutationProcedure<{
@@ -35,15 +35,32 @@ export declare const jetbackupJobsRouter: import("@trpc/server").TRPCBuiltRouter
             account_filter_id?: string | undefined;
             retain?: number | undefined;
             ttl?: number | undefined;
+            notify?: number | undefined;
+            compress?: number | undefined;
+            encrypt?: number | undefined;
         };
-        output: any;
+        output: unknown;
+        meta: object;
+    }>;
+    duplicateBackup: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            _id: string;
+        };
+        output: unknown;
         meta: object;
     }>;
     runBackupManually: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id: string;
         };
-        output: any;
+        output: unknown;
+        meta: object;
+    }>;
+    deleteBackup: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            _id: string;
+        };
+        output: unknown;
         meta: object;
     }>;
     listClone: import("@trpc/server").TRPCQueryProcedure<{
@@ -54,14 +71,14 @@ export declare const jetbackupJobsRouter: import("@trpc/server").TRPCBuiltRouter
             orderby?: string | undefined;
             order?: "asc" | "desc" | undefined;
         };
-        output: JetBackupListResponse<CloneJob> | null;
+        output: JetBackupListResponse<CloneJob>;
         meta: object;
     }>;
     getClone: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             _id: string;
         };
-        output: CloneJob | null;
+        output: CloneJob;
         meta: object;
     }>;
     manageClone: import("@trpc/server").TRPCMutationProcedure<{
@@ -75,14 +92,28 @@ export declare const jetbackupJobsRouter: import("@trpc/server").TRPCBuiltRouter
             schedule_id?: string | undefined;
             account_filter_id?: string | undefined;
         };
-        output: any;
+        output: unknown;
+        meta: object;
+    }>;
+    duplicateClone: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            _id: string;
+        };
+        output: unknown;
         meta: object;
     }>;
     runCloneManually: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id: string;
         };
-        output: any;
+        output: unknown;
+        meta: object;
+    }>;
+    deleteClone: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            _id: string;
+        };
+        output: unknown;
         meta: object;
     }>;
 }>>;

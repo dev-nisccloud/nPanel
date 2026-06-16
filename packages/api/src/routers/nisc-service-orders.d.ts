@@ -18,7 +18,7 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
         input: {
             userId?: string | undefined;
             teamId?: string | undefined;
-            status?: "PENDING" | "PROCESSING" | "FAILED" | "COMPLETED" | "PARTIAL" | undefined;
+            status?: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PARTIAL" | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
         };
@@ -73,9 +73,9 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             userId: string | null;
             teamId: string | null;
             metadata: unknown;
@@ -96,6 +96,8 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
             user: {
                 id: string;
                 name: string;
+                createdAt: Date;
+                updatedAt: Date;
                 email: string;
                 emailVerified: boolean;
                 role: string;
@@ -120,8 +122,6 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                 adminNotes: string | null;
                 howDidYouFindUs: string | null;
                 acceptedTermsAndConditions: boolean | null;
-                createdAt: Date;
-                updatedAt: Date;
             } | null;
             team: {
                 id: string;
@@ -137,9 +137,9 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
             niscProductPromo: {
                 id: string;
                 name: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                description: string | null;
                 isActive: boolean;
                 code: string;
                 productId: string | null;
@@ -155,10 +155,10 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
             } | null;
             orderItems: {
                 id: string;
-                status: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                description: string | null;
+                status: string;
                 metadata: unknown;
                 productId: string;
                 billingCycle: string | null;
@@ -172,14 +172,59 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                 provisioningErrorDetails: unknown;
                 niscClientSubscriptionId: string | null;
                 domainSubscriptionId: string | null;
+                product: {
+                    id: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    isActive: boolean;
+                    metadata: unknown;
+                    category: string;
+                    serviceType: string;
+                    sortOrder: number;
+                    features: unknown;
+                    highlights: unknown;
+                    isAddOn: boolean;
+                };
+                productPlan: {
+                    id: string;
+                    name: string;
+                    description: string | null;
+                    createdAt: Date;
+                    updatedAt: Date;
+                    isActive: boolean;
+                    metadata: unknown;
+                    currency: string | null;
+                    price: string | null;
+                    sortOrder: number;
+                    highlights: unknown;
+                    productId: string;
+                    pricingModel: string;
+                    billingCycle: string | null;
+                    setupFee: string | null;
+                    cost: string | null;
+                    costCurrency: string | null;
+                    commissionRate: string | null;
+                    commissionBase: string | null;
+                    commissionBaseDescription: string | null;
+                    planFeatures: unknown;
+                    isPopular: boolean;
+                    isRecommended: boolean;
+                    isDefault: boolean;
+                    pleskServicePlanId: string | null;
+                    pleskFilterId: string | null;
+                    pleskIpAddress: string | null;
+                    hostingType: string | null;
+                } | null;
                 niscClientSubscription: {
                     id: string;
                     name: string | null;
-                    status: string;
+                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
+                    status: string;
                     userId: string | null;
-                    description: string | null;
                     teamId: string | null;
                     metadata: unknown;
                     notes: string | null;
@@ -220,59 +265,14 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
                     serviceRefs: unknown;
                     hostingSubscriptionId: string | null;
                 } | null;
-                product: {
-                    id: string;
-                    name: string;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    description: string | null;
-                    isActive: boolean;
-                    metadata: unknown;
-                    category: string;
-                    serviceType: string;
-                    sortOrder: number;
-                    features: unknown;
-                    highlights: unknown;
-                    isAddOn: boolean;
-                };
-                productPlan: {
-                    id: string;
-                    name: string;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    description: string | null;
-                    isActive: boolean;
-                    metadata: unknown;
-                    currency: string | null;
-                    price: string | null;
-                    sortOrder: number;
-                    highlights: unknown;
-                    productId: string;
-                    pricingModel: string;
-                    billingCycle: string | null;
-                    setupFee: string | null;
-                    cost: string | null;
-                    costCurrency: string | null;
-                    commissionRate: string | null;
-                    commissionBase: string | null;
-                    commissionBaseDescription: string | null;
-                    planFeatures: unknown;
-                    isPopular: boolean;
-                    isRecommended: boolean;
-                    isDefault: boolean;
-                    pleskServicePlanId: string | null;
-                    pleskFilterId: string | null;
-                    pleskIpAddress: string | null;
-                    hostingType: string | null;
-                } | null;
                 domainSubscription: {
                     id: string;
                     name: string | null;
-                    status: string;
+                    description: string | null;
                     createdAt: Date;
                     updatedAt: Date;
+                    status: string;
                     userId: string | null;
-                    description: string | null;
                     teamId: string | null;
                     metadata: unknown;
                     notes: string | null;
@@ -341,9 +341,9 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             userId: string | null;
             teamId: string | null;
             metadata: unknown;
@@ -372,10 +372,10 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
             } | null;
             orderItems: {
                 id: string;
-                status: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                description: string | null;
+                status: string;
                 metadata: unknown;
                 productId: string;
                 billingCycle: string | null;
@@ -426,9 +426,9 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             id: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
+            status: string;
             userId: string | null;
             teamId: string | null;
             metadata: unknown;
@@ -457,10 +457,10 @@ export declare const niscServiceOrdersRouter: import("@trpc/server").TRPCBuiltRo
             } | null;
             orderItems: {
                 id: string;
-                status: string;
+                description: string | null;
                 createdAt: Date;
                 updatedAt: Date;
-                description: string | null;
+                status: string;
                 metadata: unknown;
                 productId: string;
                 billingCycle: string | null;

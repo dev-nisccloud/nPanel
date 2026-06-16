@@ -13,14 +13,19 @@ export declare const jetbackupDestinationsRouter: import("@trpc/server").TRPCBui
             orderby?: string | undefined;
             order?: "asc" | "desc" | undefined;
         };
-        output: JetBackupListResponse<Destination> | null;
+        output: JetBackupListResponse<Destination>;
+        meta: object;
+    }>;
+    listTypes: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: unknown;
         meta: object;
     }>;
     get: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             _id: string;
         };
-        output: Destination | null;
+        output: Destination;
         meta: object;
     }>;
     manage: import("@trpc/server").TRPCMutationProcedure<{
@@ -31,39 +36,39 @@ export declare const jetbackupDestinationsRouter: import("@trpc/server").TRPCBui
             type?: string | undefined;
             threads?: number | undefined;
             disk_limit?: number | undefined;
-            options?: Record<any, unknown> | undefined;
+            options?: Record<string, unknown> | undefined;
             dr?: number | undefined;
             readonly?: number | undefined;
         };
-        output: any;
+        output: unknown;
         meta: object;
     }>;
     delete: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id: string;
         };
-        output: any;
+        output: unknown;
         meta: object;
     }>;
     validate: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id: string;
         };
-        output: any;
+        output: unknown;
         meta: object;
     }>;
     reindex: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id: string;
         };
-        output: any;
+        output: unknown;
         meta: object;
     }>;
     runIntegrityCheck: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id: string;
         };
-        output: any;
+        output: unknown;
         meta: object;
     }>;
 }>>;

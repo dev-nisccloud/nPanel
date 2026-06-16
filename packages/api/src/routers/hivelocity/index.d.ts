@@ -3,8 +3,10 @@ import { type HivelocityAnyResource, type HivelocityInventoryResponse } from "..
 export type HivelocityResourcesFetchTiming = {
     hivelocity: {
         device: HivelocityRequestTiming;
-        vps: HivelocityRequestTiming;
+        /** Not used for list views; kept for dev timing UI compatibility. */
+        vps?: HivelocityRequestTiming;
         parallelMs: number;
+        source: "device";
     };
     mergeMs: number;
     counts: {
@@ -41,6 +43,32 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
      * Docs: GET /inventory/locations (this endpoint is public per Hivelocity docs).
      */
     getFacilities: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            vpsLocations?: string | undefined;
+        } | undefined;
+        output: {
+            success: boolean;
+            data: {
+                id: number;
+                title: string;
+                code: string;
+                edge: boolean;
+                core: boolean;
+                location_option_ids: number[];
+                location: {
+                    city: string;
+                    state: string;
+                    country: string;
+                };
+            }[];
+        };
+        meta: object;
+    }>;
+    /**
+     * Public: Get all facilities (inventory locations) without auth.
+     * Used by the public website to resolve data_center codes to city names.
+     */
+    publicGetFacilities: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             vpsLocations?: string | undefined;
         } | undefined;
@@ -313,7 +341,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "available" | "unavailable" | "limited";
+                    stock: "available" | "limited" | "unavailable";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -377,7 +405,202 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "available" | "unavailable" | "limited";
+                    stock: "available" | "limited" | "unavailable";
+                    data_center: string;
+                    location_option_id: number;
+                    edge: boolean;
+                    core: boolean;
+                    is_disk_upgradable: boolean;
+                    is_sps: boolean;
+                    is_vps: boolean;
+                    is_vds: boolean;
+                    product_cpu?: string | undefined;
+                    product_cpu_cores?: string | undefined;
+                    product_memory?: string | undefined;
+                    product_drive?: string | undefined;
+                    product_bandwidth?: string | undefined;
+                    product_gpu?: string | undefined;
+                    processor_info?: unknown;
+                    product_drive_info?: unknown;
+                    product_defaults?: unknown;
+                    product_hourly_price?: number | undefined;
+                    product_monthly_price?: number | undefined;
+                    product_quarterly_price?: number | undefined;
+                    product_semi_annually_price?: number | undefined;
+                    product_annually_price?: number | undefined;
+                    product_biennial_price?: number | undefined;
+                    product_triennial_price?: number | undefined;
+                    product_on_sale?: boolean | undefined;
+                    product_original_price?: number | undefined;
+                    product_new?: boolean | undefined;
+                    hourly_location_premium?: number | undefined;
+                    monthly_location_premium?: number | undefined;
+                    quarterly_location_premium?: number | undefined;
+                    semi_annually_location_premium?: number | undefined;
+                    annually_location_premium?: number | undefined;
+                    biennial_location_premium?: number | undefined;
+                    triennial_location_premium?: number | undefined;
+                    product_disabled_billing_periods?: string[] | undefined;
+                    product_display_price?: number | undefined;
+                }[];
+                total: number;
+                nextCursor: number | null;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Public: VPS plans (paginated) — no auth required.
+     * Used by the landing page to display live plans without login.
+     */
+    publicGetVpsPlans: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            location?: "MAIN" | "CUSTOM_DISPLAY" | "MASSIVESTORAGE" | "GPU" | "OUTLET" | "LANDING" | undefined;
+            include_custom?: boolean | undefined;
+            bonding_support?: string | null | undefined;
+            facility_code?: string | undefined;
+            search?: string | undefined;
+            limit?: number | undefined;
+            cursor?: number | undefined;
+        } | undefined;
+        output: {
+            success: boolean;
+            data: {
+                items: {
+                    [x: string]: unknown;
+                    product_id: number;
+                    product_name: string;
+                    stock: "available" | "limited" | "unavailable";
+                    data_center: string;
+                    location_option_id: number;
+                    edge: boolean;
+                    core: boolean;
+                    is_disk_upgradable: boolean;
+                    is_sps: boolean;
+                    is_vps: boolean;
+                    is_vds: boolean;
+                    product_cpu?: string | undefined;
+                    product_cpu_cores?: string | undefined;
+                    product_memory?: string | undefined;
+                    product_drive?: string | undefined;
+                    product_bandwidth?: string | undefined;
+                    product_gpu?: string | undefined;
+                    processor_info?: unknown;
+                    product_drive_info?: unknown;
+                    product_defaults?: unknown;
+                    product_hourly_price?: number | undefined;
+                    product_monthly_price?: number | undefined;
+                    product_quarterly_price?: number | undefined;
+                    product_semi_annually_price?: number | undefined;
+                    product_annually_price?: number | undefined;
+                    product_biennial_price?: number | undefined;
+                    product_triennial_price?: number | undefined;
+                    product_on_sale?: boolean | undefined;
+                    product_original_price?: number | undefined;
+                    product_new?: boolean | undefined;
+                    hourly_location_premium?: number | undefined;
+                    monthly_location_premium?: number | undefined;
+                    quarterly_location_premium?: number | undefined;
+                    semi_annually_location_premium?: number | undefined;
+                    annually_location_premium?: number | undefined;
+                    biennial_location_premium?: number | undefined;
+                    triennial_location_premium?: number | undefined;
+                    product_disabled_billing_periods?: string[] | undefined;
+                    product_display_price?: number | undefined;
+                }[];
+                total: number;
+                nextCursor: number | null;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Public: Dedicated server plans (paginated) — no auth required.
+     * Used by the landing page to display live plans without login.
+     */
+    publicGetDedicatedServerPlans: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            location?: "MAIN" | "CUSTOM_DISPLAY" | "MASSIVESTORAGE" | "GPU" | "OUTLET" | "LANDING" | undefined;
+            include_custom?: boolean | undefined;
+            bonding_support?: string | null | undefined;
+            facility_code?: string | undefined;
+            search?: string | undefined;
+            limit?: number | undefined;
+            cursor?: number | undefined;
+        } | undefined;
+        output: {
+            success: boolean;
+            data: {
+                items: {
+                    [x: string]: unknown;
+                    product_id: number;
+                    product_name: string;
+                    stock: "available" | "limited" | "unavailable";
+                    data_center: string;
+                    location_option_id: number;
+                    edge: boolean;
+                    core: boolean;
+                    is_disk_upgradable: boolean;
+                    is_sps: boolean;
+                    is_vps: boolean;
+                    is_vds: boolean;
+                    product_cpu?: string | undefined;
+                    product_cpu_cores?: string | undefined;
+                    product_memory?: string | undefined;
+                    product_drive?: string | undefined;
+                    product_bandwidth?: string | undefined;
+                    product_gpu?: string | undefined;
+                    processor_info?: unknown;
+                    product_drive_info?: unknown;
+                    product_defaults?: unknown;
+                    product_hourly_price?: number | undefined;
+                    product_monthly_price?: number | undefined;
+                    product_quarterly_price?: number | undefined;
+                    product_semi_annually_price?: number | undefined;
+                    product_annually_price?: number | undefined;
+                    product_biennial_price?: number | undefined;
+                    product_triennial_price?: number | undefined;
+                    product_on_sale?: boolean | undefined;
+                    product_original_price?: number | undefined;
+                    product_new?: boolean | undefined;
+                    hourly_location_premium?: number | undefined;
+                    monthly_location_premium?: number | undefined;
+                    quarterly_location_premium?: number | undefined;
+                    semi_annually_location_premium?: number | undefined;
+                    annually_location_premium?: number | undefined;
+                    biennial_location_premium?: number | undefined;
+                    triennial_location_premium?: number | undefined;
+                    product_disabled_billing_periods?: string[] | undefined;
+                    product_display_price?: number | undefined;
+                }[];
+                total: number;
+                nextCursor: number | null;
+            };
+        };
+        meta: object;
+    }>;
+    /**
+     * Public: VDS plans (paginated) — no auth required.
+     * Used by the landing page to display live plans without login.
+     */
+    publicGetVdsPlans: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            location?: "MAIN" | "CUSTOM_DISPLAY" | "MASSIVESTORAGE" | "GPU" | "OUTLET" | "LANDING" | undefined;
+            include_custom?: boolean | undefined;
+            bonding_support?: string | null | undefined;
+            facility_code?: string | undefined;
+            search?: string | undefined;
+            limit?: number | undefined;
+            cursor?: number | undefined;
+        } | undefined;
+        output: {
+            success: boolean;
+            data: {
+                items: {
+                    [x: string]: unknown;
+                    product_id: number;
+                    product_name: string;
+                    stock: "available" | "limited" | "unavailable";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -441,7 +664,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                     [x: string]: unknown;
                     product_id: number;
                     product_name: string;
-                    stock: "available" | "unavailable" | "limited";
+                    stock: "available" | "limited" | "unavailable";
                     data_center: string;
                     location_option_id: number;
                     edge: boolean;
@@ -499,7 +722,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 [x: string]: unknown;
                 product_id: number;
                 product_name: string;
-                stock: "available" | "unavailable" | "limited";
+                stock: "available" | "limited" | "unavailable";
                 data_center: string;
                 location_option_id: number;
                 edge: boolean;
@@ -540,7 +763,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 [x: string]: unknown;
                 product_id: number;
                 product_name: string;
-                stock: "available" | "unavailable" | "limited";
+                stock: "available" | "limited" | "unavailable";
                 data_center: string;
                 location_option_id: number;
                 edge: boolean;
@@ -645,16 +868,8 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
     /**
      * Get all VPS instances in the account (paginated + filtered).
      *
-     * Docs: GET /vps/
-     * Schema: VPS
-     *
-     * Note: This is a completely separate endpoint from /device/ with its own
-     * schema - VPS instances are NOT returned by /device/.
-     *
-     * Supports:
-     * - Free-text search (hostname, primaryIp, osName, id)
-     * - Facility filter (facilityCode)
-     * - Cursor-based pagination
+     * List source: GET /device/ filtered to VPS rows (official docs include virtual
+     * devices). GET /vps/ is reserved for per-instance VPS management on detail pages.
      */
     getMyVpsInstances: import("@trpc/server").TRPCQueryProcedure<{
         input: {
@@ -666,22 +881,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         output: {
             success: boolean;
             data: {
-                items: {
-                    [x: string]: unknown;
-                    id?: string | undefined;
-                    hostname?: string | undefined;
-                    status?: string | undefined;
-                    primaryIp?: string | undefined;
-                    cpus?: number | undefined;
-                    memory?: number | undefined;
-                    disk?: number | undefined;
-                    osName?: string | undefined;
-                    facilityCode?: string | undefined;
-                    networkId?: string | null | undefined;
-                    hostId?: string | null | undefined;
-                    storageId?: string | null | undefined;
-                    createdAt?: string | null | undefined;
-                }[];
+                items: HivelocityAnyResource[];
                 total: number;
                 nextCursor: number | null;
             };
@@ -691,22 +891,12 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
     /**
      * Get ALL account resources in a single unified call (dedicated + VPS + VDS).
      *
-     * Implementation:
-     * - Fetches /device/ and /vps/ in parallel (Promise.all).
-     * - Enriches each record with a `resourceType` discriminant:
-     *   - "vps"  → came from /vps/
-     *   - "vds"  → came from /device/ AND productName contains "VDS" (case-insensitive)
-     *   - "dedicated" → all other /device/ records
-     *
-     * Supports:
-     * - type: "dedicated" | "vps" | "vds" | "all"
-     * - Free-text search
-     * - Facility filter
-     * - Cursor-based pagination over the merged + sorted result
+     * Implementation: GET /device/ (official docs: bare-metal + virtual devices).
+     * Classifies each row as dedicated, vds, or vps from deviceType/deviceTypeGroup.
      */
     getMyAllResources: import("@trpc/server").TRPCQueryProcedure<{
         input: {
-            type?: "all" | "vps" | "vds" | "dedicated" | undefined;
+            type?: "vps" | "vds" | "dedicated" | "all" | undefined;
             search?: string | undefined;
             facilityCode?: string | undefined;
             limit?: number | undefined;
@@ -719,11 +909,13 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 totalMs: number;
                 filteredCount: number;
                 returnedCount: number;
-                typeFilter: "all" | "vps" | "vds" | "dedicated";
+                typeFilter: "vps" | "vds" | "dedicated" | "all";
                 hivelocity: {
                     device: HivelocityRequestTiming;
-                    vps: HivelocityRequestTiming;
+                    /** Not used for list views; kept for dev timing UI compatibility. */
+                    vps?: HivelocityRequestTiming;
                     parallelMs: number;
+                    source: "device";
                 };
                 mergeMs: number;
                 counts: {
@@ -777,8 +969,10 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
                 typeFilter: "vps" | "vds" | "dedicated";
                 hivelocity: {
                     device: HivelocityRequestTiming;
-                    vps: HivelocityRequestTiming;
+                    /** Not used for list views; kept for dev timing UI compatibility. */
+                    vps?: HivelocityRequestTiming;
                     parallelMs: number;
+                    source: "device";
                 };
                 mergeMs: number;
                 counts: {
@@ -1035,12 +1229,12 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
             [x: string]: unknown;
             timezone: string;
             volumeId: string;
-            intervalType: "MONTHLY" | "DAILY" | "WEEKLY" | "HOURLY";
+            intervalType: "MONTHLY" | "HOURLY" | "DAILY" | "WEEKLY";
             maxSnapshots: number;
             facilityCode: string;
-            day?: number | undefined;
             hour?: number | undefined;
             minute?: number | undefined;
+            day?: number | undefined;
             weekday?: number | undefined;
             clientId?: number | undefined;
             deviceId?: number | undefined;
