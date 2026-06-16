@@ -4,6 +4,7 @@ import PainAgitation from "./_components/PainAgitation.tsx";
 import NeedSelector from "./_components/NeedSelector.tsx";
 import AtomApproach from "./_components/AtomApproach.tsx";
 import DashboardPreview from "./_components/DashboardPreview.tsx";
+import Features from "./_components/Features.tsx";
 import DomainSearch from "./_components/DomainSearch.tsx";
 import Testimonials from "./_components/Testimonials.tsx";
 import Faq from "./_components/Faq.tsx";
@@ -21,7 +22,8 @@ export default function Index() {
       <PainAgitation />
       <AtomApproach />
       <DomainSearch />
-      <DashboardPreview />
+      {/* <DashboardPreview /> */}
+      <Features />
       <Testimonials />
       <Faq />
       <Footer />
