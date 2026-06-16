@@ -42,7 +42,9 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
             data: {
                 domain: any;
                 roid: any;
-                status: string;
+                status: import("../../lib/epp/kenic-domain-status").KenicPortfolioStatus;
+                isTransferLocked: boolean;
+                isServerTransferLocked: boolean;
                 allStatuses: {
                     status: any;
                     label: any;
@@ -77,7 +79,7 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
                 clID: any;
                 crID: any;
                 crDate: any;
-                exDate: any;
+                exDate: string | undefined;
                 upID: any;
                 upDate: any;
                 trDate: any;
@@ -96,6 +98,34 @@ export declare const kenicDomainListRouter: import("@trpc/server").TRPCBuiltRout
         input: {
             domain: string;
             nameservers: string[];
+        };
+        output: {
+            success: boolean;
+            message: string;
+        };
+        meta: object;
+    }>;
+    /**
+     * Set or remove KENIC domain transfer lock (clientTransferProhibited).
+     */
+    setTransferLock: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            domain: string;
+            locked: boolean;
+        };
+        output: {
+            success: boolean;
+            message: string;
+        };
+        meta: object;
+    }>;
+    /**
+     * Update KENIC domain authorization (EPP) code.
+     */
+    updateAuthCode: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            domain: string;
+            authCode: string;
         };
         output: {
             success: boolean;

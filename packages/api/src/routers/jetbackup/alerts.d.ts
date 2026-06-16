@@ -13,21 +13,21 @@ export declare const jetbackupAlertsRouter: import("@trpc/server").TRPCBuiltRout
             orderby?: string | undefined;
             order?: "asc" | "desc" | undefined;
         };
-        output: JetBackupListResponse<Alert> | null;
+        output: JetBackupListResponse<Alert>;
         meta: object;
     }>;
     get: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             _id: string;
         };
-        output: Alert | null;
+        output: Alert;
         meta: object;
     }>;
     clear: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             _id?: string | undefined;
         };
-        output: any;
+        output: unknown;
         meta: object;
     }>;
 }>>;

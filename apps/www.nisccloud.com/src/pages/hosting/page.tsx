@@ -1,7 +1,7 @@
 import Navbar from "../../_components/Navbar.tsx";
 import Footer from "../../_components/Footer.tsx";
 import { useNavigate } from "react-router-dom";
-import { Server, Zap, Cpu, Globe, Mail, Shield, ArrowRight } from "lucide-react";
+import { Server, Zap, Cpu, Globe, Mail, Shield, ArrowRight, HardDrive, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button.tsx";
 
@@ -9,6 +9,8 @@ const categories = [
   { icon: <Server size={28} />, title: "Shared Hosting", desc: "Perfect for new websites. Fast, managed, and affordable.", price: "From KES 350/mo", href: "/hosting/shared" },
   { icon: <Zap size={28} />, title: "WordPress Hosting", desc: "Optimised WordPress with 1-click install and auto-updates.", price: "From KES 500/mo", href: "/hosting/wordpress" },
   { icon: <Cpu size={28} />, title: "VPS Servers", desc: "Dedicated resources, full root access, scalable power.", price: "From KES 2,000/mo", href: "/hosting/vps" },
+  { icon: <HardDrive size={28} />, title: "VDS Hosting", desc: "Virtual dedicated servers with guaranteed isolated resources.", price: "Custom pricing", href: "/hosting/vds" },
+  { icon: <TrendingUp size={28} />, title: "Dedicated Servers", desc: "100% bare metal hardware with IPMI access. Zero noisy neighbours.", price: "Custom pricing", href: "/hosting/dedicated-servers" },
   { icon: <Globe size={28} />, title: "Domain Registration", desc: ".co.ke, .com, .africa and more - registered in minutes.", price: "From KES 999/yr", href: "/hosting/domains" },
   { icon: <Mail size={28} />, title: "Business Email", desc: "Professional email at your domain with 10GB+ storage.", price: "From KES 250/mo", href: "/hosting/email" },
   { icon: <Shield size={28} />, title: "SSL Certificates", desc: "HTTPS security, browser trust, and SEO boost.", price: "Free – KES 8,000/yr", href: "/hosting/ssl" },

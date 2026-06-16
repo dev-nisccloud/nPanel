@@ -22,7 +22,7 @@ export type DomainTransferSecuritySectionProps = {
   isPrivateWhois?: boolean;
   /** Pre-fetched KENIC auth code from live domain info */
   kenicAuthInfo?: string | null;
-  /** Registry-level lock — registrar cannot change client lock */
+  /** Registry-level lock  registrar cannot change client lock */
   kenicServerTransferLocked?: boolean;
   onKenicAuthCodeUpdated?: () => void;
   onKenicLockUpdated?: () => void;

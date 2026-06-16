@@ -18,9 +18,9 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
-                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
+                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
@@ -37,9 +37,9 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
-                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
+                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
@@ -57,16 +57,16 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
-                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
+                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
                     messages: {
                         id: string;
-                        role: string;
                         createdAt: Date;
+                        role: string;
                         metadata: unknown;
                         content: string | null;
                         toolCalls: unknown;
@@ -118,16 +118,16 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
-                    status: string;
                     createdAt: Date;
                     updatedAt: Date;
+                    status: string;
                     userId: string;
                     teamId: string | null;
                     title: string | null;
                     messages: {
                         id: string;
-                        role: string;
                         createdAt: Date;
+                        role: string;
                         metadata: unknown;
                         content: string | null;
                         toolCalls: unknown;
@@ -156,7 +156,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 generationId?: string | undefined;
                 parentId?: string | undefined;
                 maskDataUrl?: string | undefined;
-                outputFormat?: "png" | "webp" | undefined;
+                outputFormat?: "webp" | "png" | undefined;
                 resolution?: "1 MP" | "2 MP" | undefined;
             };
             output: {
@@ -272,7 +272,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 style: "watercolor" | "oil_painting" | "cinematic" | "anime" | "pixel_art" | "neon" | "pencil_sketch" | "vintage";
                 parentId?: string | undefined;
                 customPrompt?: string | undefined;
-                outputFormat?: "png" | "webp" | undefined;
+                outputFormat?: "webp" | "png" | undefined;
                 resolution?: "1 MP" | "2 MP" | undefined;
             };
             output: {
@@ -399,7 +399,7 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
                 imageUrl: string;
                 parentId?: string | undefined;
                 prompt?: string | undefined;
-                outputFormat?: "png" | "webp" | undefined;
+                outputFormat?: "webp" | "png" | undefined;
             };
             output: {
                 variations: ({
@@ -447,8 +447,8 @@ export declare const zeepoAgentRouter: import("@trpc/server").TRPCBuiltRouter<{
             output: {
                 data: {
                     id: string;
-                    createdAt: Date;
                     description: string | null;
+                    createdAt: Date;
                     balanceAfter: string;
                     operationType: string;
                     direction: string;

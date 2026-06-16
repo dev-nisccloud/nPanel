@@ -11,7 +11,7 @@ const tldPricing = [
   { tld: ".shop", originalPrice: 34.99, discountedPrice: 0.99 },
 ];
 
-/** Static showcase cards — display only, not clickable (matches dashboard layout). */
+/** Static showcase cards  display only, not clickable (matches dashboard layout). */
 export function TldPricingCards() {
   return (
     <div className="w-full mt-4">

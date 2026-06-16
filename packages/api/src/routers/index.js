@@ -108,13 +108,22 @@ import { ipRecordsRouter } from "./ip-records";
 import { zeepoCanvasRouter } from "./zeepo-canvas";
 import { zeepoAgentRouter } from "./zeepo-agent";
 import { jetbackupDashboardRouter } from "./jetbackup/dashboard";
+import { jetbackupSystemRouter } from "./jetbackup/system";
 import { jetbackupAccountsRouter } from "./jetbackup/accounts";
 import { jetbackupJobsRouter } from "./jetbackup/jobs";
+import { jetbackupSchedulesRouter } from "./jetbackup/schedules";
+import { jetbackupAccountFiltersRouter } from "./jetbackup/account-filters";
 import { jetbackupDestinationsRouter } from "./jetbackup/destinations";
 import { jetbackupQueuesRouter } from "./jetbackup/queues";
 import { jetbackupBackupsRouter } from "./jetbackup/backups";
+import { jetbackupDownloadsRouter } from "./jetbackup/downloads";
 import { jetbackupAlertsRouter } from "./jetbackup/alerts";
 import { jetbackupLogsRouter } from "./jetbackup/logs";
+import { jetbackupSettingsRouter } from "./jetbackup/settings";
+import { jetbackupPermissionsRouter } from "./jetbackup/permissions";
+import { jetbackupRestoreConditionsRouter } from "./jetbackup/restore-conditions";
+import { jetbackupFilePermissionsRouter } from "./jetbackup/file-permissions";
+import { jetbackupPluginsRouter } from "./jetbackup/plugins";
 export const appRouter = router({
     healthCheck: publicProcedure.query(() => {
         return "OK";
@@ -312,12 +321,21 @@ export const appRouter = router({
     // JetBackup 5 Integration
     jetbackup: router({
         dashboard: jetbackupDashboardRouter,
+        system: jetbackupSystemRouter,
         accounts: jetbackupAccountsRouter,
         jobs: jetbackupJobsRouter,
+        schedules: jetbackupSchedulesRouter,
+        accountFilters: jetbackupAccountFiltersRouter,
         destinations: jetbackupDestinationsRouter,
         queues: jetbackupQueuesRouter,
         backups: jetbackupBackupsRouter,
+        downloads: jetbackupDownloadsRouter,
         alerts: jetbackupAlertsRouter,
         logs: jetbackupLogsRouter,
+        settings: jetbackupSettingsRouter,
+        permissions: jetbackupPermissionsRouter,
+        restoreConditions: jetbackupRestoreConditionsRouter,
+        filePermissions: jetbackupFilePermissionsRouter,
+        plugins: jetbackupPluginsRouter,
     }),
 });

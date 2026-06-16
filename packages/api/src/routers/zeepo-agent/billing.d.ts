@@ -27,8 +27,8 @@ export declare const zeepoAgentBillingRouter: import("@trpc/server").TRPCBuiltRo
         output: {
             data: {
                 id: string;
-                createdAt: Date;
                 description: string | null;
+                createdAt: Date;
                 balanceAfter: string;
                 operationType: string;
                 direction: string;

@@ -4,7 +4,11 @@ export class DigiTaxClient {
     baseUrl;
     apiKey;
     constructor(apiKey, baseUrl) {
-        this.apiKey = apiKey ?? env.DIGITAX_API_KEY;
+        const resolvedKey = apiKey ?? env.DIGITAX_API_KEY;
+        if (!resolvedKey?.trim()) {
+            throw new Error("DIGITAX_API_KEY is not configured");
+        }
+        this.apiKey = resolvedKey;
         this.baseUrl = baseUrl ?? env.DIGITAX_API_URL;
     }
     async request(method, endpoint, params, body) {

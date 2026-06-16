@@ -1,74 +1,110 @@
-import { publicProcedure, router } from "../../trpc";
-import { sendJetBackupRequest } from "../../lib/jetbackup/client";
-import { QueueGroup, QueueItem, JetBackupListResponse } from "../../types/jetbackup";
+import { protectedProcedure, router } from "../../trpc";
+import { JetBackupListResponse, QueueGroup, QueueItem, QueuePriority } from "../../types/jetbackup";
 import { z } from "zod";
-const listSchema = z.object({
-    page: z.number().optional(),
-    limit: z.number().optional(),
-    search: z.string().optional(),
-    orderby: z.string().optional(),
-    order: z.enum(["asc", "desc"]).optional(),
-});
+import { extractList, idSchema, jetbackupCall, jetbackupCallSafe, listSchema, queueItemSchema } from "./_helpers";
 export const jetbackupQueuesRouter = router({
-    listGroups: publicProcedure
-        .input(listSchema)
-        .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("listQueueGroups", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
-    }),
-    getGroup: publicProcedure
-        .input(z.object({ _id: z.string() }))
-        .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("getQueueGroup", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
-    }),
-    listItems: publicProcedure
-        .input(listSchema)
-        .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("listQueueItems", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
-    }),
-    stopGroup: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    addItems: protectedProcedure
+        .input(z.object({
+        items: z.array(queueItemSchema),
+    }))
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("stopQueueGroup", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("addQueueItems", input);
     }),
-    stopAll: publicProcedure.mutation(async () => {
-        const result = await sendJetBackupRequest("stopAllQueueGroup");
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+    addMultiAccountItems: protectedProcedure
+        .input(z.object({
+        items: z.array(queueItemSchema),
+    }))
+        .mutation(async ({ input }) => {
+        return jetbackupCall("addMultiAccountQueueItems", input);
     }),
-    clear: publicProcedure
+    listGroups: protectedProcedure
+        .input(listSchema.extend({
+        type: z.number().min(1).max(3).optional(),
+    }))
+        .query(async ({ input }) => {
+        const { type, ...rest } = input;
+        const types = type != null ? [type] : [1, 2, 3];
+        const groups = [];
+        const errors = [];
+        for (const queueType of types) {
+            const result = await jetbackupCallSafe("listQueueGroups", { ...rest, type: queueType });
+            if (result.success) {
+                groups.push(...extractList(result.data, ["groups", "items", "queue_groups"]));
+            }
+            else if (result.message) {
+                errors.push(result.message);
+            }
+        }
+        if (groups.length === 0 && errors.length > 0) {
+            return {
+                groups: [],
+                total: 0,
+                warning: errors[0],
+            };
+        }
+        return {
+            groups,
+            total: groups.length,
+            warning: errors.length > 0 ? errors[0] : undefined,
+        };
+    }),
+    getGroup: protectedProcedure
+        .input(idSchema)
+        .query(async ({ input }) => {
+        return jetbackupCall("getQueueGroup", input);
+    }),
+    listItems: protectedProcedure
+        .input(listSchema)
+        .query(async ({ input }) => {
+        return jetbackupCall("listQueueItems", input);
+    }),
+    getItem: protectedProcedure
+        .input(idSchema)
+        .query(async ({ input }) => {
+        return jetbackupCall("getQueueItem", input);
+    }),
+    stopGroup: protectedProcedure
+        .input(idSchema)
+        .mutation(async ({ input }) => {
+        return jetbackupCall("stopQueueGroup", input);
+    }),
+    stopAll: protectedProcedure.mutation(async () => {
+        return jetbackupCall("stopAllQueueGroup");
+    }),
+    clear: protectedProcedure
         .input(z.object({ type: z.number().optional() }))
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("clearQueue", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("clearQueue", input);
     }),
-    rerunFailed: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    rerunFailed: protectedProcedure
+        .input(idSchema)
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("rerunFailedQueueGroup", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("rerunFailedQueueGroup", input);
+    }),
+    listPriorities: protectedProcedure
+        .input(listSchema)
+        .query(async ({ input }) => {
+        return jetbackupCall("listQueuePriorities", input);
+    }),
+    getPriority: protectedProcedure
+        .input(idSchema)
+        .query(async ({ input }) => {
+        return jetbackupCall("getQueuePriority", input);
+    }),
+    managePriority: protectedProcedure
+        .input(z.object({
+        action: z.enum(["create", "modify"]),
+        _id: z.string().optional(),
+        name: z.string().optional(),
+        priority: z.number().optional(),
+        type: z.number().optional(),
+    }))
+        .mutation(async ({ input }) => {
+        return jetbackupCall("manageQueuePriority", input);
+    }),
+    deletePriority: protectedProcedure
+        .input(idSchema)
+        .mutation(async ({ input }) => {
+        return jetbackupCall("deleteQueuePriority", input);
     }),
 });

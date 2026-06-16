@@ -25,17 +25,17 @@ const features = [
   {
     icon: <Globe size={20} />,
     title: "KENIC-Accredited .co.ke Registrar",
-    desc: "Officially accredited by KENIC. Your .co.ke, .or.ke, .ac.ke, and .go.ke domains are registered directly at the registry — no middlemen, no delays.",
+    desc: "Officially accredited by KENIC. Your .co.ke, .or.ke, .ac.ke, and .go.ke domains are registered directly at the registry  no middlemen, no delays.",
   },
   {
     icon: <Search size={20} />,
-    title: "Instant Search — 200+ Extensions",
+    title: "Instant Search  200+ Extensions",
     desc: "Check availability across .co.ke, .com, .org, .net, .africa and 200+ more in seconds. Smart suggestions appear automatically when your first choice is taken.",
   },
   {
     icon: <Shield size={20} />,
     title: "Free WHOIS Privacy",
-    desc: "Keep your personal details off the public WHOIS database. Privacy protection is included free on all eligible extensions — no extra charge.",
+    desc: "Keep your personal details off the public WHOIS database. Privacy protection is included free on all eligible extensions  no extra charge.",
   },
   {
     icon: <RefreshCw size={20} />,
@@ -49,13 +49,13 @@ const features = [
   },
   {
     icon: <Award size={20} />,
-    title: "Free DNS — Anycast Speed",
+    title: "Free DNS  Anycast Speed",
     desc: "Full DNS management: A, CNAME, MX, TXT, SRV records. DNS propagates globally in under 5 minutes via Anycast DNS. No zone file headaches.",
   },
   {
     icon: <Zap size={20} />,
     title: "M-Pesa Activation in 3 Minutes",
-    desc: "Domains go live immediately upon M-Pesa confirmation — 24/7 including public holidays. Your domain resolves before you leave the payment screen.",
+    desc: "Domains go live immediately upon M-Pesa confirmation  24/7 including public holidays. Your domain resolves before you leave the payment screen.",
   },
   {
     icon: <MapPin size={20} />,
@@ -72,12 +72,12 @@ const process = [
 ];
 
 const whyPoints = [
-  { title: "Official KENIC-Accredited Registrar Kenya", desc: "One of Kenya's few KENIC-accredited registrars. Your .co.ke is registered directly at the source — no third-party resellers." },
-  { title: "KES Pricing — No USD Currency Shocks", desc: "All prices in Kenyan Shillings. Pay what you see — no conversion fees, no hidden renewal charges." },
-  { title: "M-Pesa Domain Registration in 3 Minutes", desc: "The only Kenyan registrar where you can register a domain entirely via M-Pesa in under 3 minutes — 24/7 including public holidays." },
+  { title: "Official KENIC-Accredited Registrar Kenya", desc: "One of Kenya's few KENIC-accredited registrars. Your .co.ke is registered directly at the source  no third-party resellers." },
+  { title: "KES Pricing  No USD Currency Shocks", desc: "All prices in Kenyan Shillings. Pay what you see  no conversion fees, no hidden renewal charges." },
+  { title: "M-Pesa Domain Registration in 3 Minutes", desc: "The only Kenyan registrar where you can register a domain entirely via M-Pesa in under 3 minutes  24/7 including public holidays." },
   { title: "Expiry Protection & 30-Day Grace Period", desc: "Expired domains are held for 30 days before release. We exhaust every renewal attempt before any domain is lost." },
-  { title: "Free DNS Hosting Included Forever", desc: "DNS hosting is included free with every domain — forever. No separate fees, no zone file complexity." },
-  { title: "Free Transfer Support — Fast & Easy", desc: "Moving a domain from another registrar? Our team handles the entire process for free. Most transfers complete in 5–7 days." },
+  { title: "Free DNS Hosting Included Forever", desc: "DNS hosting is included free with every domain  forever. No separate fees, no zone file complexity." },
+  { title: "Free Transfer Support  Fast & Easy", desc: "Moving a domain from another registrar? Our team handles the entire process for free. Most transfers complete in 5–7 days." },
 ];
 
 const faqs = [
@@ -85,7 +85,7 @@ const faqs = [
   { q: "What documents are needed for .co.ke registration?", a: "Most .co.ke domains require only a valid Kenyan contact. For .or.ke you need NGO/org registration proof. For .ac.ke you need evidence of an educational institution. We guide you through all requirements." },
   { q: "Can I transfer my domain to Nisc Cloud?", a: "Yes. We accept transfers from any ICANN-accredited registrar. For .co.ke domains we coordinate with KENIC directly. The process takes 5–7 days and we provide full transfer support at no charge." },
   { q: "What happens if my domain expires?", a: "You receive reminders at 90, 30, and 7 days before expiry. After expiry your domain enters a 30-day grace period where you can still renew at the standard rate." },
-  { q: "Can I register a .go.ke domain for a government entity?", a: "Yes. Government entities can register .go.ke domains through us. The process requires documentation confirming government status — we liaise with KENIC on your behalf." },
+  { q: "Can I register a .go.ke domain for a government entity?", a: "Yes. Government entities can register .go.ke domains through us. The process requires documentation confirming government status  we liaise with KENIC on your behalf." },
   { q: "Is WHOIS privacy available for .co.ke domains?", a: "WHOIS privacy for .co.ke domains follows KENIC policy. We provide maximum available privacy protection for all extensions we support." },
 ];
 
@@ -174,7 +174,7 @@ function FeaturesSection() {
       <div className="text-center mb-12">
         <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">Everything Included</span>
         <h2 className="text-3xl font-bold mt-2 mb-3">Built for Kenyan Businesses</h2>
-        <p className="text-muted-foreground max-w-xl mx-auto text-sm">Every plan includes everything you need — no add-ons required for the essentials.</p>
+        <p className="text-muted-foreground max-w-xl mx-auto text-sm">Every plan includes everything you need  no add-ons required for the essentials.</p>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {features.map((f, i) => (
@@ -442,7 +442,7 @@ function ExtensionsSection() {
           <Package size={18} />
         </div>
         <div>
-          <h4 className="font-bold text-sm mb-1">Bundle .co.ke + .com + .ke + .net — Best Value</h4>
+          <h4 className="font-bold text-sm mb-1">Bundle .co.ke + .com + .ke + .net  Best Value</h4>
           <p className="text-xs text-muted-foreground leading-relaxed">Register all four extensions together and save. Protect your brand from copycats in Kenya and globally with one purchase. Search your name below to see the bundle price.</p>
         </div>
       </div>
@@ -455,7 +455,7 @@ function ExtensionsSection() {
 function Hero() {
   return (
     <section className="relative pt-10 pb-0">
-      {/* bg glow — clipped inside its own layer so it never bleeds horizontally */}
+      {/* bg glow  clipped inside its own layer so it never bleeds horizontally */}
       <div
         className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{
@@ -464,7 +464,7 @@ function Hero() {
         }}
       />
 
-      {/* Headline block — constrained width */}
+      {/* Headline block  constrained width */}
       <div className="max-w-4xl mx-auto px-4 md:px-8 relative text-center">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -517,7 +517,7 @@ function Hero() {
         </motion.div>
       </div>
 
-      {/* Domain search — full width, outside the constrained container */}
+      {/* Domain search  full width, outside the constrained container */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -573,7 +573,7 @@ export default function DomainsPage() {
             <span className="text-primary">Someone Else Does</span>
           </h2>
           <p className="text-muted-foreground mb-8 leading-relaxed">
-            Over 5,000 Kenyan businesses trust Nisc Cloud to protect their domain names. Search yours now — it takes 30 seconds.
+            Over 5,000 Kenyan businesses trust Nisc Cloud to protect their domain names. Search yours now  it takes 30 seconds.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button

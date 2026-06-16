@@ -6,9 +6,9 @@ type DbLike = typeof db | DbTransaction;
 declare function mapInvoiceDetail(invoice: any): InvoiceDetail;
 declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     id: string;
-    status: string;
     createdAt: Date;
     updatedAt: Date;
+    status: string;
     token: string;
     teamId: string | null;
     updatedBy: string | null;
@@ -49,41 +49,12 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     kraVerifiedDate: Date | null;
     kraStatus: string | null;
     kraError: string | null;
-    creditNote: {
-        id: string;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
-        teamId: string | null;
-        updatedBy: string | null;
-        metadata: unknown;
-        amount: string;
-        currency: string;
-        note: string | null;
-        createdBy: string;
-        invoiceId: string;
-        creditNumber: string | null;
-        reason: string | null;
-        issuedAt: Date | null;
-        appliedAt: Date | null;
-        activityLogs: {
-            id: string;
-            createdAt: Date;
-            ipAddress: string | null;
-            userAgent: string | null;
-            userId: string;
-            description: string | null;
-            action: string;
-            metadata: unknown;
-            creditNoteId: string;
-        }[];
-    };
     lineItems: {
         id: string;
         name: string | null;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        description: string | null;
         metadata: unknown;
         discount: string | null;
         invoiceId: string;
@@ -95,9 +66,9 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
     }[];
     transactions: {
         id: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
+        status: string;
         metadata: unknown;
         amount: string;
         currency: string;
@@ -112,23 +83,52 @@ declare function fetchInvoiceDetail(tx: DbLike, invoiceId: string): Promise<{
         balanceAfter: string | null;
         activityLogs: {
             id: string;
+            description: string | null;
             createdAt: Date;
             ipAddress: string | null;
             userAgent: string | null;
             userId: string;
-            description: string | null;
             action: string;
             metadata: unknown;
             invoiceTransactionId: string;
         }[];
     }[];
+    creditNote: {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        teamId: string | null;
+        updatedBy: string | null;
+        metadata: unknown;
+        amount: string;
+        currency: string;
+        note: string | null;
+        createdBy: string;
+        invoiceId: string;
+        creditNumber: string | null;
+        reason: string | null;
+        issuedAt: Date | null;
+        appliedAt: Date | null;
+        activityLogs: {
+            id: string;
+            description: string | null;
+            createdAt: Date;
+            ipAddress: string | null;
+            userAgent: string | null;
+            userId: string;
+            action: string;
+            metadata: unknown;
+            creditNoteId: string;
+        }[];
+    };
     activityLogs: {
         id: string;
+        description: string | null;
         createdAt: Date;
         ipAddress: string | null;
         userAgent: string | null;
         userId: string;
-        description: string | null;
         action: string;
         metadata: unknown;
         invoiceId: string;
@@ -201,7 +201,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -325,7 +325,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -450,7 +450,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id?: string | undefined;
                 reference?: string | null | undefined;
                 providerReference?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+                status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
                 currency?: string | undefined;
                 paidAt?: unknown;
                 notes?: string | null | undefined;
@@ -533,7 +533,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -638,7 +638,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id?: string | undefined;
                 reference?: string | null | undefined;
                 providerReference?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+                status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
                 currency?: string | undefined;
                 paidAt?: unknown;
                 notes?: string | null | undefined;
@@ -733,7 +733,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -857,7 +857,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -951,7 +951,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
             id?: string | undefined;
             reference?: string | null | undefined;
             providerReference?: string | null | undefined;
-            status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+            status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
             currency?: string | undefined;
             paidAt?: unknown;
             notes?: string | null | undefined;
@@ -992,7 +992,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1115,7 +1115,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1250,7 +1250,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1372,7 +1372,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1489,7 +1489,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id?: string | undefined;
                 reference?: string | null | undefined;
                 providerReference?: string | null | undefined;
-                status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+                status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
                 currency?: string | undefined;
                 paidAt?: unknown;
                 notes?: string | null | undefined;
@@ -1574,7 +1574,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1719,7 +1719,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;
@@ -1809,7 +1809,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
         input: {
             limit?: number | undefined;
             offset?: number | undefined;
-            status?: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED" | undefined;
+            status?: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | undefined;
         };
         output: {
             transactions: {
@@ -1818,7 +1818,7 @@ export declare const invoicingRouter: import("@trpc/server").TRPCBuiltRouter<{
                 amount: string;
                 currency: string;
                 id: string;
-                status: "PENDING" | "FAILED" | "COMPLETED" | "REFUNDED";
+                status: "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED";
                 paidAt: Date | null;
                 createdAt: Date;
                 updatedAt: Date;

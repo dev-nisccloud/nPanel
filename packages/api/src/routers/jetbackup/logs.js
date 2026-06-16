@@ -1,55 +1,39 @@
-import { publicProcedure, router } from "../../trpc";
-import { sendJetBackupRequest } from "../../lib/jetbackup/client";
-import { LogEntry, LogItem, JetBackupListResponse } from "../../types/jetbackup";
+import { protectedProcedure, router } from "../../trpc";
+import { JetBackupListResponse, LogEntry, LogItem } from "../../types/jetbackup";
 import { z } from "zod";
-const listSchema = z.object({
-    page: z.number().optional(),
-    limit: z.number().optional(),
-    search: z.string().optional(),
-    orderby: z.string().optional(),
-    order: z.enum(["asc", "desc"]).optional(),
+import { idSchema, jetbackupCall, listSchema } from "./_helpers";
+const logListSchema = listSchema.extend({
     type: z.number().optional(),
     username: z.string().optional(),
 });
 export const jetbackupLogsRouter = router({
-    list: publicProcedure
-        .input(listSchema)
+    list: protectedProcedure
+        .input(logListSchema)
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("listLogs", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("listLogs", input);
     }),
-    get: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    get: protectedProcedure
+        .input(idSchema)
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("getLog", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("getLog", input);
     }),
-    listItems: publicProcedure
+    listItems: protectedProcedure
         .input(z.object({
         log_id: z.string(),
         page: z.number().optional(),
         limit: z.number().optional(),
     }))
         .query(async ({ input }) => {
-        const result = await sendJetBackupRequest("listLogItems", input);
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("listLogItems", input);
     }),
-    delete: publicProcedure
-        .input(z.object({ _id: z.string() }))
+    getItem: protectedProcedure
+        .input(idSchema)
+        .query(async ({ input }) => {
+        return jetbackupCall("getLogItem", input);
+    }),
+    delete: protectedProcedure
+        .input(idSchema)
         .mutation(async ({ input }) => {
-        const result = await sendJetBackupRequest("deleteLog", { _id: input._id });
-        if (!result.success) {
-            throw new Error(result.message);
-        }
-        return result.data;
+        return jetbackupCall("deleteLog", input);
     }),
 });

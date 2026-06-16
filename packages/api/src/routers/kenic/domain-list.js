@@ -10,6 +10,7 @@ import { team as teamTable } from "@npanel/db/schema/teams";
 import { createConnection, readFrame, sendFrame } from "../../lib/epp/epp-client";
 import { buildLoginXml, buildLogoutXml, buildDomainInfoXml, buildContactInfoXml, buildDomainUpdateXml, buildHostCheckXml, buildHostCreateXml } from "../../lib/epp/epp-xml";
 import { getKenicEppConfig } from "../../lib/epp/kenic-config";
+import { isKenicServerTransferLocked, isKenicTransferLocked, mapKenicEppStatusesToPortfolioStatus, } from "../../lib/epp/kenic-domain-status";
 const parser = new XMLParser({ ignoreAttributes: false });
 /** Extract EPP result code, message, etc. */
 function getEppResult(parsed) {
@@ -167,12 +168,15 @@ export const kenicDomainListRouter = router({
             const rgpStatuses = Array.isArray(rgpNode)
                 ? rgpNode.map((r) => r["@_s"])
                 : rgpNode ? [rgpNode["@_s"]] : [];
+            const exDate = infoData?.["domain:exDate"];
             return {
                 success: true,
                 data: {
                     domain: infoData?.["domain:name"],
                     roid: infoData?.["domain:roid"],
-                    status: statuses.some(s => s.status === "ok") ? "ACTIVE" : "PENDING",
+                    status: mapKenicEppStatusesToPortfolioStatus(statuses, exDate),
+                    isTransferLocked: isKenicTransferLocked(statuses),
+                    isServerTransferLocked: isKenicServerTransferLocked(statuses),
                     allStatuses: statuses,
                     registrant: registrantHandle,
                     registrantInfo, // Full live contact details
@@ -181,7 +185,7 @@ export const kenicDomainListRouter = router({
                     clID: infoData?.["domain:clID"],
                     crID: infoData?.["domain:crID"],
                     crDate: infoData?.["domain:crDate"],
-                    exDate: infoData?.["domain:exDate"],
+                    exDate,
                     upID: infoData?.["domain:upID"],
                     upDate: infoData?.["domain:upDate"],
                     trDate: infoData?.["domain:trDate"],
@@ -282,6 +286,109 @@ export const kenicDomainListRouter = router({
             throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
                 message: error instanceof Error ? error.message : "Failed to update nameservers",
+            });
+        }
+        finally {
+            socket?.destroy();
+        }
+    }),
+    /**
+     * Set or remove KENIC domain transfer lock (clientTransferProhibited).
+     */
+    setTransferLock: protectedProcedure
+        .input(z.object({
+        domain: z.string().min(1),
+        locked: z.boolean(),
+    }))
+        .mutation(async ({ input }) => {
+        let socket;
+        try {
+            const config = getKenicEppConfig(true);
+            socket = await createConnection(config);
+            await readFrame(socket);
+            sendFrame(socket, buildLoginXml(config.username, config.password));
+            const loginResXml = (await readFrame(socket)).toString("utf8");
+            const loginResult = getEppResult(parser.parse(loginResXml));
+            if (loginResult.code !== "1000")
+                throw new Error(`Login failed: ${loginResult.msg}`);
+            sendFrame(socket, buildDomainUpdateXml({
+                domain: input.domain,
+                ...(input.locked
+                    ? { addStatus: ["clientTransferProhibited"] }
+                    : { remStatus: ["clientTransferProhibited"] }),
+            }));
+            const updateResXml = (await readFrame(socket)).toString("utf8");
+            const updateResult = getEppResult(parser.parse(updateResXml));
+            sendFrame(socket, buildLogoutXml());
+            await readFrame(socket);
+            if (updateResult.code !== "1000" && updateResult.code !== "1001") {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: `Transfer lock update failed: ${updateResult.msg}`,
+                });
+            }
+            return {
+                success: true,
+                message: input.locked
+                    ? "Domain locked for transfer"
+                    : "Domain unlocked for transfer",
+            };
+        }
+        catch (error) {
+            console.error("[KENIC] set transfer lock error:", error);
+            if (error instanceof TRPCError)
+                throw error;
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: error instanceof Error ? error.message : "Failed to update transfer lock",
+            });
+        }
+        finally {
+            socket?.destroy();
+        }
+    }),
+    /**
+     * Update KENIC domain authorization (EPP) code.
+     */
+    updateAuthCode: protectedProcedure
+        .input(z.object({
+        domain: z.string().min(1),
+        authCode: z.string().min(1).max(128),
+    }))
+        .mutation(async ({ input }) => {
+        let socket;
+        try {
+            const config = getKenicEppConfig(true);
+            socket = await createConnection(config);
+            await readFrame(socket);
+            sendFrame(socket, buildLoginXml(config.username, config.password));
+            const loginResXml = (await readFrame(socket)).toString("utf8");
+            const loginResult = getEppResult(parser.parse(loginResXml));
+            if (loginResult.code !== "1000")
+                throw new Error(`Login failed: ${loginResult.msg}`);
+            sendFrame(socket, buildDomainUpdateXml({
+                domain: input.domain,
+                authInfo: input.authCode.trim(),
+            }));
+            const updateResXml = (await readFrame(socket)).toString("utf8");
+            const updateResult = getEppResult(parser.parse(updateResXml));
+            sendFrame(socket, buildLogoutXml());
+            await readFrame(socket);
+            if (updateResult.code !== "1000" && updateResult.code !== "1001") {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: `Auth code update failed: ${updateResult.msg}`,
+                });
+            }
+            return { success: true, message: "Authorization code updated successfully" };
+        }
+        catch (error) {
+            console.error("[KENIC] update auth code error:", error);
+            if (error instanceof TRPCError)
+                throw error;
+            throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: error instanceof Error ? error.message : "Failed to update authorization code",
             });
         }
         finally {

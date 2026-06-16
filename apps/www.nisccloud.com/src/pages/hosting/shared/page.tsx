@@ -1,6 +1,7 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { Server, Zap, Shield, Globe, Mail, HardDrive, Clock, Headphones } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { SharedPricingSection } from "./_components/SharedPricingSection.tsx";
 
 // ─── Hero Illustration ───────────────────────────────────────────────────────
 
@@ -201,122 +202,8 @@ export default function SharedHostingPage() {
       subtext="Host your Kenyan business website on NVMe SSD servers in Nairobi. Get free SSL, cPanel, daily backups, and 24/7 local support - starting at just KES 350/mo. The fastest shared hosting in Kenya."
       serviceType="hosting"
       plansUnderHero
-      trustStats={[
-        { value: "500+", label: "Kenyan Businesses Hosted" },
-        { value: "99.9%", label: "Uptime Guarantee" },
-        { value: "24/7", label: "Nairobi-Based Support" },
-        { value: "<2s", label: "Average Page Load Time" },
-      ]}
-      heroIllustration={<SharedHostingIllustration />}
-      heroTrustBadge={{ line1: "LiteSpeed NVMe Hosting", line2: "Free SSL + Daily Backups Included" }}
-      features={[
-        {
-          icon: <Server size={20} />,
-          title: "Local Nairobi Servers - Fastest for Kenya",
-          desc: "Your website is hosted on servers physically located in Nairobi, Kenya. Kenyan visitors load your site in under 2 seconds - critical for Google rankings and M-Pesa conversions.",
-        },
-        {
-          icon: <Zap size={20} />,
-          title: "LiteSpeed Web Server - 6× Faster",
-          desc: "LiteSpeed is up to 6× faster than Apache. Our built-in server-level cache ensures your pages load instantly for customers in Nairobi, Mombasa, Kisumu, and beyond.",
-        },
-        {
-          icon: <Shield size={20} />,
-          title: "Free SSL Certificate - Google-Required",
-          desc: "Every hosting plan includes a free Let's Encrypt SSL certificate. Google requires HTTPS to rank well. Your visitors stay safe and your SEO improves - automatically.",
-        },
-        {
-          icon: <Globe size={20} />,
-          title: "One-Click WordPress Installer",
-          desc: "Deploy WordPress, Joomla, WooCommerce, or 50+ apps in under 60 seconds via Softaculous. No technical knowledge needed - your website goes live in minutes.",
-        },
-        {
-          icon: <Mail size={20} />,
-          title: "Professional Business Email Included",
-          desc: "Create branded email addresses like info@yourbusiness.co.ke. Look professional, build client trust, and access email via Outlook, Gmail, or our webmail - free on every plan.",
-        },
-        {
-          icon: <HardDrive size={20} />,
-          title: "NVMe SSD Storage - 10× Faster",
-          desc: "All plans run on ultra-fast NVMe SSD storage - 10× faster than traditional hard drives. Your database queries, file access, and WordPress admin run at full speed.",
-        },
-        {
-          icon: <Clock size={20} />,
-          title: "Daily Automatic Backups",
-          desc: "We back up your website every single night at no extra charge. Restore any file, folder, or database in one click. Never lose your website data again.",
-        },
-        {
-          icon: <Headphones size={20} />,
-          title: "Kenya-Based Support Team",
-          desc: "Our Nairobi-based team is available via chat, phone, and email in English and Swahili. Average response time: under 2 hours. We understand Kenyan business context.",
-        },
-      ]}
-      plans={[
-        {
-          id: "shared-starter",
-          name: "Starter",
-          price: 350,
-          period: "mo",
-          features: [
-            "1 Website",
-            "10 GB NVMe SSD Storage",
-            "Unmetered Bandwidth",
-            "Free SSL Certificate",
-            "5 Email Accounts (@yourdomain)",
-            "1-Click App Installer (WordPress)",
-            "cPanel Control Panel",
-            "Free Domain (1st year)",
-            "99.9% Uptime SLA",
-            "Community Support",
-          ],
-        },
-        {
-          id: "shared-business-popular",
-          name: "Business",
-          price: 750,
-          period: "mo",
-          features: [
-            "5 Websites",
-            "50 GB NVMe SSD Storage",
-            "Unmetered Bandwidth",
-            "Free SSL Certificate",
-            "25 Email Accounts",
-            "1-Click App Installer",
-            "cPanel Control Panel",
-            "Free Domain (1st year)",
-            "Daily Automated Backups",
-            "LiteSpeed Cache Plugin",
-            "Staging Environment",
-            "Priority Email Support",
-          ],
-        },
-        {
-          id: "shared-pro",
-          name: "Pro",
-          price: 1500,
-          period: "mo",
-          features: [
-            "Unlimited Websites",
-            "200 GB NVMe SSD Storage",
-            "Unmetered Bandwidth",
-            "Free Wildcard SSL",
-            "Unlimited Email Accounts",
-            "1-Click App Installer",
-            "cPanel Control Panel",
-            "Free Domain (1st year)",
-            "Daily Backups + On-Demand",
-            "LiteSpeed Cache",
-            "Staging Environment",
-            "Dedicated IP Address",
-            "Priority Phone & Chat Support",
-          ],
-        },
-      ]}
-      addons={[
-        { id: "addon-sitelock", label: "SiteLock Security Scanner", price: 300, period: "mo" },
-        { id: "addon-codeguard", label: "CodeGuard Daily Backups", price: 450, period: "mo" },
-        { id: "addon-spam", label: "Advanced Spam Filter (SpamExperts)", price: 200, period: "mo" },
-      ]}
+      customPlansSection={<SharedPricingSection />}
+      plans={[]}
       process={[
         { num: "01", title: "Choose Your Plan", desc: "Pick a plan that fits your website size and traffic. Not sure? Start with Business - our most popular option for growing Kenyan businesses." },
         { num: "02", title: "Register or Transfer Domain", desc: "Claim your .co.ke or .com domain. We'll guide you through the setup or handle the transfer from your current registrar - free of charge." },

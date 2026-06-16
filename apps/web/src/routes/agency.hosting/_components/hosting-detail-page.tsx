@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight, Database } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Network, Mail, Folder, Layers, ChevronRight, Database, ArchiveRestore } from "lucide-react";
 import { Icons } from "@/components/icons";
 import { Link } from "react-router";
 import { z } from "zod";
@@ -28,6 +28,7 @@ import { HostingSubscriptionActionMenu } from "./hosting-subscription-action-men
 import { HostingSubscriptionSuspendDialog } from "./hosting-subscription-suspend-dialog";
 import { useHostingSubscriptionSuspend } from "./use-hosting-subscription-suspend";
 import { trpc } from "@/utils/trpc";
+import { HostingBackupRestoreTab } from "@/components/jetbackup/hosting-backup-restore-tab";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -131,6 +132,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
   const { data: hostingData, isLoading, isError, error, refetch } = useHostingDetailBatched(subscriptionId);
   const [isCreateSubscriptionOpen, setIsCreateSubscriptionOpen] = React.useState(false);
   const [installWordPressOpen, setInstallWordPressOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState("overview");
   const suspendActions = useHostingSubscriptionSuspend({
     onSuccess: () => refetch(),
   });
@@ -139,6 +141,10 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
     return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
   }, [hostingData?.limits?.limit]);
+  const jetbackupUsername = React.useMemo(() => {
+    const login = hostingData?.hosting?.vrt_hst?.property?.find((property) => property.name === "ftp_login")?.value;
+    return typeof login === "string" ? login : undefined;
+  }, [hostingData]);
 
   const utils = trpc.useUtils();
   const { data: hasLinkedResult } =
@@ -220,7 +226,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
 
         {/* Tabs */}
         <div className="mt-8">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
               <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
                 <TabsTrigger
@@ -314,6 +320,19 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                     <span className="text-xs text-muted-foreground">Instances</span>
                   </div>
                 </TabsTrigger>
+                <TabsTrigger
+                  value="backup-restore"
+                  className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <ArchiveRestore className="h-6 w-6 shrink-0 text-muted-foreground group-data-[state=active]:text-primary" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col items-start gap-1 w-full">
+                    <span className="text-sm font-semibold tracking-tight">Backup & Restore</span>
+                    <span className="text-xs text-muted-foreground">JetBackup</span>
+                  </div>
+                </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" className="flex" />
             </ScrollArea>
@@ -352,6 +371,16 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                 hostingData={hostingData}
                 onInstallClick={() => setInstallWordPressOpen(true)}
               />
+            </TabsContent>
+
+            <TabsContent value="backup-restore" className="mt-10">
+              {activeTab === "backup-restore" ? (
+                <HostingBackupRestoreTab
+                  domainName={hostingData.gen_info?.name}
+                  username={jetbackupUsername}
+                  enabled
+                />
+              ) : null}
             </TabsContent>
           </Tabs>
         </div>

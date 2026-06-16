@@ -160,3 +160,40 @@ export interface LogItem {
     message: string;
     date: number;
 }
+export interface AccountFilter {
+    _id: string;
+    name: string;
+    group_id?: string;
+    rules?: Record<string, unknown>[];
+}
+export interface AccountFilterGroup {
+    _id: string;
+    name: string;
+}
+export interface QueuePriority {
+    _id: string;
+    name: string;
+    priority: number;
+    type?: number;
+}
+export interface RestoreCondition {
+    _id: string;
+    name: string;
+    rules?: Record<string, unknown>[];
+}
+export interface FilePermission {
+    _id: string;
+    name: string;
+}
+export interface Plugin {
+    _id: string;
+    name: string;
+    version?: string;
+    enabled?: number;
+}
+export interface PluginPackage {
+    _id: string;
+    name: string;
+    code?: string;
+    version?: string;
+}

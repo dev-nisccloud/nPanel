@@ -1,10 +1,15 @@
 import "dotenv/config";
 export declare const env: Readonly<{
+    DIGITAX_API_KEY?: string | undefined;
+    REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL?: string | undefined;
     QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT?: string | undefined;
     REPLICATE_ZEEPO_AGENT_WEBHOOK_URL?: string | undefined;
     ZEEPO_AGENT_CHAT_MODEL_ID?: string | undefined;
     BRAVE_SEARCH_API_KEY?: string | undefined;
+    QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT?: string | undefined;
+    REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL?: string | undefined;
     QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT?: string | undefined;
+    REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL?: string | undefined;
     DATABASE_URL: string;
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
@@ -13,12 +18,7 @@ export declare const env: Readonly<{
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;
     DIGITAX_API_URL: string;
-    DIGITAX_API_KEY?: string | undefined;
     QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT: string;
-    REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL?: string | undefined;
-    QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT?: string | undefined;
-    REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL?: string | undefined;
     QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: string;
-    REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL?: string | undefined;
     REPLICATE_API_TOKEN: string;
 }>;

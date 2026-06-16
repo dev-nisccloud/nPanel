@@ -19,7 +19,7 @@ async function parseTrpcBatch(res: Response): Promise<unknown> {
   return batch[0]?.result?.data;
 }
 
-/** Same-origin tRPC calls — proxied to npanel-server in dev (Vite) and production (server.ts). */
+/** Same-origin tRPC calls  proxied to npanel-server in dev (Vite) and production (server.ts). */
 export async function trpcQuery<T>(procedure: string, input?: unknown): Promise<T> {
   const params = new URLSearchParams({ batch: "1" });
   if (input !== undefined) {

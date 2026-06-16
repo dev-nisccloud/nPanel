@@ -1,6 +1,7 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { Mail, Shield, Users, Globe, Inbox, Clock, Lock, BarChart2 } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { EmailPricingSection } from "./_components/EmailPricingSection.tsx";
 
 // ─── Hero Illustration ────────────────────────────────────────────────────────
 
@@ -162,6 +163,8 @@ export default function EmailHostingPage() {
       headline={<>Professional Email That <span className="text-primary">Builds Trust</span> with Every Message</>}
       subtext="Send email from your own domain - you@yourbusiness.co.ke. Enterprise spam filtering, generous mailbox storage, and 99.9% delivery reliability for Kenyan businesses."
       serviceType="hosting"
+      plansUnderHero
+      customPlansSection={<EmailPricingSection />}
       heroIllustration={<EmailIllustration />}
       heroTrustBadge={{ line1: "DKIM, SPF and DMARC configured", line2: "Setup in under 30 minutes" }}
       trustStats={[
@@ -212,70 +215,8 @@ export default function EmailHostingPage() {
           desc: "Track sent, delivered, bounced, and spam-flagged emails. Identify delivery issues before they impact your business communications and customer relationships.",
         },
       ]}
-      plans={[
-        {
-          id: "email-starter",
-          name: "Email Starter",
-          price: 250,
-          period: "mo",
-          features: [
-            "5 Mailboxes",
-            "5 GB Storage per Mailbox",
-            "Webmail Access",
-            "IMAP/POP3/SMTP",
-            "Spam and Virus Filtering",
-            "DKIM/SPF Setup",
-            "Mobile Sync",
-            "Email Support",
-          ],
-        },
-        {
-          id: "email-business-popular",
-          name: "Email Business",
-          price: 500,
-          period: "mo",
-          features: [
-            "25 Mailboxes",
-            "15 GB Storage per Mailbox",
-            "Webmail Access",
-            "IMAP/POP3/SMTP",
-            "Enterprise Spam Filtering",
-            "DKIM/SPF/DMARC Setup",
-            "Mobile Sync",
-            "Shared Calendars",
-            "Shared Contacts and Groups",
-            "Distribution Lists",
-            "30-Day Email Archiving",
-            "Priority Support",
-          ],
-        },
-        {
-          id: "email-pro",
-          name: "Email Pro",
-          price: 1200,
-          period: "mo",
-          features: [
-            "Unlimited Mailboxes",
-            "50 GB Storage per Mailbox",
-            "Webmail Access",
-            "IMAP/POP3/SMTP",
-            "Enterprise Spam Filtering",
-            "DKIM/SPF/DMARC Setup",
-            "Mobile Sync",
-            "Shared Calendars",
-            "Shared Contacts and Groups",
-            "Distribution Lists",
-            "1-Year Email Archiving",
-            "Email Delivery Reporting",
-            "Email Encryption (S/MIME)",
-            "Dedicated Account Manager",
-          ],
-        },
-      ]}
-      addons={[
-        { id: "email-addon-archiving", label: "Extended Archiving (3 years)", price: 300, period: "mo" },
-        { id: "email-addon-encryption", label: "S/MIME Email Encryption", price: 200, period: "mo" },
-      ]}
+      plans={[]}
+      addons={[]}
       process={[
         { num: "01", title: "Choose Your Plan", desc: "Pick a plan based on how many team members need email. All plans include spam filtering, webmail, and IMAP sync. Scale mailboxes as your team grows." },
         { num: "02", title: "Connect Your Domain", desc: "Point your domain's MX records to our mail servers. We provide step-by-step instructions and complete the setup for you if preferred." },

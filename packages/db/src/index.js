@@ -2,7 +2,7 @@ import { env } from "@npanel/env/server";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
-import { resolveDatabaseUrl, resolvePoolMax, resolveStatementTimeoutMs } from "./pool-config";
+import { buildPoolConnectionString, resolveDatabaseUrl, resolvePoolMax, resolveStatementTimeoutMs, } from "./pool-config";
 export { evaluatePoolHealth } from "./pool-health";
 /**
  * Postgres pool sized per service role (see pool-config.ts).
@@ -13,8 +13,9 @@ export { evaluatePoolHealth } from "./pool-health";
  */
 const poolMax = resolvePoolMax();
 const statementTimeoutMs = resolveStatementTimeoutMs();
+const connectionString = buildPoolConnectionString(resolveDatabaseUrl() || env.DATABASE_URL, statementTimeoutMs);
 const pool = new Pool({
-    connectionString: resolveDatabaseUrl() || env.DATABASE_URL,
+    connectionString,
     max: poolMax,
     // Idle clients are reaped so zombie connections holding resources (e.g. the
     // old session-based advisory lock) don't linger across deploys.
@@ -23,11 +24,6 @@ const pool = new Pool({
     connectionTimeoutMillis: 10_000,
     // Make sure failed connection attempts don't leak into outstanding queries.
     allowExitOnIdle: false,
-});
-pool.on("connect", (client) => {
-    void client.query(`SET statement_timeout = ${statementTimeoutMs}`).catch((err) => {
-        console.error("[db] Failed to set statement_timeout:", err);
-    });
 });
 export const db = drizzle(pool, { schema });
 /** Live connection-pool stats for health checks and monitoring. */

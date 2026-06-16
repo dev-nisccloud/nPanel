@@ -30,7 +30,7 @@ function normalizeStatus(status: string): string {
 
 /**
  * Map KENIC/CoCCA EPP domain statuses to portfolio display status.
- * Locked domains often lose `active`/`ok` and only show clientTransferProhibited — still ACTIVE.
+ * Locked domains often lose `active`/`ok` and only show clientTransferProhibited  still ACTIVE.
  */
 export function mapKenicEppStatusesToPortfolioStatus(
 	statuses: Array<{ status?: string }>,

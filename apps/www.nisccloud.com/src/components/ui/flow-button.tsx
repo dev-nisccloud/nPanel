@@ -7,8 +7,8 @@ interface FlowButtonProps {
   className?: string;
   size?: "sm" | "md";
   /**
-   * "filled"  — solid primary resting, secondary/accent circle on hover (Get Started)
-   * "outline" — transparent resting, primary circle on hover              (Login)
+   * "filled"   solid primary resting, secondary/accent circle on hover (Get Started)
+   * "outline"  transparent resting, primary circle on hover              (Login)
    */
   variant?: "filled" | "outline";
   icon?: LucideIcon;
@@ -38,7 +38,7 @@ export function FlowButton({
         className,
       )}
     >
-      {/* Leading icon — slides in from off-screen left */}
+      {/* Leading icon  slides in from off-screen left */}
       <Icon
         className="absolute w-4 h-4 left-[-25%] z-[9] stroke-current
           group-hover:left-5
@@ -64,7 +64,7 @@ export function FlowButton({
         )}
       />
 
-      {/* Trailing icon — slides out off-screen right */}
+      {/* Trailing icon  slides out off-screen right */}
       <Icon
         className="absolute w-4 h-4 right-5 z-[9] stroke-current
           group-hover:right-[-25%]

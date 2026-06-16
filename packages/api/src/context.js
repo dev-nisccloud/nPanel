@@ -5,6 +5,12 @@ import { db, eq } from "@npanel/db";
 import { apiKey } from "@npanel/db/schema/auth-extras";
 import { user } from "@npanel/db/schema/auth";
 import { resolveMfaContextState } from "./lib/mfa-context";
+function resolveIpAddress(headers) {
+    return (headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        headers.get("x-real-ip")?.trim() ||
+        headers.get("cf-connecting-ip")?.trim() ||
+        null);
+}
 export async function createContext({ context, createCaller, }) {
     const req = context.req;
     const authHeader = req.raw.headers.get("Authorization");
@@ -21,7 +27,7 @@ export async function createContext({ context, createCaller, }) {
                 return {
                     session: null,
                     apiKeyError: "Invalid API Key",
-                    ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    ipAddress: resolveIpAddress(context.req.raw.headers),
                     req,
                 };
             }
@@ -29,7 +35,7 @@ export async function createContext({ context, createCaller, }) {
                 return {
                     session: null,
                     apiKeyError: "API Key is revoked",
-                    ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    ipAddress: resolveIpAddress(context.req.raw.headers),
                     req,
                 };
             }
@@ -37,7 +43,7 @@ export async function createContext({ context, createCaller, }) {
                 return {
                     session: null,
                     apiKeyError: "API Key has expired",
-                    ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    ipAddress: resolveIpAddress(context.req.raw.headers),
                     req,
                 };
             }
@@ -50,7 +56,7 @@ export async function createContext({ context, createCaller, }) {
                 return {
                     session: null,
                     apiKeyError: "Account associated with this API key is inactive",
-                    ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                    ipAddress: resolveIpAddress(context.req.raw.headers),
                     req,
                 };
             }
@@ -72,11 +78,11 @@ export async function createContext({ context, createCaller, }) {
                 userId: userRecord.id,
                 createdAt: keyRecord.createdAt,
                 updatedAt: keyRecord.lastUsedAt ?? keyRecord.createdAt,
-                ipAddress: context.req.raw.headers.get("x-forwarded-for") ?? null,
+                ipAddress: resolveIpAddress(context.req.raw.headers),
                 userAgent: context.req.raw.headers.get("user-agent") ?? null,
                 token: token,
             };
-            const ipAddress = context.req.raw.headers.get("x-forwarded-for") ?? null;
+            const ipAddress = resolveIpAddress(context.req.raw.headers);
             return {
                 session: { session: mockSessionObj, user: sessionUser },
                 createCaller,
@@ -96,7 +102,7 @@ export async function createContext({ context, createCaller, }) {
             session = null;
         }
     }
-    const ipAddress = context.req.raw.headers.get("x-forwarded-for") ?? null;
+    const ipAddress = resolveIpAddress(context.req.raw.headers);
     let mfaRequired = false;
     let mfaVerified = true;
     let mfaSetupRequired = false;

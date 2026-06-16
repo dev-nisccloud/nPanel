@@ -1,3 +1,0 @@
-[submodule "apps/www.nisccloud.com"]
-	path = apps/www.nisccloud.com
-	url = https://github.com/dev-nisccloud/www.nisccloud.com.git

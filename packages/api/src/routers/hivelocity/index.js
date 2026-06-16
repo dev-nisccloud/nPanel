@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router } from "../../trpc";
+import { router, publicProcedure } from "../../trpc";
 import { hivelocityProcedure } from "./procedures";
 import { isHivelocityDevelopmentMode } from "../../lib/hivelocity-errors";
 import { getHivelocityEnvStatus, hivelocityRequest, hivelocityRequestTimed, } from "../../lib/hivelocity-client";
@@ -11,7 +11,7 @@ import { normalizeVpsPasswordResetRequestResult } from "../../lib/hivelocity-vps
 import { assertValidSshPublicKey, createHivelocitySshKey, deleteHivelocitySshKey, listHivelocitySshKeys, updateVpsDeployedSshKeys, } from "../../lib/hivelocity-vps-ssh-keys";
 import { resolveCustomerVpsRecurringCharge } from "../../lib/hivelocity-customer-recurring-charge";
 import { reactivateHivelocityVpsInstance, suspendHivelocityVpsInstance, } from "../../lib/hivelocity-vps-instance-suspend";
-import { normalizeHivelocityInventory, hivelocityProductByIdResponseSchema, hivelocityDeviceDumpSchema, hivelocityVpsSchema, hivelocityVpsSnapshotScheduleCreateSchema, hivelocityVpsVolumeCreateSchema, } from "../../types/hivelocity";
+import { normalizeHivelocityInventory, hivelocityProductByIdResponseSchema, hivelocityDeviceDumpSchema, hivelocityVpsSchema, hivelocityVpsSnapshotScheduleCreateSchema, hivelocityVpsVolumeCreateSchema, normalizeHivelocityVps, } from "../../types/hivelocity";
 const HivelocityPeriodSchema = z.enum([
     "hourly",
     "monthly",
@@ -99,84 +99,57 @@ function paginateHivelocityPlans(inventory, kind, opts) {
     const nextCursor = opts.cursor + opts.limit < total ? opts.cursor + opts.limit : null;
     return { items, total, nextCursor };
 }
-/** Merged /device + /vps account resources (before list filters). */
-async function fetchMergedHivelocityResources() {
-    const parallelStart = Date.now();
-    const [deviceResult, vpsResult] = await Promise.all([
-        hivelocityRequestTimed("/device/", { requireApiKey: true }),
-        hivelocityRequestTimed("/vps/", { requireApiKey: true }),
-    ]);
-    const parallelMs = Date.now() - parallelStart;
-    const rawDevices = deviceResult.data;
-    const rawVps = vpsResult.data;
-    const mergeStart = Date.now();
-    const deviceArray = Array.isArray(rawDevices) ? rawDevices : [];
-    const deviceResources = deviceArray
+function classifyDeviceResourceType(device) {
+    const typeStr = (device.deviceType ?? "").toUpperCase();
+    const groupStr = (device.deviceTypeGroup ?? "").toUpperCase();
+    if (typeStr.includes("VPS") || groupStr.includes("VPS"))
+        return "vps";
+    if (typeStr.includes("VDS") || device.tags.some((t) => t.toUpperCase() === "VDS"))
+        return "vds";
+    return "dedicated";
+}
+function parseDeviceResources(raw) {
+    const deviceArray = Array.isArray(raw) ? raw : [];
+    return deviceArray
         .map((item) => hivelocityDeviceDumpSchema.safeParse(item))
         .filter((r) => r.success)
-        .map((r) => {
-        const device = r.data;
-        const typeStr = (device.deviceType ?? "").toUpperCase();
-        const groupStr = (device.deviceTypeGroup ?? "").toUpperCase();
-        let resourceType = "dedicated";
-        if (typeStr.includes("VPS") || groupStr.includes("VPS")) {
-            resourceType = "vps";
-        }
-        else if (typeStr.includes("VDS") || device.tags.some((t) => t.toUpperCase() === "VDS")) {
-            resourceType = "vds";
-        }
-        return {
-            ...device,
-            resourceType,
-        };
-    });
-    const vpsArray = Array.isArray(rawVps) ? rawVps : [];
-    const vpsMap = new Map();
-    vpsArray.forEach((v) => {
-        const parsed = hivelocityVpsSchema.safeParse(v);
-        if (parsed.success) {
-            const deviceId = parsed.data.deviceId || parsed.data.id;
-            if (deviceId)
-                vpsMap.set(Number(deviceId), parsed.data);
-        }
-    });
-    const mergedResources = [];
-    const seenDeviceIds = new Set();
-    deviceResources.forEach((dev) => {
-        const deviceId = dev.deviceId;
-        if (deviceId)
-            seenDeviceIds.add(deviceId);
-        if (dev.resourceType === "vps" && deviceId && vpsMap.has(deviceId)) {
-            const vpsData = vpsMap.get(deviceId);
-            mergedResources.push({
-                ...vpsData,
-                ...dev,
-                resourceType: "vps",
-            });
-        }
-        else {
-            mergedResources.push(dev);
-        }
-    });
-    vpsMap.forEach((vps, deviceId) => {
-        if (!seenDeviceIds.has(deviceId)) {
-            mergedResources.push({ ...vps, resourceType: "vps" });
-        }
-    });
+        .map((r) => ({
+        ...r.data,
+        resourceType: classifyDeviceResourceType(r.data),
+    }));
+}
+/**
+ * Account resources for server list views.
+ *
+ * Uses GET /device/ only (official docs: bare-metal + virtual devices).
+ * Avoids GET /vps/ on list loads - that endpoint is VPS-management-specific and
+ * can take 15s+ from Hivelocity while /device/ returns the same VPS rows in <1s.
+ */
+async function fetchHivelocityResourcesForList(typeFilter = "all") {
+    const fetchStart = Date.now();
+    const deviceResult = await hivelocityRequestTimed("/device/", { requireApiKey: true });
+    const parallelMs = Date.now() - fetchStart;
+    const mergeStart = Date.now();
+    let resources = parseDeviceResources(deviceResult.data);
+    if (typeFilter !== "all") {
+        resources = resources.filter((r) => r.resourceType === typeFilter);
+    }
     const mergeMs = Date.now() - mergeStart;
+    const deviceRows = Array.isArray(deviceResult.data) ? deviceResult.data.length : 0;
+    const vpsRows = resources.filter((r) => r.resourceType === "vps").length;
     return {
-        resources: mergedResources,
+        resources,
         timing: {
             hivelocity: {
                 device: deviceResult.timing,
-                vps: vpsResult.timing,
                 parallelMs,
+                source: "device",
             },
             mergeMs,
             counts: {
-                deviceRows: deviceArray.length,
-                vpsRows: vpsArray.length,
-                merged: mergedResources.length,
+                deviceRows,
+                vpsRows,
+                merged: resources.length,
             },
         },
     };
@@ -208,7 +181,8 @@ function applyHivelocityResourceListFilters(mergedResources, typeFilter, search,
             if (r.resourceType === "vps" && !("location" in r)) {
                 common.push(r.osName ?? "");
                 common.push(r.facilityCode ?? "");
-                common.push(r.id);
+                common.push(r.id ?? "");
+                common.push(String(r.deviceId ?? ""));
             }
             else {
                 const d = r;
@@ -260,6 +234,20 @@ export const hivelocityRouter = router({
      * Docs: GET /inventory/locations (this endpoint is public per Hivelocity docs).
      */
     getFacilities: hivelocityProcedure
+        .input(z
+        .object({
+        vpsLocations: z.string().optional(),
+    })
+        .optional())
+        .query(async ({ input }) => {
+        const data = await getCachedHivelocityFacilities(input?.vpsLocations);
+        return { success: true, data };
+    }),
+    /**
+     * Public: Get all facilities (inventory locations) without auth.
+     * Used by the public website to resolve data_center codes to city names.
+     */
+    publicGetFacilities: publicProcedure
         .input(z
         .object({
         vpsLocations: z.string().optional(),
@@ -533,6 +521,66 @@ export const hivelocityRouter = router({
         return { success: true, data };
     }),
     /**
+     * Public: VPS plans (paginated) — no auth required.
+     * Used by the landing page to display live plans without login.
+     */
+    publicGetVpsPlans: publicProcedure.input(VpsPlansQuerySchema).query(async ({ input }) => {
+        const limit = input?.limit ?? 24;
+        const cursor = input?.cursor ?? 0;
+        const inventory = await getCachedHivelocityInventory({
+            location: input?.location,
+            include_custom: input?.include_custom,
+            bonding_support: input?.bonding_support,
+        });
+        const data = paginateHivelocityPlans(inventory, "vps", {
+            facilityCode: input?.facility_code,
+            search: input?.search,
+            limit,
+            cursor,
+        });
+        return { success: true, data };
+    }),
+    /**
+     * Public: Dedicated server plans (paginated) — no auth required.
+     * Used by the landing page to display live plans without login.
+     */
+    publicGetDedicatedServerPlans: publicProcedure.input(DedicatedPlansQuerySchema).query(async ({ input }) => {
+        const limit = input?.limit ?? 24;
+        const cursor = input?.cursor ?? 0;
+        const inventory = await getCachedHivelocityInventory({
+            location: input?.location,
+            include_custom: input?.include_custom,
+            bonding_support: input?.bonding_support,
+        });
+        const data = paginateHivelocityPlans(inventory, "dedicated", {
+            facilityCode: input?.facility_code,
+            search: input?.search,
+            limit,
+            cursor,
+        });
+        return { success: true, data };
+    }),
+    /**
+     * Public: VDS plans (paginated) — no auth required.
+     * Used by the landing page to display live plans without login.
+     */
+    publicGetVdsPlans: publicProcedure.input(VdsPlansQuerySchema).query(async ({ input }) => {
+        const limit = input?.limit ?? 24;
+        const cursor = input?.cursor ?? 0;
+        const inventory = await getCachedHivelocityInventory({
+            location: input?.location,
+            include_custom: input?.include_custom,
+            bonding_support: input?.bonding_support,
+        });
+        const data = paginateHivelocityPlans(inventory, "vds", {
+            facilityCode: input?.facility_code,
+            search: input?.search,
+            limit,
+            cursor,
+        });
+        return { success: true, data };
+    }),
+    /**
      * Private: VDS plans (paginated).
      */
     getVdsPlans: hivelocityProcedure.input(VdsPlansQuerySchema).query(async ({ input }) => {
@@ -649,16 +697,8 @@ export const hivelocityRouter = router({
     /**
      * Get all VPS instances in the account (paginated + filtered).
      *
-     * Docs: GET /vps/
-     * Schema: VPS
-     *
-     * Note: This is a completely separate endpoint from /device/ with its own
-     * schema - VPS instances are NOT returned by /device/.
-     *
-     * Supports:
-     * - Free-text search (hostname, primaryIp, osName, id)
-     * - Facility filter (facilityCode)
-     * - Cursor-based pagination
+     * List source: GET /device/ filtered to VPS rows (official docs include virtual
+     * devices). GET /vps/ is reserved for per-instance VPS management on detail pages.
      */
     getMyVpsInstances: hivelocityProcedure
         .input(z.object({
@@ -672,52 +712,18 @@ export const hivelocityRouter = router({
         const cursor = input?.cursor ?? 0;
         const search = input?.search?.toLowerCase() ?? "";
         const facilityCode = input?.facilityCode?.trim() ?? "";
-        const raw = await hivelocityRequest("/vps/", { requireApiKey: true });
-        const rawArray = Array.isArray(raw) ? raw : [];
-        let instances = rawArray
-            .map((item) => hivelocityVpsSchema.safeParse(item))
-            .filter((r) => r.success)
-            .map((r) => r.data);
-        // Facility filter
-        if (facilityCode) {
-            instances = instances.filter((v) => v.facilityCode?.toLowerCase() === facilityCode.toLowerCase());
-        }
-        // Search filter
-        if (search.length > 0) {
-            instances = instances.filter((v) => {
-                const haystack = [
-                    v.hostname,
-                    v.primaryIp ?? "",
-                    v.osName ?? "",
-                    v.facilityCode ?? "",
-                    v.id,
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase();
-                return haystack.includes(search);
-            });
-        }
-        const total = instances.length;
-        const items = instances.slice(cursor, cursor + limit);
+        const { resources: instances } = await fetchHivelocityResourcesForList("vps");
+        let filtered = applyHivelocityResourceListFilters(instances, "vps", search, facilityCode);
+        const total = filtered.length;
+        const items = filtered.slice(cursor, cursor + limit);
         const nextCursor = cursor + limit < total ? cursor + limit : null;
         return { success: true, data: { items, total, nextCursor } };
     }),
     /**
      * Get ALL account resources in a single unified call (dedicated + VPS + VDS).
      *
-     * Implementation:
-     * - Fetches /device/ and /vps/ in parallel (Promise.all).
-     * - Enriches each record with a `resourceType` discriminant:
-     *   - "vps"  → came from /vps/
-     *   - "vds"  → came from /device/ AND productName contains "VDS" (case-insensitive)
-     *   - "dedicated" → all other /device/ records
-     *
-     * Supports:
-     * - type: "dedicated" | "vps" | "vds" | "all"
-     * - Free-text search
-     * - Facility filter
-     * - Cursor-based pagination over the merged + sorted result
+     * Implementation: GET /device/ (official docs: bare-metal + virtual devices).
+     * Classifies each row as dedicated, vds, or vps from deviceType/deviceTypeGroup.
      */
     getMyAllResources: hivelocityProcedure
         .input(z.object({
@@ -734,7 +740,7 @@ export const hivelocityRouter = router({
         const search = input?.search?.toLowerCase() ?? "";
         const facilityCode = input?.facilityCode?.trim() ?? "";
         const typeFilter = input?.type ?? "all";
-        const { resources: mergedResources, timing: fetchTiming } = await fetchMergedHivelocityResources();
+        const { resources: mergedResources, timing: fetchTiming } = await fetchHivelocityResourcesForList(typeFilter);
         const filterStart = Date.now();
         const all = applyHivelocityResourceListFilters(mergedResources, typeFilter, search, facilityCode);
         const filterMs = Date.now() - filterStart;
@@ -744,7 +750,6 @@ export const hivelocityRouter = router({
         const totalMs = Date.now() - totalStart;
         console.info(`[hivelocity:getMyAllResources] type=${typeFilter} total=${totalMs}ms ` +
             `deviceApi=${fetchTiming.hivelocity.device.durationMs}ms ` +
-            `vpsApi=${fetchTiming.hivelocity.vps.durationMs}ms ` +
             `merge=${fetchTiming.mergeMs}ms filter=${filterMs}ms paginate=${paginateMs}ms ` +
             `counts device=${fetchTiming.counts.deviceRows} vps=${fetchTiming.counts.vpsRows} merged=${fetchTiming.counts.merged} filtered=${all.length}`);
         return {
@@ -800,7 +805,7 @@ export const hivelocityRouter = router({
         const subscriptionLookupStart = Date.now();
         const allowed = await collectHivelocityDeviceIdsForTeam(teamId, input.type);
         const subscriptionLookupMs = Date.now() - subscriptionLookupStart;
-        const { resources: merged, timing: fetchTiming } = await fetchMergedHivelocityResources();
+        const { resources: merged, timing: fetchTiming } = await fetchHivelocityResourcesForList(input.type);
         const scopeStart = Date.now();
         const scoped = merged.filter((r) => {
             const id = resourceRowDeviceId(r);
@@ -842,7 +847,7 @@ export const hivelocityRouter = router({
         const totalMs = Date.now() - totalStart;
         console.info(`[hivelocity:getTeamMyResources] type=${input.type} total=${totalMs}ms ` +
             `teamLookup=${teamLookupMs}ms access=${accessCheckMs}ms subscriptions=${subscriptionLookupMs}ms ` +
-            `deviceApi=${fetchTiming.hivelocity.device.durationMs}ms vpsApi=${fetchTiming.hivelocity.vps.durationMs}ms ` +
+            `deviceApi=${fetchTiming.hivelocity.device.durationMs}ms ` +
             `scope=${scopeMs}ms filter=${filterMs}ms paginate=${paginateMs}ms allowed=${allowed.size} filtered=${all.length}`);
         return {
             success: true,
@@ -948,7 +953,7 @@ export const hivelocityRouter = router({
                 console.error("Hivelocity VPS schema mismatch:", parsed.error);
                 return { success: true, data: (raw && typeof raw === 'object') ? raw : null };
             }
-            return { success: true, data: parsed.data };
+            return { success: true, data: normalizeHivelocityVps(parsed.data) };
         }
         catch (err) {
             // VPS endpoint often 404s for non-Cloud devices that are still tagged as VPS

@@ -18,16 +18,16 @@ export declare const zeepoAgentChatRouter: import("@trpc/server").TRPCBuiltRoute
         output: {
             data: {
                 id: string;
-                status: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: string;
                 userId: string;
                 teamId: string | null;
                 title: string | null;
                 messages: {
                     id: string;
-                    role: string;
                     createdAt: Date;
+                    role: string;
                     metadata: unknown;
                     content: string | null;
                     toolCalls: unknown;
@@ -69,7 +69,7 @@ export declare const zeepoAgentChatRouter: import("@trpc/server").TRPCBuiltRoute
             generationId?: string | undefined;
             parentId?: string | undefined;
             maskDataUrl?: string | undefined;
-            outputFormat?: "png" | "webp" | undefined;
+            outputFormat?: "webp" | "png" | undefined;
             resolution?: "1 MP" | "2 MP" | undefined;
         };
         output: {

@@ -69,8 +69,8 @@ export declare function listZeepoAgentTokenLedger(params: {
     limit?: number;
 }): Promise<{
     id: string;
-    createdAt: Date;
     description: string | null;
+    createdAt: Date;
     balanceAfter: string;
     operationType: string;
     direction: string;

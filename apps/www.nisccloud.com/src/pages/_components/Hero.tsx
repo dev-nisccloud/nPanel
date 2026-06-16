@@ -1,9 +1,11 @@
 import { motion } from "motion/react";
-import { ArrowRight, ChevronRight, Zap } from "lucide-react";
+import { ArrowRight, ChevronRight, Zap, Paintbrush, Server, Bot } from "lucide-react";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text.tsx";
-import { WorldMap } from "@/components/ui/map.tsx";
 import { Typewriter } from "@/components/ui/typewriter.tsx";
 import { cn } from "@/lib/utils.ts";
+import { Button } from "@/components/ui/button.tsx";
+import { useNavigate } from "react-router-dom";
+import DisplayCards from "@/components/ui/display-cards.tsx";
 
 const clients = [
   { name: "Amarom", logo: "/clients/amarom2.png" },
@@ -26,33 +28,44 @@ const clients = [
 ] as const;
 
 const allClients = [...clients, ...clients];
-import { Button } from "@/components/ui/button.tsx";
-import { useNavigate } from "react-router-dom";
-
-const nairobiHub = { lat: -1.2921, lng: 36.8219, label: "Nairobi" };
-
-/** One representative city per region — avoids clustered pins (e.g. NYC / DC / Toronto). */
-const globalDestinations = [
-  { lat: 51.5074, lng: -0.1278, label: "London" },
-  { lat: 40.7128, lng: -74.006, label: "New York" },
-  { lat: -23.5505, lng: -46.6333, label: "São Paulo" },
-  { lat: -33.9249, lng: 18.4241, label: "Cape Town" },
-  { lat: 25.2048, lng: 55.2708, label: "Dubai" },
-  { lat: 19.076, lng: 72.8777, label: "Mumbai" },
-  { lat: 1.3521, lng: 103.8198, label: "Singapore" },
-  { lat: 35.6762, lng: 139.6503, label: "Tokyo" },
-  { lat: -33.8688, lng: 151.2093, label: "Sydney" },
-] as const;
-
-const heroMapDots = globalDestinations.map((end, index) => ({
-  start: index === 0 ? nairobiHub : { lat: nairobiHub.lat, lng: nairobiHub.lng },
-  end,
-}));
 
 const socialProof = [
   { dot: "bg-emerald-400", text: "500+ Businesses Powered" },
   { dot: "bg-primary", text: "99.9% Uptime" },
   { dot: "bg-amber-400", text: "Results in 30 Days" },
+];
+
+const heroCards = [
+  {
+    icon: <Bot className="size-4 text-primary" />,
+    title: "Grow automatically",
+    description: "Get found on Google and let AI reply to customers.",
+    date: "Step 03",
+    iconClassName: "text-primary",
+    titleClassName: "text-primary",
+    className:
+      "[grid-area:stack] hover:-translate-y-24 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+  },
+  {
+    icon: <Server className="size-4 text-primary" />,
+    title: "Host your website",
+    description: "Fast, safe hosting that keeps you always online.",
+    date: "Step 02",
+    iconClassName: "text-primary",
+    titleClassName: "text-primary",
+    className:
+      "[grid-area:stack] translate-x-12 translate-y-10 hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+  },
+  {
+    icon: <Paintbrush className="size-4 text-primary" />,
+    title: "Design your brand",
+    description: "Get logos, website, and brand guidelines in days.",
+    date: "Step 01",
+    iconClassName: "text-primary",
+    titleClassName: "text-primary",
+    className:
+      "[grid-area:stack] translate-x-24 translate-y-20 hover:translate-y-10",
+  },
 ];
 
 export default function Hero() {
@@ -107,28 +120,44 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.08 }}
-            className="text-5xl md:text-6xl lg:text-[66px] font-bold tracking-tight leading-[1.08] mb-5"
+            className="text-5xl md:text-6xl lg:text-[70px] font-extrabold tracking-tight leading-[1.05] text-balance mb-3"
           >
-            <span className="text-foreground">Built to </span>
+            <span className="text-foreground">Create.</span>{" "}
+            <span className="text-primary">Launch.</span>{" "}
+            <span className="text-foreground">Grow.</span>
+          </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.12 }}
+            className="text-xl md:text-2xl font-semibold text-foreground/80 mb-6 flex items-center flex-wrap gap-x-2 min-h-[36px]"
+          >
+            <span className="text-muted-foreground">Built to</span>
             <Typewriter
-              text={["Create.", "Launch.", "Grow."]}
-              speed={65}
-              waitTime={1800}
-              deleteSpeed={35}
-              initialDelay={400}
-              className="text-primary"
+              text={[
+                "design your brand & logo.",
+                "put your website online.",
+                "bring you more customers.",
+                "make your work automatic."
+              ]}
+              speed={55}
+              waitTime={2000}
+              deleteSpeed={30}
+              initialDelay={300}
+              className="text-primary font-bold"
               cursorChar="|"
               hideCursorOnType
             />
-          </motion.h1>
+          </motion.div>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.16 }}
-            className="text-lg text-muted-foreground leading-relaxed mb-9 max-w-md"
+            transition={{ duration: 0.6, delay: 0.18 }}
+            className="text-lg text-muted-foreground leading-relaxed mb-9 max-w-lg"
           >
-            We build your brand, put it online, and drive real growth - web design, cloud hosting, SEO, and AI automation, all under one roof.
+            We do everything to help your business succeed online. We design your brand, build your website, bring you customers, and set up smart tools to work for you  all in one place.
           </motion.p>
 
           <motion.div
@@ -170,31 +199,29 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Right: global connectivity map */}
+        {/* Right: Atom Visual Approach */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.25 }}
-          className="flex w-full flex-col gap-5 lg:gap-6"
+          className="flex w-full flex-col gap-6 lg:gap-8"
         >
-          <div className="space-y-1.5 text-center lg:text-left">
-            <p className="text-base font-semibold tracking-tight text-foreground">
-              Fast everywhere. Secure always.
-            </p>
-            <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground lg:mx-0 lg:max-w-sm">
-              A global server network that keeps your site loading anywhere, everywhere
+          <div className="space-y-2 text-center lg:text-left max-w-md mx-auto lg:mx-0">
+            <h3 className="text-lg font-bold tracking-tight text-foreground">
+              Everything you need to grow online, all in one place
+            </h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              No need to hire different teams or pay separate bills. We handle your design, hosting, marketing, and automation together so your business grows faster.
             </p>
           </div>
-          <WorldMap
-            dots={heroMapDots}
-            lineColor="#38b6ff"
-            showLabels
-            blend
-            className="w-full max-w-2xl mx-auto lg:mx-0 lg:max-w-none [mask-image:linear-gradient(to_bottom,transparent,black_8%,black_92%,transparent)]"
-          />
+          <div className="w-full flex items-center justify-center py-6">
+            <div className="w-full max-w-md">
+              <DisplayCards cards={heroCards} />
+            </div>
+          </div>
         </motion.div>
 
-        {/* Trusted by — full-width row below both columns */}
+        {/* Trusted by  full-width row below both columns */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
