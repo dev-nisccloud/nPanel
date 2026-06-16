@@ -37,32 +37,32 @@ const socialProof = [
 
 const heroCards = [
   {
-    icon: <Paintbrush className="size-4 text-blue-300" />,
-    title: "Design your brand",
-    description: "Get logos, website, and brand guidelines in days.",
-    date: "Step 01",
-    iconClassName: "text-blue-400",
-    titleClassName: "text-blue-400",
-    className:
-      "[grid-area:stack] hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 grayscale-[100%] hover:before:opacity-0 before:transition-opacity before:duration-700 hover:grayscale-0 before:left-0 before:top-0",
-  },
-  {
-    icon: <Server className="size-4 text-cyan-300" />,
-    title: "Host your website",
-    description: "Fast, safe hosting that keeps you always online.",
-    date: "Step 02",
-    iconClassName: "text-cyan-400",
-    titleClassName: "text-cyan-400",
-    className:
-      "[grid-area:stack] translate-x-12 translate-y-10 hover:-translate-y-1 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 grayscale-[100%] hover:before:opacity-0 before:transition-opacity before:duration-700 hover:grayscale-0 before:left-0 before:top-0",
-  },
-  {
-    icon: <Bot className="size-4 text-emerald-300" />,
+    icon: <Bot className="size-4 text-primary" />,
     title: "Grow automatically",
     description: "Get found on Google and let AI reply to customers.",
     date: "Step 03",
-    iconClassName: "text-emerald-400",
-    titleClassName: "text-emerald-400",
+    iconClassName: "text-primary",
+    titleClassName: "text-primary",
+    className:
+      "[grid-area:stack] hover:-translate-y-24 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+  },
+  {
+    icon: <Server className="size-4 text-primary" />,
+    title: "Host your website",
+    description: "Fast, safe hosting that keeps you always online.",
+    date: "Step 02",
+    iconClassName: "text-primary",
+    titleClassName: "text-primary",
+    className:
+      "[grid-area:stack] translate-x-12 translate-y-10 hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+  },
+  {
+    icon: <Paintbrush className="size-4 text-primary" />,
+    title: "Design your brand",
+    description: "Get logos, website, and brand guidelines in days.",
+    date: "Step 01",
+    iconClassName: "text-primary",
+    titleClassName: "text-primary",
     className:
       "[grid-area:stack] translate-x-24 translate-y-20 hover:translate-y-10",
   },
