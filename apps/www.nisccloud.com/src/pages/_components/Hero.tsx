@@ -157,7 +157,7 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.18 }}
             className="text-lg text-muted-foreground leading-relaxed mb-9 max-w-lg"
           >
-            We do everything to help your business succeed online. We design your brand, build your website, bring you customers, and set up smart tools to work for you — all in one place.
+            We do everything to help your business succeed online. We design your brand, build your website, bring you customers, and set up smart tools to work for you  all in one place.
           </motion.p>
 
           <motion.div
