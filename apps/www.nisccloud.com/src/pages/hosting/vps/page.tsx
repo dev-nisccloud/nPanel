@@ -1,6 +1,7 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { Server, Cpu, HardDrive, Network, Shield, Zap, Globe, Terminal } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { VpsPlansSection } from "./_components/VpsPlansSection.tsx";
 
 // ─── Hero Illustration ────────────────────────────────────────────────────────
 
@@ -234,73 +235,9 @@ export default function VpsHostingPage() {
           desc: "Complete control over your server environment. Install any software, configure custom kernel parameters, and run Docker containers without restrictions.",
         },
       ]}
-      plans={[
-        {
-          id: "vps-starter",
-          name: "VPS Starter",
-          price: 2000,
-          period: "mo",
-          features: [
-            "2 vCPU Cores (AMD EPYC)",
-            "4 GB RAM",
-            "80 GB NVMe SSD",
-            "2 TB Monthly Bandwidth",
-            "1 IPv4 Address",
-            "Full Root Access",
-            "Choice of OS (Ubuntu/CentOS/Debian)",
-            "DDoS Protection",
-            "99.99% Uptime SLA",
-            "Basic Monitoring",
-          ],
-        },
-        {
-          id: "vps-business-popular",
-          name: "VPS Business",
-          price: 4000,
-          period: "mo",
-          features: [
-            "4 vCPU Cores (AMD EPYC)",
-            "8 GB RAM",
-            "160 GB NVMe SSD",
-            "5 TB Monthly Bandwidth",
-            "2 IPv4 Addresses",
-            "Full Root Access",
-            "Choice of OS",
-            "DDoS Protection",
-            "Daily Automated Backups",
-            "Advanced Monitoring and Alerts",
-            "Control Panel (Optional)",
-            "Priority Support",
-          ],
-        },
-        {
-          id: "vps-enterprise",
-          name: "VPS Enterprise",
-          price: 8000,
-          period: "mo",
-          features: [
-            "8 vCPU Cores (AMD EPYC)",
-            "16 GB RAM",
-            "320 GB NVMe SSD",
-            "10 TB Monthly Bandwidth",
-            "4 IPv4 Addresses",
-            "Full Root Access",
-            "Choice of OS",
-            "DDoS Protection",
-            "Hourly Automated Backups",
-            "Full Monitoring Stack (Grafana)",
-            "Control Panel Included",
-            "Private Network VLAN",
-            "Dedicated Account Manager",
-            "24/7 Emergency Support Line",
-          ],
-        },
-      ]}
-      addons={[
-        { id: "vps-addon-backup", label: "Additional Backup Storage (100 GB)", price: 500, period: "mo" },
-        { id: "vps-addon-ip", label: "Additional IPv4 Address", price: 150, period: "mo" },
-        { id: "vps-addon-panel", label: "cPanel/WHM License", price: 800, period: "mo" },
-      ]}
+      plansUnderHero={true}
+      customPlansSection={<VpsPlansSection />}
+      plans={[]}
       process={[
         { num: "01", title: "Configure Your VPS", desc: "Choose your plan, operating system (Ubuntu, CentOS, Debian, AlmaLinux), and preferred data centre location. Add your SSH public key for instant secure access." },
         { num: "02", title: "Instant Deployment", desc: "Your VPS is provisioned in under 5 minutes. You will receive your IP address, root credentials, and connection guide by email and SMS." },

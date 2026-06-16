@@ -69,7 +69,7 @@ const tabs: Tab[] = [
       { icon: HardDrive, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
       { icon: Zap, label: "WordPress Hosting", desc: "From KES 500/mo", href: "/hosting/wordpress" },
       { icon: Cpu, label: "VPS Hosting", desc: "From KES 2,000/mo", href: "/hosting/vps" },
-      { icon: Server, label: "VDS & Dedicated Hosting", desc: "Custom pricing", href: "/hosting/vps" },
+      { icon: Server, label: "VDS Hosting", desc: "Dedicated virtual resources", href: "/hosting/vds" },
       { icon: Mail, label: "Business Email Hosting", desc: "From KES 250/mo", href: "/hosting/email" },
       { icon: Link, label: "Domain Registration", desc: ".co.ke from KES 999/yr", href: "/hosting/domains" },
       { icon: Lock, label: "Website Security", desc: "SSL & malware protection", href: "/hosting/ssl" },
