@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router } from "../../trpc";
+import { router, publicProcedure } from "../../trpc";
 import { hivelocityProcedure } from "./procedures";
 import { isHivelocityDevelopmentMode } from "../../lib/hivelocity-errors";
 import {
@@ -346,6 +346,23 @@ export const hivelocityRouter = router({
 		}),
 
 	/**
+	 * Public: Get all facilities (inventory locations) without auth.
+	 * Used by the public website to resolve data_center codes to city names.
+	 */
+	publicGetFacilities: publicProcedure
+		.input(
+			z
+				.object({
+					vpsLocations: z.string().optional(),
+				})
+				.optional(),
+		)
+		.query(async ({ input }) => {
+			const data = await getCachedHivelocityFacilities(input?.vpsLocations);
+			return { success: true, data };
+		}),
+
+	/**
 	 * Public (TEMP for development): Get product operating systems.
 	 * Docs: GET /product/{productId}/operating-systems
 	 *
@@ -630,6 +647,78 @@ export const hivelocityRouter = router({
 		});
 
 		const data = paginateHivelocityPlans(inventory, "vps", {
+			facilityCode: input?.facility_code,
+			search: input?.search,
+			limit,
+			cursor,
+		});
+
+		return { success: true, data };
+	}),
+
+	/**
+	 * Public: VPS plans (paginated) — no auth required.
+	 * Used by the landing page to display live plans without login.
+	 */
+	publicGetVpsPlans: publicProcedure.input(VpsPlansQuerySchema).query(async ({ input }) => {
+		const limit = input?.limit ?? 24;
+		const cursor = input?.cursor ?? 0;
+
+		const inventory = await getCachedHivelocityInventory({
+			location: input?.location,
+			include_custom: input?.include_custom,
+			bonding_support: input?.bonding_support,
+		});
+
+		const data = paginateHivelocityPlans(inventory, "vps", {
+			facilityCode: input?.facility_code,
+			search: input?.search,
+			limit,
+			cursor,
+		});
+
+		return { success: true, data };
+	}),
+
+	/**
+	 * Public: Dedicated server plans (paginated) — no auth required.
+	 * Used by the landing page to display live plans without login.
+	 */
+	publicGetDedicatedServerPlans: publicProcedure.input(DedicatedPlansQuerySchema).query(async ({ input }) => {
+		const limit = input?.limit ?? 24;
+		const cursor = input?.cursor ?? 0;
+
+		const inventory = await getCachedHivelocityInventory({
+			location: input?.location,
+			include_custom: input?.include_custom,
+			bonding_support: input?.bonding_support,
+		});
+
+		const data = paginateHivelocityPlans(inventory, "dedicated", {
+			facilityCode: input?.facility_code,
+			search: input?.search,
+			limit,
+			cursor,
+		});
+
+		return { success: true, data };
+	}),
+
+	/**
+	 * Public: VDS plans (paginated) — no auth required.
+	 * Used by the landing page to display live plans without login.
+	 */
+	publicGetVdsPlans: publicProcedure.input(VdsPlansQuerySchema).query(async ({ input }) => {
+		const limit = input?.limit ?? 24;
+		const cursor = input?.cursor ?? 0;
+
+		const inventory = await getCachedHivelocityInventory({
+			location: input?.location,
+			include_custom: input?.include_custom,
+			bonding_support: input?.bonding_support,
+		});
+
+		const data = paginateHivelocityPlans(inventory, "vds", {
 			facilityCode: input?.facility_code,
 			search: input?.search,
 			limit,

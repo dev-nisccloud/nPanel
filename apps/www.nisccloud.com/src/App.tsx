@@ -16,6 +16,8 @@ import HostingPage from "./pages/hosting/page.tsx";
 import SharedHostingPage from "./pages/hosting/shared/page.tsx";
 import WordPressHostingPage from "./pages/hosting/wordpress/page.tsx";
 import VpsHostingPage from "./pages/hosting/vps/page.tsx";
+import VdsHostingPage from "./pages/hosting/vds/page.tsx";
+import DedicatedServersHostingPage from "./pages/hosting/dedicated-servers/page.tsx";
 import DomainsPage from "./pages/hosting/domains/page.tsx";
 import BusinessEmailPage from "./pages/hosting/email/page.tsx";
 import SslPage from "./pages/hosting/ssl/page.tsx";
@@ -54,6 +56,8 @@ export default function App() {
           <Route path="/hosting/shared" element={<SharedHostingPage />} />
           <Route path="/hosting/wordpress" element={<WordPressHostingPage />} />
           <Route path="/hosting/vps" element={<VpsHostingPage />} />
+          <Route path="/hosting/vds" element={<VdsHostingPage />} />
+          <Route path="/hosting/dedicated-servers" element={<DedicatedServersHostingPage />} />
           <Route path="/hosting/domains" element={<DomainsPage />} />
           <Route path="/hosting/email" element={<BusinessEmailPage />} />
           <Route path="/hosting/ssl" element={<SslPage />} />

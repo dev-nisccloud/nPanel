@@ -62,6 +62,7 @@ export type ServicePageShellProps = {
   heroCta2?: string;
   heroTrustBadge?: { line1: string; line2: string };
   plansUnderHero?: boolean;
+  customPlansSection?: React.ReactNode;
 };
 
 // ─── Animated Counter Hook ───────────────────────────────────────────────────
@@ -700,6 +701,7 @@ export default function ServicePageShell({
   heroCta2 = "View Pricing",
   heroTrustBadge = { line1: "Nairobi-Based Servers", line2: "99.9% Uptime Guaranteed" },
   plansUnderHero = false,
+  customPlansSection,
 }: ServicePageShellProps) {
   const [selectedPlan, setSelectedPlan] = useState<OrderPlan | null>(null);
 
@@ -723,7 +725,7 @@ export default function ServicePageShell({
 
       {plansUnderHero && (
         <div id="pricing">
-          <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={setSelectedPlan} />
+          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={setSelectedPlan} />}
         </div>
       )}
 
@@ -734,7 +736,9 @@ export default function ServicePageShell({
       )}
 
       {!plansUnderHero && (
-        <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={setSelectedPlan} />
+        <div id="pricing">
+          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={setSelectedPlan} />}
+        </div>
       )}
 
       {process && <ProcessSection steps={process} />}
