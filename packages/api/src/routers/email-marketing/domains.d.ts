@@ -16,7 +16,7 @@ export declare const emailMarketingDomainsRouter: import("@trpc/server").TRPCBui
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -39,7 +39,7 @@ export declare const emailMarketingDomainsRouter: import("@trpc/server").TRPCBui
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -58,7 +58,7 @@ export declare const emailMarketingDomainsRouter: import("@trpc/server").TRPCBui
     list: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             teamId?: string | null | undefined;
-            status?: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED" | undefined;
+            status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
             search?: string | undefined;
             limit?: number | undefined;
             offset?: number | undefined;
@@ -67,7 +67,7 @@ export declare const emailMarketingDomainsRouter: import("@trpc/server").TRPCBui
             domains: {
                 id: string;
                 domainName: string;
-                status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+                status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
                 resendDomainId: string | null;
                 userId: string;
                 teamId: string | null;
@@ -89,12 +89,12 @@ export declare const emailMarketingDomainsRouter: import("@trpc/server").TRPCBui
             verificationStatus?: string | null | undefined;
             verificationData?: unknown;
             dnsRecords?: unknown;
-            status?: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED" | undefined;
+            status?: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED" | undefined;
         };
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
@@ -129,7 +129,7 @@ export declare const emailMarketingDomainsRouter: import("@trpc/server").TRPCBui
         output: {
             id: string;
             domainName: string;
-            status: "PENDING" | "FAILED" | "EXPIRED" | "VERIFIED";
+            status: "PENDING" | "EXPIRED" | "FAILED" | "VERIFIED";
             resendDomainId: string | null;
             userId: string;
             teamId: string | null;
