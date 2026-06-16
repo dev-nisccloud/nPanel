@@ -1,10 +1,11 @@
 import { motion } from "motion/react";
-import { ArrowRight, ChevronRight, Zap, Paintbrush, Server, TrendingUp, Bot } from "lucide-react";
+import { ArrowRight, ChevronRight, Zap, Paintbrush, Server, Bot } from "lucide-react";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text.tsx";
 import { Typewriter } from "@/components/ui/typewriter.tsx";
 import { cn } from "@/lib/utils.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
+import DisplayCards from "@/components/ui/display-cards.tsx";
 
 const clients = [
   { name: "Amarom", logo: "/clients/amarom2.png" },
@@ -34,131 +35,38 @@ const socialProof = [
   { dot: "bg-amber-400", text: "Results in 30 Days" },
 ];
 
-function AtomVisual() {
-  return (
-    <div className="relative w-full aspect-square max-w-[430px] mx-auto flex items-center justify-center py-6">
-      {/* Center glowing blurred circle */}
-      <div className="absolute w-44 h-44 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-
-      {/* SVG Connecting flowing lines */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100">
-        {/* Background static dashed lines */}
-        <line x1="50" y1="50" x2="20" y2="20" stroke="oklch(0.7 0.01 240 / 0.15)" strokeWidth="0.5" strokeDasharray="2 2" />
-        <line x1="50" y1="50" x2="80" y2="20" stroke="oklch(0.7 0.01 240 / 0.15)" strokeWidth="0.5" strokeDasharray="2 2" />
-        <line x1="50" y1="50" x2="20" y2="80" stroke="oklch(0.7 0.01 240 / 0.15)" strokeWidth="0.5" strokeDasharray="2 2" />
-        <line x1="50" y1="50" x2="80" y2="80" stroke="oklch(0.7 0.01 240 / 0.15)" strokeWidth="0.5" strokeDasharray="2 2" />
-
-        {/* Glowing flow lines */}
-        <motion.line
-          x1="50" y1="50" x2="20" y2="20"
-          stroke="#3b82f6" strokeWidth="0.8" strokeDasharray="5 15"
-          animate={{ strokeDashoffset: [0, 20] }}
-          transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
-        />
-        <motion.line
-          x1="50" y1="50" x2="80" y2="20"
-          stroke="#06b6d4" strokeWidth="0.8" strokeDasharray="5 15"
-          animate={{ strokeDashoffset: [0, -20] }}
-          transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
-        />
-        <motion.line
-          x1="50" y1="50" x2="20" y2="80"
-          stroke="#8b5cf6" strokeWidth="0.8" strokeDasharray="5 15"
-          animate={{ strokeDashoffset: [0, 20] }}
-          transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
-        />
-        <motion.line
-          x1="50" y1="50" x2="80" y2="80"
-          stroke="#10b981" strokeWidth="0.8" strokeDasharray="5 15"
-          animate={{ strokeDashoffset: [0, -20] }}
-          transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
-        />
-      </svg>
-
-      {/* Center Node: Nisc Logo */}
-      <motion.div
-        className="absolute z-20 flex flex-col items-center justify-center p-3 bg-background border border-border/80 rounded-2xl shadow-xl w-24 h-24"
-        animate={{ y: [0, -4, 0] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <img src="/nisccloud-logo.svg" alt="Nisc Cloud" className="w-11 h-11 object-contain" />
-        <span className="text-[9px] font-mono font-bold tracking-widest text-primary/80 uppercase mt-1">CORE</span>
-      </motion.div>
-
-      {/* Core 1: CREATE (Top Left) */}
-      <motion.div
-        className="absolute top-[6%] left-[4%] z-10 flex flex-col p-3 rounded-2xl border bg-card/60 w-36 shadow-md hover:border-blue-500/40 transition-colors"
-        style={{
-          borderColor: "rgba(59, 130, 246, 0.22)",
-          background: "radial-gradient(ellipse at 0% 0%, rgba(59, 130, 246, 0.12), transparent)",
-        }}
-        animate={{ y: [0, -5, 0] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <div className="flex items-center gap-2 text-[#3b82f6] mb-1">
-          <Paintbrush size={13} />
-          <span className="text-[9px] font-bold tracking-wider">CREATE</span>
-        </div>
-        <div className="text-sm font-extrabold leading-none mb-0.5 text-foreground">7 Days</div>
-        <div className="text-[9px] text-muted-foreground leading-tight">Average brand launch</div>
-      </motion.div>
-
-      {/* Core 2: HOST (Top Right) */}
-      <motion.div
-        className="absolute top-[6%] right-[4%] z-10 flex flex-col p-3 rounded-2xl border bg-card/60 w-36 shadow-md hover:border-cyan-500/40 transition-colors"
-        style={{
-          borderColor: "rgba(6, 182, 212, 0.22)",
-          background: "radial-gradient(ellipse at 100% 0%, rgba(6, 182, 212, 0.12), transparent)",
-        }}
-        animate={{ y: [0, 4, 0] }}
-        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-      >
-        <div className="flex items-center gap-2 text-[#06b6d4] mb-1">
-          <Server size={13} />
-          <span className="text-[9px] font-bold tracking-wider">HOST</span>
-        </div>
-        <div className="text-sm font-extrabold leading-none mb-0.5 text-foreground">99.9% Uptime</div>
-        <div className="text-[9px] text-muted-foreground leading-tight">SSD cloud hosting</div>
-      </motion.div>
-
-      {/* Core 3: MARKET (Bottom Left) */}
-      <motion.div
-        className="absolute bottom-[6%] left-[4%] z-10 flex flex-col p-3 rounded-2xl border bg-card/60 w-36 shadow-md hover:border-purple-500/40 transition-colors"
-        style={{
-          borderColor: "rgba(139, 92, 246, 0.22)",
-          background: "radial-gradient(ellipse at 0% 100%, rgba(139, 92, 246, 0.12), transparent)",
-        }}
-        animate={{ y: [0, -4, 0] }}
-        transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-      >
-        <div className="flex items-center gap-2 text-[#8b5cf6] mb-1">
-          <TrendingUp size={13} />
-          <span className="text-[9px] font-bold tracking-wider">MARKET</span>
-        </div>
-        <div className="text-sm font-extrabold leading-none mb-0.5 text-foreground">4.2× ROAS</div>
-        <div className="text-[9px] text-muted-foreground leading-tight">Paid ads & SEO optimization</div>
-      </motion.div>
-
-      {/* Core 4: AUTOMATE (Bottom Right) */}
-      <motion.div
-        className="absolute bottom-[6%] right-[4%] z-10 flex flex-col p-3 rounded-2xl border bg-card/60 w-36 shadow-md hover:border-emerald-500/40 transition-colors"
-        style={{
-          borderColor: "rgba(16, 185, 129, 0.22)",
-          background: "radial-gradient(ellipse at 100% 100%, rgba(16, 185, 129, 0.12), transparent)",
-        }}
-        animate={{ y: [0, 5, 0] }}
-        transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
-      >
-        <div className="flex items-center gap-2 text-[#10b981] mb-1">
-          <Bot size={13} />
-          <span className="text-[9px] font-bold tracking-wider">AUTOMATE</span>
-        </div>
-        <div className="text-sm font-extrabold leading-none mb-0.5 text-foreground">90 Sec</div>
-        <div className="text-[9px] text-muted-foreground leading-tight">AI auto lead response</div>
-      </motion.div>
-    </div>
-  );
-}
+const heroCards = [
+  {
+    icon: <Paintbrush className="size-4 text-blue-300" />,
+    title: "Design your brand",
+    description: "Get logos, website, and brand guidelines in days.",
+    date: "Step 01",
+    iconClassName: "text-blue-400",
+    titleClassName: "text-blue-400",
+    className:
+      "[grid-area:stack] hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 grayscale-[100%] hover:before:opacity-0 before:transition-opacity before:duration-700 hover:grayscale-0 before:left-0 before:top-0",
+  },
+  {
+    icon: <Server className="size-4 text-cyan-300" />,
+    title: "Host your website",
+    description: "Fast, safe hosting that keeps you always online.",
+    date: "Step 02",
+    iconClassName: "text-cyan-400",
+    titleClassName: "text-cyan-400",
+    className:
+      "[grid-area:stack] translate-x-12 translate-y-10 hover:-translate-y-1 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 grayscale-[100%] hover:before:opacity-0 before:transition-opacity before:duration-700 hover:grayscale-0 before:left-0 before:top-0",
+  },
+  {
+    icon: <Bot className="size-4 text-emerald-300" />,
+    title: "Grow automatically",
+    description: "Get found on Google and let AI reply to customers.",
+    date: "Step 03",
+    iconClassName: "text-emerald-400",
+    titleClassName: "text-emerald-400",
+    className:
+      "[grid-area:stack] translate-x-24 translate-y-20 hover:translate-y-10",
+  },
+];
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -228,10 +136,10 @@ export default function Hero() {
             <span className="text-muted-foreground">Built to</span>
             <Typewriter
               text={[
-                "create stunning brands.",
-                "launch high-performance hosting.",
-                "grow search visibility & traffic.",
-                "automate leads & sales flows."
+                "design your brand & logo.",
+                "put your website online.",
+                "bring you more customers.",
+                "make your work automatic."
               ]}
               speed={55}
               waitTime={2000}
@@ -249,7 +157,7 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.18 }}
             className="text-lg text-muted-foreground leading-relaxed mb-9 max-w-lg"
           >
-            A complete digital ecosystem built for Kenyan businesses. We design premium brand identities, provide ultra-fast cloud hosting, scale your traffic, and deploy intelligent AI automation  all managed under a single growth stack.
+            We do everything to help your business succeed online. We design your brand, build your website, bring you customers, and set up smart tools to work for you — all in one place.
           </motion.p>
 
           <motion.div
@@ -300,13 +208,17 @@ export default function Hero() {
         >
           <div className="space-y-2 text-center lg:text-left max-w-md mx-auto lg:mx-0">
             <h3 className="text-lg font-bold tracking-tight text-foreground">
-              East Africa's First Unified Growth Stack
+              Everything you need to grow online, all in one place
             </h3>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Say goodbye to fragmented agencies and systems. We integrate design, hosting, marketing, and automation into a single atomic engine.
+              No need to hire different teams or pay separate bills. We handle your design, hosting, marketing, and automation together so your business grows faster.
             </p>
           </div>
-          <AtomVisual />
+          <div className="w-full flex items-center justify-center py-6">
+            <div className="w-full max-w-md">
+              <DisplayCards cards={heroCards} />
+            </div>
+          </div>
         </motion.div>
 
         {/* Trusted by  full-width row below both columns */}
