@@ -321,6 +321,12 @@ export class DigiTaxClient {
     return this.request<DigiTaxSale>("GET", `/sales/${saleId}`);
   }
 
+  async getSalesSummary(startDate: string, endDate: string) {
+    return this.request<{
+      summary: Record<string, { total_sales_count: number; total_sales_amount: number }>;
+    }>("GET", "/sales-summary", { start_date: startDate, end_date: endDate });
+  }
+
   async getOfflineUrl(businessId: string, traderInvoiceNumber: string) {
     return this.request<any>("GET", `/sale/${businessId}/${traderInvoiceNumber}`);
   }

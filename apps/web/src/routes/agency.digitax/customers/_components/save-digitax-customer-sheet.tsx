@@ -182,12 +182,12 @@ export function SaveDigitaxCustomerSheet({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                disabled={saveCustomer.isPending}
+                disabled={isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={saveCustomer.isPending} className="min-w-[140px]">
-                {saveCustomer.isPending ? (
+              <Button type="submit" disabled={isPending} className="min-w-[140px]">
+                {isPending ? (
                   <>
                     <Spinner size={16} className="mr-2" />
                     Saving...
