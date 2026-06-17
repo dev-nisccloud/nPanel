@@ -70,6 +70,11 @@ export const sidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Hosting, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
+        title: "WordPress",
+        url: "/dashboard/wordpress",
+        icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
         title: "Emails",
         url: "/dashboard/emails",
         icon: (props: any) => React.createElement(Icons.Mail, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),

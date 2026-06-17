@@ -17,52 +17,57 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toast } from "@/components/ui/sonner";
 
-import { WordPressCardsList } from "./wordpress-cards";
-import { wordpressInstallationSchema } from "./schema";
-import { useWordPressInstances } from "./use-wordpress-instances";
+import { WordPressPricing } from "./wordpress-pricing";
+import { useTeamWordPressSubscriptions } from "./use-team-wordpress-subscriptions";
 
 // Loading skeleton component
 function WordPressTableSkeleton() {
   return (
     <div className="space-y-4">
       {/* Header skeleton */}
-      <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
-        <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:flex-1">
-          <Skeleton className="h-10 flex-1 @sm/main:max-w-sm" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-9 w-24" />
         </div>
-        <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-10 w-32" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-32" />
         </div>
       </div>
-
+      
       {/* Cards skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-lg border p-4">
+      <div className="grid gap-4 grid-cols-1">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="rounded-lg border p-6">
             {/* Card header skeleton */}
             <div className="flex items-start justify-between mb-4">
-              <Skeleton className="h-5 w-32 flex-1" />
-              <Skeleton className="h-6 w-16 ml-2" />
+              <Skeleton className="h-5 w-48" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-8 w-8" />
+              </div>
             </div>
+            
             {/* Card content skeleton */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-20" />
+              </div>
               <div className="space-y-1">
                 <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-4 w-18" />
+              </div>
+              <div className="space-y-1">
+                <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-4 w-24" />
-              </div>
-              <div className="space-y-1">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-4 w-16" />
-              </div>
-              <div className="space-y-1">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-4 w-16" />
-              </div>
-              <div className="space-y-1">
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-4 w-12" />
               </div>
             </div>
           </div>
@@ -75,112 +80,98 @@ function WordPressTableSkeleton() {
 // Error component
 function WordPressTableError({ error, onRetry }: { error: Error; onRetry: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center p-6 text-center">
-      <h3 className="text-lg font-semibold text-destructive">Error Loading WordPress Instances</h3>
-      <p className="text-sm text-muted-foreground mt-2">
-        {error.message || "An unexpected error occurred while fetching WordPress instances."}
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="mb-4">
+        <svg
+          className="mx-auto h-12 w-12 text-muted-foreground"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+          />
+        </svg>
+      </div>
+      <h3 className="mb-2 text-lg font-semibold">Failed to load WordPress subscriptions</h3>
+      <p className="mb-4 text-sm text-muted-foreground">
+        {error.message || "An error occurred while fetching WordPress hosting subscriptions."}
       </p>
-      <Button onClick={onRetry} className="mt-4">
-        <RefreshCw className="mr-2 h-4 w-4" />
+      <Button onClick={onRetry} variant="outline">
         Try Again
       </Button>
     </div>
   );
 }
 
+function getDetailRouteId(subscription: { wordpressInstallationId?: string | null }) {
+  return subscription.wordpressInstallationId ?? null;
+}
+
+function getStatusBadgeVariant(status: string): "default" | "secondary" | "outline" | "destructive" {
+  const upperStatus = String(status).toUpperCase();
+  if (upperStatus === "ACTIVE") return "default";
+  if (upperStatus === "SUSPENDED") return "destructive";
+  return "secondary";
+}
+
+function getStatusDisplayText(status: string): string {
+  const upperStatus = String(status).toUpperCase();
+  if (upperStatus === "ACTIVE") return "Active";
+  if (upperStatus === "SUSPENDED") return "Suspended";
+  if (upperStatus === "PENDING") return "Pending";
+  if (upperStatus === "CANCELLED") return "Cancelled";
+  return status;
+}
+
 export function WordPressDataTable() {
   const { pathname } = useLocation();
-  const teamSlug = pathname.split("/")[1] ?? "";
-  const { data: wordpressData, isLoading, isError, error, refetch } = useWordPressInstances();
-  const [searchTerm, setSearchTerm] = React.useState("");
+  const teamSlug = pathname.split("/")[1];
+  const { data, isLoading, isError, error, refetch } = useTeamWordPressSubscriptions(teamSlug);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
+  // Filter data based on search query
   const filteredData = React.useMemo(() => {
-    if (!wordpressData) return [];
-
-    if (searchTerm.trim()) {
-      return wordpressData.filter((item) =>
-        (item.displayTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.title || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.domain?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.url || "").toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    if (!searchQuery.trim()) {
+      return data;
     }
-
-    return wordpressData;
-  }, [wordpressData, searchTerm]);
-
-  const handleEdit = (id: number | undefined) => {
-    console.log("Edit WordPress installation:", id);
-    // TODO: Implement edit functionality
-  };
-
-  const handleDelete = (id: number | undefined) => {
-    console.log("Delete WordPress installation:", id);
-    // TODO: Implement delete functionality
-  };
-
-  const handleCopy = (data: z.infer<typeof wordpressInstallationSchema>) => {
-    console.log("Copy WordPress installation settings:", data);
-    // TODO: Implement copy functionality
-  };
-
-  const handleSettings = (id: number | undefined) => {
-    console.log("Open WordPress installation settings:", id);
-    // TODO: Implement settings functionality
-  };
-
-  const getStatusBadge = (item: z.infer<typeof wordpressInstallationSchema>) => {
-    if (item.status?.infected) {
-      return (
-        <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
-          Infected
-        </Badge>
-      );
-    }
-    if (item.status?.unsupported) {
-      return (
-        <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
-          Unsupported
-        </Badge>
-      );
-    }
-    if (item.status?.alive) {
-      return (
-        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
-          Online
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
-        Offline
-      </Badge>
+    const q = searchQuery.toLowerCase();
+    return data.filter((subscription) =>
+      (subscription.subscriptionName ?? "").toLowerCase().includes(q) ||
+      (subscription.primaryDomain ?? "").toLowerCase().includes(q)
     );
-  };
+  }, [data, searchQuery]);
 
-  const getSecurityBadge = (item: z.infer<typeof wordpressInstallationSchema>) => {
-    const securityStatus = item.features?.security?.status;
-    if (securityStatus === "secureRecommended") {
-      return (
-        <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800 px-2 py-0.5">
-          Secure
-        </Badge>
-      );
+  const handleViewDetails = (subscription: { id: string; wordpressInstallationId?: string | null }) => {
+    const detailId = getDetailRouteId(subscription);
+    if (!detailId) {
+      toast.error("This subscription has no linked WordPress installation yet.");
+      return;
     }
-    return (
-      <Badge variant="outline" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 px-2 py-0.5">
-        Needs Attention
-      </Badge>
-    );
+    window.location.href = `/${teamSlug}/wordpress/${detailId}`;
   };
 
+  // Show loading state
   if (isLoading) {
     return <WordPressTableSkeleton />;
   }
 
+  // Show error state
   if (isError) {
-    return <WordPressTableError error={error as Error} onRetry={refetch} />;
+    return <WordPressTableError error={error as unknown as Error} onRetry={() => refetch()} />;
+  }
+
+  // No subscriptions: show pricing so the customer can choose a plan
+  if (data.length === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <WordPressPricing className="min-h-[min(calc(100dvh-18rem),48rem)]" />
+      </div>
+    );
   }
 
   const TableView = () => (
@@ -188,44 +179,53 @@ export function WordPressDataTable() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="pl-6">Site</TableHead>
-            <TableHead>Version</TableHead>
-            <TableHead>Title</TableHead>
+            <TableHead className="pl-6">Subscription / Domain</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Security</TableHead>
+            <TableHead>Subscription date</TableHead>
+            <TableHead>Expiry date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                No WordPress installations found
+              <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                No WordPress subscriptions found
               </TableCell>
             </TableRow>
           ) : (
-            filteredData.map((item) => (
-              <TableRow key={item.id}>
+            filteredData.map((subscription) => (
+              <TableRow key={subscription.id}>
                 <TableCell className="pl-6">
-                  <Link
-                    to={`/${teamSlug}/wordpress/${item.id}`}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {item.displayTitle || item.title || `Installation ${item.id}`}
-                  </Link>
+                  {getDetailRouteId(subscription) ? (
+                    <Link
+                      to={`/${teamSlug}/wordpress/${getDetailRouteId(subscription)}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-muted-foreground">
+                      {subscription.primaryDomain ?? subscription.subscriptionName ?? subscription.id}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-muted-foreground">
-                    {item.version || "Unknown"}
+                  <Badge
+                    variant={getStatusBadgeVariant(subscription.status)}
+                    className={String(subscription.status).toUpperCase() === "ACTIVE" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800" : ""}
+                  >
+                    {getStatusDisplayText(subscription.status)}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {item.title || "- "}
+                <TableCell>
+                  {subscription.subscriptionDate
+                    ? new Date(subscription.subscriptionDate).toLocaleDateString()
+                    : "- "}
                 </TableCell>
                 <TableCell>
-                  {getStatusBadge(item)}
-                </TableCell>
-                <TableCell>
-                  {getSecurityBadge(item)}
+                  {subscription.expiryDate
+                    ? new Date(subscription.expiryDate).toLocaleDateString()
+                    : "- "}
                 </TableCell>
               </TableRow>
             ))
@@ -235,61 +235,37 @@ export function WordPressDataTable() {
     </div>
   );
 
-  const CardView = () => (
-    <WordPressCardsList
-      data={filteredData}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onCopy={handleCopy}
-      onSettings={handleSettings}
-      cols={3}
-    />
-  );
-
   return (
     <div className="space-y-4">
-      {/* Header with search and view toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search WordPress installations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search WordPress subscriptions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
-          {searchTerm && (
+          {searchQuery && (
             <Badge variant="outline" className="text-muted-foreground">
-              {filteredData.length} of {wordpressData?.length || 0}
+              {filteredData.length} of {data.length}
             </Badge>
           )}
         </div>
-
-        {/* View Mode Toggle */}
         <div className="flex items-center border rounded-md">
-          <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="rounded-r-none"
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
           <Button
             variant={viewMode === "table" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewMode("table")}
-            className="rounded-l-none"
           >
             <List className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Content */}
-      {viewMode === "card" ? <CardView /> : <TableView />}
+      <TableView />
     </div>
   );
 }

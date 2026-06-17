@@ -13,8 +13,8 @@ export default function WordPressDetail() {
     <>
       <WordPressDetailPage
         installationId={id}
-        backTo={`/${teamSlug}/hosting`}
-        backLabel="Back to hosting"
+        backTo={`/${teamSlug}/wordpress`}
+        backLabel="Back to WordPress"
       />
       <Outlet />
     </>

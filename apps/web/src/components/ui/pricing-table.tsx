@@ -4,9 +4,10 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CONTACT_TEL_HREF } from "@/lib/contact"
-import { Check } from "lucide-react"
+import { Check, HelpCircle } from "lucide-react"
 import NumberFlow from "@number-flow/react"
 import { ArrowRight } from "lucide-react"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 export type PlanLevel = string
 
@@ -37,6 +38,7 @@ export interface PricingPlan {
 export interface ProductFeatureRow {
   key: string
   label: string
+  description?: string
 }
 
 export interface PricingTableProps
@@ -499,8 +501,24 @@ export function PricingTable({
                       selectedHighlight && "bg-primary/[0.06]"
                     )}
                   >
-                    <div className={cn(featuresColClass, "text-sm text-foreground/90")}>
-                      {feature.name}
+                    <div className={cn(featuresColClass, "text-sm text-foreground/90 flex items-center gap-1.5")}>
+                      <span>{feature.name}</span>
+                      {cellFromProduct && productFeatures && productFeatures[idx]?.description && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <HelpCircle className="w-3.5 h-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs">
+                            {productFeatures[idx].description}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                     <div className={cn("flex items-center text-sm flex-1", planColsGapClass)}>
                       {plans.map((plan) => {
