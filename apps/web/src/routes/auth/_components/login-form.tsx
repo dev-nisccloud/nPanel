@@ -13,15 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { fetchRedirectTarget, goToRedirectTarget } from "@/lib/auth-redirect";
-import {
-  fetchMfaStatus,
-  mfaIntentFromStatus,
-  mfaVerificationRequired,
-} from "@/lib/mfa-auth";
+import { fetchRedirectTarget, goToRedirectTarget, isMfaRedirectTarget } from "@/lib/auth-redirect";
+import type { MfaIntent } from "@/lib/mfa-auth";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { MfaVerifyStep } from "@/routes/auth/_components/mfa-verify-step";
-import type { MfaIntent } from "@/lib/mfa-auth";
 
 const FormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -79,12 +74,15 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
 
   const resolvePostCredentials = useCallback(async () => {
     try {
-      const status = await fetchMfaStatus();
-      if (mfaVerificationRequired(status)) {
-        await beginMfaStep(mfaIntentFromStatus(status));
+      const target = await fetchRedirectTarget(50);
+      if (isMfaRedirectTarget(target)) {
+        await beginMfaStep("LOGIN");
         return;
       }
-      await completeSignIn();
+      const didRedirect = goToRedirectTarget(target, navigate);
+      if (!didRedirect) {
+        setRedirectFailed(true);
+      }
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Could not continue sign-in.";
@@ -93,7 +91,7 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
       setIsSubmitting(false);
       setIsCheckingSession(false);
     }
-  }, [beginMfaStep, completeSignIn]);
+  }, [beginMfaStep, navigate]);
 
   // Redirect if user is already authenticated
   useEffect(() => {

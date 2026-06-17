@@ -10,6 +10,34 @@ export const JETBACKUP_INFO_BADGE_CLASS =
 export const JETBACKUP_WARNING_BADGE_CLASS =
   "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 border-amber-200 dark:border-amber-800";
 
+export const JETBACKUP_ERROR_BADGE_CLASS =
+  "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200 border-red-200 dark:border-red-800";
+
+export type JetBackupStatusTone = "success" | "error" | "warning";
+
+export function jetbackupStatusBadgeClass(tone: JetBackupStatusTone): string {
+  switch (tone) {
+    case "success":
+      return JETBACKUP_SUCCESS_BADGE_CLASS;
+    case "error":
+      return JETBACKUP_ERROR_BADGE_CLASS;
+    case "warning":
+      return JETBACKUP_WARNING_BADGE_CLASS;
+  }
+}
+
+export function jetbackupQueueStatusBadgeClass(
+  status: "pending" | "running" | "completed" | "failed" | "stopped" | "unknown",
+): string {
+  if (status === "completed" || status === "running") {
+    return jetbackupStatusBadgeClass("success");
+  }
+  if (status === "failed") {
+    return jetbackupStatusBadgeClass("error");
+  }
+  return jetbackupStatusBadgeClass("warning");
+}
+
 export function jetbackupSuccessBadgeClass(active = true) {
   return active ? JETBACKUP_SUCCESS_BADGE_CLASS : undefined;
 }

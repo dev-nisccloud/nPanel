@@ -29,6 +29,7 @@ import { HostingSubscriptionSuspendDialog } from "./hosting-subscription-suspend
 import { useHostingSubscriptionSuspend } from "./use-hosting-subscription-suspend";
 import { trpc } from "@/utils/trpc";
 import { HostingBackupRestoreTab } from "@/components/jetbackup/hosting-backup-restore-tab";
+import { resolveHostingJetBackupUsername } from "@/components/jetbackup/resolve-hosting-jetbackup-username";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -141,10 +142,10 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
     return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
   }, [hostingData?.limits?.limit]);
-  const jetbackupUsername = React.useMemo(() => {
-    const login = hostingData?.hosting?.vrt_hst?.property?.find((property) => property.name === "ftp_login")?.value;
-    return typeof login === "string" ? login : undefined;
-  }, [hostingData]);
+  const jetbackupUsername = React.useMemo(
+    () => resolveHostingJetBackupUsername(hostingData),
+    [hostingData],
+  );
 
   const utils = trpc.useUtils();
   const { data: hasLinkedResult } =

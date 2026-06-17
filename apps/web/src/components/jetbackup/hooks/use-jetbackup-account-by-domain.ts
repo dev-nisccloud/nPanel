@@ -2,36 +2,16 @@ import { useMemo } from "react";
 import { trpc } from "@/utils/trpc";
 import { jetbackupQueryOptions } from "../query-options";
 import type { JetBackupAccountRow } from "../types";
-
-function normalizeHostname(value: string): string {
-  return value.trim().toLowerCase().replace(/^www\./, "");
-}
+import {
+  buildJetBackupHostingSearchTerms,
+  findJetBackupAccountForHosting,
+} from "../hosting-account-lookup";
 
 function normalizeAccounts(data: unknown): JetBackupAccountRow[] {
   if (!data || typeof data !== "object") return [];
   const record = data as Record<string, unknown>;
   const list = record.accounts ?? record.items ?? record.data;
   return Array.isArray(list) ? (list as JetBackupAccountRow[]) : [];
-}
-
-function findAccountByDomain(
-  accounts: JetBackupAccountRow[],
-  domainName: string,
-  username?: string,
-): JetBackupAccountRow | undefined {
-  const normalizedDomain = normalizeHostname(domainName);
-
-  const byDomain = accounts.find(
-    (account) => account.domain && normalizeHostname(String(account.domain)) === normalizedDomain,
-  );
-  if (byDomain) return byDomain;
-
-  if (username) {
-    const normalizedUsername = username.trim().toLowerCase();
-    return accounts.find((account) => account.username?.toLowerCase() === normalizedUsername);
-  }
-
-  return undefined;
 }
 
 export function useJetBackupAccountByDomain({
@@ -46,16 +26,36 @@ export function useJetBackupAccountByDomain({
   const trimmedDomain = domainName?.trim() ?? "";
   const shouldFetch = enabled && trimmedDomain.length > 0;
 
-  const listQuery = trpc.jetbackup.accounts.list.useQuery(
-    { limit: 50, search: trimmedDomain },
-    { ...jetbackupQueryOptions, enabled: shouldFetch },
+  const searchTerms = useMemo(
+    () => buildJetBackupHostingSearchTerms(trimmedDomain, username),
+    [trimmedDomain, username],
+  );
+
+  const listQueries = trpc.useQueries((t) =>
+    searchTerms.map((search) =>
+      t.jetbackup.accounts.list(
+        { limit: 200, search },
+        { ...jetbackupQueryOptions, enabled: shouldFetch },
+      ),
+    ),
   );
 
   const matchedAccount = useMemo(() => {
-    if (!shouldFetch || !listQuery.data) return undefined;
-    const accounts = normalizeAccounts(listQuery.data);
-    return findAccountByDomain(accounts, trimmedDomain, username);
-  }, [listQuery.data, shouldFetch, trimmedDomain, username]);
+    if (!shouldFetch) return undefined;
+
+    const merged = new Map<string, JetBackupAccountRow>();
+    for (const query of listQueries) {
+      for (const account of normalizeAccounts(query.data)) {
+        merged.set(account._id, account);
+      }
+    }
+
+    return findJetBackupAccountForHosting(
+      [...merged.values()],
+      trimmedDomain,
+      username,
+    );
+  }, [listQueries, shouldFetch, trimmedDomain, username]);
 
   const accountId = matchedAccount?._id;
 
@@ -64,22 +64,30 @@ export function useJetBackupAccountByDomain({
     { ...jetbackupQueryOptions, enabled: shouldFetch && !!accountId },
   );
 
+  const isListLoading = listQueries.some((query) => query.isLoading);
+  const isListError = listQueries.every((query) => query.isError);
+  const listError = listQueries.find((query) => query.error)?.error;
+
   const isLoading =
-    shouldFetch && (listQuery.isLoading || (!!accountId && getQuery.isLoading));
-  const isNotFound = shouldFetch && listQuery.isSuccess && !matchedAccount;
+    shouldFetch && (isListLoading || (!!accountId && getQuery.isLoading));
+  const isNotFound =
+    shouldFetch &&
+    listQueries.every((query) => query.isSuccess) &&
+    !matchedAccount;
 
   return {
     account: getQuery.data as Record<string, unknown> | undefined,
     accountId,
     isLoading,
-    isError: listQuery.isError || getQuery.isError,
-    error: listQuery.error ?? getQuery.error,
+    isError: isListError || getQuery.isError,
+    error: listError ?? getQuery.error,
     isNotFound,
     isMissingDomain: !trimmedDomain,
     refetch: () => {
-      void listQuery.refetch();
+      for (const query of listQueries) void query.refetch();
       if (accountId) void getQuery.refetch();
     },
-    isRefetching: listQuery.isRefetching || getQuery.isRefetching,
+    isRefetching:
+      listQueries.some((query) => query.isRefetching) || getQuery.isRefetching,
   };
 }

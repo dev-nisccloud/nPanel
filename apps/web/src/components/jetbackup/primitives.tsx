@@ -63,28 +63,47 @@ export function JetBackupStatCard({
 export function JetBackupToolbar({
   search,
   onSearchChange,
+  onSearchSubmit,
   onRefresh,
   isRefreshing,
   actions,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
+  onSearchSubmit?: () => void;
   viewMode?: "card" | "table";
   onViewModeChange?: (mode: "card" | "table") => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
   actions?: React.ReactNode;
 }) {
+  const submitSearch = () => onSearchSubmit?.();
+
   return (
     <div className="flex flex-col gap-4 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
-      <div className="relative flex-1 @sm/main:max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="flex flex-1 items-center gap-2 @sm/main:max-w-sm">
         <Input
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search..."
-          className="pl-9"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && onSearchSubmit) {
+              e.preventDefault();
+              submitSearch();
+            }
+          }}
+          placeholder="Search accounts..."
         />
+        {onSearchSubmit ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={submitSearch}
+            aria-label="Search"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {actions}

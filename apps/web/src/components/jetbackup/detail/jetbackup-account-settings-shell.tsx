@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 export const JETBACKUP_ACCOUNT_TABS = [
   { value: "backups", label: "Backups" },
+  { value: "downloads", label: "Downloads" },
   { value: "details", label: "Details" },
   { value: "activity", label: "Activity" },
 ] as const;

@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  Download,
   HardDrive,
   LayoutDashboard,
   ListOrdered,
@@ -21,6 +22,7 @@ import { JetBackupOverviewTab } from "../tabs/overview-tab";
 import { JetBackupAccountsTab } from "../tabs/accounts-tab";
 import { JetBackupJobsTab } from "../tabs/jobs-tab";
 import { JetBackupQueueTab } from "../tabs/queue-tab";
+import { JetBackupDownloadsTab } from "../tabs/downloads-tab";
 import { JetBackupAlertsTab } from "../tabs/alerts-tab";
 import { JetBackupLogsTab } from "../tabs/logs-tab";
 
@@ -68,6 +70,12 @@ export function JetBackupMainPage({ basePath }: JetBackupMainPageProps) {
                   subtitle="Operations"
                 />
                 <JetBackupDetailTabTrigger
+                  value="downloads"
+                  icon={Download}
+                  title="Downloads"
+                  subtitle="Save files"
+                />
+                <JetBackupDetailTabTrigger
                   value="alerts"
                   icon={AlertTriangle}
                   title="Alerts"
@@ -94,6 +102,9 @@ export function JetBackupMainPage({ basePath }: JetBackupMainPageProps) {
             </TabsContent>
             <TabsContent value="queue" className={DETAIL_TAB_CONTENT_CLASS + " mt-10"}>
               <JetBackupQueueTab />
+            </TabsContent>
+            <TabsContent value="downloads" className={DETAIL_TAB_CONTENT_CLASS + " mt-10"}>
+              <JetBackupDownloadsTab />
             </TabsContent>
             <TabsContent value="alerts" className={DETAIL_TAB_CONTENT_CLASS + " mt-10"}>
               <JetBackupAlertsTab />
