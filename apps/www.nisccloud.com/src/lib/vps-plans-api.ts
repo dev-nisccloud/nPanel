@@ -108,6 +108,7 @@ export type SharedHostingPlan = {
 export type ProductFeatureRow = {
   key: string;
   label: string;
+  description?: string;
 };
 
 export type SharedHostingPricingData = {
