@@ -19,7 +19,7 @@ const marqueeData = [
 const features = [
   {
     description:
-      "No jargon, no overcomplication — just clear steps you can follow to start and grow your business confidently.",
+      "No jargon, no overcomplication  just clear steps you can follow to start and grow your business confidently.",
     icon: Sparkles,
     title: "We make things simple",
   },

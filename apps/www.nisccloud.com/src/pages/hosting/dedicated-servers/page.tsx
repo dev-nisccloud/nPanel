@@ -197,7 +197,7 @@ export default function DedicatedServersHostingPage() {
         {
           icon: <Server size={20} />,
           title: "100% Bare Metal Hardware",
-          desc: "No virtualisation layer. No shared resources. Your server is physically yours — every core, every byte of RAM, every bit of bandwidth.",
+          desc: "No virtualisation layer. No shared resources. Your server is physically yours  every core, every byte of RAM, every bit of bandwidth.",
         },
         {
           icon: <Cpu size={20} />,
@@ -212,7 +212,7 @@ export default function DedicatedServersHostingPage() {
         {
           icon: <Network size={20} />,
           title: "10 Gbps Dedicated Port",
-          desc: "Your own 10 Gbps port — not shared with other customers. Handle massive data transfers and high-concurrency applications with ease.",
+          desc: "Your own 10 Gbps port  not shared with other customers. Handle massive data transfers and high-concurrency applications with ease.",
         },
         {
           icon: <Shield size={20} />,
@@ -245,7 +245,7 @@ export default function DedicatedServersHostingPage() {
         { num: "04", title: "Monitor and Scale", desc: "Track hardware metrics, network utilisation, and uptime from your management portal. Add more servers as you grow." },
       ]}
       whyPoints={[
-        { title: "100% Dedicated — Never Shared", desc: "Your hardware is yours alone. No CPU steal, no noisy neighbours, no virtualisation overhead." },
+        { title: "100% Dedicated  Never Shared", desc: "Your hardware is yours alone. No CPU steal, no noisy neighbours, no virtualisation overhead." },
         { title: "IPMI Out-of-Band Management", desc: "Reboot, reinstall, or access the BIOS remotely at any time. Full hardware control without raising a support ticket." },
         { title: "Hardware RAID Redundancy", desc: "RAID-10 configuration included on all storage to protect against drive failure with no data loss." },
         { title: "Enterprise Networking", desc: "Redundant 10 Gbps uplinks, BGP routing, and Tier 1 carrier transit for maximum throughput and availability." },

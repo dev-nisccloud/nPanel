@@ -177,7 +177,7 @@ const CornerPlus = () => (
   </>
 );
 
-// Asymmetric bento spans removed — all cards uniform size
+// Asymmetric bento spans removed  all cards uniform size
 
 function FeaturesGrid({ features }: { features: Feature[] }) {
   return (
@@ -229,7 +229,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
             <span className="text-primary">You Get.</span>
           </h2>
           <p className="text-muted-foreground text-sm mt-2">
-            A complete, battle-tested system — nothing is an afterthought.
+            A complete, battle-tested system  nothing is an afterthought.
           </p>
         </motion.div>
       </div>

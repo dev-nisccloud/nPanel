@@ -73,6 +73,16 @@ export default function ForgotPasswordPage() {
               We've sent a password reset link to your email address. Please check your inbox and follow the instructions to reset your password.
             </p>
           </div>
+
+          <div className="relative flex items-center">
+            <div className="flex-1 border-t border-border" />
+            <span className="text-muted-foreground mx-4 text-xs">or</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+
+          <Button className="w-full" variant="outline" asChild>
+            <Link to="/auth/login">Back to Login</Link>
+          </Button>
         </div>
 
         <div className="absolute bottom-5 flex w-full justify-between px-10">
@@ -88,14 +98,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <div className="absolute top-5 flex w-full justify-end px-10">
-        <div className="text-muted-foreground text-sm">
-          <Link className="text-foreground" to="/auth/login">
-            Back to Login
-          </Link>
-        </div>
-      </div>
-
       <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">
         <div className="space-y-2 text-center">
           <h1 className="text-3xl font-medium">Forgot your password?</h1>
@@ -136,6 +138,16 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
         </Form>
+
+        <div className="relative flex items-center">
+          <div className="flex-1 border-t border-border" />
+          <span className="text-muted-foreground mx-4 text-xs">or</span>
+          <div className="flex-1 border-t border-border" />
+        </div>
+
+        <Button className="w-full" variant="outline" asChild>
+          <Link to="/auth/login">Back to Login</Link>
+        </Button>
       </div>
 
       <div className="absolute bottom-5 flex w-full justify-between px-10">
