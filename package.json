@@ -51,6 +51,7 @@
     "@intercom/messenger-js-sdk": "^0.0.19",
     "@npanel/env": "workspace:*",
     "dotenv": "catalog:",
+    "qrcode.react": "^4.2.0",
     "zod": "catalog:"
   },
   "devDependencies": {

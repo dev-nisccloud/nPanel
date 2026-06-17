@@ -92,11 +92,21 @@ export interface JetBackupDestinationRow {
 
 export interface JetBackupQueueGroupRow {
   _id: string;
-  status?: string;
+  status?: number | string;
   type?: number;
   username?: string;
   progress?: number;
   created?: number;
+}
+
+export interface JetBackupDownloadRow {
+  _id: string;
+  path?: string;
+  account?: string;
+  account_id?: string;
+  size?: number;
+  created?: string | number;
+  backup_type?: number;
 }
 
 export interface JetBackupLogRow {

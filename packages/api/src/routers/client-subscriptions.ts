@@ -897,6 +897,114 @@ export const clientSubscriptionsRouter = router({
             });
         }),
 
+    /** List WordPress hosting subscriptions for a team (customer view). Same as listForTeamHosting but for products named "wordpress hosting" or "wordpress managed" (case-insensitive). */
+    listForTeamWordPress: protectedProcedure
+        .input(z.object({ teamSlug: z.string().min(1) }))
+        .output(
+            z.array(
+                z.object({
+                    id: z.string(),
+                    wordpressInstallationId: z.string().nullable(),
+                    pleskSubscriptionId: z.string().nullable(),
+                    subscriptionName: z.string().nullable(),
+                    status: subscriptionStatusSchema,
+                    productName: z.string(),
+                    productPlanName: z.string().nullable(),
+                    subscriptionDate: z.date().nullable(),
+                    expiryDate: z.date().nullable(),
+                    primaryDomain: z.string().nullable(),
+                })
+            )
+        )
+        .query(async ({ ctx, input }) => {
+            const session = ctx.session;
+            if (!session?.user?.id) {
+                throw new TRPCError({
+                    code: "UNAUTHORIZED",
+                    message: "You must be logged in to view subscriptions",
+                });
+            }
+
+            const teamId = await getTeamIdBySlug(input.teamSlug);
+            if (!teamId) {
+                throw new TRPCError({
+                    code: "NOT_FOUND",
+                    message: "Team not found",
+                });
+            }
+
+            if (!isAgencyUserRole(session.user.role) && !(await isTeamMember(teamId, session.user.id))) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "You do not have access to this team",
+                });
+            }
+
+            const wordpressProducts = await db
+                .select({ id: niscProduct.id })
+                .from(niscProduct)
+                .where(
+                    and(
+                        eq(niscProduct.isActive, true),
+                        or(
+                            ilike(niscProduct.name, "%wordpress hosting%"),
+                            ilike(niscProduct.name, "%wordpress managed%"),
+                        ),
+                    ),
+                );
+            const productIds = wordpressProducts.map((p) => p.id);
+            if (productIds.length === 0) return [];
+
+            const subs = await db.query.niscClientSubscription.findMany({
+                where: and(
+                    eq(niscClientSubscription.teamId, teamId),
+                    inArray(niscClientSubscription.productId, productIds),
+                ),
+                orderBy: (s, { desc: d }) => [d(s.createdAt)],
+                columns: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    subscriptionDate: true,
+                    expiryDate: true,
+                    primaryDomain: true,
+                    serviceRefs: true,
+                    pleskFilterId: true,
+                },
+                with: {
+                    product: { columns: { name: true } },
+                    productPlan: { columns: { name: true } },
+                },
+            });
+
+            return subs.map((sub) => {
+                let pleskId: string | null = null;
+                let wordpressId: string | null = null;
+                const refs = sub.serviceRefs as Record<string, unknown> | null;
+                if (refs) {
+                    if (typeof refs.pleskSubscriptionId === "string" || typeof refs.pleskSubscriptionId === "number") {
+                        pleskId = String(refs.pleskSubscriptionId);
+                    }
+                    if (typeof refs.wordpressInstallationId === "string" || typeof refs.wordpressInstallationId === "number") {
+                        wordpressId = String(refs.wordpressInstallationId);
+                    }
+                }
+                if (!pleskId && sub.pleskFilterId) pleskId = sub.pleskFilterId;
+                return {
+                    id: sub.id,
+                    wordpressInstallationId: wordpressId,
+                    pleskSubscriptionId: pleskId,
+                    subscriptionName: sub.name ?? null,
+                    status: sub.status as SubscriptionStatus,
+                    productName: sub.product.name,
+                    productPlanName: sub.productPlan?.name ?? null,
+                    subscriptionDate: sub.subscriptionDate,
+                    expiryDate: sub.expiryDate,
+                    primaryDomain: sub.primaryDomain,
+                };
+            });
+        }),
+
     /**
      * List Nisc Email Marketing subscriptions for a team (customer view). Matches products whose name
      * contains "nisc email marketing" or "email marketing" (case-insensitive), same criteria as

@@ -42,7 +42,6 @@ const formSchema = z.object({
   customer_name: z.string().optional().or(z.literal("")),
   customer_tin: z.string().optional().or(z.literal("")),
   trader_invoice_number: z.string().min(1, "Invoice number is required"),
-  receipt_type_code: z.string().default("S"),
   payment_type_code: z.string().default("01"),
   invoice_status_code: z.string().default("02"),
   items: z.array(saleItemSchema).min(1, "Add at least one item"),
@@ -64,7 +63,6 @@ export function RecordDigitaxSaleSheet({
     defaultValues: {
       sale_date: new Date().toISOString().split('T')[0],
       trader_invoice_number: `INV-${Math.floor(Math.random() * 1000000)}`,
-      receipt_type_code: "S",
       payment_type_code: "01",
       invoice_status_code: "02",
       customer_name: "",
@@ -169,29 +167,6 @@ export function RecordDigitaxSaleSheet({
               />
               <FormField
                 control={form.control}
-                name="receipt_type_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Receipt Type</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="S">Standard (Sale)</SelectItem>
-                        <SelectItem value="C">Copy (Reprint)</SelectItem>
-                        <SelectItem value="T">Training</SelectItem>
-                        <SelectItem value="P">Proforma</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="payment_type_code"
                 render={({ field }) => (
                   <FormItem>
@@ -204,10 +179,12 @@ export function RecordDigitaxSaleSheet({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="01">Cash</SelectItem>
-                        <SelectItem value="02">Mobile Money</SelectItem>
-                        <SelectItem value="03">Card</SelectItem>
-                        <SelectItem value="04">Bank Transfer</SelectItem>
-                        <SelectItem value="05">Credit</SelectItem>
+                        <SelectItem value="02">Credit</SelectItem>
+                        <SelectItem value="03">Cash/Credit</SelectItem>
+                        <SelectItem value="04">Bank check</SelectItem>
+                        <SelectItem value="05">Debit & credit card</SelectItem>
+                        <SelectItem value="06">Mobile money</SelectItem>
+                        <SelectItem value="07">Other</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

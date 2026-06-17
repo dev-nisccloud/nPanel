@@ -142,6 +142,7 @@ interface HostingPlanLegacy {
 interface ProductFeatureRow {
   key: string
   label: string
+  description?: string
 }
 
 interface HostingPlanWithFeatureValues {

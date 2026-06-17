@@ -70,6 +70,11 @@ export const sidebarItems: NavGroup[] = [
         icon: (props: any) => React.createElement(Icons.Hosting, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
       {
+        title: "WordPress",
+        url: "/dashboard/wordpress",
+        icon: (props: any) => React.createElement(Icons.Wordpress, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+      {
         title: "Emails",
         url: "/dashboard/emails",
         icon: (props: any) => React.createElement(Icons.Mail, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
@@ -437,20 +442,20 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "Quotations", url: "/agency/quotations", },
         ],
       },
-      // {
-      //   title: "eTIMS Compliance",
-      //   url: "/agency/digitax/sales",
-      //   icon: (props: any) => React.createElement(Icons.DIGITAX, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      //   subItems: [
-      //     { title: "Sales", url: "/agency/digitax/sales", },
-      //     { title: "Purchases", url: "/agency/digitax/purchases", },
-      //     { title: "Products", url: "/agency/digitax/products", },
-      //     { title: "Customers", url: "/agency/digitax/customers", },
-      //     { title: "Branches", url: "/agency/digitax/branches", },
-      //     { title: "Notices", url: "/agency/digitax/notices", },
-      //     { title: "Verifications", url: "/agency/digitax/verifications", },
-      //   ],
-      // },
+      {
+        title: "Digitax eTIMS",
+        url: "/agency/digitax/sales",
+        icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        subItems: [
+          { title: "Sales", url: "/agency/digitax/sales", },
+          { title: "Purchases", url: "/agency/digitax/purchases", },
+          { title: "Products", url: "/agency/digitax/products", },
+          { title: "Customers", url: "/agency/digitax/customers", },
+          { title: "Branches", url: "/agency/digitax/branches", },
+          { title: "Notices", url: "/agency/digitax/notices", },
+          { title: "Verifications", url: "/agency/digitax/verifications", },
+        ],
+      },
       {
         title: "KRA eTIMS",
         url: "/agency/kra-etims/sales",

@@ -3,7 +3,6 @@ import { sendMfaEmailOtp } from "@npanel/auth/mfa-email";
 import { validateAndRefreshIdleSessionById } from "@npanel/auth/session-enforcement";
 import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-target";
 import { and, db, desc, eq, gt, isNull } from "@npanel/db";
-import { user } from "@npanel/db/schema/auth";
 import {
   userActivityLog,
   userMfaChallenge,
@@ -43,14 +42,23 @@ async function getActiveAuthSession(headers: Headers) {
   return session;
 }
 
-async function getSessionUser(headers: Headers) {
+async function getActiveAuthSessionParts(headers: Headers) {
   const session = await getActiveAuthSession(headers);
-  return session?.user ?? null;
+  return {
+    session,
+    sessionRecord: session?.session ?? null,
+    sessionUser: session?.user ?? null,
+  };
+}
+
+async function getSessionUser(headers: Headers) {
+  const { sessionUser } = await getActiveAuthSessionParts(headers);
+  return sessionUser;
 }
 
 async function getSessionRecord(headers: Headers) {
-  const session = await getActiveAuthSession(headers);
-  return session?.session ?? null;
+  const { sessionRecord } = await getActiveAuthSessionParts(headers);
+  return sessionRecord;
 }
 
 async function getMfaStateForUser(userId: string): Promise<{
@@ -71,18 +79,21 @@ async function getMfaStateForUser(userId: string): Promise<{
   };
 }
 
-async function isSessionMfaVerified(sessionId: string): Promise<boolean> {
+async function isSessionMfaVerified(
+  sessionId: string,
+  mfaEnabled: boolean,
+): Promise<boolean> {
+  if (!mfaEnabled) return true;
+
   const rows = await db
-    .select({ id: userMfaSession.id })
+    .select({ verifiedAt: userMfaSession.verifiedAt })
     .from(userMfaSession)
-    .where(
-      and(
-        eq(userMfaSession.sessionId, sessionId),
-        isNull(userMfaSession.verifiedAt),
-      ),
-    )
+    .where(eq(userMfaSession.sessionId, sessionId))
     .limit(1);
-  return !rows[0];
+
+  const row = rows[0];
+  if (!row) return false;
+  return row.verifiedAt !== null;
 }
 
 async function logMfaActivity(params: {
@@ -204,13 +215,13 @@ async function issueAndSendMfaEmailOtp(params: {
     updatedAt: now,
   });
 
-  await sendMfaEmailOtp({
+  void sendMfaEmailOtp({
     userId: params.userId,
     to: params.email,
     userFirstname: params.name || "User",
     otpCode: code,
     expiresInMinutes: MFA_OTP_TTL_MINUTES,
-  });
+  }).catch((error) => console.error("Failed to send MFA OTP email:", error));
 
   return {
     ok: true as const,
@@ -237,19 +248,22 @@ export function registerAuthCustomRoutes(app: Hono) {
 
       const requestedRedirect =
         c.req.query("redirect") ?? c.req.query("returnUrl") ?? null;
+      const { session, sessionRecord, sessionUser } = await getActiveAuthSessionParts(
+        c.req.raw.headers,
+      );
       const target = await getRootRedirectTargetFromHeaders(
         c.req.raw.headers,
         requestedRedirect,
-      ).catch(err => {
-        console.error("[server][redirect-target] getRootRedirectTargetFromHeaders CRASHED:", err);
+        session,
+      ).catch((err) => {
+        console.error("[server][redirect-target] getRootRedirectTargetFromHeaders failed:", err);
         throw err;
       });
       let redirect = typeof target === "string" && target ? target : FALLBACK_REDIRECT;
-      const sessionRecord = await getSessionRecord(c.req.raw.headers);
       if (sessionRecord?.id && sessionRecord.userId) {
         const mfaState = await getMfaStateForUser(sessionRecord.userId);
         if (mfaState.enabled) {
-          const verified = await isSessionMfaVerified(sessionRecord.id);
+          const verified = await isSessionMfaVerified(sessionRecord.id, true);
           if (!verified) {
             const preferredPostMfaTarget =
               (typeof requestedRedirect === "string" && requestedRedirect.trim()
@@ -321,8 +335,9 @@ export function registerAuthCustomRoutes(app: Hono) {
 
   app.get("/api/auth/mfa/status", async (c) => {
     try {
-      const sessionRecord = await getSessionRecord(c.req.raw.headers);
-      const sessionUser = await getSessionUser(c.req.raw.headers);
+      const { sessionRecord, sessionUser } = await getActiveAuthSessionParts(
+        c.req.raw.headers,
+      );
       if (!sessionRecord || !sessionUser) {
         return c.json({ error: "Authentication required" }, 401);
       }
@@ -337,7 +352,7 @@ export function registerAuthCustomRoutes(app: Hono) {
         });
       }
 
-      const verified = await isSessionMfaVerified(sessionRecord.id);
+      const verified = await isSessionMfaVerified(sessionRecord.id, true);
       return c.json({
         required: true,
         verified,
@@ -427,8 +442,9 @@ export function registerAuthCustomRoutes(app: Hono) {
 
   app.post("/api/auth/mfa/challenge", async (c) => {
     try {
-      const sessionRecord = await getSessionRecord(c.req.raw.headers);
-      const sessionUser = await getSessionUser(c.req.raw.headers);
+      const { sessionRecord, sessionUser } = await getActiveAuthSessionParts(
+        c.req.raw.headers,
+      );
       if (!sessionRecord || !sessionUser) {
         return c.json({ error: "Authentication required" }, 401);
       }
@@ -504,8 +520,9 @@ export function registerAuthCustomRoutes(app: Hono) {
 
   app.post("/api/auth/mfa/verify", async (c) => {
     try {
-      const sessionRecord = await getSessionRecord(c.req.raw.headers);
-      const sessionUser = await getSessionUser(c.req.raw.headers);
+      const { sessionRecord, sessionUser } = await getActiveAuthSessionParts(
+        c.req.raw.headers,
+      );
       if (!sessionRecord || !sessionUser) {
         return c.json({ error: "Authentication required" }, 401);
       }
@@ -689,22 +706,6 @@ export function registerAuthCustomRoutes(app: Hono) {
 
       if (!email) {
         return c.json({ error: "Email is required" }, 400);
-      }
-
-      const rows = await db
-        .select({ id: user.id })
-        .from(user)
-        .where(eq(user.email, email))
-        .limit(1);
-
-      if (!rows[0]) {
-        return c.json(
-          {
-            error:
-              "No account found with this email address. The email may be invalid or not registered. Please check the address or sign up for an account.",
-          },
-          404,
-        );
       }
 
       const result = await auth.api.requestPasswordReset({

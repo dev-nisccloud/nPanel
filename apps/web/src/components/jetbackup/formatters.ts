@@ -18,7 +18,62 @@ const QUEUE_TYPE_LABELS: Record<number, string> = {
   1: "Backup",
   2: "Restore",
   3: "Download",
+  4: "Download",
 };
+
+/** JetBackup queue group status codes (listQueueGroups). */
+const QUEUE_STATUS_LABELS: Record<number, string> = {
+  1: "Pending",
+  2: "Processing",
+  100: "Completed",
+  101: "Partially completed",
+  102: "Failed",
+  103: "Aborted",
+  104: "Never finished",
+};
+
+export type QueueStatusKey =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "stopped"
+  | "unknown";
+
+export function normalizeQueueStatusKey(
+  status: number | string | undefined,
+): QueueStatusKey {
+  if (status == null) return "unknown";
+  if (typeof status === "string") {
+    const normalized = status.toLowerCase();
+    if (normalized === "processing") return "running";
+    if (
+      normalized === "pending"
+      || normalized === "running"
+      || normalized === "completed"
+      || normalized === "failed"
+      || normalized === "stopped"
+    ) {
+      return normalized;
+    }
+    return "unknown";
+  }
+  switch (status) {
+    case 1:
+      return "pending";
+    case 2:
+      return "running";
+    case 100:
+    case 101:
+      return "completed";
+    case 102:
+    case 103:
+    case 104:
+      return "failed";
+    default:
+      return "unknown";
+  }
+}
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "-";
@@ -64,8 +119,11 @@ export function formatQueueType(type: number | undefined): string {
   return QUEUE_TYPE_LABELS[type] ?? `Type ${type}`;
 }
 
-export function formatQueueStatus(status: string | undefined): string {
-  if (!status) return "Unknown";
+export function formatQueueStatus(status: number | string | undefined): string {
+  if (status == null) return "Unknown";
+  if (typeof status === "number") {
+    return QUEUE_STATUS_LABELS[status] ?? `Status ${status}`;
+  }
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 

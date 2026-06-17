@@ -5,7 +5,7 @@ import {
   notificationActivityLog,
 } from "@npanel/db/schema/notifications";
 import { renderWelcomeEmail } from "react-email-starter/src/email-templates";
-import { sendTransactionalEmail } from "./transactional-email";
+import { sendAuthEmail } from "./transactional-email";
 
 type SignupMethod = "email_password" | "google";
 
@@ -100,8 +100,7 @@ export async function sendGoogleSignupWelcomeEmail(params: {
     loginLink,
   });
 
-  await sendTransactionalEmail({
-    userId: params.userId,
+  await sendAuthEmail({
     to: params.email,
     subject: "Welcome to npanel",
     html,
