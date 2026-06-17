@@ -619,7 +619,7 @@ export const productsRouter = router({
     getHostingPlansForPricing: publicProcedure
         .output(
             z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
                         id: z.string(),
@@ -667,13 +667,13 @@ export const productsRouter = router({
 
             // Master feature list from products (first product's order, then any keys from other products)
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
@@ -729,7 +729,7 @@ export const productsRouter = router({
     getEmailHostingPlansForPricing: publicProcedure
         .output(
             z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
                         id: z.string(),
@@ -773,13 +773,119 @@ export const productsRouter = router({
             });
 
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
+                    }
+                }
+            }
+
+            const plans: Array<{
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: Array<{ available: boolean; valueOverride: string | null }>;
+            }> = [];
+
+            for (const product of products) {
+                for (const plan of (product as any).plans ?? []) {
+                    const planFeats = (plan.planFeatures as Array<{ key: string; available: boolean; valueOverride?: string | null }>) ?? [];
+                    const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                    const featureValues = productFeatures.map((pf) => {
+                        const entry = planFeatsByKey.get(pf.key);
+                        const available = !!entry?.available;
+                        const valueOverride =
+                            entry?.valueOverride != null && entry.valueOverride !== ""
+                                ? String(entry.valueOverride)
+                                : null;
+                        return { available, valueOverride };
+                    });
+                    plans.push({
+                        id: plan.id,
+                        name: plan.name,
+                        niscPrice: plan.price ?? null,
+                        niscCurrency: plan.currency ?? "KES",
+                        billingCycle: plan.billingCycle ?? "MONTHLY",
+                        isPopular: plan.isPopular ?? false,
+                        isRecommended: plan.isRecommended ?? false,
+                        productId: product.id,
+                        productName: product.name,
+                        featureValues,
+                    });
+                }
+            }
+
+            return { productFeatures, plans };
+        }),
+
+    /** Get plans for pricing table from products named "wordpress hosting" or "wordpress managed" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    getWordPressPlansForPricing: publicProcedure
+        .output(
+            z.object({
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
+                plans: z.array(
+                    z.object({
+                        id: z.string(),
+                        name: z.string(),
+                        niscPrice: z.string().nullable(),
+                        niscCurrency: z.string(),
+                        billingCycle: z.string(),
+                        isPopular: z.boolean(),
+                        isRecommended: z.boolean(),
+                        productId: z.string(),
+                        productName: z.string(),
+                        featureValues: z.array(
+                            z.object({
+                                available: z.boolean(),
+                                valueOverride: z.string().nullable(),
+                            })
+                        ),
+                    })
+                ),
+            })
+        )
+        .query(async () => {
+            const products = await db.query.niscProduct.findMany({
+                where: and(
+                    eq(niscProduct.isActive, true),
+                    or(
+                        ilike(niscProduct.name, "%wordpress hosting%"),
+                        ilike(niscProduct.name, "%wordpress managed%"),
+                    ),
+                ),
+                orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+                with: {
+                    plans: {
+                        where: and(
+                            eq(niscProductPlan.isActive, true),
+                            eq(niscProductPlan.pricingModel, "FIXED"),
+                        ),
+                        orderBy: (plan, { asc: a }) => [
+                            a(plan.sortOrder),
+                            a(plan.createdAt),
+                        ],
+                    },
+                },
+            });
+
+            const seenKeys = new Set<string>();
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
+            for (const p of products) {
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
+                for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
@@ -835,7 +941,7 @@ export const productsRouter = router({
     getDigitalMarketingPlansForUpsell: publicProcedure
         .output(
             z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 products: z.array(
                     z.object({
                         id: z.string(),
@@ -895,13 +1001,13 @@ export const productsRouter = router({
             });
 
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
@@ -984,7 +1090,7 @@ export const productsRouter = router({
     getSeoPlansForPricing: publicProcedure
         .output(
             z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
                         id: z.string(),
@@ -1032,13 +1138,13 @@ export const productsRouter = router({
             });
 
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
@@ -1096,7 +1202,7 @@ export const productsRouter = router({
     getMediaBuyingPlansForPricing: publicProcedure
         .output(
             z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 productName: z.string(),
                 plans: z.array(
                     z.object({
@@ -1144,13 +1250,13 @@ export const productsRouter = router({
             });
 
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
@@ -1222,7 +1328,7 @@ export const productsRouter = router({
     getCreativesDesignPlansForPricing: publicProcedure
         .output(
             z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
                         id: z.string(),
@@ -1271,13 +1377,13 @@ export const productsRouter = router({
             });
 
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
@@ -1339,7 +1445,7 @@ export const productsRouter = router({
     getNiscEmailMarketingPlansForPricing: publicProcedure
         .output(
             z.object({
-                productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+                productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
                 plans: z.array(
                     z.object({
                         id: z.string(),
@@ -1383,13 +1489,13 @@ export const productsRouter = router({
             });
 
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
@@ -1490,13 +1596,13 @@ export const productsRouter = router({
             });
 
             const seenKeys = new Set<string>();
-            const productFeatures: Array<{ key: string; label: string }> = [];
+            const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
             for (const p of products) {
-                const features = (p.features as Array<{ key: string; label: string }>) ?? [];
+                const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
-                        productFeatures.push(f);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
                     }
                 }
             }
