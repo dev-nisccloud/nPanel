@@ -82,6 +82,14 @@ const salesTransactionSchema = z.object({
     itemList: z.array(salesItemSchema).min(1),
 });
 
+/** Credit notes use the same KRA endpoint with rcptTyCd=R and orgInvcNo set. */
+const creditNoteTransactionSchema = salesTransactionSchema.extend({
+    rcptTyCd: z.literal("R"),
+    orgInvcNo: z.number().int().min(1, "Original invoice number is required"),
+    rfdDt: z.string().regex(/^\d{14}$/),
+    rfdRsnCd: z.enum(["01", "02", "03", "04", "05", "06"]),
+});
+
 export const etimsSalesRouter = router({
     /**
      * Submit a sales transaction to KRA and generate a tax invoice.
@@ -103,8 +111,30 @@ export const etimsSalesRouter = router({
         }),
 
     /**
-     * Retrieve sales transaction history.
-     * POST /selectTrnsPurchaseSalesList
+     * Issue a credit note against a prior sale.
+     * POST /saveTrnsSalesOsdc (rcptTyCd=R, orgInvcNo=original invoice)
+     */
+    sendCreditNote: protectedProcedure
+        .input(z.object({ transaction: creditNoteTransactionSchema }))
+        .mutation(async ({ ctx, input }) => {
+            assertWrite(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
+            try {
+                const result = await client.saveTrnsSalesOsdc(oscu, input.transaction as Record<string, unknown>);
+                const body = result as { resultCd?: string; resultMsg?: string };
+                if (body?.resultCd && body.resultCd !== "000") {
+                    return { success: false, data: null, errorMessage: body.resultMsg ?? "Failed to send credit note" };
+                }
+                return { success: true, data: result };
+            } catch (e: unknown) {
+                const msg = (e as Error).message ?? "";
+                console.warn("[eTIMS] sendCreditNote failed:", msg);
+                return { success: false, data: null, errorMessage: msg || "Failed to send credit note" };
+            }
+        }),
+
+    /**
+     * POST /selectTrnsSalesList
      */
     getSalesTransactions: protectedProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
@@ -112,7 +142,7 @@ export const etimsSalesRouter = router({
             assertRead(ctx.session?.user?.role);
             const { client, oscu } = await getEtimsContext();
             try {
-                const result = await client.selectTrnsPurchaseSalesList(oscu, input.lastReqDt);
+                const result = await client.selectTrnsSalesList(oscu, input.lastReqDt);
                 return { success: true, data: result };
             } catch (e: unknown) {
                 throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: (e as Error).message || "Failed to retrieve sales transactions" });

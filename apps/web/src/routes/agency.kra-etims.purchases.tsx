@@ -315,8 +315,9 @@ export default function ETimsPurchasesPage() {
                                                         <ShoppingCart className="h-10 w-10" />
                                                     </div>
                                                     <h3 className="text-lg font-medium">No purchase records found</h3>
-                                                    <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-1 mb-6">
-                                                        Sync with KRA to fetch invoices your vendors have issued specifically to your PIN.
+                                                    <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1 mb-6">
+                                                        KRA returned no supplier invoices registered against your PIN yet.
+                                                        Purchases appear here when a vendor submits an eTIMS sale with your PIN as the buyer — not from sales you issue yourself.
                                                     </p>
                                                     <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
                                                         <RefreshCw className="mr-2 h-3 w-3" />

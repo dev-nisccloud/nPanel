@@ -41,6 +41,7 @@ const ENDPOINTS = {
     selectNoticeList: '/selectNoticeList',
     // Customer
     selectCustomer: '/selectCustomer',
+    selectCustomerList: '/selectCustomerList',
     // Branches
     selectBhfList: '/selectBhfList',
     saveBhfCustomer: '/saveBhfCustomer',
@@ -56,6 +57,7 @@ const ENDPOINTS = {
     updateImportItem: '/updateImportItem',
     // Sales
     saveTrnsSalesOsdc: '/saveTrnsSalesOsdc',
+    selectTrnsSalesList: '/selectTrnsSalesList',
     // Purchases
     selectTrnsPurchaseSalesList: '/selectTrnsPurchaseSalesList',
     insertTrnsPurchase: '/insertTrnsPurchase',
@@ -330,9 +332,19 @@ export class EtimsOscuClient {
     // Customer
     // ───────────────────────
 
-    /** Look up a single customer by their KRA TIN */
+    /** Look up a single customer by their KRA TIN (central registry). */
     async selectCustomer(oscu: EtimsOscuHeaders, custmTin: string) {
-        return this.post('selectCustomer', { custmTin }, oscu);
+        return this.post('selectCustomer', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            custmTin,
+        }, oscu);
+    }
+
+    /** List customers registered on this branch via saveBhfCustomer. */
+    async selectCustomerList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectCustomerList', { lastReqDt }, oscu);
     }
 
     // ───────────────────────
@@ -344,7 +356,12 @@ export class EtimsOscuClient {
     }
 
     async saveBhfCustomer(oscu: EtimsOscuHeaders, customerData: Record<string, unknown>) {
-        return this.post('saveBhfCustomer', customerData, oscu);
+        return this.post('saveBhfCustomer', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...customerData,
+        }, oscu);
     }
 
     async saveBhfUser(oscu: EtimsOscuHeaders, userData: Record<string, unknown>) {
@@ -395,6 +412,11 @@ export class EtimsOscuClient {
             cmcKey: oscu.cmcKey,
             ...transaction,
         }, oscu);
+    }
+
+    /** List sales transactions submitted by this taxpayer/branch. */
+    async selectTrnsSalesList(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectTrnsSalesList', { lastReqDt }, oscu);
     }
 
     // ───────────────────────
