@@ -1,3 +1,12 @@
+export declare function sendAuthEmail(params: {
+    to: string;
+    subject: string;
+    html?: string;
+    text?: string;
+    replyTo?: string | null;
+}): Promise<{
+    sesMessageId: string | null;
+}>;
 export declare function sendTransactionalEmail(params: {
     userId: string;
     teamId?: string | null;

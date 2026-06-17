@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { ReactNode } from "react";
 import { JetBackupAccountBackupsTab } from "../tabs/account-backups-tab";
+import { JetBackupDownloadsTab } from "../tabs/downloads-tab";
 import { JetBackupAccountDetailsPanel } from "../tabs/account-details-panel";
 import { JetBackupLogsTab } from "../tabs/logs-tab";
 import {
@@ -42,6 +43,7 @@ export function JetBackupAccountDetailContent({
           readOnly={readOnly}
         />
       )}
+      {activeTab === "downloads" && <JetBackupDownloadsTab username={username} />}
       {activeTab === "details" && <JetBackupAccountDetailsPanel account={account} />}
       {activeTab === "activity" && <JetBackupLogsTab username={username} />}
     </JetBackupAccountSettingsShell>

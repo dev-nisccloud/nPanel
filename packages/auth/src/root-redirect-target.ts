@@ -220,14 +220,16 @@ export async function getCustomerTeamRedirectPath(
 export async function getRootRedirectTargetFromHeaders(
   headers: Headers,
   requestedRedirect?: string | null,
+  prefetchedSession?: Awaited<ReturnType<typeof auth.api.getSession>> | null,
 ): Promise<string> {
-  console.log("[redirect-target] Calling getSession...");
-  const session = await auth.api.getSession({ headers }).catch(err => {
-    console.error("[redirect-target] getSession CRASHED:", err);
-    throw err;
-  });
+  const session =
+    prefetchedSession !== undefined
+      ? prefetchedSession
+      : await auth.api.getSession({ headers }).catch((err) => {
+          console.error("[redirect-target] getSession failed:", err);
+          throw err;
+        });
   const sessionUser = session?.user ?? null;
-  console.log("[redirect-target] getSession result:", { present: !!sessionUser, userId: sessionUser?.id });
 
   if (!sessionUser) return "/auth/login";
 
@@ -242,28 +244,36 @@ export async function getRootRedirectTargetFromHeaders(
       : undefined;
   };
 
-  console.log("[redirect-target] Fetching authoritative user data from DB for:", u.id);
-  const rows = await db
-    .select({
-      status: userTable.status,
-      role: userTable.role,
-      lastAccessedTeamId: userTable.lastAccessedTeamId,
-    })
-    .from(userTable)
-    .where(eq(userTable.id, u.id))
-    .limit(1)
-    .catch(err => {
-      console.error("[redirect-target] DB Query CRASHED:", err);
-      throw err;
-    });
+  let dbStatus = normalizeStatus(u.status);
+  let role = typeof u.role === "string" ? u.role.trim().toUpperCase() : undefined;
+  let lastAccessedTeamId = u.lastAccessedTeamId;
 
-  const dbRow = rows[0];
-  if (!dbRow) {
-    await auth.api.signOut({ headers });
-    return "/auth/login";
+  if (!dbStatus || !role) {
+    const rows = await db
+      .select({
+        status: userTable.status,
+        role: userTable.role,
+        lastAccessedTeamId: userTable.lastAccessedTeamId,
+      })
+      .from(userTable)
+      .where(eq(userTable.id, u.id))
+      .limit(1)
+      .catch((err) => {
+        console.error("[redirect-target] DB query failed:", err);
+        throw err;
+      });
+
+    const dbRow = rows[0];
+    if (!dbRow) {
+      await auth.api.signOut({ headers });
+      return "/auth/login";
+    }
+
+    dbStatus = normalizeStatus(dbRow.status);
+    role = typeof dbRow.role === "string" ? dbRow.role.trim().toUpperCase() : undefined;
+    lastAccessedTeamId = dbRow.lastAccessedTeamId ?? lastAccessedTeamId;
   }
 
-  const dbStatus = normalizeStatus(dbRow.status);
   if (!dbStatus || dbStatus !== "ACTIVE") {
     if (process.env.NODE_ENV !== "production") {
       console.log("[redirect-target] Non-ACTIVE user", {
@@ -277,10 +287,9 @@ export async function getRootRedirectTargetFromHeaders(
     return `/account-status?status=${dbStatus || "INACTIVE"}`;
   }
 
-  const role = typeof dbRow.role === "string" ? dbRow.role.trim().toUpperCase() : undefined;
   u.status = dbStatus;
   u.role = role;
-  u.lastAccessedTeamId = dbRow.lastAccessedTeamId ?? u.lastAccessedTeamId;
+  u.lastAccessedTeamId = lastAccessedTeamId ?? u.lastAccessedTeamId;
 
   const isAgency = role?.includes("AGENCY");
 

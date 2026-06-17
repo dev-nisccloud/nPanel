@@ -26,21 +26,22 @@ function accountStatus(account: JetBackupAccountRow): { label: string; active: b
 
 export function JetBackupAccountsTab({ basePath }: { basePath: string }) {
   const navigate = useNavigate();
-  const [search, setSearch] = React.useState("");
+  const [searchInput, setSearchInput] = React.useState("");
+  const [appliedSearch, setAppliedSearch] = React.useState("");
   const { accounts, isLoading, isError, error, refetch, isRefetching } = useJetBackupAccounts({
     limit: 200,
-    search: search || undefined,
+    search: appliedSearch || undefined,
   });
 
   const filtered = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = appliedSearch.trim().toLowerCase();
     if (!q) return accounts;
     return accounts.filter((account) =>
       [account.username, account.nickname, account.domain, account.owner, account.owner_nickname]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q)),
     );
-  }, [accounts, search]);
+  }, [accounts, appliedSearch]);
 
   if (isLoading) return <JetBackupTableSkeleton rows={6} />;
   if (isError) {
@@ -56,8 +57,9 @@ export function JetBackupAccountsTab({ basePath }: { basePath: string }) {
   return (
     <div className="space-y-3">
       <JetBackupToolbar
-        search={search}
-        onSearchChange={setSearch}
+        search={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchSubmit={() => setAppliedSearch(searchInput.trim())}
         onRefresh={() => refetch()}
         isRefreshing={isRefetching}
       />

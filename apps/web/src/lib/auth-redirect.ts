@@ -1,6 +1,7 @@
 import { apiUrl } from "./auth-client";
 
 const FALLBACK_REDIRECT = "/auth/login";
+const MFA_VERIFY_PATH = "/auth/mfa";
 
 // Use the same server origin that authClient uses.
 const REDIRECT_TARGET_URL = apiUrl("/api/auth/redirect-target");
@@ -64,6 +65,16 @@ export async function fetchRedirectTarget(retryAfterMs = 0): Promise<string> {
     target = await fetchRedirectTargetOnce();
   }
   return target;
+}
+
+/** True when redirect-target indicates MFA verification is required before continuing. */
+export function isMfaRedirectTarget(target: string): boolean {
+  try {
+    const pathname = new URL(target, "http://local").pathname;
+    return pathname === MFA_VERIFY_PATH || pathname.startsWith(`${MFA_VERIFY_PATH}/`);
+  } catch {
+    return target.startsWith(MFA_VERIFY_PATH);
+  }
 }
 
 function shouldStayOnCurrentPage(target: string): boolean {

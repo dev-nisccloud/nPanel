@@ -174,6 +174,38 @@ async function getOrCreateTransactionalCampaign(params: {
   return id;
 }
 
+/** Fast path for auth emails (verify, reset, MFA). Skips campaign/email tracking DB. */
+export async function sendAuthEmail(params: {
+  to: string;
+  subject: string;
+  html?: string;
+  text?: string;
+  replyTo?: string | null;
+}) {
+  const fromDomain = requireEnv("NISC_TX_EMAIL_DOMAIN");
+  const fromAddress = optionalEnv("NISC_TX_FROM_EMAIL") ?? `noreply@${fromDomain}`;
+  const fromName = optionalEnv("NISC_TX_FROM_NAME") ?? "nPanel";
+  const defaultReplyTo = optionalEnv("NISC_TX_REPLY_TO");
+  const replyTo = params.replyTo ?? defaultReplyTo;
+
+  if (!params.html?.trim() && !params.text?.trim()) {
+    throw new Error("Either html or text must be provided.");
+  }
+
+  const fromHeader = buildFromHeader({ fromName, fromEmail: fromAddress });
+  const raw = buildRawMimeEmail({
+    from: fromHeader,
+    to: params.to,
+    subject: stripHeaderUnsafe(params.subject),
+    replyTo: replyTo ? stripHeaderUnsafe(replyTo) : null,
+    text: params.text ?? null,
+    html: params.html ?? null,
+  });
+
+  const res = await sendSesRawEmail({ raw });
+  return { sesMessageId: (res as { MessageId?: string }).MessageId ?? null };
+}
+
 export async function sendTransactionalEmail(params: {
   userId: string;
   teamId?: string | null;

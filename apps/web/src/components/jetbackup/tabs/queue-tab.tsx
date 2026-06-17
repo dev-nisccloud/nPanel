@@ -6,10 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/utils/trpc";
 import { jetbackupQueryOptions } from "../query-options";
-import { formatJetBackupDate, formatQueueStatus, formatQueueType } from "../formatters";
+import {
+  formatJetBackupDate,
+  formatQueueStatus,
+  formatQueueType,
+  normalizeQueueStatusKey,
+} from "../formatters";
 import { JetBackupErrorState, JetBackupTableSkeleton } from "../primitives";
 import { JetBackupMinimalList, JetBackupMinimalRow } from "../minimal-list";
-import { jetbackupSuccessBadgeClass } from "../status-badges";
+import { jetbackupQueueStatusBadgeClass } from "../status-badges";
 import type { JetBackupQueueGroupRow } from "../types";
 
 function normalizeQueueGroups(data: unknown): {
@@ -26,7 +31,7 @@ function normalizeQueueGroups(data: unknown): {
 }
 
 export function JetBackupQueueTab() {
-  const [queueType, setQueueType] = React.useState<1 | 2 | 3>(1);
+  const [queueType, setQueueType] = React.useState<1 | 2 | 4>(1);
   const utils = trpc.useUtils();
 
   const { data, isLoading, isError, error, refetch, isRefetching } =
@@ -69,12 +74,12 @@ export function JetBackupQueueTab() {
       <div className="flex flex-col gap-3 @sm/main:flex-row @sm/main:items-center @sm/main:justify-between">
         <Tabs
           value={String(queueType)}
-          onValueChange={(v) => setQueueType(Number(v) as 1 | 2 | 3)}
+          onValueChange={(v) => setQueueType(Number(v) as 1 | 2 | 4)}
         >
           <TabsList>
             <TabsTrigger value="1">Backups</TabsTrigger>
             <TabsTrigger value="2">Restores</TabsTrigger>
-            <TabsTrigger value="3">Downloads</TabsTrigger>
+            <TabsTrigger value="4">Downloads</TabsTrigger>
           </TabsList>
         </Tabs>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
@@ -100,8 +105,7 @@ export function JetBackupQueueTab() {
             .filter(Boolean)
             .join(" · ");
 
-          const status = group.status?.toLowerCase();
-          const isSuccess = status === "completed" || status === "running";
+          const statusKey = normalizeQueueStatusKey(group.status);
 
           return (
             <JetBackupMinimalRow
@@ -109,11 +113,11 @@ export function JetBackupQueueTab() {
               title={formatQueueType(group.type ?? queueType)}
               subtitle={subtitle || "-"}
               badge={formatQueueStatus(group.status)}
-              badgeVariant={status === "failed" ? "destructive" : "default"}
-              badgeClassName={jetbackupSuccessBadgeClass(isSuccess)}
+              badgeVariant="outline"
+              badgeClassName={jetbackupQueueStatusBadgeClass(statusKey)}
               actions={
                 <>
-                  {group.status === "running" ? (
+                  {statusKey === "running" ? (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -123,7 +127,7 @@ export function JetBackupQueueTab() {
                       Stop
                     </Button>
                   ) : null}
-                  {group.status === "failed" ? (
+                  {statusKey === "failed" ? (
                     <Button
                       size="sm"
                       variant="ghost"
