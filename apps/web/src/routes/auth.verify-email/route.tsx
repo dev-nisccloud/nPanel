@@ -8,6 +8,7 @@ import { Globe, CheckCircle, XCircle } from "lucide-react";
 import { APP_CONFIG } from "@/config/app-config";
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 
 export default function VerifyEmailPage() {
@@ -147,14 +148,21 @@ export default function VerifyEmailPage() {
 
   return (
     <>
-      <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">{renderContent()}</div>
+      <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[350px]">
+        {renderContent()}
 
-      <div className="absolute top-5 flex w-full justify-end px-10">
-        <div className="text-muted-foreground text-sm">
-          <Link className="text-foreground" to="/auth/login">
-            Back to Login
-          </Link>
-        </div>
+        {verificationStatus !== "success" && (
+          <>
+            <div className="relative flex items-center">
+              <div className="flex-1 border-t border-border" />
+              <span className="text-muted-foreground mx-4 text-xs">or</span>
+              <div className="flex-1 border-t border-border" />
+            </div>
+            <Button className="w-full" variant="outline" asChild>
+              <Link to="/auth/login">Back to Login</Link>
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="absolute bottom-5 flex w-full justify-between px-10">

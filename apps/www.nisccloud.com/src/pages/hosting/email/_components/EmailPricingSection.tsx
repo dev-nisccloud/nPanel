@@ -222,7 +222,7 @@ function FeaturesTable({
                         ].join(" ")}
                       >
                         {!available ? (
-                          <span className="text-muted-foreground/70">—</span>
+                          <span className="text-muted-foreground/70"></span>
                         ) : override != null && override !== "" ? (
                           <span className="text-foreground">{override}</span>
                         ) : (
