@@ -450,7 +450,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     /**
-     * Public: VPS plans (paginated) — no auth required.
+     * Public: VPS plans (paginated)  no auth required.
      * Used by the landing page to display live plans without login.
      */
     publicGetVpsPlans: import("@trpc/server").TRPCQueryProcedure<{
@@ -515,7 +515,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     /**
-     * Public: Dedicated server plans (paginated) — no auth required.
+     * Public: Dedicated server plans (paginated)  no auth required.
      * Used by the landing page to display live plans without login.
      */
     publicGetDedicatedServerPlans: import("@trpc/server").TRPCQueryProcedure<{
@@ -580,7 +580,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         meta: object;
     }>;
     /**
-     * Public: VDS plans (paginated) — no auth required.
+     * Public: VDS plans (paginated)  no auth required.
      * Used by the landing page to display live plans without login.
      */
     publicGetVdsPlans: import("@trpc/server").TRPCQueryProcedure<{

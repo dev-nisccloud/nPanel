@@ -49,7 +49,7 @@ export function JetBackupAccountBackupsTab({
 
   const queueDownload = trpc.jetbackup.downloads.queueSnapshot.useMutation({
     onSuccess: () => {
-      toast.success("Download queued — open the Downloads tab when the queue finishes, then click Save file.");
+      toast.success("Download queued  open the Downloads tab when the queue finishes, then click Save file.");
       utils.jetbackup.downloads.list.invalidate();
       utils.jetbackup.queues.listGroups.invalidate();
     },

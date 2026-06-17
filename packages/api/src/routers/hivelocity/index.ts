@@ -657,7 +657,7 @@ export const hivelocityRouter = router({
 	}),
 
 	/**
-	 * Public: VPS plans (paginated) — no auth required.
+	 * Public: VPS plans (paginated)  no auth required.
 	 * Used by the landing page to display live plans without login.
 	 */
 	publicGetVpsPlans: publicProcedure.input(VpsPlansQuerySchema).query(async ({ input }) => {
@@ -681,7 +681,7 @@ export const hivelocityRouter = router({
 	}),
 
 	/**
-	 * Public: Dedicated server plans (paginated) — no auth required.
+	 * Public: Dedicated server plans (paginated)  no auth required.
 	 * Used by the landing page to display live plans without login.
 	 */
 	publicGetDedicatedServerPlans: publicProcedure.input(DedicatedPlansQuerySchema).query(async ({ input }) => {
@@ -705,7 +705,7 @@ export const hivelocityRouter = router({
 	}),
 
 	/**
-	 * Public: VDS plans (paginated) — no auth required.
+	 * Public: VDS plans (paginated)  no auth required.
 	 * Used by the landing page to display live plans without login.
 	 */
 	publicGetVdsPlans: publicProcedure.input(VdsPlansQuerySchema).query(async ({ input }) => {

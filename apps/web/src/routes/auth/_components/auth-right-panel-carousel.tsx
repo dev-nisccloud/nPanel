@@ -7,37 +7,29 @@ type CarouselSlide = {
   subheading: string;
   description: string;
   imageSrc: string;
-  cta: string;
-  ctaLink: string;
 };
 
 const slides: CarouselSlide[] = [
   {
-    title: "Turn Clicks into Customers",
-    subheading: "Full-Service Digital Marketing",
+    title: "Create Your Brand",
+    subheading: "CREATE",
     description:
-      "We handle SEO, social media, PPC, and web design, so your brand gets found, remembered, and chosen. More visibility. More leads. Less guesswork.",
-    imageSrc: "/nisc-bg.svg",
-    cta: "Grow My Brand",
-    ctaLink: "www.nisccloud.com",
+      "A brand people remember, trust, and choose — built in days, not months. Logo, website, copy, and identity, all done for you.",
+    imageSrc: "/create.png",
   },
   {
-    title: "Your Website, Always On",
-    subheading: "Web Hosting · VPS · Email · Domains",
+    title: "Launch Online",
+    subheading: "LAUNCH",
     description:
-      "Fast, secure hosting built for businesses that can't afford downtime. One dashboard, one support team, everything your team needs to stay online and productive.",
-    imageSrc: "/nisc-bg-1.svg",
-    cta: "See Hosting Plans",
-    ctaLink: "www.nisccloud.com",
+      "Fast, secure, always-on hosting with a domain and business email that screams credibility. Your customers check you out at midnight — we make sure you're ready.",
+    imageSrc: "/launch.png",
   },
   {
-    title: "Launch Fast. Scale Confidently.",
-    subheading: "Your All-in-One Growth Partner",
+    title: "Grow Your Business",
+    subheading: "GROW",
     description:
-      "From your first domain to your next campaign, we bring cloud infrastructure and digital strategy under one roof, with real people ready to help when it matters.",
-    imageSrc: "/nisc-bg-3.svg",
-    cta: "Start Your Journey",
-    ctaLink: "www.nisccloud.com",
+      "SEO, ads, and AI automation dialled in to bring real paying customers through your door — and follow up on every lead, 24/7, while you focus on your work.",
+    imageSrc: "/grow.png",
   },
 ];
 
@@ -68,7 +60,7 @@ export function AuthRightPanelCarousel() {
             style={{ backgroundImage: `url('${slide.imageSrc}')` }}
           />
         ))}
-        <div className="absolute inset-0 bg-gradient-to-t from-white/55 via-white/18 to-white/8" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/20 to-transparent" />
       </div>
 
       {/* Bottom content + controls */}
@@ -114,17 +106,9 @@ export function AuthRightPanelCarousel() {
                   aria-hidden={!isActive}
                 >
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700/90">{slide.subheading}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{slide.subheading}</p>
                     <h2 className="text-2xl font-bold leading-tight text-black">{slide.title}</h2>
                     <p className="max-w-3xl text-sm leading-relaxed text-slate-700">{slide.description}</p>
-                    <a
-                      href={slide.ctaLink.startsWith("http") ? slide.ctaLink : `https://${slide.ctaLink}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                    >
-                      {slide.cta}
-                    </a>
                   </div>
                 </div>
               );
@@ -135,4 +119,3 @@ export function AuthRightPanelCarousel() {
     </section>
   );
 }
-
