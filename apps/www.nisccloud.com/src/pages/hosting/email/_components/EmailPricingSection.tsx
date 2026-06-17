@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip.tsx";
 import NumberFlow from "@number-flow/react";
 import {
   fetchEmailHostingPlansPublic,
@@ -187,8 +188,24 @@ function FeaturesTable({
                   highlight && "bg-primary/[0.06]",
                 ].join(" ")}
               >
-                <div className="w-48 sm:w-64 flex-shrink-0 text-sm text-foreground/90">
-                  {feature.label}
+                <div className="w-48 sm:w-64 flex-shrink-0 text-sm text-foreground/90 flex items-center gap-1.5">
+                  <span>{feature.label}</span>
+                  {feature.description && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <HelpCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        {feature.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 <div className="flex items-center text-sm flex-1 gap-4 sm:gap-6">
                   {plans.map((plan) => {
@@ -291,8 +308,9 @@ export function EmailPricingSection() {
   };
 
   return (
-    <section id="plans" className="py-20 bg-muted/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <TooltipProvider>
+      <section id="plans" className="py-20 bg-muted/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight mb-4">Choose Your Email Plan</h2>
@@ -400,5 +418,6 @@ export function EmailPricingSection() {
         )}
       </div>
     </section>
+    </TooltipProvider>
   );
 }

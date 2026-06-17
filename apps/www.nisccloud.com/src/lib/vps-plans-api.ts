@@ -135,6 +135,16 @@ export async function fetchEmailHostingPlansPublic(): Promise<SharedHostingPrici
   };
 }
 
+export async function fetchWordPressHostingPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
+    "products.getWordPressPlansForPricing"
+  );
+  return {
+    plans: res?.plans ?? [],
+    productFeatures: res?.productFeatures ?? [],
+  };
+}
+
 // --- Specific fetchers ---
 
 export async function fetchVpsPlansPublic(cursor: number = 0, limit: number = 24) {
