@@ -438,9 +438,9 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
-        title: "eTIMS Compliance",
+        title: "Digitax eTIMS",
         url: "/agency/digitax/sales",
-        icon: (props: any) => React.createElement(Icons.DIGITAX, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
           { title: "Sales", url: "/agency/digitax/sales", },
           { title: "Purchases", url: "/agency/digitax/purchases", },
