@@ -108,6 +108,7 @@ export type SharedHostingPlan = {
 export type ProductFeatureRow = {
   key: string;
   label: string;
+  description?: string;
 };
 
 export type SharedHostingPricingData = {
@@ -128,6 +129,16 @@ export async function fetchSharedHostingPlansPublic(): Promise<SharedHostingPric
 export async function fetchEmailHostingPlansPublic(): Promise<SharedHostingPricingData> {
   const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
     "products.getEmailHostingPlansForPricing"
+  );
+  return {
+    plans: res?.plans ?? [],
+    productFeatures: res?.productFeatures ?? [],
+  };
+}
+
+export async function fetchWordPressHostingPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
+    "products.getWordPressPlansForPricing"
   );
   return {
     plans: res?.plans ?? [],

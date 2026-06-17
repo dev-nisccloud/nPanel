@@ -1,6 +1,7 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { Globe, Zap, Shield, Code2, RefreshCw, BarChart2, Lock, Headphones } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { WordPressPricingSection } from "./_components/WordPressPricingSection.tsx";
 
 // ─── Hero Illustration ────────────────────────────────────────────────────────
 
@@ -171,6 +172,8 @@ export default function WordPressHostingPage() {
       headline={<>WordPress Hosting <span className="text-primary">Built for Kenya</span> - Fast, Secure and Managed</>}
       subtext="Purpose-built WordPress infrastructure with auto-updates, daily backups, and a staging environment. Focus on your business - we handle the technical complexity."
       serviceType="hosting"
+      plansUnderHero
+      customPlansSection={<WordPressPricingSection />}
       heroIllustration={<WordPressIllustration />}
       heroTrustBadge={{ line1: "PHP 8.3 and LiteSpeed Cache", line2: "3x faster than generic hosting" }}
       trustStats={[
@@ -221,67 +224,7 @@ export default function WordPressHostingPage() {
           desc: "Our Nairobi support team are certified WordPress developers. We solve plugin conflicts, theme issues, and performance problems - not just server tickets.",
         },
       ]}
-      plans={[
-        {
-          id: "wp-starter",
-          name: "WP Starter",
-          price: 500,
-          period: "mo",
-          features: [
-            "1 WordPress Site",
-            "20 GB NVMe SSD",
-            "Unmetered Bandwidth",
-            "Free SSL Certificate",
-            "Auto WordPress Updates",
-            "Daily Backups (7-day retention)",
-            "LiteSpeed Cache",
-            "Free Domain (1st year)",
-            "WP Admin Support",
-          ],
-        },
-        {
-          id: "wp-business-popular",
-          name: "WP Business",
-          price: 1000,
-          period: "mo",
-          features: [
-            "3 WordPress Sites",
-            "60 GB NVMe SSD",
-            "Unmetered Bandwidth",
-            "Free SSL Certificate",
-            "Auto WordPress Updates",
-            "Daily Backups (30-day retention)",
-            "LiteSpeed Cache",
-            "Staging Environment",
-            "Free Domain (1st year)",
-            "Malware Scanning and Removal",
-            "WordPress Firewall (WAF)",
-            "Priority Support",
-          ],
-        },
-        {
-          id: "wp-agency",
-          name: "WP Agency",
-          price: 2500,
-          period: "mo",
-          features: [
-            "Unlimited WordPress Sites",
-            "200 GB NVMe SSD",
-            "Unmetered Bandwidth",
-            "Free Wildcard SSL",
-            "Auto WordPress Updates",
-            "Daily Backups (90-day retention)",
-            "LiteSpeed Cache",
-            "Staging per Site",
-            "Free Domain (1st year)",
-            "Malware Scanning and Removal",
-            "WordPress Firewall (WAF)",
-            "Git Version Control",
-            "WooCommerce Optimised",
-            "Dedicated Account Manager",
-          ],
-        },
-      ]}
+      plans={[]}
       addons={[
         { id: "wp-addon-woocommerce", label: "WooCommerce Performance Pack", price: 500, period: "mo" },
         { id: "wp-addon-backup-premium", label: "Premium Backups (6-month retention)", price: 350, period: "mo" },
