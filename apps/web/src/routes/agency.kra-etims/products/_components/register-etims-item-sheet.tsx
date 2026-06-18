@@ -26,20 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
-import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
-import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
 import type { EtimsItemRecord } from "./etims-item-utils";
-
-const FALLBACK_ITEM_CLASS_OPTIONS: ComboboxItem[] = [
-  { id: "81112100", label: "81112100   Computer programmers" },
-  { id: "81111600", label: "81111600   Computer programmers (alt listing)" },
-  { id: "81161600", label: "81161600   Electronic mail and messaging services" },
-  { id: "83111600", label: "83111600   Mobile communications services" },
-  { id: "82101600", label: "82101600   Broadcast advertising" },
-  { id: "80171600", label: "80171600   Publicity and marketing support services" },
-  { id: "82111600", label: "82111600   Non technical writing" },
-  { id: "82141600", label: "82141600   Graphic display services" },
-].sort((a, b) => a.id.localeCompare(b.id));
+import { ItemClassificationPicker } from "./item-classification-picker";
 
 const formSchema = z.object({
   itemNm: z.string().min(1, "Service name is required"),
@@ -68,82 +56,61 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+export type NiscProductKraSyncSource = {
+  id: string;
+  name: string;
+  etimsItemClsCd?: string | null;
+  etimsTaxTyCd?: string | null;
+  etimsDefaultPrice?: string | null;
+  etimsPkgUnitCd?: string | null;
+  etimsQtyUnitCd?: string | null;
+};
+
+function parseTaxTyCd(value?: string | null): FormData["taxTyCd"] {
+  if (value === "A" || value === "B" || value === "C" || value === "D" || value === "E") return value;
+  return "B";
+}
+
+const EMPTY_FORM_VALUES: FormData = {
+  itemNm: "",
+  itemClsCd: "",
+  taxTyCd: "B",
+  dftPrc: 0,
+  itemCd: "",
+  itemStdNm: null,
+  orgnNatCd: "KE",
+  pkgUnitCd: "OU",
+  qtyUnitCd: "U",
+  btchNo: null,
+  bcd: null,
+  addInfo: null,
+  sftyQty: 0,
+  useYn: "Y",
+};
+
+const KRA_ITEM_LIST_INPUT = { lastReqDt: "20230101000000" } as const;
+
 export function RegisterETimsItemSheet({
   open,
   onOpenChange,
   onSuccess,
   initialItem,
+  syncNiscProduct,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   initialItem?: EtimsItemRecord | null;
+  /** When set, syncs to KRA then persists eTIMS fields on the Nisc product. */
+  syncNiscProduct?: NiscProductKraSyncSource | null;
 }) {
-  const isEdit = !!initialItem?.itemCd;
+  const isSyncFromNisc = !!syncNiscProduct;
+  const isEdit = !isSyncFromNisc && !!initialItem?.itemCd;
+  const utils = trpc.useUtils();
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      itemNm: "",
-      itemClsCd: "",
-      taxTyCd: "B",
-      dftPrc: 0,
-      itemCd: "",
-      itemStdNm: null,
-      orgnNatCd: "KE",
-      pkgUnitCd: "OU",
-      qtyUnitCd: "U",
-      btchNo: null,
-      bcd: null,
-      addInfo: null,
-      sftyQty: 0,
-      useYn: "Y",
-    },
+    defaultValues: EMPTY_FORM_VALUES,
   });
-
-  const { data: itemClassData } = trpc.etims.data.getItemClassList.useQuery(
-    { lastReqDt: "20230101000000" },
-    { enabled: open, staleTime: 5 * 60_000 },
-  );
-
-  const itemClassOptions = React.useMemo(() => {
-    const root: any = itemClassData;
-    const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
-    const data: any = payload?.data ?? payload;
-    const list: any[] = data?.itemClsList ?? [];
-
-    const mapped = list
-      .filter((row) => row?.itemClsCd && row?.itemClsNm)
-      .map((row) => ({
-        id: String(row.itemClsCd).trim(),
-        label: `${row.itemClsCd}   ${row.itemClsNm}`,
-      }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-
-    return mapped;
-  }, [itemClassData]);
-
-  const selectedItemClsCd = form.watch("itemClsCd");
-
-  const effectiveItemClassOptions = React.useMemo(() => {
-    const base = itemClassOptions.length > 0 ? itemClassOptions : FALLBACK_ITEM_CLASS_OPTIONS;
-    const byId = new Map(base.map((option) => [option.id, option]));
-
-    const ensureOption = (code?: string | null) => {
-      const id = code?.trim();
-      if (!id || byId.has(id)) return;
-      byId.set(id, { id, label: `${id}   (saved classification)` });
-    };
-
-    ensureOption(initialItem?.itemClsCd);
-    ensureOption(selectedItemClsCd);
-
-    return Array.from(byId.values()).sort((a, b) => a.id.localeCompare(b.id));
-  }, [itemClassOptions, initialItem?.itemClsCd, selectedItemClsCd]);
-
-  const itemClassFetchFailed = React.useMemo(() => {
-    const root: any = itemClassData;
-    return root?.success === false;
-  }, [itemClassData]);
 
   const buildFormValues = React.useCallback((item: EtimsItemRecord): FormData => ({
     itemNm: item.itemNm,
@@ -164,83 +131,104 @@ export function RegisterETimsItemSheet({
     useYn: item.useYn === "N" ? "N" : "Y",
   }), []);
 
+  const pendingItemCdRef = React.useRef(false);
+  const awaitingFreshItemListRef = React.useRef(false);
+
   React.useEffect(() => {
-    if (!open) return;
-    if (initialItem) {
-      form.reset(buildFormValues(initialItem));
+    if (!open) {
+      pendingItemCdRef.current = false;
+      awaitingFreshItemListRef.current = false;
+      form.reset(EMPTY_FORM_VALUES);
       return;
     }
-    form.reset({
-      itemNm: "",
-      itemClsCd: "",
-      taxTyCd: "B",
-      dftPrc: 0,
-      itemCd: "",
-      itemStdNm: null,
-      orgnNatCd: "KE",
-      pkgUnitCd: "OU",
-      qtyUnitCd: "U",
-      btchNo: null,
-      bcd: null,
-      addInfo: null,
-      sftyQty: 0,
-      useYn: "Y",
-    });
-  }, [open, initialItem, form, buildFormValues]);
+    if (syncNiscProduct) {
+      form.reset({
+        itemNm: syncNiscProduct.name,
+        itemClsCd: String(syncNiscProduct.etimsItemClsCd ?? "").trim(),
+        taxTyCd: parseTaxTyCd(syncNiscProduct.etimsTaxTyCd),
+        dftPrc: Number(syncNiscProduct.etimsDefaultPrice ?? 0) || 0,
+        itemCd: "",
+        itemStdNm: null,
+        orgnNatCd: "KE",
+        pkgUnitCd: syncNiscProduct.etimsPkgUnitCd ?? "OU",
+        qtyUnitCd: syncNiscProduct.etimsQtyUnitCd ?? "U",
+        btchNo: null,
+        bcd: null,
+        addInfo: null,
+        sftyQty: 0,
+        useYn: "Y",
+      });
+      pendingItemCdRef.current = true;
+      return;
+    }
+    if (initialItem) {
+      form.reset(buildFormValues(initialItem));
+      pendingItemCdRef.current = false;
+      return;
+    }
+    form.reset(EMPTY_FORM_VALUES);
+    pendingItemCdRef.current = true;
+  }, [open, initialItem, syncNiscProduct, form, buildFormValues]);
 
-  React.useEffect(() => {
-    if (!open || !initialItem) return;
-    form.setValue("itemClsCd", String(initialItem.itemClsCd ?? "").trim(), { shouldDirty: false });
-  }, [open, initialItem, effectiveItemClassOptions.length, form]);
-
-  React.useEffect(() => {
-    if (!open || isEdit) return;
-    const current = form.getValues("itemClsCd");
-    if (current || effectiveItemClassOptions.length === 0) return;
-    form.setValue("itemClsCd", effectiveItemClassOptions[0]!.id, { shouldValidate: true });
-  }, [open, isEdit, effectiveItemClassOptions, form]);
-
-  const saveItem = trpc.etims.items.saveItem.useMutation({
-    onSuccess: (res: any) => {
-      // The router never throws   it always returns { success, data, errorMessage, requiresReinitialization }
-      if (res?.success === false) {
-        if (res?.requiresReinitialization) {
-          toast.error(
-            "KRA session expired   please re-initialize your device in Settings, then try again.",
-            {
-              duration: 8000,
-              action: {
-                label: "Go to Settings",
-                onClick: () => {
-                  window.location.href = "/agency/kra-etims/settings";
-                },
-              },
-            }
-          );
-        } else {
-          toast.error(res?.errorMessage ?? "Failed to register item");
-        }
-        return;
-      }
-      const body = res?.data?.responseBody ?? res?.data ?? res;
-      if (body?.resultCd && body.resultCd !== "000") {
-        toast.error(body?.resultMsg ?? "Failed to register item");
-        return;
-      }
-      toast.success(isEdit ? "Product updated in KRA eTIMS" : "Service registered in KRA eTIMS");
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.();
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to register service");
-    },
+  const itemsQuery = trpc.etims.items.getItemList.useQuery(KRA_ITEM_LIST_INPUT, {
+    enabled: open,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
-  const { data: itemsData } = trpc.etims.items.getItemList.useQuery(
-    { lastReqDt: "20230101000000" },
-    { enabled: open, staleTime: 30_000 },
-  );
+  React.useEffect(() => {
+    if (!open) return;
+    awaitingFreshItemListRef.current = true;
+    void utils.etims.items.getItemList.invalidate(KRA_ITEM_LIST_INPUT).then(() => itemsQuery.refetch());
+  }, [open, utils, itemsQuery.refetch]);
+
+  React.useEffect(() => {
+    if (!open || !awaitingFreshItemListRef.current) return;
+    if (itemsQuery.isLoading || itemsQuery.isFetching) return;
+    awaitingFreshItemListRef.current = false;
+  }, [open, itemsQuery.isLoading, itemsQuery.isFetching, itemsQuery.data]);
+
+  const saveItem = trpc.etims.items.saveItem.useMutation();
+  const updateProduct = trpc.products.update.useMutation();
+
+  const handleKraSaveSuccess = React.useCallback((data: FormData, res: { success?: boolean; data?: unknown; errorMessage?: string; requiresReinitialization?: boolean }) => {
+    if (res?.success === false) {
+      if (res?.requiresReinitialization) {
+        toast.error(
+          "KRA session expired — please re-initialize your device in Settings, then try again.",
+          {
+            duration: 8000,
+            action: {
+              label: "Go to Settings",
+              onClick: () => {
+                window.location.href = "/agency/kra-etims/settings";
+              },
+            },
+          },
+        );
+      } else {
+        toast.error(res?.errorMessage ?? "Failed to register item on KRA");
+      }
+      return false;
+    }
+    const body = (res?.data as { responseBody?: { resultCd?: string; resultMsg?: string }; resultCd?: string; resultMsg?: string })?.responseBody
+      ?? (res?.data as { resultCd?: string; resultMsg?: string })
+      ?? res;
+    const resultCd = (body as { resultCd?: string })?.resultCd;
+    if (resultCd && resultCd !== "000" && resultCd !== "001") {
+      toast.error((body as { resultMsg?: string })?.resultMsg ?? "Failed to register item on KRA");
+      return false;
+    }
+    return true;
+  }, []);
+
+  const kraItemList = React.useMemo(() => {
+    const root: any = itemsQuery.data;
+    const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
+    const data: any = payload?.data ?? payload;
+    const list: unknown = data?.itemList;
+    return Array.isArray(list) ? list : [];
+  }, [itemsQuery.data]);
 
   const generateNextItemCd = React.useCallback(() => {
     const orgnNatCd = form.getValues("orgnNatCd");
@@ -248,22 +236,12 @@ export function RegisterETimsItemSheet({
     const qtyUnitCd = form.getValues("qtyUnitCd");
     // For npanel we register services only.
     const itemTyCd = "3";
-    // Observed from existing KRA items for this taxpayer:
-    // - KE3OUXGRO0000001
-    // - KE3OUXNOX0000001
-    // - KE3OUXU0000001
-    // Pattern: {orgnNatCd}{itemTyCd}{pkgUnitCd}X{qtyUnitCd}{optional 'X' if qtyUnitCd length is 2}{7-digit seq}
     const qtySuffix = qtyUnitCd.length === 2 ? `${qtyUnitCd}X` : qtyUnitCd;
     const prefix = `${orgnNatCd}${itemTyCd}${pkgUnitCd}X${qtySuffix}`;
 
-    const root: any = itemsData;
-    const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
-    const data: any = payload?.data ?? payload;
-    const list: any[] = data?.itemList ?? [];
-
     let maxSeq = 0;
-    for (const it of list) {
-      const code: string | undefined = it?.itemCd;
+    for (const it of kraItemList) {
+      const code = (it as { itemCd?: string })?.itemCd;
       if (!code || typeof code !== "string") continue;
       if (!code.startsWith(prefix)) continue;
       const tail = code.slice(prefix.length);
@@ -271,28 +249,30 @@ export function RegisterETimsItemSheet({
       if (Number.isFinite(seq)) maxSeq = Math.max(maxSeq, seq);
     }
 
-    const nextSeq = (maxSeq || 0) + 1;
+    const nextSeq = maxSeq + 1;
     const seqStr = String(nextSeq).padStart(7, "0");
     return `${prefix}${seqStr}`;
-  }, [form, itemsData]);
+  }, [form, kraItemList]);
 
   React.useEffect(() => {
-    if (!open || isEdit) return;
-    // Auto-generate itemCd on open (or when units change).
-    const itemCd = form.getValues("itemCd");
-    if (!itemCd) {
-      form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isEdit, generateNextItemCd]);
+    if (!open || isEdit || !pendingItemCdRef.current || awaitingFreshItemListRef.current) return;
+    if (itemsQuery.isLoading || itemsQuery.isFetching) return;
 
-  const onSubmit = (data: FormData) => {
+    form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true });
+    pendingItemCdRef.current = false;
+  }, [
+    open,
+    isEdit,
+    itemsQuery.isLoading,
+    itemsQuery.isFetching,
+    itemsQuery.data,
+    generateNextItemCd,
+    form,
+  ]);
+
+  const buildSaveItemInput = (data: FormData) => {
     const itemTyCd = isEdit ? String(initialItem?.itemTyCd ?? "3") : "3";
-    if (itemTyCd !== "1" && itemTyCd !== "2" && itemTyCd !== "3") {
-      toast.error("Invalid item type on record");
-      return;
-    }
-    saveItem.mutate({
+    return {
       item: {
         itemCd: data.itemCd,
         itemClsCd: data.itemClsCd,
@@ -313,29 +293,70 @@ export function RegisterETimsItemSheet({
         grpPrcL5: 0,
         addInfo: data.addInfo ?? null,
         sftyQty: data.sftyQty ?? 0,
-        isrcAplcbYn: "N",
+        isrcAplcbYn: "N" as const,
         useYn: data.useYn,
         regrNm: "Admin",
         regrId: "Admin",
         modrNm: "Admin",
         modrId: "Admin",
       },
-    });
+    };
   };
+
+  const onSubmit = async (data: FormData) => {
+    const itemTyCd = isEdit ? String(initialItem?.itemTyCd ?? "3") : "3";
+    if (itemTyCd !== "1" && itemTyCd !== "2" && itemTyCd !== "3") {
+      toast.error("Invalid item type on record");
+      return;
+    }
+
+    try {
+      const kraRes = await saveItem.mutateAsync(buildSaveItemInput(data));
+      if (!handleKraSaveSuccess(data, kraRes as Parameters<typeof handleKraSaveSuccess>[1])) return;
+
+      if (syncNiscProduct) {
+        await updateProduct.mutateAsync({
+          id: syncNiscProduct.id,
+          etimsItemCd: data.itemCd,
+          etimsItemClsCd: data.itemClsCd,
+          etimsTaxTyCd: data.taxTyCd,
+          etimsDefaultPrice: String(data.dftPrc),
+          etimsPkgUnitCd: data.pkgUnitCd,
+          etimsQtyUnitCd: data.qtyUnitCd,
+        });
+        toast.success("Service synced to KRA and saved to Nisc catalog");
+      } else {
+        toast.success(isEdit ? "Product updated in KRA eTIMS" : "Service registered in KRA eTIMS");
+      }
+
+      await utils.etims.items.getItemList.invalidate(KRA_ITEM_LIST_INPUT);
+      form.reset(EMPTY_FORM_VALUES);
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to sync service");
+    }
+  };
+
+  const isPending = saveItem.isPending || updateProduct.isPending;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{isEdit ? "Edit product" : "Register Service"}</SheetTitle>
+          <SheetTitle>
+            {isSyncFromNisc ? "Sync with KRA" : isEdit ? "Edit product" : "Register Service"}
+          </SheetTitle>
           <SheetDescription>
-            {isEdit
-              ? "Updates the item on KRA eTIMS via /saveItem (same endpoint used to register)."
-              : "Registers a service item in KRA eTIMS."}
+            {isSyncFromNisc
+              ? "Registers this Nisc service on KRA eTIMS, then saves the fiscal fields on the product."
+              : isEdit
+                ? "Updates the item on KRA eTIMS via /saveItem (same endpoint used to register)."
+                : "Registers a service item in KRA eTIMS."}
           </SheetDescription>
         </SheetHeader>
 
-        <Form {...form} key={isEdit ? `edit-${initialItem?.itemCd}` : "create"}>
+        <Form {...form} key={isSyncFromNisc ? `sync-${syncNiscProduct?.id}` : isEdit ? `edit-${initialItem?.itemCd}` : "create"}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
             <FormField
               control={form.control}
@@ -364,13 +385,17 @@ export function RegisterETimsItemSheet({
                         className="font-mono bg-muted/40 cursor-not-allowed"
                         readOnly
                         tabIndex={-1}
-                        placeholder="Click Generate →"
+                        placeholder={
+                          !field.value && (itemsQuery.isLoading || itemsQuery.isFetching)
+                            ? "Generating code…"
+                            : "Click Generate →"
+                        }
                         {...field}
                       />
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={isEdit}
+                        disabled={isEdit || itemsQuery.isLoading || itemsQuery.isFetching}
                         onClick={() =>
                           form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true })
                         }
@@ -391,25 +416,25 @@ export function RegisterETimsItemSheet({
                 <FormItem>
                   <FormLabel>Item classification code (HS)</FormLabel>
                   <FormControl>
-                    <ComboboxDropdown
-                      inDialog
-                      key={`item-cls-${field.value || "empty"}`}
-                      placeholder="Select classification code"
-                      searchPlaceholder="Search by code or name..."
-                      items={effectiveItemClassOptions}
-                      selectedItem={effectiveItemClassOptions.find(
-                        (x) => x.id === String(field.value ?? "").trim(),
-                      )}
-                      onSelect={(item) => field.onChange(item.id)}
-                      emptyResults="No classifications found"
-                      disabled={effectiveItemClassOptions.length === 0}
-                      className="w-full"
-                    />
+                    <div className="w-full">
+                      <ItemClassificationPicker
+                        key={
+                          isSyncFromNisc
+                            ? `sync-cls-${syncNiscProduct?.id}`
+                            : isEdit
+                              ? `edit-cls-${initialItem?.itemCd}`
+                              : "create-cls"
+                        }
+                        enabled={open}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    </div>
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
-                    {itemClassFetchFailed
-                      ? "KRA item classification sync is temporarily unavailable; using fallback codes."
-                      : "Choose a valid KRA item classification code (fetched from eTIMS)."}
+                    Pick a hierarchy level, search, then select a KRA classification code.
+                    Level 4 is recommended for registering services.
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -503,18 +528,18 @@ export function RegisterETimsItemSheet({
                   form.reset();
                   onOpenChange(false);
                 }}
-                disabled={saveItem.isPending}
+                disabled={isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={saveItem.isPending}>
-                {saveItem.isPending ? (
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
                   <>
                     <Spinner size={16} className="mr-2" />
-                    Registering...
+                    {isSyncFromNisc ? "Syncing..." : "Registering..."}
                   </>
                 ) : (
-                  isEdit ? "Save changes" : "Register Service"
+                  isSyncFromNisc ? "Sync now" : isEdit ? "Save changes" : "Register Service"
                 )}
               </Button>
             </SheetFooter>

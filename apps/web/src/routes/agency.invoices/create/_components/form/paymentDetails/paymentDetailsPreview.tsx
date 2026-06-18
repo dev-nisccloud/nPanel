@@ -17,9 +17,10 @@ export const PaymentDetailsPreview: React.FC<
   mpesaInstructions,
   chequeDeliveryAddress,
   chequeInstructions,
-  qrCodeValue,
+  etimsVerificationUrl,
   onClick,
 }) => {
+  const verificationQrUrl = etimsVerificationUrl?.trim() || undefined;
 
   const renderPaymentDetails = () => {
     if (paymentMethod === "bank") {
@@ -179,7 +180,7 @@ export const PaymentDetailsPreview: React.FC<
 
   return (
     <div
-      className={`grid ${qrCodeValue ? "grid-cols-2" : "grid-cols-1"} group cursor-pointer relative`}
+      className={`grid ${verificationQrUrl ? "grid-cols-2" : "grid-cols-1"} group cursor-pointer relative`}
       onClick={() => onClick && onClick("4")}
     >
       {!!onClick && (
@@ -196,14 +197,14 @@ export const PaymentDetailsPreview: React.FC<
         </p>
         {renderPaymentDetails()}
       </div>
-      {qrCodeValue ? (
+      {verificationQrUrl ? (
         <div className="py-4 px-10 flex flex-col items-end justify-center">
           <div className="w-full flex justify-end mb-3">
             <p className="text-[11px] text-neutral-400 font-medium uppercase">
-              eTIMS verification
+              Verify receipt
             </p>
           </div>
-          <QRCodeSVG value={qrCodeValue} size={96} level="M" includeMargin={false} />
+          <QRCodeSVG value={verificationQrUrl} size={96} level="M" includeMargin={false} />
         </div>
       ) : null}
     </div>

@@ -1,16 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Plus, RefreshCw, Search } from "lucide-react";
 
 import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { InvoicesTable } from "./agency.invoices/_components/invoices-table";
+import { CreditNotesTable } from "./agency.invoices/_components/credit-notes-table";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
+import type { CreditNoteSummary } from "@npanel/api/routers/invoicing/schemas";
 import {
 	Table,
 	TableBody,
@@ -63,6 +66,8 @@ const EmptyState: React.FC<{
 
 export default function InvoiceIndex() {
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
+	const activeTab = searchParams.get("tab") === "credit-notes" ? "credit-notes" : "invoices";
 	const [searchTerm, setSearchTerm] = React.useState("");
 
 	const {
@@ -75,7 +80,19 @@ export default function InvoiceIndex() {
 		{ limit: 100 },
 	);
 
+	const {
+		data: creditNotesData,
+		isLoading: isCreditNotesLoading,
+		isFetching: isCreditNotesFetching,
+		error: creditNotesError,
+		refetch: refetchCreditNotes,
+	} = trpc.invoicing.listCreditNotes.useQuery(
+		{ limit: 100 },
+		{ enabled: activeTab === "credit-notes" },
+	);
+
 	const invoices = data?.invoices ?? [];
+	const creditNotes = creditNotesData?.creditNotes ?? [];
 
 	const filteredInvoices = React.useMemo(() => {
 		if (!searchTerm.trim()) {
@@ -96,7 +113,26 @@ export default function InvoiceIndex() {
 		});
 	}, [invoices, searchTerm]);
 
-	if (isLoading) {
+	const filteredCreditNotes = React.useMemo(() => {
+		if (!searchTerm.trim()) {
+			return creditNotes;
+		}
+		const query = searchTerm.toLowerCase();
+		return creditNotes.filter((cn: CreditNoteSummary) => {
+			const creditNumber = cn.creditNumber?.toLowerCase() ?? "";
+			const invoiceNumber = cn.invoiceNumber?.toLowerCase() ?? "";
+			const original = cn.originalInvoiceNumber?.toLowerCase() ?? "";
+			const customerName = cn.customerName?.toLowerCase() ?? "";
+			return (
+				creditNumber.includes(query) ||
+				invoiceNumber.includes(query) ||
+				original.includes(query) ||
+				customerName.includes(query)
+			);
+		});
+	}, [creditNotes, searchTerm]);
+
+	if (isLoading && activeTab === "invoices") {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
@@ -119,7 +155,7 @@ export default function InvoiceIndex() {
 		);
 	}
 
-	if (error) {
+	if (error && activeTab === "invoices") {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
@@ -141,63 +177,119 @@ export default function InvoiceIndex() {
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="flex flex-col gap-2">
-					<h1 className="text-base font-semibold tracking-tight">Invoices</h1>
+					<h1 className="text-base font-semibold tracking-tight">Billing</h1>
 					<p className="text-xs text-muted-foreground">
-						Review invoices issued to teams, monitor statuses, and keep billing on track.
+						Review invoices and credit notes issued to teams.
 					</p>
 				</div>
 
-				<div className="mt-6">
-					<div className="flex items-center justify-between gap-4">
-						<div className="relative flex-1 max-w-sm">
-							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="search"
-								placeholder="Search invoices by number, customer, or status..."
-								value={searchTerm}
-								onChange={(event) => setSearchTerm(event.target.value)}
-								className="pl-9"
-							/>
-						</div>
-						<div className="flex items-center gap-2">
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={() => refetch()}
-								disabled={isFetching}
-								title="Refresh invoices"
-							>
-								<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
-							</Button>
-							<Button onClick={() => navigate("/agency/invoices/create")}>
-								<Plus className="mr-2 h-4 w-4" />
-								Create Invoice
-							</Button>
+				<Tabs
+					value={activeTab}
+					onValueChange={(value) => {
+						setSearchParams(value === "credit-notes" ? { tab: "credit-notes" } : {});
+						setSearchTerm("");
+					}}
+					className="mt-6"
+				>
+					<TabsList>
+						<TabsTrigger value="invoices">Invoices</TabsTrigger>
+						<TabsTrigger value="credit-notes">Credit Notes</TabsTrigger>
+					</TabsList>
+
+					<div className="mt-6">
+						<div className="flex items-center justify-between gap-4">
+							<div className="relative flex-1 max-w-sm">
+								<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+								<Input
+									type="search"
+									placeholder={
+										activeTab === "credit-notes"
+											? "Search credit notes..."
+											: "Search invoices by number, customer, or status..."
+									}
+									value={searchTerm}
+									onChange={(event) => setSearchTerm(event.target.value)}
+									className="pl-9"
+								/>
+							</div>
+							<div className="flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="icon"
+									onClick={() =>
+										activeTab === "credit-notes" ? refetchCreditNotes() : refetch()
+									}
+									disabled={activeTab === "credit-notes" ? isCreditNotesFetching : isFetching}
+									title="Refresh"
+								>
+									<RefreshCw
+										className={`h-4 w-4 ${(activeTab === "credit-notes" ? isCreditNotesFetching : isFetching) ? "animate-spin" : ""}`}
+									/>
+								</Button>
+								{activeTab === "invoices" ? (
+									<Button onClick={() => navigate("/agency/invoices/create")}>
+										<Plus className="mr-2 h-4 w-4" />
+										Create Invoice
+									</Button>
+								) : null}
+							</div>
 						</div>
 					</div>
-				</div>
 
-				<div className="mt-6">
-					{invoices.length === 0 ? (
-						<EmptyState
-							title="No invoices yet"
-							description="Create an invoice to start billing your teams."
-							action={
-								<Button onClick={() => navigate("/agency/invoices/create")}>
-									<Plus className="mr-2 h-4 w-4" />
-									Create Invoice
-								</Button>
-							}
-						/>
-					) : filteredInvoices.length === 0 ? (
-						<EmptyState
-							title="No invoices match your search"
-							description={`We couldn't find invoices for "${searchTerm}". Try updating your search.`}
-						/>
-					) : (
-						<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
-					)}
-				</div>
+					<TabsContent value="invoices" className="mt-6">
+						{invoices.length === 0 ? (
+							<EmptyState
+								title="No invoices yet"
+								description="Create an invoice to start billing your teams."
+								action={
+									<Button onClick={() => navigate("/agency/invoices/create")}>
+										<Plus className="mr-2 h-4 w-4" />
+										Create Invoice
+									</Button>
+								}
+							/>
+						) : filteredInvoices.length === 0 ? (
+							<EmptyState
+								title="No invoices match your search"
+								description={`We couldn't find invoices for "${searchTerm}". Try updating your search.`}
+							/>
+						) : (
+							<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
+						)}
+					</TabsContent>
+
+					<TabsContent value="credit-notes" className="mt-6">
+						{isCreditNotesLoading ? (
+							<InvoicesTableSkeleton />
+						) : creditNotesError ? (
+							<EmptyState
+								title="Unable to load credit notes"
+								description={creditNotesError.message ?? "Something went wrong."}
+								action={
+									<Button onClick={() => refetchCreditNotes()} variant="outline">
+										Try again
+									</Button>
+								}
+							/>
+						) : creditNotes.length === 0 ? (
+							<EmptyState
+								title="No credit notes yet"
+								description="Credit notes appear here after you issue one from a KRA-synced invoice."
+							/>
+						) : filteredCreditNotes.length === 0 ? (
+							<EmptyState
+								title="No credit notes match your search"
+								description={`We couldn't find credit notes for "${searchTerm}".`}
+							/>
+						) : (
+							<CreditNotesTable
+								creditNotes={filteredCreditNotes}
+								detailPathPrefix="/agency/invoices/credit-notes"
+								onRefetch={refetchCreditNotes}
+							/>
+						)}
+					</TabsContent>
+				</Tabs>
 			</div>
 		</div>
 	);

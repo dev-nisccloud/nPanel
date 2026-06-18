@@ -14,3 +14,19 @@ export const PLANLESS_SERVICE_TYPES = {
 	vdsHosting: "vds_hosting",
 	dedicatedServers: "dedicated_server_hosting",
 } as const;
+
+/** Stable nisc_product ids for Hivelocity checkout (see seed-planless-services). */
+export const HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE = {
+	DEDICATED_SERVERS: NISC_DEDICATED_SERVERS_PRODUCT_ID,
+	VPS: NISC_VPS_HOSTING_PRODUCT_ID,
+	VDS: NISC_VDS_HOSTING_PRODUCT_ID,
+} as const;
+
+/** Prefer canonical seed id when multiple active catalog rows match the same service. */
+export function pickActivePlanlessProductId(
+	products: ReadonlyArray<{ id: string }> | undefined,
+	canonicalId: string,
+): string | undefined {
+	if (!products?.length) return undefined;
+	return products.find((p) => p.id === canonicalId)?.id ?? products[0]?.id;
+}

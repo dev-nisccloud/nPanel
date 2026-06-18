@@ -24,6 +24,8 @@ import {
     Trash2,
     LayoutGrid,
     Layers,
+    CloudUpload,
+    CloudOff,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -52,10 +54,21 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { authClient } from "@/lib/auth-client";
 
 import { AddEditProductSheet } from "./add-edit-product-sheet";
 import { ViewProductSheet } from "./view-product-sheet";
 import { ManagePlansSheet } from "./manage-plans-sheet";
+import {
+    RegisterETimsItemSheet,
+    type NiscProductKraSyncSource,
+} from "../../agency.kra-etims/products/_components/register-etims-item-sheet";
 import {
     getCategoryDisplayName,
     getCategoryBadgeClass,
@@ -178,6 +191,19 @@ export function NiscServicesDataTable() {
     // Manage plans sheet (product whose plans we're editing)
     const [managePlansProductId, setManagePlansProductId] = React.useState<string | null>(null);
 
+    const [syncKraOpen, setSyncKraOpen] = React.useState(false);
+    const [syncKraProduct, setSyncKraProduct] = React.useState<NiscProductKraSyncSource | null>(null);
+
+    const [unregisterDialogOpen, setUnregisterDialogOpen] = React.useState(false);
+    const [productToUnregister, setProductToUnregister] = React.useState<{
+        id: string;
+        name: string;
+        etimsItemCd: string;
+    } | null>(null);
+
+    const { data: session } = authClient.useSession();
+    const isSuperAdmin = (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
+
     const { data, isLoading, isError, error, refetch } = trpc.products.getAll.useQuery(
         categoryFilter !== "ALL" ? { category: categoryFilter as any } : undefined,
     );
@@ -215,6 +241,18 @@ export function NiscServicesDataTable() {
         },
         onError: (err) => {
             toast.error(err.message || "Failed to reactivate product");
+        },
+    });
+
+    const unregisterFromKra = trpc.products.unregisterFromKra.useMutation({
+        onSuccess: () => {
+            toast.success("Service unregistered from KRA eTIMS");
+            setUnregisterDialogOpen(false);
+            setProductToUnregister(null);
+            utils.products.getAll.invalidate();
+        },
+        onError: (err) => {
+            toast.error(err.message || "Failed to unregister from KRA eTIMS");
         },
     });
 
@@ -266,6 +304,42 @@ export function NiscServicesDataTable() {
 
     const handleManagePlans = (id: string) => {
         setManagePlansProductId(id);
+    };
+
+    const handleSyncKra = (product: {
+        id: string;
+        name: string;
+        etimsItemCd?: string | null;
+        etimsItemClsCd?: string | null;
+        etimsTaxTyCd?: string | null;
+        etimsDefaultPrice?: string | null;
+        etimsPkgUnitCd?: string | null;
+        etimsQtyUnitCd?: string | null;
+    }) => {
+        setSyncKraProduct({
+            id: product.id,
+            name: product.name,
+            etimsItemClsCd: product.etimsItemClsCd,
+            etimsTaxTyCd: product.etimsTaxTyCd,
+            etimsDefaultPrice: product.etimsDefaultPrice,
+            etimsPkgUnitCd: product.etimsPkgUnitCd,
+            etimsQtyUnitCd: product.etimsQtyUnitCd,
+        });
+        setSyncKraOpen(true);
+    };
+
+    const handleUnregisterKra = (product: {
+        id: string;
+        name: string;
+        etimsItemCd?: string | null;
+    }) => {
+        if (!product.etimsItemCd) return;
+        setProductToUnregister({
+            id: product.id,
+            name: product.name,
+            etimsItemCd: product.etimsItemCd,
+        });
+        setUnregisterDialogOpen(true);
     };
 
     const handleSheetClose = () => {
@@ -461,7 +535,7 @@ export function NiscServicesDataTable() {
                                                             <span className="sr-only">Actions</span>
                                                         </Button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-40">
+                                                    <DropdownMenuContent align="end" className="w-52">
                                                         <DropdownMenuItem onSelect={() => handleView(product.id)}>
                                                             <Eye className="mr-2 h-4 w-4" />
                                                             View
@@ -474,6 +548,42 @@ export function NiscServicesDataTable() {
                                                             <Layers className="mr-2 h-4 w-4" />
                                                             Manage plans
                                                         </DropdownMenuItem>
+                                                        {product.etimsItemCd ? (
+                                                            <TooltipProvider delayDuration={200}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <span className="block w-full">
+                                                                            <DropdownMenuItem
+                                                                                disabled
+                                                                                className="w-full"
+                                                                                onSelect={(e) => e.preventDefault()}
+                                                                            >
+                                                                                <CloudUpload className="mr-2 h-4 w-4" />
+                                                                                Sync with KRA
+                                                                            </DropdownMenuItem>
+                                                                        </span>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="left" className="max-w-64">
+                                                                        Already registered on KRA eTIMS
+                                                                        ({product.etimsItemCd})
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        ) : (
+                                                            <DropdownMenuItem onSelect={() => handleSyncKra(product)}>
+                                                                <CloudUpload className="mr-2 h-4 w-4" />
+                                                                Sync with KRA
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {isSuperAdmin && product.etimsItemCd && (
+                                                            <DropdownMenuItem
+                                                                onSelect={() => handleUnregisterKra(product)}
+                                                                className="text-destructive focus:text-destructive"
+                                                            >
+                                                                <CloudOff className="mr-2 h-4 w-4" />
+                                                                Unregister from KRA eTIMS
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         <>
                                                             <DropdownMenuSeparator />
                                                             {product.isActive ? (
@@ -544,6 +654,20 @@ export function NiscServicesDataTable() {
                 onSuccess={() => refetch()}
             />
 
+            <RegisterETimsItemSheet
+                open={syncKraOpen}
+                onOpenChange={(open) => {
+                    setSyncKraOpen(open);
+                    if (!open) setSyncKraProduct(null);
+                }}
+                syncNiscProduct={syncKraProduct}
+                onSuccess={() => {
+                    refetch();
+                    setSyncKraOpen(false);
+                    setSyncKraProduct(null);
+                }}
+            />
+
             {/* Deactivate dialog */}
             <AlertDialog open={deactivateDialogOpen} onOpenChange={setDeactivateDialogOpen}>
                 <AlertDialogContent>
@@ -598,6 +722,37 @@ export function NiscServicesDataTable() {
                                 <><Spinner className="mr-2 h-4 w-4" />Deleting...</>
                             ) : (
                                 "Delete"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Unregister from KRA eTIMS (super admin only) */}
+            <AlertDialog open={unregisterDialogOpen} onOpenChange={setUnregisterDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Unregister from KRA eTIMS?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will deactivate <strong>{productToUnregister?.name}</strong> on KRA
+                            ({productToUnregister?.etimsItemCd}) and remove all eTIMS fields from this
+                            Nisc service. You can sync it again later if needed.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={unregisterFromKra.isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() =>
+                                productToUnregister &&
+                                unregisterFromKra.mutate({ id: productToUnregister.id })
+                            }
+                            disabled={unregisterFromKra.isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {unregisterFromKra.isPending ? (
+                                <><Spinner className="mr-2 h-4 w-4" />Unregistering...</>
+                            ) : (
+                                "Unregister"
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

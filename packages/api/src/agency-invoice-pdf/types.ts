@@ -45,6 +45,9 @@ export type PaymentMethod = "bank" | "mpesa" | "cheque";
 export type PaymentDetails = {
   paymentMethod?: PaymentMethod;
   currency?: string;
+  /** KRA eTIMS receipt verification URL — the only QR source rendered on PDFs. */
+  etimsVerificationUrl?: string;
+  /** @deprecated Bank/marketing QR values must not appear on fiscal PDFs. */
   qrCodeValue?: string;
   // Bank transfer fields
   bankName?: string;
@@ -66,5 +69,13 @@ export type InvoiceTerms = {
   invoiceNumber?: string;
   issueDate?: string | Date;
   dueDate?: string | Date;
+  /** Shown on credit notes instead of due date */
+  originalInvoiceNumber?: string;
+  /** Meta label for the document number row (default: INVOICE NO) */
+  numberLabel?: string;
+  /** When false, due date row is hidden (credit notes) */
+  showDueDate?: boolean;
 };
+
+export type { EtimsFiscalFields } from "../lib/etims-fiscal-fields";
 

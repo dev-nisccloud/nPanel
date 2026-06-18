@@ -27,6 +27,8 @@ import {
 import { team, teamBillingSettings, teamMember } from "@npanel/db/schema/teams";
 import * as crypto from "crypto";
 import { ensurePleskIntegration, provisionToPlesk } from "../lib/plesk-integration";
+import { buildInvoiceKraInsertFields } from "../lib/invoice-kra-db-fields";
+import { COMPANY_LOGO_URL } from "../lib/company-branding";
 
 type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbLike = typeof db | DbTransaction;
@@ -2155,7 +2157,7 @@ export const ordersRouter = router({
 							dueDate.setDate(dueDate.getDate() + 7); // 7 days from issue date
 
 							// Prepare invoice data
-							const companyLogoUrl = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
+							const companyLogoUrl = COMPANY_LOGO_URL;
 							
 							const fromDetails = {
 								name: "Nisc Cloud Limited",
@@ -2186,20 +2188,7 @@ export const ordersRouter = router({
 								paybillNumber: "303030",
 								accountNumber: "2052676528",
 								instructions: "Absa Bank Kenya",
-								qrCodeValue: "www.nisccloud.com",
 							};
-
-							// Generate QR code
-							let qrCodeDataUrl: string | undefined;
-							try {
-								const QRCodeUtil = await import("qrcode");
-								qrCodeDataUrl = await QRCodeUtil.toDataURL(paymentDetails.qrCodeValue, {
-									width: 120,
-									margin: 1,
-								});
-							} catch (error) {
-								console.error("Failed to generate QR code:", error);
-							}
 
 							// Create invoice in transaction
 							// invoiceId is a UUID (unique identifier), invoiceNumber is sequential (e.g., INV-0001)
@@ -2233,7 +2222,6 @@ export const ordersRouter = router({
 									customerDetails,
 									paymentDetails: {
 										...paymentDetails,
-										qrCodeDataUrl,
 									},
 									template: {
 										logoUrl: companyLogoUrl,
@@ -2242,6 +2230,7 @@ export const ordersRouter = router({
 									updatedBy: session.user!.id,
 									createdAt: invoiceNow,
 									updatedAt: invoiceNow,
+									...buildInvoiceKraInsertFields(),
 								});
 
 								for (const item of lineItems) {

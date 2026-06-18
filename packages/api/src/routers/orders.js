@@ -12,6 +12,7 @@ import { order as orderTable, orderActivityLog, orderItem, orderItemActivityLog,
 import { team, teamBillingSettings, teamMember } from "@npanel/db/schema/teams";
 import * as crypto from "crypto";
 import { ensurePleskIntegration, provisionToPlesk } from "../lib/plesk-integration";
+import { COMPANY_LOGO_URL } from "../lib/company-branding.js";
 const isAgencyRole = (role) => role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
 /** Sequential invoice number (same pattern as invoicing router). */
 async function generateNextInvoiceNumber(tx) {
@@ -1940,7 +1941,7 @@ export const ordersRouter = router({
                         const dueDate = new Date(issueDate);
                         dueDate.setDate(dueDate.getDate() + 7); // 7 days from issue date
                         // Prepare invoice data
-                        const companyLogoUrl = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
+                        const companyLogoUrl = COMPANY_LOGO_URL;
                         const fromDetails = {
                             name: "Nisc Cloud Limited",
                             email: "billing@nisccloud.com",

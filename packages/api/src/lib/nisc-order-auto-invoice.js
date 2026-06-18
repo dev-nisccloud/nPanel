@@ -12,7 +12,7 @@ import { buildNiscOrderInvoiceLineItemCopy } from "./nisc-order-invoice-line-ite
 import { hivelocityInvoiceLineSchema } from "../routers/nisc-service-orders-schemas";
 import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc-order-tax";
 import { buildDomainBundleInvoiceLineDescription, buildDomainBundleInvoiceLineName, groupDomainBundleItemsForInvoice, } from "./domain-bundle-order";
-const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
+import { COMPANY_LOGO_URL } from "./company-branding.js";
 const FROM_DETAILS = {
     name: "Nisc Cloud Limited",
     email: "accounts@nisccloud.com",

@@ -16,16 +16,21 @@ import {
 	invoiceLineItem,
 } from "@npanel/db/schema/invoicing";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
-import { buildNiscOrderInvoiceLineItemCopy } from "./nisc-order-invoice-line-items";
-import { hivelocityInvoiceLineSchema, type HivelocityInvoiceLine } from "../routers/nisc-service-orders-schemas";
+import { buildNiscOrderInvoiceLineItemCopy, resolveHostingServiceLabel } from "./nisc-order-invoice-line-items";
+import {
+	buildHivelocityCollapsedInvoiceLineCopy,
+	isHivelocityOrderItem,
+} from "./hivelocity-billing-utils";
+import { buildInvoiceKraInsertFields } from "./invoice-kra-db-fields";
 import { NISC_ORDER_VAT_PERCENTAGE, computeNiscOrderTotalsWithTax } from "./nisc-order-tax";
 import {
 	buildDomainBundleInvoiceLineDescription,
 	buildDomainBundleInvoiceLineName,
+	buildDomainBundleKraItemName,
 	groupDomainBundleItemsForInvoice,
 } from "./domain-bundle-order";
-
-const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
+import { buildNiscInvoiceLineMetadata } from "./invoice-kra-mapper";
+import { COMPANY_LOGO_URL } from "./company-branding";
 
 const FROM_DETAILS = {
 	name: "Nisc Cloud Limited",
@@ -46,12 +51,18 @@ const BANK_PAYMENT_DETAILS = {
 	accountNumber: "2052676528",
 	accountName: "Nisc Cloud Limited",
 	swiftCode: "BARCKENX",
-	qrCodeValue: "www.nisccloud.com",
 };
 
 const TAX_PERCENTAGE = NISC_ORDER_VAT_PERCENTAGE;
 
 export { isTeamBillingComplete };
+
+function resolveOrderItemProductId(item: {
+	productId?: string;
+	product: { id?: string };
+}): string | null {
+	return item.productId?.trim() || item.product.id?.trim() || null;
+}
 
 export async function createInvoiceForNiscOrder(
 	_prisma: unknown,
@@ -84,21 +95,7 @@ export async function createInvoiceForNiscOrder(
 		taxId: billing.taxId ?? null,
 	};
 
-	let qrCodeDataUrl: string | undefined;
-	try {
-		const QRCodeUtil = await import("qrcode");
-		qrCodeDataUrl = await QRCodeUtil.toDataURL(BANK_PAYMENT_DETAILS.qrCodeValue, {
-			width: 120,
-			margin: 1,
-		});
-	} catch {
-		// optional
-	}
-
-	const paymentDetails = {
-		...BANK_PAYMENT_DETAILS,
-		...(qrCodeDataUrl && { qrCodeDataUrl }),
-	};
+	const paymentDetails = { ...BANK_PAYMENT_DETAILS };
 
 	const newInvoiceId = crypto.randomUUID();
 	const token = crypto.randomUUID();
@@ -140,6 +137,7 @@ export async function createInvoiceForNiscOrder(
 		updatedBy: createdBy,
 		createdAt: now,
 		updatedAt: now,
+		...buildInvoiceKraInsertFields(),
 	});
 
 	const subscriptionDate = order.createdAt ?? now;
@@ -164,6 +162,13 @@ export async function createInvoiceForNiscOrder(
 			parseFloat(lead.itemSubtotal || "0") > 0
 				? lead.itemSubtotal
 				: String(group.bundlePrice);
+		const bundleMeta = buildNiscInvoiceLineMetadata({
+			productId: resolveOrderItemProductId(lead) ?? "",
+			serviceType: lead.product.serviceType,
+			kraItemNm: buildDomainBundleKraItemName(group.domains),
+			isDomainBundle: true,
+			bundleDomains: group.domains,
+		});
 		lineItems.push({
 			id: crypto.randomUUID(),
 			invoiceId: newInvoiceId,
@@ -173,50 +178,40 @@ export async function createInvoiceForNiscOrder(
 			quantity: 1,
 			price: bundleSubtotal,
 			total: bundleSubtotal,
+			...(bundleMeta ? { metadata: bundleMeta } : {}),
 		});
 	}
 
 	for (const item of nonBundleItems) {
-		const rawMeta = item.metadata;
-		const invoiceLinesRaw =
-			rawMeta &&
-			typeof rawMeta === "object" &&
-			"invoiceLines" in rawMeta &&
-			Array.isArray((rawMeta as { invoiceLines?: unknown }).invoiceLines)
-				? (rawMeta as { invoiceLines: unknown[] }).invoiceLines
-				: null;
-
-		const hivelocityLines = invoiceLinesRaw
-			?.map((line) => hivelocityInvoiceLineSchema.safeParse(line))
-			.filter((r): r is { success: true; data: HivelocityInvoiceLine } => r.success)
-			.map((r) => r.data);
-
-		if (hivelocityLines && hivelocityLines.length > 0) {
-			const { description: subscriptionPeriod } = buildNiscOrderInvoiceLineItemCopy(
-				{
-					...item,
-					product: {
-						name: item.product.name,
-						serviceType: item.product.serviceType ?? null,
-					},
+		if (isHivelocityOrderItem(item)) {
+			const { name, description } = buildHivelocityCollapsedInvoiceLineCopy({
+				product: {
+					name: item.product.name,
+					serviceType: item.product.serviceType ?? null,
 				},
-				subscriptionDate,
-			);
-			for (const line of hivelocityLines) {
-				const amount = line.amountExVat.toFixed(2);
-				lineItems.push({
-					id: crypto.randomUUID(),
-					invoiceId: newInvoiceId,
-					position: position++,
-					name: line.name,
-					description:
-						line.description?.trim() ||
-						(line.kind === "base" ? subscriptionPeriod : undefined),
-					quantity: 1,
-					price: amount,
-					total: amount,
-				});
-			}
+				metadata: item.metadata,
+				billingCycle: item.billingCycle,
+				subscriptionStart: subscriptionDate,
+			});
+			const hivelocityMeta = buildNiscInvoiceLineMetadata({
+				productId: resolveOrderItemProductId(item) ?? "",
+				serviceType: item.product.serviceType,
+				kraItemNm: resolveHostingServiceLabel(
+					item.product.serviceType,
+					item.product.name,
+				),
+			});
+			lineItems.push({
+				id: crypto.randomUUID(),
+				invoiceId: newInvoiceId,
+				position: position++,
+				name,
+				description,
+				quantity: 1,
+				price: item.itemSubtotal,
+				total: item.itemSubtotal,
+				...(hivelocityMeta ? { metadata: hivelocityMeta } : {}),
+			});
 			continue;
 		}
 
@@ -230,6 +225,10 @@ export async function createInvoiceForNiscOrder(
 			},
 			subscriptionDate,
 		);
+		const lineMeta = buildNiscInvoiceLineMetadata({
+			productId: resolveOrderItemProductId(item) ?? "",
+			serviceType: item.product.serviceType,
+		});
 		lineItems.push({
 			id: crypto.randomUUID(),
 			invoiceId: newInvoiceId,
@@ -239,6 +238,7 @@ export async function createInvoiceForNiscOrder(
 			quantity: 1,
 			price: item.itemPrice,
 			total: item.itemSubtotal,
+			...(lineMeta ? { metadata: lineMeta } : {}),
 		});
 	}
 
@@ -252,6 +252,7 @@ export async function createInvoiceForNiscOrder(
 			quantity: item.quantity,
 			price: item.price,
 			total: item.total,
+			metadata: item.metadata ?? null,
 			createdAt: now,
 			updatedAt: now,
 		});

@@ -6,7 +6,7 @@ import type {
 	Item,
 } from "@/routes/agency.quotations/create/types";
 
-const DEFAULT_LOGO = "https://1ris7itpac.ufs.sh/f/Djp547U8wumpWQzBihElLmSnxiqhFZB2ajbeTk0Y6XofJ4Mp";
+import { COMPANY_LOGO_URL as DEFAULT_LOGO } from "@npanel/api/lib/company-branding";
 
 /** Quotation shape as received from tRPC (dates may be serialized as strings). */
 export type QuotationForPreview = {

@@ -2,21 +2,14 @@
 
 import * as React from "react";
 import { useParams, useNavigate, useLocation, Outlet } from "react-router";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
-import { transformInvoiceToPreviewData } from "./$slug.invoices/$id/_utils/transformInvoiceData";
-import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
-import type {
-	YourDetails,
-	CompanyDetails,
-	InvoiceItemDetails,
-	PaymentDetails,
-	InvoiceTerms,
-} from "@/routes/agency.invoices/create/types";
+import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
+import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
 
 // Font registration state
 let fontsRegistered = false;
@@ -95,112 +88,6 @@ const registerFonts = async (): Promise<boolean> => {
 	}
 };
 
-// Hardcoded company logo URL
-const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
-
-// Helper function to convert InvoiceDetail to PDF data format
-function convertInvoiceToPdfData(invoice: InvoiceDetail) {
-	const fromDetails = invoice.fromDetails as any;
-	const customerDetails = invoice.customerDetails as any;
-	const paymentDetails = invoice.paymentDetails as any;
-
-	// Always use the hardcoded company logo URL
-	const logoUrl = COMPANY_LOGO_URL;
-
-	const yourDetails: YourDetails = {
-		yourName: fromDetails?.name,
-		yourEmail: fromDetails?.email,
-		yourAddress: fromDetails?.address,
-		yourCity: fromDetails?.city,
-		yourState: fromDetails?.state,
-		yourCountry: fromDetails?.country,
-		yourZip: fromDetails?.zip,
-		yourTaxId: fromDetails?.taxId,
-		yourLogo: logoUrl,
-	};
-
-	const companyDetails: CompanyDetails = {
-		companyName: customerDetails?.name,
-		email: customerDetails?.email,
-		companyAddress: customerDetails?.address,
-		companyCity: customerDetails?.city,
-		companyState: customerDetails?.state,
-		companyCountry: customerDetails?.country,
-		companyZip: customerDetails?.zip,
-		companyTaxId: customerDetails?.taxId,
-	};
-
-	const invoiceDetails: InvoiceItemDetails = {
-		note: invoice.note || undefined,
-		discount: invoice.discount || undefined,
-		taxPercentage: invoice.taxPercentage || undefined,
-		currency: invoice.currency,
-		items: invoice.lineItems.map((item) => ({
-			id: item.id,
-			itemDescription: item.description
-				? `${item.name || "Service"}. ${item.description}`
-				: (item.name || "Service"),
-			amount: item.price ? Number(item.price) : undefined,
-			qty: item.quantity || undefined,
-		})),
-	};
-
-	// Convert payment method from database format to PDF format
-	const paymentMethodApi = paymentDetails?.paymentMethod;
-	let paymentMethod: "bank" | "mpesa" | "cheque" | undefined;
-	
-	if (paymentMethodApi === "BANK_TRANSFER" || paymentMethodApi === "bank_transfer" || paymentMethodApi === "bank") {
-		paymentMethod = "bank";
-	} else if (paymentMethodApi === "MPESA" || paymentMethodApi === "mpesa") {
-		paymentMethod = "mpesa";
-	} else if (paymentMethodApi === "CHEQUE" || paymentMethodApi === "cheque") {
-		paymentMethod = "cheque";
-	}
-	
-	if (!paymentMethod) {
-		paymentMethod = "mpesa";
-	}
-	
-	const paymentDetailsFormatted: PaymentDetails = {
-		paymentMethod,
-		currency: invoice.currency || "KES",
-		...(typeof paymentDetails?.qrCodeValue === "string" && paymentDetails.qrCodeValue.trim()
-			? { qrCodeValue: paymentDetails.qrCodeValue.trim() }
-			: {}),
-		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
-		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
-		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,
-		branchName: paymentMethod === "bank" ? paymentDetails?.branchName : undefined,
-		branchCode: paymentMethod === "bank" ? paymentDetails?.branchCode : undefined,
-		swiftCode: paymentMethod === "bank" ? paymentDetails?.swiftCode : undefined,
-		mpesaPaybillNumber: paymentMethod === "mpesa" 
-			? (paymentDetails?.mpesaPaybillNumber || "303030")
-			: undefined,
-		mpesaAccountNumber: paymentMethod === "mpesa"
-			? (paymentDetails?.mpesaAccountNumber || "2052676528")
-			: undefined,
-		mpesaInstructions: paymentMethod === "mpesa"
-			? (paymentDetails?.mpesaInstructions || "Absa Bank Kenya")
-			: undefined,
-		chequeDeliveryAddress: paymentMethod === "cheque" ? paymentDetails?.chequeDeliveryAddress : undefined,
-		chequeInstructions: paymentMethod === "cheque" ? paymentDetails?.chequeInstructions : undefined,
-	};
-
-	const invoiceTerms: InvoiceTerms = {
-		invoiceNumber: invoice.invoiceNumber || undefined,
-		issueDate: invoice.issueDate ? new Date(invoice.issueDate) : undefined,
-		dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
-	};
-
-	return {
-		yourDetails,
-		companyDetails,
-		invoiceDetails,
-		paymentDetails: paymentDetailsFormatted,
-		invoiceTerms,
-	};
-}
-
 export default function InvoiceViewPage() {
 	const params = useParams();
 	const navigate = useNavigate();
@@ -222,41 +109,13 @@ export default function InvoiceViewPage() {
 		if (!invoice) return;
 		try {
 			setIsDownloading(true);
-			const [
-				{ Document, Page },
-				{ pdf },
-				{ PdfDetails },
-				{ pdfContainers },
-			] = await Promise.all([
+			const [{ pdf }, { buildAgencyInvoicePdfDocument }] = await Promise.all([
 				import("@react-pdf/renderer"),
-				import("@react-pdf/renderer"),
-				import("@/routes/agency.invoices/create/_components/form/pdfDetails"),
-				import("@/lib/pdfStyles"),
+				import("@/lib/build-agency-invoice-pdf-document"),
 			]);
 			await registerFonts();
-			const pdfData = convertInvoiceToPdfData(invoice);
-			let qrCodeDataUrl: string | undefined;
-			if (pdfData.paymentDetails.qrCodeValue) {
-				try {
-					const QRCodeUtil = await import("qrcode") as { toDataURL: (value: string, opts: { width: number; margin: number }) => Promise<string> };
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, { width: 120, margin: 1 });
-				} catch (error) {
-					console.error("Failed to generate QR code:", error);
-				}
-			}
-			const blob = await pdf(
-				<Document>
-					<Page size="A4" style={pdfContainers.page}>
-						<PdfDetails
-							companyDetails={pdfData.companyDetails}
-							invoiceDetails={pdfData.invoiceDetails}
-							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{ ...pdfData.paymentDetails, qrCodeDataUrl }}
-							yourDetails={pdfData.yourDetails}
-						/>
-					</Page>
-				</Document>
-			).toBlob();
+			const doc = await buildAgencyInvoicePdfDocument(invoice);
+			const blob = await pdf(doc).toBlob();
 			const url = URL.createObjectURL(blob);
 			const link = document.createElement("a");
 			link.href = url;
@@ -304,6 +163,17 @@ export default function InvoiceViewPage() {
 	}
 
 	const previewData = transformInvoiceToPreviewData(invoice);
+	const pdfMeta = buildInvoicePdfDetails(invoice);
+	const existingCreditNoteId = invoice.creditNote?.id;
+	const etimsFiscal = invoice.etimsFiscal ?? pdfMeta.etimsFiscal;
+	const paymentDetails = {
+		...previewData.paymentDetails,
+		etimsVerificationUrl:
+			previewData.paymentDetails.etimsVerificationUrl ??
+			invoice.etimsFiscal?.verificationUrl ??
+			invoice.kraVerificationUrl ??
+			undefined,
+	};
 
 	return (
 		<>
@@ -327,34 +197,46 @@ export default function InvoiceViewPage() {
 							</p>
 						</div>
 					</div>
-					<Button
-						onClick={handleDownloadInvoice}
-						disabled={isDownloading}
-						variant="outline"
-					>
-						{isDownloading ? (
-							<>
-								<Spinner className="mr-2 h-4 w-4" />
-								Downloading...
-							</>
-						) : (
-							<>
-								<Download className="mr-2 h-4 w-4" />
-								Download Invoice
-							</>
-						)}
-					</Button>
+					<div className="flex items-center gap-2">
+						{existingCreditNoteId ? (
+							<Button
+								variant="outline"
+								onClick={() =>
+									navigate(`/${teamSlug}/invoices/credit-notes/${existingCreditNoteId}`)
+								}
+							>
+								<FileText className="mr-2 h-4 w-4" />
+								View credit note
+							</Button>
+						) : null}
+						<Button
+							onClick={handleDownloadInvoice}
+							disabled={isDownloading}
+							variant="outline"
+						>
+							{isDownloading ? (
+								<>
+									<Spinner className="mr-2 h-4 w-4" />
+									Downloading...
+								</>
+							) : (
+								<>
+									<Download className="mr-2 h-4 w-4" />
+									Download Invoice
+								</>
+							)}
+						</Button>
+					</div>
 				</div>
 
-				{/* Center the preview */}
 				<div className="flex justify-center items-start">
 					<PreviewDetails
 						yourDetails={previewData.yourDetails}
 						companyDetails={previewData.companyDetails}
 						invoiceDetails={previewData.invoiceDetails}
-						paymentDetails={previewData.paymentDetails}
+						paymentDetails={paymentDetails}
 						invoiceTerms={previewData.invoiceTerms}
-						// No onClick handler - makes sections non-clickable
+						etimsFiscal={etimsFiscal}
 					/>
 				</div>
 			</div>
@@ -362,5 +244,3 @@ export default function InvoiceViewPage() {
 		</>
 	);
 }
-
-

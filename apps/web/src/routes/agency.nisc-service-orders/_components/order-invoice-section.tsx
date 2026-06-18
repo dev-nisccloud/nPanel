@@ -62,11 +62,24 @@ export function OrderInvoiceSection({
 							Not emailed
 						</Badge>
 					)}
+					{invoiceState.kraSynced === false && (
+						<Badge variant="destructive" className="text-xs">
+							KRA not synced
+						</Badge>
+					)}
+					{invoiceState.kraSynced === true && (
+						<Badge variant="outline" className="text-xs text-green-700 border-green-600/30">
+							KRA synced
+						</Badge>
+					)}
 					{invoiceState.source === "user_profile" && !compact && (
 						<Badge variant="outline" className="text-xs">
 							From customer profile
 						</Badge>
 					)}
+					{invoiceState.kraError && invoiceState.kraSynced === false && !compact ? (
+						<p className="text-xs text-destructive w-full">{invoiceState.kraError}</p>
+					) : null}
 				</div>
 			</div>
 		);

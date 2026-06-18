@@ -3,7 +3,9 @@ import { InvoiceDetailsPreview } from "@/routes/agency.invoices/create/_componen
 import { InvoiceTermsPreview } from "@/routes/agency.invoices/create/_components/form/invoiceTerms/InvoiceTermsPreview";
 import { PaymentDetailsPreview } from "@/routes/agency.invoices/create/_components/form/paymentDetails/paymentDetailsPreview";
 import { InvoiceHeaderPreview } from "@/routes/agency.invoices/create/_components/form/header/invoiceHeaderPreview";
+import { EtimsFiscalFooterPreview } from "@/routes/agency.invoices/create/_components/form/etimsFiscalFooterPreview";
 import { ChevronDown } from "lucide-react";
+import type { EtimsFiscalFields } from "@npanel/api/lib/etims-fiscal-fields";
 import type {
   YourDetails,
   CompanyDetails,
@@ -18,19 +20,22 @@ export const PreviewDetails = ({
   invoiceDetails,
   paymentDetails,
   invoiceTerms,
+  etimsFiscal,
   onClick,
+  documentTitle,
 }: {
   yourDetails: YourDetails;
   companyDetails: CompanyDetails;
   invoiceDetails: InvoiceItemDetails;
   paymentDetails: PaymentDetails;
   invoiceTerms: InvoiceTerms;
+  etimsFiscal?: EtimsFiscalFields | null;
   onClick?: (step: string) => void;
+  documentTitle?: string;
 }) => (
   <div className="overflow-x-auto overflow-y-visible">
     <div className="w-[595px] min-h-[842px] bg-white rounded-2xl border border-dashed justify-center items-center">
-      {/* New header: Logo on left, From on right, then INVOICE separator */}
-      <InvoiceHeaderPreview {...yourDetails} onClick={onClick} />
+      <InvoiceHeaderPreview {...yourDetails} onClick={onClick} title={documentTitle} />
       
       {/* Bill To section on left, Invoice number and dates on right */}
       <div className="border-b grid grid-cols-2 justify-between border-dashed">
@@ -61,6 +66,7 @@ export const PreviewDetails = ({
         <div className="">
           <PaymentDetailsPreview {...paymentDetails} onClick={onClick} />
         </div>
+        {etimsFiscal ? <EtimsFiscalFooterPreview etimsFiscal={etimsFiscal} /> : null}
       </div>
     </div>
   </div>

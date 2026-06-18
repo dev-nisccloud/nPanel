@@ -3,9 +3,7 @@
  * Mirrors apps/web invoice-pdf-data (kept in API for workers and server routes).
  */
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
-
-const COMPANY_LOGO_URL =
-	"https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
+import { COMPANY_LOGO_URL } from "./company-branding";
 
 export type InvoiceForPdfData = Pick<
 	InvoiceDetail,
@@ -65,7 +63,6 @@ export interface InvoicePdfRenderData {
 	accountNumber?: string;
 	accountName?: string;
 	swiftCode?: string;
-	qrCodeValue?: string;
 }
 
 function formatPdfDate(value: Date | string | null | undefined): string {
@@ -133,7 +130,6 @@ export function convertInvoiceDetailToPdfRenderData(invoice: InvoiceForPdfData):
 		accountNumber: payment.accountNumber ? String(payment.accountNumber) : undefined,
 		accountName: payment.accountName ? String(payment.accountName) : undefined,
 		swiftCode: payment.swiftCode ? String(payment.swiftCode) : undefined,
-		qrCodeValue: payment.qrCodeValue ? String(payment.qrCodeValue) : undefined,
 	};
 }
 
