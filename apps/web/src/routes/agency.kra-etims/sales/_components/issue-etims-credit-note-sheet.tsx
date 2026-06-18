@@ -24,6 +24,16 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { trpc } from "@/utils/trpc";
 
 export const CREDIT_NOTE_REASONS = [
@@ -174,6 +184,9 @@ export function IssueETimsCreditNoteSheet({
     availableSales?: EtimsSaleForCreditNote[];
     onSuccess?: () => void;
 }) {
+    const [confirmOpen, setConfirmOpen] = React.useState(false);
+    const [pendingSubmit, setPendingSubmit] = React.useState<FormData | null>(null);
+
     const form = useForm<FormData>({
         resolver: zodResolver(formSchema),
         defaultValues: { orgInvcNo: "", rfdRsnCd: "06", remark: "" },
@@ -207,7 +220,7 @@ export function IssueETimsCreditNoteSheet({
         onError: (err) => toast.error(err.message || "Failed to issue credit note"),
     });
 
-    const onSubmit = (values: FormData) => {
+    const submitCreditNote = (values: FormData) => {
         const source = sale ?? availableSales.find((s) => String(s.invcNo) === values.orgInvcNo);
         if (!source) {
             toast.error("Select the original invoice to credit");
@@ -218,7 +231,90 @@ export function IssueETimsCreditNoteSheet({
         });
     };
 
+    const onSubmit = (values: FormData) => {
+        const source = sale ?? availableSales.find((s) => String(s.invcNo) === values.orgInvcNo);
+        if (!source) {
+            toast.error("Select the original invoice to credit");
+            return;
+        }
+        setPendingSubmit(values);
+        setConfirmOpen(true);
+    };
+
+    const pendingSource = pendingSubmit
+        ? (sale ?? availableSales.find((s) => String(s.invcNo) === pendingSubmit.orgInvcNo) ?? null)
+        : null;
+
     return (
+        <>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Submit credit note to KRA?</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                        <div className="space-y-3 text-sm text-muted-foreground">
+                            <p>
+                                You are about to register a fiscal credit note against original invoice{" "}
+                                <span className="font-mono font-semibold text-foreground">
+                                    #{pendingSource?.invcNo ?? pendingSubmit?.orgInvcNo}
+                                </span>
+                                {pendingSource?.custNm ? (
+                                    <>
+                                        {" "}for{" "}
+                                        <span className="font-semibold text-foreground">{pendingSource.custNm}</span>
+                                    </>
+                                ) : null}
+                                .
+                            </p>
+                            {pendingSource ? (
+                                <p>
+                                    Amount:{" "}
+                                    <span className="font-semibold text-foreground">
+                                        {Number(pendingSource.displayAmount ?? 0).toLocaleString()} KES
+                                    </span>
+                                </p>
+                            ) : null}
+                            {pendingSubmit ? (
+                                <p>
+                                    Reason:{" "}
+                                    <span className="font-semibold text-foreground">
+                                        {creditNoteReasonLabel(pendingSubmit.rfdRsnCd)}
+                                    </span>
+                                </p>
+                            ) : null}
+                            <p>
+                                This sends <code className="text-xs">/saveTrnsSalesOsdc</code> with{" "}
+                                <code className="text-xs">rcptTyCd=R</code> to KRA eTIMS. The credit note is
+                                recorded on KRA and will appear under Credit Notes once signed.
+                            </p>
+                        </div>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={sendCreditNote.isPending}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        disabled={sendCreditNote.isPending || !pendingSubmit}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            if (!pendingSubmit) return;
+                            submitCreditNote(pendingSubmit);
+                            setConfirmOpen(false);
+                            setPendingSubmit(null);
+                        }}
+                    >
+                        {sendCreditNote.isPending ? (
+                            <>
+                                <Spinner size={16} className="mr-2" />
+                                Submitting...
+                            </>
+                        ) : (
+                            "Submit to KRA"
+                        )}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
                 <SheetHeader>
@@ -329,5 +425,6 @@ export function IssueETimsCreditNoteSheet({
                 </Form>
             </SheetContent>
         </Sheet>
+        </>
     );
 }
