@@ -28,6 +28,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { ComboboxDropdown } from "@npanel/ui/components/combobox-dropdown";
 import type { ComboboxItem } from "@npanel/ui/components/combobox-dropdown";
+import type { EtimsItemRecord } from "./etims-item-utils";
 
 const FALLBACK_ITEM_CLASS_OPTIONS: ComboboxItem[] = [
   { id: "81112100", label: "81112100   Computer programmers" },
@@ -71,11 +72,14 @@ export function RegisterETimsItemSheet({
   open,
   onOpenChange,
   onSuccess,
+  initialItem,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  initialItem?: EtimsItemRecord | null;
 }) {
+  const isEdit = !!initialItem?.itemCd;
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -110,7 +114,7 @@ export function RegisterETimsItemSheet({
     const mapped = list
       .filter((row) => row?.itemClsCd && row?.itemClsNm)
       .map((row) => ({
-        id: String(row.itemClsCd),
+        id: String(row.itemClsCd).trim(),
         label: `${row.itemClsCd}   ${row.itemClsNm}`,
       }))
       .sort((a, b) => a.id.localeCompare(b.id));
@@ -118,22 +122,83 @@ export function RegisterETimsItemSheet({
     return mapped;
   }, [itemClassData]);
 
+  const selectedItemClsCd = form.watch("itemClsCd");
+
   const effectiveItemClassOptions = React.useMemo(() => {
-    if (itemClassOptions.length > 0) return itemClassOptions;
-    return FALLBACK_ITEM_CLASS_OPTIONS;
-  }, [itemClassOptions]);
+    const base = itemClassOptions.length > 0 ? itemClassOptions : FALLBACK_ITEM_CLASS_OPTIONS;
+    const byId = new Map(base.map((option) => [option.id, option]));
+
+    const ensureOption = (code?: string | null) => {
+      const id = code?.trim();
+      if (!id || byId.has(id)) return;
+      byId.set(id, { id, label: `${id}   (saved classification)` });
+    };
+
+    ensureOption(initialItem?.itemClsCd);
+    ensureOption(selectedItemClsCd);
+
+    return Array.from(byId.values()).sort((a, b) => a.id.localeCompare(b.id));
+  }, [itemClassOptions, initialItem?.itemClsCd, selectedItemClsCd]);
 
   const itemClassFetchFailed = React.useMemo(() => {
     const root: any = itemClassData;
     return root?.success === false;
   }, [itemClassData]);
 
+  const buildFormValues = React.useCallback((item: EtimsItemRecord): FormData => ({
+    itemNm: item.itemNm,
+    itemClsCd: String(item.itemClsCd ?? "").trim(),
+    taxTyCd: (item.taxTyCd === "A" || item.taxTyCd === "B" || item.taxTyCd === "C" || item.taxTyCd === "D" || item.taxTyCd === "E")
+      ? item.taxTyCd
+      : "B",
+    dftPrc: Number(item.dftPrc ?? 0),
+    itemCd: item.itemCd,
+    itemStdNm: item.itemStdNm ?? null,
+    orgnNatCd: item.orgnNatCd ?? "KE",
+    pkgUnitCd: item.pkgUnitCd ?? "OU",
+    qtyUnitCd: item.qtyUnitCd ?? "U",
+    btchNo: item.btchNo ?? null,
+    bcd: item.bcd ?? null,
+    addInfo: item.addInfo ?? null,
+    sftyQty: item.sftyQty != null ? Number(item.sftyQty) : 0,
+    useYn: item.useYn === "N" ? "N" : "Y",
+  }), []);
+
   React.useEffect(() => {
     if (!open) return;
+    if (initialItem) {
+      form.reset(buildFormValues(initialItem));
+      return;
+    }
+    form.reset({
+      itemNm: "",
+      itemClsCd: "",
+      taxTyCd: "B",
+      dftPrc: 0,
+      itemCd: "",
+      itemStdNm: null,
+      orgnNatCd: "KE",
+      pkgUnitCd: "OU",
+      qtyUnitCd: "U",
+      btchNo: null,
+      bcd: null,
+      addInfo: null,
+      sftyQty: 0,
+      useYn: "Y",
+    });
+  }, [open, initialItem, form, buildFormValues]);
+
+  React.useEffect(() => {
+    if (!open || !initialItem) return;
+    form.setValue("itemClsCd", String(initialItem.itemClsCd ?? "").trim(), { shouldDirty: false });
+  }, [open, initialItem, effectiveItemClassOptions.length, form]);
+
+  React.useEffect(() => {
+    if (!open || isEdit) return;
     const current = form.getValues("itemClsCd");
     if (current || effectiveItemClassOptions.length === 0) return;
     form.setValue("itemClsCd", effectiveItemClassOptions[0]!.id, { shouldValidate: true });
-  }, [open, effectiveItemClassOptions, form]);
+  }, [open, isEdit, effectiveItemClassOptions, form]);
 
   const saveItem = trpc.etims.items.saveItem.useMutation({
     onSuccess: (res: any) => {
@@ -162,7 +227,7 @@ export function RegisterETimsItemSheet({
         toast.error(body?.resultMsg ?? "Failed to register item");
         return;
       }
-      toast.success("Service registered in KRA eTIMS");
+      toast.success(isEdit ? "Product updated in KRA eTIMS" : "Service registered in KRA eTIMS");
       form.reset();
       onOpenChange(false);
       onSuccess?.();
@@ -212,23 +277,26 @@ export function RegisterETimsItemSheet({
   }, [form, itemsData]);
 
   React.useEffect(() => {
-    if (!open) return;
+    if (!open || isEdit) return;
     // Auto-generate itemCd on open (or when units change).
     const itemCd = form.getValues("itemCd");
     if (!itemCd) {
       form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, generateNextItemCd]);
+  }, [open, isEdit, generateNextItemCd]);
 
   const onSubmit = (data: FormData) => {
-    // KRA itemTyCd:
-    // 1 = Raw, 2 = Finished, 3 = Service (no stock). For npanel we default to service.
+    const itemTyCd = isEdit ? String(initialItem?.itemTyCd ?? "3") : "3";
+    if (itemTyCd !== "1" && itemTyCd !== "2" && itemTyCd !== "3") {
+      toast.error("Invalid item type on record");
+      return;
+    }
     saveItem.mutate({
       item: {
         itemCd: data.itemCd,
         itemClsCd: data.itemClsCd,
-        itemTyCd: "3",
+        itemTyCd: itemTyCd as "1" | "2" | "3",
         itemNm: data.itemNm,
         itemStdNm: data.itemStdNm ?? null,
         orgnNatCd: data.orgnNatCd,
@@ -259,13 +327,15 @@ export function RegisterETimsItemSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Register Service</SheetTitle>
+          <SheetTitle>{isEdit ? "Edit product" : "Register Service"}</SheetTitle>
           <SheetDescription>
-            Registers a service item in KRA eTIMS.
+            {isEdit
+              ? "Updates the item on KRA eTIMS via /saveItem (same endpoint used to register)."
+              : "Registers a service item in KRA eTIMS."}
           </SheetDescription>
         </SheetHeader>
 
-        <Form {...form}>
+        <Form {...form} key={isEdit ? `edit-${initialItem?.itemCd}` : "create"}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
             <FormField
               control={form.control}
@@ -300,6 +370,7 @@ export function RegisterETimsItemSheet({
                       <Button
                         type="button"
                         variant="outline"
+                        disabled={isEdit}
                         onClick={() =>
                           form.setValue("itemCd", generateNextItemCd(), { shouldValidate: true })
                         }
@@ -320,18 +391,20 @@ export function RegisterETimsItemSheet({
                 <FormItem>
                   <FormLabel>Item classification code (HS)</FormLabel>
                   <FormControl>
-                    <div onPointerDown={(e) => e.stopPropagation()}>
-                      <ComboboxDropdown
-                        placeholder="Select classification code"
-                        searchPlaceholder="Search by code or name..."
-                        items={effectiveItemClassOptions}
-                        selectedItem={effectiveItemClassOptions.find((x) => x.id === field.value)}
-                        onSelect={(item) => field.onChange(item.id)}
-                        emptyResults="No classifications found"
-                        disabled={effectiveItemClassOptions.length === 0}
-                        className="w-full"
-                      />
-                    </div>
+                    <ComboboxDropdown
+                      inDialog
+                      key={`item-cls-${field.value || "empty"}`}
+                      placeholder="Select classification code"
+                      searchPlaceholder="Search by code or name..."
+                      items={effectiveItemClassOptions}
+                      selectedItem={effectiveItemClassOptions.find(
+                        (x) => x.id === String(field.value ?? "").trim(),
+                      )}
+                      onSelect={(item) => field.onChange(item.id)}
+                      emptyResults="No classifications found"
+                      disabled={effectiveItemClassOptions.length === 0}
+                      className="w-full"
+                    />
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
                     {itemClassFetchFailed
@@ -350,7 +423,7 @@ export function RegisterETimsItemSheet({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tax type</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select key={`tax-${field.value}`} value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select tax type" />
@@ -376,7 +449,16 @@ export function RegisterETimsItemSheet({
                   <FormItem>
                     <FormLabel>Default unit price</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} step="0.01" {...field} />
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={Number.isFinite(field.value) ? field.value : 0}
+                        onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -432,7 +514,7 @@ export function RegisterETimsItemSheet({
                     Registering...
                   </>
                 ) : (
-                  "Register Service"
+                  isEdit ? "Save changes" : "Register Service"
                 )}
               </Button>
             </SheetFooter>

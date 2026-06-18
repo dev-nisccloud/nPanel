@@ -39,6 +39,8 @@ type Props<T> = {
   onCreate?: (value: string) => void;
   headless?: boolean;
   className?: string;
+  /** Render popover inside the nearest open dialog so search inputs stay interactive in sheets. */
+  inDialog?: boolean;
 };
 
 export function ComboboxDropdown<T extends ComboboxItem>({
@@ -56,14 +58,28 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   disabled,
   onCreate,
   className,
+  inDialog = false,
 }: Props<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
     T | undefined
   >();
   const [inputValue, setInputValue] = React.useState("");
+  const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   const selectedItem = incomingSelectedItem ?? internalSelectedItem;
+
+  React.useEffect(() => {
+    if (!inDialog || !open) {
+      setPortalContainer(null);
+      return;
+    }
+    const dialog =
+      triggerRef.current?.closest('[role="dialog"]') ??
+      document.querySelector('[role="dialog"]');
+    setPortalContainer(dialog instanceof HTMLElement ? dialog : null);
+  }, [inDialog, open]);
 
   const filteredItems = items.filter((item) =>
     item.label.toLowerCase().includes(inputValue.toLowerCase()),
@@ -164,6 +180,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        ref={triggerRef}
         disabled={disabled}
         className={cn(
           buttonVariants({ variant: "outline" }),
@@ -186,34 +203,20 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       </PopoverTrigger>
 
       <PopoverContent
+        container={portalContainer}
         className="p-0 rounded-xl overflow-hidden border-border/40 shadow-2xl bg-popover"
         {...popoverProps}
-        {...({
-          onPointerDownOutside: (e: any) => {
-             const target = e.target as HTMLElement;
-             if (target.closest('[cmdk-root]')) e.preventDefault();
-             
-            if ((popoverProps as any)?.onPointerDownOutside) {
-              (popoverProps as any).onPointerDownOutside(e);
-            }
-          },
-          onOpenAutoFocus: (e: any) => {
-            if ((popoverProps as any)?.onOpenAutoFocus) {
-              (popoverProps as any).onOpenAutoFocus(e);
-            }
-          },
-          onWheel: (e: any) => {
-            e.stopPropagation();
-          },
-        } as any)}
         style={{
           width: "var(--radix-popover-trigger-width)",
           pointerEvents: "auto",
-          zIndex: 9999,
           ...popoverProps?.style,
         }}
       >
-        <div onKeyDown={(e) => e.stopPropagation()}>
+        <div
+          onKeyDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           {Component}
         </div>
       </PopoverContent>

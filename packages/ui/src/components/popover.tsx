@@ -17,20 +17,24 @@ function PopoverContent({
   alignOffset = 0,
   side = "bottom",
   sideOffset = 4,
+  container,
   ...props
 }: PopoverPrimitive.Popup.Props &
   Pick<
     PopoverPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset"
-  >) {
+  > & {
+    /** Portal target — use the open dialog element when nesting inside sheets/modals. */
+    container?: HTMLElement | null;
+  }) {
   return (
-    <PopoverPrimitive.Portal>
+    <PopoverPrimitive.Portal container={container ?? undefined}>
       <PopoverPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-50"
+        className="isolate z-[100]"
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"

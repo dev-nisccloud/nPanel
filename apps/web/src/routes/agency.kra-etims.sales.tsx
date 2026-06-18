@@ -7,7 +7,6 @@ import {
     RefreshCw,
     CheckCircle2,
     MoreVertical,
-    Download,
     Eye,
     ExternalLink,
     FileMinus,
@@ -27,6 +26,16 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ETimsInitializationGuard } from "@/components/etims/etims-initialization-guard";
 import { ETimsBranchSwitcher } from "@/components/etims/etims-branch-switcher";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,54 +53,12 @@ import {
     creditNoteReasonLabel,
     type EtimsSaleForCreditNote,
 } from "./agency.kra-etims/sales/_components/issue-etims-credit-note-sheet";
+import {
+    normalizeSalesListItem,
+    type EtimsSaleRecord,
+} from "./agency.kra-etims/sales/_components/etims-sale-utils";
+import { ViewETimsSaleSheet } from "./agency.kra-etims/sales/_components/view-etims-sale-sheet";
 import { buildEtimsReceiptVerifyUrl, extractRcptSign } from "@/lib/etims-receipt-url";
-
-/** KRA /selectTrnsSalesList nests fiscal data under `receipt` and may zero header totals. */
-function normalizeSalesListItem(raw: Record<string, unknown>) {
-    const receipt = (raw.receipt ?? {}) as Record<string, unknown>;
-    const itemList = Array.isArray(raw.itemList) ? raw.itemList as Record<string, unknown>[] : [];
-
-    const lineAmount = itemList.reduce((sum, line) => {
-        const totAmt = Number(line.totAmt ?? 0);
-        if (totAmt > 0) return sum + totAmt;
-        const taxblAmt = Number(line.taxblAmt ?? 0);
-        const taxAmt = Number(line.taxAmt ?? 0);
-        if (taxblAmt > 0 || taxAmt > 0) return sum + taxblAmt + taxAmt;
-        const splyAmt = Number(line.splyAmt ?? 0);
-        if (splyAmt > 0) return sum + splyAmt;
-        return sum + Number(line.prc ?? 0) * Number(line.qty ?? 1);
-    }, 0);
-
-    const headerTot = Number(raw.totAmt ?? 0);
-    const headerTaxbl = Number(raw.totTaxblAmt ?? 0);
-    const headerTax = Number(raw.totTaxAmt ?? 0);
-    const displayAmount = headerTot > 0
-        ? headerTot
-        : headerTaxbl > 0 || headerTax > 0
-            ? headerTaxbl + headerTax
-            : lineAmount;
-
-    const curRcptNo = receipt.curRcptNo ?? raw.curRcptNo;
-    const totRcptNo = receipt.totRcptNo ?? raw.totRcptNo;
-    const rcptSign = receipt.rcptSign ?? raw.rcptSign;
-    const displayKraRef = rcptSign
-        ? String(rcptSign)
-        : curRcptNo
-            ? totRcptNo && totRcptNo !== curRcptNo
-                ? `${curRcptNo}/${totRcptNo}`
-                : String(curRcptNo)
-            : raw.rcptNo
-                ? String(raw.rcptNo)
-                : null;
-
-    return {
-        ...raw,
-        displayAmount,
-        displayKraRef,
-        displayRcptNo: curRcptNo ? String(curRcptNo) : null,
-        rcptSign: rcptSign ? String(rcptSign) : null,
-    };
-}
 
 export default function ETimsSalesPage() {
     const [activeTab, setActiveTab] = React.useState<"sales" | "credit-notes">("sales");
@@ -99,6 +66,10 @@ export default function ETimsSalesPage() {
     const [selectedBhfId, setSelectedBhfId] = React.useState<string | null>(null);
     const [isSendOpen, setIsSendOpen] = React.useState(false);
     const [isCreditNoteOpen, setIsCreditNoteOpen] = React.useState(false);
+    const [isCreditNoteConfirmOpen, setIsCreditNoteConfirmOpen] = React.useState(false);
+    const [creditNoteConfirmTarget, setCreditNoteConfirmTarget] = React.useState<EtimsSaleForCreditNote | null | undefined>(undefined);
+    const [isViewOpen, setIsViewOpen] = React.useState(false);
+    const [viewingRecord, setViewingRecord] = React.useState<EtimsSaleRecord | null>(null);
     const [creditNoteSale, setCreditNoteSale] = React.useState<EtimsSaleForCreditNote | null>(null);
     const [salePayload, setSalePayload] = React.useState<string>("");
     const [ensureStock, setEnsureStock] = React.useState(false);
@@ -363,21 +334,41 @@ export default function ETimsSalesPage() {
             }));
     }, [invoices]);
 
-    const openCreditNoteFromSale = React.useCallback((invoice: any) => {
-        setCreditNoteSale({
-            invcNo: invoice.invcNo,
-            custTin: invoice.custTin,
-            custNm: invoice.custNm,
-            pmtTyCd: invoice.pmtTyCd,
-            itemList: invoice.itemList,
-            displayAmount: invoice.displayAmount,
-        });
-        setIsCreditNoteOpen(true);
+    const toCreditNoteSale = React.useCallback((invoice: {
+        invcNo: number;
+        custTin?: string | null;
+        custNm?: string | null;
+        pmtTyCd?: string | null;
+        itemList?: Array<Record<string, unknown>>;
+        displayAmount?: number;
+    }): EtimsSaleForCreditNote => ({
+        invcNo: invoice.invcNo,
+        custTin: invoice.custTin,
+        custNm: invoice.custNm,
+        pmtTyCd: invoice.pmtTyCd,
+        itemList: invoice.itemList,
+        displayAmount: invoice.displayAmount,
+    }), []);
+
+    const requestCreditNote = React.useCallback((invoice?: EtimsSaleForCreditNote | null) => {
+        setCreditNoteConfirmTarget(invoice ?? null);
+        setIsCreditNoteConfirmOpen(true);
     }, []);
 
-    const openManualCreditNote = React.useCallback(() => {
-        setCreditNoteSale(null);
+    const confirmOpenCreditNote = React.useCallback(() => {
+        setIsCreditNoteConfirmOpen(false);
+        if (creditNoteConfirmTarget) {
+            setCreditNoteSale(creditNoteConfirmTarget);
+        } else {
+            setCreditNoteSale(null);
+        }
         setIsCreditNoteOpen(true);
+        setCreditNoteConfirmTarget(undefined);
+    }, [creditNoteConfirmTarget]);
+
+    const openViewSale = React.useCallback((invoice: EtimsSaleRecord) => {
+        setViewingRecord(invoice);
+        setIsViewOpen(true);
     }, []);
 
     const openKraVerify = React.useCallback((invoice: Record<string, unknown>) => {
@@ -398,6 +389,59 @@ export default function ETimsSalesPage() {
 
     return (
         <ETimsInitializationGuard>
+            <AlertDialog open={isCreditNoteConfirmOpen} onOpenChange={setIsCreditNoteConfirmOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Issue credit note?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 text-sm text-muted-foreground">
+                                {creditNoteConfirmTarget ? (
+                                    <>
+                                        <p>
+                                            You are about to issue a credit note against signed sale{" "}
+                                            <span className="font-mono font-semibold text-foreground">
+                                                #{creditNoteConfirmTarget.invcNo}
+                                            </span>
+                                            {creditNoteConfirmTarget.custNm ? (
+                                                <>
+                                                    {" "}for{" "}
+                                                    <span className="font-semibold text-foreground">
+                                                        {creditNoteConfirmTarget.custNm}
+                                                    </span>
+                                                </>
+                                            ) : null}
+                                            .
+                                        </p>
+                                        <p>
+                                            Sale amount:{" "}
+                                            <span className="font-semibold text-foreground">
+                                                {Number(creditNoteConfirmTarget.displayAmount ?? 0).toLocaleString()} KES
+                                            </span>
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p>
+                                        You are about to create a credit note against a signed sale. You will choose
+                                        the original invoice, reason, and optional remark in the next step.
+                                    </p>
+                                )}
+                                <p>
+                                    Credit notes are submitted to KRA eTIMS as fiscal documents (
+                                    <code className="text-xs">rcptTyCd=R</code>). Only proceed if you intend to reverse
+                                    or adjust this sale on KRA.
+                                </p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmOpenCreditNote}>
+                            Continue
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <IssueETimsCreditNoteSheet
                 open={isCreditNoteOpen}
                 onOpenChange={(open) => {
@@ -409,6 +453,19 @@ export default function ETimsSalesPage() {
                 onSuccess={() => {
                     refetch();
                     setActiveTab("credit-notes");
+                }}
+            />
+            <ViewETimsSaleSheet
+                open={isViewOpen}
+                onOpenChange={(open) => {
+                    setIsViewOpen(open);
+                    if (!open) setViewingRecord(null);
+                }}
+                sale={viewingRecord}
+                onVerifyKra={(record) => openKraVerify(record)}
+                onIssueCreditNote={(record) => {
+                    setIsViewOpen(false);
+                    requestCreditNote(toCreditNoteSale(record));
                 }}
             />
             <Sheet open={isSendOpen} onOpenChange={setIsSendOpen}>
@@ -560,8 +617,8 @@ export default function ETimsSalesPage() {
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
                     <div className="flex flex-col gap-2">
-                        <h1 className="text-2xl font-semibold tracking-tight">KRA Sales Records</h1>
-                        <p className="text-muted-foreground">
+                        <h1 className="text-base font-semibold tracking-tight">KRA Sales Records</h1>
+                        <p className="text-xs text-muted-foreground">
                             Manage signed sales and credit notes transmitted to KRA eTIMS.
                         </p>
                     </div>
@@ -608,7 +665,7 @@ export default function ETimsSalesPage() {
                                         Send Sale
                                     </Button>
                                 ) : (
-                                    <Button variant="outline" onClick={openManualCreditNote} disabled={!creditableSales.length}>
+                                    <Button variant="outline" onClick={() => requestCreditNote(null)} disabled={!creditableSales.length}>
                                         <FileMinus className="mr-2 h-4 w-4" />
                                         Issue credit note
                                     </Button>
@@ -715,15 +772,12 @@ export default function ETimsSalesPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem onClick={() => openCreditNoteFromSale(invoice)}>
+                                                                <DropdownMenuItem onClick={() => requestCreditNote(toCreditNoteSale(invoice))}>
                                                                     <FileMinus className="mr-2 h-4 w-4" />
                                                                     Issue credit note
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem disabled>
-                                                                    <Eye className="mr-2 h-4 w-4" /> View invoice
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem disabled>
-                                                                    <Download className="mr-2 h-4 w-4" /> Download PDF
+                                                                <DropdownMenuItem onClick={() => openViewSale(invoice)}>
+                                                                    <Eye className="mr-2 h-4 w-4" /> View sale
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem
@@ -782,7 +836,7 @@ export default function ETimsSalesPage() {
                                                         <Button
                                                             variant="outline"
                                                             className="mt-4"
-                                                            onClick={openManualCreditNote}
+                                                            onClick={() => requestCreditNote(null)}
                                                             disabled={!creditableSales.length}
                                                         >
                                                             <FileMinus className="mr-2 h-4 w-4" />
@@ -836,11 +890,8 @@ export default function ETimsSalesPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem disabled>
+                                                                <DropdownMenuItem onClick={() => openViewSale(invoice)}>
                                                                     <Eye className="mr-2 h-4 w-4" /> View credit note
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem disabled>
-                                                                    <Download className="mr-2 h-4 w-4" /> Download PDF
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem
