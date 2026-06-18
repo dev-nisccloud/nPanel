@@ -46,8 +46,10 @@ export declare class EtimsOscuClient {
     }): Promise<unknown>;
     selectCodeList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     selectNoticeList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
-    /** Look up a single customer by their KRA TIN */
+    /** Look up a single customer by their KRA TIN (central registry). */
     selectCustomer(oscu: EtimsOscuHeaders, custmTin: string): Promise<unknown>;
+    /** List customers registered on this branch via saveBhfCustomer. */
+    selectCustomerList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     selectBhfList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     saveBhfCustomer(oscu: EtimsOscuHeaders, customerData: Record<string, unknown>): Promise<unknown>;
     saveBhfUser(oscu: EtimsOscuHeaders, userData: Record<string, unknown>): Promise<unknown>;
@@ -58,6 +60,7 @@ export declare class EtimsOscuClient {
     selectImportItemList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     updateImportItem(oscu: EtimsOscuHeaders, item: Record<string, unknown>): Promise<unknown>;
     saveTrnsSalesOsdc(oscu: EtimsOscuHeaders, transaction: Record<string, unknown>): Promise<unknown>;
+    selectTrnsSalesList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     selectTrnsPurchaseSalesList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     insertTrnsPurchase(oscu: EtimsOscuHeaders, purchase: Record<string, unknown>): Promise<unknown>;
     selectStockMoveList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;

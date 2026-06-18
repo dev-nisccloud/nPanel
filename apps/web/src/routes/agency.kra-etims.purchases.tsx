@@ -233,8 +233,8 @@ export default function ETimsPurchasesPage() {
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
                     <div className="flex flex-col gap-2">
-                        <h1 className="text-2xl font-semibold tracking-tight">Purchase Reconciliation</h1>
-                        <p className="text-muted-foreground">
+                        <h1 className="text-base font-semibold tracking-tight">Purchase Reconciliation</h1>
+                        <p className="text-xs text-muted-foreground">
                             View and reconcile purchase transactions reported by your vendors to KRA eTIMS.
                         </p>
                     </div>
@@ -315,8 +315,9 @@ export default function ETimsPurchasesPage() {
                                                         <ShoppingCart className="h-10 w-10" />
                                                     </div>
                                                     <h3 className="text-lg font-medium">No purchase records found</h3>
-                                                    <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-1 mb-6">
-                                                        Sync with KRA to fetch invoices your vendors have issued specifically to your PIN.
+                                                    <p className="text-sm text-muted-foreground max-w-md mx-auto mt-1 mb-6">
+                                                        KRA returned no supplier invoices registered against your PIN yet.
+                                                        Purchases appear here when a vendor submits an eTIMS sale with your PIN as the buyer — not from sales you issue yourself.
                                                     </p>
                                                     <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
                                                         <RefreshCw className="mr-2 h-3 w-3" />

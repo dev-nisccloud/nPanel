@@ -82,8 +82,8 @@ export default function ETimsSettingsPage() {
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                         <div className="flex flex-col gap-2">
-                            <h1 className="text-2xl font-semibold tracking-tight">eTIMS Configuration</h1>
-                            <p className="text-muted-foreground">
+                            <h1 className="text-base font-semibold tracking-tight">eTIMS Configuration</h1>
+                            <p className="text-xs text-muted-foreground">
                                 Manage your KRA API credentials and device initialization settings.
                             </p>
                         </div>

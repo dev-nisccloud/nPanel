@@ -12,6 +12,83 @@ function assertReadAccess(role: string | null | undefined) {
     }
 }
 
+/** Normalized customer shape returned to the UI. */
+export type EtimsCustomerLookup = {
+    custmTin: string;
+    custmNm: string;
+    adrs?: string | null;
+    telNo?: string | null;
+    email?: string | null;
+    taxprSttsCd?: string | null;
+    source: "kra_registry" | "branch_list";
+};
+
+function normalizeRegistryCustomer(raw: Record<string, unknown>, fallbackTin: string): EtimsCustomerLookup | null {
+    const name = raw.taxprNm ?? raw.custmNm ?? raw.custNm;
+    const tin = raw.tin ?? raw.custmTin ?? raw.custTin ?? fallbackTin;
+    if (!name || typeof name !== "string") return null;
+
+    const addressParts = [raw.locDesc, raw.sctrNm, raw.dstrtNm, raw.prvncNm, raw.adrs]
+        .filter((v) => typeof v === "string" && v.trim().length > 0);
+    return {
+        custmTin: String(tin).toUpperCase(),
+        custmNm: String(name),
+        adrs: addressParts.length ? addressParts.join(", ") : (raw.adrs as string | null | undefined) ?? null,
+        telNo: (raw.telNo as string | null | undefined) ?? null,
+        email: (raw.email as string | null | undefined) ?? null,
+        taxprSttsCd: (raw.taxprSttsCd as string | null | undefined) ?? null,
+        source: raw.custNo ? "branch_list" : "kra_registry",
+    };
+}
+
+function extractRegistryPayload(result: unknown): Record<string, unknown> | null {
+    if (!result || typeof result !== "object") return null;
+    const root = result as Record<string, unknown>;
+    if (root.resultCd === "001" || root.data == null) return null;
+    if (root.data && typeof root.data === "object") return root.data as Record<string, unknown>;
+    return root;
+}
+
+function extractBranchCustomerList(result: unknown): Record<string, unknown>[] {
+    if (!result || typeof result !== "object") return [];
+    const root = result as Record<string, unknown>;
+    const data = root.data;
+    if (!data || typeof data !== "object") return [];
+    const list = (data as Record<string, unknown>).custList;
+    return Array.isArray(list) ? list as Record<string, unknown>[] : [];
+}
+
+/** Normalized branch customer for list/detail UI. */
+export type EtimsBranchCustomer = {
+    custNo: string;
+    custTin: string;
+    custNm: string;
+    adrs?: string | null;
+    telNo?: string | null;
+    email?: string | null;
+    faxNo?: string | null;
+    useYn?: string | null;
+    remark?: string | null;
+};
+
+function normalizeBranchCustomer(raw: Record<string, unknown>): EtimsBranchCustomer | null {
+    const custNo = raw.custNo ?? raw.custmNo;
+    const custTin = raw.custTin ?? raw.custmTin ?? raw.tin;
+    const custNm = raw.custNm ?? raw.custmNm ?? raw.taxprNm;
+    if (!custNo || !custTin || !custNm) return null;
+    return {
+        custNo: String(custNo),
+        custTin: String(custTin).toUpperCase(),
+        custNm: String(custNm),
+        adrs: (raw.adrs as string | null | undefined) ?? null,
+        telNo: (raw.telNo as string | null | undefined) ?? null,
+        email: (raw.email as string | null | undefined) ?? null,
+        faxNo: (raw.faxNo as string | null | undefined) ?? null,
+        useYn: (raw.useYn as string | null | undefined) ?? null,
+        remark: (raw.remark as string | null | undefined) ?? null,
+    };
+}
+
 export const etimsDataRouter = router({
     /**
      * Retrieve standard code lists (payment types, receipt types, tax codes, etc.)
@@ -59,8 +136,9 @@ export const etimsDataRouter = router({
         }),
 
     /**
-     * Look up a specific customer by their KRA TIN.
-     * POST /selectCustomer  (requires custmTin, NOT lastReqDt)
+     * Look up a customer by KRA TIN.
+     * 1. POST /selectCustomer — KRA central taxpayer registry
+     * 2. POST /selectCustomerList — branch customers saved via saveBhfCustomer (sandbox fallback)
      */
     lookupCustomer: protectedProcedure
         .input(z.object({
@@ -69,13 +147,57 @@ export const etimsDataRouter = router({
         .query(async ({ ctx, input }) => {
             assertReadAccess(ctx.session?.user?.role);
             const { client, oscu } = await getEtimsContext();
+            const custmTin = input.custmTin.trim().toUpperCase();
 
             try {
-                const result = await client.selectCustomer(oscu, input.custmTin);
-                return { success: true, data: result };
+                const registryResult = await client.selectCustomer(oscu, custmTin);
+                const registryPayload = extractRegistryPayload(registryResult);
+                if (registryPayload) {
+                    const normalized = normalizeRegistryCustomer(registryPayload, custmTin);
+                    if (normalized) {
+                        return { success: true, data: normalized };
+                    }
+                }
+
+                const listResult = await client.selectCustomerList(oscu, "20230101000000");
+                const branchMatch = extractBranchCustomerList(listResult).find(
+                    (c) => String(c.custTin ?? "").toUpperCase() === custmTin,
+                );
+                if (branchMatch) {
+                    const normalized = normalizeRegistryCustomer(branchMatch, custmTin);
+                    if (normalized) {
+                        return { success: true, data: normalized };
+                    }
+                }
+
+                return { success: true, data: null };
             } catch (error: unknown) {
                 const msg = (error as Error).message;
                 throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to look up customer" });
+            }
+        }),
+
+    /**
+     * List customers registered on the active eTIMS branch.
+     * POST /selectCustomerList
+     */
+    getCustomerList: protectedProcedure
+        .input(z.object({
+            lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").default("20230101000000"),
+        }))
+        .query(async ({ ctx, input }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
+
+            try {
+                const result = await client.selectCustomerList(oscu, input.lastReqDt);
+                const customers = extractBranchCustomerList(result)
+                    .map(normalizeBranchCustomer)
+                    .filter((c): c is EtimsBranchCustomer => c != null);
+                return { success: true, data: customers };
+            } catch (error: unknown) {
+                const msg = (error as Error).message;
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to retrieve customer list" });
             }
         }),
 

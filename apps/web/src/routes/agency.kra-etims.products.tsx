@@ -6,11 +6,12 @@ import {
     Search,
     RefreshCw,
     Tag,
-    ShieldCheck,
     MoreVertical,
-    Layers,
     Cloud,
-    Box
+    Box,
+    Eye,
+    Pencil,
+    Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,22 +23,35 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert
 import { ETimsInitializationGuard } from "@/components/etims/etims-initialization-guard";
 import { ETimsBranchSwitcher } from "@/components/etims/etims-branch-switcher";
 import { RegisterETimsItemSheet } from "./agency.kra-etims/products/_components/register-etims-item-sheet";
+import { ViewETimsItemSheet } from "./agency.kra-etims/products/_components/view-etims-item-sheet";
+import { itemToSavePayload, itemTypeLabel, type EtimsItemRecord } from "./agency.kra-etims/products/_components/etims-item-utils";
 
 export default function ETimsProductsPage() {
     const [searchQuery, setSearchQuery] = React.useState("");
     const [selectedBhfId, setSelectedBhfId] = React.useState<string | null>(null);
     const [isRegisterOpen, setIsRegisterOpen] = React.useState(false);
-
-    const utils = trpc.useUtils();
+    const [isViewOpen, setIsViewOpen] = React.useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+    const [editingItem, setEditingItem] = React.useState<EtimsItemRecord | null>(null);
+    const [viewingItem, setViewingItem] = React.useState<EtimsItemRecord | null>(null);
+    const [itemToDelete, setItemToDelete] = React.useState<EtimsItemRecord | null>(null);
 
     const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
     const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
@@ -62,45 +76,159 @@ export default function ETimsProductsPage() {
     });
 
     const itemList = React.useMemo(() => {
-        // API shape is: { success: true, data: <kraResponse> }
-        // And KRA may wrap response: { responseBody: { data: { itemList: [...] } } }
         const root: any = items;
         const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
         const data: any = payload?.data ?? payload;
-        return data?.itemList ?? [];
+        const list = data?.itemList ?? [];
+        const all = Array.isArray(list) ? list : [];
+        return all.filter((item: EtimsItemRecord) => item.useYn !== "N");
     }, [items]);
 
     const filteredItems = React.useMemo(() => {
-        if (!itemList) return [];
         if (!searchQuery.trim()) return itemList;
         const query = searchQuery.toLowerCase().trim();
-        return itemList.filter((item: any) =>
-            item.itemNm.toLowerCase().includes(query) ||
-            item.itemCd.toLowerCase().includes(query) ||
-            item.itemClsCd.toLowerCase().includes(query)
+        return itemList.filter((item: EtimsItemRecord) =>
+            String(item.itemNm ?? "").toLowerCase().includes(query) ||
+            String(item.itemCd ?? "").toLowerCase().includes(query) ||
+            String(item.itemClsCd ?? "").toLowerCase().includes(query)
         );
     }, [itemList, searchQuery]);
+
+    const openCreate = () => {
+        setEditingItem(null);
+        setIsRegisterOpen(true);
+    };
+
+    const openEdit = (item: EtimsItemRecord) => {
+        setEditingItem(item);
+        setIsRegisterOpen(true);
+    };
+
+    const openView = (item: EtimsItemRecord) => {
+        setViewingItem(item);
+        setIsViewOpen(true);
+    };
+
+    const requestDelete = (item: EtimsItemRecord) => {
+        setIsViewOpen(false);
+        setItemToDelete(item);
+        setIsDeleteOpen(true);
+    };
+
+    const deactivateItem = trpc.etims.items.saveItem.useMutation({
+        onSuccess: (res: any) => {
+            if (res?.success === false) {
+                if (res?.requiresReinitialization) {
+                    toast.error("KRA session expired — re-initialize your device in Settings, then try again.");
+                } else {
+                    toast.error(res?.errorMessage ?? "Failed to delete product");
+                }
+                return;
+            }
+            const body = res?.data?.responseBody ?? res?.data ?? res;
+            if (body?.resultCd && body.resultCd !== "000" && body.resultCd !== "001") {
+                toast.error(body?.resultMsg ?? "Failed to delete product");
+                return;
+            }
+            toast.success("Product removed from KRA eTIMS");
+            setIsDeleteOpen(false);
+            setItemToDelete(null);
+            refetch();
+        },
+        onError: (err) => toast.error(err.message || "Failed to delete product"),
+    });
+
+    const confirmDelete = () => {
+        if (!itemToDelete) return;
+        try {
+            deactivateItem.mutate({
+                item: itemToSavePayload(itemToDelete, { useYn: "N" }),
+            });
+        } catch (e) {
+            toast.error((e as Error).message || "Invalid item data");
+        }
+    };
 
     return (
         <ETimsInitializationGuard>
             <RegisterETimsItemSheet
                 open={isRegisterOpen}
-                onOpenChange={setIsRegisterOpen}
+                onOpenChange={(open) => {
+                    setIsRegisterOpen(open);
+                    if (!open) setEditingItem(null);
+                }}
+                initialItem={editingItem}
                 onSuccess={() => refetch()}
             />
+
+            <ViewETimsItemSheet
+                open={isViewOpen}
+                onOpenChange={(open) => {
+                    setIsViewOpen(open);
+                    if (!open) setViewingItem(null);
+                }}
+                item={viewingItem}
+                onEdit={openEdit}
+                onDeleteRequest={requestDelete}
+            />
+
+            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete product?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 text-sm text-muted-foreground">
+                                <p>
+                                    You are about to remove{" "}
+                                    <span className="font-semibold text-foreground">{itemToDelete?.itemNm}</span>{" "}
+                                    (<span className="font-mono">{itemToDelete?.itemCd}</span>) from your active KRA catalog.
+                                </p>
+                                <p>
+                                    KRA eTIMS has no hard-delete endpoint for items. This sends{" "}
+                                    <code className="text-xs">/saveItem</code> with{" "}
+                                    <code className="text-xs">useYn=N</code> to mark the item inactive on KRA.
+                                </p>
+                                <p className="font-medium text-foreground">
+                                    The item will disappear from active lists. You can re-register it later with a new item code if needed.
+                                </p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deactivateItem.isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={deactivateItem.isPending}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                confirmDelete();
+                            }}
+                        >
+                            {deactivateItem.isPending ? (
+                                <>
+                                    <Spinner size={16} className="mr-2" />
+                                    Removing...
+                                </>
+                            ) : (
+                                "Delete product"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
                     <div className="flex flex-col gap-6">
                         <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                             <div className="flex flex-col gap-2">
-                                <h1 className="text-2xl font-semibold tracking-tight">Products & Services</h1>
-                                <p className="text-muted-foreground">
+                                <h1 className="text-base font-semibold tracking-tight">Products & Services</h1>
+                                <p className="text-xs text-muted-foreground">
                                     Manage the classification and registration of your local items with KRA eTIMS.
                                 </p>
                             </div>
                         </div>
 
-                        {/* Search and Actions */}
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                             <div className="relative flex-1 max-w-sm w-full">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -135,14 +263,13 @@ export default function ETimsProductsPage() {
                                 >
                                     <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                                 </Button>
-                                <Button className="flex-1 md:flex-none" onClick={() => setIsRegisterOpen(true)}>
+                                <Button className="flex-1 md:flex-none" onClick={openCreate}>
                                     <Plus className="mr-2 h-4 w-4" />
                                     Register Service
                                 </Button>
                             </div>
                         </div>
 
-                        {/* Content Section */}
                         <div className="mt-6">
                             <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
                                 <table className="w-full text-sm text-left">
@@ -177,7 +304,7 @@ export default function ETimsProductsPage() {
                                                         <p className="text-sm text-muted-foreground mt-1 mb-6">
                                                             Map your first hosting or startup service to get started.
                                                         </p>
-                                                        <Button variant="outline" size="sm" onClick={() => setIsRegisterOpen(true)}>
+                                                        <Button variant="outline" size="sm" onClick={openCreate}>
                                                             <Plus className="mr-2 h-3 w-3" />
                                                             Register First Item
                                                         </Button>
@@ -185,64 +312,79 @@ export default function ETimsProductsPage() {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            filteredItems.map((item: any) => (
-                                                <tr key={item.itemCd} className="hover:bg-muted/30 transition-colors group">
-                                                    <td className="px-4 py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`p-2 rounded-lg ${item.isService ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>
-                                                                {item.isService ? <Cloud className="h-4 w-4" /> : <Box className="h-4 w-4" />}
+                                            filteredItems.map((item: EtimsItemRecord) => {
+                                                const isService = item.itemTyCd === "3";
+                                                return (
+                                                    <tr key={item.itemCd} className="hover:bg-muted/30 transition-colors">
+                                                        <td className="px-4 py-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`p-2 rounded-lg ${isService ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>
+                                                                    {isService ? <Cloud className="h-4 w-4" /> : <Box className="h-4 w-4" />}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-medium text-foreground">{item.itemNm}</div>
+                                                                    <div className="text-xs text-muted-foreground">
+                                                                        {itemTypeLabel(item.itemTyCd)} · {item.pkgUnitCd ?? "—"}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <div className="font-medium text-foreground">{item.itemNm}</div>
-                                                                <div className="text-xs text-muted-foreground">{item.pkgUnitCd}</div>
+                                                        </td>
+                                                        <td className="px-4 py-4 font-mono text-xs">{item.itemCd}</td>
+                                                        <td className="px-4 py-4">
+                                                            <div className="text-xs max-w-[200px] truncate" title={item.itemClsCd}>
+                                                                {item.itemClsCd}
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-4 font-mono text-xs">{item.itemCd}</td>
-                                                    <td className="px-4 py-4">
-                                                        <div className="text-xs max-w-[200px] truncate" title={item.itemClsCd}>
-                                                            {item.itemClsCd}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-4">
-                                                        <Badge variant="outline" className={`
-                                                                    ${item.taxTyCd === "A" ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800" : ""}
-                                                                    ${item.taxTyCd === "B" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800" : ""}
-                                                                    ${item.taxTyCd === "C" ? "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800" : ""}
-                                                                `}>
-                                                            Type {item.taxTyCd}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-4 py-4 font-medium">
-                                                        {item.dftPrc ? `KES ${item.dftPrc}` : "Dynamic"}
-                                                    </td>
-                                                    <td className="px-4 py-4 text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    <MoreVertical className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuLabel>Item Options</DropdownMenuLabel>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem>Update Mapping</DropdownMenuItem>
-                                                                <DropdownMenuItem>View KRA History</DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-destructive">Unregister</DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                                        </td>
+                                                        <td className="px-4 py-4">
+                                                            <Badge variant="outline" className={`
+                                                                ${item.taxTyCd === "A" ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800" : ""}
+                                                                ${item.taxTyCd === "B" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800" : ""}
+                                                                ${item.taxTyCd === "C" ? "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800" : ""}
+                                                            `}>
+                                                                Type {item.taxTyCd ?? "—"}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="px-4 py-4 font-medium">
+                                                            {item.dftPrc ? `KES ${item.dftPrc}` : "Dynamic"}
+                                                        </td>
+                                                        <td className="px-4 py-4 text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon">
+                                                                        <MoreVertical className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => openView(item)}>
+                                                                        <Eye className="mr-2 h-4 w-4" />
+                                                                        View product
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => openEdit(item)}>
+                                                                        <Pencil className="mr-2 h-4 w-4" />
+                                                                        Edit product
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem
+                                                                        className="text-destructive focus:text-destructive"
+                                                                        onClick={() => requestDelete(item)}
+                                                                    >
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Delete product
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
                                         )}
                                     </tbody>
-                                </table >
-                            </div >
-                        </div >
-                    </div >
-                </div >
-            </div >
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </ETimsInitializationGuard>
     );
 }

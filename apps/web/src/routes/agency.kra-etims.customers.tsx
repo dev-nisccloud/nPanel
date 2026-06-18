@@ -4,229 +4,385 @@ import * as React from "react";
 import {
     Search,
     User,
-    Building2,
-    MapPin,
+    RefreshCw,
+    Plus,
+    MoreVertical,
+    Pencil,
     Phone,
     Mail,
-    FileText,
-    History,
-    MoreVertical,
-    ExternalLink,
-    RefreshCw,
-    SearchCode,
+    Building2,
+    Eye,
+    Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ETimsInitializationGuard } from "@/components/etims/etims-initialization-guard";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ETimsBranchSwitcher } from "@/components/etims/etims-branch-switcher";
+import {
+    SaveETimsCustomerSheet,
+    type EtimsCustomerFormValues,
+} from "./agency.kra-etims/customers/_components/save-etims-customer-sheet";
+import { ViewETimsCustomerSheet } from "./agency.kra-etims/customers/_components/view-etims-customer-sheet";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 export default function ETimsCustomersPage() {
-    const [tinSearch, setTinSearch] = React.useState("");
-    const [lookupTin, setLookupTin] = React.useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = React.useState("");
+    const [selectedBhfId, setSelectedBhfId] = React.useState<string | null>(null);
+    const [isSaveOpen, setIsSaveOpen] = React.useState(false);
+    const [isViewOpen, setIsViewOpen] = React.useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+    const [editingCustomer, setEditingCustomer] = React.useState<EtimsCustomerFormValues | null>(null);
+    const [viewingCustomer, setViewingCustomer] = React.useState<EtimsCustomerFormValues | null>(null);
+    const [customerToDelete, setCustomerToDelete] = React.useState<EtimsCustomerFormValues | null>(null);
 
-    const { data: customerData, isFetching, error } = trpc.etims.data.lookupCustomer.useQuery(
-        { custmTin: lookupTin ?? "" },
-        { enabled: !!lookupTin, retry: false }
-    );
+    const { data: etimsConfig } = trpc.etims.auth.getConfiguration.useQuery();
+    const { data: branchesData } = trpc.etims.branch.getBranchList.useQuery({ lastReqDt: "20230101000000" });
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!tinSearch.trim()) return;
-        setLookupTin(tinSearch.trim().toUpperCase());
+    const branches = React.useMemo(() => {
+        const root: any = branchesData;
+        const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
+        const data: any = payload?.data ?? payload;
+        const bhfList = data?.bhfList ?? [];
+        return bhfList.map((b: any) => ({ bhfId: b.bhfId, bhfNm: b.bhfNm }));
+    }, [branchesData]);
+
+    React.useEffect(() => {
+        if (selectedBhfId) return;
+        const defaultBhfId = (etimsConfig as any)?.config?.branchId;
+        if (defaultBhfId) setSelectedBhfId(defaultBhfId);
+        else if (branches.length) setSelectedBhfId(branches[0].bhfId);
+    }, [selectedBhfId, etimsConfig, branches]);
+
+    const { data: customersData, isLoading, refetch, isFetching } = trpc.etims.data.getCustomerList.useQuery({
+        lastReqDt: "20230101000000",
+    });
+
+    const customers = React.useMemo(() => {
+        const list = (customersData as any)?.data;
+        const all = Array.isArray(list) ? list : [];
+        return all.filter((c: any) => c.useYn !== "N");
+    }, [customersData]);
+
+    const filteredCustomers = React.useMemo(() => {
+        if (!searchQuery.trim()) return customers;
+        const query = searchQuery.toLowerCase().trim();
+        return customers.filter((c: any) =>
+            String(c.custNm ?? "").toLowerCase().includes(query) ||
+            String(c.custTin ?? "").toLowerCase().includes(query) ||
+            String(c.custNo ?? "").toLowerCase().includes(query) ||
+            String(c.telNo ?? "").toLowerCase().includes(query) ||
+            String(c.email ?? "").toLowerCase().includes(query)
+        );
+    }, [customers, searchQuery]);
+
+    const openCreate = () => {
+        setEditingCustomer(null);
+        setIsSaveOpen(true);
     };
 
-    const customer: any = React.useMemo(() => {
-        const root: any = customerData;
-        const payload = root?.data?.responseBody?.data ?? root?.data ?? root?.responseBody?.data ?? root;
-        return payload?.data ?? payload;
-    }, [customerData]);
+    const openEdit = (customer: EtimsCustomerFormValues) => {
+        setEditingCustomer(customer);
+        setIsSaveOpen(true);
+    };
+
+    const openView = (customer: EtimsCustomerFormValues) => {
+        setViewingCustomer(customer);
+        setIsViewOpen(true);
+    };
+
+    const requestDelete = (customer: EtimsCustomerFormValues) => {
+        setIsViewOpen(false);
+        setCustomerToDelete(customer);
+        setIsDeleteOpen(true);
+    };
+
+    const deleteCustomer = trpc.etims.branch.saveCustomer.useMutation({
+        onSuccess: (res) => {
+            if (res?.success === false) {
+                toast.error(res?.errorMessage ?? "Failed to remove customer");
+                return;
+            }
+            toast.success("Customer removed from branch");
+            setIsDeleteOpen(false);
+            setCustomerToDelete(null);
+            refetch();
+        },
+        onError: (err) => toast.error(err.message || "Failed to remove customer"),
+    });
+
+    const confirmDelete = () => {
+        if (!customerToDelete) return;
+        deleteCustomer.mutate({
+            customer: {
+                custNo: customerToDelete.custNo,
+                custTin: customerToDelete.custTin,
+                custNm: customerToDelete.custNm,
+                adrs: customerToDelete.adrs ?? null,
+                telNo: customerToDelete.telNo ?? null,
+                email: customerToDelete.email ?? null,
+                faxNo: customerToDelete.faxNo ?? null,
+                remark: customerToDelete.remark ?? null,
+                useYn: "N",
+                regrId: "Admin",
+                regrNm: "Admin",
+                modrId: "Admin",
+                modrNm: "Admin",
+            },
+        });
+    };
 
     return (
         <ETimsInitializationGuard>
+            <SaveETimsCustomerSheet
+                open={isSaveOpen}
+                onOpenChange={(open) => {
+                    setIsSaveOpen(open);
+                    if (!open) setEditingCustomer(null);
+                }}
+                initialCustomer={editingCustomer}
+                onSuccess={() => refetch()}
+            />
+
+            <ViewETimsCustomerSheet
+                open={isViewOpen}
+                onOpenChange={(open) => {
+                    setIsViewOpen(open);
+                    if (!open) setViewingCustomer(null);
+                }}
+                customer={viewingCustomer}
+                onEdit={openEdit}
+                onDeleteRequest={requestDelete}
+            />
+
+            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove branch customer?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 text-sm text-muted-foreground">
+                                <p>
+                                    You are about to remove{" "}
+                                    <span className="font-semibold text-foreground">{customerToDelete?.custNm}</span>{" "}
+                                    (<span className="font-mono">{customerToDelete?.custTin}</span>) from your eTIMS branch.
+                                </p>
+                                <p>
+                                    KRA eTIMS does not support permanently deleting branch customers. This action marks the
+                                    customer as inactive on KRA so they will no longer appear in active customer lists or be
+                                    available for new invoices.
+                                </p>
+                                <p className="font-medium text-foreground">This cannot be undone from nPanel without re-registering the customer.</p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleteCustomer.isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault();
+                                confirmDelete();
+                            }}
+                            disabled={deleteCustomer.isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {deleteCustomer.isPending ? (
+                                <>
+                                    <Spinner size={16} className="mr-2" />
+                                    Removing...
+                                </>
+                            ) : (
+                                "Remove customer"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="w-full max-w-7xl mx-auto">
                     <div className="flex flex-col gap-2">
-                        <h1 className="text-2xl font-semibold tracking-tight">KRA Customer Directory</h1>
-                        <p className="text-muted-foreground text-sm">
-                            Look up and verify customer tax identities directly from KRA eTIMS registry.
+                        <h1 className="text-base font-semibold tracking-tight">Branch Customers</h1>
+                        <p className="text-xs text-muted-foreground">
+                            Manage customers registered on your eTIMS branch. Register customers here before using them on invoices.
                         </p>
                     </div>
 
-                    <div className="mt-8 flex flex-col lg:flex-row gap-8">
-                        {/* Search Sidebar */}
-                        <div className="w-full lg:w-96 space-y-4">
-                            <Card className="border-border/40 shadow-sm overflow-hidden">
-                                <CardHeader className="bg-muted/30">
-                                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                        <SearchCode className="h-4 w-4 text-primary" />
-                                        TIN Lookup
-                                    </CardTitle>
-                                    <CardDescription className="text-xs">
-                                        Verify a customer by entering their KRA PIN/TIN.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="pt-6">
-                                    <form onSubmit={handleSearch} className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Input
-                                                placeholder="e.g. A012345678Z"
-                                                value={tinSearch}
-                                                onChange={(e) => setTinSearch(e.target.value)}
-                                                className="uppercase font-mono"
-                                            />
-                                        </div>
-                                        <Button type="submit" className="w-full" disabled={isFetching}>
-                                            {isFetching ? (
-                                                <RefreshCw className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <>
-                                                    <Search className="h-4 w-4 mr-2" />
-                                                    Verify Identity
-                                                </>
-                                            )}
-                                        </Button>
-                                    </form>
-                                </CardContent>
-                            </Card>
-
-                            <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-                                        <Building2 className="h-4 w-4" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-semibold text-primary">Verified Sources</p>
-                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                            Data is retrieved in real-time from the KRA eTIMS central database to ensure 100% compliance.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                    <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="relative flex-1 max-w-sm w-full">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by name, TIN, phone or email..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9"
+                            />
                         </div>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            {selectedBhfId && branches.length ? (
+                                <ETimsBranchSwitcher
+                                    branches={branches}
+                                    value={selectedBhfId}
+                                    onChange={(bhfId) => {
+                                        const deviceBhfId = (etimsConfig as any)?.config?.branchId;
+                                        if (deviceBhfId && bhfId !== deviceBhfId) {
+                                            toast.error(`This device is only valid for branch ${deviceBhfId}. Re-initialize eTIMS for branch ${bhfId} to use it.`);
+                                            return;
+                                        }
+                                        setSelectedBhfId(bhfId);
+                                        setTimeout(() => refetch(), 0);
+                                    }}
+                                />
+                            ) : null}
+                            <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isLoading || isFetching}>
+                                <RefreshCw className={`h-4 w-4 ${isLoading || isFetching ? "animate-spin" : ""}`} />
+                            </Button>
+                            <Button onClick={openCreate}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add customer
+                            </Button>
+                        </div>
+                    </div>
 
-                        {/* Results Area */}
-                        <div className="flex-1 min-w-0">
-                            {isFetching ? (
-                                <div className="flex flex-col items-center justify-center py-24 space-y-4">
-                                    <Spinner size={32} className="text-primary" />
-                                    <p className="text-sm text-muted-foreground animate-pulse font-medium">
-                                        Interrogating KRA registry...
-                                    </p>
-                                </div>
-                            ) : customer?.custmNm ? (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Identity Card */}
-                                        <Card className="border-border/40 shadow-xl shadow-foreground/5 relative overflow-hidden group">
-                                            <div className="absolute top-0 right-0 p-4">
-                                                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800">
-                                                    VERIFIED
-                                                </Badge>
+                    <div className="mt-6 overflow-hidden rounded-lg border bg-card shadow-sm">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-muted/50 text-muted-foreground font-medium border-b">
+                                <tr>
+                                    <th className="px-4 py-3">Customer</th>
+                                    <th className="px-4 py-3">KRA PIN</th>
+                                    <th className="px-4 py-3">Contact</th>
+                                    <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {isLoading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <tr key={i}>
+                                            <td className="px-4 py-4"><Skeleton className="h-4 w-40" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-4 w-28" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-4 w-32" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
+                                            <td className="px-4 py-4"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></td>
+                                        </tr>
+                                    ))
+                                ) : filteredCustomers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-4 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <Building2 className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                                                <h3 className="text-lg font-medium">No branch customers</h3>
+                                                <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                                                    {searchQuery.trim()
+                                                        ? "No customers match your search."
+                                                        : "Register customers on your eTIMS branch so they can be used on sales invoices."}
+                                                </p>
+                                                {!searchQuery.trim() ? (
+                                                    <Button className="mt-4" size="sm" onClick={openCreate}>
+                                                        <Plus className="mr-2 h-4 w-4" />
+                                                        Add first customer
+                                                    </Button>
+                                                ) : null}
                                             </div>
-                                            <CardHeader>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                                                        <User className="h-6 w-6" />
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredCustomers.map((customer: any) => (
+                                        <tr key={customer.custNo} className="hover:bg-muted/30 transition-colors">
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                                                        <User className="h-4 w-4" />
                                                     </div>
                                                     <div>
-                                                        <CardTitle className="text-lg font-bold">{customer.custmNm}</CardTitle>
-                                                        <p className="text-xs font-mono text-muted-foreground tracking-widest">{customer.custmTin}</p>
+                                                        <div className="font-medium text-foreground">{customer.custNm}</div>
+                                                        <div className="text-xs text-muted-foreground font-mono">#{customer.custNo}</div>
                                                     </div>
                                                 </div>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <div className="flex items-start gap-3 text-sm">
-                                                    <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                                    <div>
-                                                        <p className="font-medium">Registered Address</p>
-                                                        <p className="text-muted-foreground text-xs">{customer.adrs || "N/A"}</p>
-                                                    </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className="font-mono text-xs">{customer.custTin}</span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="space-y-1 text-xs text-muted-foreground">
+                                                    {customer.telNo ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Phone className="h-3 w-3" />
+                                                            {customer.telNo}
+                                                        </div>
+                                                    ) : null}
+                                                    {customer.email ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Mail className="h-3 w-3" />
+                                                            {customer.email}
+                                                        </div>
+                                                    ) : null}
+                                                    {!customer.telNo && !customer.email ? "—" : null}
                                                 </div>
-                                            </CardContent>
-                                        </Card>
-
-                                        {/* Contact Card */}
-                                        <Card className="border-border/40 shadow-md">
-                                            <CardHeader>
-                                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                                    <Phone className="h-4 w-4 text-primary" />
-                                                    Contact Details
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="space-y-3">
-                                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                                        <span>Email</span>
-                                                    </div>
-                                                    <span className="text-xs font-medium">{customer.email || "-"}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/20">
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                                                        <span>Telephone</span>
-                                                    </div>
-                                                    <span className="text-xs font-medium">{customer.telNo || "-"}</span>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-
-                                    {/* Actions & Insights */}
-                                    <div className="flex items-center gap-3 pt-4 border-t border-border/40">
-                                        <Button variant="outline" size="sm" className="gap-2 h-9 text-xs">
-                                            <FileText className="h-3.5 w-3.5" />
-                                            Statement
-                                        </Button>
-                                        <Button variant="outline" size="sm" className="gap-2 h-9 text-xs">
-                                            <History className="h-3.5 w-3.5" />
-                                            Invoices
-                                        </Button>
-                                        <Button variant="secondary" size="sm" className="gap-2 h-9 text-xs ml-auto">
-                                            <ExternalLink className="h-3.5 w-3.5" />
-                                            KRA Portal
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : lookupTin ? (
-                                <div className="flex flex-col items-center justify-center py-32 text-center space-y-4">
-                                    <div className="h-16 w-16 rounded-full bg-rose-100 dark:bg-rose-900/20 text-rose-600 flex items-center justify-center border-4 border-white dark:border-black shadow-lg">
-                                        <User className="h-8 w-8" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="font-bold text-lg">Customer Not Found</p>
-                                        <p className="text-sm text-muted-foreground max-w-sm">
-                                            The identity <span className="font-mono font-bold text-foreground underline decoration-rose-500/30">{lookupTin}</span> was not found in the KRA registry. Please verify the TIN and try again.
-                                        </p>
-                                    </div>
-                                    <Button variant="outline" size="sm" onClick={() => setLookupTin(null)}>
-                                        Clear Search
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-40 text-center opacity-40">
-                                    <div className="h-20 w-20 rounded-[2rem] bg-muted flex items-center justify-center mb-6">
-                                        <Building2 className="h-10 w-10" />
-                                    </div>
-                                    <h3 className="text-xl font-semibold">No Customer Selected</h3>
-                                    <p className="text-sm max-w-[280px] mt-2">
-                                        Enter a KRA PIN in the search box to verify a customer identity.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <Badge
+                                                    variant={customer.useYn === "N" ? "secondary" : "default"}
+                                                    className={customer.useYn === "N" ? "" : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800"}
+                                                >
+                                                    {customer.useYn === "N" ? "INACTIVE" : "ACTIVE"}
+                                                </Badge>
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => openView(customer)}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            View details
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openEdit(customer)}>
+                                                            <Pencil className="mr-2 h-4 w-4" />
+                                                            Edit customer
+                                                        </DropdownMenuItem>
+                                                        {customer.useYn !== "N" ? (
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem
+                                                                    className="text-destructive focus:text-destructive"
+                                                                    onClick={() => requestDelete(customer)}
+                                                                >
+                                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                                    Remove customer
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                        ) : null}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
