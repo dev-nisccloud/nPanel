@@ -17,6 +17,8 @@ import { getTeamLiveDomainsSummary } from "../lib/team-live-domains-summary";
 import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
 import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
 import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
+import { NISC_DOMAINS_PRODUCT_ID } from "../lib/planless-services-billing";
+import { resolveActiveNiscProductById, resolveActiveNiscProductId } from "../lib/planless-product-resolver";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -1710,14 +1712,9 @@ export const clientSubscriptionsRouter = router({
             };
         }),
 
-    /** Resolve product ID for "Domains" product (name contains "domain", case-insensitive). Used when creating domain subscriptions from portfolio. */
+    /** Resolve product ID for Domains checkout (matches seed-planless-services). */
     getDomainsProductId: protectedProcedure.query(async () => {
-        const [product] = await db
-            .select({ id: niscProduct.id })
-            .from(niscProduct)
-            .where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%domain%")))
-            .limit(1);
-        return product?.id ?? null;
+        return resolveActiveNiscProductId(NISC_DOMAINS_PRODUCT_ID);
     }),
 
     /** Resolve product ID for domain transfer (serviceType domain_transfer). Used for transfer checkout → createFromPayment. */

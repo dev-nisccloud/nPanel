@@ -12,3 +12,11 @@ export declare const PLANLESS_SERVICE_TYPES: {
     readonly vdsHosting: "vds_hosting";
     readonly dedicatedServers: "dedicated_server_hosting";
 };
+export declare const HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE: {
+    readonly DEDICATED_SERVERS: "nisc-dedicated-servers";
+    readonly VPS: "nisc-vps-hosting";
+    readonly VDS: "nisc-vds-hosting";
+};
+export declare function pickActivePlanlessProductId(products: ReadonlyArray<{
+    id: string;
+}> | undefined, canonicalId: string): string | undefined;

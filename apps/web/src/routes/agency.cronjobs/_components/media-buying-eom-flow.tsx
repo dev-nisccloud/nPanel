@@ -79,6 +79,7 @@ import {
 } from "./media-buying-eom/resizable-flow-node";
 import { MediaBuyingEomFlowEdge } from "./media-buying-eom/flow-edge";
 import type { InvoiceDefaults } from "./media-buying-eom/persist-types";
+import { COMPANY_LOGO_URL } from "@npanel/api/lib/company-branding";
 import {
   buildMediaBuyingGraphPayload,
   hydrateMediaBuyingFromGraph,
@@ -1870,8 +1871,7 @@ export function MediaBuyingEomTotalSpendInvoicesFlow({
                               yourCity: invoiceDefaults.yourCity,
                               yourState: invoiceDefaults.yourState,
                               yourCountry: invoiceDefaults.yourCountry,
-                              yourLogo:
-                                "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s",
+                              yourLogo: COMPANY_LOGO_URL,
                               yourEmail: invoiceDefaults.yourEmail,
                               yourTaxId: invoiceDefaults.yourTaxId,
                               yourZip: invoiceDefaults.yourZip,

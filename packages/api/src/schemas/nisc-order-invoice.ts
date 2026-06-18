@@ -13,6 +13,7 @@ export type BillingCycleType = z.infer<typeof billingCycleSchema>;
 
 /** Product reference in an order item. */
 export const orderItemProductSchema = z.object({
+	id: z.string().optional(),
 	name: z.string(),
 	serviceType: nullableString,
 });
@@ -23,6 +24,7 @@ export const orderItemProductPlanSchema = z.object({
 
 /** Single Nisc order item as used for invoice creation. */
 export const niscOrderItemForInvoiceSchema = z.object({
+	productId: z.string().optional(),
 	itemPrice: z.string(),
 	itemSubtotal: z.string(),
 	primaryDomain: nullableString,

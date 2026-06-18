@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, ilike, or } from "@npanel/db";
 
 import { db } from "@npanel/db";
+import { niscOrderItem } from "@npanel/db/schema/nisc-orders";
 import {
 	niscClientSubscription,
 	niscProduct,
@@ -25,6 +26,8 @@ import {
 import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
 import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
 import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
+import { getEtimsContext } from "../lib/etims-config";
+import { eTimsItem } from "@npanel/db/schema/etims";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -75,6 +78,17 @@ const planFeatureSchema = z.object({
 
 // --- Product schemas ---------------------------------------------------------
 
+const etimsTaxTyCdSchema = z.enum(["A", "B", "C", "D", "E"]);
+
+const productEtimsFieldsSchema = z.object({
+    etimsItemCd: z.string().max(20).nullable().optional(),
+    etimsItemClsCd: z.string().max(10).nullable().optional(),
+    etimsTaxTyCd: etimsTaxTyCdSchema.nullable().optional(),
+    etimsDefaultPrice: z.string().nullable().optional(),
+    etimsPkgUnitCd: z.string().max(5).nullable().optional(),
+    etimsQtyUnitCd: z.string().max(5).nullable().optional(),
+});
+
 const createProductInputSchema = z.object({
     name: z.string().min(1).max(255),
     description: z.string().optional(),
@@ -85,7 +99,7 @@ const createProductInputSchema = z.object({
     features: z.array(productFeatureSchema).default([]),
     highlights: z.array(z.string()).default([]),
     metadata: z.record(z.string(), z.unknown()).optional(),
-});
+}).merge(productEtimsFieldsSchema);
 
 const updateProductInputSchema = createProductInputSchema.partial().extend({
     id: z.string(),
@@ -119,6 +133,12 @@ const productOutputSchema = z.object({
     features: z.array(z.unknown()),
     highlights: z.array(z.string()),
     metadata: z.unknown().nullable(),
+    etimsItemCd: z.string().nullable(),
+    etimsItemClsCd: z.string().nullable(),
+    etimsTaxTyCd: etimsTaxTyCdSchema.nullable(),
+    etimsDefaultPrice: z.string().nullable(),
+    etimsPkgUnitCd: z.string().nullable(),
+    etimsQtyUnitCd: z.string().nullable(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
 });
@@ -356,6 +376,12 @@ function mapProduct(product: any): z.infer<typeof productOutputSchema> {
         features: product.features ?? [],
         highlights: product.highlights ?? [],
         metadata: product.metadata ?? null,
+        etimsItemCd: product.etimsItemCd ?? null,
+        etimsItemClsCd: product.etimsItemClsCd ?? null,
+        etimsTaxTyCd: product.etimsTaxTyCd ?? null,
+        etimsDefaultPrice: product.etimsDefaultPrice ?? null,
+        etimsPkgUnitCd: product.etimsPkgUnitCd ?? null,
+        etimsQtyUnitCd: product.etimsQtyUnitCd ?? null,
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
     };
@@ -452,14 +478,11 @@ function assertAgencySuperAdminMutationAccess(role: string | null | undefined) {
 export const productsRouter = router({
     // ── Products ─────────────────────────────────────────────────────────────
 
-    /** List all products with optional filtering (cached via Upstash Redis) */
-    getAll: protectedProcedure
+    /** List all products with optional filtering (cached via Upstash Redis). Public catalog read. */
+    getAll: publicProcedure
         .input(getProductsInputSchema.optional())
         .output(z.array(productOutputSchema))
-        .query(async ({ ctx, input }) => {
-            const actor = getAuthenticatedActor(ctx);
-            assertAgencyReadAccess(actor.role);
-
+        .query(async ({ input }) => {
             const cacheInput = input ? { category: input.category, serviceType: input.serviceType, isActive: input.isActive } : undefined;
             const cached = await getCached<z.infer<typeof productOutputSchema>[]>(listKey(cacheInput));
             if (cached != null) return cached;
@@ -1673,6 +1696,12 @@ export const productsRouter = router({
                     features: input.features as unknown[],
                     highlights: input.highlights,
                     metadata: input.metadata ?? null,
+                    etimsItemCd: input.etimsItemCd ?? null,
+                    etimsItemClsCd: input.etimsItemClsCd ?? null,
+                    etimsTaxTyCd: input.etimsTaxTyCd ?? null,
+                    etimsDefaultPrice: input.etimsDefaultPrice ?? null,
+                    etimsPkgUnitCd: input.etimsPkgUnitCd ?? null,
+                    etimsQtyUnitCd: input.etimsQtyUnitCd ?? null,
                 })
                 .returning();
             if (!product) {
@@ -1714,6 +1743,12 @@ export const productsRouter = router({
             if (rest.metadata !== undefined) {
                 set.metadata = rest.metadata ?? null;
             }
+            if (rest.etimsItemCd !== undefined) set.etimsItemCd = rest.etimsItemCd ?? null;
+            if (rest.etimsItemClsCd !== undefined) set.etimsItemClsCd = rest.etimsItemClsCd ?? null;
+            if (rest.etimsTaxTyCd !== undefined) set.etimsTaxTyCd = rest.etimsTaxTyCd ?? null;
+            if (rest.etimsDefaultPrice !== undefined) set.etimsDefaultPrice = rest.etimsDefaultPrice ?? null;
+            if (rest.etimsPkgUnitCd !== undefined) set.etimsPkgUnitCd = rest.etimsPkgUnitCd ?? null;
+            if (rest.etimsQtyUnitCd !== undefined) set.etimsQtyUnitCd = rest.etimsQtyUnitCd ?? null;
 
             const [updated] = await db
                 .update(niscProduct)
@@ -1726,6 +1761,104 @@ export const productsRouter = router({
 
             await invalidateProductsCache();
             return mapProduct(updated);
+        }),
+
+    /**
+     * Deactivate a Nisc product on KRA eTIMS (useYn=N) and clear local eTIMS fields.
+     * Agency super admin only.
+     */
+    unregisterFromKra: protectedProcedure
+        .input(z.object({ id: z.string().min(1) }))
+        .output(z.object({ success: z.boolean() }))
+        .mutation(async ({ ctx, input }) => {
+            const actor = getAuthenticatedActor(ctx);
+            assertAgencySuperAdminMutationAccess(actor.role);
+
+            const product = await db.query.niscProduct.findFirst({
+                where: eq(niscProduct.id, input.id),
+            });
+            if (!product) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+            }
+            if (!product.etimsItemCd) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "This product is not registered on KRA eTIMS",
+                });
+            }
+            if (!product.etimsItemClsCd || !product.etimsTaxTyCd) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Missing KRA classification or tax data on this product",
+                });
+            }
+
+            const taxTyCd = product.etimsTaxTyCd;
+            if (taxTyCd !== "A" && taxTyCd !== "B" && taxTyCd !== "C" && taxTyCd !== "D" && taxTyCd !== "E") {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Invalid KRA tax type stored on this product",
+                });
+            }
+
+            const dftPrc = Number(product.etimsDefaultPrice ?? 0) || 0;
+            const modrId = actor.userId.slice(0, 20);
+            const modrNm = (ctx.session?.user?.name ?? "Administrator").slice(0, 60);
+
+            const { client, oscu } = await getEtimsContext();
+            const result = await client.saveItem(oscu, {
+                itemCd: product.etimsItemCd,
+                itemClsCd: product.etimsItemClsCd,
+                itemTyCd: "3",
+                itemNm: product.name,
+                itemStdNm: null,
+                orgnNatCd: "KE",
+                pkgUnitCd: product.etimsPkgUnitCd ?? "OU",
+                qtyUnitCd: product.etimsQtyUnitCd ?? "U",
+                taxTyCd,
+                btchNo: null,
+                bcd: null,
+                dftPrc,
+                grpPrcL1: dftPrc,
+                grpPrcL2: dftPrc,
+                grpPrcL3: dftPrc,
+                grpPrcL4: dftPrc,
+                grpPrcL5: 0,
+                addInfo: null,
+                sftyQty: 0,
+                isrcAplcbYn: "N",
+                useYn: "N",
+                regrId: modrId,
+                regrNm: modrNm,
+                modrId: modrId,
+                modrNm: modrNm,
+            });
+
+            const resultCd = (result as { resultCd?: string }).resultCd;
+            const resultMsg = (result as { resultMsg?: string }).resultMsg ?? "KRA rejected the unregister request";
+            if (resultCd && resultCd !== "000" && resultCd !== "001") {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: resultMsg,
+                });
+            }
+
+            await db
+                .update(niscProduct)
+                .set({
+                    etimsItemCd: null,
+                    etimsItemClsCd: null,
+                    etimsTaxTyCd: null,
+                    etimsDefaultPrice: null,
+                    etimsPkgUnitCd: null,
+                    etimsQtyUnitCd: null,
+                })
+                .where(eq(niscProduct.id, input.id));
+
+            await db.delete(eTimsItem).where(eq(eTimsItem.itemCd, product.etimsItemCd));
+
+            await invalidateProductsCache();
+            return { success: true };
         }),
 
     /** Permanently delete a product from the database. Only allowed when product is inactive and has no subscriptions. */
@@ -1760,7 +1893,28 @@ export const productsRouter = router({
                 });
             }
 
-            await db.delete(niscProduct).where(eq(niscProduct.id, input.id));
+            const [orderItemCountRow] = await db
+                .select({ c: count() })
+                .from(niscOrderItem)
+                .where(eq(niscOrderItem.productId, input.id));
+            const orderItemCount = Number(orderItemCountRow?.c ?? 0);
+            if (orderItemCount > 0) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: `Cannot delete product referenced by ${orderItemCount} order item(s). Migrate or reassign them first.`,
+                });
+            }
+
+            try {
+                await db.delete(niscProduct).where(eq(niscProduct.id, input.id));
+            } catch (err) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message:
+                        "Cannot delete product while it is still referenced by orders, plans, or other records. Deactivate it instead, or run the relevant product migration script.",
+                    cause: err,
+                });
+            }
 
             await invalidateProductsCache();
             return { success: true };

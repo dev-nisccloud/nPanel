@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, boolean, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const eTimsConfiguration = pgTable(
   "etims_configuration",
@@ -51,3 +51,17 @@ export const eTimsItem = pgTable(
   (table) => [uniqueIndex("etims_item_itemCd_unique").on(table.itemCd)],
 );
 
+/** KRA UNSPSC item classification codes synced from POST /selectItemClsList. */
+export const eTimsItemClassification = pgTable(
+  "etims_item_classification",
+  {
+    itemClsCd: text("item_cls_cd").primaryKey(),
+    itemClsNm: text("item_cls_nm").notNull(),
+    itemClsLvl: integer("item_cls_lvl").notNull(),
+    taxTyCd: text("tax_ty_cd"),
+    mjrTgYn: text("mjr_tg_yn"),
+    useYn: text("use_yn").default("Y"),
+    syncedAt: timestamp("synced_at").defaultNow().notNull(),
+  },
+  (table) => [index("etims_item_classification_level_idx").on(table.itemClsLvl)],
+);

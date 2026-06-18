@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, ilike, or } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscClientSubscription, niscProduct, niscProductAddOn, niscProductPlan, niscProductPlanUsage, } from "@npanel/db/schema/products";
+import { niscOrderItem } from "@npanel/db/schema/nisc-orders";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { getCached, setCached, invalidateProductsCache, listKey, idKey, addonsKey, hostingUpsellKey, digitalMarketingUpsellKey, } from "../lib/products-cache";
 import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
@@ -370,12 +371,10 @@ function assertAgencySuperAdminMutationAccess(role) {
 export const productsRouter = router({
     // ── Products ─────────────────────────────────────────────────────────────
     /** List all products with optional filtering (cached via Upstash Redis) */
-    getAll: protectedProcedure
+    getAll: publicProcedure
         .input(getProductsInputSchema.optional())
         .output(z.array(productOutputSchema))
-        .query(async ({ ctx, input }) => {
-        const actor = getAuthenticatedActor(ctx);
-        assertAgencyReadAccess(actor.role);
+        .query(async ({ input }) => {
         const cacheInput = input ? { category: input.category, serviceType: input.serviceType, isActive: input.isActive } : undefined;
         const cached = await getCached(listKey(cacheInput));
         if (cached != null)
@@ -1242,7 +1241,27 @@ export const productsRouter = router({
                 message: "Cannot delete product that has client subscriptions",
             });
         }
-        await db.delete(niscProduct).where(eq(niscProduct.id, input.id));
+        const [orderItemCountRow] = await db
+            .select({ c: count() })
+            .from(niscOrderItem)
+            .where(eq(niscOrderItem.productId, input.id));
+        const orderItemCount = Number(orderItemCountRow?.c ?? 0);
+        if (orderItemCount > 0) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Cannot delete product referenced by ${orderItemCount} order item(s). Migrate or reassign them first (e.g. bun run migrate:web-hosting-product-ids).`,
+            });
+        }
+        try {
+            await db.delete(niscProduct).where(eq(niscProduct.id, input.id));
+        }
+        catch (err) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Cannot delete product while it is still referenced by orders, plans, or other records. Deactivate it instead, or run the relevant product migration script.",
+                cause: err,
+            });
+        }
         await invalidateProductsCache();
         return { success: true };
     }),

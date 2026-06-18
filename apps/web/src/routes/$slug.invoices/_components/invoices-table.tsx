@@ -28,12 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
-import { Document, Page } from "@react-pdf/renderer";
-import { pdf } from "@react-pdf/renderer";
-import QRCodeUtil from "qrcode";
-import { PdfDetails } from "@/routes/agency.invoices/create/_components/form/pdfDetails";
-import { pdfContainers } from "@/lib/pdfStyles";
-import { registerFonts, convertInvoiceToPdfData } from "./invoices-list";
+import { registerFonts } from "./invoices-list";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
 
 const formatCurrency = (amount: string | null | undefined, currency: string) => {
@@ -67,28 +62,12 @@ function InvoiceRowActions({ invoice, onRefetch }: InvoiceRowActionsProps) {
 			const { data } = await getById.refetch();
 			if (!data) throw new Error("Failed to fetch invoice details");
 			await registerFonts();
-			const pdfData = convertInvoiceToPdfData(data);
-			let qrCodeDataUrl: string | undefined;
-			if (pdfData.paymentDetails.qrCodeValue) {
-				try {
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, { width: 120, margin: 1 });
-				} catch {
-					/* ignore */
-				}
-			}
-			const blob = await pdf(
-				<Document>
-					<Page size="A4" style={pdfContainers.page}>
-						<PdfDetails
-							companyDetails={pdfData.companyDetails}
-							invoiceDetails={pdfData.invoiceDetails}
-							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{ ...pdfData.paymentDetails, qrCodeDataUrl }}
-							yourDetails={pdfData.yourDetails}
-						/>
-					</Page>
-				</Document>
-			).toBlob();
+			const [{ pdf }, { buildAgencyInvoicePdfDocument }] = await Promise.all([
+				import("@react-pdf/renderer"),
+				import("@/lib/build-agency-invoice-pdf-document"),
+			]);
+			const doc = await buildAgencyInvoicePdfDocument(data);
+			const blob = await pdf(doc).toBlob();
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement("a");
 			a.href = url;

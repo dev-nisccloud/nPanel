@@ -19,16 +19,18 @@ export const PdfDetails = ({
   invoiceDetails,
   paymentDetails,
   invoiceTerms,
+  documentTitle,
 }: {
   yourDetails: YourDetails;
   companyDetails: CompanyDetails;
   invoiceDetails: InvoiceItemDetails;
   paymentDetails: PaymentDetails & { qrCodeDataUrl?: string };
   invoiceTerms: InvoiceTerms;
+  documentTitle?: string;
 }) => (
   <View>
-    {/* New header: Logo on left, From on right, then INVOICE separator */}
-    <InvoiceHeaderPdf {...yourDetails} />
+    {/* New header: Logo on left, From on right, then document title separator */}
+    <InvoiceHeaderPdf {...yourDetails} documentTitle={documentTitle} />
     
     {/* Bill To section on left, Invoice number and dates on right */}
     <View

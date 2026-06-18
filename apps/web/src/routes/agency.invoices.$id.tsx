@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Ban, Download, DollarSign, Send } from "lucide-react";
+import { ArrowLeft, Ban, Download, DollarSign, FileText, Send } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +27,15 @@ import {
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { PreviewDetails } from "@/routes/agency.invoices/create/_components/form/previewDetails";
-import { transformInvoiceToPreviewData } from "./agency.invoices/$id/_utils/transformInvoiceData";
+import { transformInvoiceToPreviewData } from "@/lib/transform-invoice-preview-data";
 import { UpdatePaymentDialog } from "./agency.invoices/$id/_components/update-payment-dialog";
+import {
+	InvoiceKraStatusPanel,
+	canSendInvoiceEmail,
+} from "./agency.invoices/$id/_components/invoice-kra-status-panel";
+import { IssueCreditNoteDialog } from "./agency.invoices/$id/_components/issue-credit-note-dialog";
+import { isInvoiceKraSynced } from "@npanel/api/lib/invoice-kra-status";
+import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
 import { FormProvider, useForm } from "react-hook-form";
 import { YourDetailsForm } from "@/routes/agency.invoices/create/_components/form/yourDetails/yourDetailsForm";
@@ -36,14 +43,7 @@ import { CompanyDetailsForm } from "@/routes/agency.invoices/create/_components/
 import { InvoiceDetailsForm } from "@/routes/agency.invoices/create/_components/form/invoiceDetails/invoiceDetailsForm";
 import { PaymentDetailsForm } from "@/routes/agency.invoices/create/_components/form/paymentDetails/paymentDetailsForm";
 import { InvoiceTermsForm } from "@/routes/agency.invoices/create/_components/form/invoiceTerms/invoiceTermsForm";
-import type {
-	YourDetails,
-	CompanyDetails,
-	InvoiceItemDetails,
-	PaymentDetails,
-	InvoiceTerms,
-} from "@/routes/agency.invoices/create/types";
-// Font registration state
+
 let fontsRegistered = false;
 let fontsRegistering = false;
 
@@ -120,114 +120,6 @@ const registerFonts = async (): Promise<boolean> => {
 	}
 };
 
-import {
-	buildInvoicePdfDetails,
-	COMPANY_LOGO_URL,
-} from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
-
-// Helper function to convert InvoiceDetail to PDF data format (legacy download paths)
-function convertInvoiceToPdfData(invoice: InvoiceDetail) {
-	const fromDetails = invoice.fromDetails as any;
-	const customerDetails = invoice.customerDetails as any;
-	const paymentDetails = invoice.paymentDetails as any;
-
-	// Always use the hardcoded company logo URL
-	const logoUrl = COMPANY_LOGO_URL;
-
-	const yourDetails: YourDetails = {
-		yourName: fromDetails?.name,
-		yourEmail: fromDetails?.email,
-		yourAddress: fromDetails?.address,
-		yourCity: fromDetails?.city,
-		yourState: fromDetails?.state,
-		yourCountry: fromDetails?.country,
-		yourZip: fromDetails?.zip,
-		yourTaxId: fromDetails?.taxId,
-		yourLogo: logoUrl,
-	};
-
-	const companyDetails: CompanyDetails = {
-		companyName: customerDetails?.name,
-		email: customerDetails?.email,
-		companyAddress: customerDetails?.address,
-		companyCity: customerDetails?.city,
-		companyState: customerDetails?.state,
-		companyCountry: customerDetails?.country,
-		companyZip: customerDetails?.zip,
-		companyTaxId: customerDetails?.taxId,
-	};
-
-	const invoiceDetails: InvoiceItemDetails = {
-		note: invoice.note || undefined,
-		discount: invoice.discount || undefined,
-		taxPercentage: invoice.taxPercentage || undefined,
-		currency: invoice.currency,
-		items: invoice.lineItems.map((item) => ({
-			id: item.id,
-			itemDescription: item.description
-				? `${item.name || "Service"}. ${item.description}`
-				: (item.name || "Service"),
-			amount: item.price ? Number(item.price) : undefined,
-			qty: item.quantity || undefined,
-		})),
-	};
-
-	// Convert payment method from database format to PDF format
-	const paymentMethodApi = paymentDetails?.paymentMethod;
-	let paymentMethod: "bank" | "mpesa" | "cheque" | undefined;
-	
-	if (paymentMethodApi === "BANK_TRANSFER" || paymentMethodApi === "bank_transfer" || paymentMethodApi === "bank") {
-		paymentMethod = "bank";
-	} else if (paymentMethodApi === "MPESA" || paymentMethodApi === "mpesa") {
-		paymentMethod = "mpesa";
-	} else if (paymentMethodApi === "CHEQUE" || paymentMethodApi === "cheque") {
-		paymentMethod = "cheque";
-	}
-	
-	if (!paymentMethod) {
-		paymentMethod = "mpesa";
-	}
-	
-	const paymentDetailsFormatted: PaymentDetails = {
-		paymentMethod,
-		currency: invoice.currency || "KES",
-		...(typeof paymentDetails?.qrCodeValue === "string" && paymentDetails.qrCodeValue.trim()
-			? { qrCodeValue: paymentDetails.qrCodeValue.trim() }
-			: {}),
-		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
-		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
-		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,
-		branchName: paymentMethod === "bank" ? paymentDetails?.branchName : undefined,
-		branchCode: paymentMethod === "bank" ? paymentDetails?.branchCode : undefined,
-		swiftCode: paymentMethod === "bank" ? paymentDetails?.swiftCode : undefined,
-		mpesaPaybillNumber: paymentMethod === "mpesa" 
-			? (paymentDetails?.mpesaPaybillNumber || "303030")
-			: undefined,
-		mpesaAccountNumber: paymentMethod === "mpesa"
-			? (paymentDetails?.mpesaAccountNumber || "2052676528")
-			: undefined,
-		mpesaInstructions: paymentMethod === "mpesa"
-			? (paymentDetails?.mpesaInstructions || "Absa Bank Kenya")
-			: undefined,
-		chequeDeliveryAddress: paymentMethod === "cheque" ? paymentDetails?.chequeDeliveryAddress : undefined,
-		chequeInstructions: paymentMethod === "cheque" ? paymentDetails?.chequeInstructions : undefined,
-	};
-
-	const invoiceTerms: InvoiceTerms = {
-		invoiceNumber: invoice.invoiceNumber || undefined,
-		issueDate: invoice.issueDate ? new Date(invoice.issueDate) : undefined,
-		dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
-	};
-
-	return {
-		yourDetails,
-		companyDetails,
-		invoiceDetails,
-		paymentDetails: paymentDetailsFormatted,
-		invoiceTerms,
-	};
-}
-
 type InvoiceEditStep = "1" | "2" | "3" | "4" | "5";
 
 type InvoiceEditorFormValues = {
@@ -291,7 +183,7 @@ function buildInvoiceEditorDefaults(invoice: InvoiceDetail): InvoiceEditorFormVa
 	const paymentDetails = (invoice.paymentDetails as any) ?? {};
 
 	const items = (invoice.lineItems ?? []).map((li) => ({
-		itemDescription: li.description || li.name || "",
+		itemDescription: li.name?.trim() || li.description?.trim() || "",
 		amount: li.price != null ? Number(li.price) : undefined,
 		qty: li.quantity ?? undefined,
 	}));
@@ -358,6 +250,7 @@ export default function InvoiceViewPage() {
 	);
 
 	const [isDownloading, setIsDownloading] = React.useState(false);
+	const [issueCreditNoteOpen, setIssueCreditNoteOpen] = React.useState(false);
 	const [isSending, setIsSending] = React.useState(false);
 	const [updatePaymentOpen, setUpdatePaymentOpen] = React.useState(false);
 	const [markUnpaidConfirmOpen, setMarkUnpaidConfirmOpen] = React.useState(false);
@@ -439,6 +332,7 @@ export default function InvoiceViewPage() {
 			toast.success("Email reminder sent successfully!", {
 				description: `Reminder for invoice ${invoice?.invoiceNumber} has been sent to ${sendToEmail || invoice?.customerEmail}`,
 			});
+			utils.invoicing.getById.invalidate({ id: invoiceId });
 			utils.invoicing.list.invalidate();
 		},
 		onError: (error) => {
@@ -471,57 +365,15 @@ export default function InvoiceViewPage() {
 		try {
 			setIsDownloading(true);
 
-			// Dynamically import PDF-related modules
-			const [
-				{ Document, Page },
-				{ pdf },
-				{ PdfDetails },
-				{ pdfContainers },
-			] = await Promise.all([
+			const [{ pdf }, { buildAgencyInvoicePdfDocument }] = await Promise.all([
 				import("@react-pdf/renderer"),
-				import("@react-pdf/renderer"),
-				import("@/routes/agency.invoicing/_components/form/pdfDetails"),
-				import("@/lib/pdfStyles"),
+				import("@/lib/build-agency-invoice-pdf-document"),
 			]);
 
-			// Ensure fonts are registered
 			await registerFonts();
 
-			// Convert invoice data to the SAME PDF config used by cron jobs
-			const pdfData = buildInvoicePdfDetails(invoice);
-
-			// Generate QR code if needed
-			let qrCodeDataUrl: string | undefined;
-			if (pdfData.paymentDetails.qrCodeValue) {
-				try {
-					// eslint-disable-next-line @typescript-eslint/no-require-imports
-					const QRCodeUtil = await import("qrcode") as any;
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, {
-						width: 120,
-						margin: 1,
-					});
-				} catch (error) {
-					console.error("Failed to generate QR code:", error);
-				}
-			}
-
-			// Generate PDF
-			const blob = await pdf(
-				<Document>
-					<Page size="A4" style={pdfContainers.page}>
-						<PdfDetails
-							companyDetails={pdfData.companyDetails}
-							invoiceDetails={pdfData.invoiceDetails}
-							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{
-								...pdfData.paymentDetails,
-								qrCodeDataUrl,
-							}}
-							yourDetails={pdfData.yourDetails}
-						/>
-					</Page>
-				</Document>
-			).toBlob();
+			const doc = await buildAgencyInvoicePdfDocument(invoice);
+			const blob = await pdf(doc).toBlob();
 
 			// Download the PDF
 			const url = URL.createObjectURL(blob);
@@ -565,80 +417,14 @@ export default function InvoiceViewPage() {
 				return;
 			}
 
-			// Dynamically import PDF-related modules
-			const [
-				{ Document, Page },
-				{ pdf },
-				{ PdfDetails },
-				{ pdfContainers },
-			] = await Promise.all([
-				import("@react-pdf/renderer"),
-				import("@react-pdf/renderer"),
-				import("@/routes/agency.invoicing/_components/form/pdfDetails"),
-				import("@/lib/pdfStyles"),
-			]);
-
-			// Ensure fonts are registered
-			await registerFonts();
-
-			// Convert invoice data to the SAME PDF config used by cron jobs
-			const pdfData = buildInvoicePdfDetails(invoice);
-
-			// Generate QR code if needed
-			let qrCodeDataUrl: string | undefined;
-			if (pdfData.paymentDetails.qrCodeValue) {
-				try {
-					// eslint-disable-next-line @typescript-eslint/no-require-imports
-					const QRCodeUtil = await import("qrcode") as any;
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, {
-						width: 120,
-						margin: 1,
-					});
-				} catch (error) {
-					console.error("Failed to generate QR code:", error);
-				}
-			}
-
-			// Generate PDF
-			const blob = await pdf(
-				<Document>
-					<Page size="A4" style={pdfContainers.page}>
-						<PdfDetails
-							companyDetails={pdfData.companyDetails}
-							invoiceDetails={pdfData.invoiceDetails}
-							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{
-								...pdfData.paymentDetails,
-								qrCodeDataUrl,
-							}}
-							yourDetails={pdfData.yourDetails}
-						/>
-					</Page>
-				</Document>
-			).toBlob();
-
-			// Convert PDF blob to base64
-			const pdfBase64 = await new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onloadend = () => {
-					const base64String = (reader.result as string).split(",")[1];
-					resolve(base64String);
-				};
-				reader.onerror = reject;
-				reader.readAsDataURL(blob);
-			});
-
-			// Send email reminder
 			await resendEmailMutation.mutateAsync({
 				invoiceId: invoice.id,
-				to: sendToEmail?.trim() || undefined,
-				pdfBase64,
+				to: sendToEmail.trim() || undefined,
 				cc: parseEmails(sendCc),
 				bcc: parseEmails(sendBcc),
 			});
 		} catch (error) {
 			console.error("Failed to resend email:", error);
-			// Error toast is handled by mutation
 		} finally {
 			setIsSending(false);
 			setSendDialogOpen(false);
@@ -676,6 +462,11 @@ export default function InvoiceViewPage() {
 	}
 
 	const previewData = transformInvoiceToPreviewData(invoice);
+	const pdfMeta = buildInvoicePdfDetails(invoice);
+	const emailBlocked = !canSendInvoiceEmail(invoice);
+	const canIssueCreditNote =
+		isInvoiceKraSynced(invoice.kraStatus) && !invoice.creditNote;
+	const existingCreditNoteId = invoice.creditNote?.id;
 
 	const handleOpenEdit = (step: string) => {
 		const s = step as InvoiceEditStep;
@@ -817,6 +608,31 @@ export default function InvoiceViewPage() {
 					</div>
 				</div>
 				<div className="flex items-center gap-2">
+					{existingCreditNoteId ? (
+						<Button
+							variant="outline"
+							onClick={() =>
+								navigate(`/agency/invoices/credit-notes/${existingCreditNoteId}`)
+							}
+						>
+							<FileText className="mr-2 h-4 w-4" />
+							View credit note
+						</Button>
+					) : (
+						<Button
+							variant="outline"
+							onClick={() => setIssueCreditNoteOpen(true)}
+							disabled={!canIssueCreditNote || isDownloading || isSending}
+							title={
+								!isInvoiceKraSynced(invoice.kraStatus)
+									? "Invoice must be synced to KRA first"
+									: undefined
+							}
+						>
+							<FileText className="mr-2 h-4 w-4" />
+							Issue credit note
+						</Button>
+					)}
 					<Button
 						onClick={() => setUpdatePaymentOpen(true)}
 						disabled={invoice.status === "PAID" || isDownloading || isSending}
@@ -852,7 +668,14 @@ export default function InvoiceViewPage() {
 					</Button>
 					<Button
 						onClick={() => setSendDialogOpen(true)}
-						disabled={isDownloading || isSending || !invoice.customerEmail}
+						disabled={isDownloading || isSending || !invoice.customerEmail || emailBlocked}
+						title={
+							emailBlocked
+								? invoice.kraStatus === "SUBMITTING"
+									? "KRA sync in progress"
+									: "KRA sync was skipped — fix configuration or retry sync"
+								: undefined
+						}
 					>
 						{isSending ? (
 							<>
@@ -905,6 +728,14 @@ export default function InvoiceViewPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 
+			<div className="flex flex-col items-center gap-4 px-4">
+				<InvoiceKraStatusPanel
+					invoice={invoice}
+					etimsFiscal={pdfMeta.etimsFiscal}
+					onInvoiceUpdated={() => utils.invoicing.getById.invalidate({ id: invoiceId })}
+				/>
+			</div>
+
 			{/* Center the preview */}
 			<div className="flex justify-center items-start">
 				<PreviewDetails
@@ -913,6 +744,7 @@ export default function InvoiceViewPage() {
 					invoiceDetails={previewData.invoiceDetails}
 					paymentDetails={previewData.paymentDetails}
 					invoiceTerms={previewData.invoiceTerms}
+					etimsFiscal={pdfMeta.etimsFiscal}
 					onClick={handleOpenEdit}
 				/>
 			</div>
@@ -971,7 +803,7 @@ export default function InvoiceViewPage() {
 					<DialogHeader>
 						<DialogTitle>Send invoice email</DialogTitle>
 						<DialogDescription>
-							We&apos;ll attach the invoice PDF. You can optionally add CC/BCC recipients (comma-separated).
+							The server will sync to KRA eTIMS if needed, generate the fiscal PDF, then email it. You can optionally add CC/BCC recipients (comma-separated).
 						</DialogDescription>
 					</DialogHeader>
 
@@ -1019,6 +851,19 @@ export default function InvoiceViewPage() {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
+
+			<IssueCreditNoteDialog
+				open={issueCreditNoteOpen}
+				onOpenChange={setIssueCreditNoteOpen}
+				invoiceId={invoice.id}
+				invoiceNumber={invoice.invoiceNumber}
+				invoiceAmount={invoice.amount}
+				currency={invoice.currency}
+				customerName={invoice.customerName}
+				onSuccess={(creditNoteId) =>
+					navigate(`/agency/invoices/credit-notes/${creditNoteId}`)
+				}
+			/>
 		</div>
 	);
 }

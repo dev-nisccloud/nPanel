@@ -267,6 +267,34 @@
       "when": 1780200000000,
       "tag": "0037_scaling_auth_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1781766147482,
+      "tag": "0038_silky_blue_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1781768719913,
+      "tag": "0039_kind_maverick",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1781779152423,
+      "tag": "0040_ancient_thing",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1781784610163,
+      "tag": "0041_cloudy_meltdown",
+      "breakpoints": true
     }
   ]
 }

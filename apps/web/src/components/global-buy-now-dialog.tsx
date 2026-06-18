@@ -345,8 +345,12 @@ export function GlobalBuyNowDialog() {
     });
   const webFromPrice = getMinYearlyFromPlans(webHostingPricing?.plans ?? []);
   const emailFromPrice = getMinYearlyFromPlans(emailHostingPricing?.plans ?? []);
+
+  const isCustomerDomainCheckout = isDomainProduct && !isAgencySide;
+  const needsRegistrantStep = isAgencySide || isCustomerDomainCheckout;
+
   const userInfoQuery = trpc.userProfile.getUserInfo.useQuery(undefined, {
-    enabled: open && isDomainProduct,
+    enabled: open && needsRegistrantStep,
   });
 
   const customerProfileHref = React.useMemo(() => {
@@ -354,11 +358,8 @@ export function GlobalBuyNowDialog() {
     return slug ? `/${slug}/my-profile` : "/dashboard/my-profile";
   }, [location.pathname]);
 
-  const isCustomerDomainCheckout = isDomainProduct && !isAgencySide;
-  const isAgencyDomainCheckout = isDomainProduct && isAgencySide;
-
   const customersForRegistrantQuery = trpc.userProfile.listCustomersForRegistrant.useQuery(undefined, {
-    enabled: open && isAgencyDomainCheckout,
+    enabled: open && isAgencySide,
   });
 
   const customersForRegistrant = customersForRegistrantQuery.data ?? [];
@@ -1277,24 +1278,32 @@ export function GlobalBuyNowDialog() {
     setCurrentStep("registrant_info");
   };
 
-  const goToDomainCheckoutStep = () => {
-    if (isDomainProduct) {
+  const goToReviewOrRegistrant = React.useCallback(() => {
+    if (needsRegistrantStep && !registrantStepCompleted) {
       goToRegistrantStep();
       return;
     }
-    openForPayment();
+    setCurrentStep("review");
+  }, [needsRegistrantStep, registrantStepCompleted]);
+
+  const goToDomainCheckoutStep = () => {
+    if (needsRegistrantStep && !registrantStepCompleted) {
+      goToRegistrantStep();
+      return;
+    }
+    setCurrentStep("review");
   };
 
   const continueToPayment = React.useCallback(() => {
-    if (isDomainProduct && !registrantStepCompleted) {
+    if (needsRegistrantStep && !registrantStepCompleted) {
       goToRegistrantStep();
       return;
     }
     openForPayment();
-  }, [isDomainProduct, registrantStepCompleted]);
+  }, [needsRegistrantStep, registrantStepCompleted]);
 
   const proceedFromReview = () => {
-    if (isDomainProduct && !registrantStepCompleted) {
+    if (needsRegistrantStep && !registrantStepCompleted) {
       goToRegistrantStep();
       return;
     }
@@ -1348,7 +1357,7 @@ export function GlobalBuyNowDialog() {
         setCurrentStep("hosting-upsell");
       }
     } else if (currentStep === "review" && (isCartMode || ctx)) {
-      if (isDomainProduct && registrantStepCompleted) {
+      if (needsRegistrantStep && registrantStepCompleted) {
         setCurrentStep("registrant_info");
         return;
       }
@@ -1366,9 +1375,11 @@ export function GlobalBuyNowDialog() {
         setCurrentStep("product");
       }
     } else if (currentStep === "registrant_info") {
-      if (isCartMode) {
-        setCurrentStep("review");
-      } else if (isDomainBundle) {
+      if (isCartMode || isTransferMode) {
+        close();
+        return;
+      }
+      if (isDomainBundle) {
         setCurrentStep("product");
       } else if (isDomainProduct) {
         setCurrentStep("hosting-upsell");
@@ -1478,7 +1489,7 @@ export function GlobalBuyNowDialog() {
       setPlanSelectionProductName("");
       setSelectedPlanId(null);
       setIsSelectingMainProductPlan(false);
-      setCurrentStep("review");
+      goToReviewOrRegistrant();
     } else {
       setSelectedUpsellPlans((prev) => [
         ...prev.filter((p) => p.productId !== planSelectionProductId),
@@ -1516,14 +1527,14 @@ export function GlobalBuyNowDialog() {
     if (hasInitializedStepRef.current) return;
 
     if (isTransferMode) {
-      setCurrentStep("review");
+      setCurrentStep(isAgencySide ? "registrant_info" : "review");
     } else if (isCartMode) {
-      setCurrentStep("review");
+      setCurrentStep(isAgencySide ? "registrant_info" : "review");
     } else {
       setCurrentStep("product");
     }
     hasInitializedStepRef.current = true;
-  }, [open, isCartMode, isTransferMode]);
+  }, [open, isCartMode, isTransferMode, isAgencySide]);
 
   React.useEffect(() => {
     if (!open) {
@@ -2296,7 +2307,7 @@ export function GlobalBuyNowDialog() {
             <div className="text-center">
               <h3 className="text-lg font-semibold text-foreground">Registrant details</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Choose a customer in nPanel or use your agency profile for this domain registration.
+                Choose a customer in nPanel or use your agency profile for this order.
               </p>
             </div>
 
@@ -2621,7 +2632,7 @@ export function GlobalBuyNowDialog() {
                     setCurrentStep("plan-selection");
                   } else if (isDomainProduct) {
                     goToDomainCheckoutStep();
-                  } else setCurrentStep("review");
+                  } else goToReviewOrRegistrant();
                 }}
               >
                 {isDomainBundle
@@ -2640,7 +2651,7 @@ export function GlobalBuyNowDialog() {
               <Button
                 onClick={() => {
                   if (isDomainProduct) goToDomainCheckoutStep();
-                  else setCurrentStep("review");
+                  else goToReviewOrRegistrant();
                 }}
               >
                 Proceed to checkout
@@ -2694,7 +2705,7 @@ export function GlobalBuyNowDialog() {
                 {isCartMode ? "Cancel" : isTransferMode ? "Cancel" : "Back"}
               </Button>
               <Button onClick={proceedFromReview}>
-                {isDomainProduct && !registrantStepCompleted
+                {needsRegistrantStep && !registrantStepCompleted
                   ? "Continue to registrant details"
                   : isCartMode || isTransferMode
                     ? "Proceed to payment"

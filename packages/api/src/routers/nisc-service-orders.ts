@@ -27,6 +27,7 @@ import {
 import { processNiscOrder } from "../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../lib/nisc-order-invoice-delivery";
 import { isZeepoAiAgentProduct } from "../lib/zeepo-agent-order-provisioning";
+import { resolveActiveNiscProductById } from "../lib/planless-product-resolver";
 import {
 	createFromPaymentInputSchema,
 	createOrderInputSchema,
@@ -354,6 +355,16 @@ export const niscServiceOrdersRouter = router({
 			const ownerId = teamRow?.createdById ?? input.userId;
 
 			for (const item of input.items) {
+				const resolvedProduct = await resolveActiveNiscProductById(item.productId);
+				if (!resolvedProduct) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Product ${item.productId} not found or inactive`,
+					});
+				}
+				if (resolvedProduct.id !== item.productId) {
+					item.productId = resolvedProduct.id;
+				}
 				const product = await db.query.niscProduct.findFirst({
 					where: eq(niscProduct.id, item.productId),
 					with: {
@@ -683,17 +694,15 @@ export const niscServiceOrdersRouter = router({
 			}
 
 			for (const item of input.items) {
-				const productRows = await db
-					.select()
-					.from(niscProduct)
-					.where(eq(niscProduct.id, item.productId))
-					.limit(1);
-				const product = productRows[0];
-				if (!product || !product.isActive) {
+				const product = await resolveActiveNiscProductById(item.productId);
+				if (!product) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
 						message: `Product ${item.productId} not found or inactive`,
 					});
+				}
+				if (product.id !== item.productId) {
+					item.productId = product.id;
 				}
 				if (isZeepoAiAgentProduct(item.productId)) {
 					if (!input.teamId?.trim()) {
@@ -785,7 +794,10 @@ export const niscServiceOrdersRouter = router({
 
 			for (const item of input.items) {
 				const serviceType = serviceTypeByProductId.get(item.productId);
-				const isDomain = serviceType === "domain_registration" || serviceType === "domain_transfer";
+				const isDomain =
+					serviceType === "domains" ||
+					serviceType === "domain_registration" ||
+					serviceType === "domain_transfer";
 				const metadata = item.metadata as { useRegistrantInfo?: string } | null;
 
 				if (isDomain) {

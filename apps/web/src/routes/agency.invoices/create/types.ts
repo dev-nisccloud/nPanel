@@ -62,6 +62,8 @@ export type PaymentMethod = "bank" | "mpesa" | "cheque";
 export type PaymentDetails = {
   paymentMethod?: PaymentMethod;
   currency?: string;
+  /** KRA eTIMS verification URL for PDF QR (when invoice is synced). */
+  etimsVerificationUrl?: string;
   qrCodeValue?: string;
   // Bank transfer fields
   bankName?: string;
@@ -83,5 +85,8 @@ export type InvoiceTerms = {
   invoiceNumber?: string;
   issueDate?: string | Date;
   dueDate?: string | Date;
+  originalInvoiceNumber?: string;
+  numberLabel?: string;
+  showDueDate?: boolean;
 };
 

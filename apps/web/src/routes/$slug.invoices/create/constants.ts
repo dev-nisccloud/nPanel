@@ -1,3 +1,1 @@
-export const DEFAULT_INVOICE_LOGO =
-	"https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
-
+export { COMPANY_LOGO_URL as DEFAULT_INVOICE_LOGO } from "@npanel/api/lib/company-branding";

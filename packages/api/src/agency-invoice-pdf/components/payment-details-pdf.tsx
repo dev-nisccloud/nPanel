@@ -53,7 +53,6 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
   mpesaInstructions,
   chequeDeliveryAddress,
   chequeInstructions,
-  qrCodeValue,
   qrCodeDataUrl,
   compactLineItems = false,
 }) => {
@@ -217,7 +216,7 @@ export const PaymentDetailsPdf: React.FC<PaymentDetailsPdfProps> = ({
           }}
         >
           <Text style={{ ...sectionTitleText, paddingBottom: 12 }}>
-            eTIMS verification
+            Verify receipt
           </Text>
           <Image
             src={qrCodeDataUrl}

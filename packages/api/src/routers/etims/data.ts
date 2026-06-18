@@ -2,6 +2,12 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { getEtimsContext } from "../../lib/etims-config";
+import {
+    getEtimsItemClassMeta,
+    getEtimsItemClassificationByCode,
+    listEtimsItemClassifications,
+    syncEtimsItemClassificationsBatch,
+} from "../../lib/etims-item-classification-store";
 
 const isAgencyUser = (role: string | null | undefined) =>
     ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
@@ -114,6 +120,7 @@ export const etimsDataRouter = router({
     /**
      * Retrieve item classification codes for categorizing products.
      * POST /selectItemClsList
+     * @deprecated Prefer getItemClassMeta + listItemClassifications.
      */
     getItemClassList: protectedProcedure
         .input(z.object({
@@ -132,6 +139,64 @@ export const etimsDataRouter = router({
                 // Return a graceful failure so the UI can prompt the user to enter codes manually.
                 console.warn("[eTIMS] getItemClassList failed:", msg);
                 return { success: false, data: null, errorMessage: msg || "Failed to retrieve item class list" };
+            }
+        }),
+
+    /** Cached KRA item classification metadata (level counts, last sync). */
+    getItemClassMeta: protectedProcedure
+        .query(async ({ ctx }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            const { oscu } = await getEtimsContext();
+            const meta = await getEtimsItemClassMeta(oscu);
+            return { success: true, meta, needsSync: !meta };
+        }),
+
+    /** Paginated, searchable item classifications for a chosen hierarchy level. */
+    listItemClassifications: protectedProcedure
+        .input(z.object({
+            level: z.number().int().min(1).max(5),
+            search: z.string().optional(),
+            page: z.number().int().min(1).default(1),
+            pageSize: z.number().int().min(1).max(100).default(25),
+        }))
+        .query(async ({ ctx, input }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            const { oscu } = await getEtimsContext();
+            try {
+                const result = await listEtimsItemClassifications(oscu, input);
+                return { success: true, ...result };
+            } catch (error: unknown) {
+                const msg = (error as Error).message;
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to list item classifications" });
+            }
+        }),
+
+    /** Look up one classification code from the Redis cache. */
+    getItemClassification: protectedProcedure
+        .input(z.object({ itemClsCd: z.string().min(1) }))
+        .query(async ({ ctx, input }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            const { oscu } = await getEtimsContext();
+            const item = await getEtimsItemClassificationByCode(oscu, input.itemClsCd.trim());
+            return { success: true, item };
+        }),
+
+    /** Pull batches from KRA into Redis (call repeatedly until isComplete). */
+    syncItemClassifications: protectedProcedure
+        .input(z.object({
+            lastReqDt: z.string().regex(/^\d{14}$/, "Must be YYYYMMDDHHmmss").optional(),
+            maxPages: z.number().int().min(1).max(10).default(3),
+            reset: z.boolean().default(false),
+        }))
+        .mutation(async ({ ctx, input }) => {
+            assertReadAccess(ctx.session?.user?.role);
+            const { client, oscu } = await getEtimsContext();
+            try {
+                const result = await syncEtimsItemClassificationsBatch(client, oscu, input);
+                return { success: true, ...result };
+            } catch (error: unknown) {
+                const msg = (error as Error).message;
+                throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: msg || "Failed to sync item classifications" });
             }
         }),
 
