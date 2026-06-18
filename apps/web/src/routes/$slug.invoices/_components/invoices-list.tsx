@@ -30,18 +30,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import type { InvoiceSummary } from "@/routes/agency.invoicing/api/schemas";
 import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
-import { Document, Page } from "@react-pdf/renderer";
-import { pdf } from "@react-pdf/renderer";
-import { PdfDetails } from "@/routes/agency.invoices/create/_components/form/pdfDetails";
-import { pdfContainers } from "@/lib/pdfStyles";
-import QRCodeUtil from "qrcode";
-import type {
-	YourDetails,
-	CompanyDetails,
-	InvoiceItemDetails,
-	PaymentDetails,
-	InvoiceTerms,
-} from "@/routes/agency.invoices/create/types";
+import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
 
 const statusBadgeVariant: Record<InvoiceSummary["status"], "default" | "secondary" | "destructive" | "outline"> = {
 	DRAFT: "outline",
@@ -167,118 +156,8 @@ export const registerFonts = async (): Promise<boolean> => {
 	}
 };
 
-// Hardcoded company logo URL
-const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
-
-// Helper function to convert InvoiceDetail to PDF data format (exported for use in invoices-table)
 export function convertInvoiceToPdfData(invoice: InvoiceDetail) {
-	const fromDetails = invoice.fromDetails as any;
-	const customerDetails = invoice.customerDetails as any;
-	const paymentDetails = invoice.paymentDetails as any;
-
-	// Always use the hardcoded company logo URL
-	const logoUrl = COMPANY_LOGO_URL;
-
-	const yourDetails: YourDetails = {
-		yourName: fromDetails?.name,
-		yourEmail: fromDetails?.email,
-		yourAddress: fromDetails?.address,
-		yourCity: fromDetails?.city,
-		yourState: fromDetails?.state,
-		yourCountry: fromDetails?.country,
-		yourZip: fromDetails?.zip,
-		yourTaxId: fromDetails?.taxId,
-		yourLogo: logoUrl, // Include the company logo
-	};
-
-	const companyDetails: CompanyDetails = {
-		companyName: customerDetails?.name,
-		email: customerDetails?.email,
-		companyAddress: customerDetails?.address,
-		companyCity: customerDetails?.city,
-		companyState: customerDetails?.state,
-		companyCountry: customerDetails?.country,
-		companyZip: customerDetails?.zip,
-		companyTaxId: customerDetails?.taxId,
-	};
-
-	const invoiceDetails: InvoiceItemDetails = {
-		note: invoice.note || undefined,
-		discount: invoice.discount || undefined,
-		taxPercentage: invoice.taxPercentage || undefined,
-		currency: invoice.currency,
-		items: invoice.lineItems.map((item) => ({
-			id: item.id,
-			itemDescription: item.description
-				? `${item.name || "Service"}. ${item.description}`
-				: (item.name || "Service"),
-			amount: item.price ? Number(item.price) : undefined,
-			qty: item.quantity || undefined,
-		})),
-	};
-
-	// Convert payment method from database format to PDF format
-	// In DB, paymentDetails.paymentMethod can be: "bank", "mpesa", "cheque" (lowercase from form)
-	// or "BANK_TRANSFER", "MPESA", "CHEQUE" (from enum)
-	const paymentMethodApi = paymentDetails?.paymentMethod;
-	let paymentMethod: "bank" | "mpesa" | "cheque" | undefined;
-	
-	// Handle various formats that might be in the database
-	if (paymentMethodApi === "BANK_TRANSFER" || paymentMethodApi === "bank_transfer" || paymentMethodApi === "bank") {
-		paymentMethod = "bank";
-	} else if (paymentMethodApi === "MPESA" || paymentMethodApi === "mpesa") {
-		paymentMethod = "mpesa";
-	} else if (paymentMethodApi === "CHEQUE" || paymentMethodApi === "cheque") {
-		paymentMethod = "cheque";
-	}
-	
-	// If no payment method is provided, set default MPESA values
-	if (!paymentMethod) {
-		paymentMethod = "mpesa";
-	}
-	
-	// Build payment details with defaults for MPESA when method is mpesa or defaulted
-	const paymentDetailsFormatted: PaymentDetails = {
-		paymentMethod,
-		currency: invoice.currency || "KES",
-		...(typeof paymentDetails?.qrCodeValue === "string" && paymentDetails.qrCodeValue.trim()
-			? { qrCodeValue: paymentDetails.qrCodeValue.trim() }
-			: {}),
-		// Bank transfer fields (only if method is bank)
-		bankName: paymentMethod === "bank" ? paymentDetails?.bankName : undefined,
-		accountNumber: paymentMethod === "bank" ? paymentDetails?.accountNumber : undefined,
-		accountName: paymentMethod === "bank" ? paymentDetails?.accountName : undefined,
-		branchName: paymentMethod === "bank" ? paymentDetails?.branchName : undefined,
-		branchCode: paymentMethod === "bank" ? paymentDetails?.branchCode : undefined,
-		swiftCode: paymentMethod === "bank" ? paymentDetails?.swiftCode : undefined,
-		// MPESA fields (only if method is mpesa, with defaults if not provided)
-		mpesaPaybillNumber: paymentMethod === "mpesa" 
-			? (paymentDetails?.mpesaPaybillNumber || "303030")
-			: undefined,
-		mpesaAccountNumber: paymentMethod === "mpesa"
-			? (paymentDetails?.mpesaAccountNumber || "2052676528")
-			: undefined,
-		mpesaInstructions: paymentMethod === "mpesa"
-			? (paymentDetails?.mpesaInstructions || "Absa Bank Kenya")
-			: undefined,
-		// Cheque fields (only if method is cheque)
-		chequeDeliveryAddress: paymentMethod === "cheque" ? paymentDetails?.chequeDeliveryAddress : undefined,
-		chequeInstructions: paymentMethod === "cheque" ? paymentDetails?.chequeInstructions : undefined,
-	};
-
-	const invoiceTerms: InvoiceTerms = {
-		invoiceNumber: invoice.invoiceNumber || undefined,
-		issueDate: invoice.issueDate ? new Date(invoice.issueDate) : undefined,
-		dueDate: invoice.dueDate ? new Date(invoice.dueDate) : undefined,
-	};
-
-	return {
-		yourDetails,
-		companyDetails,
-		invoiceDetails,
-		paymentDetails: paymentDetailsFormatted,
-		invoiceTerms,
-	};
+	return buildInvoicePdfDetails(invoice);
 }
 
 interface InvoiceCardProps {
@@ -315,39 +194,13 @@ function InvoiceCard({ invoice, onRefetch }: InvoiceCardProps) {
 			// Ensure fonts are registered
 			await registerFonts();
 
-			// Convert invoice data to PDF format
-			const pdfData = convertInvoiceToPdfData(invoiceDetail.data);
+			const [{ pdf }, { buildAgencyInvoicePdfDocument }] = await Promise.all([
+				import("@react-pdf/renderer"),
+				import("@/lib/build-agency-invoice-pdf-document"),
+			]);
 
-			// Generate QR code if needed
-			let qrCodeDataUrl: string | undefined;
-			if (pdfData.paymentDetails.qrCodeValue) {
-				try {
-					qrCodeDataUrl = await QRCodeUtil.toDataURL(pdfData.paymentDetails.qrCodeValue, {
-						width: 120,
-						margin: 1,
-					});
-				} catch (error) {
-					console.error("Failed to generate QR code:", error);
-				}
-			}
-
-			// Generate PDF
-			const blob = await pdf(
-				<Document>
-					<Page size="A4" style={pdfContainers.page}>
-						<PdfDetails
-							companyDetails={pdfData.companyDetails}
-							invoiceDetails={pdfData.invoiceDetails}
-							invoiceTerms={pdfData.invoiceTerms}
-							paymentDetails={{
-								...pdfData.paymentDetails,
-								qrCodeDataUrl,
-							}}
-							yourDetails={pdfData.yourDetails}
-						/>
-					</Page>
-				</Document>
-			).toBlob();
+			const doc = await buildAgencyInvoicePdfDocument(invoiceDetail.data);
+			const blob = await pdf(doc).toBlob();
 
 			// Download the PDF
 			const url = URL.createObjectURL(blob);

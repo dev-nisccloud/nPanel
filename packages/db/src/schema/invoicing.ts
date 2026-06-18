@@ -68,8 +68,16 @@ export const invoice = pgTable(
     kraSignature: text("kra_signature"),
     kraQrCode: text("kra_qr_code"),
     kraVerifiedDate: timestamp("kra_verified_date"),
+    /** NOT_APPLICABLE | PENDING | SUBMITTING | SYNCED | FAILED | SKIPPED (legacy: VERIFIED) */
     kraStatus: text("kra_status"),
     kraError: text("kra_error"),
+    kraSubmittedAt: timestamp("kra_submitted_at"),
+    kraLastAttemptAt: timestamp("kra_last_attempt_at"),
+    kraAttemptCount: integer("kra_attempt_count").default(0).notNull(),
+    /** Full KRA eTIMS verification URL (source for PDF QR when synced). */
+    kraVerificationUrl: text("kra_verification_url"),
+    kraSyncPayload: jsonb("kra_sync_payload"),
+    kraSyncResponse: jsonb("kra_sync_response"),
   },
   (table) => [
     uniqueIndex("invoice_teamId_invoiceNumber_unique").on(
@@ -81,6 +89,7 @@ export const invoice = pgTable(
     index("invoice_dueDate_idx").on(table.dueDate),
     index("invoice_sentAt_idx").on(table.sentAt),
     index("invoice_invoiceNumber_idx").on(table.invoiceNumber),
+    index("invoice_kraStatus_idx").on(table.kraStatus),
   ],
 );
 
@@ -165,6 +174,24 @@ export const creditNote = pgTable(
     issuedAt: timestamp("issued_at"),
     appliedAt: timestamp("applied_at"),
 
+    /** KRA eTIMS refund reason code (rfdRsnCd): 01–06 */
+    kraRefundReasonCode: text("kra_refund_reason_code"),
+    originalInvoiceNumber: text("original_invoice_number"),
+
+    kraInvoiceNumber: text("kra_invoice_number"),
+    kraReceiptNumber: text("kra_receipt_number"),
+    kraSignature: text("kra_signature"),
+    kraQrCode: text("kra_qr_code"),
+    kraVerifiedDate: timestamp("kra_verified_date"),
+    kraStatus: text("kra_status"),
+    kraError: text("kra_error"),
+    kraSubmittedAt: timestamp("kra_submitted_at"),
+    kraLastAttemptAt: timestamp("kra_last_attempt_at"),
+    kraAttemptCount: integer("kra_attempt_count").default(0).notNull(),
+    kraVerificationUrl: text("kra_verification_url"),
+    kraSyncPayload: jsonb("kra_sync_payload"),
+    kraSyncResponse: jsonb("kra_sync_response"),
+
     createdBy: text("created_by").notNull(),
     updatedBy: text("updated_by"),
 
@@ -175,6 +202,7 @@ export const creditNote = pgTable(
     index("credit_note_teamId_idx").on(table.teamId),
     index("credit_note_status_idx").on(table.status),
     index("credit_note_issuedAt_idx").on(table.issuedAt),
+    index("credit_note_kraStatus_idx").on(table.kraStatus),
   ],
 );
 
@@ -255,6 +283,19 @@ export const invoiceCounter = pgTable(
     id: text("id").primaryKey().default("invoice-counter"),
     lastNumber: integer("last_number").default(0).notNull(),
     // Prisma: `@updatedAt` only   auto-maintained on writes.
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => /* @__PURE__ */ new Date()),
+  },
+  () => [],
+);
+
+export const creditNoteCounter = pgTable(
+  "credit_note_counter",
+  {
+    id: text("id").primaryKey().default("credit-note-counter"),
+    lastNumber: integer("last_number").default(0).notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .notNull()

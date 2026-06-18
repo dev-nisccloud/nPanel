@@ -8,6 +8,9 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
   invoiceNumber,
   issueDate,
   dueDate,
+  originalInvoiceNumber,
+  numberLabel = "INVOICE NO",
+  showDueDate = true,
 }) => (
   <View
     style={{
@@ -26,7 +29,7 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
       <View style={{ flex: 1 }} />
       <View style={{ flex: 1, alignItems: "flex-end" as const }}>
         <View style={pdfInvoiceMeta.rowTerms}>
-          <Text style={pdfInvoiceMeta.label}>INVOICE NO</Text>
+          <Text style={pdfInvoiceMeta.label}>{numberLabel}</Text>
           <Text style={[pdfInvoiceMeta.value, { maxWidth: 160, textAlign: "right" }]} wrap>
             {invoiceNumber || "-"}
           </Text>
@@ -42,17 +45,26 @@ export const InvoiceTermsPdf: React.FC<InvoiceTerms> = ({
               : "-"}
           </Text>
         </View>
-        <View style={pdfInvoiceMeta.rowTerms}>
-          <Text style={pdfInvoiceMeta.label}>DUE DATE</Text>
-          <Text wrap={false} style={pdfInvoiceMeta.value}>
-            {dueDate
-              ? format(
-                  typeof dueDate === "string" ? new Date(dueDate) : dueDate,
-                  "dd-MM-yyyy"
-                )
-              : "-"}
-          </Text>
-        </View>
+        {originalInvoiceNumber ? (
+          <View style={pdfInvoiceMeta.rowTerms}>
+            <Text style={pdfInvoiceMeta.label}>ORIGINAL INVOICE</Text>
+            <Text style={[pdfInvoiceMeta.value, { maxWidth: 160, textAlign: "right" }]} wrap>
+              {originalInvoiceNumber}
+            </Text>
+          </View>
+        ) : showDueDate ? (
+          <View style={pdfInvoiceMeta.rowTerms}>
+            <Text style={pdfInvoiceMeta.label}>DUE DATE</Text>
+            <Text wrap={false} style={pdfInvoiceMeta.value}>
+              {dueDate
+                ? format(
+                    typeof dueDate === "string" ? new Date(dueDate) : dueDate,
+                    "dd-MM-yyyy"
+                  )
+                : "-"}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </View>
   </View>

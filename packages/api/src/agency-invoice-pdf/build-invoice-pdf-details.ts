@@ -2,6 +2,8 @@
  * Same PDF props as agency invoice details page (`buildInvoicePdfDetails` in agency.invoices.$id.tsx).
  */
 import type { InvoiceDetail } from "../routers/invoicing/schemas";
+import { extractEtimsFiscalFieldsFromInvoice } from "../lib/etims-fiscal-fields";
+import { resolveInvoiceEtimsVerificationUrl } from "../lib/etims-receipt-url";
 import { formatInvoiceLineItemForPdf } from "../lib/nisc-order-invoice-line-items";
 import type {
 	YourDetails,
@@ -9,11 +11,13 @@ import type {
 	InvoiceItemDetails,
 	PaymentDetails,
 	InvoiceTerms,
+	EtimsFiscalFields,
 } from "./types";
 
-/** Hardcoded company logo URL (agency invoice details page). */
-export const COMPANY_LOGO_URL =
-	"https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
+import { COMPANY_LOGO_URL } from "../lib/company-branding";
+
+export { COMPANY_LOGO_URL } from "../lib/company-branding";
+export { resolveInvoiceEtimsVerificationUrl } from "../lib/etims-receipt-url";
 
 export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 	yourDetails: YourDetails;
@@ -21,6 +25,7 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 	invoiceDetails: InvoiceItemDetails;
 	paymentDetails: PaymentDetails;
 	invoiceTerms: InvoiceTerms;
+	etimsFiscal: EtimsFiscalFields | null;
 } {
 	const fromDetails = (invoice.fromDetails as Record<string, unknown> | null) ?? {};
 	const customerDetails = (invoice.customerDetails as Record<string, unknown> | null) ?? {};
@@ -90,9 +95,7 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 	const paymentDetailsFormatted: PaymentDetails = {
 		paymentMethod,
 		currency: invoice.currency || "KES",
-		...(typeof paymentDetails?.qrCodeValue === "string" && paymentDetails.qrCodeValue.trim()
-			? { qrCodeValue: paymentDetails.qrCodeValue.trim() }
-			: {}),
+		etimsVerificationUrl: resolveInvoiceEtimsVerificationUrl(invoice),
 		bankName: paymentMethod === "bank" ? (paymentDetails?.bankName as string | undefined) : undefined,
 		accountNumber:
 			paymentMethod === "bank" ? (paymentDetails?.accountNumber as string | undefined) : undefined,
@@ -131,5 +134,8 @@ export function buildInvoicePdfDetails(invoice: InvoiceDetail): {
 		invoiceDetails,
 		paymentDetails: paymentDetailsFormatted,
 		invoiceTerms,
+		etimsFiscal:
+			(invoice as InvoiceDetail & { etimsFiscal?: EtimsFiscalFields | null }).etimsFiscal ??
+			extractEtimsFiscalFieldsFromInvoice(invoice),
 	};
 }

@@ -1,9 +1,14 @@
 import { trpc } from "@/utils/trpc";
 import type { HivelocityProductType } from "@/lib/hivelocity-checkout";
 import { HIVELOCITY_SERVICE_TYPE_BY_PRODUCT_TYPE } from "@/lib/hivelocity-checkout";
+import {
+	HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE,
+	pickActivePlanlessProductId,
+} from "@npanel/api/lib/planless-services-billing";
 
 /**
- * Resolves nisc_product UUIDs for Hivelocity checkout (one product per server type).
+ * Resolves active nisc_product ids for Hivelocity checkout.
+ * Prefers canonical seed ids when present among active catalog rows.
  */
 export function useHivelocityNiscProducts() {
 	const dedicatedQuery = trpc.products.getAll.useQuery({
@@ -20,9 +25,17 @@ export function useHivelocityNiscProducts() {
 	});
 
 	const productIdByType: Record<HivelocityProductType, string | undefined> = {
-		DEDICATED_SERVERS: dedicatedQuery.data?.[0]?.id,
-		VPS: vpsQuery.data?.[0]?.id,
-		VDS: vdsQuery.data?.[0]?.id,
+		DEDICATED_SERVERS:
+			pickActivePlanlessProductId(
+				dedicatedQuery.data,
+				HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE.DEDICATED_SERVERS,
+			) ?? HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE.DEDICATED_SERVERS,
+		VPS:
+			pickActivePlanlessProductId(vpsQuery.data, HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE.VPS) ??
+			HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE.VPS,
+		VDS:
+			pickActivePlanlessProductId(vdsQuery.data, HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE.VDS) ??
+			HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE.VDS,
 	};
 
 	return {

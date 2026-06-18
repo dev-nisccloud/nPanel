@@ -11,6 +11,7 @@ import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
 import { resolveInvoicePaymentMethod } from "../../lib/invoice-payment-method";
+import { COMPANY_LOGO_URL } from "../../lib/company-branding.js";
 import { activityLogSchema, creditNoteInputSchema, creditNoteOutputSchema, invoiceCreateInputSchema, invoiceDetailSchema, invoiceLineItemOutputSchema, invoiceListFiltersSchema, invoiceListResponseSchema, invoicePaymentStatusSchema, invoiceStatusSchema, invoiceSummarySchema, invoiceTransactionInputSchema, invoiceTransactionOutputSchema, invoiceUpdateInputSchema, nextInvoiceNumberSchema, nullableStringSchema, submitInvoiceSchema, updatePaymentInputSchema, } from "./schemas";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
@@ -1357,7 +1358,7 @@ export const invoicingRouter = router({
             else {
                 invoiceNumber = generatedNumber;
             }
-            const companyLogoUrl = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
+            const companyLogoUrl = COMPANY_LOGO_URL;
             const templateData = input.template
                 ? {
                     ...input.template,

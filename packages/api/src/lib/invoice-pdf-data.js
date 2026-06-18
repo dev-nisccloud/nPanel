@@ -1,4 +1,4 @@
-const COMPANY_LOGO_URL = "https://res.cloudinary.com/df5ntv9gb/image/upload/v1758621603/Nisc_Logo_Original_im5pgk.png";
+import { COMPANY_LOGO_URL } from "./company-branding.js";
 function formatPdfDate(value) {
     if (!value)
         return "N/A";

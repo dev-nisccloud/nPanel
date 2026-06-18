@@ -4,7 +4,15 @@ import type { InvoiceTerms } from "@/routes/agency.invoices/create/types";
 
 export const InvoiceTermsPreview: React.FC<
   InvoiceTerms & { onClick?: (step: string) => void }
-> = ({ invoiceNumber, issueDate, dueDate, onClick }) => {
+> = ({
+  invoiceNumber,
+  issueDate,
+  dueDate,
+  originalInvoiceNumber,
+  numberLabel = "Invoice No",
+  showDueDate = true,
+  onClick,
+}) => {
   const formatDate = (date?: string | Date) => {
     if (!date) return "";
     const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -29,7 +37,7 @@ export const InvoiceTermsPreview: React.FC<
         <div className="flex flex-1 flex-col items-end space-y-3 text-right">
           <p className="flex items-center justify-end gap-2 text-xs text-neutral-500 whitespace-nowrap">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-              Invoice No
+              {numberLabel}
             </span>
             <span className="font-semibold text-gray-700">
               {invoiceNumber || "-"}
@@ -43,14 +51,23 @@ export const InvoiceTermsPreview: React.FC<
               {formatDate(issueDate) || "-"}
             </span>
           </p>
-          <p className="flex items-center justify-end gap-2 text-xs text-neutral-500 whitespace-nowrap">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-              Due Date
-            </span>
-            <span className="font-semibold text-gray-700">
-              {formatDate(dueDate) || "-"}
-            </span>
-          </p>
+          {originalInvoiceNumber ? (
+            <p className="flex items-center justify-end gap-2 text-xs text-neutral-500 whitespace-nowrap">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                Original Invoice
+              </span>
+              <span className="font-semibold text-gray-700">{originalInvoiceNumber}</span>
+            </p>
+          ) : showDueDate ? (
+            <p className="flex items-center justify-end gap-2 text-xs text-neutral-500 whitespace-nowrap">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
+                Due Date
+              </span>
+              <span className="font-semibold text-gray-700">
+                {formatDate(dueDate) || "-"}
+              </span>
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

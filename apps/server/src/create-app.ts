@@ -28,6 +28,7 @@ import { handleNiscEmailBuilder } from "./api/workers/nisc-email-builder";
 import { handleEmailBuilderAiWebhook } from "./api/webhooks/replicate-email-builder-ai";
 import { handleMetaAdsAnalysis } from "./api/workers/meta-ads-analysis";
 import { handleMetaAdsAnalysisWebhook } from "./api/webhooks/replicate-meta-ads-analysis";
+import { handleInvoiceKraSync } from "./api/workers/invoice-kra-sync";
 
 import { handleHealth } from "./api/health";
 import { handleManifest } from "./api/manifest";
@@ -183,6 +184,7 @@ export function createApp(options: CreateAppOptions = {}) {
     app.on(["POST"], "/api/workers/email-builder-ai*", handleEmailBuilderAi);
     app.on(["POST"], "/api/workers/nisc-email-builder*", handleNiscEmailBuilder);
     app.on(["POST"], "/api/workers/meta-ads-analysis*", handleMetaAdsAnalysis);
+    app.on(["POST"], "/api/workers/invoice-kra-sync*", handleInvoiceKraSync);
   }
 
   return { app, websocket, role };

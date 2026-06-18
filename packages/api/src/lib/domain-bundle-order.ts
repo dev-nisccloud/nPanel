@@ -53,12 +53,13 @@ export function isDomainBundleLeadItem(metadata: unknown): boolean {
 }
 
 export type OrderItemForBundleInvoice = {
+	productId?: string | null;
 	itemPrice: string;
 	itemSubtotal: string;
 	primaryDomain: string | null | undefined;
 	description: string | null | undefined;
 	metadata: unknown;
-	product: { name: string; serviceType?: string | null };
+	product: { id?: string; name: string; serviceType?: string | null };
 	productPlan: { name: string } | null;
 	billingCycle: string | null | undefined;
 };
@@ -107,6 +108,12 @@ export function groupDomainBundleItemsForInvoice<T extends OrderItemForBundleInv
 export function buildDomainBundleInvoiceLineName(domains: string[]): string {
 	const list = domains.join(", ");
 	return list ? `Domains Bundle (${list}) - Registration` : "Domains Bundle - Registration";
+}
+
+/** KRA itemNm: collapsed bundle label with full domain names (incl. TLDs). */
+export function buildDomainBundleKraItemName(domains: string[]): string {
+	const list = domains.join(", ");
+	return list ? `Domains Bundle (${list})` : "Domains Bundle";
 }
 
 export function buildDomainBundleInvoiceLineDescription(

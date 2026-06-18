@@ -4,7 +4,7 @@ import { Image, Text, View } from "@react-pdf/renderer";
 import { pdfBrandingLogoBox, pdfTypography } from "../pdf-styles";
 import type { YourDetails } from "../types";
 
-export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
+export const InvoiceHeaderPdf: React.FC<YourDetails & { documentTitle?: string }> = ({
   yourEmail,
   yourName,
   yourAddress,
@@ -15,6 +15,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
   yourLogoWidth,
   yourTaxId,
   yourZip,
+  documentTitle = "Invoice",
 }) => {
   const logoFrameW = yourLogoWidth ?? pdfBrandingLogoBox.width;
   const logoFrameH =
@@ -105,7 +106,7 @@ export const InvoiceHeaderPdf: React.FC<YourDetails> = ({
           textTransform: "uppercase",
         }}
       >
-        Invoice
+        {documentTitle}
       </Text>
       <View
         style={{

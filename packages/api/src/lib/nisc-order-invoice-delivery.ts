@@ -22,6 +22,7 @@ import {
 	type NiscInvoiceSkipReasonCode,
 } from "./nisc-order-invoice-billing";
 import { persistNiscOrderInvoiceMetadata } from "./nisc-order-invoice-metadata";
+import { ensureInvoiceKraSyncedForDelivery } from "./invoice-kra-sync";
 
 export type NiscOrderInvoiceDeliveryResult =
 	| {
@@ -29,7 +30,9 @@ export type NiscOrderInvoiceDeliveryResult =
 			invoiceId: string;
 			invoiceNumber: string;
 			emailed: boolean;
+			kraSynced: boolean;
 			source: "team_billing" | "user_profile" | "team_owners";
+			kraError?: string;
 	  }
 	| {
 			ok: false;
@@ -59,8 +62,8 @@ export type CreateAndEmailNiscOrderInvoiceInput = {
 };
 
 /**
- * Creates invoice for a paid Nisc order (if not already created) and emails PDF to billing contact.
- * Never throws - callers should always continue provisioning.
+ * Creates invoice for a paid Nisc order, syncs to KRA eTIMS, then emails PDF when synced.
+ * Provisioning must continue even when KRA or email fails — never throws.
  */
 export async function createAndEmailNiscOrderInvoice(
 	input: CreateAndEmailNiscOrderInvoiceInput,
@@ -146,6 +149,47 @@ export async function createAndEmailNiscOrderInvoice(
 		return { ok: false, skipped: true, reasonCode, reasonMessage };
 	}
 
+	const kraResult = await ensureInvoiceKraSyncedForDelivery(invoiceId);
+	if (!kraResult.ok) {
+		const reasonCode =
+			kraResult.kraStatus === "SKIPPED"
+				? NISC_INVOICE_SKIP_REASON_CODES.KRA_SYNC_SKIPPED
+				: NISC_INVOICE_SKIP_REASON_CODES.KRA_SYNC_FAILED;
+		const reasonMessage = `${NISC_INVOICE_SKIP_REASON_MESSAGES[reasonCode]} ${kraResult.reason}`;
+
+		await niscLog("worker_invoice_kra_sync_failed", {
+			niscOrderId,
+			invoiceId,
+			invoiceNumber,
+			kraStatus: kraResult.kraStatus,
+			reason: kraResult.reason,
+			phase: "pre_provisioning",
+		});
+
+		await persistNiscOrderInvoiceMetadata(niscOrderId, {
+			status: "created",
+			invoiceId,
+			invoiceNumber,
+			source,
+			emailed: false,
+			kraSynced: false,
+			kraStatus: kraResult.kraStatus,
+			kraError: kraResult.reason,
+			reasonCode,
+			reasonMessage,
+		});
+
+		return {
+			ok: true,
+			invoiceId,
+			invoiceNumber,
+			emailed: false,
+			kraSynced: false,
+			source,
+			kraError: kraResult.reason,
+		};
+	}
+
 	const toEmail = billing.billingEmail?.trim();
 	if (!toEmail) {
 		await niscLog("worker_invoice_email_skipped", {
@@ -158,10 +202,11 @@ export async function createAndEmailNiscOrderInvoice(
 			invoiceNumber,
 			source,
 			emailed: false,
+			kraSynced: true,
 			reasonCode: NISC_INVOICE_SKIP_REASON_CODES.BILLING_EMAIL_EMPTY,
 			reasonMessage: NISC_INVOICE_SKIP_REASON_MESSAGES.billing_email_empty,
 		});
-		return { ok: true, invoiceId, invoiceNumber, emailed: false, source };
+		return { ok: true, invoiceId, invoiceNumber, emailed: false, kraSynced: true, source };
 	}
 
 	const ccList: string[] = [];
@@ -235,9 +280,10 @@ export async function createAndEmailNiscOrderInvoice(
 			invoiceNumber,
 			source,
 			emailed: true,
+			kraSynced: true,
 		});
 
-		return { ok: true, invoiceId, invoiceNumber, emailed: true, source };
+		return { ok: true, invoiceId, invoiceNumber, emailed: true, kraSynced: true, source };
 	} catch (err) {
 		const errMsg = err instanceof Error ? err.message : String(err);
 		await niscLog("worker_invoice_creation_failed", {
@@ -252,10 +298,11 @@ export async function createAndEmailNiscOrderInvoice(
 			invoiceNumber,
 			source,
 			emailed: false,
+			kraSynced: true,
 			reasonCode,
 			reasonMessage: `${NISC_INVOICE_SKIP_REASON_MESSAGES[reasonCode]} ${errMsg}`,
 		});
-		return { ok: true, invoiceId, invoiceNumber, emailed: false, source };
+		return { ok: true, invoiceId, invoiceNumber, emailed: false, kraSynced: true, source };
 	}
 }
 
@@ -300,6 +347,7 @@ export async function runPreProvisioningInvoiceForOrder(niscOrderId: string): Pr
 				invoiceId: order.invoiceId,
 				invoiceNumber: order.invoiceNumber,
 				orderItems: order.orderItems.map((i) => ({
+					productId: i.productId,
 					itemPrice: i.itemPrice,
 					itemSubtotal: i.itemSubtotal,
 					primaryDomain: i.primaryDomain,
@@ -307,6 +355,7 @@ export async function runPreProvisioningInvoiceForOrder(niscOrderId: string): Pr
 					description: i.description,
 					metadata: i.metadata,
 					product: {
+						id: i.productId,
 						name: i.product?.name ?? "Service",
 						serviceType: i.product?.serviceType ?? null,
 					},

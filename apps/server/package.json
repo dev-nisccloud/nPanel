@@ -18,7 +18,10 @@
     "seed:email-hosting": "bun run src/scripts/seed-email-hosting-product.ts",
     "seed:wordpress-hosting": "bun run src/scripts/seed-wordpress-hosting-product.ts",
     "seed:hosting-products": "bun run src/scripts/seed-web-hosting-product.ts && bun run src/scripts/seed-email-hosting-product.ts && bun run src/scripts/seed-wordpress-hosting-product.ts",
-    "seed:planless-services": "bun run src/scripts/seed-planless-services.ts"
+    "seed:planless-services": "bun run src/scripts/seed-planless-services.ts",
+    "migrate:planless-product-ids": "bun run src/scripts/migrate-planless-product-ids.ts",
+    "migrate:web-hosting-product-ids": "bun run src/scripts/migrate-web-hosting-product-ids.ts",
+    "migrate:wordpress-hosting-product-ids": "bun run src/scripts/migrate-wordpress-hosting-product-ids.ts"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",

@@ -10,7 +10,7 @@ import type {
 	InvoiceTerms,
 } from "@/routes/agency.invoices.create.types";
 
-const COMPANY_LOGO_URL = "https://1ris7itpac.ufs.sh/f/Djp547U8wump3qA5tI0B0YR5y2nLQfpSevIHluzKDEZ9mr1s";
+import { COMPANY_LOGO_URL } from "@npanel/api/lib/company-branding";
 
 export interface InvoiceForPdfData {
 	fromDetails?: Record<string, unknown> | null;

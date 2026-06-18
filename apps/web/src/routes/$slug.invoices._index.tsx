@@ -1,16 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { useLocation } from "react-router";
+import { useLocation, useSearchParams } from "react-router";
 import { RefreshCw, Search } from "lucide-react";
 
 import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { InvoicesTable } from "./$slug.invoices/_components/invoices-table";
+import { CreditNotesTable } from "./agency.invoices/_components/credit-notes-table";
 import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
+import type { CreditNoteSummary } from "@npanel/api/routers/invoicing/schemas";
 import {
 	Table,
 	TableBody,
@@ -64,6 +67,8 @@ const EmptyState: React.FC<{
 export default function InvoiceIndex() {
 	const { pathname } = useLocation();
 	const teamSlug = pathname.split("/")[1];
+	const [searchParams, setSearchParams] = useSearchParams();
+	const activeTab = searchParams.get("tab") === "credit-notes" ? "credit-notes" : "invoices";
 	const [searchTerm, setSearchTerm] = React.useState("");
 
 	const { data: teamData, isLoading: isTeamLoading } = trpc.teams.getTeamIdBySlug.useQuery(
@@ -82,8 +87,20 @@ export default function InvoiceIndex() {
 		{ enabled: !!teamData?.id }
 	);
 
-	const isLoading = isTeamLoading || isInvoicesLoading;
+	const {
+		data: creditNotesData,
+		isLoading: isCreditNotesLoading,
+		isFetching: isCreditNotesFetching,
+		error: creditNotesError,
+		refetch: refetchCreditNotes,
+	} = trpc.invoicing.listCreditNotes.useQuery(
+		{ limit: 100, teamId: teamData?.id ?? undefined },
+		{ enabled: !!teamData?.id && activeTab === "credit-notes" },
+	);
+
+	const isLoading = isTeamLoading || (activeTab === "invoices" ? isInvoicesLoading : isCreditNotesLoading);
 	const invoices = data?.invoices ?? [];
+	const creditNotes = creditNotesData?.creditNotes ?? [];
 
 	const filteredInvoices = React.useMemo(() => {
 		if (!searchTerm.trim()) {
@@ -104,6 +121,21 @@ export default function InvoiceIndex() {
 		});
 	}, [invoices, searchTerm]);
 
+	const filteredCreditNotes = React.useMemo(() => {
+		if (!searchTerm.trim()) return creditNotes;
+		const query = searchTerm.toLowerCase();
+		return creditNotes.filter((cn: CreditNoteSummary) => {
+			const creditNumber = cn.creditNumber?.toLowerCase() ?? "";
+			const invoiceNumber = cn.invoiceNumber?.toLowerCase() ?? "";
+			const original = cn.originalInvoiceNumber?.toLowerCase() ?? "";
+			return (
+				creditNumber.includes(query) ||
+				invoiceNumber.includes(query) ||
+				original.includes(query)
+			);
+		});
+	}, [creditNotes, searchTerm]);
+
 	if (isLoading || !teamSlug) {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -116,7 +148,6 @@ export default function InvoiceIndex() {
 						<Skeleton className="h-10 flex-1 max-w-sm" />
 						<div className="flex items-center gap-2">
 							<Skeleton className="h-10 w-10" />
-							<Skeleton className="h-10 w-32" />
 						</div>
 					</div>
 					<div className="mt-6">
@@ -127,7 +158,7 @@ export default function InvoiceIndex() {
 		);
 	}
 
-	if (error) {
+	if (error && activeTab === "invoices") {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
@@ -149,53 +180,105 @@ export default function InvoiceIndex() {
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 			<div className="w-full max-w-7xl mx-auto">
 				<div className="flex flex-col gap-2">
-					<h1 className="text-base font-semibold tracking-tight">Invoices</h1>
+					<h1 className="text-base font-semibold tracking-tight">Billing</h1>
 					<p className="text-xs text-muted-foreground">
-						View and manage invoices issued to your company.
+						View invoices and credit notes issued to your company.
 					</p>
 				</div>
 
-				<div className="mt-6">
-					<div className="flex items-center justify-between gap-4">
-						<div className="relative flex-1 max-w-sm">
-							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="search"
-								placeholder="Search invoices by number, customer, or status..."
-								value={searchTerm}
-								onChange={(event) => setSearchTerm(event.target.value)}
-								className="pl-9"
-							/>
-						</div>
-						<div className="flex items-center gap-2">
+				<Tabs
+					value={activeTab}
+					onValueChange={(value) => {
+						setSearchParams(value === "credit-notes" ? { tab: "credit-notes" } : {});
+						setSearchTerm("");
+					}}
+					className="mt-6"
+				>
+					<TabsList>
+						<TabsTrigger value="invoices">Invoices</TabsTrigger>
+						<TabsTrigger value="credit-notes">Credit Notes</TabsTrigger>
+					</TabsList>
+
+					<div className="mt-6">
+						<div className="flex items-center justify-between gap-4">
+							<div className="relative flex-1 max-w-sm">
+								<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+								<Input
+									type="search"
+									placeholder={
+										activeTab === "credit-notes"
+											? "Search credit notes..."
+											: "Search invoices..."
+									}
+									value={searchTerm}
+									onChange={(event) => setSearchTerm(event.target.value)}
+									className="pl-9"
+								/>
+							</div>
 							<Button
 								variant="outline"
 								size="icon"
-								onClick={() => refetch()}
-								disabled={isFetching}
-								title="Refresh invoices"
+								onClick={() =>
+									activeTab === "credit-notes" ? refetchCreditNotes() : refetch()
+								}
+								disabled={activeTab === "credit-notes" ? isCreditNotesFetching : isFetching}
+								title="Refresh"
 							>
-								<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+								<RefreshCw
+									className={`h-4 w-4 ${(activeTab === "credit-notes" ? isCreditNotesFetching : isFetching) ? "animate-spin" : ""}`}
+								/>
 							</Button>
 						</div>
 					</div>
-				</div>
 
-				<div className="mt-6">
-					{invoices.length === 0 ? (
-						<EmptyState
-							title="You do not have any invoices yet"
-							description="Invoices issued to your company will appear here once they are created."
-						/>
-					) : filteredInvoices.length === 0 ? (
-						<EmptyState
-							title="No invoices match your search"
-							description={`We couldn't find invoices for "${searchTerm}". Try updating your search.`}
-						/>
-					) : (
-						<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
-					)}
-				</div>
+					<TabsContent value="invoices" className="mt-6">
+						{invoices.length === 0 ? (
+							<EmptyState
+								title="You do not have any invoices yet"
+								description="Invoices issued to your company will appear here once they are created."
+							/>
+						) : filteredInvoices.length === 0 ? (
+							<EmptyState
+								title="No invoices match your search"
+								description={`We couldn't find invoices for "${searchTerm}".`}
+							/>
+						) : (
+							<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
+						)}
+					</TabsContent>
+
+					<TabsContent value="credit-notes" className="mt-6">
+						{isCreditNotesLoading ? (
+							<InvoicesTableSkeleton />
+						) : creditNotesError ? (
+							<EmptyState
+								title="Unable to load credit notes"
+								description={creditNotesError.message ?? "Something went wrong."}
+								action={
+									<Button onClick={() => refetchCreditNotes()} variant="outline">
+										Try again
+									</Button>
+								}
+							/>
+						) : creditNotes.length === 0 ? (
+							<EmptyState
+								title="No credit notes yet"
+								description="Credit notes issued against your invoices will appear here."
+							/>
+						) : filteredCreditNotes.length === 0 ? (
+							<EmptyState
+								title="No credit notes match your search"
+								description={`We couldn't find credit notes for "${searchTerm}".`}
+							/>
+						) : (
+							<CreditNotesTable
+								creditNotes={filteredCreditNotes}
+								detailPathPrefix={`/${teamSlug}/invoices/credit-notes`}
+								onRefetch={refetchCreditNotes}
+							/>
+						)}
+					</TabsContent>
+				</Tabs>
 			</div>
 		</div>
 	);

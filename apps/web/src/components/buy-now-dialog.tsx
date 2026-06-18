@@ -337,24 +337,7 @@ export function BuyNowDialog({
       !showSeoConnectStep,
   );
   const showDomainStep = showDomainConfirmOnly || showDomainPicker;
-  const showAgencyBillingStep = Boolean(
-    agencyPortfolioCheckout && requireDomainStep && !showSeoConnectStep && !isHivelocityPlan,
-  );
-  const shouldStartAtPayment =
-    startAtPayment && !showDomainStep && !isHivelocityPlan && !showSeoConnectStep && intent === "buy_now";
-  const initialStep: Step = showSeoConnectStep
-    ? "seo_connect"
-    : showDomainStep
-      ? "domain"
-      : isHivelocityPlan && !isHivelocityInPlace
-        ? "hivelocity_config"
-        : isHivelocityInPlace
-          ? "review"
-          : shouldStartAtPayment
-          ? "payment"
-          : "review";
 
-  const { addHivelocity } = useCartStore();
   const location = useLocation();
   const { data: session } = authClient.useSession();
   const isAgencyUser = React.useMemo(() => {
@@ -365,6 +348,36 @@ export function BuyNowDialog({
   const isAgencySide = React.useMemo(() => {
     return location.pathname.startsWith("/agency") || isAgencyUser;
   }, [location.pathname, isAgencyUser]);
+
+  const showAgencyBillingStep = isAgencySide;
+  const stepBeforeAgencyBilling = React.useMemo((): Step | null => {
+    if (showDomainStep) return "domain";
+    if (showSeoConnectStep) return "seo_connect";
+    if (isHivelocityPlan && !isHivelocityInPlace) return "hivelocity_config";
+    return null;
+  }, [showDomainStep, showSeoConnectStep, isHivelocityPlan, isHivelocityInPlace]);
+  const shouldStartAtPayment =
+    startAtPayment &&
+    !showDomainStep &&
+    !isHivelocityPlan &&
+    !showSeoConnectStep &&
+    intent === "buy_now" &&
+    !showAgencyBillingStep;
+  const initialStep: Step = showSeoConnectStep
+    ? "seo_connect"
+    : showDomainStep
+      ? "domain"
+      : isHivelocityPlan && !isHivelocityInPlace
+        ? "hivelocity_config"
+        : showAgencyBillingStep
+          ? "agency_billing"
+          : isHivelocityInPlace
+            ? "review"
+            : shouldStartAtPayment
+              ? "payment"
+              : "review";
+
+  const { addHivelocity } = useCartStore();
 
   const [currentStep, setCurrentStep] = React.useState<Step>(initialStep);
   const [couponCode, setCouponCode] = React.useState("");
@@ -400,7 +413,7 @@ export function BuyNowDialog({
     {
       enabled:
         open &&
-        agencyPortfolioCheckout &&
+        showAgencyBillingStep &&
         currentStep === "agency_billing" &&
         agencyLinkType === "team",
     },
@@ -1043,12 +1056,16 @@ export function BuyNowDialog({
         : showDomainStep
           ? "domain"
           : plan.hivelocity?.upgrade || plan.hivelocity?.reload
-            ? "review"
+            ? showAgencyBillingStep
+              ? "agency_billing"
+              : "review"
             : plan.hivelocity
               ? "hivelocity_config"
-              : shouldStartAtPayment
-              ? "payment"
-              : "review";
+              : showAgencyBillingStep
+                ? "agency_billing"
+                : shouldStartAtPayment
+                  ? "payment"
+                  : "review";
       setCurrentStep(first);
       setPurchaseAsBusiness(false);
       setManualDomain("");
@@ -1093,7 +1110,7 @@ export function BuyNowDialog({
       setAccountReference(ref);
       setAccountRefError(validateMpesaAccountReference(ref));
     }
-  }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep, agencyPortfolioCheckout]);
+  }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep, showAgencyBillingStep]);
 
   // Seed M-Pesa amount when entering the payment step (do not overwrite while user edits)
   const prevStepRef = React.useRef<Step | null>(null);
@@ -1691,7 +1708,7 @@ export function BuyNowDialog({
 
   const handleNext = () => {
     if (currentStep === "seo_connect") {
-      setCurrentStep("review");
+      setCurrentStep(showAgencyBillingStep ? "agency_billing" : "review");
     } else if (currentStep === "domain") {
       setCurrentStep(showAgencyBillingStep ? "agency_billing" : "review");
     } else if (currentStep === "agency_billing") {
@@ -1703,7 +1720,7 @@ export function BuyNowDialog({
         });
         return;
       }
-      setCurrentStep("review");
+      setCurrentStep(showAgencyBillingStep ? "agency_billing" : "review");
     } else if (currentStep === "review") {
       if (intent === "add_to_cart" && plan?.hivelocity && hivelocityInvoiceBreakdown) {
         const currency = pricing.displayCurrency;
@@ -1799,7 +1816,11 @@ export function BuyNowDialog({
         setCurrentStep("hivelocity_config");
       }
     } else if (currentStep === "agency_billing") {
-      setCurrentStep("domain");
+      if (stepBeforeAgencyBilling) {
+        setCurrentStep(stepBeforeAgencyBilling);
+      } else {
+        onOpenChange(false);
+      }
     }
   };
 
@@ -3106,7 +3127,7 @@ export function BuyNowDialog({
                 Cancel
               </Button>
               <Button onClick={handleNext} className="bg-primary text-primary-foreground">
-                Next: Review
+                {showAgencyBillingStep ? "Next" : "Next: Review"}
               </Button>
             </>
           )}
@@ -3135,7 +3156,13 @@ export function BuyNowDialog({
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep("domain")}
+                onClick={() => {
+                  if (stepBeforeAgencyBilling) {
+                    setCurrentStep(stepBeforeAgencyBilling);
+                  } else {
+                    onOpenChange(false);
+                  }
+                }}
               >
                 Back
               </Button>
@@ -3164,7 +3191,7 @@ export function BuyNowDialog({
                   disabled={!canProceedFromHivelocityConfig}
                   className="bg-primary text-primary-foreground"
                 >
-                  Next: Review
+                  {showAgencyBillingStep ? "Next" : "Next: Review"}
                 </Button>
               </div>
             </div>

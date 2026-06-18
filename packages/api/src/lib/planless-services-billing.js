@@ -12,3 +12,13 @@ export const PLANLESS_SERVICE_TYPES = {
     vdsHosting: "vds_hosting",
     dedicatedServers: "dedicated_server_hosting",
 };
+export const HIVELOCITY_NISC_PRODUCT_ID_BY_TYPE = {
+    DEDICATED_SERVERS: NISC_DEDICATED_SERVERS_PRODUCT_ID,
+    VPS: NISC_VPS_HOSTING_PRODUCT_ID,
+    VDS: NISC_VDS_HOSTING_PRODUCT_ID,
+};
+export function pickActivePlanlessProductId(products, canonicalId) {
+    if (!products?.length)
+        return undefined;
+    return products.find((p) => p.id === canonicalId)?.id ?? products[0]?.id;
+}
