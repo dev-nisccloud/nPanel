@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   Globe, Shield, RefreshCw, Lock, Award, Zap, MapPin, Search,
@@ -10,7 +11,8 @@ import { cn } from "@/lib/utils.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 import DomainSearch from "@/pages/_components/DomainSearch.tsx";
-import OrderDialog, { type OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
+import { buildOrderPlanCartUrl } from "@/lib/storefront-cart-url.ts";
+import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -66,7 +68,7 @@ const features = [
 
 const process = [
   { num: "01", title: "Search Your Domain", desc: "Enter any name below and instantly check availability across .co.ke, .com, .org and 200+ extensions." },
-  { num: "02", title: "Add to Cart & Pay", desc: "Select your domain, choose a registration period (multi-year rates available), and pay via M-Pesa, card, or bank transfer." },
+  { num: "02", title: "Buy Now & Pay", desc: "Select your domain, choose a registration period (multi-year rates available), and pay via M-Pesa, card, or bank transfer." },
   { num: "03", title: "Instant Activation", desc: "Domain is registered immediately. Email + SMS confirmation with nameservers and DNS login arrives within minutes." },
   { num: "04", title: "Connect Your Site", desc: "Point DNS to your hosting, set up MX records for email, or connect to any website builder. We help for free." },
 ];
@@ -532,10 +534,16 @@ function Hero() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DomainsPage() {
-  const [selectedPlan, setSelectedPlan] = useState<OrderPlan | null>(null);
+  const navigate = useNavigate();
 
   const scrollToPricing = () => {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handlePlanSelect = (plan: OrderPlan) => {
+    navigate(
+      buildOrderPlanCartUrl(plan, "domain_registration", "Domain Registration"),
+    );
   };
 
   return (
@@ -552,7 +560,7 @@ export default function DomainsPage() {
 
       <ExtensionsSection />
 
-      <PricingSection onSelect={setSelectedPlan} />
+      <PricingSection onSelect={handlePlanSelect} />
 
       <WhySection />
 
@@ -594,14 +602,6 @@ export default function DomainsPage() {
       </section>
 
       <Footer />
-
-      <OrderDialog
-        open={!!selectedPlan}
-        onClose={() => setSelectedPlan(null)}
-        plan={selectedPlan}
-        addons={addons}
-        serviceType="hosting"
-      />
     </div>
   );
 }

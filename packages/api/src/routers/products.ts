@@ -24,7 +24,7 @@ import {
     digitalMarketingUpsellKey,
 } from "../lib/products-cache";
 import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
-import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
+import { NISC_SEO_REPORTS_PRODUCT_ID, SEO_PRODUCT_FEATURES } from "../lib/seo-reports-billing";
 import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
 import { getEtimsContext } from "../lib/etims-config";
 import { eTimsItem } from "@npanel/db/schema/etims";
@@ -1162,9 +1162,21 @@ export const productsRouter = router({
 
             const seenKeys = new Set<string>();
             const productFeatures: Array<{ key: string; label: string; description?: string }> = [];
-            for (const p of products) {
+            const canonicalProduct = products.find((p) => p.id === NISC_SEO_REPORTS_PRODUCT_ID);
+            const productsForFeatures = canonicalProduct
+                ? [canonicalProduct, ...products.filter((p) => p.id !== NISC_SEO_REPORTS_PRODUCT_ID)]
+                : products;
+            for (const p of productsForFeatures) {
                 const features = (p.features as Array<{ key: string; label: string; description?: string }>) ?? [];
                 for (const f of features) {
+                    if (!seenKeys.has(f.key)) {
+                        seenKeys.add(f.key);
+                        productFeatures.push({ key: f.key, label: f.label, description: f.description });
+                    }
+                }
+            }
+            if (productFeatures.length === 0) {
+                for (const f of SEO_PRODUCT_FEATURES) {
                     if (!seenKeys.has(f.key)) {
                         seenKeys.add(f.key);
                         productFeatures.push({ key: f.key, label: f.label, description: f.description });

@@ -81,6 +81,8 @@ export default function AiAutomationPage() {
       headline={<>Automate Your Business.<br /><span className="text-primary">Grow Without the Overhead.</span></>}
       subtext="Our AI platform handles your lead follow-up, customer support, appointment booking, and sales nurturing - 24 hours a day, 7 days a week, in English and Swahili. Stop losing leads to slow responses and scale without hiring."
       serviceType="marketing"
+      checkoutServiceType="ai_automation"
+      checkoutProductName="Zeepo AI"
       trustStats={[
         { value: "24/7", label: "AI Always Available" },
         { value: "90s", label: "Average Lead Response Time" },

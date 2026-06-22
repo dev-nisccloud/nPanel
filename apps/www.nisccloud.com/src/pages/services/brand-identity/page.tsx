@@ -133,6 +133,8 @@ export default function BrandIdentityPage() {
       headline={<>Your Brand Is Your<br /><span className="text-primary">Most Valuable Asset</span></>}
       subtext="First impressions are permanent. We craft logos, brand systems, and visual identities that command trust, attract premium customers, and make your Kenyan business unforgettable - from Nairobi to the world."
       serviceType="marketing"
+      checkoutServiceType="brand_identity"
+      checkoutProductName="Brand Identity"
       trustStats={[
         { value: "300+", label: "Brands Created in Kenya" },
         { value: "98%", label: "Client Satisfaction Rate" },

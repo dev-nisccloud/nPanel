@@ -94,6 +94,8 @@ export default function SocialMediaPage() {
       headline={<>Build a Following.<br /><span className="text-primary">Build a Business.</span></>}
       subtext="Posting randomly on social media doesn't grow businesses. We manage your Facebook, Instagram, LinkedIn, TikTok, and X - with a data-driven content strategy that builds community, drives engagement, and converts followers into paying customers."
       serviceType="marketing"
+      checkoutServiceType="social_media"
+      checkoutProductName="Social Media"
       trustStats={[
         { value: "350+", label: "Kenyan Brands Managed" },
         { value: "2.8M+", label: "Followers Grown for Clients" },

@@ -19,6 +19,7 @@ import {
 	CampaignScheduledEmail,
 	CampaignCancelledEmail,
 	ServiceRenewalReminderEmail,
+	StorefrontWelcomeEmail,
 } from "react-email-starter/emails";
 
 export async function renderResetPasswordEmail({
@@ -535,6 +536,33 @@ export async function renderOpenProviderVerifyEmail({
   <p><img src="${placeholderImageUrl}" alt="Nisc" width="120" height="60" style="display:block;margin:1em 0;" /></p>
   <p>If you did not request this, you can ignore this message.</p>
 </div>`;
+}
+
+export async function renderStorefrontWelcomeEmail({
+  firstName,
+  email,
+  temporaryPassword,
+  loginLink,
+  verificationLink,
+  planName,
+}: {
+  firstName: string;
+  email: string;
+  temporaryPassword: string;
+  loginLink: string;
+  verificationLink?: string;
+  planName?: string;
+}): Promise<string> {
+  return render(
+    StorefrontWelcomeEmail({
+      firstName,
+      email,
+      temporaryPassword,
+      loginLink,
+      verificationLink,
+      planName,
+    }),
+  );
 }
 
 function escapeHtml(s: string): string {

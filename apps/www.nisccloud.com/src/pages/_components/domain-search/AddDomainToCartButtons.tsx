@@ -7,31 +7,22 @@ export interface AddDomainToCartButtonsProps {
   displayResult: DomainSearchResult;
   isAvailable: boolean;
   priceReady: boolean;
-  isDomainInCart: (domain: string) => boolean;
+  isDomainInCart?: (domain: string) => boolean;
   onAddToCart: (result: DomainSearchResult) => void;
-  onRemoveFromCart: (domain: string) => void;
+  onRemoveFromCart?: (domain: string) => void;
   primaryLabel?: string;
 }
 
 export function AddDomainToCartButtons({
-  domain,
   displayResult,
   isAvailable,
   priceReady,
-  isDomainInCart,
   onAddToCart,
-  onRemoveFromCart,
-  primaryLabel = "Add to cart",
+  primaryLabel = "Buy now",
 }: AddDomainToCartButtonsProps) {
-  const isInCart = isDomainInCart(domain);
-
   const handlePrimary = (e?: MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    if (isInCart) {
-      onRemoveFromCart(domain);
-      return;
-    }
     if (isAvailable && priceReady) onAddToCart(displayResult);
   };
 
@@ -46,12 +37,12 @@ export function AddDomainToCartButtons({
   return (
     <Button
       size="sm"
-      variant={isInCart ? "secondary" : "default"}
+      variant="default"
       onClick={handlePrimary}
       className="text-xs h-8 px-3 cursor-pointer"
-      disabled={!priceReady && !isInCart}
+      disabled={!priceReady}
     >
-      {isInCart ? "In cart" : primaryLabel}
+      {primaryLabel}
     </Button>
   );
 }

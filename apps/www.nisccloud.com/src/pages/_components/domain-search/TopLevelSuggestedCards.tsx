@@ -491,14 +491,9 @@ function BundleCard({
   );
   const bundleReady =
     bundleTotalKes != null && bundleDomains.length === bundleInfo.items.length;
-  const bundleInCart = bundleReady && isDomainBundleInCart(bundleDomainNames);
 
-  const handleBundleCartToggle = () => {
+  const handleBundleCart = () => {
     if (!bundleReady || bundleTotalKes == null) return;
-    if (bundleInCart) {
-      onRemoveDomainBundle(bundleDomainNames);
-      return;
-    }
     onAddDomainBundle({
       domains: bundleDomains,
       bundlePrice: bundleTotalKes,
@@ -562,12 +557,12 @@ function BundleCard({
       <div className="mt-auto flex items-center justify-center gap-2">
         <Button
           size="sm"
-          variant={bundleInCart ? "secondary" : "default"}
-          onClick={handleBundleCartToggle}
+          variant="default"
+          onClick={handleBundleCart}
           className="text-xs h-8 px-3 cursor-pointer"
-          disabled={!bundleReady && !bundleInCart}
+          disabled={!bundleReady}
         >
-          {bundleInCart ? "Remove bundle" : "Add bundle to cart"}
+          Buy now
         </Button>
       </div>
     </div>

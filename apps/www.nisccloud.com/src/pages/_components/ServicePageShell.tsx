@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Check, ChevronDown, ArrowRight, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { cn } from "@/lib/utils.ts";
+import { buildOrderPlanCartUrl } from "@/lib/storefront-cart-url.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
-import OrderDialog, { type OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
+import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import ServiceShowcaseSection, { type ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import ScrollStack, { ScrollStackItem } from "@/components/ui/ScrollStack.tsx";
 
@@ -63,6 +65,10 @@ export type ServicePageShellProps = {
   heroTrustBadge?: { line1: string; line2: string };
   plansUnderHero?: boolean;
   customPlansSection?: React.ReactNode;
+  /** Cart serviceType slug used when navigating to /cart from static plan cards */
+  checkoutServiceType?: string;
+  /** Product label shown in cart order summary */
+  checkoutProductName?: string;
 };
 
 // ─── Animated Counter Hook ───────────────────────────────────────────────────
@@ -684,7 +690,7 @@ export default function ServicePageShell({
   badge,
   headline,
   subtext,
-  serviceType,
+  serviceType: _serviceType,
   plans,
   addons = [],
   features = [],
@@ -702,8 +708,41 @@ export default function ServicePageShell({
   heroTrustBadge = { line1: "Nairobi-Based Servers", line2: "99.9% Uptime Guaranteed" },
   plansUnderHero = false,
   customPlansSection,
+  checkoutServiceType,
+  checkoutProductName,
 }: ServicePageShellProps) {
-  const [selectedPlan, setSelectedPlan] = useState<OrderPlan | null>(null);
+  const navigate = useNavigate();
+
+  const scrollToPlans = useCallback(() => {
+    const target = document.getElementById("plans") ?? document.getElementById("pricing");
+    target?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const handlePlanSelect = useCallback(
+    (plan: OrderPlan) => {
+      if (!checkoutServiceType) {
+        scrollToPlans();
+        return;
+      }
+      navigate(
+        buildOrderPlanCartUrl(
+          plan,
+          checkoutServiceType,
+          checkoutProductName ?? badge,
+        ),
+      );
+    },
+    [badge, checkoutProductName, checkoutServiceType, navigate, scrollToPlans],
+  );
+
+  const handleDefaultCta = useCallback(() => {
+    if (customPlansSection || plans.length === 0) {
+      scrollToPlans();
+      return;
+    }
+    const defaultPlan = plans[Math.floor(plans.length / 2)] ?? plans[0];
+    if (defaultPlan) handlePlanSelect(defaultPlan);
+  }, [customPlansSection, handlePlanSelect, plans, scrollToPlans]);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -718,14 +757,14 @@ export default function ServicePageShell({
         heroIllustration={heroIllustration}
         heroCta2={heroCta2}
         heroTrustBadge={heroTrustBadge}
-        onGetStarted={() => setSelectedPlan(plans[Math.floor(plans.length / 2)] ?? plans[0])}
+        onGetStarted={handleDefaultCta}
       />
 
       {trustStats && <TrustBar stats={trustStats} />}
 
       {plansUnderHero && (
         <div id="pricing">
-          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={setSelectedPlan} />}
+          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={handlePlanSelect} />}
         </div>
       )}
 
@@ -737,7 +776,7 @@ export default function ServicePageShell({
 
       {!plansUnderHero && (
         <div id="pricing">
-          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={setSelectedPlan} />}
+          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={handlePlanSelect} />}
         </div>
       )}
 
@@ -750,15 +789,7 @@ export default function ServicePageShell({
       <ClosingCta
         headline={ctaHeadline}
         subtext={ctaSubtext}
-        onCta={() => setSelectedPlan(plans[Math.floor(plans.length / 2)] ?? plans[0])}
-      />
-
-      <OrderDialog
-        open={!!selectedPlan}
-        onClose={() => setSelectedPlan(null)}
-        plan={selectedPlan}
-        addons={addons}
-        serviceType={serviceType}
+        onCta={handleDefaultCta}
       />
 
       <Footer />

@@ -29,3 +29,4 @@ export { CampaignCompletedEmail } from './campaign-completed-email';
 export { CampaignScheduledEmail } from './campaign-scheduled-email';
 export { CampaignCancelledEmail } from './campaign-cancelled-email';
 export { EmailOtpEmail } from './email-otp';
+export { StorefrontWelcomeEmail } from './storefront-welcome-email';

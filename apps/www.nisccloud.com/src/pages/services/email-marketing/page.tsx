@@ -77,6 +77,8 @@ export default function EmailMarketingPage() {
       headline={<>Turn Your Email List<br /><span className="text-primary">Into a Revenue Machine</span></>}
       subtext="Email still delivers the highest ROI of any marketing channel - KES 380 for every KES 10 spent. We design, write, and automate campaigns that convert subscribers into customers, and customers into loyal repeat buyers."
       serviceType="marketing"
+      checkoutServiceType="email_marketing"
+      checkoutProductName="Email Marketing"
       trustStats={[
         { value: "42%", label: "Average Open Rate (2× industry)" },
         { value: "380×", label: "Average Email Marketing ROI" },

@@ -400,6 +400,32 @@ export const hivelocityRouter = router({
 			return { success: true, data: raw };
 		}),
 
+	/** Public storefront: operating systems for a Hivelocity product (no auth). */
+	publicGetProductOperatingSystems: publicProcedure
+		.input(z.object({ productId: z.number().int().positive() }))
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/product/${input.productId}/operating-systems`, {
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
+	/** Public storefront: add-on options for a Hivelocity product (no auth). */
+	publicGetProductOptions: publicProcedure
+		.input(
+			z.object({
+				productId: z.number().int().positive(),
+				groupBy: z.string().optional().default("upgrade"),
+			}),
+		)
+		.query(async ({ input }) => {
+			const raw = await hivelocityRequest<unknown>(`/product/${input.productId}/options`, {
+				query: { groupBy: input.groupBy },
+				requireApiKey: true,
+			});
+			return { success: true, data: raw };
+		}),
+
 	/**
 	 * Public (TEMP for development): Provision an instant compute device (recommended endpoint).
 	 * Docs: POST /compute/
