@@ -5,6 +5,14 @@ export declare const jetbackupQueuesRouter: import("@trpc/server").TRPCBuiltRout
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
+    /** Queue a full backup snapshot for restore (JetBackup Queues API shape). */
+    queueSnapshot: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            snapshot_id: string;
+        };
+        output: unknown;
+        meta: object;
+    }>;
     addItems: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             items: {

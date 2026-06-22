@@ -14,6 +14,8 @@ export declare const NISC_INVOICE_SKIP_REASON_CODES: {
     readonly INVOICE_CREATION_FAILED: "invoice_creation_failed";
     readonly INVOICE_MISSING_AFTER_CREATE: "invoice_missing_after_create";
     readonly EMAIL_SEND_FAILED: "email_send_failed";
+    readonly KRA_SYNC_FAILED: "kra_sync_failed";
+    readonly KRA_SYNC_SKIPPED: "kra_sync_skipped";
 };
 export type NiscInvoiceSkipReasonCode = (typeof NISC_INVOICE_SKIP_REASON_CODES)[keyof typeof NISC_INVOICE_SKIP_REASON_CODES];
 export declare const NISC_INVOICE_SKIP_REASON_MESSAGES: Record<NiscInvoiceSkipReasonCode, string>;

@@ -228,6 +228,12 @@ export declare class DigiTaxClient {
         data: DigiTaxSale[];
     }>;
     getSaleById(saleId: string): Promise<DigiTaxSale>;
+    getSalesSummary(startDate: string, endDate: string): Promise<{
+        summary: Record<string, {
+            total_sales_count: number;
+            total_sales_amount: number;
+        }>;
+    }>;
     getOfflineUrl(businessId: string, traderInvoiceNumber: string): Promise<any>;
     addSaleWithItems(sale: any): Promise<DigiTaxSale>;
     addExpressCreditNote(creditNote: {

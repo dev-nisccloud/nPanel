@@ -3,13 +3,15 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, ilike, or } from "@npanel/db";
 import { db } from "@npanel/db";
-import { niscClientSubscription, niscProduct, niscProductAddOn, niscProductPlan, niscProductPlanUsage, } from "@npanel/db/schema/products";
 import { niscOrderItem } from "@npanel/db/schema/nisc-orders";
+import { niscClientSubscription, niscProduct, niscProductAddOn, niscProductPlan, niscProductPlanUsage, } from "@npanel/db/schema/products";
 import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { getCached, setCached, invalidateProductsCache, listKey, idKey, addonsKey, hostingUpsellKey, digitalMarketingUpsellKey, } from "../lib/products-cache";
 import { CREATIVES_DESIGN_PRODUCT_ID } from "../lib/creatives-design-billing";
-import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
+import { NISC_SEO_REPORTS_PRODUCT_ID, SEO_PRODUCT_FEATURES } from "../lib/seo-reports-billing";
 import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
+import { getEtimsContext } from "../lib/etims-config";
+import { eTimsItem } from "@npanel/db/schema/etims";
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
 // ============================================================================
@@ -49,6 +51,15 @@ const planFeatureSchema = z.object({
     valueOverride: z.string().optional(), // e.g. "50GB" overrides product label
 });
 // --- Product schemas ---------------------------------------------------------
+const etimsTaxTyCdSchema = z.enum(["A", "B", "C", "D", "E"]);
+const productEtimsFieldsSchema = z.object({
+    etimsItemCd: z.string().max(20).nullable().optional(),
+    etimsItemClsCd: z.string().max(10).nullable().optional(),
+    etimsTaxTyCd: etimsTaxTyCdSchema.nullable().optional(),
+    etimsDefaultPrice: z.string().nullable().optional(),
+    etimsPkgUnitCd: z.string().max(5).nullable().optional(),
+    etimsQtyUnitCd: z.string().max(5).nullable().optional(),
+});
 const createProductInputSchema = z.object({
     name: z.string().min(1).max(255),
     description: z.string().optional(),
@@ -59,7 +70,7 @@ const createProductInputSchema = z.object({
     features: z.array(productFeatureSchema).default([]),
     highlights: z.array(z.string()).default([]),
     metadata: z.record(z.string(), z.unknown()).optional(),
-});
+}).merge(productEtimsFieldsSchema);
 const updateProductInputSchema = createProductInputSchema.partial().extend({
     id: z.string(),
 });
@@ -87,6 +98,12 @@ const productOutputSchema = z.object({
     features: z.array(z.unknown()),
     highlights: z.array(z.string()),
     metadata: z.unknown().nullable(),
+    etimsItemCd: z.string().nullable(),
+    etimsItemClsCd: z.string().nullable(),
+    etimsTaxTyCd: etimsTaxTyCdSchema.nullable(),
+    etimsDefaultPrice: z.string().nullable(),
+    etimsPkgUnitCd: z.string().nullable(),
+    etimsQtyUnitCd: z.string().nullable(),
     createdAt: z.coerce.date(),
     updatedAt: z.coerce.date(),
 });
@@ -295,6 +312,12 @@ function mapProduct(product) {
         features: product.features ?? [],
         highlights: product.highlights ?? [],
         metadata: product.metadata ?? null,
+        etimsItemCd: product.etimsItemCd ?? null,
+        etimsItemClsCd: product.etimsItemClsCd ?? null,
+        etimsTaxTyCd: product.etimsTaxTyCd ?? null,
+        etimsDefaultPrice: product.etimsDefaultPrice ?? null,
+        etimsPkgUnitCd: product.etimsPkgUnitCd ?? null,
+        etimsQtyUnitCd: product.etimsQtyUnitCd ?? null,
         createdAt: product.createdAt,
         updatedAt: product.updatedAt,
     };
@@ -370,7 +393,7 @@ function assertAgencySuperAdminMutationAccess(role) {
 // ============================================================================
 export const productsRouter = router({
     // ── Products ─────────────────────────────────────────────────────────────
-    /** List all products with optional filtering (cached via Upstash Redis) */
+    /** List all products with optional filtering (cached via Upstash Redis). Public catalog read. */
     getAll: publicProcedure
         .input(getProductsInputSchema.optional())
         .output(z.array(productOutputSchema))
@@ -508,7 +531,7 @@ export const productsRouter = router({
     /** Get plans for pricing table from products named "web hosting" or "website hosting" (case-insensitive). Returns product-level feature list (table rows) and plans with per-feature values (enabled + valueOverride exactly as stored, no number conversion). */
     getHostingPlansForPricing: publicProcedure
         .output(z.object({
-        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
             name: z.string(),
@@ -547,7 +570,7 @@ export const productsRouter = router({
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -584,7 +607,7 @@ export const productsRouter = router({
     /** Get plans for pricing table from products named "email hosting" (case-insensitive). Same shape as getHostingPlansForPricing. */
     getEmailHostingPlansForPricing: publicProcedure
         .output(z.object({
-        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
             name: z.string(),
@@ -622,7 +645,81 @@ export const productsRouter = router({
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
+                }
+            }
+        }
+        const plans = [];
+        for (const product of products) {
+            for (const plan of product.plans ?? []) {
+                const planFeats = plan.planFeatures ?? [];
+                const planFeatsByKey = new Map(planFeats.map((f) => [f.key, f]));
+                const featureValues = productFeatures.map((pf) => {
+                    const entry = planFeatsByKey.get(pf.key);
+                    const available = !!entry?.available;
+                    const valueOverride = entry?.valueOverride != null && entry.valueOverride !== ""
+                        ? String(entry.valueOverride)
+                        : null;
+                    return { available, valueOverride };
+                });
+                plans.push({
+                    id: plan.id,
+                    name: plan.name,
+                    niscPrice: plan.price ?? null,
+                    niscCurrency: plan.currency ?? "KES",
+                    billingCycle: plan.billingCycle ?? "MONTHLY",
+                    isPopular: plan.isPopular ?? false,
+                    isRecommended: plan.isRecommended ?? false,
+                    productId: product.id,
+                    productName: product.name,
+                    featureValues,
+                });
+            }
+        }
+        return { productFeatures, plans };
+    }),
+    /** Get plans for pricing table from products named "wordpress hosting" or "wordpress managed" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    getWordPressPlansForPricing: publicProcedure
+        .output(z.object({
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
+        plans: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            niscPrice: z.string().nullable(),
+            niscCurrency: z.string(),
+            billingCycle: z.string(),
+            isPopular: z.boolean(),
+            isRecommended: z.boolean(),
+            productId: z.string(),
+            productName: z.string(),
+            featureValues: z.array(z.object({
+                available: z.boolean(),
+                valueOverride: z.string().nullable(),
+            })),
+        })),
+    }))
+        .query(async () => {
+        const products = await db.query.niscProduct.findMany({
+            where: and(eq(niscProduct.isActive, true), or(ilike(niscProduct.name, "%wordpress hosting%"), ilike(niscProduct.name, "%wordpress managed%"))),
+            orderBy: (p, { asc: a, desc: d }) => [a(p.sortOrder), d(p.createdAt)],
+            with: {
+                plans: {
+                    where: and(eq(niscProductPlan.isActive, true), eq(niscProductPlan.pricingModel, "FIXED")),
+                    orderBy: (plan, { asc: a }) => [
+                        a(plan.sortOrder),
+                        a(plan.createdAt),
+                    ],
+                },
+            },
+        });
+        const seenKeys = new Set();
+        const productFeatures = [];
+        for (const p of products) {
+            const features = p.features ?? [];
+            for (const f of features) {
+                if (!seenKeys.has(f.key)) {
+                    seenKeys.add(f.key);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -661,7 +758,7 @@ export const productsRouter = router({
      */
     getDigitalMarketingPlansForUpsell: publicProcedure
         .output(z.object({
-        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         products: z.array(z.object({
             id: z.string(),
             name: z.string(),
@@ -704,7 +801,7 @@ export const productsRouter = router({
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -752,7 +849,7 @@ export const productsRouter = router({
     /** Plans for SEO customer pricing table. Matches products whose name contains "seo" (case-insensitive). Same shape as getHostingPlansForPricing. */
     getSeoPlansForPricing: publicProcedure
         .output(z.object({
-        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
             name: z.string(),
@@ -785,12 +882,24 @@ export const productsRouter = router({
         });
         const seenKeys = new Set();
         const productFeatures = [];
-        for (const p of products) {
+        const canonicalProduct = products.find((p) => p.id === NISC_SEO_REPORTS_PRODUCT_ID);
+        const productsForFeatures = canonicalProduct
+            ? [canonicalProduct, ...products.filter((p) => p.id !== NISC_SEO_REPORTS_PRODUCT_ID)]
+            : products;
+        for (const p of productsForFeatures) {
             const features = p.features ?? [];
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
+                }
+            }
+        }
+        if (productFeatures.length === 0) {
+            for (const f of SEO_PRODUCT_FEATURES) {
+                if (!seenKeys.has(f.key)) {
+                    seenKeys.add(f.key);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -826,7 +935,7 @@ export const productsRouter = router({
     /** Media buying customer pricing (Meta / Google / LinkedIn). COMMISSION plans only. */
     getMediaBuyingPlansForPricing: publicProcedure
         .output(z.object({
-        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         productName: z.string(),
         plans: z.array(z.object({
             id: z.string(),
@@ -865,7 +974,7 @@ export const productsRouter = router({
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -910,7 +1019,7 @@ export const productsRouter = router({
      */
     getCreativesDesignPlansForPricing: publicProcedure
         .output(z.object({
-        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
             name: z.string(),
@@ -948,7 +1057,7 @@ export const productsRouter = router({
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -988,7 +1097,7 @@ export const productsRouter = router({
      */
     getNiscEmailMarketingPlansForPricing: publicProcedure
         .output(z.object({
-        productFeatures: z.array(z.object({ key: z.string(), label: z.string() })),
+        productFeatures: z.array(z.object({ key: z.string(), label: z.string(), description: z.string().optional() })),
         plans: z.array(z.object({
             id: z.string(),
             name: z.string(),
@@ -1023,7 +1132,7 @@ export const productsRouter = router({
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -1101,7 +1210,7 @@ export const productsRouter = router({
             for (const f of features) {
                 if (!seenKeys.has(f.key)) {
                     seenKeys.add(f.key);
-                    productFeatures.push(f);
+                    productFeatures.push({ key: f.key, label: f.label, description: f.description });
                 }
             }
         }
@@ -1155,6 +1264,12 @@ export const productsRouter = router({
             features: input.features,
             highlights: input.highlights,
             metadata: input.metadata ?? null,
+            etimsItemCd: input.etimsItemCd ?? null,
+            etimsItemClsCd: input.etimsItemClsCd ?? null,
+            etimsTaxTyCd: input.etimsTaxTyCd ?? null,
+            etimsDefaultPrice: input.etimsDefaultPrice ?? null,
+            etimsPkgUnitCd: input.etimsPkgUnitCd ?? null,
+            etimsQtyUnitCd: input.etimsQtyUnitCd ?? null,
         })
             .returning();
         if (!product) {
@@ -1200,6 +1315,18 @@ export const productsRouter = router({
         if (rest.metadata !== undefined) {
             set.metadata = rest.metadata ?? null;
         }
+        if (rest.etimsItemCd !== undefined)
+            set.etimsItemCd = rest.etimsItemCd ?? null;
+        if (rest.etimsItemClsCd !== undefined)
+            set.etimsItemClsCd = rest.etimsItemClsCd ?? null;
+        if (rest.etimsTaxTyCd !== undefined)
+            set.etimsTaxTyCd = rest.etimsTaxTyCd ?? null;
+        if (rest.etimsDefaultPrice !== undefined)
+            set.etimsDefaultPrice = rest.etimsDefaultPrice ?? null;
+        if (rest.etimsPkgUnitCd !== undefined)
+            set.etimsPkgUnitCd = rest.etimsPkgUnitCd ?? null;
+        if (rest.etimsQtyUnitCd !== undefined)
+            set.etimsQtyUnitCd = rest.etimsQtyUnitCd ?? null;
         const [updated] = await db
             .update(niscProduct)
             .set(set)
@@ -1210,6 +1337,95 @@ export const productsRouter = router({
         }
         await invalidateProductsCache();
         return mapProduct(updated);
+    }),
+    /**
+     * Deactivate a Nisc product on KRA eTIMS (useYn=N) and clear local eTIMS fields.
+     * Agency super admin only.
+     */
+    unregisterFromKra: protectedProcedure
+        .input(z.object({ id: z.string().min(1) }))
+        .output(z.object({ success: z.boolean() }))
+        .mutation(async ({ ctx, input }) => {
+        const actor = getAuthenticatedActor(ctx);
+        assertAgencySuperAdminMutationAccess(actor.role);
+        const product = await db.query.niscProduct.findFirst({
+            where: eq(niscProduct.id, input.id),
+        });
+        if (!product) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Product not found" });
+        }
+        if (!product.etimsItemCd) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This product is not registered on KRA eTIMS",
+            });
+        }
+        if (!product.etimsItemClsCd || !product.etimsTaxTyCd) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Missing KRA classification or tax data on this product",
+            });
+        }
+        const taxTyCd = product.etimsTaxTyCd;
+        if (taxTyCd !== "A" && taxTyCd !== "B" && taxTyCd !== "C" && taxTyCd !== "D" && taxTyCd !== "E") {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Invalid KRA tax type stored on this product",
+            });
+        }
+        const dftPrc = Number(product.etimsDefaultPrice ?? 0) || 0;
+        const modrId = actor.userId.slice(0, 20);
+        const modrNm = (ctx.session?.user?.name ?? "Administrator").slice(0, 60);
+        const { client, oscu } = await getEtimsContext();
+        const result = await client.saveItem(oscu, {
+            itemCd: product.etimsItemCd,
+            itemClsCd: product.etimsItemClsCd,
+            itemTyCd: "3",
+            itemNm: product.name,
+            itemStdNm: null,
+            orgnNatCd: "KE",
+            pkgUnitCd: product.etimsPkgUnitCd ?? "OU",
+            qtyUnitCd: product.etimsQtyUnitCd ?? "U",
+            taxTyCd,
+            btchNo: null,
+            bcd: null,
+            dftPrc,
+            grpPrcL1: dftPrc,
+            grpPrcL2: dftPrc,
+            grpPrcL3: dftPrc,
+            grpPrcL4: dftPrc,
+            grpPrcL5: 0,
+            addInfo: null,
+            sftyQty: 0,
+            isrcAplcbYn: "N",
+            useYn: "N",
+            regrId: modrId,
+            regrNm: modrNm,
+            modrId: modrId,
+            modrNm: modrNm,
+        });
+        const resultCd = result.resultCd;
+        const resultMsg = result.resultMsg ?? "KRA rejected the unregister request";
+        if (resultCd && resultCd !== "000" && resultCd !== "001") {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: resultMsg,
+            });
+        }
+        await db
+            .update(niscProduct)
+            .set({
+            etimsItemCd: null,
+            etimsItemClsCd: null,
+            etimsTaxTyCd: null,
+            etimsDefaultPrice: null,
+            etimsPkgUnitCd: null,
+            etimsQtyUnitCd: null,
+        })
+            .where(eq(niscProduct.id, input.id));
+        await db.delete(eTimsItem).where(eq(eTimsItem.itemCd, product.etimsItemCd));
+        await invalidateProductsCache();
+        return { success: true };
     }),
     /** Permanently delete a product from the database. Only allowed when product is inactive and has no subscriptions. */
     delete: protectedProcedure
@@ -1249,7 +1465,7 @@ export const productsRouter = router({
         if (orderItemCount > 0) {
             throw new TRPCError({
                 code: "BAD_REQUEST",
-                message: `Cannot delete product referenced by ${orderItemCount} order item(s). Migrate or reassign them first (e.g. bun run migrate:web-hosting-product-ids).`,
+                message: `Cannot delete product referenced by ${orderItemCount} order item(s). Migrate or reassign them first.`,
             });
         }
         try {

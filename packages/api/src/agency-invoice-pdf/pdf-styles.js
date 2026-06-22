@@ -93,6 +93,14 @@ export const pdfContainers = StyleSheet.create({
         paddingLeft: 0,
         paddingRight: 0,
     },
+    /** Reserve space so body content does not overlap the fixed eTIMS fiscal footer. */
+    pageWithEtimsFooter: {
+        fontFamily: "Geist",
+        paddingTop: 28,
+        paddingBottom: 72,
+        paddingLeft: 0,
+        paddingRight: 0,
+    },
     invoiceTerms: {
         paddingHorizontal: 40,
         paddingVertical: 20,

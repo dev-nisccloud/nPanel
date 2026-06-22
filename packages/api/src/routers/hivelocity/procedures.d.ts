@@ -1,4 +1,5 @@
 export declare const hivelocityProcedure: import("@trpc/server").TRPCProcedureBuilder<import("../..").Context, object, {
+    ipAddress: string | null | undefined;
     session: {
         user: import("../..").SessionUser;
         session: {
@@ -12,7 +13,6 @@ export declare const hivelocityProcedure: import("@trpc/server").TRPCProcedureBu
             userAgent?: string | null | undefined | undefined;
         };
     };
-    ipAddress: string | null | undefined;
     apiKey: {
         id: string;
         permissions: string[];

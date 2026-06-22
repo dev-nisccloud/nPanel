@@ -1,7 +1,7 @@
 import { protectedProcedure, router } from "../../trpc";
 import { Download, JetBackupListResponse } from "../../types/jetbackup";
 import { z } from "zod";
-import { idSchema, jetbackupCall, listSchema } from "./_helpers";
+import { idSchema, jetbackupCall, JETBACKUP_QUEUE_TYPE_DOWNLOAD, listSchema } from "./_helpers";
 export const jetbackupDownloadsRouter = router({
     list: protectedProcedure
         .input(listSchema)
@@ -20,5 +20,16 @@ export const jetbackupDownloadsRouter = router({
     }))
         .mutation(async ({ input }) => {
         return jetbackupCall("manageDownloadNotes", input);
+    }),
+    /** Queue a full backup snapshot for download (JetBackup Downloads API shape). */
+    queueSnapshot: protectedProcedure
+        .input(z.object({
+        snapshot_id: z.string(),
+    }))
+        .mutation(async ({ input }) => {
+        return jetbackupCall("addQueueItems", {
+            type: JETBACKUP_QUEUE_TYPE_DOWNLOAD,
+            snapshot_id: input.snapshot_id,
+        });
     }),
 });

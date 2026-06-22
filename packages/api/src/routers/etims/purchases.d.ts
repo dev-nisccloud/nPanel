@@ -5,8 +5,11 @@ export declare const etimsPurchasesRouter: import("@trpc/server").TRPCBuiltRoute
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     /**
-     * Retrieve purchase transactions from KRA.
+     * Retrieve inbound purchase invoices from KRA (supplier sales registered against our PIN).
      * POST /selectTrnsPurchaseSalesList
+     *
+     * Verified on KRA sandbox: this is the only valid list endpoint for purchases.
+     * resultCd "001" means no supplier invoices exist yet — not an API/endpoint error.
      */
     getPurchaseTransactions: import("@trpc/server").TRPCQueryProcedure<{
         input: {

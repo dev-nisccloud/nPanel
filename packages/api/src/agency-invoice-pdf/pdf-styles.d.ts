@@ -97,6 +97,14 @@ export declare const pdfContainers: {
         paddingLeft: number;
         paddingRight: number;
     };
+    /** Reserve space so body content does not overlap the fixed eTIMS fiscal footer. */
+    pageWithEtimsFooter: {
+        fontFamily: string;
+        paddingTop: number;
+        paddingBottom: number;
+        paddingLeft: number;
+        paddingRight: number;
+    };
     invoiceTerms: {
         paddingHorizontal: number;
         paddingVertical: number;

@@ -169,3 +169,81 @@ export async function sendJetBackupRequest(functionName, params = {}) {
         };
     }
 }
+function parseContentDispositionFilename(header) {
+    if (!header)
+        return undefined;
+    const utf8Match = header.match(/filename\*=UTF-8''([^;\n]+)/i);
+    if (utf8Match?.[1]) {
+        try {
+            return decodeURIComponent(utf8Match[1]);
+        }
+        catch {
+            return utf8Match[1];
+        }
+    }
+    const plainMatch = header.match(/filename="?([^";\n]+)"?/i);
+    return plainMatch?.[1];
+}
+/** Stream a completed JetBackup download archive (headerless.php?download=1). */
+export async function fetchJetBackupDownloadArchive(downloadId) {
+    try {
+        const version = await getJetBackupVersion();
+        const url = `${getPleskModulesBase()}/headerless.php?v=${version}&download=1&download_id=${encodeURIComponent(downloadId)}`;
+        const attempt = async (sessionId) => {
+            return request(url, {
+                method: 'GET',
+                headers: { Cookie: `PLESKSESSID=${sessionId}` },
+                dispatcher: jetbackupAgent,
+                signal: AbortSignal.timeout(600000),
+                maxRedirections: 0,
+            });
+        };
+        let sessionId = await getPleskSession();
+        let response = await attempt(sessionId);
+        const contentType = String(response.headers['content-type'] ?? '');
+        if (response.statusCode === 200 && contentType.includes('text/html')) {
+            cachedSession = null;
+            sessionId = await getPleskSession(true);
+            response = await attempt(sessionId);
+        }
+        const finalContentType = String(response.headers['content-type'] ?? '');
+        if (response.statusCode !== 200) {
+            const text = await response.body.text();
+            return {
+                success: false,
+                statusCode: response.statusCode,
+                body: null,
+                message: text.substring(0, 200) || `HTTP ${response.statusCode}`,
+            };
+        }
+        if (finalContentType.includes('text/html')) {
+            return {
+                success: false,
+                statusCode: response.statusCode,
+                body: null,
+                message: 'Download is not ready yet or the download ID is invalid.',
+            };
+        }
+        const contentDisposition = String(response.headers['content-disposition'] ?? '');
+        const contentLengthHeader = response.headers['content-length'];
+        const contentLength = contentLengthHeader != null ? Number(contentLengthHeader) : undefined;
+        return {
+            success: true,
+            statusCode: response.statusCode,
+            body: response.body,
+            filename: parseContentDispositionFilename(contentDisposition),
+            contentType: finalContentType || 'application/gzip',
+            contentLength: Number.isFinite(contentLength) ? contentLength : undefined,
+        };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error occurred';
+        console.error(`JetBackup download fetch failed (${downloadId}):`, error);
+        return {
+            success: false,
+            statusCode: 0,
+            body: null,
+            message,
+        };
+    }
+}

@@ -16,6 +16,8 @@ export const NISC_INVOICE_SKIP_REASON_CODES = {
     INVOICE_CREATION_FAILED: "invoice_creation_failed",
     INVOICE_MISSING_AFTER_CREATE: "invoice_missing_after_create",
     EMAIL_SEND_FAILED: "email_send_failed",
+    KRA_SYNC_FAILED: "kra_sync_failed",
+    KRA_SYNC_SKIPPED: "kra_sync_skipped",
 };
 export const NISC_INVOICE_SKIP_REASON_MESSAGES = {
     no_billing_details: "No invoice was created: no customer account is available for billing on this order.",
@@ -25,6 +27,8 @@ export const NISC_INVOICE_SKIP_REASON_MESSAGES = {
     invoice_creation_failed: "No invoice was created: invoice record could not be saved.",
     invoice_missing_after_create: "No invoice was created: invoice record was not found after creation.",
     email_send_failed: "Invoice was created but the email with PDF attachment could not be sent.",
+    kra_sync_failed: "Invoice was created but could not be registered with KRA eTIMS. The customer was not emailed; retry KRA sync from the invoice.",
+    kra_sync_skipped: "Invoice was created but KRA eTIMS registration was skipped (missing product mapping or eTIMS not configured). The customer was not emailed.",
 };
 function missingTeamBillingFields(billing) {
     return TEAM_BILLING_REQUIRED_FIELDS.filter((field) => {

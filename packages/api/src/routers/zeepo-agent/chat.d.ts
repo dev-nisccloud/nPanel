@@ -20,15 +20,15 @@ export declare const zeepoAgentChatRouter: import("@trpc/server").TRPCBuiltRoute
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                teamId: string | null;
                 status: string;
                 userId: string;
-                teamId: string | null;
                 title: string | null;
                 messages: {
                     id: string;
                     createdAt: Date;
-                    role: string;
                     metadata: unknown;
+                    role: string;
                     content: string | null;
                     toolCalls: unknown;
                     toolCallId: string | null;

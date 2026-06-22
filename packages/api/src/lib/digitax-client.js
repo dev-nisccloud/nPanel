@@ -111,6 +111,9 @@ export class DigiTaxClient {
     async getSaleById(saleId) {
         return this.request("GET", `/sales/${saleId}`);
     }
+    async getSalesSummary(startDate, endDate) {
+        return this.request("GET", "/sales-summary", { start_date: startDate, end_date: endDate });
+    }
     async getOfflineUrl(businessId, traderInvoiceNumber) {
         return this.request("GET", `/sale/${businessId}/${traderInvoiceNumber}`);
     }

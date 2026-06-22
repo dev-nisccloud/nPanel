@@ -5,7 +5,9 @@ export type NiscOrderInvoiceDeliveryResult = {
     invoiceId: string;
     invoiceNumber: string;
     emailed: boolean;
+    kraSynced: boolean;
     source: "team_billing" | "user_profile" | "team_owners";
+    kraError?: string;
 } | {
     ok: false;
     skipped: true;
@@ -30,8 +32,8 @@ export type CreateAndEmailNiscOrderInvoiceInput = {
     teamSlug?: string | null;
 };
 /**
- * Creates invoice for a paid Nisc order (if not already created) and emails PDF to billing contact.
- * Never throws - callers should always continue provisioning.
+ * Creates invoice for a paid Nisc order, syncs to KRA eTIMS, then emails PDF when synced.
+ * Provisioning must continue even when KRA or email fails — never throws.
  */
 export declare function createAndEmailNiscOrderInvoice(input: CreateAndEmailNiscOrderInvoiceInput): Promise<NiscOrderInvoiceDeliveryResult>;
 /**

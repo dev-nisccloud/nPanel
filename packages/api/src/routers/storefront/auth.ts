@@ -101,11 +101,12 @@ const registerInputSchema = z.object({
     .min(1, "Company name is required")
     .max(120, "Company name too long"),
   /** Required — must match dashboard sign-up (`acceptedTermsAndConditions`). */
-  acceptedTermsAndConditions: z.literal(true, {
-    errorMap: () => ({
-      message: "You must accept the Terms and Conditions before creating an account.",
+  acceptedTermsAndConditions: z
+    .boolean()
+    .refine((val) => val === true, {
+      message:
+        "You must accept the Terms and Conditions before creating an account.",
     }),
-  }),
   /** Optional: the plan name shown in the welcome email. */
   planName: z.string().optional(),
 });
@@ -268,7 +269,7 @@ export const storefrontAuthRouter = router({
       void (async () => {
         try {
           const frontendUrl =
-            process.env.CORS_ORIGIN?.trim() || "https://app.nisccloud.com";
+            process.env.CORS_ORIGIN?.trim() || "https://npanel.nisccloud.com";
           const loginLink = `${frontendUrl}/auth/login`;
 
           const html = await renderStorefrontWelcomeEmail({

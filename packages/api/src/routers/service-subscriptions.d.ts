@@ -12,11 +12,11 @@ export declare const serviceSubscriptionsRouter: import("@trpc/server").TRPCBuil
             teamId: string;
             hostingPlanId: string;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
-            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             subscriptionDate?: unknown;
             expiryDate?: unknown;
             primaryDomain?: string | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | undefined;
+            status?: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | undefined;
             autoRenew?: boolean | undefined;
             notes?: string | undefined;
         };
@@ -28,14 +28,14 @@ export declare const serviceSubscriptionsRouter: import("@trpc/server").TRPCBuil
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
             nextRenewalDate: Date | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED";
             autoRenew: boolean;
             hostingSubscriptionId: string | null;
             notes: string | null;
             createdAt: Date;
             updatedAt: Date;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
-            hostingSubType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingSubType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
         };
         meta: object;
     }>;
@@ -52,14 +52,14 @@ export declare const serviceSubscriptionsRouter: import("@trpc/server").TRPCBuil
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
             nextRenewalDate: Date | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED";
             autoRenew: boolean;
             hostingSubscriptionId: string | null;
             notes: string | null;
             createdAt: Date;
             updatedAt: Date;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
-            hostingSubType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingSubType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             planName: string;
         } | null;
         meta: object;
@@ -68,8 +68,8 @@ export declare const serviceSubscriptionsRouter: import("@trpc/server").TRPCBuil
         input: {
             teamId?: string | undefined;
             planType?: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING" | undefined;
-            hostingSubType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | undefined;
+            hostingSubType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            status?: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | undefined;
         } | undefined;
         output: {
             id: string;
@@ -80,14 +80,14 @@ export declare const serviceSubscriptionsRouter: import("@trpc/server").TRPCBuil
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM";
             nextRenewalDate: Date | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED";
             autoRenew: boolean;
             hostingSubscriptionId: string | null;
             notes: string | null;
             createdAt: Date;
             updatedAt: Date;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
-            hostingSubType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingSubType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             planName: string;
         }[];
         meta: object;

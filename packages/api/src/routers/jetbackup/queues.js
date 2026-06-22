@@ -1,8 +1,19 @@
 import { protectedProcedure, router } from "../../trpc";
 import { JetBackupListResponse, QueueGroup, QueueItem, QueuePriority } from "../../types/jetbackup";
 import { z } from "zod";
-import { extractList, idSchema, jetbackupCall, jetbackupCallSafe, listSchema, queueItemSchema } from "./_helpers";
+import { extractList, idSchema, jetbackupCall, jetbackupCallSafe, JETBACKUP_QUEUE_TYPE_RESTORE, listSchema, queueItemSchema, } from "./_helpers";
 export const jetbackupQueuesRouter = router({
+    /** Queue a full backup snapshot for restore (JetBackup Queues API shape). */
+    queueSnapshot: protectedProcedure
+        .input(z.object({
+        snapshot_id: z.string(),
+    }))
+        .mutation(async ({ input }) => {
+        return jetbackupCall("addQueueItems", {
+            type: JETBACKUP_QUEUE_TYPE_RESTORE,
+            snapshot_id: input.snapshot_id,
+        });
+    }),
     addItems: protectedProcedure
         .input(z.object({
         items: z.array(queueItemSchema),
@@ -19,11 +30,11 @@ export const jetbackupQueuesRouter = router({
     }),
     listGroups: protectedProcedure
         .input(listSchema.extend({
-        type: z.number().min(1).max(3).optional(),
+        type: z.number().min(1).max(4).optional(),
     }))
         .query(async ({ input }) => {
         const { type, ...rest } = input;
-        const types = type != null ? [type] : [1, 2, 3];
+        const types = type != null ? [type] : [1, 2, 4];
         const groups = [];
         const errors = [];
         for (const queueType of types) {

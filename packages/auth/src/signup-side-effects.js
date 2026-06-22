@@ -2,7 +2,7 @@ import { db } from "@npanel/db";
 import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import { notification, notificationActivityLog, } from "@npanel/db/schema/notifications";
 import { renderWelcomeEmail } from "react-email-starter/src/email-templates";
-import { sendTransactionalEmail } from "./transactional-email";
+import { sendAuthEmail } from "./transactional-email";
 function frontendBaseUrl() {
     const raw = process.env.APP_URL ||
         process.env.CORS_ORIGIN ||
@@ -75,8 +75,7 @@ export async function sendGoogleSignupWelcomeEmail(params) {
         userFirstname: params.name || "User",
         loginLink,
     });
-    await sendTransactionalEmail({
-        userId: params.userId,
+    await sendAuthEmail({
         to: params.email,
         subject: "Welcome to npanel",
         html,

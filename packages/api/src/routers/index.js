@@ -124,6 +124,7 @@ import { jetbackupPermissionsRouter } from "./jetbackup/permissions";
 import { jetbackupRestoreConditionsRouter } from "./jetbackup/restore-conditions";
 import { jetbackupFilePermissionsRouter } from "./jetbackup/file-permissions";
 import { jetbackupPluginsRouter } from "./jetbackup/plugins";
+import { storefrontRouter } from "./storefront";
 export const appRouter = router({
     healthCheck: publicProcedure.query(() => {
         return "OK";
@@ -318,6 +319,8 @@ export const appRouter = router({
     zeepoCanvas: zeepoCanvasRouter,
     // Zeepo AI Agent (chat + Replicate jobs)
     zeepoAgent: zeepoAgentRouter,
+    // Public landing-page storefront checkout (isolated from dashboard routers)
+    storefront: storefrontRouter,
     // JetBackup 5 Integration
     jetbackup: router({
         dashboard: jetbackupDashboardRouter,

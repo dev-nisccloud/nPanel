@@ -42,7 +42,7 @@ export const etimsBranchRouter = router({
             custNm: z.string().min(1),
             adrs: z.string().nullable().optional(),
             telNo: z.string().nullable().optional(),
-            email: z.string().email().nullable().optional(),
+            email: z.union([z.string().email(), z.literal("")]).nullable().optional().transform((v) => v || null),
             faxNo: z.string().nullable().optional(),
             useYn: z.enum(["Y", "N"]).default("Y"),
             remark: z.string().nullable().optional(),
@@ -57,10 +57,16 @@ export const etimsBranchRouter = router({
         const { client, oscu } = await getEtimsContext();
         try {
             const result = await client.saveBhfCustomer(oscu, input.customer);
+            const body = result;
+            if (body?.resultCd && body.resultCd !== "000") {
+                return { success: false, data: null, errorMessage: body.resultMsg ?? "Failed to save branch customer" };
+            }
             return { success: true, data: result };
         }
         catch (e) {
-            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: e.message || "Failed to save branch customer" });
+            const msg = e.message;
+            console.warn("[eTIMS] saveCustomer failed:", msg);
+            return { success: false, data: null, errorMessage: msg || "Failed to save branch customer" };
         }
     }),
     /**

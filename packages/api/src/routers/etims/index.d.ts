@@ -87,13 +87,81 @@ export declare const etimsRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             meta: object;
         }>;
+        getItemClassMeta: import("@trpc/server").TRPCQueryProcedure<{
+            input: void;
+            output: {
+                success: boolean;
+                meta: import("../../lib/etims-item-classification-store").EtimsItemClassMeta | null;
+                needsSync: boolean;
+            };
+            meta: object;
+        }>;
+        listItemClassifications: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                level: number;
+                search?: string | undefined;
+                page?: number | undefined;
+                pageSize?: number | undefined;
+            };
+            output: {
+                items: import("../../lib/etims-item-classification-store").EtimsItemClassification[];
+                total: number;
+                page: number;
+                pageSize: number;
+                totalPages: number;
+                needsSync: boolean;
+                success: boolean;
+            };
+            meta: object;
+        }>;
+        getItemClassification: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                itemClsCd: string;
+            };
+            output: {
+                success: boolean;
+                item: import("../../lib/etims-item-classification-store").EtimsItemClassification | null;
+            };
+            meta: object;
+        }>;
+        syncItemClassifications: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                lastReqDt?: string | undefined;
+                maxPages?: number | undefined;
+                reset?: boolean | undefined;
+            };
+            output: {
+                pagesFetched: number;
+                rowsFetched: number;
+                hasMore: boolean;
+                nextLastReqDt: string;
+                totalSynced: number;
+                isComplete: boolean;
+                meta: import("../../lib/etims-item-classification-store").EtimsItemClassMeta | null;
+                success: boolean;
+            };
+            meta: object;
+        }>;
         lookupCustomer: import("@trpc/server").TRPCQueryProcedure<{
             input: {
                 custmTin: string;
             };
             output: {
                 success: boolean;
-                data: unknown;
+                data: import("./data").EtimsCustomerLookup;
+            } | {
+                success: boolean;
+                data: null;
+            };
+            meta: object;
+        }>;
+        getCustomerList: import("@trpc/server").TRPCQueryProcedure<{
+            input: {
+                lastReqDt?: string | undefined;
+            };
+            output: {
+                success: boolean;
+                data: import("./data").EtimsBranchCustomer[];
             };
             meta: object;
         }>;
@@ -144,7 +212,12 @@ export declare const etimsRouter: import("@trpc/server").TRPCBuiltRouter<{
             };
             output: {
                 success: boolean;
+                data: null;
+                errorMessage: string;
+            } | {
+                success: boolean;
                 data: unknown;
+                errorMessage?: undefined;
             };
             meta: object;
         }>;
@@ -381,6 +454,96 @@ export declare const etimsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 success: boolean;
                 data: null;
                 errorMessage: string;
+            };
+            meta: object;
+        }>;
+        sendCreditNote: import("@trpc/server").TRPCMutationProcedure<{
+            input: {
+                transaction: {
+                    trdInvcNo: string | number;
+                    invcNo: number;
+                    salesTyCd: string;
+                    salesSttsCd: string;
+                    cfmDt: string;
+                    salesDt: string;
+                    totItemCnt: number;
+                    taxblAmtA: number;
+                    taxblAmtB: number;
+                    taxblAmtC: number;
+                    taxblAmtD: number;
+                    taxblAmtE: number;
+                    taxRtA: number;
+                    taxRtB: number;
+                    taxRtC: number;
+                    taxRtD: number;
+                    taxRtE: number;
+                    taxAmtA: number;
+                    taxAmtB: number;
+                    taxAmtC: number;
+                    taxAmtD: number;
+                    taxAmtE: number;
+                    totTaxblAmt: number;
+                    totTaxAmt: number;
+                    totAmt: number;
+                    prchrAcptcYn: "Y" | "N";
+                    regrId: string;
+                    regrNm: string;
+                    modrId: string;
+                    modrNm: string;
+                    receipt: {
+                        rcptPbctDt: string;
+                        prchrAcptcYn: "Y" | "N";
+                        custTin?: string | null | undefined;
+                        custMblNo?: string | null | undefined;
+                        trdeNm?: string | null | undefined;
+                        adrs?: string | null | undefined;
+                        topMsg?: string | null | undefined;
+                        btmMsg?: string | null | undefined;
+                    };
+                    itemList: {
+                        itemSeq: number;
+                        itemCd: string;
+                        itemNm: string;
+                        pkgUnitCd: string;
+                        pkg: number;
+                        qtyUnitCd: string;
+                        qty: number;
+                        prc: number;
+                        splyAmt: number;
+                        dcRt: number;
+                        dcAmt: number;
+                        taxTyCd: "A" | "B" | "C" | "D" | "E";
+                        taxblAmt: number;
+                        taxAmt: number;
+                        totAmt: number;
+                        itemClsCd?: string | null | undefined;
+                        bcd?: string | null | undefined;
+                        isrccCd?: string | null | undefined;
+                        isrccNm?: string | null | undefined;
+                        isrcRt?: number | null | undefined;
+                        isrcAmt?: number | null | undefined;
+                    }[];
+                    rcptTyCd: "R";
+                    orgInvcNo: number;
+                    rfdDt: string;
+                    rfdRsnCd: "01" | "02" | "03" | "04" | "05" | "06";
+                    custTin?: string | null | undefined;
+                    custNm?: string | null | undefined;
+                    pmtTyCd?: string | null | undefined;
+                    stockRlsDt?: string | null | undefined;
+                    cnclReqDt?: string | null | undefined;
+                    cnclDt?: string | null | undefined;
+                    remark?: string | null | undefined;
+                };
+            };
+            output: {
+                success: boolean;
+                data: null;
+                errorMessage: string;
+            } | {
+                success: boolean;
+                data: unknown;
+                errorMessage?: undefined;
             };
             meta: object;
         }>;

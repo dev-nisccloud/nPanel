@@ -70,6 +70,11 @@ export function buildDomainBundleInvoiceLineName(domains) {
     const list = domains.join(", ");
     return list ? `Domains Bundle (${list}) - Registration` : "Domains Bundle - Registration";
 }
+/** KRA itemNm: collapsed bundle label with full domain names (incl. TLDs). */
+export function buildDomainBundleKraItemName(domains) {
+    const list = domains.join(", ");
+    return list ? `Domains Bundle (${list})` : "Domains Bundle";
+}
 export function buildDomainBundleInvoiceLineDescription(domains, subscriptionPeriod) {
     const domainList = domains.join(", ");
     return domainList ? `${domainList}\n${subscriptionPeriod}` : subscriptionPeriod;

@@ -8,6 +8,7 @@ export declare const billingCycleSchema: z.ZodEnum<{
 export type BillingCycleType = z.infer<typeof billingCycleSchema>;
 /** Product reference in an order item. */
 export declare const orderItemProductSchema: z.ZodObject<{
+    id: z.ZodOptional<z.ZodString>;
     name: z.ZodString;
     serviceType: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, z.core.$strip>;
@@ -17,6 +18,7 @@ export declare const orderItemProductPlanSchema: z.ZodNullable<z.ZodObject<{
 }, z.core.$strip>>;
 /** Single Nisc order item as used for invoice creation. */
 export declare const niscOrderItemForInvoiceSchema: z.ZodObject<{
+    productId: z.ZodOptional<z.ZodString>;
     itemPrice: z.ZodString;
     itemSubtotal: z.ZodString;
     primaryDomain: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -24,6 +26,7 @@ export declare const niscOrderItemForInvoiceSchema: z.ZodObject<{
     description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     metadata: z.ZodNullable<z.ZodOptional<z.ZodRecord<z.core.$ZodRecordKey, z.core.SomeType>>>;
     product: z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         serviceType: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     }, z.core.$strip>;
@@ -40,6 +43,7 @@ export declare const niscOrderForInvoiceSchema: z.ZodObject<{
     orderNumber: z.ZodString;
     createdAt: z.ZodCoercedDate<unknown>;
     orderItems: z.ZodArray<z.ZodObject<{
+        productId: z.ZodOptional<z.ZodString>;
         itemPrice: z.ZodString;
         itemSubtotal: z.ZodString;
         primaryDomain: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -47,6 +51,7 @@ export declare const niscOrderForInvoiceSchema: z.ZodObject<{
         description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         metadata: z.ZodNullable<z.ZodOptional<z.ZodRecord<z.core.$ZodRecordKey, z.core.SomeType>>>;
         product: z.ZodObject<{
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             serviceType: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         }, z.core.$strip>;

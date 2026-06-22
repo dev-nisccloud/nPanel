@@ -9,7 +9,7 @@ function PaymentFieldRow({ label, labelWidth, lineStyle, value, }) {
             alignItems: "flex-start",
         }, children: [_jsx(View, { style: { width: labelWidth, paddingRight: 8 }, children: _jsx(Text, { style: { ...lineStyle, fontWeight: "bold" }, children: label }) }), _jsx(View, { style: { flex: 1, minWidth: 0 }, children: _jsx(Text, { style: lineStyle, wrap: true, children: value }) })] }));
 }
-export const PaymentDetailsPdf = ({ paymentMethod = "bank", bankName, accountNumber, accountName, branchName, branchCode, swiftCode, mpesaPaybillNumber, mpesaAccountNumber, mpesaInstructions, chequeDeliveryAddress, chequeInstructions, qrCodeValue, qrCodeDataUrl, compactLineItems = false, }) => {
+export const PaymentDetailsPdf = ({ paymentMethod = "bank", bankName, accountNumber, accountName, branchName, branchCode, swiftCode, mpesaPaybillNumber, mpesaAccountNumber, mpesaInstructions, chequeDeliveryAddress, chequeInstructions, qrCodeDataUrl, compactLineItems = false, }) => {
     const lineText = compactLineItems
         ? pdfTypography.itemLineCompact
         : pdfTypography.itemDescription;
@@ -58,7 +58,7 @@ export const PaymentDetailsPdf = ({ paymentMethod = "bank", bankName, accountNum
                     flexDirection: "column",
                     alignItems: "flex-end",
                     justifyContent: "flex-start",
-                }, children: [_jsx(Text, { style: { ...sectionTitleText, paddingBottom: 12 }, children: "eTIMS verification" }), _jsx(Image, { src: qrCodeDataUrl, style: {
+                }, children: [_jsx(Text, { style: { ...sectionTitleText, paddingBottom: 12 }, children: "Verify receipt" }), _jsx(Image, { src: qrCodeDataUrl, style: {
                             width: 96,
                             height: 96,
                         } })] })) : null] }));
