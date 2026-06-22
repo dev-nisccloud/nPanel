@@ -8,6 +8,9 @@ export type NiscOrderInvoiceMetadata = {
     invoiceNumber?: string;
     source?: NiscInvoiceBillingSource;
     emailed?: boolean;
+    kraSynced?: boolean;
+    kraStatus?: string;
+    kraError?: string;
     reasonCode?: string;
     reasonMessage?: string;
     updatedAt: string;
@@ -18,6 +21,8 @@ export type NiscOrderInvoiceUiState = {
     invoiceNumber: string | null;
     source?: NiscInvoiceBillingSource;
     emailed?: boolean;
+    kraSynced?: boolean;
+    kraError?: string;
 } | {
     status: "skipped";
     reasonMessage: string;

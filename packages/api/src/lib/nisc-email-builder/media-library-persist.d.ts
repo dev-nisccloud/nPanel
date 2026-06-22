@@ -17,11 +17,11 @@ export declare function isPersistedUploadThingAsset(fileUrl: string, storageKey?
  */
 export declare function saveToNebMediaLibrary(params: SaveNebMediaLibraryParams): Promise<{
     id: string;
-    description: string | null;
     createdAt: Date;
-    userId: string;
     teamId: string | null;
     metadata: unknown;
+    description: string | null;
+    userId: string;
     fileName: string;
     fileSize: number;
     mimeType: string;

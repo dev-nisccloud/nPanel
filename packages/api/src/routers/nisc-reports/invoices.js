@@ -7,6 +7,7 @@ import { reportFiltersSchema, toNum } from "./filters";
 import { differenceInDays } from "date-fns";
 import { buildReportEntityScope, resolveReportReadScope } from "./access";
 import { invoiceIssuedInPeriod, INVOICE_REPORT_STATUSES } from "./metrics";
+import { isInvoiceKraInFlight, isInvoiceKraSynced, } from "../../lib/invoice-kra-status";
 export const niscInvoicesRouter = router({
     // ─── I-01 Status Summary ───────────────────────────────────────────────────
     statusSummary: protectedProcedure
@@ -280,9 +281,9 @@ export const niscInvoicesRouter = router({
         for (const r of bucketRows) {
             if (r.status === "CANCELLED")
                 continue;
-            if (r.kraStatus === "VERIFIED")
+            if (isInvoiceKraSynced(r.kraStatus))
                 buckets.VERIFIED += 1;
-            else if (r.kraStatus === "PENDING")
+            else if (r.kraStatus === "PENDING" || isInvoiceKraInFlight(r.kraStatus))
                 buckets.PENDING += 1;
             else if (r.kraStatus === "FAILED" || r.kraStatus === "ERROR")
                 buckets.FAILED += 1;

@@ -42,7 +42,12 @@ export declare const etimsBranchRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         output: {
             success: boolean;
+            data: null;
+            errorMessage: string;
+        } | {
+            success: boolean;
             data: unknown;
+            errorMessage?: undefined;
         };
         meta: object;
     }>;

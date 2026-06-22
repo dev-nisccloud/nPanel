@@ -18,6 +18,19 @@ export declare const digitaxSalesRouter: import("@trpc/server").TRPCBuiltRouter<
         };
         meta: object;
     }>;
+    getSummary: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            start_date: string;
+            end_date: string;
+        };
+        output: {
+            summary: Record<string, {
+                total_sales_count: number;
+                total_sales_amount: number;
+            }>;
+        };
+        meta: object;
+    }>;
     add: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             sale_date: string;

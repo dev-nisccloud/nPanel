@@ -12,7 +12,8 @@ import { order as orderTable, orderActivityLog, orderItem, orderItemActivityLog,
 import { team, teamBillingSettings, teamMember } from "@npanel/db/schema/teams";
 import * as crypto from "crypto";
 import { ensurePleskIntegration, provisionToPlesk } from "../lib/plesk-integration";
-import { COMPANY_LOGO_URL } from "../lib/company-branding.js";
+import { buildInvoiceKraInsertFields } from "../lib/invoice-kra-db-fields";
+import { COMPANY_LOGO_URL } from "../lib/company-branding";
 const isAgencyRole = (role) => role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
 /** Sequential invoice number (same pattern as invoicing router). */
 async function generateNextInvoiceNumber(tx) {
@@ -1969,20 +1970,7 @@ export const ordersRouter = router({
                             paybillNumber: "303030",
                             accountNumber: "2052676528",
                             instructions: "Absa Bank Kenya",
-                            qrCodeValue: "www.nisccloud.com",
                         };
-                        // Generate QR code
-                        let qrCodeDataUrl;
-                        try {
-                            const QRCodeUtil = await import("qrcode");
-                            qrCodeDataUrl = await QRCodeUtil.toDataURL(paymentDetails.qrCodeValue, {
-                                width: 120,
-                                margin: 1,
-                            });
-                        }
-                        catch (error) {
-                            console.error("Failed to generate QR code:", error);
-                        }
                         // Create invoice in transaction
                         // invoiceId is a UUID (unique identifier), invoiceNumber is sequential (e.g., INV-0001)
                         const newInvoiceId = crypto.randomUUID();
@@ -2012,7 +2000,6 @@ export const ordersRouter = router({
                                 customerDetails,
                                 paymentDetails: {
                                     ...paymentDetails,
-                                    qrCodeDataUrl,
                                 },
                                 template: {
                                     logoUrl: companyLogoUrl,
@@ -2021,6 +2008,7 @@ export const ordersRouter = router({
                                 updatedBy: session.user.id,
                                 createdAt: invoiceNow,
                                 updatedAt: invoiceNow,
+                                ...buildInvoiceKraInsertFields(),
                             });
                             for (const item of lineItems) {
                                 await tx.insert(invoiceLineItem).values({

@@ -12,7 +12,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             productId?: string | undefined;
             productPlanId?: string | undefined;
             pricingModel?: "FIXED" | "COMMISSION" | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            status?: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED" | undefined;
             fromDate?: unknown;
             toDate?: unknown;
             limit?: number | undefined;
@@ -28,7 +28,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -43,7 +43,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -75,7 +75,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -90,7 +90,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -118,7 +118,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -136,7 +136,26 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
+            productName: string;
+            productPlanName: string | null;
+            subscriptionDate: Date | null;
+            expiryDate: Date | null;
+            primaryDomain: string | null;
+        }[];
+        meta: object;
+    }>;
+    /** List WordPress hosting subscriptions for a team (customer view). Same as listForTeamHosting but for products named "wordpress hosting" or "wordpress managed" (case-insensitive). */
+    listForTeamWordPress: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            teamSlug: string;
+        };
+        output: {
+            id: string;
+            wordpressInstallationId: string | null;
+            pleskSubscriptionId: string | null;
+            subscriptionName: string | null;
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -158,7 +177,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -176,7 +195,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -194,7 +213,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -212,7 +231,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             id: string;
             pleskSubscriptionId: string | null;
             subscriptionName: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             productName: string;
             productPlanName: string | null;
             subscriptionDate: Date | null;
@@ -234,7 +253,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             subscriptionDate: Date | null;
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
         }[];
         meta: object;
     }>;
@@ -323,27 +342,33 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             product: {
                 id: string;
                 name: string;
-                description: string | null;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                isActive: boolean;
                 metadata: unknown;
+                description: string | null;
                 category: string;
                 serviceType: string;
                 sortOrder: number;
                 features: unknown;
                 highlights: unknown;
                 isAddOn: boolean;
+                etimsItemCd: string | null;
+                etimsItemClsCd: string | null;
+                etimsTaxTyCd: string | null;
+                etimsDefaultPrice: string | null;
+                etimsPkgUnitCd: string | null;
+                etimsQtyUnitCd: string | null;
             };
             productPlan: {
                 id: string;
                 name: string;
-                description: string | null;
+                isActive: boolean;
                 createdAt: Date;
                 updatedAt: Date;
-                isActive: boolean;
-                metadata: unknown;
                 currency: string | null;
+                metadata: unknown;
+                description: string | null;
                 price: string | null;
                 sortOrder: number;
                 highlights: unknown;
@@ -368,12 +393,12 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             team: {
                 id: string;
                 name: string;
-                createdAt: Date;
-                updatedAt: Date;
                 slug: string;
                 baseCurrency: string;
                 logoUrl: string | null;
                 isActive: boolean;
+                createdAt: Date;
+                updatedAt: Date;
                 createdById: string;
             } | null;
             userName: string | null;
@@ -386,7 +411,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -401,7 +426,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -415,7 +440,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
         };
         meta: object;
     }>;
-    /** Resolve product ID for "Domains" product (name contains "domain", case-insensitive). Used when creating domain subscriptions from portfolio. */
+    /** Resolve product ID for Domains checkout (matches seed-planless-services). */
     getDomainsProductId: import("@trpc/server").TRPCQueryProcedure<{
         input: void;
         output: string | null;
@@ -445,7 +470,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -460,7 +485,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -508,7 +533,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
         output: {
             hasLinked: boolean;
             subscriptionId: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | null;
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED" | null;
         };
         meta: object;
     }>;
@@ -561,7 +586,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             platform: "META_ADS" | "GOOGLE_ADS" | "LINKEDIN_ADS" | "INSTAGRAM_ADS";
             accountId: string;
             adServingFee: string;
-            adServingFeeCurrency: "USD" | "EUR" | "KES";
+            adServingFeeCurrency: "KES" | "USD" | "EUR";
             accountName?: string | undefined;
         };
         output: {
@@ -574,7 +599,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -589,7 +614,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -647,14 +672,14 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             productPlanId: string;
             searchConsoleSiteUrl: string;
             managementFee: string;
-            managementFeeCurrency: "USD" | "EUR" | "KES";
+            managementFeeCurrency: "KES" | "USD" | "EUR";
         } | {
             scope: "GA4";
             teamId: string;
             productPlanId: string;
             ga4PropertyId: string;
             managementFee: string;
-            managementFeeCurrency: "USD" | "EUR" | "KES";
+            managementFeeCurrency: "KES" | "USD" | "EUR";
             ga4DisplayName?: string | undefined;
         };
         output: {
@@ -667,7 +692,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -682,7 +707,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -729,7 +754,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId?: string | undefined;
             subscribedBy?: string | undefined;
             recordedBy?: string | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            status?: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED" | undefined;
             subscriptionDate?: unknown;
             billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
             nextRenewalDate?: unknown;
@@ -748,7 +773,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskOwnerId?: string | undefined;
             pleskFtpLogin?: string | undefined;
             pleskFtpPassword?: string | undefined;
-            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             openProviderId?: number | undefined;
             domainAuthCode?: string | undefined;
             nameserverGroupId?: string | undefined;
@@ -768,7 +793,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -783,7 +808,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -805,7 +830,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             userId?: string | null | undefined;
             teamId?: string | null | undefined;
             productPlanId?: string | null | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            status?: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED" | undefined;
             subscriptionDate?: unknown;
             billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
             nextRenewalDate?: unknown;
@@ -820,7 +845,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskOwnerId?: string | undefined;
             pleskFtpLogin?: string | undefined;
             pleskFtpPassword?: string | undefined;
-            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null | undefined;
+            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null | undefined;
             openProviderId?: number | undefined;
             domainAuthCode?: string | undefined;
             nameserverGroupId?: string | undefined;
@@ -839,7 +864,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -854,7 +879,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -884,7 +909,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             orderId: string | null;
             subscribedBy: string | null;
             recordedBy: string | null;
-            status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+            status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
             subscriptionDate: Date | null;
             billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
             nextRenewalDate: Date | null;
@@ -899,7 +924,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
             pleskFilterId: string | null;
             pleskOwnerId: string | null;
             pleskFtpLogin: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             openProviderId: number | null;
             domainAuthCode: string | null;
             nameserverGroupId: string | null;
@@ -942,13 +967,13 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
     renew: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             subscriptionId: string;
-            renewalType: "DOMAIN" | "HOSTING" | "FIXED_BILLING";
+            renewalType: "FIXED_BILLING" | "DOMAIN" | "HOSTING";
             renewalDate: unknown;
             renewedBy?: string | undefined;
             newExpiryDate?: unknown;
             newNextRenewalDate?: unknown;
             billingCycle?: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | undefined;
-            status?: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED" | undefined;
+            status?: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED" | undefined;
             renewalPrice?: string | undefined;
             renewalCurrency?: string | undefined;
             externalRenewalId?: string | undefined;
@@ -968,7 +993,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
                 orderId: string | null;
                 subscribedBy: string | null;
                 recordedBy: string | null;
-                status: "ACTIVE" | "PENDING" | "PROCESSING" | "EXPIRED" | "SUSPENDED" | "FAILED" | "CANCELLED" | "UPGRADED" | "DOWNGRADED";
+                status: "PENDING" | "ACTIVE" | "PROCESSING" | "FAILED" | "CANCELLED" | "SUSPENDED" | "EXPIRED" | "UPGRADED" | "DOWNGRADED";
                 subscriptionDate: Date | null;
                 billingCycle: "MONTHLY" | "YEARLY" | "BIENNIALLY" | "CUSTOM" | null;
                 nextRenewalDate: Date | null;
@@ -983,7 +1008,7 @@ export declare const clientSubscriptionsRouter: import("@trpc/server").TRPCBuilt
                 pleskFilterId: string | null;
                 pleskOwnerId: string | null;
                 pleskFtpLogin: string | null;
-                hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+                hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
                 openProviderId: number | null;
                 domainAuthCode: string | null;
                 nameserverGroupId: string | null;

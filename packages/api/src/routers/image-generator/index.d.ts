@@ -16,7 +16,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
         };
         output: {
             generationId: string;
-            status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
+            status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
             variationsCount: number;
         };
         meta: object;
@@ -79,7 +79,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
                 variationsCount: number;
                 modelId: string;
                 modelName: string | null;
-                status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
+                status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
                 errorMessage: string | null;
                 qstashMessageId: string | null;
                 startedAt: Date | null;
@@ -90,7 +90,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
                     id: string;
                     imageGeneratorGenerationId: string;
                     variationIndex: number;
-                    status: "PROCESSING" | "COMPLETED" | "FAILED";
+                    status: "PROCESSING" | "FAILED" | "COMPLETED";
                     errorMessage: string | null;
                     imageUrl: string | null;
                     imageKey: string | null;
@@ -127,7 +127,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
             variationsCount: number;
             modelId: string;
             modelName: string | null;
-            status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
+            status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
             errorMessage: string | null;
             qstashMessageId: string | null;
             startedAt: Date | null;
@@ -138,7 +138,7 @@ export declare const imageGeneratorRouter: import("@trpc/server").TRPCBuiltRoute
                 id: string;
                 imageGeneratorGenerationId: string;
                 variationIndex: number;
-                status: "PROCESSING" | "COMPLETED" | "FAILED";
+                status: "PROCESSING" | "FAILED" | "COMPLETED";
                 errorMessage: string | null;
                 imageUrl: string | null;
                 imageKey: string | null;

@@ -3,6 +3,10 @@ import { z } from "zod";
 export declare const JETBACKUP_BACKUP_TYPE_ACCOUNTS = 1;
 /** JetBackup 5.3 contains: full account (all components) */
 export declare const JETBACKUP_CONTAINS_FULL_ACCOUNT = 511;
+/** JetBackup queue group type: restore */
+export declare const JETBACKUP_QUEUE_TYPE_RESTORE = 2;
+/** JetBackup queue group type: download */
+export declare const JETBACKUP_QUEUE_TYPE_DOWNLOAD = 4;
 export declare const listSchema: z.ZodObject<{
     page: z.ZodOptional<z.ZodNumber>;
     limit: z.ZodOptional<z.ZodNumber>;

@@ -36,7 +36,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 id: string;
                 email: string;
                 role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-                status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+                status: "PENDING" | "ACCEPTED" | "CANCELLED" | "EXPIRED" | "DECLINED";
                 expiresAt: Date;
                 team: {
                     id: string;
@@ -143,7 +143,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             email: string;
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-            status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "PENDING" | "ACCEPTED" | "CANCELLED" | "EXPIRED" | "DECLINED";
             invitedById: string;
             expiresAt: Date;
             acceptedAt: Date | null;
@@ -190,7 +190,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             id: string;
             email: string;
             role: "MEMBER" | "OWNER" | "ADMIN" | "VIEWER";
-            status: "PENDING" | "ACCEPTED" | "EXPIRED" | "DECLINED" | "CANCELLED";
+            status: "PENDING" | "ACCEPTED" | "CANCELLED" | "EXPIRED" | "DECLINED";
             invitedById: string;
             expiresAt: Date;
             acceptedAt: Date | null;
@@ -211,7 +211,7 @@ export declare const teamsRouter: import("@trpc/server").TRPCBuiltRouter<{
             nextRenewalDate: Date | null;
             expiryDate: Date | null;
             autoRenew: boolean;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING";
             createdAt: Date;
             updatedAt: Date;
         }[];

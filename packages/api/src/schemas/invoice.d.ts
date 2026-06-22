@@ -24,5 +24,6 @@ export declare const invoiceLineItemCreateSchema: z.ZodObject<{
     quantity: z.ZodNumber;
     price: z.ZodString;
     total: z.ZodString;
+    metadata: z.ZodNullable<z.ZodOptional<z.ZodRecord<z.core.$ZodRecordKey, z.core.SomeType>>>;
 }, z.core.$strip>;
 export type InvoiceLineItemCreate = z.infer<typeof invoiceLineItemCreateSchema>;

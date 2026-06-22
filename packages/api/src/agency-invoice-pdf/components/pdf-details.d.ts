@@ -1,5 +1,5 @@
 import type { YourDetails, CompanyDetails, InvoiceItemDetails, PaymentDetails, InvoiceTerms } from "../types";
-export declare const PdfDetails: ({ yourDetails, companyDetails, invoiceDetails, paymentDetails, invoiceTerms, }: {
+export declare const PdfDetails: ({ yourDetails, companyDetails, invoiceDetails, paymentDetails, invoiceTerms, documentTitle, }: {
     yourDetails: YourDetails;
     companyDetails: CompanyDetails;
     invoiceDetails: InvoiceItemDetails;
@@ -7,4 +7,5 @@ export declare const PdfDetails: ({ yourDetails, companyDetails, invoiceDetails,
         qrCodeDataUrl?: string;
     };
     invoiceTerms: InvoiceTerms;
+    documentTitle?: string;
 }) => import("react/jsx-runtime").JSX.Element;

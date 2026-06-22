@@ -4,7 +4,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
     errorShape: import("@trpc/server").TRPCDefaultErrorShape;
     transformer: false;
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
-    /** List all products with optional filtering (cached via Upstash Redis) */
+    /** List all products with optional filtering (cached via Upstash Redis). Public catalog read. */
     getAll: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             category?: "AI" | "CUSTOM" | "CLOUD" | "MARKETING" | "CONSULTING" | undefined;
@@ -22,6 +22,12 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             features: unknown[];
             highlights: string[];
             metadata: unknown;
+            etimsItemCd: string | null;
+            etimsItemClsCd: string | null;
+            etimsTaxTyCd: "A" | "B" | "C" | "D" | "E" | null;
+            etimsDefaultPrice: string | null;
+            etimsPkgUnitCd: string | null;
+            etimsQtyUnitCd: string | null;
             createdAt: Date;
             updatedAt: Date;
         }[];
@@ -45,6 +51,12 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             features: unknown[];
             highlights: string[];
             metadata: unknown;
+            etimsItemCd: string | null;
+            etimsItemClsCd: string | null;
+            etimsTaxTyCd: "A" | "B" | "C" | "D" | "E" | null;
+            etimsDefaultPrice: string | null;
+            etimsPkgUnitCd: string | null;
+            etimsQtyUnitCd: string | null;
             createdAt: Date;
             updatedAt: Date;
         };
@@ -67,6 +79,12 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 features: unknown[];
                 highlights: string[];
                 metadata: unknown;
+                etimsItemCd: string | null;
+                etimsItemClsCd: string | null;
+                etimsTaxTyCd: "A" | "B" | "C" | "D" | "E" | null;
+                etimsDefaultPrice: string | null;
+                etimsPkgUnitCd: string | null;
+                etimsQtyUnitCd: string | null;
                 createdAt: Date;
                 updatedAt: Date;
             };
@@ -89,6 +107,12 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
                 features: unknown[];
                 highlights: string[];
                 metadata: unknown;
+                etimsItemCd: string | null;
+                etimsItemClsCd: string | null;
+                etimsTaxTyCd: "A" | "B" | "C" | "D" | "E" | null;
+                etimsDefaultPrice: string | null;
+                etimsPkgUnitCd: string | null;
+                etimsQtyUnitCd: string | null;
                 createdAt: Date;
                 updatedAt: Date;
             };
@@ -103,6 +127,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             productFeatures: {
                 key: string;
                 label: string;
+                description?: string | undefined;
             }[];
             plans: {
                 id: string;
@@ -129,6 +154,34 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             productFeatures: {
                 key: string;
                 label: string;
+                description?: string | undefined;
+            }[];
+            plans: {
+                id: string;
+                name: string;
+                niscPrice: string | null;
+                niscCurrency: string;
+                billingCycle: string;
+                isPopular: boolean;
+                isRecommended: boolean;
+                productId: string;
+                productName: string;
+                featureValues: {
+                    available: boolean;
+                    valueOverride: string | null;
+                }[];
+            }[];
+        };
+        meta: object;
+    }>;
+    /** Get plans for pricing table from products named "wordpress hosting" or "wordpress managed" (case-insensitive). Same shape as getHostingPlansForPricing. */
+    getWordPressPlansForPricing: import("@trpc/server").TRPCQueryProcedure<{
+        input: void;
+        output: {
+            productFeatures: {
+                key: string;
+                label: string;
+                description?: string | undefined;
             }[];
             plans: {
                 id: string;
@@ -158,6 +211,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             productFeatures: {
                 key: string;
                 label: string;
+                description?: string | undefined;
             }[];
             products: {
                 id: string;
@@ -189,6 +243,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             productFeatures: {
                 key: string;
                 label: string;
+                description?: string | undefined;
             }[];
             plans: {
                 id: string;
@@ -215,6 +270,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             productFeatures: {
                 key: string;
                 label: string;
+                description?: string | undefined;
             }[];
             productName: string;
             plans: {
@@ -249,6 +305,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             productFeatures: {
                 key: string;
                 label: string;
+                description?: string | undefined;
             }[];
             plans: {
                 id: string;
@@ -279,6 +336,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             productFeatures: {
                 key: string;
                 label: string;
+                description?: string | undefined;
             }[];
             plans: {
                 id: string;
@@ -342,6 +400,12 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             }[] | undefined;
             highlights?: string[] | undefined;
             metadata?: Record<string, unknown> | undefined;
+            etimsItemCd?: string | null | undefined;
+            etimsItemClsCd?: string | null | undefined;
+            etimsTaxTyCd?: "A" | "B" | "C" | "D" | "E" | null | undefined;
+            etimsDefaultPrice?: string | null | undefined;
+            etimsPkgUnitCd?: string | null | undefined;
+            etimsQtyUnitCd?: string | null | undefined;
         };
         output: {
             id: string;
@@ -354,6 +418,12 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             features: unknown[];
             highlights: string[];
             metadata: unknown;
+            etimsItemCd: string | null;
+            etimsItemClsCd: string | null;
+            etimsTaxTyCd: "A" | "B" | "C" | "D" | "E" | null;
+            etimsDefaultPrice: string | null;
+            etimsPkgUnitCd: string | null;
+            etimsQtyUnitCd: string | null;
             createdAt: Date;
             updatedAt: Date;
         };
@@ -376,6 +446,12 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             }[] | undefined;
             highlights?: string[] | undefined;
             metadata?: Record<string, unknown> | undefined;
+            etimsItemCd?: string | null | undefined;
+            etimsItemClsCd?: string | null | undefined;
+            etimsTaxTyCd?: "A" | "B" | "C" | "D" | "E" | null | undefined;
+            etimsDefaultPrice?: string | null | undefined;
+            etimsPkgUnitCd?: string | null | undefined;
+            etimsQtyUnitCd?: string | null | undefined;
         };
         output: {
             id: string;
@@ -388,8 +464,27 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             features: unknown[];
             highlights: string[];
             metadata: unknown;
+            etimsItemCd: string | null;
+            etimsItemClsCd: string | null;
+            etimsTaxTyCd: "A" | "B" | "C" | "D" | "E" | null;
+            etimsDefaultPrice: string | null;
+            etimsPkgUnitCd: string | null;
+            etimsQtyUnitCd: string | null;
             createdAt: Date;
             updatedAt: Date;
+        };
+        meta: object;
+    }>;
+    /**
+     * Deactivate a Nisc product on KRA eTIMS (useYn=N) and clear local eTIMS fields.
+     * Agency super admin only.
+     */
+    unregisterFromKra: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            id: string;
+        };
+        output: {
+            success: boolean;
         };
         meta: object;
     }>;
@@ -439,7 +534,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId: string | null;
             pleskFilterId: string | null;
             pleskIpAddress: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             metadata: unknown;
             createdAt: Date;
             updatedAt: Date;
@@ -474,7 +569,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId?: string | undefined;
             pleskFilterId?: string | undefined;
             pleskIpAddress?: string | undefined;
-            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             metadata?: Record<string, unknown> | undefined;
         };
         output: {
@@ -500,7 +595,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId: string | null;
             pleskFilterId: string | null;
             pleskIpAddress: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             metadata: unknown;
             createdAt: Date;
             updatedAt: Date;
@@ -536,7 +631,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId?: string | undefined;
             pleskFilterId?: string | undefined;
             pleskIpAddress?: string | undefined;
-            hostingType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             metadata?: Record<string, unknown> | undefined;
         };
         output: {
@@ -562,7 +657,7 @@ export declare const productsRouter: import("@trpc/server").TRPCBuiltRouter<{
             pleskServicePlanId: string | null;
             pleskFilterId: string | null;
             pleskIpAddress: string | null;
-            hostingType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             metadata: unknown;
             createdAt: Date;
             updatedAt: Date;

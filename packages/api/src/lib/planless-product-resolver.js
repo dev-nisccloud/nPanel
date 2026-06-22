@@ -37,6 +37,7 @@ async function loadActiveProductById(id) {
         .limit(1);
     return row ?? null;
 }
+/** When a legacy row is active, prefer the canonical planless id if that row is also active. */
 async function preferActiveCanonicalProduct(product) {
     const canonicalId = CANONICAL_ID_BY_SERVICE_TYPE[product.serviceType];
     if (!canonicalId || product.id === canonicalId)
@@ -58,6 +59,13 @@ async function findActiveLegacyPlanlessProduct(canonicalId) {
         return canonicalRow;
     return rows[0] ?? null;
 }
+/**
+ * Resolve an active nisc_product row by id.
+ * - Exact id lookup first (active only).
+ * - Canonical planless ids fall back to a single active legacy row when seed id is missing.
+ * - Legacy UUID ids upgrade to the active canonical row when it exists.
+ * Name/serviceType matching is only used for canonical-id fallback, never for arbitrary ids.
+ */
 export async function resolveActiveNiscProductById(productId) {
     const trimmed = productId.trim();
     if (!trimmed)
@@ -72,6 +80,7 @@ export async function resolveActiveNiscProductById(productId) {
     }
     return null;
 }
+/** Resolved active product id for checkout/orders (canonical when available). */
 export async function resolveActiveNiscProductId(productId) {
     const product = await resolveActiveNiscProductById(productId);
     return product?.id ?? null;
@@ -94,6 +103,7 @@ const PLANLESS_MIGRATION_TARGETS = [
     { canonicalId: NISC_VDS_HOSTING_PRODUCT_ID, label: "VDS Hosting" },
     { canonicalId: NISC_DEDICATED_SERVERS_PRODUCT_ID, label: "Dedicated Servers" },
 ];
+/** List legacy planless products that should be migrated to each canonical id. */
 export async function listPlanlessLegacyProductMigrationTargets() {
     const results = [];
     for (const target of PLANLESS_MIGRATION_TARGETS) {
@@ -128,6 +138,7 @@ export async function listPlanlessLegacyProductMigrationTargets() {
     }
     return results;
 }
+/** Map each legacy planless product id to its canonical seed id (legacy id -> canonical id). */
 export async function getPlanlessLegacyToCanonicalIdMap() {
     const map = new Map();
     const targets = await listPlanlessLegacyProductMigrationTargets();

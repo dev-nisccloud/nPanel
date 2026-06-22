@@ -1,3 +1,4 @@
+import { auth } from "./index";
 type UserStatus = "ACTIVE" | "SUSPENDED" | "BANNED";
 export interface UserWithStatus {
     id: string;
@@ -18,5 +19,5 @@ export declare function getCustomerTeamRedirectPath(user: UserWithStatus): Promi
  * When `requestedRedirect` is set (e.g. from `?redirect=` on `/api/auth/redirect-target`), it is
  * used only if it is a safe internal path and allowed for the user's role (agency vs customer team).
  */
-export declare function getRootRedirectTargetFromHeaders(headers: Headers, requestedRedirect?: string | null): Promise<string>;
+export declare function getRootRedirectTargetFromHeaders(headers: Headers, requestedRedirect?: string | null, prefetchedSession?: Awaited<ReturnType<typeof auth.api.getSession>> | null): Promise<string>;
 export {};

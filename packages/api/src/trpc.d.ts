@@ -14,6 +14,7 @@ export declare const router: import("@trpc/server").TRPCRouterBuilder<{
 }>;
 export declare const publicProcedure: import("@trpc/server").TRPCProcedureBuilder<Context, object, {}, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, import("@trpc/server").TRPCUnsetMarker, false>;
 export declare const protectedProcedure: import("@trpc/server").TRPCProcedureBuilder<Context, object, {
+    ipAddress: string | null | undefined;
     session: {
         user: import("./context").SessionUser;
         session: {
@@ -27,7 +28,6 @@ export declare const protectedProcedure: import("@trpc/server").TRPCProcedureBui
             userAgent?: string | null | undefined | undefined;
         };
     };
-    ipAddress: string | null | undefined;
     apiKey: {
         id: string;
         permissions: string[];

@@ -54,6 +54,15 @@ export const digitaxSalesRouter = router({
         const client = new DigiTaxClient();
         return client.getSales(input);
     }),
+    getSummary: protectedProcedure
+        .input(z.object({
+        start_date: z.string(),
+        end_date: z.string(),
+    }))
+        .query(async ({ input }) => {
+        const client = new DigiTaxClient();
+        return client.getSalesSummary(input.start_date, input.end_date);
+    }),
     add: protectedProcedure
         .input(saleInputSchema)
         .mutation(async ({ input }) => {

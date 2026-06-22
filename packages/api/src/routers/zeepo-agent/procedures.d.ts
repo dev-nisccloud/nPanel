@@ -1,6 +1,6 @@
 export declare const zeepoAgentProcedure: import("@trpc/server").TRPCProcedureBuilder<import("../..").Context, object, {
-    session: import("../..").Session;
     ipAddress: string | null | undefined;
+    session: import("../..").Session;
     apiKey: {
         id: string;
         permissions: string[];

@@ -48,7 +48,7 @@ export declare const jetbackupAccountsRouter: import("@trpc/server").TRPCBuiltRo
     }>;
     manageTag: import("@trpc/server").TRPCMutationProcedure<{
         input: {
-            action: "create" | "modify" | "delete";
+            action: "delete" | "create" | "modify";
             _id?: string | undefined;
             name?: string | undefined;
             color?: string | undefined;

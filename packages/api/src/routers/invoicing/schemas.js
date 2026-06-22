@@ -32,6 +32,16 @@ export const creditNoteStatusSchema = z.enum([
     "APPLIED",
     "VOIDED",
 ]);
+export const invoiceKraStatusSchema = z.enum([
+    "NOT_APPLICABLE",
+    "PENDING",
+    "SUBMITTING",
+    "SYNCED",
+    "FAILED",
+    "SKIPPED",
+    /** @deprecated Legacy reports value; treated as SYNCED */
+    "VERIFIED",
+]);
 /**
  * Utility schemas used across invoice payloads.
  */
@@ -44,6 +54,31 @@ export const nullableDateInputSchema = z
     .union([z.string().datetime(), z.coerce.date()])
     .optional()
     .nullable();
+/** KRA eTIMS fiscal footer + verification URL (customer-safe when synced). */
+export const etimsFiscalFieldsSchema = z.object({
+    rcptSign: z.string(),
+    intrlData: nullableStringSchema,
+    curRcptNo: nullableStringSchema,
+    totRcptNo: nullableStringSchema,
+    sdcDateTime: nullableStringSchema,
+    sdcDateTimeDisplay: nullableStringSchema,
+    verificationUrl: nullableStringSchema,
+});
+export const invoiceKraFieldsSchema = z.object({
+    kraInvoiceNumber: nullableStringSchema,
+    kraReceiptNumber: nullableStringSchema,
+    kraSignature: nullableStringSchema,
+    kraQrCode: nullableStringSchema,
+    kraVerifiedDate: nullableDateInputSchema,
+    kraStatus: invoiceKraStatusSchema.nullable().optional(),
+    kraError: nullableStringSchema,
+    kraSubmittedAt: nullableDateInputSchema,
+    kraLastAttemptAt: nullableDateInputSchema,
+    kraAttemptCount: z.number().int().min(0).optional(),
+    kraVerificationUrl: nullableStringSchema,
+    kraSyncPayload: nullableJsonSchema,
+    kraSyncResponse: nullableJsonSchema,
+});
 /**
  * Line item schema – sent from the client when creating/updating invoices.
  * Amount-related fields are strings to avoid floating point issues.
@@ -133,6 +168,68 @@ export const creditNoteOutputSchema = creditNoteInputSchema.extend({
     createdAt: z.date(),
     updatedAt: z.date(),
     activityLogs: z.array(activityLogSchema).optional(),
+    kraRefundReasonCode: nullableStringSchema,
+    originalInvoiceNumber: nullableStringSchema,
+    kraInvoiceNumber: nullableStringSchema,
+    kraReceiptNumber: nullableStringSchema,
+    kraSignature: nullableStringSchema,
+    kraQrCode: nullableStringSchema,
+    kraVerifiedDate: z.date().nullable().optional(),
+    kraStatus: invoiceKraStatusSchema.nullable().optional(),
+    kraError: nullableStringSchema,
+    kraSubmittedAt: z.date().nullable().optional(),
+    kraLastAttemptAt: z.date().nullable().optional(),
+    kraAttemptCount: z.number().int().min(0).nullable().optional(),
+    kraVerificationUrl: nullableStringSchema,
+    kraSyncPayload: nullableJsonSchema,
+    kraSyncResponse: nullableJsonSchema,
+});
+export const creditNoteSummarySchema = z.object({
+    id: z.string().uuid(),
+    creditNumber: nullableStringSchema,
+    invoiceId: z.string().uuid(),
+    invoiceNumber: nullableStringSchema,
+    customerName: nullableStringSchema,
+    customerEmail: nullableStringSchema,
+    status: creditNoteStatusSchema,
+    amount: z.string(),
+    currency: z.string(),
+    issuedAt: z.date().nullable(),
+    kraStatus: invoiceKraStatusSchema.nullable().optional(),
+    originalInvoiceNumber: nullableStringSchema,
+    teamId: nullableStringSchema,
+    createdAt: z.date(),
+});
+export const creditNoteListFiltersSchema = z.object({
+    teamId: z.string().uuid().optional(),
+    status: creditNoteStatusSchema.optional(),
+    search: z.string().optional(),
+    limit: z.number().int().min(1).max(100).optional().default(50),
+    offset: z.number().int().min(0).optional().default(0),
+});
+export const creditNoteListResponseSchema = z.object({
+    creditNotes: z.array(creditNoteSummarySchema),
+    total: z.number().int().min(0),
+});
+export const creditNoteDetailSchema = creditNoteOutputSchema.extend({
+    invoiceNumber: nullableStringSchema,
+    customerName: nullableStringSchema,
+    customerEmail: nullableStringSchema,
+    fromDetails: nullableJsonSchema,
+    customerDetails: nullableJsonSchema,
+    paymentDetails: nullableJsonSchema,
+    lineItems: z.array(invoiceLineItemOutputSchema),
+    subtotal: nullableStringSchema,
+    tax: nullableStringSchema,
+    taxPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
+    note: nullableStringSchema,
+    etimsFiscal: etimsFiscalFieldsSchema.nullable().optional(),
+});
+export const issueCreditNoteInputSchema = z.object({
+    invoiceId: z.string().uuid(),
+    rfdRsnCd: z.enum(["01", "02", "03", "04", "05", "06"]),
+    reason: nullableStringSchema,
+    note: nullableStringSchema,
 });
 /**
  * Core invoice schemas.
@@ -175,6 +272,7 @@ const invoiceBaseSchemaFields = {
     metadata: nullableJsonSchema,
     createdBy: z.string(),
     updatedBy: nullableStringSchema,
+    ...invoiceKraFieldsSchema.shape,
 };
 export const invoiceCreateInputSchema = z
     .object({
@@ -209,6 +307,7 @@ export const invoiceSummarySchema = z.object({
     dueDate: z.date().nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
+    kraStatus: invoiceKraStatusSchema.nullable().optional(),
 });
 export const invoiceDetailSchema = invoiceSummarySchema.extend({
     teamId: nullableStringSchema,
@@ -239,6 +338,19 @@ export const invoiceDetailSchema = invoiceSummarySchema.extend({
     template: nullableJsonSchema,
     topBlock: nullableJsonSchema,
     bottomBlock: nullableJsonSchema,
+    kraInvoiceNumber: nullableStringSchema,
+    kraReceiptNumber: nullableStringSchema,
+    kraSignature: nullableStringSchema,
+    kraQrCode: nullableStringSchema,
+    kraVerifiedDate: z.date().nullable().optional(),
+    kraError: nullableStringSchema,
+    kraSubmittedAt: z.date().nullable().optional(),
+    kraLastAttemptAt: z.date().nullable().optional(),
+    kraAttemptCount: z.number().int().min(0).nullable().optional(),
+    kraVerificationUrl: nullableStringSchema,
+    kraSyncPayload: nullableJsonSchema,
+    kraSyncResponse: nullableJsonSchema,
+    etimsFiscal: etimsFiscalFieldsSchema.nullable().optional(),
 });
 /**
  * Helper schemas for filtering and pagination.

@@ -41,7 +41,6 @@ export interface InvoicePdfRenderData {
     accountNumber?: string;
     accountName?: string;
     swiftCode?: string;
-    qrCodeValue?: string;
 }
 declare function formatMoney(currency: string, amount: string): string;
 export declare function convertInvoiceDetailToPdfRenderData(invoice: InvoiceForPdfData): InvoicePdfRenderData;
