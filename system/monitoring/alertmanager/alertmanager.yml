@@ -1,0 +1,80 @@
+global:
+  # How long to wait before re-sending a resolved alert
+  resolve_timeout: 5m
+  # SMTP config — used by the email receiver below
+  smtp_smarthost: "${ALERTMANAGER_SMTP_HOST:-smtp.resend.com:465}"
+  smtp_from: "${ALERTMANAGER_FROM_EMAIL:-alerts@nisccloud.com}"
+  smtp_auth_username: "${ALERTMANAGER_SMTP_USER:-resend}"
+  smtp_auth_password: "${ALERTMANAGER_SMTP_PASSWORD}"
+  smtp_require_tls: true
+
+# Routing tree — all alerts → default receiver
+# Critical alerts also go to Slack if configured
+route:
+  group_by: ["alertname", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: "email-default"
+
+  routes:
+    # Critical alerts bypass grouping delays
+    - matchers:
+        - severity = "critical"
+      receiver: "email-critical"
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: true
+
+    # Also send critical to Slack if SLACK_WEBHOOK_URL is set
+    - matchers:
+        - severity = "critical"
+      receiver: "slack-critical"
+      group_wait: 10s
+
+receivers:
+
+  - name: "email-default"
+    email_configs:
+      - to: "${ALERTMANAGER_TO_EMAIL:-admin@nisccloud.com}"
+        send_resolved: true
+        headers:
+          Subject: "[nPanel] {{ .Status | toUpper }}: {{ .CommonAnnotations.summary }}"
+        html: |
+          <h2>{{ .Status | toUpper }}: {{ .CommonAnnotations.summary }}</h2>
+          {{ range .Alerts }}
+          <p><strong>Alert:</strong> {{ .Annotations.summary }}<br>
+          <strong>Description:</strong> {{ .Annotations.description }}<br>
+          <strong>Severity:</strong> {{ .Labels.severity }}<br>
+          <strong>Started:</strong> {{ .StartsAt }}</p>
+          {{ end }}
+
+  - name: "email-critical"
+    email_configs:
+      - to: "${ALERTMANAGER_TO_EMAIL:-admin@nisccloud.com}"
+        send_resolved: true
+        headers:
+          Subject: "🚨 [nPanel CRITICAL] {{ .CommonAnnotations.summary }}"
+
+  # Slack — only active when SLACK_WEBHOOK_URL is set in .env
+  - name: "slack-critical"
+    slack_configs:
+      - api_url: "${SLACK_WEBHOOK_URL}"
+        channel: "#npanel-alerts"
+        send_resolved: true
+        title: "{{ .Status | toUpper }}: {{ .CommonAnnotations.summary }}"
+        text: >-
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+
+inhibit_rules:
+  # If a critical alert is firing for a service, suppress the warning for the same service
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
+    equal: ["alertname"]

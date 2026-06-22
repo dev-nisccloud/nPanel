@@ -1,0 +1,84 @@
+# Production overrides — run alongside the base file:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+#
+# What this does:
+#   - PostgreSQL + PgBouncer: internal only (no exposed ports)
+#   - MinIO port 9000: internal only — nginx proxies it as storage.nisccloud.com
+#   - MinIO port 9001: exposed directly → http://<VM-IP>:9001  (console)
+#   - All monitoring/admin UIs: exposed directly → http://<VM-IP>:<port>
+#   - Nginx: handles port 80 (redirect) + 443 (MinIO S3 API only)
+#   - Certbot: auto-renews storage.nisccloud.com certificate
+
+services:
+
+  postgres:
+    # Internal only — never expose the database port to the internet
+    ports: []
+
+  pgbouncer:
+    # Internal only — app connects via Docker network
+    ports: []
+
+  minio:
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SITE_NAME: ${MINIO_SITE_NAME:-npanel-storage}
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+      # Tells MinIO what public URL its S3 API lives behind
+      # so presigned upload/download URLs are correct
+      MINIO_SERVER_URL: https://${DOMAIN_STORAGE:-storage.nisccloud.com}
+    ports:
+      # Port 9000 (S3 API) is handled by nginx — not exposed directly
+      # Port 9001 (Console) is accessible directly via browser
+      - "9001:9001"
+
+  # ────────────────────────────────────────────
+  #  Nginx — SSL termination for MinIO S3 API only
+  #  storage.nisccloud.com → MinIO :9000
+  # ────────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nPanel-System-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - nPanel-certbot-webroot:/var/www/certbot:ro
+      - nPanel-certbot-certs:/etc/letsencrypt:ro
+    depends_on:
+      - minio
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  # ────────────────────────────────────────────
+  #  Certbot — auto-renews Let's Encrypt cert every 12h
+  # ────────────────────────────────────────────
+  certbot:
+    image: certbot/certbot:latest
+    container_name: nPanel-System-certbot
+    restart: unless-stopped
+    volumes:
+      - nPanel-certbot-webroot:/var/www/certbot
+      - nPanel-certbot-certs:/etc/letsencrypt
+    entrypoint: >
+      /bin/sh -c "
+        trap exit TERM;
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet;
+          sleep 12h & wait $${!};
+        done
+      "
+
+volumes:
+  nPanel-certbot-webroot:
+    driver: local
+  nPanel-certbot-certs:
+    driver: local
