@@ -164,6 +164,8 @@ export default function SslPage() {
       headline={<>Secure Your Website. <span className="text-primary">Earn Your Visitors' Trust.</span></>}
       subtext="SSL certificates encrypt customer data, boost your Google ranking, and display the padlock that tells visitors your site is safe. Essential for every Kenyan business website and online store."
       serviceType="hosting"
+      checkoutServiceType="ssl_certificate"
+      checkoutProductName="SSL Certificate"
       heroIllustration={<SslIllustration />}
       heroTrustBadge={{ line1: "256-bit AES Encryption", line2: "Issued in under 1 hour" }}
       trustStats={[

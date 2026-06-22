@@ -1,5 +1,7 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, HelpCircle } from "lucide-react";
+import { buildSharedHostingCartUrl } from "@/lib/storefront-cart-url.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
@@ -274,6 +276,7 @@ function PricingSkeleton() {
 // ─── Main section ─────────────────────────────────────────────────────────────
 
 export function SharedPricingSection() {
+  const navigate = useNavigate();
   const [plans, setPlans] = React.useState<SharedHostingPlan[]>([]);
   const [productFeatures, setProductFeatures] = React.useState<ProductFeatureRow[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -309,11 +312,11 @@ export function SharedPricingSection() {
 
   const handleGetStarted = () => {
     if (!selectedPlan) return;
-    window.open(
-      `https://npanel.nisccloud.com/register?planId=${selectedPlan.id}&productId=${selectedPlan.productId}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    if (displayPrice === 0) {
+      window.location.href = "/contact";
+      return;
+    }
+    navigate(buildSharedHostingCartUrl(selectedPlan, "web_hosting", isYearly));
   };
 
   return (

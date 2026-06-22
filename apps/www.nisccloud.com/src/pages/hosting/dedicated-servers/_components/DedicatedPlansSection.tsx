@@ -1,5 +1,7 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Cpu, HardDrive, MemoryStick, Network, ChevronDown, MapPin } from "lucide-react";
+import { buildVpsCartUrl } from "@/lib/storefront-cart-url.ts";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
@@ -73,6 +75,7 @@ function DedicatedPlanCard({
   usdToKesRate: number | null;
   locationName: string;
 }) {
+  const navigate = useNavigate();
   const isUnavailable = plan.stock === "unavailable";
 
   // Apply margin to USD base price
@@ -207,13 +210,23 @@ function DedicatedPlanCard({
 
         <div className="flex justify-center gap-2 pt-1">
           <Button
-            asChild
             className="w-full bg-primary text-primary-foreground"
             disabled={isUnavailable}
+            onClick={() =>
+              navigate(
+                buildVpsCartUrl({
+                  productId: plan.product_id,
+                  planName: plan.product_name,
+                  productName: "Dedicated Server",
+                  monthlyPrice: displayMonthly,
+                  currency: displayCurrency,
+                  serviceType: "dedicated_servers",
+                  locationName: plan.data_center,
+                }),
+              )
+            }
           >
-            <a href={`https://npanel.nisccloud.com/register?plan=${plan.product_id}`}>
-              Get Started
-            </a>
+            Get Started
           </Button>
         </div>
       </CardContent>

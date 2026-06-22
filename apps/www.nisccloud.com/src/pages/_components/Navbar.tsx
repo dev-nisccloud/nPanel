@@ -228,13 +228,13 @@ export default function Navbar() {
             text="Login"
             size="sm"
             icon={LogIn}
-            onClick={() => { window.location.href = NPANEL_URL; }}
+            onClick={() => navigate("/pricing")}
           /> */}
           <FlowButton
             text="Get Started"
             size="sm"
             variant="filled"
-            onClick={() => { window.location.href = NPANEL_URL; }}
+            onClick={() => navigate("/pricing")}
           />
         </div>
 

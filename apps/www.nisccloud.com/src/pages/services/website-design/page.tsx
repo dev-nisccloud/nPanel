@@ -131,6 +131,8 @@ export default function WebsiteDesignPage() {
       headline={<>Websites That Turn<br /><span className="text-primary">Visitors Into Customers</span></>}
       subtext="A beautiful website means nothing if it doesn't convert. We design and build fast, mobile-first websites that rank on Google, load in under 2 seconds, and turn Kenyan internet users into paying customers."
       serviceType="marketing"
+      checkoutServiceType="website_design"
+      checkoutProductName="Website Design"
       trustStats={[
         { value: "250+", label: "Websites Launched in Kenya" },
         { value: "<2s", label: "Average Page Load Speed" },

@@ -80,6 +80,8 @@ export default function PaidAdsPage() {
       headline={<>Google, Meta & TikTok Ads<br /><span className="text-primary">That Actually Make Money</span></>}
       subtext="Stop burning budget on ads that get clicks but no customers. We run performance-first advertising campaigns on Google, Facebook, Instagram, and TikTok - engineered to deliver measurable ROI for Kenyan businesses."
       serviceType="marketing"
+      checkoutServiceType="paid_ads"
+      checkoutProductName="Paid Ads"
       trustStats={[
         { value: "KES 85M+", label: "Ad Spend Managed Annually" },
         { value: "4.8×", label: "Average Return on Ad Spend" },
