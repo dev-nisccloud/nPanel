@@ -143,3 +143,80 @@ S3_SECRET_KEY=<MINIO_ROOT_PASSWORD>
 S3_BUCKET=npanel-uploads
 S3_REGION=us-east-1
 ```
+
+To get it running locally.
+
+Prerequisites
+Make sure Docker Desktop is running on your system. Verify with:
+
+docker --version
+docker compose version
+Step 1 — Create your .env file
+Open a terminal in the system/ folder:
+
+
+copy .env.example .env
+Open .env and fill in at minimum these values (everything else has safe defaults):
+
+POSTGRES_PASSWORD=pick_a_strong_password
+MINIO_ROOT_PASSWORD=pick_a_strong_password
+GRAFANA_ADMIN_PASSWORD=pick_a_strong_password
+PGADMIN_PASSWORD=pick_a_strong_password
+PGADMIN_EMAIL=admin@nisccloud.com
+Leave MINIO_SERVER_URL blank for local — it's only needed in production.
+
+Step 2 — Choose what to start
+Option A — Infrastructure only (Postgres + PgBouncer + MinIO):
+
+docker compose up -d
+Option B — Infrastructure + full monitoring stack (recommended):
+
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+Step 3 — Watch it come up
+docker compose ps
+Wait for all containers to show Up. The nPanel-System-minio-init container will show Exited (0) — that's expected, it creates the bucket and stops.
+
+Watch live logs if you want to see progress:
+
+docker compose logs -f
+Or per service:
+
+docker compose logs -f postgres
+docker compose logs -f minio
+Step 4 — Verify everything works
+Hit each URL in your browser:
+
+Service	URL	Login
+MinIO Console
+http://localhost:9001
+minioadmin / your MINIO_ROOT_PASSWORD
+pgAdmin
+http://localhost:5050
+your PGADMIN_EMAIL / PGADMIN_PASSWORD
+Grafana
+http://localhost:3100
+admin / your GRAFANA_ADMIN_PASSWORD
+Uptime Kuma
+http://localhost:3102
+create account on first visit
+Prometheus
+http://localhost:9090
+none
+Alertmanager
+http://localhost:9093
+none
+To connect pgAdmin to your local Postgres, add a new server in the pgAdmin UI:
+
+Host: postgres (Docker network name)
+Port: 5432
+Username: npanel
+Password: your POSTGRES_PASSWORD
+Useful commands
+# Stop everything (data is preserved in volumes)
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml down
+# Stop and wipe ALL data (destructive — fresh start)
+docker compose -f docker-compose.yml -f docker-compose.monitoring.yml down -v
+# Restart a single service
+docker compose restart minio
+# Check resource usage
+docker stats
