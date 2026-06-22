@@ -146,6 +146,16 @@ export async function fetchWordPressHostingPlansPublic(): Promise<SharedHostingP
   };
 }
 
+export async function fetchSeoPlansPublic(): Promise<SharedHostingPricingData> {
+  const res = await trpcQuery<{ success?: boolean; plans?: SharedHostingPlan[]; productFeatures?: ProductFeatureRow[] }>(
+    "products.getSeoPlansForPricing"
+  );
+  return {
+    plans: res?.plans ?? [],
+    productFeatures: res?.productFeatures ?? [],
+  };
+}
+
 // --- Specific fetchers ---
 
 export async function fetchVpsPlansPublic(cursor: number = 0, limit: number = 24) {
@@ -213,9 +223,11 @@ export async function fetchFacilitiesPublic(): Promise<Facility[]> {
   }
 }
 
-export async function fetchVpsPricingSettings(): Promise<PricingSettings | null> {
+export async function fetchVpsPricingSettings(
+  productType: "VPS" | "VDS" | "DEDICATED_SERVERS" = "VPS",
+): Promise<PricingSettings | null> {
   const res = await trpcQuery<{ success: boolean; data: any }>("hivelocityPricingSettings.get", {
-    productType: "VPS",
+    productType,
   });
   if (!res.success || !res.data) return null;
   const raw = res.data;
@@ -281,4 +293,198 @@ export function applyMarginWith(margin: PricingMargin | null, priceUsd: number) 
   }
 
   return { original: priceUsd, final, marginAmount };
+}
+
+export type HivelocityOsFeatures = {
+  sshKey?: boolean;
+  postInstall?: boolean;
+  cloudInit?: boolean;
+};
+
+export type HivelocityOsOption = {
+  id: number;
+  name: string;
+  monthlyPriceUsd: number;
+  tags?: string[];
+  expressions?: string[];
+  operatingSystemFeatures?: HivelocityOsFeatures | null;
+};
+
+export type HivelocityAddonOption = {
+  id: number;
+  name: string;
+  group: string;
+  monthlyPriceUsd: number;
+  tags?: string[];
+  expressions?: string[];
+  operatingSystemFeatures?: HivelocityOsFeatures | null;
+};
+
+function parseStringArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((v) => String(v).trim()).filter(Boolean);
+}
+
+function parseOsFeatures(raw: unknown): HivelocityOsFeatures | null {
+  if (!raw || typeof raw !== "object") return null;
+  const f = raw as Record<string, unknown>;
+  return {
+    sshKey: f.sshKey === true ? true : f.sshKey === false ? false : undefined,
+    postInstall: f.postInstall === true ? true : f.postInstall === false ? false : undefined,
+    cloudInit: f.cloudInit === true ? true : f.cloudInit === false ? false : undefined,
+  };
+}
+
+function parseOptionRow(r: Record<string, unknown>, group: string): Omit<HivelocityAddonOption, "group"> | null {
+  const id = Number(r.id);
+  const name = String(r.name ?? r.optionName ?? r.operatingSystem ?? "").trim();
+  const price = Number(r.monthlyPrice ?? r.monthly_price ?? 0);
+  if (!Number.isFinite(id) || !name) return null;
+  return {
+    id,
+    name,
+    monthlyPriceUsd: Number.isFinite(price) ? price : 0,
+    tags: parseStringArray(r.tags),
+    expressions: parseStringArray(r.expressions),
+    operatingSystemFeatures: parseOsFeatures(r.operatingSystemFeatures),
+  };
+}
+
+function normalizeOsList(raw: unknown): HivelocityOsOption[] {
+  const rows = Array.isArray(raw) ? raw : [];
+  const seen = new Set<number>();
+  const result: HivelocityOsOption[] = [];
+
+  for (const row of rows) {
+    const r = row as Record<string, unknown>;
+    const parsed = parseOptionRow(r, "");
+    if (!parsed || seen.has(parsed.id)) continue;
+    seen.add(parsed.id);
+    result.push(parsed);
+  }
+
+  return result;
+}
+
+function normalizeAddonOptions(raw: unknown): Record<string, HivelocityAddonOption[]> {
+  const grouped: Record<string, HivelocityAddonOption[]> = {};
+  const root = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+
+  for (const [group, value] of Object.entries(root)) {
+    const rows = Array.isArray(value) ? value : [];
+    const seenInGroup = new Set<number>();
+    const options = rows
+      .map((row) => {
+        const r = row as Record<string, unknown>;
+        const parsed = parseOptionRow(r, group);
+        if (!parsed || seenInGroup.has(parsed.id)) return null;
+        seenInGroup.add(parsed.id);
+        return { ...parsed, group };
+      })
+      .filter((r): r is HivelocityAddonOption => r !== null);
+    if (options.length) grouped[group] = options;
+  }
+
+  return grouped;
+}
+
+export async function fetchHivelocityOperatingSystems(productId: number): Promise<HivelocityOsOption[]> {
+  const res = await trpcQuery<{ success: boolean; data: unknown }>(
+    "hivelocity.publicGetProductOperatingSystems",
+    { productId },
+  );
+  if (!res.success) return [];
+  return normalizeOsList(res.data);
+}
+
+export async function fetchHivelocityProductOptions(
+  productId: number,
+): Promise<Record<string, HivelocityAddonOption[]>> {
+  const res = await trpcQuery<{ success: boolean; data: unknown }>("hivelocity.publicGetProductOptions", {
+    productId,
+    groupBy: "upgrade",
+  });
+  if (!res.success) return {};
+  return normalizeAddonOptions(res.data);
+}
+
+export function formatOptionPriceKes(
+  monthlyUsd: number,
+  margin: PricingMargin | null,
+  kesRate: number | null,
+): string {
+  if (monthlyUsd <= 0) return "Included";
+  const margined = applyMarginWith(margin, monthlyUsd).final;
+  if (kesRate != null) {
+    return `KES ${Math.ceil(margined * kesRate).toLocaleString()}/mo`;
+  }
+  return `$${margined.toFixed(0)}/mo`;
+}
+
+/** Billable monthly price in KES (0 when free / no rate). */
+export function computeBillableOptionPriceKes(
+  monthlyUsd: number,
+  margin: PricingMargin | null,
+  kesRate: number | null,
+): number {
+  if (monthlyUsd <= 0) return 0;
+  const margined = applyMarginWith(margin, monthlyUsd).final;
+  if (kesRate != null) return Math.ceil(margined * kesRate);
+  return Math.ceil(margined);
+}
+
+export type HivelocitySummaryLine = {
+  id: string;
+  name: string;
+  kind: "os" | "addon";
+  priceKes: number;
+};
+
+export function computeHivelocitySummaryLines(params: {
+  selectedOsId: string;
+  selectedOptionIds: number[];
+  osList: HivelocityOsOption[];
+  addonGroups: Record<string, HivelocityAddonOption[]>;
+  pricing: PricingSettings | null;
+  kesRate: number | null;
+}): HivelocitySummaryLine[] {
+  const lines: HivelocitySummaryLine[] = [];
+
+  const selectedOs = params.osList.find((os) => String(os.id) === params.selectedOsId);
+  if (selectedOs) {
+    const priceKes = computeBillableOptionPriceKes(
+      selectedOs.monthlyPriceUsd,
+      params.pricing?.os ?? null,
+      params.kesRate,
+    );
+    if (priceKes > 0) {
+      lines.push({
+        id: `os-${selectedOs.id}`,
+        name: selectedOs.name,
+        kind: "os",
+        priceKes,
+      });
+    }
+  }
+
+  const allAddons = Object.values(params.addonGroups).flat();
+  for (const optionId of params.selectedOptionIds) {
+    const addon = allAddons.find((a) => a.id === optionId);
+    if (!addon) continue;
+    const priceKes = computeBillableOptionPriceKes(
+      addon.monthlyPriceUsd,
+      params.pricing?.addons ?? null,
+      params.kesRate,
+    );
+    if (priceKes > 0) {
+      lines.push({
+        id: `addon-${addon.id}`,
+        name: addon.name,
+        kind: "addon",
+        priceKes,
+      });
+    }
+  }
+
+  return lines;
 }

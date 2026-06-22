@@ -86,6 +86,8 @@ export default function EcommercePage() {
       headline={<>Sell Online With<br /><span className="text-primary">M-Pesa Built Right In</span></>}
       subtext="Launch a fully-featured online store that accepts M-Pesa, Visa, and bank transfers - optimised for Kenyan shoppers on mobile. We build stores that process orders while you sleep."
       serviceType="marketing"
+      checkoutServiceType="ecommerce"
+      checkoutProductName="E-Commerce"
       trustStats={[
         { value: "120+", label: "Online Stores Launched" },
         { value: "M-Pesa", label: "Native Payment Integration" },

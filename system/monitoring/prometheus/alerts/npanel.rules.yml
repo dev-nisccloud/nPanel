@@ -1,0 +1,138 @@
+groups:
+
+  # ─────────────────────────────────────────────
+  #  Service availability
+  # ─────────────────────────────────────────────
+  - name: nPanel.availability
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is DOWN"
+          description: "{{ $labels.job }} has been unreachable for more than 2 minutes. Check the container with: docker logs nPanel-System-{{ $labels.job }}"
+
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is DOWN"
+          description: "The PostgreSQL exporter cannot reach the database. Immediate attention required."
+
+  # ─────────────────────────────────────────────
+  #  Host resources
+  # ─────────────────────────────────────────────
+  - name: nPanel.host
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU has been above 85% for 5 minutes. Current: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 90%. Current: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.mountpoint }}"
+          description: "Disk free space is below 20% on {{ $labels.mountpoint }}. Free: {{ $value | printf \"%.1f\" }}%"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL: Disk almost full on {{ $labels.mountpoint }}"
+          description: "Less than 10% disk space remaining on {{ $labels.mountpoint }}."
+
+  # ─────────────────────────────────────────────
+  #  PostgreSQL
+  # ─────────────────────────────────────────────
+  - name: nPanel.postgres
+    rules:
+      - alert: PostgreSQLTooManyConnections
+        expr: sum(pg_stat_activity_count{datname!~"template.*|postgres"}) > 100
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many PostgreSQL connections"
+          description: "Active connection count is {{ $value }}. PgBouncer should be handling this — check if the app is connecting directly."
+
+      - alert: PostgreSQLDeadlocks
+        expr: rate(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL deadlocks detected on {{ $labels.datname }}"
+          description: "Deadlock rate: {{ $value | printf \"%.2f\" }}/sec over the last 5 minutes."
+
+      - alert: PostgreSQLSlowQueries
+        expr: pg_stat_activity_max_tx_duration{datname!~"template.*|postgres"} > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Long-running PostgreSQL query detected"
+          description: "A query has been running for more than 5 minutes on database {{ $labels.datname }}."
+
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL replication lag is high"
+          description: "Replication is {{ $value }}s behind primary. Check standby status."
+
+  # ─────────────────────────────────────────────
+  #  MinIO object storage
+  # ─────────────────────────────────────────────
+  - name: nPanel.minio
+    rules:
+      - alert: MinIODiskUsageHigh
+        expr: (minio_cluster_disk_used_bytes / minio_cluster_disk_total_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MinIO disk usage above 80%"
+          description: "MinIO is using {{ $value | printf \"%.1f\" }}% of allocated disk. Consider expanding storage."
+
+      - alert: MinIODiskUsageCritical
+        expr: (minio_cluster_disk_used_bytes / minio_cluster_disk_total_bytes) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL: MinIO disk usage above 90%"
+          description: "MinIO storage is nearly full at {{ $value | printf \"%.1f\" }}%. Uploads will fail if this reaches 100%."
+
+      - alert: MinIONodeOffline
+        expr: minio_cluster_nodes_offline_total > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MinIO node offline"
+          description: "{{ $value }} MinIO node(s) are offline."

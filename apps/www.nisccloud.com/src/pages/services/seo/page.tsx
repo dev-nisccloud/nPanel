@@ -1,6 +1,7 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { BarChart2, TrendingUp, Search, Globe, Bot, Map, FileText, Zap } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import { SeoPricingSection } from "./_components/SeoPricingSection.tsx";
 
 // ─── Hero Illustration ───────────────────────────────────────────────────────
 
@@ -246,6 +247,8 @@ export default function SeoPage() {
       subtext="The best SEO services in Nairobi, Kenya. We combine Search Engine Optimisation, Answer Engine Optimisation (AEO for ChatGPT & Perplexity), and local Google Maps SEO to get your Kenyan business on Page 1 - in 90 days."
       serviceType="marketing"
       plansUnderHero
+      customPlansSection={<SeoPricingSection />}
+      plans={[]}
       trustStats={[
         { value: "180+", label: "Kenyan Businesses Ranked" },
         { value: "4.2×", label: "Average Organic Traffic Growth" },
@@ -296,64 +299,6 @@ export default function SeoPage() {
           desc: "Improve LCP, CLS, and INP to meet Google's page experience requirements - critical for ranking in Kenya where most users are on mobile Safaricom and Airtel connections.",
         },
       ]}
-      plans={[
-        {
-          id: "seo-starter",
-          name: "Local Visibility",
-          price: 25000,
-          period: "month",
-          features: [
-            "Full Technical SEO Audit",
-            "10 Target Keywords",
-            "On-Page Optimisation (5 pages)",
-            "Google Business Profile Setup",
-            "Local Citation Building (20 directories)",
-            "Monthly Keyword Rank Report",
-            "Core Web Vitals Fixes",
-            "Monthly Strategy Call",
-          ],
-        },
-        {
-          id: "seo-growth-popular",
-          name: "Growth Authority",
-          price: 45000,
-          period: "month",
-          features: [
-            "Everything in Local Visibility",
-            "30 Target Keywords",
-            "On-Page Optimisation (15 pages/month)",
-            "4 SEO Blog Articles/Month",
-            "AEO Content Optimisation",
-            "Link Building (5 authority backlinks/month)",
-            "Competitor Keyword Gap Analysis",
-            "Google Search Console Management",
-            "Weekly Ranking Updates",
-          ],
-        },
-        {
-          id: "seo-enterprise",
-          name: "Market Domination",
-          price: 85000,
-          period: "month",
-          features: [
-            "Everything in Growth Authority",
-            "Unlimited Keyword Targets",
-            "Full Site Content Strategy",
-            "10 SEO Articles/Month",
-            "Aggressive Link Building (15+/month)",
-            "Multi-Location Local SEO",
-            "AI / GEO Optimisation Strategy",
-            "E-E-A-T Authority Building",
-            "Dedicated SEO Strategist",
-            "Bi-Weekly Strategy Sessions",
-          ],
-        },
-      ]}
-      addons={[
-        { id: "seo-audit-oneoff", label: "One-Time Deep SEO Audit Report", price: 18000, period: "once" },
-        { id: "seo-geo", label: "GEO / AI Answer Engine Setup", price: 15000, period: "once" },
-        { id: "seo-gmb", label: "Google Business Profile Management", price: 8000, period: "month" },
-      ]}
       process={[
         { num: "01", title: "Audit & Kenya Research", desc: "Complete technical SEO audit, competitor analysis, and Kenyan keyword research to identify the fastest path to Page 1 rankings for your specific market." },
         { num: "02", title: "On-Page Foundation", desc: "Fix all technical issues, optimise existing pages, and implement the Kenya-specific keyword strategy across your site structure, content, and metadata." },
@@ -374,11 +319,11 @@ export default function SeoPage() {
         { q: "What is the difference between SEO and AEO?", a: "SEO optimises for Google's traditional blue link results. AEO (Answer Engine Optimisation) optimises your content to be cited and recommended by AI tools like ChatGPT, Gemini, and Perplexity when Kenyans ask questions related to your business." },
         { q: "Do you guarantee #1 rankings on Google Kenya?", a: "No ethical SEO agency guarantees specific rankings - Google's algorithm is complex. However, 90% of our clients reach top 3 within 6 months for primary keywords, and we work for free if no progress by month 3." },
         { q: "Do you do SEO for businesses outside Nairobi?", a: "Absolutely. We manage local SEO for businesses in Mombasa, Kisumu, Nakuru, Eldoret, and across all 47 counties. Multi-location SEO is included in our Enterprise plan." },
-        { q: "How much does SEO cost in Kenya?", a: "Our SEO packages in Kenya start at KES 25,000/month for local visibility up to KES 85,000/month for market domination across multiple keywords and locations. Custom enterprise quotes available." },
+        { q: "How much does SEO cost in Kenya?", a: "Our live pricing table above shows current plans in KES - typically Starter, Growth, and Pro tiers with monthly or annual billing. Contact us for custom enterprise packages across multiple locations or industries." },
       ]}
       ctaHeadline="Start Ranking on Google Kenya Before Your Competitors Do"
       ctaSubtext="Every day you're not on Page 1, a competitor is taking your customers. Our SEO strategies have helped 180+ Kenyan businesses dominate their local market online."
-      pricingNote="Monthly retainer. 3-month minimum for meaningful results. Cancel with 30-day notice after minimum term."
+      pricingNote="Monthly retainer. All prices in KES. Save 20% with annual billing. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}
     />
   );

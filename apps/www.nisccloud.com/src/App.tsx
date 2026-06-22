@@ -33,6 +33,7 @@ import ZeepoAiPage from "./pages/services/zeepo-ai/page.tsx";
 import EmailMarketingPage from "./pages/services/email-marketing/page.tsx";
 
 import SecurityPage from "./pages/security/page.tsx";
+import CartPage from "./pages/cart/page.tsx";
 
 import HelpCentrePage from "./pages/help/page.tsx";
 import ScrollToTop from "./components/ScrollToTop.tsx";
@@ -80,6 +81,9 @@ export default function App() {
 
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+
+          {/* Shared cart / checkout page */}
+          <Route path="/cart" element={<CartPage />} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
