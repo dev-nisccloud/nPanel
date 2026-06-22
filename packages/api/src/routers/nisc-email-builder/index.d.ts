@@ -54,10 +54,10 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: string;
-                userId: string;
                 teamId: string | null;
+                status: string;
                 metadata: unknown;
+                userId: string;
                 subject: string | null;
                 thumbnailUrl: string | null;
                 aiStatus: string;
@@ -75,14 +75,14 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                     id: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    userId: string;
                     teamId: string | null;
+                    userId: string;
                     designId: string;
                     messages: {
                         id: string;
                         createdAt: Date;
-                        role: string;
                         metadata: unknown;
+                        role: string;
                         content: string;
                         sessionId: string;
                     }[];
@@ -138,10 +138,10 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                     name: string;
                     createdAt: Date;
                     updatedAt: Date;
-                    status: string;
-                    userId: string;
                     teamId: string | null;
+                    status: string;
                     metadata: unknown;
+                    userId: string;
                     subject: string | null;
                     thumbnailUrl: string | null;
                     aiStatus: string;
@@ -354,8 +354,8 @@ export declare const niscEmailBuilderRouter: import("@trpc/server").TRPCBuiltRou
                 name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                userId: string;
                 teamId: string | null;
+                userId: string;
                 logoAssetId: string | null;
                 colors: unknown;
                 fonts: unknown;

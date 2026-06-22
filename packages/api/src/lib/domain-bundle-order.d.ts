@@ -15,12 +15,14 @@ export declare function parseDomainBundleMetadata(metadata: unknown): DomainBund
 export declare function isDomainBundleOrderItem(metadata: unknown): boolean;
 export declare function isDomainBundleLeadItem(metadata: unknown): boolean;
 export type OrderItemForBundleInvoice = {
+    productId?: string | null;
     itemPrice: string;
     itemSubtotal: string;
     primaryDomain: string | null | undefined;
     description: string | null | undefined;
     metadata: unknown;
     product: {
+        id?: string;
         name: string;
         serviceType?: string | null;
     };
@@ -42,6 +44,8 @@ export declare function groupDomainBundleItemsForInvoice<T extends OrderItemForB
     nonBundleItems: T[];
 };
 export declare function buildDomainBundleInvoiceLineName(domains: string[]): string;
+/** KRA itemNm: collapsed bundle label with full domain names (incl. TLDs). */
+export declare function buildDomainBundleKraItemName(domains: string[]): string;
 export declare function buildDomainBundleInvoiceLineDescription(domains: string[], subscriptionPeriod: string): string;
 export declare function orderItemsIncludeDomainBundle(items: Array<{
     metadata: unknown;

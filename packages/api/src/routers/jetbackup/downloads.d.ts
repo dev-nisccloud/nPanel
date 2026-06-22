@@ -31,4 +31,12 @@ export declare const jetbackupDownloadsRouter: import("@trpc/server").TRPCBuiltR
         output: unknown;
         meta: object;
     }>;
+    /** Queue a full backup snapshot for download (JetBackup Downloads API shape). */
+    queueSnapshot: import("@trpc/server").TRPCMutationProcedure<{
+        input: {
+            snapshot_id: string;
+        };
+        output: unknown;
+        meta: object;
+    }>;
 }>>;

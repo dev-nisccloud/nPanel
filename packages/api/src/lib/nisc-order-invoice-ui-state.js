@@ -18,6 +18,9 @@ function parseInvoiceMetadata(metadata) {
             ? inv.source
             : undefined,
         emailed: typeof inv.emailed === "boolean" ? inv.emailed : undefined,
+        kraSynced: typeof inv.kraSynced === "boolean" ? inv.kraSynced : undefined,
+        kraStatus: typeof inv.kraStatus === "string" ? inv.kraStatus : undefined,
+        kraError: typeof inv.kraError === "string" ? inv.kraError : undefined,
         reasonCode: typeof inv.reasonCode === "string" ? inv.reasonCode : undefined,
         reasonMessage: typeof inv.reasonMessage === "string" ? inv.reasonMessage : undefined,
         updatedAt: typeof inv.updatedAt === "string" ? inv.updatedAt : new Date().toISOString(),
@@ -32,6 +35,8 @@ export function getNiscOrderInvoiceUiState(order) {
             invoiceNumber: order.invoiceNumber,
             source: meta?.source,
             emailed: meta?.emailed,
+            kraSynced: meta?.kraSynced,
+            kraError: meta?.kraError,
         };
     }
     const meta = parseInvoiceMetadata(order.metadata);

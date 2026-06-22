@@ -39,15 +39,15 @@ export declare const hivelocityPricingSettingsRouter: import("@trpc/server").TRP
     upsert: import("@trpc/server").TRPCMutationProcedure<{
         input: {
             productType: "DEDICATED_SERVERS" | "VPS" | "VDS";
-            marginType?: "PERCENTAGE" | "FIXED" | null | undefined;
+            marginType?: "FIXED" | "PERCENTAGE" | null | undefined;
             percentageMargin?: string | null | undefined;
             fixedMargin?: string | null | undefined;
             roundOff?: string | null | undefined;
-            osMarginType?: "PERCENTAGE" | "FIXED" | null | undefined;
+            osMarginType?: "FIXED" | "PERCENTAGE" | null | undefined;
             osPercentageMargin?: string | null | undefined;
             osFixedMargin?: string | null | undefined;
             osRoundOff?: string | null | undefined;
-            addonsMarginType?: "PERCENTAGE" | "FIXED" | null | undefined;
+            addonsMarginType?: "FIXED" | "PERCENTAGE" | null | undefined;
             addonsPercentageMargin?: string | null | undefined;
             addonsFixedMargin?: string | null | undefined;
             addonsRoundOff?: string | null | undefined;

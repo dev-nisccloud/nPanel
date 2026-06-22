@@ -8,6 +8,7 @@ import { db } from "@npanel/db";
 import { niscClientSubscription } from "@npanel/db/schema/products";
 import { hivelocityItemMetadataSchema, } from "../routers/nisc-service-orders-schemas";
 import { provisionHivelocityViaDeployment } from "./hivelocity-deployment";
+import { buildHivelocityPurchasedAddons, buildHivelocitySubscriptionDisplayName, computeHivelocityTotalProviderCostUsd, parseHivelocityInvoiceLinesFromMetadata, } from "./hivelocity-billing-utils";
 import { assertHivelocityOptionIdsExclusive } from "./hivelocity-option-validation";
 import { applyHivelocityVpsReactivation } from "./hivelocity-vps-instance-suspend";
 import { reloadHivelocityDevice } from "./hivelocity-vps-reload";
@@ -367,10 +368,16 @@ export async function processHivelocityOrderItem(order, item) {
     }
     const now = new Date();
     const subId = randomUUID();
-    const subscriptionName = `${item.product.name} - ${hivelocityOsName} @ ${hivelocityLocationName}`;
+    const subscriptionName = buildHivelocitySubscriptionDisplayName({
+        product: item.product,
+        metadata: meta,
+    });
     const hivelocityServiceType = resolveHivelocityServiceType(item.product.serviceType);
     const hivelocityOrderId = deploymentResult.orderId ??
         (deploymentResult.orderNumber ? Number(deploymentResult.orderNumber) : null);
+    const invoiceLines = parseHivelocityInvoiceLinesFromMetadata(meta) ?? [];
+    const purchasedAddons = buildHivelocityPurchasedAddons(meta, invoiceLines);
+    const totalProviderUsd = computeHivelocityTotalProviderCostUsd(meta);
     const inserted = await db
         .insert(niscClientSubscription)
         .values({
@@ -392,7 +399,7 @@ export async function processHivelocityOrderItem(order, item) {
         agreedCurrency: order.currency,
         agreedCost: null,
         agreedCostCurrency: "USD",
-        providerCost: meta.basePriceUsd != null ? String(meta.basePriceUsd) : null,
+        providerCost: totalProviderUsd != null ? String(totalProviderUsd) : null,
         providerCostCurrency: "USD",
         agreedCommissionRate: null,
         agreedCommissionBase: null,
@@ -415,6 +422,7 @@ export async function processHivelocityOrderItem(order, item) {
             optionIds: hivelocityOptionIds,
             osOptionId: meta.hivelocityOsOptionId ?? null,
             productType: meta.productType ?? null,
+            purchasedAddons,
             provisionedAt: now.toISOString(),
             provisionMethod: "deployment_api",
         },

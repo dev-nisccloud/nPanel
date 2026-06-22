@@ -1,4 +1,4 @@
-import { COMPANY_LOGO_URL } from "./company-branding.js";
+import { COMPANY_LOGO_URL } from "./company-branding";
 function formatPdfDate(value) {
     if (!value)
         return "N/A";
@@ -61,7 +61,6 @@ export function convertInvoiceDetailToPdfRenderData(invoice) {
         accountNumber: payment.accountNumber ? String(payment.accountNumber) : undefined,
         accountName: payment.accountName ? String(payment.accountName) : undefined,
         swiftCode: payment.swiftCode ? String(payment.swiftCode) : undefined,
-        qrCodeValue: payment.qrCodeValue ? String(payment.qrCodeValue) : undefined,
     };
 }
 export function sanitizeInvoicePdfFilename(invoiceNumber) {

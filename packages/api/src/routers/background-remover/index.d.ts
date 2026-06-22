@@ -15,7 +15,7 @@ export declare const backgroundRemoverRouter: import("@trpc/server").TRPCBuiltRo
         };
         output: {
             generationId: string;
-            status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
+            status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
         };
         meta: object;
     }>;
@@ -76,7 +76,7 @@ export declare const backgroundRemoverRouter: import("@trpc/server").TRPCBuiltRo
                 processedImageMetadata: Record<string, any> | null;
                 modelId: string;
                 modelName: string | null;
-                status: "PROCESSING" | "QUEUED" | "COMPLETED" | "FAILED";
+                status: "QUEUED" | "PROCESSING" | "FAILED" | "COMPLETED";
                 errorMessage: string | null;
                 qstashMessageId: string | null;
                 startedAt: Date | null;

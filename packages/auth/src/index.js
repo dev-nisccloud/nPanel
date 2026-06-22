@@ -5,7 +5,7 @@ import { notification, notificationActivityLog, } from "@npanel/db/schema/notifi
 import { session, user } from "@npanel/db/schema/auth";
 import { env } from "@npanel/env/server";
 import { renderEmailVerificationEmail, renderPasswordResetSuccessEmail, renderResetPasswordEmail, } from "react-email-starter/src/email-templates";
-import { sendTransactionalEmail } from "./transactional-email";
+import { sendAuthEmail } from "./transactional-email";
 import { completeSignupSideEffects, isGoogleOAuthCallbackPath, isNewGoogleRegistration, sendGoogleSignupWelcomeEmail, } from "./signup-side-effects";
 import { applyStandardSessionExpiryByToken, validateAndRefreshIdleSessionById, } from "./session-enforcement";
 import { invalidateSessionCache } from "./session-cache";
@@ -135,20 +135,21 @@ export const auth = betterAuth({
                         .limit(1);
                     const u = rows[0];
                     if (u && u.status !== "ACTIVE") {
-                        await db.transaction(async (tx) => {
-                            await tx.insert(userActivityLog).values({
-                                id: crypto.randomUUID(),
-                                userId: u.id,
-                                action: "LOGIN_BLOCKED",
-                                description: `Login blocked due to account status: ${u.status}`,
-                                metadata: { status: u.status, reason: "Account not active" },
-                                ipAddress: ctx.headers?.get("x-forwarded-for") ||
-                                    ctx.headers?.get("x-real-ip") ||
-                                    "unknown",
-                                userAgent: ctx.headers?.get("user-agent") || "unknown",
-                                createdAt: new Date(),
-                            });
-                        });
+                        void db
+                            .insert(userActivityLog)
+                            .values({
+                            id: crypto.randomUUID(),
+                            userId: u.id,
+                            action: "LOGIN_BLOCKED",
+                            description: `Login blocked due to account status: ${u.status}`,
+                            metadata: { status: u.status, reason: "Account not active" },
+                            ipAddress: ctx.headers?.get("x-forwarded-for") ||
+                                ctx.headers?.get("x-real-ip") ||
+                                "unknown",
+                            userAgent: ctx.headers?.get("user-agent") || "unknown",
+                            createdAt: new Date(),
+                        })
+                            .catch((error) => console.error("Failed to log blocked login activity:", error));
                         throw new APIError("FORBIDDEN", {
                             message: `Account is ${u.status.toLowerCase()}. Please contact support.`,
                         });
@@ -293,127 +294,120 @@ export const auth = betterAuth({
             if (ctx.path === "/sign-in/email" || ctx.path.endsWith("/sign-in/email")) {
                 const newSession = ctx.context.newSession;
                 if (newSession) {
-                    try {
-                        await db.transaction(async (tx) => {
-                            await tx
-                                .update(user)
-                                .set({ lastLoginAt: new Date() })
-                                .where(eq(user.id, newSession.user.id));
-                            const mfaRows = await tx
-                                .select({ id: userMfaSettings.id })
-                                .from(userMfaSettings)
-                                .where(and(eq(userMfaSettings.userId, newSession.user.id), eq(userMfaSettings.emailOtpEnabled, true)))
+                    const loginUserId = newSession.user.id;
+                    const loginSessionId = newSession.session?.id;
+                    const loginHeaders = ctx.headers;
+                    void db
+                        .transaction(async (tx) => {
+                        await tx
+                            .update(user)
+                            .set({ lastLoginAt: new Date() })
+                            .where(eq(user.id, loginUserId));
+                        const mfaRows = await tx
+                            .select({ id: userMfaSettings.id })
+                            .from(userMfaSettings)
+                            .where(and(eq(userMfaSettings.userId, loginUserId), eq(userMfaSettings.emailOtpEnabled, true)))
+                            .limit(1);
+                        if (mfaRows[0] && loginSessionId) {
+                            const existingMfaSession = await tx
+                                .select({ id: userMfaSession.id })
+                                .from(userMfaSession)
+                                .where(eq(userMfaSession.sessionId, loginSessionId))
                                 .limit(1);
-                            if (mfaRows[0] && newSession.session?.id) {
-                                const existingMfaSession = await tx
-                                    .select({ id: userMfaSession.id })
-                                    .from(userMfaSession)
-                                    .where(eq(userMfaSession.sessionId, newSession.session.id))
-                                    .limit(1);
-                                if (!existingMfaSession[0]) {
-                                    await tx.insert(userMfaSession).values({
-                                        id: crypto.randomUUID(),
-                                        userId: newSession.user.id,
-                                        sessionId: newSession.session.id,
-                                        requiredAt: new Date(),
-                                        verifiedAt: null,
-                                        createdAt: new Date(),
-                                        updatedAt: new Date(),
-                                    });
-                                }
-                                else {
-                                    await tx
-                                        .update(userMfaSession)
-                                        .set({
-                                        userId: newSession.user.id,
-                                        requiredAt: new Date(),
-                                        verifiedAt: null,
-                                        updatedAt: new Date(),
-                                    })
-                                        .where(eq(userMfaSession.sessionId, newSession.session.id));
-                                }
+                            if (!existingMfaSession[0]) {
+                                await tx.insert(userMfaSession).values({
+                                    id: crypto.randomUUID(),
+                                    userId: loginUserId,
+                                    sessionId: loginSessionId,
+                                    requiredAt: new Date(),
+                                    verifiedAt: null,
+                                    createdAt: new Date(),
+                                    updatedAt: new Date(),
+                                });
                             }
-                            await tx.insert(userActivityLog).values({
-                                id: crypto.randomUUID(),
-                                userId: newSession.user.id,
-                                action: "LOGIN_SUCCESS",
-                                description: "User successfully logged in",
-                                metadata: {
-                                    loginMethod: "email_password",
-                                    sessionDuration: "30 minutes idle",
-                                },
-                                ipAddress: ctx.headers?.get("x-forwarded-for") ||
-                                    ctx.headers?.get("x-real-ip") ||
-                                    "unknown",
-                                userAgent: ctx.headers?.get("user-agent") || "unknown",
-                                createdAt: new Date(),
-                            });
-                        });
-                        const loginUserId = newSession.user.id;
-                        const loginHeaders = ctx.headers;
-                        void db
-                            .transaction(async (tx) => {
-                            const ipAddress = loginHeaders?.get("x-forwarded-for") ||
+                            else {
+                                await tx
+                                    .update(userMfaSession)
+                                    .set({
+                                    userId: loginUserId,
+                                    requiredAt: new Date(),
+                                    verifiedAt: null,
+                                    updatedAt: new Date(),
+                                })
+                                    .where(eq(userMfaSession.sessionId, loginSessionId));
+                            }
+                        }
+                        await tx.insert(userActivityLog).values({
+                            id: crypto.randomUUID(),
+                            userId: loginUserId,
+                            action: "LOGIN_SUCCESS",
+                            description: "User successfully logged in",
+                            metadata: {
+                                loginMethod: "email_password",
+                                sessionDuration: "30 minutes idle",
+                            },
+                            ipAddress: loginHeaders?.get("x-forwarded-for") ||
                                 loginHeaders?.get("x-real-ip") ||
-                                null;
-                            const accessTime = new Date().toLocaleString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                timeZoneName: "short",
-                            });
-                            const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
-                            const message = `Your account was recently accessed at ${accessTime}${ipDisplay}. If this was not you, kindly reach out to support to secure your account.`;
-                            const nid = crypto.randomUUID();
-                            await tx.insert(notification).values({
-                                id: nid,
-                                userId: loginUserId,
-                                teamId: null,
-                                type: "SYSTEM",
-                                priority: "NORMAL",
-                                title: "Account Access Notification",
-                                message,
-                                link: null,
-                                metadata: {
-                                    ipAddress,
-                                    accessTime,
-                                    loginMethod: "email_password",
-                                },
-                                seen: false,
-                                readAt: null,
-                                createdAt: new Date(),
-                                updatedAt: new Date(),
-                            });
-                            await tx.insert(notificationActivityLog).values({
-                                id: crypto.randomUUID(),
-                                notificationId: nid,
-                                userId: loginUserId,
-                                action: "CREATE",
-                                description: "Login notification created",
-                                metadata: { ipAddress, accessTime },
+                                "unknown",
+                            userAgent: loginHeaders?.get("user-agent") || "unknown",
+                            createdAt: new Date(),
+                        });
+                    })
+                        .catch((error) => console.error("Failed to update login-related data:", error));
+                    void db
+                        .transaction(async (tx) => {
+                        const ipAddress = loginHeaders?.get("x-forwarded-for") ||
+                            loginHeaders?.get("x-real-ip") ||
+                            null;
+                        const accessTime = new Date().toLocaleString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZoneName: "short",
+                        });
+                        const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
+                        const message = `Your account was recently accessed at ${accessTime}${ipDisplay}. If this was not you, kindly reach out to support to secure your account.`;
+                        const nid = crypto.randomUUID();
+                        await tx.insert(notification).values({
+                            id: nid,
+                            userId: loginUserId,
+                            teamId: null,
+                            type: "SYSTEM",
+                            priority: "NORMAL",
+                            title: "Account Access Notification",
+                            message,
+                            link: null,
+                            metadata: {
                                 ipAddress,
-                                userAgent: loginHeaders?.get("user-agent") || null,
-                                createdAt: new Date(),
-                            });
-                        })
-                            .catch((error) => console.error("Failed to create login notification:", error));
-                    }
-                    catch (error) {
-                        console.error("Failed to update login-related data:", error);
-                    }
+                                accessTime,
+                                loginMethod: "email_password",
+                            },
+                            seen: false,
+                            readAt: null,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        });
+                        await tx.insert(notificationActivityLog).values({
+                            id: crypto.randomUUID(),
+                            notificationId: nid,
+                            userId: loginUserId,
+                            action: "CREATE",
+                            description: "Login notification created",
+                            metadata: { ipAddress, accessTime },
+                            ipAddress,
+                            userAgent: loginHeaders?.get("user-agent") || null,
+                            createdAt: new Date(),
+                        });
+                    })
+                        .catch((error) => console.error("Failed to create login notification:", error));
                 }
             }
             if (ctx.path.startsWith("/sign-up")) {
                 const newSession = ctx.context.newSession;
                 if (newSession?.user?.id) {
-                    try {
-                        await recordTermsAcceptance(newSession.user.id);
-                    }
-                    catch (error) {
-                        console.error("Failed to record terms acceptance on sign-up:", error);
-                    }
+                    void recordTermsAcceptance(newSession.user.id).catch((error) => console.error("Failed to record terms acceptance on sign-up:", error));
                     void completeSignupSideEffects({
                         userId: newSession.user.id,
                         sessionId: newSession.session?.id,
@@ -571,209 +565,207 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         sendResetPassword: async ({ user: u, url, token }) => {
-            console.log(`📧 SENDING PASSWORD RESET EMAIL: User ${u.email} requested password reset`);
-            console.log(`Token: ${token}`);
-            console.log(`Original URL: ${url}`);
-            try {
-                await db.insert(userActivityLog).values({
-                    id: crypto.randomUUID(),
-                    userId: u.id,
-                    action: "PASSWORD_RESET_REQUESTED",
-                    description: "User requested password reset via email",
-                    metadata: {
-                        email: u.email,
-                        token: token.substring(0, 8) + "...",
-                        requestMethod: "email_link",
-                    },
-                    ipAddress: "unknown",
-                    userAgent: "unknown",
-                    createdAt: new Date(),
-                });
-                console.log(`📝 Password reset request activity logged for user ${u.email}`);
-            }
-            catch (error) {
-                console.error("Failed to log password reset request activity:", error);
-            }
-            const base = frontendBaseUrl();
-            const resetUrl = `${base}/auth/reset-password?token=${token}`;
-            console.log(`Reset URL: ${resetUrl}`);
-            const html = await renderResetPasswordEmail({
-                userFirstname: u.name || "User",
-                resetPasswordLink: resetUrl,
-            });
-            await sendTransactionalEmail({
-                userId: u.id,
-                to: u.email,
-                subject: "Reset your password - npanel",
-                html,
-            });
+            void (async () => {
+                try {
+                    await db.insert(userActivityLog).values({
+                        id: crypto.randomUUID(),
+                        userId: u.id,
+                        action: "PASSWORD_RESET_REQUESTED",
+                        description: "User requested password reset via email",
+                        metadata: {
+                            email: u.email,
+                            token: token.substring(0, 8) + "...",
+                            requestMethod: "email_link",
+                        },
+                        ipAddress: "unknown",
+                        userAgent: "unknown",
+                        createdAt: new Date(),
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to log password reset request activity:", error);
+                }
+                try {
+                    const base = frontendBaseUrl();
+                    const resetUrl = `${base}/auth/reset-password?token=${token}`;
+                    const html = await renderResetPasswordEmail({
+                        userFirstname: u.name || "User",
+                        resetPasswordLink: resetUrl,
+                    });
+                    await sendAuthEmail({
+                        to: u.email,
+                        subject: "Reset your password - npanel",
+                        html,
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to send password reset email:", error);
+                }
+            })();
         },
         onPasswordReset: async ({ user: u }) => {
-            console.log(`✅ PASSWORD RESET SUCCESS: Password for user ${u.email} has been reset successfully.`);
-            console.log(`User ID: ${u.id}`);
-            console.log(`Reset timestamp: ${new Date().toISOString()}`);
-            try {
-                await db.insert(userActivityLog).values({
-                    id: crypto.randomUUID(),
-                    userId: u.id,
-                    action: "PASSWORD_RESET",
-                    description: "User password was reset successfully",
-                    metadata: {
-                        email: u.email,
-                        resetMethod: "email_link",
-                    },
-                    ipAddress: "unknown",
-                    userAgent: "unknown",
-                    createdAt: new Date(),
-                });
-                console.log(`📝 Password reset activity logged for user ${u.email}`);
-            }
-            catch (error) {
-                console.error("Failed to log password reset activity:", error);
-            }
-            try {
-                const resetTime = new Date().toLocaleString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZoneName: "short",
-                });
-                const message = `Your password was successfully reset at ${resetTime}. If this was not you, please contact support immediately to secure your account.`;
-                const nid = crypto.randomUUID();
-                await db.insert(notification).values({
-                    id: nid,
-                    userId: u.id,
-                    teamId: null,
-                    type: "SYSTEM",
-                    priority: "HIGH",
-                    title: "Password Reset Successful",
-                    message,
-                    link: null,
-                    metadata: {
-                        resetTime,
-                        resetMethod: "email_link",
-                    },
-                    seen: false,
-                    readAt: null,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                });
-                await db.insert(notificationActivityLog).values({
-                    id: crypto.randomUUID(),
-                    notificationId: nid,
-                    userId: u.id,
-                    action: "CREATE",
-                    description: "Password reset success notification created",
-                    metadata: {
-                        resetTime,
-                        resetMethod: "email_link",
-                    },
-                    ipAddress: null,
-                    userAgent: null,
-                    createdAt: new Date(),
-                });
-            }
-            catch (error) {
-                console.error("Failed to create password reset success notification:", error);
-            }
-            try {
-                const base = frontendBaseUrl();
-                const loginLink = `${base}/auth/login`;
-                const html = await renderPasswordResetSuccessEmail({
-                    userFirstname: u.name || "User",
-                    loginLink,
-                });
-                await sendTransactionalEmail({
-                    userId: u.id,
-                    to: u.email,
-                    subject: "Password reset successful - npanel",
-                    html,
-                });
-                console.log(`📧 Password reset success email sent to ${u.email}`);
-            }
-            catch (error) {
-                console.error("Failed to send password reset success email:", error);
-            }
+            void (async () => {
+                try {
+                    await db.insert(userActivityLog).values({
+                        id: crypto.randomUUID(),
+                        userId: u.id,
+                        action: "PASSWORD_RESET",
+                        description: "User password was reset successfully",
+                        metadata: {
+                            email: u.email,
+                            resetMethod: "email_link",
+                        },
+                        ipAddress: "unknown",
+                        userAgent: "unknown",
+                        createdAt: new Date(),
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to log password reset activity:", error);
+                }
+                try {
+                    const resetTime = new Date().toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZoneName: "short",
+                    });
+                    const message = `Your password was successfully reset at ${resetTime}. If this was not you, please contact support immediately to secure your account.`;
+                    const nid = crypto.randomUUID();
+                    await db.insert(notification).values({
+                        id: nid,
+                        userId: u.id,
+                        teamId: null,
+                        type: "SYSTEM",
+                        priority: "HIGH",
+                        title: "Password Reset Successful",
+                        message,
+                        link: null,
+                        metadata: {
+                            resetTime,
+                            resetMethod: "email_link",
+                        },
+                        seen: false,
+                        readAt: null,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    });
+                    await db.insert(notificationActivityLog).values({
+                        id: crypto.randomUUID(),
+                        notificationId: nid,
+                        userId: u.id,
+                        action: "CREATE",
+                        description: "Password reset success notification created",
+                        metadata: {
+                            resetTime,
+                            resetMethod: "email_link",
+                        },
+                        ipAddress: null,
+                        userAgent: null,
+                        createdAt: new Date(),
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to create password reset success notification:", error);
+                }
+                try {
+                    const base = frontendBaseUrl();
+                    const loginLink = `${base}/auth/login`;
+                    const html = await renderPasswordResetSuccessEmail({
+                        userFirstname: u.name || "User",
+                        loginLink,
+                    });
+                    await sendAuthEmail({
+                        to: u.email,
+                        subject: "Password reset successful - npanel",
+                        html,
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to send password reset success email:", error);
+                }
+            })();
         },
     },
     emailVerification: {
         sendVerificationEmail: async ({ user: u, url, token }) => {
-            console.log(`📧 SENDING EMAIL VERIFICATION: User ${u.email} needs to verify their email`);
-            console.log(`Token: ${token}`);
-            console.log(`Original URL: ${url}`);
-            try {
-                await db.insert(userActivityLog).values({
-                    id: crypto.randomUUID(),
-                    userId: u.id,
-                    action: "EMAIL_VERIFICATION_SENT",
-                    description: "Email verification link sent to user",
-                    metadata: {
-                        email: u.email,
-                        token: token.substring(0, 8) + "...",
-                        verificationMethod: "email_link",
-                    },
-                    ipAddress: "unknown",
-                    userAgent: "unknown",
-                    createdAt: new Date(),
-                });
-                console.log(`📝 Email verification request activity logged for user ${u.email}`);
-            }
-            catch (error) {
-                console.error("Failed to log email verification request activity:", error);
-            }
-            try {
-                const message = "Please check your email to verify your account. Click the verification link in the email to activate your account.";
-                const nid = crypto.randomUUID();
-                await db.insert(notification).values({
-                    id: nid,
-                    userId: u.id,
-                    teamId: null,
-                    type: "SYSTEM",
-                    priority: "NORMAL",
-                    title: "Verify Your Email",
-                    message,
-                    link: null,
-                    metadata: {
-                        verificationMethod: "email_link",
-                        email: u.email,
-                    },
-                    seen: false,
-                    readAt: null,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                });
-                await db.insert(notificationActivityLog).values({
-                    id: crypto.randomUUID(),
-                    notificationId: nid,
-                    userId: u.id,
-                    action: "CREATE",
-                    description: "Email verification sent notification created",
-                    metadata: {
-                        verificationMethod: "email_link",
-                    },
-                    ipAddress: null,
-                    userAgent: null,
-                    createdAt: new Date(),
-                });
-            }
-            catch (error) {
-                console.error("Failed to create email verification sent notification:", error);
-            }
-            const base = frontendBaseUrl();
-            const verificationUrl = `${base}/auth/verify-email?token=${token}`;
-            console.log(`Verification URL: ${verificationUrl}`);
-            const html = await renderEmailVerificationEmail({
-                userFirstname: u.name || "User",
-                verificationLink: verificationUrl,
-            });
-            await sendTransactionalEmail({
-                userId: u.id,
-                to: u.email,
-                subject: "Welcome to npanel - Verify your email",
-                html,
-            });
+            void (async () => {
+                try {
+                    await db.insert(userActivityLog).values({
+                        id: crypto.randomUUID(),
+                        userId: u.id,
+                        action: "EMAIL_VERIFICATION_SENT",
+                        description: "Email verification link sent to user",
+                        metadata: {
+                            email: u.email,
+                            token: token.substring(0, 8) + "...",
+                            verificationMethod: "email_link",
+                        },
+                        ipAddress: "unknown",
+                        userAgent: "unknown",
+                        createdAt: new Date(),
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to log email verification request activity:", error);
+                }
+                try {
+                    const message = "Please check your email to verify your account. Click the verification link in the email to activate your account.";
+                    const nid = crypto.randomUUID();
+                    await db.insert(notification).values({
+                        id: nid,
+                        userId: u.id,
+                        teamId: null,
+                        type: "SYSTEM",
+                        priority: "NORMAL",
+                        title: "Verify Your Email",
+                        message,
+                        link: null,
+                        metadata: {
+                            verificationMethod: "email_link",
+                            email: u.email,
+                        },
+                        seen: false,
+                        readAt: null,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    });
+                    await db.insert(notificationActivityLog).values({
+                        id: crypto.randomUUID(),
+                        notificationId: nid,
+                        userId: u.id,
+                        action: "CREATE",
+                        description: "Email verification sent notification created",
+                        metadata: {
+                            verificationMethod: "email_link",
+                        },
+                        ipAddress: null,
+                        userAgent: null,
+                        createdAt: new Date(),
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to create email verification sent notification:", error);
+                }
+                try {
+                    const base = frontendBaseUrl();
+                    const verificationUrl = `${base}/auth/verify-email?token=${token}`;
+                    const html = await renderEmailVerificationEmail({
+                        userFirstname: u.name || "User",
+                        verificationLink: verificationUrl,
+                    });
+                    await sendAuthEmail({
+                        to: u.email,
+                        subject: "Welcome to npanel - Verify your email",
+                        html,
+                    });
+                }
+                catch (error) {
+                    console.error("Failed to send verification email:", error);
+                }
+            })();
         },
         sendOnSignUp: true,
         autoSignInAfterVerification: true,

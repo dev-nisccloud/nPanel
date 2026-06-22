@@ -176,3 +176,11 @@ export declare function renderOpenProviderVerifyEmail({ recipientName, domainNam
     recipientName?: string;
     domainName?: string;
 }): Promise<string>;
+export declare function renderStorefrontWelcomeEmail({ firstName, email, temporaryPassword, loginLink, verificationLink, planName, }: {
+    firstName: string;
+    email: string;
+    temporaryPassword: string;
+    loginLink: string;
+    verificationLink?: string;
+    planName?: string;
+}): Promise<string>;

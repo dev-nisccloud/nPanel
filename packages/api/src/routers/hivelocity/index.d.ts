@@ -125,6 +125,29 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
         };
         meta: object;
     }>;
+    /** Public storefront: operating systems for a Hivelocity product (no auth). */
+    publicGetProductOperatingSystems: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            productId: number;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
+    /** Public storefront: add-on options for a Hivelocity product (no auth). */
+    publicGetProductOptions: import("@trpc/server").TRPCQueryProcedure<{
+        input: {
+            productId: number;
+            groupBy?: string | undefined;
+        };
+        output: {
+            success: boolean;
+            data: unknown;
+        };
+        meta: object;
+    }>;
     /**
      * Public (TEMP for development): Provision an instant compute device (recommended endpoint).
      * Docs: POST /compute/
@@ -1229,7 +1252,7 @@ export declare const hivelocityRouter: import("@trpc/server").TRPCBuiltRouter<{
             [x: string]: unknown;
             timezone: string;
             volumeId: string;
-            intervalType: "MONTHLY" | "HOURLY" | "DAILY" | "WEEKLY";
+            intervalType: "MONTHLY" | "DAILY" | "WEEKLY" | "HOURLY";
             maxSnapshots: number;
             facilityCode: string;
             hour?: number | undefined;

@@ -7,7 +7,7 @@ export declare const hostingPlansRouter: import("@trpc/server").TRPCBuiltRouter<
     getAll: import("@trpc/server").TRPCQueryProcedure<{
         input: {
             planType?: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING" | undefined;
-            hostingSubType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingSubType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             isActive?: boolean | undefined;
         } | undefined;
         output: {
@@ -15,7 +15,7 @@ export declare const hostingPlansRouter: import("@trpc/server").TRPCBuiltRouter<
             name: string;
             description: string | null;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
-            hostingSubType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingSubType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             features: string[];
             highlights: string[];
             isPopular: boolean;
@@ -43,7 +43,7 @@ export declare const hostingPlansRouter: import("@trpc/server").TRPCBuiltRouter<
             name: string;
             description: string | null;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
-            hostingSubType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingSubType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             features: string[];
             highlights: string[];
             isPopular: boolean;
@@ -67,7 +67,7 @@ export declare const hostingPlansRouter: import("@trpc/server").TRPCBuiltRouter<
             name: string;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
             description?: string | undefined;
-            hostingSubType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingSubType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             features?: string[] | undefined;
             highlights?: string[] | undefined;
             isPopular?: boolean | undefined;
@@ -87,7 +87,7 @@ export declare const hostingPlansRouter: import("@trpc/server").TRPCBuiltRouter<
             name: string;
             description: string | null;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
-            hostingSubType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingSubType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             features: string[];
             highlights: string[];
             isPopular: boolean;
@@ -112,7 +112,7 @@ export declare const hostingPlansRouter: import("@trpc/server").TRPCBuiltRouter<
             name?: string | undefined;
             description?: string | undefined;
             planType?: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING" | undefined;
-            hostingSubType?: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
+            hostingSubType?: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | undefined;
             features?: string[] | undefined;
             highlights?: string[] | undefined;
             isPopular?: boolean | undefined;
@@ -132,7 +132,7 @@ export declare const hostingPlansRouter: import("@trpc/server").TRPCBuiltRouter<
             name: string;
             description: string | null;
             planType: "HOSTING" | "SEO" | "VIDEOGRAPHY" | "VISUAL_CREATIVE" | "SOCIAL_MEDIA_MARKETING" | "PAY_PER_CLICK_ADVERTISING";
-            hostingSubType: "WEB_HOSTING" | "EMAIL_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
+            hostingSubType: "EMAIL_HOSTING" | "WEB_HOSTING" | "RESELLER_HOSTING" | "VPS_HOSTING" | "DEDICATED_HOSTING" | null;
             features: string[];
             highlights: string[];
             isPopular: boolean;

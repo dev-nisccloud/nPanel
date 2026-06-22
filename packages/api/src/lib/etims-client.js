@@ -16,6 +16,7 @@ const ENDPOINTS = {
     selectNoticeList: '/selectNoticeList',
     // Customer
     selectCustomer: '/selectCustomer',
+    selectCustomerList: '/selectCustomerList',
     // Branches
     selectBhfList: '/selectBhfList',
     saveBhfCustomer: '/saveBhfCustomer',
@@ -31,6 +32,7 @@ const ENDPOINTS = {
     updateImportItem: '/updateImportItem',
     // Sales
     saveTrnsSalesOsdc: '/saveTrnsSalesOsdc',
+    selectTrnsSalesList: '/selectTrnsSalesList',
     // Purchases
     selectTrnsPurchaseSalesList: '/selectTrnsPurchaseSalesList',
     insertTrnsPurchase: '/insertTrnsPurchase',
@@ -255,9 +257,18 @@ export class EtimsOscuClient {
     // ───────────────────────
     // Customer
     // ───────────────────────
-    /** Look up a single customer by their KRA TIN */
+    /** Look up a single customer by their KRA TIN (central registry). */
     async selectCustomer(oscu, custmTin) {
-        return this.post('selectCustomer', { custmTin }, oscu);
+        return this.post('selectCustomer', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            custmTin,
+        }, oscu);
+    }
+    /** List customers registered on this branch via saveBhfCustomer. */
+    async selectCustomerList(oscu, lastReqDt) {
+        return this.post('selectCustomerList', { lastReqDt }, oscu);
     }
     // ───────────────────────
     // Branches
@@ -266,7 +277,12 @@ export class EtimsOscuClient {
         return this.post('selectBhfList', { lastReqDt }, oscu);
     }
     async saveBhfCustomer(oscu, customerData) {
-        return this.post('saveBhfCustomer', customerData, oscu);
+        return this.post('saveBhfCustomer', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...customerData,
+        }, oscu);
     }
     async saveBhfUser(oscu, userData) {
         return this.post('saveBhfUser', userData, oscu);
@@ -306,6 +322,10 @@ export class EtimsOscuClient {
             cmcKey: oscu.cmcKey,
             ...transaction,
         }, oscu);
+    }
+    /** List sales transactions submitted by this taxpayer/branch. */
+    async selectTrnsSalesList(oscu, lastReqDt) {
+        return this.post('selectTrnsSalesList', { lastReqDt }, oscu);
     }
     // ───────────────────────
     // Purchases

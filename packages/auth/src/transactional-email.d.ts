@@ -1,3 +1,4 @@
+/** Fast path for auth emails (verify, reset, MFA). Skips campaign/email tracking DB. */
 export declare function sendAuthEmail(params: {
     to: string;
     subject: string;

@@ -5,6 +5,10 @@ import { sendJetBackupRequest } from "../../lib/jetbackup/client";
 export const JETBACKUP_BACKUP_TYPE_ACCOUNTS = 1;
 /** JetBackup 5.3 contains: full account (all components) */
 export const JETBACKUP_CONTAINS_FULL_ACCOUNT = 511;
+/** JetBackup queue group type: restore */
+export const JETBACKUP_QUEUE_TYPE_RESTORE = 2;
+/** JetBackup queue group type: download */
+export const JETBACKUP_QUEUE_TYPE_DOWNLOAD = 4;
 export const listSchema = z.object({
     page: z.number().optional(),
     limit: z.number().optional(),

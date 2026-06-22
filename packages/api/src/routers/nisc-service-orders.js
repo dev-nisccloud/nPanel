@@ -682,7 +682,9 @@ export const niscServiceOrdersRouter = router({
         }
         for (const item of input.items) {
             const serviceType = serviceTypeByProductId.get(item.productId);
-            const isDomain = serviceType === "domains" || serviceType === "domain_registration" || serviceType === "domain_transfer";
+            const isDomain = serviceType === "domains" ||
+                serviceType === "domain_registration" ||
+                serviceType === "domain_transfer";
             const metadata = item.metadata;
             if (isDomain) {
                 if (metadata?.useRegistrantInfo === "myself") {

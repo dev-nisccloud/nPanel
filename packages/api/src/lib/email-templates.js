@@ -1,5 +1,5 @@
 import { render } from '@react-email/render';
-import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, InvoiceSuccessEmail, QuotationDeliveryEmail, OrderConfirmationEmail, OrderReceivedEmail, OrderFailedEmail, NiscAdminOrderConfirmedEmail, PaymentReceiptEmail, CampaignCreatedEmail, CampaignCompletedEmail, CampaignScheduledEmail, CampaignCancelledEmail, ServiceRenewalReminderEmail, } from "react-email-starter/emails";
+import { ResetPasswordEmail, PasswordResetSuccessEmail, WelcomeEmail, TeamInviteEmail, AccountCreatedEmail, AgencyUserCreatedEmail, InvoiceDeliveryEmail, InvoiceSuccessEmail, QuotationDeliveryEmail, OrderConfirmationEmail, OrderReceivedEmail, OrderFailedEmail, NiscAdminOrderConfirmedEmail, PaymentReceiptEmail, CampaignCreatedEmail, CampaignCompletedEmail, CampaignScheduledEmail, CampaignCancelledEmail, ServiceRenewalReminderEmail, StorefrontWelcomeEmail, } from "react-email-starter/emails";
 export async function renderResetPasswordEmail({ userFirstname, resetPasswordLink, }) {
     return render(ResetPasswordEmail({
         userFirstname,
@@ -203,6 +203,16 @@ export async function renderOpenProviderVerifyEmail({ recipientName, domainName,
   <p><img src="${placeholderImageUrl}" alt="Nisc" width="120" height="60" style="display:block;margin:1em 0;" /></p>
   <p>If you did not request this, you can ignore this message.</p>
 </div>`;
+}
+export async function renderStorefrontWelcomeEmail({ firstName, email, temporaryPassword, loginLink, verificationLink, planName, }) {
+    return render(StorefrontWelcomeEmail({
+        firstName,
+        email,
+        temporaryPassword,
+        loginLink,
+        verificationLink,
+        planName,
+    }));
 }
 function escapeHtml(s) {
     return s

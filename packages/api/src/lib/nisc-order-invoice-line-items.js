@@ -105,13 +105,17 @@ export function resolveHostingServiceLabel(serviceType, productName) {
         return "Website Hosting";
     if (st === "email_hosting")
         return "Email Hosting";
-    if (st === "vps_hosting" || st === "vds_hosting")
+    if (st === "vps_hosting")
         return "VPS Hosting";
+    if (st === "vds_hosting")
+        return "VDS Hosting";
     if (st === "dedicated_server_hosting")
         return "Dedicated Hosting";
     if (st === "reseller_hosting")
         return "Reseller Hosting";
     const name = productName.trim();
+    if (/\bvds\b/i.test(name))
+        return "VDS Hosting";
     if (/vps/i.test(name))
         return "VPS Hosting";
     if (/email hosting/i.test(name))

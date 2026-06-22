@@ -96,8 +96,8 @@ export declare const metaAdsInsightsRouter: import("@trpc/server").TRPCBuiltRout
             createdAt: Date;
             updatedAt: Date;
             status: string;
-            userId: string;
             metadata: unknown;
+            userId: string;
             errorMessage: string | null;
             campaignId: string;
             internalCampaignId: string | null;
@@ -117,8 +117,8 @@ export declare const metaAdsInsightsRouter: import("@trpc/server").TRPCBuiltRout
             createdAt: Date;
             updatedAt: Date;
             status: string;
-            userId: string;
             metadata: unknown;
+            userId: string;
             errorMessage: string | null;
             campaignId: string;
             internalCampaignId: string | null;

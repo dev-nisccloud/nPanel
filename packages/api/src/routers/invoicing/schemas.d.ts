@@ -15,8 +15,8 @@ export declare const invoiceStatusSchema: z.ZodEnum<{
 export type InvoiceStatusType = z.infer<typeof invoiceStatusSchema>;
 export declare const invoicePaymentStatusSchema: z.ZodEnum<{
     PENDING: "PENDING";
-    COMPLETED: "COMPLETED";
     FAILED: "FAILED";
+    COMPLETED: "COMPLETED";
     REFUNDED: "REFUNDED";
 }>;
 export type InvoicePaymentStatusType = z.infer<typeof invoicePaymentStatusSchema>;
@@ -36,12 +36,56 @@ export declare const creditNoteStatusSchema: z.ZodEnum<{
     VOIDED: "VOIDED";
 }>;
 export type CreditNoteStatusType = z.infer<typeof creditNoteStatusSchema>;
+export declare const invoiceKraStatusSchema: z.ZodEnum<{
+    PENDING: "PENDING";
+    NOT_APPLICABLE: "NOT_APPLICABLE";
+    SUBMITTING: "SUBMITTING";
+    SYNCED: "SYNCED";
+    FAILED: "FAILED";
+    SKIPPED: "SKIPPED";
+    VERIFIED: "VERIFIED";
+}>;
+export type InvoiceKraStatusType = z.infer<typeof invoiceKraStatusSchema>;
 /**
  * Utility schemas used across invoice payloads.
  */
 export declare const nullableStringSchema: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 export declare const nullableJsonSchema: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
 export declare const nullableDateInputSchema: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+/** KRA eTIMS fiscal footer + verification URL (customer-safe when synced). */
+export declare const etimsFiscalFieldsSchema: z.ZodObject<{
+    rcptSign: z.ZodString;
+    intrlData: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    curRcptNo: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    totRcptNo: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    sdcDateTime: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    sdcDateTimeDisplay: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    verificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+}, z.core.$strip>;
+export type EtimsFiscalFieldsType = z.infer<typeof etimsFiscalFieldsSchema>;
+export declare const invoiceKraFieldsSchema: z.ZodObject<{
+    kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraVerifiedDate: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
+    kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSubmittedAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraLastAttemptAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraAttemptCount: z.ZodOptional<z.ZodNumber>;
+    kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+}, z.core.$strip>;
 /**
  * Line item schema – sent from the client when creating/updating invoices.
  * Amount-related fields are strings to avoid floating point issues.
@@ -98,8 +142,8 @@ export declare const invoiceTransactionInputSchema: z.ZodObject<{
     providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     status: z.ZodDefault<z.ZodEnum<{
         PENDING: "PENDING";
-        COMPLETED: "COMPLETED";
         FAILED: "FAILED";
+        COMPLETED: "COMPLETED";
         REFUNDED: "REFUNDED";
     }>>;
     method: z.ZodEnum<{
@@ -141,8 +185,8 @@ export declare const invoiceTransactionOutputSchema: z.ZodObject<{
     id: z.ZodString;
     status: z.ZodEnum<{
         PENDING: "PENDING";
-        COMPLETED: "COMPLETED";
         FAILED: "FAILED";
+        COMPLETED: "COMPLETED";
         REFUNDED: "REFUNDED";
     }>;
     paidAt: z.ZodNullable<z.ZodDate>;
@@ -218,8 +262,209 @@ export declare const creditNoteOutputSchema: z.ZodObject<{
         userAgent: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         createdAt: z.ZodDate;
     }, z.core.$strip>>>;
+    kraRefundReasonCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    originalInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraVerifiedDate: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
+    kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSubmittedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraLastAttemptAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraAttemptCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
 }, z.core.$strip>;
 export type CreditNote = z.infer<typeof creditNoteOutputSchema>;
+export declare const creditNoteSummarySchema: z.ZodObject<{
+    id: z.ZodString;
+    creditNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    invoiceId: z.ZodString;
+    invoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    status: z.ZodEnum<{
+        DRAFT: "DRAFT";
+        ISSUED: "ISSUED";
+        APPLIED: "APPLIED";
+        VOIDED: "VOIDED";
+    }>;
+    amount: z.ZodString;
+    currency: z.ZodString;
+    issuedAt: z.ZodNullable<z.ZodDate>;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
+    originalInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    createdAt: z.ZodDate;
+}, z.core.$strip>;
+export type CreditNoteSummary = z.infer<typeof creditNoteSummarySchema>;
+export declare const creditNoteListFiltersSchema: z.ZodObject<{
+    teamId: z.ZodOptional<z.ZodString>;
+    status: z.ZodOptional<z.ZodEnum<{
+        DRAFT: "DRAFT";
+        ISSUED: "ISSUED";
+        APPLIED: "APPLIED";
+        VOIDED: "VOIDED";
+    }>>;
+    search: z.ZodOptional<z.ZodString>;
+    limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+    offset: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+}, z.core.$strip>;
+export type CreditNoteListFilters = z.infer<typeof creditNoteListFiltersSchema>;
+export declare const creditNoteListResponseSchema: z.ZodObject<{
+    creditNotes: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        creditNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        invoiceId: z.ZodString;
+        invoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        status: z.ZodEnum<{
+            DRAFT: "DRAFT";
+            ISSUED: "ISSUED";
+            APPLIED: "APPLIED";
+            VOIDED: "VOIDED";
+        }>;
+        amount: z.ZodString;
+        currency: z.ZodString;
+        issuedAt: z.ZodNullable<z.ZodDate>;
+        kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+            PENDING: "PENDING";
+            NOT_APPLICABLE: "NOT_APPLICABLE";
+            SUBMITTING: "SUBMITTING";
+            SYNCED: "SYNCED";
+            FAILED: "FAILED";
+            SKIPPED: "SKIPPED";
+            VERIFIED: "VERIFIED";
+        }>>>;
+        originalInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        createdAt: z.ZodDate;
+    }, z.core.$strip>>;
+    total: z.ZodNumber;
+}, z.core.$strip>;
+export declare const creditNoteDetailSchema: z.ZodObject<{
+    invoiceId: z.ZodString;
+    teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    creditNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    amount: z.ZodString;
+    currency: z.ZodDefault<z.ZodString>;
+    reason: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    metadata: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    createdBy: z.ZodString;
+    updatedBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    id: z.ZodString;
+    status: z.ZodEnum<{
+        DRAFT: "DRAFT";
+        ISSUED: "ISSUED";
+        APPLIED: "APPLIED";
+        VOIDED: "VOIDED";
+    }>;
+    issuedAt: z.ZodNullable<z.ZodDate>;
+    appliedAt: z.ZodNullable<z.ZodDate>;
+    createdAt: z.ZodDate;
+    updatedAt: z.ZodDate;
+    activityLogs: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        userId: z.ZodString;
+        action: z.ZodString;
+        description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        metadata: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+        ipAddress: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        userAgent: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        createdAt: z.ZodDate;
+    }, z.core.$strip>>>;
+    kraRefundReasonCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    originalInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraVerifiedDate: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
+    kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSubmittedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraLastAttemptAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraAttemptCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    invoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    customerEmail: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    fromDetails: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    customerDetails: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    paymentDetails: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    lineItems: z.ZodArray<z.ZodObject<{
+        position: z.ZodDefault<z.ZodNumber>;
+        name: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        quantity: z.ZodNullable<z.ZodOptional<z.ZodNumber>>;
+        unit: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        price: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        discount: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        total: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        metadata: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+        id: z.ZodString;
+        createdAt: z.ZodDate;
+        updatedAt: z.ZodDate;
+    }, z.core.$strip>>;
+    subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    tax: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    taxPercentage: z.ZodNullable<z.ZodOptional<z.ZodCoercedNumber<unknown>>>;
+    note: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    etimsFiscal: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        rcptSign: z.ZodString;
+        intrlData: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        curRcptNo: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        totRcptNo: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        sdcDateTime: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        sdcDateTimeDisplay: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        verificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    }, z.core.$strip>>>;
+}, z.core.$strip>;
+export type CreditNoteDetail = z.infer<typeof creditNoteDetailSchema>;
+export declare const issueCreditNoteInputSchema: z.ZodObject<{
+    invoiceId: z.ZodString;
+    rfdRsnCd: z.ZodEnum<{
+        "01": "01";
+        "02": "02";
+        "03": "03";
+        "04": "04";
+        "05": "05";
+        "06": "06";
+    }>;
+    reason: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    note: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+}, z.core.$strip>;
+export type IssueCreditNoteInput = z.infer<typeof issueCreditNoteInputSchema>;
 /**
  * Core invoice schemas.
  */
@@ -269,8 +514,8 @@ export declare const invoiceCreateInputSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            COMPLETED: "COMPLETED";
             FAILED: "FAILED";
+            COMPLETED: "COMPLETED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -311,6 +556,27 @@ export declare const invoiceCreateInputSchema: z.ZodObject<{
         createdBy: z.ZodString;
         updatedBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     }, z.core.$strip>>;
+    kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraVerifiedDate: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
+    kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSubmittedAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraLastAttemptAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraAttemptCount: z.ZodOptional<z.ZodNumber>;
+    kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
     id: z.ZodOptional<z.ZodString>;
     teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -364,8 +630,8 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            COMPLETED: "COMPLETED";
             FAILED: "FAILED";
+            COMPLETED: "COMPLETED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -406,6 +672,27 @@ export declare const invoiceUpdateInputSchema: z.ZodObject<{
         createdBy: z.ZodString;
         updatedBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     }, z.core.$strip>>;
+    kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraVerifiedDate: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
+    kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSubmittedAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraLastAttemptAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraAttemptCount: z.ZodOptional<z.ZodNumber>;
+    kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
     teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -465,6 +752,15 @@ export declare const invoiceSummarySchema: z.ZodObject<{
     dueDate: z.ZodNullable<z.ZodDate>;
     createdAt: z.ZodDate;
     updatedAt: z.ZodDate;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
 }, z.core.$strip>;
 export type InvoiceSummary = z.infer<typeof invoiceSummarySchema>;
 export declare const invoiceDetailSchema: z.ZodObject<{
@@ -486,6 +782,15 @@ export declare const invoiceDetailSchema: z.ZodObject<{
     dueDate: z.ZodNullable<z.ZodDate>;
     createdAt: z.ZodDate;
     updatedAt: z.ZodDate;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
     teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     subtotal: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -538,8 +843,8 @@ export declare const invoiceDetailSchema: z.ZodObject<{
         id: z.ZodString;
         status: z.ZodEnum<{
             PENDING: "PENDING";
-            COMPLETED: "COMPLETED";
             FAILED: "FAILED";
+            COMPLETED: "COMPLETED";
             REFUNDED: "REFUNDED";
         }>;
         paidAt: z.ZodNullable<z.ZodDate>;
@@ -589,6 +894,29 @@ export declare const invoiceDetailSchema: z.ZodObject<{
             userAgent: z.ZodNullable<z.ZodOptional<z.ZodString>>;
             createdAt: z.ZodDate;
         }, z.core.$strip>>>;
+        kraRefundReasonCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        originalInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        kraVerifiedDate: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+        kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+            PENDING: "PENDING";
+            NOT_APPLICABLE: "NOT_APPLICABLE";
+            SUBMITTING: "SUBMITTING";
+            SYNCED: "SYNCED";
+            FAILED: "FAILED";
+            SKIPPED: "SKIPPED";
+            VERIFIED: "VERIFIED";
+        }>>>;
+        kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        kraSubmittedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+        kraLastAttemptAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+        kraAttemptCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+        kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
     }, z.core.$strip>>>;
     activityLogs: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
@@ -607,6 +935,27 @@ export declare const invoiceDetailSchema: z.ZodObject<{
     template: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
     topBlock: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
     bottomBlock: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraVerifiedDate: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSubmittedAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraLastAttemptAt: z.ZodOptional<z.ZodNullable<z.ZodDate>>;
+    kraAttemptCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    etimsFiscal: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        rcptSign: z.ZodString;
+        intrlData: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        curRcptNo: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        totRcptNo: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        sdcDateTime: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        sdcDateTimeDisplay: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        verificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    }, z.core.$strip>>>;
 }, z.core.$strip>;
 export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>;
 /**
@@ -648,6 +997,15 @@ export declare const invoiceListResponseSchema: z.ZodObject<{
         dueDate: z.ZodNullable<z.ZodDate>;
         createdAt: z.ZodDate;
         updatedAt: z.ZodDate;
+        kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+            PENDING: "PENDING";
+            NOT_APPLICABLE: "NOT_APPLICABLE";
+            SUBMITTING: "SUBMITTING";
+            SYNCED: "SYNCED";
+            FAILED: "FAILED";
+            SKIPPED: "SKIPPED";
+            VERIFIED: "VERIFIED";
+        }>>>;
     }, z.core.$strip>>;
     total: z.ZodNumber;
 }, z.core.$strip>;
@@ -713,8 +1071,8 @@ export declare const submitInvoiceSchema: z.ZodObject<{
         providerReference: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         status: z.ZodDefault<z.ZodEnum<{
             PENDING: "PENDING";
-            COMPLETED: "COMPLETED";
             FAILED: "FAILED";
+            COMPLETED: "COMPLETED";
             REFUNDED: "REFUNDED";
         }>>;
         method: z.ZodEnum<{
@@ -755,6 +1113,27 @@ export declare const submitInvoiceSchema: z.ZodObject<{
         createdBy: z.ZodString;
         updatedBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     }, z.core.$strip>>;
+    kraInvoiceNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraReceiptNumber: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSignature: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraQrCode: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraVerifiedDate: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraStatus: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
+        PENDING: "PENDING";
+        NOT_APPLICABLE: "NOT_APPLICABLE";
+        SUBMITTING: "SUBMITTING";
+        SYNCED: "SYNCED";
+        FAILED: "FAILED";
+        SKIPPED: "SKIPPED";
+        VERIFIED: "VERIFIED";
+    }>>>;
+    kraError: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSubmittedAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraLastAttemptAt: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodCoercedDate<unknown>]>>>;
+    kraAttemptCount: z.ZodOptional<z.ZodNumber>;
+    kraVerificationUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    kraSyncPayload: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
+    kraSyncResponse: z.ZodNullable<z.ZodOptional<z.ZodUnion<readonly [z.ZodRecord<z.ZodString, z.ZodUnknown>, z.ZodArray<z.ZodUnknown>]>>>;
     id: z.ZodOptional<z.ZodString>;
     teamId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     customerId: z.ZodNullable<z.ZodOptional<z.ZodString>>;

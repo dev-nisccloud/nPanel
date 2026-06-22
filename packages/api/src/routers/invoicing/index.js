@@ -4,15 +4,24 @@ import { z } from "zod";
 import { and, count, desc, eq, ilike, inArray, isNull, or, sql } from "@npanel/db";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
-import { creditNote, creditNoteActivityLog, invoice, invoiceActivityLog, invoiceCounter, invoiceLineItem, invoiceTransaction, invoiceTransactionActivityLog, } from "@npanel/db/schema/invoicing";
+import { creditNote, creditNoteActivityLog, creditNoteCounter, invoice, invoiceActivityLog, invoiceCounter, invoiceLineItem, invoiceTransaction, invoiceTransactionActivityLog, } from "@npanel/db/schema/invoicing";
 import { order } from "@npanel/db/schema/orders";
 import { niscOrder } from "@npanel/db/schema/nisc-orders";
 import { cronWorkflowRunInvoice } from "@npanel/db/schema/cron-workflow-runs";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../../trpc";
 import { resolveInvoicePaymentMethod } from "../../lib/invoice-payment-method";
-import { COMPANY_LOGO_URL } from "../../lib/company-branding.js";
-import { activityLogSchema, creditNoteInputSchema, creditNoteOutputSchema, invoiceCreateInputSchema, invoiceDetailSchema, invoiceLineItemOutputSchema, invoiceListFiltersSchema, invoiceListResponseSchema, invoicePaymentStatusSchema, invoiceStatusSchema, invoiceSummarySchema, invoiceTransactionInputSchema, invoiceTransactionOutputSchema, invoiceUpdateInputSchema, nextInvoiceNumberSchema, nullableStringSchema, submitInvoiceSchema, updatePaymentInputSchema, } from "./schemas";
+import { buildInvoiceKraInsertFields, buildInvoiceKraUpdateFields, mapInvoiceKraDetailFields, } from "../../lib/invoice-kra-db-fields";
+import { scheduleInvoiceKraSyncAfterCreate } from "../../lib/qstash/invoice-kra-sync-worker";
+import { prepareInvoiceEmailDelivery, sendInvoiceReminderEmail, } from "../../lib/invoice-email-delivery";
+import { processInvoiceKraSync, } from "../../lib/invoice-kra-sync";
+import { isInvoiceKraSynced, kraStatusLabel, } from "../../lib/invoice-kra-status";
+import { sanitizeInvoiceDetailForCustomer } from "../../lib/invoice-customer-view";
+import { sanitizeCreditNoteDetailForCustomer, } from "../../lib/credit-note-customer-view";
+import { buildCreditNoteKraInsertFields, mapCreditNoteKraDetailFields, } from "../../lib/credit-note-kra-db-fields";
+import { processCreditNoteKraSync, } from "../../lib/credit-note-kra-sync";
+import { COMPANY_LOGO_URL } from "../../lib/company-branding";
+import { activityLogSchema, creditNoteInputSchema, creditNoteOutputSchema, creditNoteDetailSchema, creditNoteListFiltersSchema, creditNoteListResponseSchema, creditNoteSummarySchema, issueCreditNoteInputSchema, invoiceCreateInputSchema, invoiceDetailSchema, invoiceLineItemOutputSchema, invoiceListFiltersSchema, invoiceListResponseSchema, invoicePaymentStatusSchema, invoiceStatusSchema, invoiceSummarySchema, invoiceTransactionInputSchema, invoiceTransactionOutputSchema, invoiceUpdateInputSchema, nextInvoiceNumberSchema, nullableStringSchema, submitInvoiceSchema, updatePaymentInputSchema, } from "./schemas";
 const isAgencyUser = (role) => ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role) => role === "AGENCY_SUPER_ADMIN";
 // // Unused function commented out
@@ -141,6 +150,27 @@ async function ensureInvoiceAccess(_db, userId, role, invoiceId) {
     }
     return invAcc;
 }
+async function ensureCreditNoteAccess(_db, userId, role, creditNoteId) {
+    const row = await db.query.creditNote.findFirst({
+        where: eq(creditNote.id, creditNoteId),
+        columns: { teamId: true, invoiceId: true, createdBy: true },
+    });
+    if (!row) {
+        throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Credit note not found.",
+        });
+    }
+    if (isAgencyUser(role)) {
+        return row;
+    }
+    if (row.teamId) {
+        await ensureTeamAccess(db, userId, role, row.teamId);
+        return row;
+    }
+    await ensureInvoiceAccess(db, userId, role, row.invoiceId);
+    return row;
+}
 async function ensureInvoiceMutationAccess(_db, userId, role, invoiceId) {
     const invAcc = await db.query.invoice.findFirst({
         where: eq(invoice.id, invoiceId),
@@ -246,6 +276,7 @@ function buildInvoiceData(input) {
     if (input.bottomBlock !== undefined && input.bottomBlock !== null) {
         data.bottomBlock = input.bottomBlock;
     }
+    Object.assign(data, buildInvoiceKraInsertFields(input));
     return data;
 }
 function buildInvoiceUpdateData(input, userId) {
@@ -305,6 +336,7 @@ function buildInvoiceUpdateData(input, userId) {
     if (Object.prototype.hasOwnProperty.call(input, "bottomBlock")) {
         data.bottomBlock = input.bottomBlock !== undefined ? input.bottomBlock : undefined;
     }
+    Object.assign(data, buildInvoiceKraUpdateFields(input));
     return data;
 }
 function mapInvoiceDetail(invoice) {
@@ -414,6 +446,7 @@ function mapInvoiceDetail(invoice) {
         ...(invoice.template !== undefined && { template: invoice.template }),
         ...(invoice.topBlock !== undefined && { topBlock: invoice.topBlock }),
         ...(invoice.bottomBlock !== undefined && { bottomBlock: invoice.bottomBlock }),
+        ...mapInvoiceKraDetailFields(invoice),
     });
 }
 async function fetchInvoiceDetail(tx, invoiceId) {
@@ -581,6 +614,116 @@ async function generateNextInvoiceNumber(tx) {
     const nextNumber = rows[0]?.lastNumber ?? 1;
     return `INV-${nextNumber.toString().padStart(4, "0")}`;
 }
+async function generateNextCreditNoteNumber(tx) {
+    const now = new Date();
+    const rows = await tx
+        .insert(creditNoteCounter)
+        .values({
+        id: "credit-note-counter",
+        lastNumber: 1,
+        updatedAt: now,
+    })
+        .onConflictDoUpdate({
+        target: creditNoteCounter.id,
+        set: {
+            lastNumber: sql `${creditNoteCounter.lastNumber} + 1`,
+            updatedAt: now,
+        },
+    })
+        .returning({ lastNumber: creditNoteCounter.lastNumber });
+    const nextNumber = rows[0]?.lastNumber ?? 1;
+    return `CN-${nextNumber.toString().padStart(4, "0")}`;
+}
+function mapCreditNoteDetail(raw) {
+    const cn = raw.creditNote;
+    const inv = raw.invoice ?? {};
+    const lineItems = (inv.lineItems ?? []).map((item) => {
+        const li = item;
+        return invoiceLineItemOutputSchema.parse({
+            id: li.id,
+            position: li.position,
+            name: li.name,
+            description: li.description,
+            quantity: li.quantity,
+            unit: li.unit,
+            price: li.price,
+            discount: li.discount,
+            total: li.total,
+            ...(li.metadata !== undefined && { metadata: li.metadata }),
+            createdAt: li.createdAt,
+            updatedAt: li.updatedAt,
+        });
+    });
+    const activityLogs = (cn.activityLogs ?? []).map((log) => {
+        const l = log;
+        return activityLogSchema.parse({
+            id: l.id,
+            userId: l.userId,
+            action: l.action,
+            description: l.description ?? null,
+            ...(l.metadata !== undefined && { metadata: l.metadata }),
+            ipAddress: l.ipAddress ?? null,
+            userAgent: l.userAgent ?? null,
+            createdAt: l.createdAt,
+        });
+    });
+    return creditNoteDetailSchema.parse({
+        id: cn.id,
+        invoiceId: cn.invoiceId,
+        teamId: cn.teamId,
+        creditNumber: cn.creditNumber,
+        status: cn.status,
+        amount: cn.amount,
+        currency: cn.currency,
+        reason: cn.reason,
+        note: cn.note ?? inv.note,
+        ...(cn.metadata !== undefined && { metadata: cn.metadata }),
+        issuedAt: cn.issuedAt,
+        appliedAt: cn.appliedAt,
+        createdBy: cn.createdBy,
+        updatedBy: cn.updatedBy,
+        createdAt: cn.createdAt,
+        updatedAt: cn.updatedAt,
+        kraRefundReasonCode: cn.kraRefundReasonCode,
+        originalInvoiceNumber: cn.originalInvoiceNumber,
+        activityLogs,
+        invoiceNumber: inv.invoiceNumber,
+        customerName: inv.customerName,
+        customerEmail: inv.customerEmail,
+        fromDetails: inv.fromDetails,
+        customerDetails: inv.customerDetails,
+        paymentDetails: inv.paymentDetails,
+        lineItems,
+        subtotal: inv.subtotal,
+        tax: inv.tax,
+        taxPercentage: inv.taxPercentage ?? null,
+        ...mapCreditNoteKraDetailFields(cn),
+    });
+}
+async function fetchCreditNoteDetail(tx, creditNoteId) {
+    const cn = await tx.query.creditNote.findFirst({
+        where: eq(creditNote.id, creditNoteId),
+        with: {
+            activityLogs: {
+                orderBy: (log, { desc: d }) => [d(log.createdAt)],
+            },
+            invoice: {
+                with: {
+                    lineItems: {
+                        orderBy: (li, { asc: a }) => [a(li.position)],
+                    },
+                },
+            },
+        },
+    });
+    if (!cn) {
+        throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Credit note not found.",
+        });
+    }
+    return mapCreditNoteDetail({ creditNote: cn, invoice: cn.invoice });
+}
 export const invoicingRouter = router({
     list: protectedProcedure
         .input(invoiceListFiltersSchema)
@@ -626,6 +769,7 @@ export const invoicingRouter = router({
                 amount: invoice.amount,
                 currency: invoice.currency,
                 dueDate: invoice.dueDate,
+                kraStatus: invoice.kraStatus,
                 createdAt: invoice.createdAt,
                 updatedAt: invoice.updatedAt,
             })
@@ -698,7 +842,9 @@ export const invoicingRouter = router({
                 : null,
             activityLogs: invoiceDetail.activityLogs,
         });
-        return mapped;
+        return isAgencyUser(user.role)
+            ? mapped
+            : sanitizeInvoiceDetailForCustomer(mapped);
     }),
     updatePayment: protectedProcedure
         .input(updatePaymentInputSchema)
@@ -983,6 +1129,9 @@ export const invoicingRouter = router({
             });
         });
         const invoiceDetail = await fetchInvoiceDetail(db, invoiceId);
+        void scheduleInvoiceKraSyncAfterCreate(invoiceId, {
+            status: input.status ?? "SENT",
+        });
         return mapInvoiceDetail({
             ...invoiceDetail,
             transactions: invoiceDetail.transactions,
@@ -1057,6 +1206,9 @@ export const invoicingRouter = router({
             });
         });
         const invoiceDetail = await fetchInvoiceDetail(db, input.id);
+        if (input.status === "SENT" || input.status === "PAID") {
+            void scheduleInvoiceKraSyncAfterCreate(input.id, { status: input.status });
+        }
         return mapInvoiceDetail(invoiceDetail);
     }),
     updateStatus: protectedProcedure
@@ -1088,6 +1240,9 @@ export const invoicingRouter = router({
             });
         });
         const invoiceDetail = await fetchInvoiceDetail(db, input.id);
+        if (input.status === "SENT" || input.status === "PAID") {
+            void scheduleInvoiceKraSyncAfterCreate(input.id, { status: input.status });
+        }
         return mapInvoiceDetail(invoiceDetail);
     }),
     recordTransaction: protectedProcedure
@@ -1474,7 +1629,8 @@ export const invoicingRouter = router({
         .input(z.object({
         invoiceId: z.string().uuid(),
         to: z.string().email().optional(),
-        pdfBase64: z.string(), // Base64 encoded PDF blob
+        /** @deprecated Server generates PDF after KRA sync. */
+        pdfBase64: z.string().optional(),
         cc: z.array(z.string().email()).optional(),
         bcc: z.array(z.string().email()).optional(),
     }))
@@ -1482,9 +1638,9 @@ export const invoicingRouter = router({
         .mutation(async ({ ctx, input }) => {
         const user = await getAuthenticatedUser(ctx);
         const { renderInvoiceDeliveryEmail } = await import("../../lib/email-templates");
-        const { getSesClient, sendSesRawEmail } = await import("../../lib/ses-client");
         await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
-        const invoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
+        const prepared = await prepareInvoiceEmailDelivery(db, input.invoiceId);
+        const invoiceDetail = prepared.invoiceDetail;
         const toEmail = input.to?.trim() || invoiceDetail.customerEmail?.trim();
         if (!toEmail) {
             throw new TRPCError({
@@ -1501,7 +1657,6 @@ export const invoicingRouter = router({
             }).format(safe);
             return `${currency} ${formatted}`;
         };
-        // Format dates for email
         const formatDate = (date) => {
             if (!date)
                 return "N/A";
@@ -1511,7 +1666,6 @@ export const invoicingRouter = router({
                 day: "numeric",
             });
         };
-        // Render email template
         const emailHtml = await renderInvoiceDeliveryEmail({
             customerName: invoiceDetail.customerName || "Valued Customer",
             invoiceNumber: invoiceDetail.invoiceNumber || "N/A",
@@ -1522,103 +1676,17 @@ export const invoicingRouter = router({
             supportEmail: "billing@nisccloud.com",
             supportPhone: "+254 748 777 666",
         });
-        // Generate PDF filename from invoice number
-        const sanitizeFilename = (name) => {
-            return name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        };
-        const pdfFilename = invoiceDetail.invoiceNumber
-            ? `${sanitizeFilename(invoiceDetail.invoiceNumber)}.pdf`
-            : "Invoice.pdf";
-        // Prepare PDF attachment
-        const pdfBuffer = Buffer.from(input.pdfBase64, "base64");
-        const stripHeaderUnsafe = (value) => value.replace(/[\r\n]+/g, " ").trim();
-        const toRfc2047Utf8 = (value) => {
-            if (/^[\x00-\x7F]*$/.test(value))
-                return value;
-            const buf = Buffer.from(value, "utf8");
-            return `=?UTF-8?B?${buf.toString("base64")}?=`;
-        };
-        const parseDisplayEmail = (value) => {
-            const v = stripHeaderUnsafe(value);
-            const m = v.match(/^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/);
-            if (m)
-                return { name: m[1]?.trim() || null, email: m[2].trim() };
-            return { name: null, email: v };
-        };
-        const buildFromHeader = (fromName, fromEmail) => {
-            const parsed = parseDisplayEmail(fromEmail);
-            const name = stripHeaderUnsafe(fromName ?? parsed.name ?? "");
-            const email = stripHeaderUnsafe(parsed.email);
-            return name ? `${toRfc2047Utf8(name)} <${email}>` : email;
-        };
-        const buildRawMimeWithPdf = (params) => {
-            const boundaryMixed = `npanel-mixed-${crypto.randomUUID()}`;
-            const boundaryAlt = `npanel-alt-${crypto.randomUUID()}`;
-            const lines = [];
-            lines.push(`From: ${params.from}`);
-            lines.push(`To: ${params.to}`);
-            if (params.cc && params.cc.length > 0) {
-                lines.push(`Cc: ${params.cc.join(", ")}`);
-            }
-            lines.push(`Subject: ${toRfc2047Utf8(params.subject)}`);
-            if (params.replyTo)
-                lines.push(`Reply-To: ${params.replyTo}`);
-            lines.push("MIME-Version: 1.0");
-            lines.push(`Content-Type: multipart/mixed; boundary="${boundaryMixed}"`);
-            lines.push("");
-            // alternative part
-            lines.push(`--${boundaryMixed}`);
-            lines.push(`Content-Type: multipart/alternative; boundary="${boundaryAlt}"`);
-            lines.push("");
-            lines.push(`--${boundaryAlt}`);
-            lines.push('Content-Type: text/html; charset="UTF-8"');
-            lines.push("Content-Transfer-Encoding: 7bit");
-            lines.push("");
-            lines.push(params.html);
-            lines.push("");
-            lines.push(`--${boundaryAlt}--`);
-            lines.push("");
-            // attachment part
-            lines.push(`--${boundaryMixed}`);
-            lines.push(`Content-Type: application/pdf; name="${params.attachmentFilename}"`);
-            lines.push("Content-Transfer-Encoding: base64");
-            lines.push(`Content-Disposition: attachment; filename="${params.attachmentFilename}"`);
-            lines.push("");
-            lines.push(params.attachment.toString("base64"));
-            lines.push("");
-            lines.push(`--${boundaryMixed}--`);
-            lines.push("");
-            return Buffer.from(lines.join("\r\n"), "utf8");
-        };
-        // Send email with PDF attachment
+        const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
         try {
-            const fromDomainRaw = process.env.NISC_TX_EMAIL_DOMAIN?.trim();
-            const fromDomain = fromDomainRaw && !fromDomainRaw.includes("@") ? fromDomainRaw : undefined;
-            const fromEmail = (process.env.NISC_TX_FROM_EMAIL?.trim() ||
-                (fromDomain ? `noreply@${fromDomain}` : "noreply@npanel.com"));
-            const fromName = process.env.NISC_TX_FROM_NAME?.trim() || "nPanel";
-            const replyTo = process.env.NISC_TX_REPLY_TO?.trim() || undefined;
-            const to = toEmail;
-            const cc = input.cc?.filter(Boolean);
-            const bcc = input.bcc?.filter(Boolean);
-            const destinations = [to, ...(cc ?? []), ...(bcc ?? [])];
-            const raw = buildRawMimeWithPdf({
-                from: buildFromHeader(fromName, fromEmail),
-                to,
-                cc,
-                subject: stripHeaderUnsafe(`Invoice Reminder: ${invoiceDetail.invoiceNumber || "Invoice"} from ${fromName}`),
-                replyTo: replyTo ? stripHeaderUnsafe(replyTo) : null,
+            await sendInvoiceReminderEmail({
+                to: toEmail,
+                cc: input.cc?.filter(Boolean),
+                bcc: input.bcc?.filter(Boolean),
+                subject: `Invoice Reminder: ${invoiceDetail.invoiceNumber || "Invoice"} from ${fromName}`,
                 html: emailHtml,
-                attachmentFilename: pdfFilename,
-                attachment: pdfBuffer,
+                pdfBuffer: prepared.pdfBuffer,
+                pdfFilename: prepared.pdfFilename,
             });
-            const ses = getSesClient();
-            await sendSesRawEmail(ses, {
-                RawMessage: { Data: raw },
-                Destinations: destinations,
-            });
-            // Batch: Update reminderSentAt timestamp and log activity in a transaction
-            // This reduces connection usage from 2 sequential queries to 1 transaction
             await db.transaction(async (tx) => {
                 await tx
                     .update(invoice)
@@ -1630,9 +1698,10 @@ export const invoicingRouter = router({
                     action: "REMINDER_SENT",
                     description: "Email reminder sent",
                     metadata: {
-                        sentTo: to,
-                        cc: cc ?? [],
-                        bccCount: bcc?.length ?? 0,
+                        sentTo: toEmail,
+                        cc: input.cc ?? [],
+                        bccCount: input.bcc?.length ?? 0,
+                        kraSynced: prepared.kraSynced,
                     },
                 });
             });
@@ -1655,6 +1724,311 @@ export const invoicingRouter = router({
         }
         const updatedInvoiceDetail = await fetchInvoiceDetail(db, input.invoiceId);
         return mapInvoiceDetail(updatedInvoiceDetail);
+    }),
+    retryKraSync: protectedProcedure
+        .input(z.object({ invoiceId: z.string().uuid() }))
+        .output(z.object({
+        success: z.boolean(),
+        kraStatus: z.string().nullable(),
+        kraError: z.string().nullable(),
+        message: z.string(),
+        invoice: invoiceDetailSchema,
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
+        const before = await fetchInvoiceDetail(db, input.invoiceId);
+        if (isInvoiceKraSynced(before.kraStatus)) {
+            return {
+                success: true,
+                kraStatus: before.kraStatus,
+                kraError: before.kraError ?? null,
+                message: "Invoice is already synced to KRA eTIMS.",
+                invoice: mapInvoiceDetail(before),
+            };
+        }
+        const result = await processInvoiceKraSync(input.invoiceId);
+        const after = await fetchInvoiceDetail(db, input.invoiceId);
+        const synced = isInvoiceKraSynced(after.kraStatus);
+        let message;
+        if (synced) {
+            message = "Invoice synced to KRA eTIMS successfully.";
+        }
+        else if ("skipped" in result && result.skipped) {
+            message = result.reason;
+        }
+        else if ("reason" in result) {
+            message = result.reason;
+        }
+        else {
+            message = `KRA sync ${kraStatusLabel(after.kraStatus)}.`;
+        }
+        await logInvoiceActivity(db, {
+            invoiceId: input.invoiceId,
+            userId: user.id,
+            action: "UPDATE",
+            description: synced ? "KRA eTIMS sync succeeded" : "KRA eTIMS sync attempted",
+            metadata: {
+                kraStatus: after.kraStatus,
+                kraError: after.kraError,
+                success: synced,
+            },
+        });
+        return {
+            success: synced,
+            kraStatus: after.kraStatus ?? null,
+            kraError: after.kraError ?? null,
+            message,
+            invoice: mapInvoiceDetail(after),
+        };
+    }),
+    listCreditNotes: protectedProcedure
+        .input(creditNoteListFiltersSchema)
+        .output(creditNoteListResponseSchema)
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        const conditions = [];
+        if (input.teamId) {
+            await ensureTeamAccess(db, user.id, user.role, input.teamId);
+            conditions.push(eq(creditNote.teamId, input.teamId));
+        }
+        else if (!isAgencyUser(user.role)) {
+            const memberships = await db
+                .select({ teamId: teamMember.teamId })
+                .from(teamMember)
+                .where(eq(teamMember.userId, user.id));
+            const accessibleTeams = memberships
+                .map((m) => m.teamId)
+                .filter((id) => id != null);
+            if (accessibleTeams.length > 0) {
+                conditions.push(inArray(creditNote.teamId, accessibleTeams));
+            }
+            else {
+                conditions.push(sql `false`);
+            }
+        }
+        if (input.status) {
+            conditions.push(eq(creditNote.status, input.status));
+        }
+        if (input.search?.trim()) {
+            const q = `%${input.search.trim()}%`;
+            conditions.push(or(ilike(creditNote.creditNumber, q), ilike(invoice.invoiceNumber, q), ilike(invoice.customerName, q), ilike(invoice.customerEmail, q)));
+        }
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        const joinOn = eq(creditNote.invoiceId, invoice.id);
+        const [items, totalRow] = await Promise.all([
+            db
+                .select({
+                id: creditNote.id,
+                creditNumber: creditNote.creditNumber,
+                invoiceId: creditNote.invoiceId,
+                invoiceNumber: invoice.invoiceNumber,
+                customerName: invoice.customerName,
+                customerEmail: invoice.customerEmail,
+                status: creditNote.status,
+                amount: creditNote.amount,
+                currency: creditNote.currency,
+                issuedAt: creditNote.issuedAt,
+                kraStatus: creditNote.kraStatus,
+                originalInvoiceNumber: creditNote.originalInvoiceNumber,
+                teamId: creditNote.teamId,
+                createdAt: creditNote.createdAt,
+            })
+                .from(creditNote)
+                .innerJoin(invoice, joinOn)
+                .where(whereClause ?? sql `true`)
+                .orderBy(desc(creditNote.createdAt))
+                .limit(input.limit)
+                .offset(input.offset),
+            db
+                .select({ c: count() })
+                .from(creditNote)
+                .innerJoin(invoice, joinOn)
+                .where(whereClause ?? sql `true`),
+        ]);
+        const total = Number(totalRow[0]?.c ?? 0);
+        return creditNoteListResponseSchema.parse({
+            creditNotes: items.map((row) => creditNoteSummarySchema.parse(row)),
+            total,
+        });
+    }),
+    getCreditNoteById: protectedProcedure
+        .input(z.object({ id: z.string().uuid() }))
+        .output(creditNoteDetailSchema)
+        .query(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        await ensureCreditNoteAccess(db, user.id, user.role, input.id);
+        const detail = await fetchCreditNoteDetail(db, input.id);
+        return isAgencyUser(user.role)
+            ? detail
+            : sanitizeCreditNoteDetailForCustomer(detail);
+    }),
+    issueCreditNote: protectedProcedure
+        .input(issueCreditNoteInputSchema)
+        .output(creditNoteDetailSchema)
+        .mutation(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        if (!isAgencyUser(user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can issue credit notes.",
+            });
+        }
+        await ensureInvoiceMutationAccess(db, user.id, user.role, input.invoiceId);
+        const inv = await db.query.invoice.findFirst({
+            where: eq(invoice.id, input.invoiceId),
+            columns: {
+                id: true,
+                teamId: true,
+                invoiceNumber: true,
+                amount: true,
+                currency: true,
+                kraStatus: true,
+            },
+            with: { creditNote: { columns: { id: true } } },
+        });
+        if (!inv) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Invoice not found." });
+        }
+        if (inv.creditNote) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This invoice already has a credit note.",
+            });
+        }
+        if (!isInvoiceKraSynced(inv.kraStatus)) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Original invoice must be synced to KRA before issuing a credit note.",
+            });
+        }
+        if (!inv.amount) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "Invoice amount is required to issue a credit note.",
+            });
+        }
+        const creditNoteId = crypto.randomUUID();
+        const now = new Date();
+        await db.transaction(async (tx) => {
+            const creditNumber = await generateNextCreditNoteNumber(tx);
+            await tx.insert(creditNote).values({
+                id: creditNoteId,
+                invoiceId: input.invoiceId,
+                teamId: inv.teamId,
+                creditNumber,
+                status: "ISSUED",
+                amount: inv.amount,
+                currency: inv.currency ?? "KES",
+                reason: stringOrNull(input.reason),
+                note: stringOrNull(input.note),
+                issuedAt: now,
+                kraRefundReasonCode: input.rfdRsnCd,
+                originalInvoiceNumber: inv.invoiceNumber,
+                createdBy: user.id,
+                updatedBy: user.id,
+                createdAt: now,
+                updatedAt: now,
+                ...buildCreditNoteKraInsertFields(),
+            });
+            await tx
+                .update(invoice)
+                .set({
+                creditedAmount: inv.amount,
+                updatedAt: now,
+            })
+                .where(eq(invoice.id, input.invoiceId));
+            await logCreditNoteActivity(tx, {
+                creditNoteId,
+                userId: user.id,
+                action: "CREATE",
+                description: `Issued credit note ${creditNumber}`,
+                metadata: { rfdRsnCd: input.rfdRsnCd, invoiceId: input.invoiceId },
+            });
+            await logInvoiceActivity(tx, {
+                invoiceId: input.invoiceId,
+                userId: user.id,
+                action: "CREDIT_NOTE_ISSUED",
+                description: `Credit note ${creditNumber} issued`,
+                metadata: { creditNoteId, creditNumber },
+            });
+        });
+        const kraResult = await processCreditNoteKraSync(creditNoteId);
+        if (!kraResult.ok && !("skipped" in kraResult && kraResult.skipped)) {
+            await logCreditNoteActivity(db, {
+                creditNoteId,
+                userId: user.id,
+                action: "KRA_SYNC",
+                description: "KRA credit note sync failed",
+                metadata: {
+                    reason: "reason" in kraResult ? kraResult.reason : "Unknown error",
+                },
+            });
+        }
+        return fetchCreditNoteDetail(db, creditNoteId);
+    }),
+    retryCreditNoteKraSync: protectedProcedure
+        .input(z.object({ creditNoteId: z.string().uuid() }))
+        .output(z.object({
+        success: z.boolean(),
+        kraStatus: z.string().nullable(),
+        kraError: z.string().nullable(),
+        message: z.string(),
+        creditNote: creditNoteDetailSchema,
+    }))
+        .mutation(async ({ ctx, input }) => {
+        const user = await getAuthenticatedUser(ctx);
+        if (!isAgencyUser(user.role)) {
+            throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Only agency users can retry KRA sync.",
+            });
+        }
+        await ensureCreditNoteAccess(db, user.id, user.role, input.creditNoteId);
+        const before = await fetchCreditNoteDetail(db, input.creditNoteId);
+        if (isInvoiceKraSynced(before.kraStatus)) {
+            return {
+                success: true,
+                kraStatus: before.kraStatus ?? null,
+                kraError: before.kraError ?? null,
+                message: "Credit note is already synced to KRA eTIMS.",
+                creditNote: before,
+            };
+        }
+        const result = await processCreditNoteKraSync(input.creditNoteId);
+        const after = await fetchCreditNoteDetail(db, input.creditNoteId);
+        const synced = isInvoiceKraSynced(after.kraStatus);
+        let message;
+        if (synced) {
+            message = "Credit note synced to KRA eTIMS successfully.";
+        }
+        else if ("skipped" in result && result.skipped) {
+            message = result.reason;
+        }
+        else if ("reason" in result) {
+            message = result.reason;
+        }
+        else {
+            message = `KRA sync ${kraStatusLabel(after.kraStatus)}.`;
+        }
+        await logCreditNoteActivity(db, {
+            creditNoteId: input.creditNoteId,
+            userId: user.id,
+            action: "KRA_SYNC",
+            description: synced ? "KRA eTIMS sync succeeded" : "KRA eTIMS sync attempted",
+            metadata: {
+                kraStatus: after.kraStatus,
+                kraError: after.kraError,
+                success: synced,
+            },
+        });
+        return {
+            success: synced,
+            kraStatus: after.kraStatus ?? null,
+            kraError: after.kraError ?? null,
+            message,
+            creditNote: after,
+        };
     }),
     listTransactions: protectedProcedure
         .input(z.object({
@@ -1752,4 +2126,4 @@ export const invoicingRouter = router({
     }),
 });
 /** For server-side PDF generation (e.g. Nisc auto-invoice email). Skips auth. */
-export { fetchInvoiceDetail, mapInvoiceDetail };
+export { fetchInvoiceDetail, mapInvoiceDetail, fetchCreditNoteDetail, mapCreditNoteDetail };

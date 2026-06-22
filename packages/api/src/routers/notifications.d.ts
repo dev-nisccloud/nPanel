@@ -9,7 +9,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             userId?: string | undefined;
             teamId?: string | undefined;
             seen?: boolean | undefined;
-            type?: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN" | undefined;
+            type?: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN" | undefined;
             priority?: "NORMAL" | "LOW" | "HIGH" | "URGENT" | undefined;
             since?: string | undefined;
             limit?: number | undefined;
@@ -19,7 +19,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             id: string;
             userId: string;
             teamId: string | null;
-            type: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
+            type: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             title: string | null;
             message: string;
@@ -60,7 +60,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             id: string;
             userId: string;
             teamId: string | null;
-            type: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
+            type: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             title: string | null;
             message: string;
@@ -88,7 +88,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             userId: string;
             message: string;
             teamId?: string | undefined;
-            type?: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN" | undefined;
+            type?: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN" | undefined;
             priority?: "NORMAL" | "LOW" | "HIGH" | "URGENT" | undefined;
             title?: string | undefined;
             link?: string | undefined;
@@ -98,7 +98,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             id: string;
             userId: string;
             teamId: string | null;
-            type: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
+            type: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             title: string | null;
             message: string;
@@ -134,7 +134,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             id: string;
             userId: string;
             teamId: string | null;
-            type: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
+            type: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             title: string | null;
             message: string;
@@ -165,7 +165,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             id: string;
             userId: string;
             teamId: string | null;
-            type: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
+            type: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             title: string | null;
             message: string;
@@ -196,7 +196,7 @@ export declare const notificationsRouter: import("@trpc/server").TRPCBuiltRouter
             id: string;
             userId: string;
             teamId: string | null;
-            type: "GENERAL" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "DOMAIN" | "HOSTING" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
+            type: "GENERAL" | "DOMAIN" | "HOSTING" | "SYSTEM" | "USER" | "TEAM" | "ORDER" | "PAYMENT" | "INVOICE" | "CREATIVE_BRIEF" | "CREATIVE_ASSET" | "SOCIAL_MEDIA" | "EMAIL_MARKETING" | "AD_CAMPAIGN";
             priority: "NORMAL" | "LOW" | "HIGH" | "URGENT";
             title: string | null;
             message: string;

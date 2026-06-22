@@ -60,6 +60,7 @@ export declare class EtimsOscuClient {
     selectImportItemList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     updateImportItem(oscu: EtimsOscuHeaders, item: Record<string, unknown>): Promise<unknown>;
     saveTrnsSalesOsdc(oscu: EtimsOscuHeaders, transaction: Record<string, unknown>): Promise<unknown>;
+    /** List sales transactions submitted by this taxpayer/branch. */
     selectTrnsSalesList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     selectTrnsPurchaseSalesList(oscu: EtimsOscuHeaders, lastReqDt: string): Promise<unknown>;
     insertTrnsPurchase(oscu: EtimsOscuHeaders, purchase: Record<string, unknown>): Promise<unknown>;

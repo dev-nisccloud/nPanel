@@ -21,3 +21,14 @@ export interface JetBackupResult<T = any> {
     system?: JetBackupResponse['system'];
 }
 export declare function sendJetBackupRequest<T = any>(functionName: string, params?: Record<string, any>): Promise<JetBackupResult<T>>;
+export interface JetBackupDownloadFileResult {
+    success: boolean;
+    statusCode: number;
+    body: ReadableStream | null;
+    filename?: string;
+    contentType?: string;
+    contentLength?: number;
+    message?: string;
+}
+/** Stream a completed JetBackup download archive (headerless.php?download=1). */
+export declare function fetchJetBackupDownloadArchive(downloadId: string): Promise<JetBackupDownloadFileResult>;
