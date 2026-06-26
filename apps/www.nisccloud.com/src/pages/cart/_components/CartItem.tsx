@@ -221,19 +221,18 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
             )}
           </div>
 
-          {/* Billing period */}
+          {/* Billing cycle */}
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
             {isDomain ? (
-              /* Domains: fixed 1-year period — no selector */
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Period</span>
+                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Billing cycle</span>
                 <span className="inline-flex items-center h-9 px-3 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground select-none">
                   1 year · Annual registration
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Period</span>
+                <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Billing cycle</span>
                 <Select
                   value={item.billingCycle}
                   onValueChange={(v) => onBillingCycleChange(v as BillingCycle)}
