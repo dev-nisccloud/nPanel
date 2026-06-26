@@ -27,8 +27,6 @@ export const CUSTOMER_INFO_FORM_ID = "storefront-customer-form";
 interface CustomerInfoStepProps {
   onBack: () => void;
   onSubmit: (info: CustomerInfo) => void;
-  isSubmitting?: boolean;
-  submitLabel?: string;
   prefillEmail?: string;
 }
 
@@ -101,8 +99,6 @@ function Field({
 export function CustomerInfoStep({
   onBack,
   onSubmit,
-  isSubmitting,
-  submitLabel = "Create Account & Complete Order",
   prefillEmail,
 }: CustomerInfoStepProps) {
   const [info, setInfo] = React.useState<CustomerInfo>({
@@ -344,15 +340,6 @@ export function CustomerInfoStep({
             <p className="text-xs text-red-500 ml-6">{errors.agreedToTerms}</p>
           )}
         </div>
-
-        {/* Submit */}
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-sm"
-        >
-          {isSubmitting ? "Creating your account…" : submitLabel}
-        </Button>
       </form>
     </div>
   );
