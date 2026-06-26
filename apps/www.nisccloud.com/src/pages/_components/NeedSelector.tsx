@@ -120,13 +120,6 @@ const tabs: Tab[] = [
   },
 ];
 
-const stats = [
-  { value: "500+", label: "Businesses Powered" },
-  { value: "99.9%", label: "Uptime Guaranteed" },
-  { value: "300+", label: "Campaigns Delivered" },
-  { value: "KES 50M+", label: "Revenue Generated" },
-];
-
 export default function NeedSelector() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
@@ -342,32 +335,6 @@ export default function NeedSelector() {
 
           </motion.div>
         </AnimatePresence>
-
-        {/* Stats strip */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mt-4 rounded-2xl border border-border/60 bg-card px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center"
-        >
-          {stats.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-            >
-              <div className="text-3xl md:text-4xl font-bold text-primary mb-1 tracking-tight">
-                {s.value}
-              </div>
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                {s.label}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
 
       </div>
     </section>

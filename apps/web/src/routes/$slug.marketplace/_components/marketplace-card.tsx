@@ -2,59 +2,87 @@
 
 import * as React from "react";
 import { Link } from "react-router";
-import { Card, CardContent } from "@/components/ui/card";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { MarketplaceServiceItem } from "../marketplace-services";
+import { getServiceIconConfig } from "./service-icons";
+import { DB_CATEGORY_LABELS } from "../marketplace-services";
 
-interface MarketplaceCardProps {
-  item: MarketplaceServiceItem;
-  teamSlug: string;
+export interface MarketplaceCardProduct {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  category: string;
+  highlights: string[];
 }
 
-export function MarketplaceCard({ item, teamSlug }: MarketplaceCardProps) {
-  const href = `/${teamSlug}/marketplace/${item.slug}`;
+interface MarketplaceCardProps {
+  product: MarketplaceCardProduct;
+  teamSlug: string;
+  hasActiveSub?: boolean;
+}
+
+export function MarketplaceCard({ product, teamSlug, hasActiveSub = false }: MarketplaceCardProps) {
+  const href = `/${teamSlug}/marketplace/${product.slug}`;
+  const { Icon, bg } = getServiceIconConfig(product.slug);
+  const categoryLabel = DB_CATEGORY_LABELS[product.category] ?? product.category;
+
   return (
-    <Card className="flex h-full flex-col gap-0 overflow-hidden rounded-lg border border-border bg-card p-0 py-0 shadow-sm transition-shadow hover:shadow-md">
-      <CardContent className="flex flex-1 flex-col p-0">
-        {/* Image flush with card top; badge in the very top-right corner, blending with card border */}
-        <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden rounded-t-lg bg-muted/50">
-          {item.image ? (
-            <img
-              src={item.image}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <div
-              className="flex h-full items-center justify-center bg-primary/5 px-4 py-3 text-center text-xs font-medium text-muted-foreground"
-              aria-hidden
-            >
-              {item.title}
+    <div
+      className={cn(
+        "relative flex flex-col rounded-xl border bg-card p-5 transition-all hover:shadow-md",
+        hasActiveSub && "ring-1 ring-primary/25 border-primary/20"
+      )}
+    >
+      {/* Active subscription pill */}
+      {hasActiveSub && (
+        <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          <span className="text-xs font-medium text-green-700 dark:text-green-400">Active</span>
+        </div>
+      )}
+
+      {/* Service icon */}
+      <div className={cn("mb-4 h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0", bg)}>
+        <Icon size={22} className="text-white" />
+      </div>
+
+      {/* Category badge */}
+      <Badge variant="secondary" className="mb-2 w-fit text-xs font-medium">
+        {categoryLabel}
+      </Badge>
+
+      {/* Title */}
+      <h3 className="font-semibold text-[15px] leading-snug mb-1.5">{product.name}</h3>
+
+      {/* Description */}
+      <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-1">
+        {product.description ?? ""}
+      </p>
+
+      {/* Top 2 highlights from DB */}
+      {product.highlights.length > 0 && (
+        <div className="mb-4 space-y-1">
+          {product.highlights.slice(0, 2).map((h) => (
+            <div key={h} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              {h}
             </div>
-          )}
-          <Badge
-            className="absolute right-0 top-0 border-0 px-2 py-1 text-xs font-medium text-foreground shadow-none"
-            style={{
-              backgroundColor: "#d9eeff",
-              borderRadius: "0 0.5rem 0 0.5rem",
-            }}
-          >
-            {item.badgeText}
-          </Badge>
+          ))}
         </div>
-        <div className="flex flex-1 flex-col p-4">
-          <h3 className="font-semibold leading-tight tracking-tight">
-            {item.title}
-          </h3>
-          <p className="mt-1.5 flex-1 text-sm text-muted-foreground">
-            {item.description}
-          </p>
-          <Button variant="default" size="sm" className="mt-4 w-full" asChild>
-            <Link to={href}>Explore offer</Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* CTA */}
+      <Button
+        variant={hasActiveSub ? "outline" : "default"}
+        size="sm"
+        className="w-full"
+        asChild
+      >
+        <Link to={href}>{hasActiveSub ? "Manage Plan" : "View Plans"}</Link>
+      </Button>
+    </div>
   );
 }
