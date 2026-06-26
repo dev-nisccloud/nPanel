@@ -89,7 +89,7 @@ const SERVICE_META: Record<
     color: "text-emerald-600",
     bgColor: "bg-emerald-50",
     includedItems: [
-      "FREE WHOIS privacy protection",
+      "WHOIS privacy protection",
       "Free DNS management",
       "Free coming soon page",
       "Domain transfer lock",
