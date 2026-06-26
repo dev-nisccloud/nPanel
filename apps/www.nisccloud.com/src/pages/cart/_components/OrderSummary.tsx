@@ -1,4 +1,4 @@
-import { Tag, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
@@ -239,11 +239,12 @@ export function OrderSummary({
           <span className="text-xl font-bold text-foreground">{fmt(total)}</span>
         </div>
 
-        {/* Coupon */}
+        {/* Coupon — re-enable when promo codes are supported
         <button className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium mt-1 group">
           <Tag className="w-4 h-4 group-hover:scale-110 transition-transform" />
           Have a coupon code?
         </button>
+        */}
           </>
         )}
       </div>
@@ -263,7 +264,7 @@ export function OrderSummary({
             ? "Processing…"
             : step === 1
               ? "Continue →"
-              : "Create Account & Complete Order"}
+              : "Complete Order"}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center mt-3">

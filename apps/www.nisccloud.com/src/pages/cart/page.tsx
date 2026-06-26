@@ -585,7 +585,6 @@ export default function CartPage() {
                   <CustomerInfoStep
                     onBack={() => setStep(1)}
                     onSubmit={handleSubmit}
-                    isSubmitting={isSubmitting}
                   />
                 </motion.div>
               )}
@@ -644,7 +643,7 @@ export default function CartPage() {
             {quoteSummaryLoading
               ? "Please wait…"
               : isSubmitting
-              ? "Creating account…"
+              ? "Processing…"
               : step === 1
                 ? "Continue →"
                 : "Complete Order"}
