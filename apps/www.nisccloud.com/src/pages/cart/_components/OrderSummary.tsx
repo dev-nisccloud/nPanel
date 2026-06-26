@@ -143,8 +143,8 @@ export function OrderSummary({
               {item.serviceType === "domain_registration"
                 ? "1 year · Annual registration"
                 : isYearly
-                  ? "12-month period"
-                  : "Monthly period"}{" "}
+                  ? "12-month billing cycle"
+                  : "Monthly billing cycle"}{" "}
               · {item.productName}
             </p>
           </div>
@@ -191,7 +191,7 @@ export function OrderSummary({
                 {selectedHostingPlan.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {hostingCycle === "YEARLY" ? "12-month period" : "Monthly"}
+                {hostingCycle === "YEARLY" ? "12-month billing cycle" : "Monthly billing cycle"}
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">

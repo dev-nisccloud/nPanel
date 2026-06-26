@@ -192,7 +192,7 @@ export default function CartPage() {
       request.upsellHosting = {
         serviceType: selectedHostingType,
         planId: hostingPlan.planId,
-        billingCycle: hostingCycles[selectedHostingType] ?? "MONTHLY",
+        billingCycle: hostingCycles[selectedHostingType] ?? "YEARLY",
       };
     }
 
@@ -301,7 +301,7 @@ export default function CartPage() {
     : null;
 
   const selectedHostingCycle: BillingCycle =
-    selectedHostingType ? (hostingCycles[selectedHostingType] ?? "MONTHLY") : "MONTHLY";
+    selectedHostingType ? (hostingCycles[selectedHostingType] ?? "YEARLY") : "YEARLY";
 
   const monthlyPrice = quote?.monthlyPrice ?? 0;
   const yearlyPrice = quote?.yearlyPrice ?? 0;
@@ -323,7 +323,12 @@ export default function CartPage() {
 
   const handleHostingTypeSelect = React.useCallback((type: HostingUpsellType | null) => {
     setSelectedHostingType(type);
-    setSelectedHostingPlanInfo(type ? loadedHostingPlansRef.current[type] ?? null : null);
+    if (type) {
+      setHostingCycles((prev) => ({ ...prev, [type]: prev[type] ?? "YEARLY" }));
+      setSelectedHostingPlanInfo(loadedHostingPlansRef.current[type] ?? null);
+    } else {
+      setSelectedHostingPlanInfo(null);
+    }
   }, []);
 
   const handleHostingCycleChange = React.useCallback(
