@@ -1,6 +1,7 @@
 import { Tag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
 import type { CartItemData, BillingCycle } from "./CartItem.tsx";
 import type { SelectedDomain } from "./DomainUpsell.tsx";
 import type { HivelocitySummaryLine } from "@/lib/vps-plans-api.ts";
@@ -35,6 +36,12 @@ interface OrderSummaryProps {
   hivelocityLines?: HivelocitySummaryLine[];
   /** Disable continue until required cart fields are complete. */
   continueDisabled?: boolean;
+  /** Server-computed totals override client-side math when present. */
+  authoritativeTotals?: { subtotal: number; taxAmount: number; total: number };
+  /** First load — full-page skeleton handles this; used for non-hivelocity carts. */
+  quoteInitialLoading?: boolean;
+  /** Background price validation (e.g. OS / add-on changes on VPS/VDS/dedicated). */
+  quoteSummaryLoading?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -47,6 +54,28 @@ function fmt(amount: number) {
 
 function getItemPrice(item: CartItemData) {
   return item.billingCycle === "YEARLY" ? item.yearlyPrice : item.monthlyPrice;
+}
+
+function OrderSummaryPricingSkeleton() {
+  return (
+    <div className="space-y-3" aria-hidden="true">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+        <Skeleton className="h-4 w-16 shrink-0" />
+      </div>
+      <div className="flex items-center justify-between pt-1">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-16" />
+      </div>
+      <div className="flex items-center justify-between pt-2">
+        <Skeleton className="h-5 w-12" />
+        <Skeleton className="h-7 w-28" />
+      </div>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +96,9 @@ export function OrderSummary({
   customerFormId,
   hivelocityLines = [],
   continueDisabled = false,
+  authoritativeTotals,
+  quoteInitialLoading = false,
+  quoteSummaryLoading = false,
 }: OrderSummaryProps) {
   const isYearly = billingCycle === "YEARLY";
   const mainPrice = getItemPrice(item);
@@ -84,10 +116,13 @@ export function OrderSummary({
 
   const hivelocityExtras = hivelocityLines.reduce((s, l) => s + l.priceKes, 0);
 
-  const subtotal = mainPrice + domainPrice + hostingPrice + hivelocityExtras;
   const taxRate = 0.16;
-  const taxAmount = Math.round(subtotal * taxRate);
-  const total = subtotal + taxAmount;
+  const clientSubtotal = mainPrice + domainPrice + hostingPrice + hivelocityExtras;
+  const subtotal = authoritativeTotals?.subtotal ?? clientSubtotal;
+  const taxAmount =
+    authoritativeTotals?.taxAmount ?? Math.round(clientSubtotal * taxRate);
+  const total = authoritativeTotals?.total ?? clientSubtotal + Math.round(clientSubtotal * taxRate);
+  const summaryBusy = quoteSummaryLoading || (quoteInitialLoading && !authoritativeTotals);
 
   return (
     <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
@@ -96,6 +131,10 @@ export function OrderSummary({
       </div>
 
       <div className="px-5 py-4 space-y-3">
+        {summaryBusy ? (
+          <OrderSummaryPricingSkeleton />
+        ) : (
+          <>
         {/* Main plan */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -205,6 +244,8 @@ export function OrderSummary({
           <Tag className="w-4 h-4 group-hover:scale-110 transition-transform" />
           Have a coupon code?
         </button>
+          </>
+        )}
       </div>
 
       {/* CTA */}
@@ -214,9 +255,11 @@ export function OrderSummary({
           form={step === 2 ? customerFormId : undefined}
           className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-sm transition-all"
           onClick={step === 1 ? onContinue : undefined}
-          disabled={isContinueLoading || (step === 1 && continueDisabled)}
+          disabled={isContinueLoading || summaryBusy || (step === 1 && continueDisabled)}
         >
-          {isContinueLoading
+          {summaryBusy
+            ? "Please wait…"
+            : isContinueLoading
             ? "Processing…"
             : step === 1
               ? "Continue →"

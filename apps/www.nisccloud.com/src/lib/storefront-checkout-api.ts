@@ -8,6 +8,53 @@ export const PLANLESS_PRODUCT_IDS = {
   dedicated_servers: "nisc-dedicated-servers",
 } as const;
 
+export type StorefrontBillingCycle = "MONTHLY" | "YEARLY";
+
+export type StorefrontCartQuoteRequest = {
+  handoff?: string;
+  main?: {
+    serviceType?: string;
+    planId?: string;
+    productId?: string;
+    planName?: string;
+    productName?: string;
+    billingCycle?: StorefrontBillingCycle;
+    locationName?: string;
+    bundleDomains?: string[];
+  };
+  upsellDomain?: {
+    domain: string;
+    isExisting?: boolean;
+  };
+  upsellHosting?: {
+    serviceType: "web_hosting" | "wordpress_hosting" | "email_hosting";
+    planId: string;
+    billingCycle: StorefrontBillingCycle;
+  };
+  hivelocity?: {
+    hivelocityProductId: number;
+    locationName: string;
+    selectedOsId: string;
+    selectedOptionIds: number[];
+  };
+};
+
+export type StorefrontCartQuote = {
+  currency: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  planName: string;
+  productName: string;
+  serviceType: string;
+  planId?: string;
+  productId?: string;
+  locationName?: string;
+  billingCycle: StorefrontBillingCycle;
+  subtotal: number;
+  taxAmount: number;
+  total: number;
+};
+
 export function resolveStorefrontProductId(
   serviceType: string,
   productIdFromUrl?: string,
@@ -16,6 +63,25 @@ export function resolveStorefrontProductId(
   const mapped = PLANLESS_PRODUCT_IDS[serviceType as keyof typeof PLANLESS_PRODUCT_IDS];
   if (mapped) return mapped;
   return productIdFromUrl ?? "";
+}
+
+export async function createStorefrontHandoff(input: {
+  serviceType: string;
+  planId?: string;
+  productId?: string;
+  planName?: string;
+  productName?: string;
+  billingCycle?: StorefrontBillingCycle;
+  locationName?: string;
+  bundleDomains?: string[];
+}): Promise<{ handoff: string }> {
+  return trpcMutation("storefront.cart.createHandoff", input);
+}
+
+export async function fetchStorefrontCartQuote(
+  input: StorefrontCartQuoteRequest,
+): Promise<StorefrontCartQuote> {
+  return trpcQuery<StorefrontCartQuote>("storefront.cart.quote", input);
 }
 
 export async function checkStorefrontEmail(email: string): Promise<boolean> {
@@ -39,9 +105,7 @@ export async function registerStorefrontCustomer(input: {
 export async function initiateStorefrontStkPush(input: {
   storefrontToken: string;
   phone: string;
-  planId?: string;
-  billingCycle: "MONTHLY" | "YEARLY";
-  clientAmount: number;
+  cart: StorefrontCartQuoteRequest;
 }): Promise<{ checkoutRequestId: string; message: string }> {
   return trpcMutation("storefront.payment.initiateStkPush", input);
 }
@@ -77,7 +141,6 @@ export async function createStorefrontOrderFromPayment(input: {
   return trpcMutation("storefront.orders.createFromPayment", input);
 }
 
-/** Format phone to 254XXXXXXXXX for M-Pesa. */
 export function formatMpesaPhone(raw: string): string {
   let digits = raw.replace(/\D/g, "");
   if (digits.startsWith("0")) digits = `254${digits.slice(1)}`;

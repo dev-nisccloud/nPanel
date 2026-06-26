@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Check, ChevronDown, ArrowRight, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { cn } from "@/lib/utils.ts";
-import { buildOrderPlanCartUrl } from "@/lib/storefront-cart-url.ts";
+import { buildOrderPlanCartParams, navigateToStorefrontCart } from "@/lib/storefront-cart-url.ts";
+import { toast } from "sonner";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
@@ -711,28 +711,30 @@ export default function ServicePageShell({
   checkoutServiceType,
   checkoutProductName,
 }: ServicePageShellProps) {
-  const navigate = useNavigate();
-
   const scrollToPlans = useCallback(() => {
     const target = document.getElementById("plans") ?? document.getElementById("pricing");
     target?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   const handlePlanSelect = useCallback(
-    (plan: OrderPlan) => {
+    async (plan: OrderPlan) => {
       if (!checkoutServiceType) {
         scrollToPlans();
         return;
       }
-      navigate(
-        buildOrderPlanCartUrl(
-          plan,
-          checkoutServiceType,
-          checkoutProductName ?? badge,
-        ),
-      );
+      try {
+        await navigateToStorefrontCart(
+          buildOrderPlanCartParams(
+            plan,
+            checkoutServiceType,
+            checkoutProductName ?? badge,
+          ),
+        );
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not open checkout.");
+      }
     },
-    [badge, checkoutProductName, checkoutServiceType, navigate, scrollToPlans],
+    [badge, checkoutProductName, checkoutServiceType, scrollToPlans],
   );
 
   const handleDefaultCta = useCallback(() => {

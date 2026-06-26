@@ -1,7 +1,10 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import { Check, ArrowRight, HelpCircle } from "lucide-react";
-import { buildSharedHostingCartUrl } from "@/lib/storefront-cart-url.ts";
+import { toast } from "sonner";
+import {
+  buildSharedHostingCartParams,
+  navigateToStorefrontCart,
+} from "@/lib/storefront-cart-url.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
@@ -276,12 +279,12 @@ function PricingSkeleton() {
 // ─── Main section ─────────────────────────────────────────────────────────────
 
 export function WordPressPricingSection() {
-  const navigate = useNavigate();
   const [plans, setPlans] = React.useState<SharedHostingPlan[]>([]);
   const [productFeatures, setProductFeatures] = React.useState<ProductFeatureRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [isYearly, setIsYearly] = React.useState(false);
+  const [checkoutLoading, setCheckoutLoading] = React.useState(false);
   const [selectedId, setSelectedId] = React.useState<string>("");
 
   React.useEffect(() => {
@@ -314,13 +317,21 @@ export function WordPressPricingSection() {
     : null;
   const displayPrice = selectedPrice ? (isYearly ? selectedPrice.yearly : selectedPrice.monthly) : 0;
 
-  const handleGetStarted = () => {
+  const handleGetStarted = async () => {
     if (!selectedPlan) return;
     if (displayPrice === 0) {
       window.location.href = "/contact";
       return;
     }
-    navigate(buildSharedHostingCartUrl(selectedPlan, "wordpress_hosting", isYearly));
+    setCheckoutLoading(true);
+    try {
+      await navigateToStorefrontCart(
+        buildSharedHostingCartParams(selectedPlan, "wordpress_hosting", isYearly),
+      );
+    } catch (err) {
+      setCheckoutLoading(false);
+      toast.error(err instanceof Error ? err.message : "Could not open checkout.");
+    }
   };
 
   return (
@@ -390,6 +401,7 @@ export function WordPressPricingSection() {
                 <Button
                   size="lg"
                   onClick={handleGetStarted}
+                  disabled={checkoutLoading}
                   className="w-full sm:w-auto gap-2 rounded-xl font-semibold tracking-tight shadow-md hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                 >
                   {displayPrice === 0
