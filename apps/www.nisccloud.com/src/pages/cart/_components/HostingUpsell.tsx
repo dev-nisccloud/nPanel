@@ -19,6 +19,7 @@ import {
 export type HostingUpsellType = "web_hosting" | "wordpress_hosting" | "email_hosting";
 
 export interface UpsellPlanInfo {
+  planId: string;
   name: string;
   monthlyPrice: number;
   yearlyPrice: number;
@@ -32,6 +33,8 @@ interface HostingUpsellProps {
   onPlanLoaded?: (type: HostingUpsellType, plan: UpsellPlanInfo | null) => void;
   /** Called when the user changes the billing cycle for a plan */
   onCycleChange?: (type: HostingUpsellType, cycle: BillingCycle) => void;
+  /** Called when async plan fetch completes (loading → false). */
+  onLoadingChange?: (loading: boolean) => void;
   domainName?: string;
 }
 
@@ -207,7 +210,7 @@ function fmt(amount: number, currency: string) {
 // Component
 // ---------------------------------------------------------------------------
 
-export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleChange, domainName }: HostingUpsellProps) {
+export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleChange, onLoadingChange, domainName }: HostingUpsellProps) {
   const [plans, setPlans] = React.useState<Partial<Record<HostingUpsellType, LivePlan>>>({});
   const [loading, setLoading] = React.useState(true);
   const [cycles, setCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>({});
@@ -238,6 +241,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
         if (r.status === "fulfilled" && r.value.plan) {
           next[r.value.id] = r.value.plan;
           notifyRef.current?.(r.value.id, {
+            planId: r.value.plan.planId,
             name: r.value.plan.name,
             monthlyPrice: r.value.plan.monthlyPrice,
             yearlyPrice: r.value.plan.yearlyPrice,
@@ -255,6 +259,10 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
       active = false;
     };
   }, []);
+
+  React.useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   return (
     <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">

@@ -1,7 +1,7 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import { Cpu, HardDrive, HelpCircle, MemoryStick, Network, ChevronDown, MapPin } from "lucide-react";
-import { buildVpsCartUrl } from "@/lib/storefront-cart-url.ts";
+import { buildVpsCartParams, navigateToStorefrontCart } from "@/lib/storefront-cart-url.ts";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
@@ -76,7 +76,6 @@ function VpsPlanCard({
   usdToKesRate: number | null;
   locationName: string;
 }) {
-  const navigate = useNavigate();
   const isUnavailable = plan.stock === "unavailable";
   
   // Apply margin to USD base price
@@ -215,19 +214,22 @@ function VpsPlanCard({
           <Button
             className="w-full bg-primary text-primary-foreground"
             disabled={isUnavailable}
-            onClick={() =>
-              navigate(
-                buildVpsCartUrl({
-                  productId: plan.product_id,
-                  planName: plan.product_name,
-                  productName: "VPS Hosting",
-                  monthlyPrice: displayMonthly,
-                  currency: displayCurrency,
-                  serviceType: "vps",
-                  locationName: plan.data_center,
-                }),
-              )
-            }
+            onClick={async () => {
+              try {
+                await navigateToStorefrontCart(
+                  buildVpsCartParams({
+                    productId: plan.product_id,
+                    planName: plan.product_name,
+                    productName: "VPS Hosting",
+                    currency: displayCurrency,
+                    serviceType: "vps",
+                    locationName: plan.data_center,
+                  }),
+                );
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Could not open checkout.");
+              }
+            }}
           >
             Get Started
           </Button>
