@@ -2,6 +2,7 @@ import Navbar from "./_components/Navbar.tsx";
 import Hero from "./_components/Hero.tsx";
 import PainAgitation from "./_components/PainAgitation.tsx";
 import NeedSelector from "./_components/NeedSelector.tsx";
+import Stats from "./_components/Stats.tsx";
 import AtomApproach from "./_components/AtomApproach.tsx";
 import DashboardPreview from "./_components/DashboardPreview.tsx";
 import Features from "./_components/Features.tsx";
@@ -19,6 +20,7 @@ export default function Index() {
       <Navbar />
       <Hero />
       <NeedSelector />
+      <Stats />
       <PainAgitation />
       <AtomApproach />
       <DomainSearch />
