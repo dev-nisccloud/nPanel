@@ -316,20 +316,7 @@ export function CustomerInfoStep({
               {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          <p className="text-xs text-gray-400">
-            A temporary password will also be emailed to you right after.
-          </p>
         </Field>
-
-        {/* Info card about temp password email */}
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 text-sm text-foreground flex gap-2.5">
-          <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-          <span>
-            After your order we will email you your{" "}
-            <strong>account credentials and an email verification link</strong>. You can
-            log in right away — email verification is not required to access your services.
-          </span>
-        </div>
 
         {/* Terms */}
         <div className="space-y-1.5">

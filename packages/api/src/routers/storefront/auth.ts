@@ -21,8 +21,6 @@ import { team, teamMember } from "@npanel/db/schema/teams";
 import { publicProcedure, router } from "../../trpc";
 import { auth } from "@npanel/auth";
 import { signStorefrontToken } from "../../lib/storefront-token";
-import { renderStorefrontWelcomeEmail } from "../../lib/email-templates";
-import { sendEmail } from "../../lib/email";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,29 +54,6 @@ async function resolveUniqueSlug(base: string): Promise<string> {
   return `${candidate.slice(0, 56)}-${suffix}`;
 }
 
-/** Generate a strong temporary password: 8 chars, mixed case + digit + symbol. */
-function generateTemporaryPassword(): string {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghjkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const symbols = "!@#$%^";
-  const all = upper + lower + digits + symbols;
-
-  const pick = (charset: string) =>
-    charset[crypto.randomInt(charset.length)]!;
-
-  const required = [pick(upper), pick(lower), pick(digits), pick(symbols)];
-  const rest = Array.from({ length: 4 }, () => pick(all));
-  const combined = [...required, ...rest];
-
-  // Fisher-Yates shuffle
-  for (let i = combined.length - 1; i > 0; i--) {
-    const j = crypto.randomInt(i + 1);
-    [combined[i], combined[j]] = [combined[j]!, combined[i]!];
-  }
-  return combined.join("");
-}
-
 // ---------------------------------------------------------------------------
 // Input schemas
 // ---------------------------------------------------------------------------
@@ -100,6 +75,7 @@ const registerInputSchema = z.object({
     .string()
     .min(1, "Company name is required")
     .max(120, "Company name too long"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   /** Required — must match dashboard sign-up (`acceptedTermsAndConditions`). */
   acceptedTermsAndConditions: z
     .boolean()
@@ -107,7 +83,6 @@ const registerInputSchema = z.object({
       message:
         "You must accept the Terms and Conditions before creating an account.",
     }),
-  /** Optional: the plan name shown in the welcome email. */
   planName: z.string().optional(),
 });
 
@@ -139,15 +114,13 @@ export const storefrontAuthRouter = router({
    *
    * Steps (all in sequence, partial failures abort with a TRPCError):
    *  1. Re-check email uniqueness (guard against race condition)
-   *  2. Generate temporary password
-   *  3. Create user via better-auth.api.signUpEmail
-   *  4. FORCE role = "CUSTOMER" regardless of any better-auth default
-   *  5. Insert user_profile (first_name, last_name, phone)
-   *  6. Insert team (company name, KES, created_by = userId)
-   *  7. Insert team_member (userId, teamId, role = "OWNER")
-   *  8. Sign a short-lived storefrontToken
-   *  9. Fire-and-forget: send welcome email with temp password
-   * 10. Return { storefrontToken, teamSlug, displayName } — nothing else
+   *  2. Create user via better-auth.api.signUpEmail (password from checkout form)
+   *  3. FORCE role = "CUSTOMER" regardless of any better-auth default
+   *  4. Insert user_profile (first_name, last_name, phone)
+   *  5. Insert team (company name, KES, created_by = userId)
+   *  6. Insert team_member (userId, teamId, role = "OWNER")
+   *  7. Sign a short-lived storefrontToken
+   *  8. Return { storefrontToken, teamSlug, displayName } — nothing else
    *
    * Role is NEVER accepted from input. It is always "CUSTOMER". Period.
    */
@@ -173,14 +146,11 @@ export const storefrontAuthRouter = router({
         });
       }
 
-      // 2. Generate temporary password
-      const temporaryPassword = generateTemporaryPassword();
-
-      // 3. Create user via better-auth (handles bcrypt hashing)
+      // 2. Create user via better-auth (handles bcrypt hashing)
       const signupResult = await auth.api.signUpEmail({
         body: {
           email,
-          password: temporaryPassword,
+          password: input.password,
           name: fullName,
           acceptedTermsAndConditions: true,
         },
@@ -218,13 +188,13 @@ export const storefrontAuthRouter = router({
 
       const userId = createdUser.id;
 
-      // 4. ALWAYS force role = "CUSTOMER" — no exceptions, no variables
+      // 3. ALWAYS force role = "CUSTOMER" — no exceptions, no variables
       await db
         .update(user)
         .set({ role: "CUSTOMER" })
         .where(eq(user.id, userId));
 
-      // 5. Insert user profile
+      // 4. Insert user profile
       await db.insert(userProfile).values({
         id: crypto.randomUUID(),
         userId,
@@ -236,7 +206,7 @@ export const storefrontAuthRouter = router({
         updatedAt: now,
       });
 
-      // 6. Create team (company) — currency always KES, no members yet
+      // 5. Create team (company) — currency always KES, no members yet
       const baseSlug = slugify(input.companyName);
       const teamSlug = await resolveUniqueSlug(baseSlug);
       const teamId = crypto.randomUUID();
@@ -252,7 +222,7 @@ export const storefrontAuthRouter = router({
         updatedAt: now,
       });
 
-      // 7. Add the user as the sole OWNER of their team
+      // 6. Add the user as the sole OWNER of their team
       await db.insert(teamMember).values({
         id: crypto.randomUUID(),
         teamId,
@@ -262,35 +232,10 @@ export const storefrontAuthRouter = router({
         updatedAt: now,
       });
 
-      // 8. Sign storefront checkout token (20 min TTL)
+      // 7. Sign storefront checkout token (20 min TTL)
       const storefrontToken = signStorefrontToken(userId, teamId, teamSlug);
 
-      // 9. Fire-and-forget welcome email — never let email failure block checkout
-      void (async () => {
-        try {
-          const frontendUrl =
-            process.env.CORS_ORIGIN?.trim() || "https://npanel.nisccloud.com";
-          const loginLink = `${frontendUrl}/auth/login`;
-
-          const html = await renderStorefrontWelcomeEmail({
-            firstName: input.firstName.trim(),
-            email,
-            temporaryPassword,
-            loginLink,
-            planName: input.planName,
-          });
-
-          await sendEmail({
-            to: email,
-            subject: "Welcome to Nisc Cloud® — your account details",
-            html,
-          });
-        } catch (err) {
-          console.error("[storefront.register] welcome email failed:", err);
-        }
-      })();
-
-      // 10. Return minimal data — no user id, no password, no role
+      // 8. Return minimal data — no user id, no password, no role
       return {
         storefrontToken,
         teamSlug,

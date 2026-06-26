@@ -29,6 +29,7 @@ export async function registerStorefrontCustomer(input: {
   email: string;
   phone: string;
   companyName: string;
+  password: string;
   acceptedTermsAndConditions: true;
   planName?: string;
 }): Promise<{ storefrontToken: string; teamSlug: string; displayName: string }> {
