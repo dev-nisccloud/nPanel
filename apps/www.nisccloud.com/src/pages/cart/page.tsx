@@ -339,6 +339,7 @@ export default function CartPage() {
         email: info.email,
         phone: info.phone,
         companyName: info.companyName,
+        password: info.password,
         acceptedTermsAndConditions: true,
         planName,
       });
