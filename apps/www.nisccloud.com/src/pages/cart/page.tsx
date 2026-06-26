@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import { CartPageSkeleton } from "./_components/CartPageSkeleton.tsx";
 import { CartItem } from "./_components/CartItem.tsx";
 import { DomainUpsell } from "./_components/DomainUpsell.tsx";
 import { HostingUpsell } from "./_components/HostingUpsell.tsx";
@@ -21,14 +22,15 @@ import type { SelectedDomain } from "./_components/DomainUpsell.tsx";
 import type { HostingUpsellType, UpsellPlanInfo } from "./_components/HostingUpsell.tsx";
 import type { SelectedHostingPlan } from "./_components/OrderSummary.tsx";
 import type { CustomerInfo } from "./_components/CustomerInfoStep.tsx";
-import { computeCartCheckoutTotal } from "@/lib/cart-checkout-total.ts";
 import { computeHivelocitySummaryLines } from "@/lib/vps-plans-api.ts";
 import {
   checkStorefrontEmail,
   createStorefrontOrderFromPayment,
   registerStorefrontCustomer,
   resolveStorefrontProductId,
+  type StorefrontCartQuoteRequest,
 } from "@/lib/storefront-checkout-api.ts";
+import { useStorefrontCartQuote } from "@/lib/use-storefront-cart-quote.ts";
 import { serviceTypeToHivelocityProductType } from "@/lib/hivelocity-default-hostname.ts";
 
 // ---------------------------------------------------------------------------
@@ -42,12 +44,6 @@ const HOSTING_TYPES = new Set(["web_hosting", "wordpress_hosting", "email_hostin
 
 /** VPS / VDS / dedicated — require OS + hostname configuration */
 const HIVELOCITY_SERVICE_TYPES = new Set(["vps", "vds", "dedicated_servers"]);
-
-function parsePrice(raw: string | null, fallback: number): number {
-  if (!raw) return fallback;
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
 
 // ---------------------------------------------------------------------------
 // Step indicator
@@ -143,28 +139,17 @@ function EmptyCart() {
 // ---------------------------------------------------------------------------
 
 export default function CartPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // ---- Read URL params ----
-  const serviceType = searchParams.get("serviceType") ?? "";
-  const planId = searchParams.get("planId") ?? "";
-  const productId = searchParams.get("productId") ?? "";
-  const planName = searchParams.get("planName") ?? "Selected Plan";
-  const productName = searchParams.get("productName") ?? "Nisc Cloud Service";
-  const locationName = searchParams.get("locationName") ?? "";
-  const currency = searchParams.get("currency") ?? "KES";
-  const rawMonthly = searchParams.get("monthlyPrice");
-  const rawYearly = searchParams.get("yearlyPrice");
-  const initialCycle = (searchParams.get("billingCycle") as BillingCycle | null) ?? "MONTHLY";
-
-  const monthlyPrice = parsePrice(rawMonthly, 0);
-  const yearlyPrice = parsePrice(rawYearly, Math.round(monthlyPrice * 12 * 0.8));
+  const [searchParams] = useSearchParams();
+  const handoff = searchParams.get("h")?.trim() ?? "";
 
   // ---- State ----
-  const [billingCycle, setBillingCycle] = React.useState<BillingCycle>(initialCycle);
+  const [billingCycle, setBillingCycle] = React.useState<BillingCycle | null>(null);
+  const billingCycleUserSetRef = React.useRef(false);
   const [selectedDomain, setSelectedDomain] = React.useState<SelectedDomain | null>(null);
   const [selectedHostingType, setSelectedHostingType] = React.useState<HostingUpsellType | null>(null);
-  const [loadedHostingPlans, setLoadedHostingPlans] = React.useState<Partial<Record<HostingUpsellType, UpsellPlanInfo>>>({});
+  const loadedHostingPlansRef = React.useRef<Partial<Record<HostingUpsellType, UpsellPlanInfo>>>({});
+  const [selectedHostingPlanInfo, setSelectedHostingPlanInfo] =
+    React.useState<UpsellPlanInfo | null>(null);
   const [hostingCycles, setHostingCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>({});
   const [step, setStep] = React.useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -174,66 +159,172 @@ export default function CartPage() {
     teamSlug: string;
     phone: string;
   } | null>(null);
-
-  const hivelocityProductType = serviceTypeToHivelocityProductType(serviceType);
-  const isHivelocityPlan = HIVELOCITY_SERVICE_TYPES.has(serviceType) && Boolean(hivelocityProductType);
-
-  const [hivelocityConfig, setHivelocityConfig] = React.useState<HivelocityCheckoutConfig | null>(() => {
-    if (!HIVELOCITY_SERVICE_TYPES.has(serviceType)) return null;
-    const productType = serviceTypeToHivelocityProductType(serviceType);
-    const productIdNum = Number(planId);
-    if (!productType || !Number.isFinite(productIdNum) || productIdNum <= 0) return null;
-    return createInitialHivelocityConfig({
-      productType,
-      hivelocityProductId: productIdNum,
-      locationName: locationName || "MAIN",
-    });
-  });
-
-  React.useEffect(() => {
-    if (!isHivelocityPlan || !hivelocityProductType) {
-      setHivelocityConfig(null);
-      return;
-    }
-    const productIdNum = Number(planId);
-    if (!Number.isFinite(productIdNum) || productIdNum <= 0) return;
-    setHivelocityConfig(
-      createInitialHivelocityConfig({
-        productType: hivelocityProductType,
-        hivelocityProductId: productIdNum,
-        locationName: locationName || "MAIN",
-      }),
-    );
-  }, [isHivelocityPlan, hivelocityProductType, planId, locationName]);
-
+  const [hivelocityConfig, setHivelocityConfig] = React.useState<HivelocityCheckoutConfig | null>(null);
   const [hivelocityPricing, setHivelocityPricing] = React.useState<HivelocityPricingContext | null>(
     null,
   );
+  const [hostingUpsellLoading, setHostingUpsellLoading] = React.useState(true);
+  const [hasRevealedPage, setHasRevealedPage] = React.useState(false);
 
   const handleHivelocityPricingContext = React.useCallback((ctx: HivelocityPricingContext) => {
     setHivelocityPricing(ctx);
   }, []);
 
-  // ---- Derived ----
-  const hasValidPlan = Boolean(planName && (monthlyPrice > 0 || yearlyPrice > 0));
+  const cartQuoteRequest = React.useMemo((): StorefrontCartQuoteRequest | null => {
+    if (!handoff) return null;
+
+    const request: StorefrontCartQuoteRequest = { handoff };
+
+    // Only override handoff billing cycle after the user toggles it on the cart page.
+    if (billingCycleUserSetRef.current && billingCycle) {
+      request.main = { billingCycle };
+    }
+
+    if (selectedDomain) {
+      request.upsellDomain = {
+        domain: selectedDomain.domain,
+        isExisting: selectedDomain.isExisting,
+      };
+    }
+
+    const hostingPlan = selectedHostingType ? selectedHostingPlanInfo : undefined;
+    if (selectedHostingType && hostingPlan) {
+      request.upsellHosting = {
+        serviceType: selectedHostingType,
+        planId: hostingPlan.planId,
+        billingCycle: hostingCycles[selectedHostingType] ?? "MONTHLY",
+      };
+    }
+
+    if (hivelocityConfig?.selectedOsId) {
+      request.hivelocity = {
+        hivelocityProductId: hivelocityConfig.hivelocityProductId,
+        locationName: hivelocityConfig.locationName,
+        selectedOsId: hivelocityConfig.selectedOsId,
+        selectedOptionIds: hivelocityConfig.selectedOptionIds,
+      };
+    }
+
+    return request;
+  }, [
+    handoff,
+    billingCycle,
+    selectedDomain,
+    selectedHostingType,
+    selectedHostingPlanInfo,
+    hostingCycles,
+    hivelocityConfig,
+  ]);
+
+  const { quote, quoteError, quoteInitialLoading, quoteRefreshing } = useStorefrontCartQuote(cartQuoteRequest);
+
+  const serviceType = quote?.serviceType ?? "";
+  const planId = quote?.planId ?? "";
+  const productId = quote?.productId ?? "";
+  const planName = quote?.planName ?? "Selected Plan";
+  const productName = quote?.productName ?? "Nisc Cloud Service";
+  const locationName = quote?.locationName ?? "";
+  const currency = quote?.currency ?? "KES";
+
+  const displayBillingCycle: BillingCycle =
+    billingCycle ?? quote?.billingCycle ?? "MONTHLY";
+
+  React.useEffect(() => {
+    if (!quote?.billingCycle || billingCycleUserSetRef.current) return;
+    setBillingCycle(quote.billingCycle);
+  }, [quote?.billingCycle]);
+
+  const hivelocityProductType = serviceTypeToHivelocityProductType(serviceType);
+  const isHivelocityPlan = HIVELOCITY_SERVICE_TYPES.has(serviceType) && Boolean(hivelocityProductType);
+
+  React.useEffect(() => {
+    if (!quote || !isHivelocityPlan || !hivelocityProductType) {
+      setHivelocityConfig(null);
+      return;
+    }
+    const productIdNum = Number(quote.planId);
+    if (!Number.isFinite(productIdNum) || productIdNum <= 0) return;
+    setHivelocityConfig((prev) =>
+      prev ??
+      createInitialHivelocityConfig({
+        productType: hivelocityProductType,
+        hivelocityProductId: productIdNum,
+        locationName: quote.locationName || "MAIN",
+      }),
+    );
+  }, [quote, isHivelocityPlan, hivelocityProductType]);
+
   const wantsDomainUpsell = HOSTING_TYPES.has(serviceType);
   const wantsHostingUpsell = serviceType === "domain_registration";
 
-  const selectedHostingPlan: SelectedHostingPlan | null =
-    selectedHostingType && loadedHostingPlans[selectedHostingType]
-      ? { ...loadedHostingPlans[selectedHostingType]! }
-      : null;
+  React.useEffect(() => {
+    if (!quote) return;
+    if (quote.serviceType !== "domain_registration") {
+      setHostingUpsellLoading(false);
+    }
+  }, [quote?.serviceType]);
+
+  const handleHostingUpsellLoadingChange = React.useCallback((loading: boolean) => {
+    setHostingUpsellLoading(loading);
+  }, []);
+
+  const hivelocityConfigComplete = Boolean(
+    hivelocityConfig && isHivelocityConfigComplete(hivelocityConfig),
+  );
+
+  const isPageReady = React.useMemo(() => {
+    if (quoteInitialLoading || !quote) return false;
+    if (isHivelocityPlan) {
+      if (!hivelocityConfig) return false;
+      if (!hivelocityPricing || hivelocityPricing.loading) return false;
+    }
+    if (quote.serviceType === "domain_registration" && hostingUpsellLoading) return false;
+    return true;
+  }, [
+    quoteInitialLoading,
+    quote,
+    isHivelocityPlan,
+    hivelocityConfig,
+    hivelocityPricing,
+    hostingUpsellLoading,
+  ]);
+
+  React.useEffect(() => {
+    if (isPageReady) setHasRevealedPage(true);
+  }, [isPageReady]);
+
+  const showSkeleton = !hasRevealedPage && !quoteError;
+  const canMountContent = Boolean(quote && !quoteInitialLoading);
+
+  const selectedHostingPlan: SelectedHostingPlan | null = selectedHostingPlanInfo
+    ? { ...selectedHostingPlanInfo }
+    : null;
 
   const selectedHostingCycle: BillingCycle =
     selectedHostingType ? (hostingCycles[selectedHostingType] ?? "MONTHLY") : "MONTHLY";
 
+  const monthlyPrice = quote?.monthlyPrice ?? 0;
+  const yearlyPrice = quote?.yearlyPrice ?? 0;
+
+  const selectedHostingTypeRef = React.useRef(selectedHostingType);
+  selectedHostingTypeRef.current = selectedHostingType;
+
   const handlePlanLoaded = React.useCallback(
     (type: HostingUpsellType, plan: UpsellPlanInfo | null) => {
       if (!plan) return;
-      setLoadedHostingPlans((prev) => ({ ...prev, [type]: plan }));
+      loadedHostingPlansRef.current[type] = plan;
+      setSelectedHostingPlanInfo((current) => {
+        if (selectedHostingTypeRef.current !== type) return current;
+        return plan;
+      });
     },
     [],
   );
+
+  const handleHostingTypeSelect = React.useCallback((type: HostingUpsellType | null) => {
+    setSelectedHostingType(type);
+    setSelectedHostingPlanInfo(type ? loadedHostingPlansRef.current[type] ?? null : null);
+  }, []);
 
   const handleHostingCycleChange = React.useCallback(
     (type: HostingUpsellType, cycle: BillingCycle) => {
@@ -249,21 +340,12 @@ export default function CartPage() {
     monthlyPrice,
     yearlyPrice,
     currency,
-    billingCycle,
+    billingCycle: displayBillingCycle,
   };
 
-  // Keep billingCycle in sync with URL param updates (from external sources)
-  React.useEffect(() => {
-    setBillingCycle(initialCycle);
-  }, [initialCycle]);
-
   const handleBillingCycleChange = (cycle: BillingCycle) => {
+    billingCycleUserSetRef.current = true;
     setBillingCycle(cycle);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("billingCycle", cycle);
-      return next;
-    }, { replace: true });
   };
 
   const handleContinue = () => {
@@ -285,36 +367,36 @@ export default function CartPage() {
     });
   }, [hivelocityConfig, hivelocityPricing]);
 
+  const quoteSummaryLoading = quoteRefreshing;
+
   const canContinueStep1 = React.useMemo(() => {
+    if (quoteInitialLoading || !quote || quoteSummaryLoading) return false;
+    if (quoteError) return false;
     if (!isHivelocityPlan) return true;
     if (!hivelocityPricing || hivelocityPricing.loading) return false;
     if (hivelocityPricing.loadError) return false;
-    if (!hivelocityConfig || !isHivelocityConfigComplete(hivelocityConfig)) return false;
+    if (!hivelocityConfigComplete) return false;
     if (!hivelocityPricing.selectionValid) return false;
+    if (!hivelocityConfig?.selectedOsId) return false;
     return true;
-  }, [isHivelocityPlan, hivelocityConfig, hivelocityPricing]);
+  }, [
+    quoteInitialLoading,
+    quote,
+    quoteError,
+    quoteSummaryLoading,
+    isHivelocityPlan,
+    hivelocityConfig,
+    hivelocityConfigComplete,
+    hivelocityPricing,
+  ]);
 
-  const checkoutTotal = React.useMemo(
-    () =>
-      computeCartCheckoutTotal({
-        monthlyPrice,
-        yearlyPrice,
-        billingCycle,
-        selectedDomain,
-        selectedHostingPlan,
-        hostingCycle: selectedHostingCycle,
-        hivelocityLines: hivelocitySummaryLines,
-      }),
-    [
-      monthlyPrice,
-      yearlyPrice,
-      billingCycle,
-      selectedDomain,
-      selectedHostingPlan,
-      selectedHostingCycle,
-      hivelocitySummaryLines,
-    ],
+  const showQuoteErrorBanner = Boolean(
+    quoteError &&
+    !quoteSummaryLoading &&
+    (!isHivelocityPlan || hivelocityConfigComplete),
   );
+
+  const checkoutTotal = quote?.total ?? 0;
 
   const resolvePrimaryDomain = (): string | undefined => {
     if (serviceType === "domain_registration") return planName;
@@ -374,7 +456,7 @@ export default function CartPage() {
       checkoutRequestId,
       planId: planId || undefined,
       productId: resolvedProductId,
-      billingCycle,
+      billingCycle: displayBillingCycle,
       primaryDomain: resolvePrimaryDomain(),
     });
 
@@ -382,18 +464,48 @@ export default function CartPage() {
     window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
   };
 
-  if (!hasValidPlan) return (
+  if (!handoff) return (
     <div className="min-h-screen bg-gray-50">
       <CartHeader />
       <EmptyCart />
     </div>
   );
 
+  if (quoteError && !quote && !quoteInitialLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <CartHeader />
+        <main className="max-w-5xl mx-auto px-4 md:px-6 py-8">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {quoteError}
+          </div>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium text-sm mt-6"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to home
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <CartHeader />
 
-      <main className="max-w-5xl mx-auto px-4 md:px-6 py-8">
+      {showSkeleton && <CartPageSkeleton />}
+
+      {canMountContent && (
+        <main
+          className={
+            showSkeleton
+              ? "max-w-5xl mx-auto px-4 md:px-6 py-8 invisible absolute inset-x-0 top-16 opacity-0 pointer-events-none h-0 overflow-hidden"
+              : "max-w-5xl mx-auto px-4 md:px-6 py-8 animate-in fade-in duration-300"
+          }
+          aria-hidden={showSkeleton}
+        >
         {/* Step breadcrumb — lives in content, not in header */}
         <div className="mb-5">
           <StepIndicator current={step} />
@@ -403,6 +515,12 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold text-foreground mb-6">
           {step === 1 ? "Your cart" : "Your details"}
         </h1>
+
+        {showQuoteErrorBanner && (
+          <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {quoteError}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
           {/* ── Left column ── */}
@@ -419,7 +537,7 @@ export default function CartPage() {
                 >
                   {/* Cart item */}
                   <CartItem
-                    item={{ ...cartItem, billingCycle }}
+                    item={cartItem}
                     onBillingCycleChange={handleBillingCycleChange}
                   />
 
@@ -435,9 +553,10 @@ export default function CartPage() {
                   {wantsHostingUpsell && (
                     <HostingUpsell
                       selectedType={selectedHostingType}
-                      onSelect={setSelectedHostingType}
+                      onSelect={handleHostingTypeSelect}
                       onPlanLoaded={handlePlanLoaded}
                       onCycleChange={handleHostingCycleChange}
+                      onLoadingChange={handleHostingUpsellLoadingChange}
                       domainName={planName}
                     />
                   )}
@@ -471,19 +590,29 @@ export default function CartPage() {
           {/* ── Right column: Order summary (sticky) ── */}
           <div className="lg:sticky lg:top-24">
             <OrderSummary
-              item={{ ...cartItem, billingCycle }}
+              item={cartItem}
               selectedDomain={selectedDomain}
               selectedHostingPlan={selectedHostingPlan}
               hostingCycle={selectedHostingCycle}
-              billingCycle={billingCycle}
+              billingCycle={displayBillingCycle}
               onContinue={handleContinue}
               onRemoveDomain={() => setSelectedDomain(null)}
-              onRemoveHostingPlan={selectedHostingType ? () => setSelectedHostingType(null) : undefined}
+              onRemoveHostingPlan={selectedHostingType ? () => handleHostingTypeSelect(null) : undefined}
               isContinueLoading={isSubmitting}
               step={step}
               customerFormId={CUSTOMER_INFO_FORM_ID}
-              hivelocityLines={hivelocitySummaryLines}
+              hivelocityLines={isHivelocityPlan ? [] : hivelocitySummaryLines}
               continueDisabled={step === 1 && !canContinueStep1}
+              authoritativeTotals={
+                quote && !quoteSummaryLoading
+                  ? {
+                      subtotal: quote.subtotal,
+                      taxAmount: quote.taxAmount,
+                      total: quote.total,
+                    }
+                  : undefined
+              }
+              quoteSummaryLoading={quoteSummaryLoading}
             />
           </div>
         </div>
@@ -492,18 +621,24 @@ export default function CartPage() {
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 flex items-center justify-between gap-4 z-30 shadow-lg">
           <div>
             <p className="text-xs text-muted-foreground">Total (incl. VAT)</p>
-            <p className="text-base font-bold text-foreground">
-              KES {checkoutTotal.total.toLocaleString()}
-            </p>
+            {quoteSummaryLoading ? (
+              <div className="h-5 w-28 bg-accent animate-pulse rounded mt-0.5" />
+            ) : (
+              <p className="text-base font-bold text-foreground">
+                KES {checkoutTotal.toLocaleString()}
+              </p>
+            )}
           </div>
           <button
             className="flex-1 max-w-44 h-11 bg-primary hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed text-primary-foreground font-bold rounded-xl text-sm transition-colors"
             form={step === 2 ? CUSTOMER_INFO_FORM_ID : undefined}
             type={step === 2 ? "submit" : "button"}
             onClick={step === 1 ? handleContinue : undefined}
-            disabled={isSubmitting || (step === 1 && !canContinueStep1)}
+            disabled={isSubmitting || showSkeleton || quoteSummaryLoading || (step === 1 && !canContinueStep1)}
           >
-            {isSubmitting
+            {quoteSummaryLoading
+              ? "Please wait…"
+              : isSubmitting
               ? "Creating account…"
               : step === 1
                 ? "Continue →"
@@ -513,17 +648,17 @@ export default function CartPage() {
 
         {/* Bottom padding for mobile sticky bar */}
         <div className="h-20 lg:h-0" />
-      </main>
+        </main>
+      )}
 
-      {checkoutSession && (
+      {checkoutSession && cartQuoteRequest && !showSkeleton && (
         <StorefrontPaymentDialog
           open={paymentOpen}
           onOpenChange={setPaymentOpen}
           storefrontToken={checkoutSession.storefrontToken}
           defaultPhone={checkoutSession.phone}
-          totalAmount={checkoutTotal.total}
-          planId={planId || undefined}
-          billingCycle={billingCycle}
+          totalAmount={checkoutTotal}
+          cart={cartQuoteRequest}
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}

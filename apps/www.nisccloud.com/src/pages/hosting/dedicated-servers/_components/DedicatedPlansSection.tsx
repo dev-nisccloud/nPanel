@@ -1,7 +1,7 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import { Cpu, HardDrive, MemoryStick, Network, ChevronDown, MapPin } from "lucide-react";
-import { buildVpsCartUrl } from "@/lib/storefront-cart-url.ts";
+import { buildVpsCartParams, navigateToStorefrontCart } from "@/lib/storefront-cart-url.ts";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
@@ -75,7 +75,6 @@ function DedicatedPlanCard({
   usdToKesRate: number | null;
   locationName: string;
 }) {
-  const navigate = useNavigate();
   const isUnavailable = plan.stock === "unavailable";
 
   // Apply margin to USD base price
@@ -212,19 +211,22 @@ function DedicatedPlanCard({
           <Button
             className="w-full bg-primary text-primary-foreground"
             disabled={isUnavailable}
-            onClick={() =>
-              navigate(
-                buildVpsCartUrl({
-                  productId: plan.product_id,
-                  planName: plan.product_name,
-                  productName: "Dedicated Server",
-                  monthlyPrice: displayMonthly,
-                  currency: displayCurrency,
-                  serviceType: "dedicated_servers",
-                  locationName: plan.data_center,
-                }),
-              )
-            }
+            onClick={async () => {
+              try {
+                await navigateToStorefrontCart(
+                  buildVpsCartParams({
+                    productId: plan.product_id,
+                    planName: plan.product_name,
+                    productName: "Dedicated Server",
+                    currency: displayCurrency,
+                    serviceType: "dedicated_servers",
+                    locationName: plan.data_center,
+                  }),
+                );
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Could not open checkout.");
+              }
+            }}
           >
             Get Started
           </Button>

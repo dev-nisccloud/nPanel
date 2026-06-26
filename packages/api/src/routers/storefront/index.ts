@@ -14,12 +14,15 @@
 
 import { router } from "../../trpc";
 import { storefrontAuthRouter } from "./auth";
+import { storefrontCartRouter } from "./cart";
 import { storefrontPaymentRouter } from "./payment";
 import { storefrontOrdersRouter } from "./orders";
 
 export const storefrontRouter = router({
   /** Email check + new customer registration. */
   auth: storefrontAuthRouter,
+  /** Authoritative cart pricing (never trust URL amounts). */
+  cart: storefrontCartRouter,
   /** M-Pesa STK Push initiation + payment status polling. */
   payment: storefrontPaymentRouter,
   /** Order creation + handoff to order processor after confirmed payment. */

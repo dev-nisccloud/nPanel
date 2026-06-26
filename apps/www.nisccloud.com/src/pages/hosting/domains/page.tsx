@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   Globe, Shield, RefreshCw, Lock, Award, Zap, MapPin, Search,
@@ -11,7 +10,8 @@ import { cn } from "@/lib/utils.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 import DomainSearch from "@/pages/_components/DomainSearch.tsx";
-import { buildOrderPlanCartUrl } from "@/lib/storefront-cart-url.ts";
+import { buildOrderPlanCartParams, navigateToStorefrontCart } from "@/lib/storefront-cart-url.ts";
+import { toast } from "sonner";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -534,16 +534,18 @@ function Hero() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DomainsPage() {
-  const navigate = useNavigate();
-
   const scrollToPricing = () => {
     document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handlePlanSelect = (plan: OrderPlan) => {
-    navigate(
-      buildOrderPlanCartUrl(plan, "domain_registration", "Domain Registration"),
-    );
+  const handlePlanSelect = async (plan: OrderPlan) => {
+    try {
+      await navigateToStorefrontCart(
+        buildOrderPlanCartParams(plan, "domain_registration", "Domain Registration"),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not open checkout.");
+    }
   };
 
   return (

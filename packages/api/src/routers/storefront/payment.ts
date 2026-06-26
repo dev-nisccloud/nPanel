@@ -9,20 +9,24 @@
  *
  * Security:
  *  • Token is verified on every call (signature + expiry).
- *  • Amount is re-derived server-side from planId — client value is used only as
- *    a hint and overridden if the plan price differs.
+ *  • Checkout amount is always re-computed server-side from the cart payload.
  *  • Returns minimal data — no transaction IDs, no raw M-Pesa fields.
  */
 
 import * as crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
-import { niscProductPlan } from "@npanel/db/schema/products";
 import { paymentTransaction, paymentTransactionActivityLog } from "@npanel/db/schema/payment-transactions";
 import { publicProcedure, router } from "../../trpc";
 import { verifyStorefrontTokenOrThrow } from "../../lib/storefront-token";
+import {
+	computeStorefrontCartQuote,
+} from "../../lib/storefront-cart-pricing";
+import {
+	resolveStorefrontCartQuoteInput,
+	storefrontCartQuoteRequestSchema,
+} from "../../lib/storefront-cart-resolve";
 import { createMpesaClientFromEnv, MpesaApiError } from "../payment-gateway/mpesa/client";
 import { queryStkPushForUser } from "../payment-gateway/mpesa/query-stk-push-status";
 import {
@@ -33,34 +37,6 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Resolve authoritative plan price from DB. Returns null if plan not found. */
-async function resolvePlanPrice(
-  planId: string,
-  billingCycle: string,
-): Promise<{ priceKes: number; planName: string } | null> {
-  const plan = await db.query.niscProductPlan.findFirst({
-    where: and(
-      eq(niscProductPlan.id, planId),
-      eq(niscProductPlan.isActive, true),
-    ),
-    columns: {
-      id: true,
-      name: true,
-      monthlyPrice: true,
-      yearlyPrice: true,
-      niscCurrency: true,
-    },
-  });
-
-  if (!plan) return null;
-
-  const priceRaw =
-    billingCycle === "YEARLY" ? plan.yearlyPrice : plan.monthlyPrice;
-  const priceKes = priceRaw ? Number.parseFloat(priceRaw) : 0;
-
-  return { priceKes, planName: plan.name ?? "" };
-}
 
 // ---------------------------------------------------------------------------
 // Input schemas
@@ -73,11 +49,8 @@ const initiateStkPushInputSchema = z.object({
     .min(9)
     .max(20)
     .regex(/^[+\d\s()-]+$/, "Invalid phone number"),
-  /** Optional — planless services (domains, VPS) omit this. */
-  planId: z.string().optional(),
-  billingCycle: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
-  /** Cart total in KES (incl. VAT). Authoritative for storefront checkout. */
-  clientAmount: z.number().positive(),
+  /** Full cart state — amount is computed server-side from this payload. */
+  cart: storefrontCartQuoteRequestSchema,
 });
 const pollPaymentStatusInputSchema = z.object({
   storefrontToken: z.string().min(1),
@@ -97,15 +70,27 @@ export const storefrontPaymentRouter = router({
   /**
    * Initiate an M-Pesa STK Push for a storefront checkout session.
    *
-   * The plan price is always re-fetched from the DB — the client-supplied
-   * amount is ignored if it doesn't match the authoritative price.
+   * The payable amount is always computed server-side from the cart payload.
    */
   initiateStkPush: publicProcedure
     .input(initiateStkPushInputSchema)
     .mutation(async ({ input }) => {
       const { userId, teamId } = verifyStorefrontTokenOrThrow(input.storefrontToken);
 
-      const amount = Math.ceil(input.clientAmount);
+      const resolved = resolveStorefrontCartQuoteInput(input.cart);
+      const hivelocityTypes = new Set(["vps", "vds", "dedicated_servers"]);
+      if (
+        hivelocityTypes.has(resolved.main.serviceType) &&
+        !resolved.hivelocity?.selectedOsId
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Complete server configuration before payment.",
+        });
+      }
+
+      const quote = await computeStorefrontCartQuote(resolved);
+      const amount = Math.ceil(quote.total);
       if (amount < 1) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -113,11 +98,9 @@ export const storefrontPaymentRouter = router({
         });
       }
 
-      let planLabel = "Storefront checkout";
-      if (input.planId) {
-        const planData = await resolvePlanPrice(input.planId, input.billingCycle);
-        if (planData) planLabel = planData.planName;
-      }
+      const planLabel = quote.planName || "Storefront checkout";
+      const planId = input.cart.main.planId;
+      const billingCycle = input.cart.main.billingCycle;
       const now = new Date();
       const mpesa = createMpesaClientFromEnv();
       const accountRef = `NISC${Date.now().toString().slice(-8)}`;
@@ -161,8 +144,8 @@ export const storefrontPaymentRouter = router({
           metadata: {
             phoneNumber: input.phone,
             amount,
-            planId: input.planId ?? null,
-            billingCycle: input.billingCycle,
+            planId: planId ?? null,
+            billingCycle,
             checkoutRequestId: response.CheckoutRequestID,
           },          ipAddress: null,
           userAgent: null,

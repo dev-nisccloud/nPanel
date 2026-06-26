@@ -21,6 +21,7 @@ import {
   generateAccountReference,
   initiateStorefrontStkPush,
   queryStorefrontStkPush,
+  type StorefrontCartQuoteRequest,
 } from "@/lib/storefront-checkout-api.ts";
 import {
   getMpesaUserFriendlyError,
@@ -41,8 +42,7 @@ interface StorefrontPaymentDialogProps {
   storefrontToken: string;
   defaultPhone: string;
   totalAmount: number;
-  planId?: string;
-  billingCycle: "MONTHLY" | "YEARLY";
+  cart: StorefrontCartQuoteRequest;
   onPaymentSuccess: (checkoutRequestId: string) => Promise<void>;
 }
 
@@ -52,8 +52,7 @@ export function StorefrontPaymentDialog({
   storefrontToken,
   defaultPhone,
   totalAmount,
-  planId,
-  billingCycle,
+  cart,
   onPaymentSuccess,
 }: StorefrontPaymentDialogProps) {
   const [paymentMethod, setPaymentMethod] = React.useState<string | null>("mpesa");
@@ -230,9 +229,7 @@ export function StorefrontPaymentDialog({
       const res = await initiateStorefrontStkPush({
         storefrontToken,
         phone: formatMpesaPhone(trimmed),
-        planId: planId || undefined,
-        billingCycle,
-        clientAmount: totalAmount,
+        cart,
       });
       toast.message(res.message ?? "Check your phone for the M-Pesa prompt.");
       startPolling(res.checkoutRequestId);
