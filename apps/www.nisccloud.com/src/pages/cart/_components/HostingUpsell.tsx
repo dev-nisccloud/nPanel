@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
@@ -157,24 +157,17 @@ interface LivePlan {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function pickBestPlan(data: SharedHostingPricingData, type: HostingUpsellType): LivePlan | null {
-  const monthly = data.plans.filter((p) => p.billingCycle === "MONTHLY");
-  const yearly = data.plans.filter((p) => p.billingCycle === "YEARLY");
-  const pool = monthly.length ? monthly : data.plans;
-  if (!pool.length) return null;
-
-  const pick =
-    pool.find((p) => p.isRecommended) ??
-    pool.find((p) => p.isPopular) ??
-    pool[0];
-
-  const yearlyPick = yearly.find((p) => p.name === pick.name) ?? yearly[0];
+function buildLivePlan(
+  pick: SharedHostingPricingData["plans"][number],
+  yearlyPick: SharedHostingPricingData["plans"][number] | undefined,
+  data: SharedHostingPricingData,
+  type: HostingUpsellType,
+): LivePlan {
   const monthlyPrice = parseFloat(pick.niscPrice ?? "0") || 0;
   const yearlyPrice = yearlyPick
     ? parseFloat(yearlyPick.niscPrice ?? "0") || 0
     : Math.round(monthlyPrice * 12 * 0.8);
 
-  // Build feature rows with real values
   const feats: FeatureRow[] =
     data.productFeatures.length && pick.featureValues.length
       ? data.productFeatures
@@ -202,6 +195,28 @@ function pickBestPlan(data: SharedHostingPricingData, type: HostingUpsellType): 
   };
 }
 
+function buildAllLivePlans(data: SharedHostingPricingData, type: HostingUpsellType): LivePlan[] {
+  const monthly = data.plans.filter((p) => p.billingCycle === "MONTHLY");
+  const yearly = data.plans.filter((p) => p.billingCycle === "YEARLY");
+  const pool = monthly.length ? monthly : data.plans;
+  if (!pool.length) return [];
+
+  return pool.map((pick) => {
+    const yearlyPick = yearly.find((p) => p.name === pick.name);
+    return buildLivePlan(pick, yearlyPick, data, type);
+  });
+}
+
+function toUpsellPlanInfo(plan: LivePlan): UpsellPlanInfo {
+  return {
+    planId: plan.planId,
+    name: plan.name,
+    monthlyPrice: plan.monthlyPrice,
+    yearlyPrice: plan.yearlyPrice,
+    currency: plan.currency,
+  };
+}
+
 function fmt(amount: number, currency: string) {
   return `${currency} ${amount.toLocaleString("en-KE")}`;
 }
@@ -211,7 +226,15 @@ function fmt(amount: number, currency: string) {
 // ---------------------------------------------------------------------------
 
 export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleChange, onLoadingChange, domainName }: HostingUpsellProps) {
-  const [plans, setPlans] = React.useState<Partial<Record<HostingUpsellType, LivePlan>>>({});
+  const [plansCatalog, setPlansCatalog] = React.useState<
+    Partial<Record<HostingUpsellType, LivePlan[]>>
+  >({});
+  const [selectedPlanId, setSelectedPlanId] = React.useState<
+    Partial<Record<HostingUpsellType, string>>
+  >({});
+  const [showAllPlans, setShowAllPlans] = React.useState<
+    Partial<Record<HostingUpsellType, boolean>>
+  >({});
   const [loading, setLoading] = React.useState(true);
   const [cycles, setCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>({});
   const notifyRef = React.useRef(onPlanLoaded);
@@ -224,7 +247,41 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
     cycleNotifyRef.current?.(type, cycle);
   };
 
-  const getCycle = (type: HostingUpsellType): BillingCycle => cycles[type] ?? "MONTHLY";
+  const getCycle = (type: HostingUpsellType): BillingCycle => cycles[type] ?? "YEARLY";
+
+  const getActivePlan = React.useCallback(
+    (type: HostingUpsellType): LivePlan | undefined => {
+      const catalog = plansCatalog[type];
+      if (!catalog?.length) return undefined;
+      const pickedId = selectedPlanId[type];
+      if (pickedId) return catalog.find((p) => p.planId === pickedId);
+      return catalog.find((p) => p.isRecommended) ?? catalog[0];
+    },
+    [plansCatalog, selectedPlanId],
+  );
+
+  const handlePlanPick = (type: HostingUpsellType, plan: LivePlan) => {
+    setSelectedPlanId((prev) => ({ ...prev, [type]: plan.planId }));
+    notifyRef.current?.(type, toUpsellPlanInfo(plan));
+  };
+
+  const handleSelectType = (type: HostingUpsellType, isCurrentlySelected: boolean) => {
+    if (isCurrentlySelected) {
+      onSelect(null);
+      return;
+    }
+
+    const defaultCycle = cycles[type] ?? "YEARLY";
+    if (!cycles[type]) handleCycleChange(type, defaultCycle);
+
+    const plan = getActivePlan(type);
+    if (plan) {
+      setSelectedPlanId((prev) => ({ ...prev, [type]: plan.planId }));
+      notifyRef.current?.(type, toUpsellPlanInfo(plan));
+    }
+
+    onSelect(type);
+  };
 
   React.useEffect(() => {
     let active = true;
@@ -232,26 +289,31 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
 
     Promise.allSettled(
       SLOTS.map((s) =>
-        s.fetch().then((data) => ({ id: s.id as HostingUpsellType, plan: pickBestPlan(data, s.id) })),
+        s.fetch().then((data) => ({
+          id: s.id as HostingUpsellType,
+          plans: buildAllLivePlans(data, s.id),
+        })),
       ),
     ).then((results) => {
       if (!active) return;
-      const next: Partial<Record<HostingUpsellType, LivePlan>> = {};
+      const nextCatalog: Partial<Record<HostingUpsellType, LivePlan[]>> = {};
+      const nextSelected: Partial<Record<HostingUpsellType, string>> = {};
+
       for (const r of results) {
-        if (r.status === "fulfilled" && r.value.plan) {
-          next[r.value.id] = r.value.plan;
-          notifyRef.current?.(r.value.id, {
-            planId: r.value.plan.planId,
-            name: r.value.plan.name,
-            monthlyPrice: r.value.plan.monthlyPrice,
-            yearlyPrice: r.value.plan.yearlyPrice,
-            currency: r.value.plan.currency,
-          });
-        } else if (r.status === "fulfilled") {
-          notifyRef.current?.(r.value.id, null);
+        if (r.status !== "fulfilled") continue;
+        const { id, plans } = r.value;
+        if (!plans.length) {
+          notifyRef.current?.(id, null);
+          continue;
         }
+        nextCatalog[id] = plans;
+        const best = plans.find((p) => p.isRecommended) ?? plans[0];
+        nextSelected[id] = best.planId;
+        notifyRef.current?.(id, toUpsellPlanInfo(best));
       }
-      setPlans(next);
+
+      setPlansCatalog(nextCatalog);
+      setSelectedPlanId(nextSelected);
       setLoading(false);
     });
 
@@ -270,19 +332,22 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
         Turn your domain into a website
       </h3>
       <p className="text-sm text-muted-foreground mb-4">
+        Add hosting to go live right away. Pick one, you can always upgrade later.
+      </p>
+      {/* <p className="text-sm text-muted-foreground mb-4">
         {domainName
           ? `Get ${domainName} free for the 1st year with any hosting plan below.`
           : "Add hosting to go live right away. Pick one — you can always upgrade later."}
-      </p>
+      </p> */}
 
       {/* Single "Recommended for you" badge — shown once at top if any plan is recommended */}
-      {!loading && Object.values(plans).some((p) => p?.isRecommended) && (
+      {!loading && Object.values(plansCatalog).some((list) => list?.some((p) => p.isRecommended)) && (
         <div className="mb-3 flex items-center gap-2">
           <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-medium px-2.5 py-0.5">
             ⭐ Recommended for you
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {SLOTS.find((s) => plans[s.id]?.isRecommended)?.label} highlighted below
+            {SLOTS.find((s) => plansCatalog[s.id]?.some((p) => p.isRecommended))?.label} highlighted below
           </span>
         </div>
       )}
@@ -295,10 +360,13 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
       ) : (
         <div className="space-y-3">
           {SLOTS.map((slot) => {
-            const plan = plans[slot.id];
+            const catalog = plansCatalog[slot.id] ?? [];
+            const plan = getActivePlan(slot.id);
             const isSelected = selectedType === slot.id;
             const isRecommended = plan?.isRecommended ?? false;
             const features = plan?.features ?? FALLBACK_FEATURES[slot.id];
+            const otherPlansCount = catalog.length > 1 ? catalog.length - 1 : 0;
+            const isExpanded = Boolean(showAllPlans[slot.id]);
 
             return (
               <div
@@ -311,7 +379,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                       ? "border-primary/30 hover:border-primary/60 bg-primary/[0.02]"
                       : "border-border hover:border-primary/40 bg-white",
                 )}
-                onClick={() => onSelect(isSelected ? null : slot.id)}
+                onClick={() => handleSelectType(slot.id, isSelected)}
               >
                 <div className="flex items-start gap-3">
                   {/* Radio circle */}
@@ -355,10 +423,10 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
 
                     <p className="text-xs text-muted-foreground mt-0.5 mb-2">{slot.tagline}</p>
 
-                    {/* Billing cycle selector — only visible when this plan is selected */}
+                    {/* Billing cycle — visible when selected */}
                     {isSelected && plan && (
                       <div className="flex items-center gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">Period</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">Billing cycle</span>
                         <Select
                           value={getCycle(slot.id)}
                           onValueChange={(v) => handleCycleChange(slot.id, v as BillingCycle)}
@@ -375,6 +443,78 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    )}
+
+                    {/* Other plans picker */}
+                    {isSelected && otherPlansCount > 0 && (
+                      <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
+                          onClick={() =>
+                            setShowAllPlans((prev) => ({
+                              ...prev,
+                              [slot.id]: !prev[slot.id],
+                            }))
+                          }
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="w-3.5 h-3.5" />
+                              Hide other plans
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-3.5 h-3.5" />
+                              View other plans ({otherPlansCount} more)
+                            </>
+                          )}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="mt-2 rounded-lg border border-border bg-muted/20 p-2 space-y-1">
+                            {catalog.map((option) => {
+                              const isActive = option.planId === plan?.planId;
+                              const cycle = getCycle(slot.id);
+                              const price =
+                                cycle === "YEARLY"
+                                  ? fmt(option.yearlyPrice, option.currency)
+                                  : fmt(option.monthlyPrice, option.currency);
+
+                              return (
+                                <button
+                                  key={option.planId}
+                                  type="button"
+                                  className={cn(
+                                    "w-full flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left transition-colors",
+                                    isActive
+                                      ? "bg-primary/10 border border-primary/30"
+                                      : "hover:bg-muted/60 border border-transparent",
+                                  )}
+                                  onClick={() => handlePlanPick(slot.id, option)}
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block text-xs font-semibold text-foreground truncate">
+                                      {option.name}
+                                      {option.isRecommended && (
+                                        <span className="ml-1.5 text-[10px] font-medium text-primary">
+                                          Recommended
+                                        </span>
+                                      )}
+                                    </span>
+                                  </span>
+                                  <span className="text-xs font-semibold text-foreground whitespace-nowrap shrink-0">
+                                    {price}
+                                    <span className="text-muted-foreground font-normal">
+                                      /{cycle === "YEARLY" ? "yr" : "mo"}
+                                    </span>
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
 
