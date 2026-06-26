@@ -2,8 +2,23 @@
 
 import * as React from "react";
 import { useNavigate, useParams } from "react-router";
-import { X, MessageCircle, ChevronRight, RotateCw, Phone, Bot, ArrowLeft, Paperclip, Send, ChevronDown, MoreVertical, CheckCircle, Circle, Sparkles, Trash2 } from "lucide-react";
-import { AuroraGlow } from "@/components/ui/aurora-button";
+import {
+  X,
+  MessageCircle,
+  RotateCw,
+  ArrowLeft,
+  Send,
+  MoreVertical,
+  CheckCircle,
+  Circle,
+  Sparkles,
+  Trash2,
+  ChevronRight,
+  Search,
+  MessageSquare,
+  ExternalLink,
+  BookOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -24,7 +39,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
-import { FabTicketsLottie } from "@/components/fab-tickets-lottie";
 import { Icons } from "@/components/icons";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTicketsList, useTicketMessages } from "./tickets/use-tickets";
@@ -40,6 +54,7 @@ import { useNewMessageDetector } from "@/hooks/use-new-message-detector";
 import { useGlobalNotificationDetector } from "@/hooks/use-global-notification-detector";
 import { useAiHistory, useAiChat, useAiMutations } from "@/hooks/use-ai";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
+import { helpCollections, type HelpCollection, type HelpArticle } from "@/lib/help-docs";
 
 interface FloatingActionButtonProps {
   className?: string;
@@ -120,23 +135,21 @@ type ChatMessageAttachment = {
 
 type ChatMessage =
   | {
-    id: string;
-    type: "assistant";
-    message: string;
-    timestamp: Date;
-    attachments?: ChatMessageAttachment[];
-    /** Agency agent display name - shown above bubble on agency view only */
-    senderLabel?: string;
-  }
+      id: string;
+      type: "assistant";
+      message: string;
+      timestamp: Date;
+      attachments?: ChatMessageAttachment[];
+      senderLabel?: string;
+    }
   | {
-    id: string;
-    type: "user";
-    message: string;
-    timestamp: Date;
-    attachments?: ChatMessageAttachment[];
-    /** Agency agent display name - shown above bubble on agency view only */
-    senderLabel?: string;
-  };
+      id: string;
+      type: "user";
+      message: string;
+      timestamp: Date;
+      attachments?: ChatMessageAttachment[];
+      senderLabel?: string;
+    };
 
 function resolveTicketSenderLabel(
   msg: TicketMessage,
@@ -165,11 +178,7 @@ function resolveTicketSenderLabel(
   return "Support agent";
 }
 
-function TicketChatBubbleBody({
-  msg,
-}: {
-  msg: ChatMessage;
-}) {
+function TicketChatBubbleBody({ msg }: { msg: ChatMessage }) {
   return (
     <div
       className={cn(
@@ -209,57 +218,29 @@ function TicketChatBubbleBody({
   );
 }
 
-
-
-// WhatsApp Icon Component
-const WhatsAppIcon = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className={className}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.375a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-  </svg>
-);
-
-// No mock data - using real data from API
-
-// Action options matching the reference design
-const getActionOptions = () => [
-  {
-    id: "live-chat",
-    title: "View support tickets",
-    icon: Icons.LiveChat,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50 dark:bg-blue-950/20",
-    onClick: () => {
-      // Handle support tickets - will show chat list
-      console.log("View support tickets");
-    },
-  },
-  {
-    id: "zepo",
-    title: "Live AI support",
-    icon: Icons.AISupport,
-    color: "text-blue-600",
-    bgColor: "bg-blue-50 dark:bg-blue-950/20",
-  },
-];
-
-// Initial greeting message for new tickets
 const initialGreetingMessage: ChatMessage = {
   id: "greeting",
   type: "assistant",
-  message: "👋 How can we help you today?\nPlease describe the issue in detail. Include details about what you're seeing, any service specific details, serviceIDs, custom domains, log output etc",
+  message:
+    "👋 How can we help you today?\nPlease describe the issue in detail. Include details about what you're seeing, any service specific details, serviceIDs, custom domains, log output etc",
   timestamp: new Date(),
 };
+
+type ActiveTab = "home" | "messages" | "help";
+type MessagesSubView = "list" | "chat" | "zepo-history" | "zepo";
+type HelpSubView = "collections" | "collection-detail" | "article-detail";
 
 export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const navigate = useNavigate();
   const params = useParams<{ slug?: string }>();
+
+  // Tab state
   const [isOpen, setIsOpen] = React.useState(false);
-  const [currentView, setCurrentView] = React.useState<"main" | "chat-list" | "chat" | "zepo" | "zepo-history">("main");
+  const [activeTab, setActiveTab] = React.useState<ActiveTab>("home");
+  const [messagesSubView, setMessagesSubView] = React.useState<MessagesSubView>("list");
+  const [helpSubView, setHelpSubView] = React.useState<HelpSubView>("collections");
+
+  // Messages state
   const [messageInput, setMessageInput] = React.useState("");
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const [selectedChatId, setSelectedChatId] = React.useState<string | null>(null);
@@ -267,24 +248,28 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [isNewTicket, setIsNewTicket] = React.useState(false);
   const [isSending, setIsSending] = React.useState(false);
   const [loadingChatId, setLoadingChatId] = React.useState<string | null>(null);
-  const [loadingAiChatId, setLoadingAiChatId] = React.useState<string | null>(null);
   const [deletingAiChatId, setDeletingAiChatId] = React.useState<string | null>(null);
   const [optimisticAiMessages, setOptimisticAiMessages] = React.useState<ChatMessage[]>([]);
   const [thinkingMessageIndex, setThinkingMessageIndex] = React.useState(0);
+  const [locallyReadIds, setLocallyReadIds] = React.useState<Set<string>>(new Set());
+
+  // Help state
+  const [helpSearch, setHelpSearch] = React.useState("");
+  const [selectedCollection, setSelectedCollection] = React.useState<HelpCollection | null>(null);
+  const [selectedArticle, setSelectedArticle] = React.useState<HelpArticle | null>(null);
+
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const aiMessagesEndRef = React.useRef<HTMLDivElement>(null);
   const humanMessagesEndRef = React.useRef<HTMLDivElement>(null);
-  const actionOptions = getActionOptions();
 
-  // Scroll to bottom helper
-  const scrollToBottom = React.useCallback((type: 'ai' | 'human' = 'ai') => {
-    const ref = type === 'ai' ? aiMessagesEndRef : humanMessagesEndRef;
+  const scrollToBottom = React.useCallback((type: "ai" | "human" = "ai") => {
+    const ref = type === "ai" ? aiMessagesEndRef : humanMessagesEndRef;
     if (ref.current) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      ref.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   }, []);
 
-  // Get current user + role
+  // Auth
   const { data: session } = authClient.useSession();
   const currentUserId = session?.user?.id;
   const currentUserName = session?.user?.name;
@@ -295,50 +280,67 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     userRole === "AGENCY_ADMIN" ||
     userRole === "AGENCY_SUPER_ADMIN";
 
-  // Optimistic local read tracker - clears unread badge immediately when chat opened
-  const [locallyReadIds, setLocallyReadIds] = React.useState<Set<string>>(new Set());
+  // Data hooks
+  const {
+    tickets,
+    isLoading: isLoadingTickets,
+    isRefetching: isRefetchingTickets,
+    isError: isErrorTickets,
+    error: ticketsError,
+    refetch: refetchTickets,
+  } = useTicketsList();
 
-  // Data fetching hooks
-  const { tickets, isLoading: isLoadingTickets, isRefetching: isRefetchingTickets, isError: isErrorTickets, error: ticketsError, refetch: refetchTickets } = useTicketsList();
-  // Only fetch messages if we have a ticket ID AND it's not a new ticket
   const shouldFetchMessages = !isNewTicket && !!selectedChatId;
-  const { messages, isLoading: isLoadingMessages, isError: isErrorMessages, error: messagesError, refetch: refetchMessages } = useTicketMessages(
-    shouldFetchMessages ? selectedChatId : null
-  );
-  const { createTicket, createMessage, updateStatus, markMessageRead, markAllTicketMessagesAsRead } = useTicketMutations({ currentUserId });
+  const {
+    messages,
+    isLoading: isLoadingMessages,
+    isError: isErrorMessages,
+    error: messagesError,
+    refetch: refetchMessages,
+  } = useTicketMessages(shouldFetchMessages ? selectedChatId : null);
 
-  // AI Data fetching hooks
-  const { history: aiHistory, isLoading: isLoadingAiHistory, isRefetching: isRefetchingAiHistory, refetch: refetchAiHistory } = useAiHistory();
-  const { messages: aiMessagesData, isLoading: isLoadingAiMessages, isError: isErrorAiMessages, error: aiMessagesError } = useAiChat(selectedAiChatId === "new" ? null : selectedAiChatId);
-  const { startChat: startAiChat, sendMessage: sendAiMessage, escalateChat: directEscalateChat, deleteChat: deleteAiChat } = useAiMutations();
+  const { createTicket, createMessage, updateStatus, markAllTicketMessagesAsRead } =
+    useTicketMutations({ currentUserId });
 
-  // Callback for when a new message is received while chat is open
-  const handleNewMessage = React.useCallback((message: any) => {
-    // Auto-mark messages as read when user is actively viewing the chat
+  const {
+    history: aiHistory,
+    isLoading: isLoadingAiHistory,
+    isRefetching: isRefetchingAiHistory,
+    refetch: refetchAiHistory,
+  } = useAiHistory();
+
+  const {
+    messages: aiMessagesData,
+    isLoading: isLoadingAiMessages,
+    isError: isErrorAiMessages,
+    error: aiMessagesError,
+  } = useAiChat(selectedAiChatId === "new" ? null : selectedAiChatId);
+
+  const {
+    startChat: startAiChat,
+    sendMessage: sendAiMessage,
+    escalateChat: directEscalateChat,
+    deleteChat: deleteAiChat,
+  } = useAiMutations();
+
+  // New message handler
+  const handleNewMessage = React.useCallback(() => {
     if (selectedChatId) {
       markAllTicketMessagesAsRead.mutate({ ticketId: selectedChatId });
     }
   }, [selectedChatId, markAllTicketMessagesAsRead]);
 
-  // Initialize new message detectors
-  const isChatOpen = isOpen && currentView === "chat";
+  const isChatOpen =
+    isOpen && activeTab === "messages" && messagesSubView === "chat";
   useNewMessageDetector(messages, currentUserId, selectedChatId, isChatOpen, handleNewMessage);
   useGlobalNotificationDetector(tickets, selectedChatId);
 
-  // Transform API messages to ChatMessage format
+  // Transform messages
   const chatMessages: ChatMessage[] = React.useMemo(() => {
-    // For new tickets, always show just the greeting - NO MESSAGE FETCHING
-    if (isNewTicket) {
-      return [initialGreetingMessage];
-    }
-
-    // If we have messages, transform them
+    if (isNewTicket) return [initialGreetingMessage];
     if (messages && messages.length > 0) {
       return messages.map((msg) => {
-        // Messages sent by the currently logged-in user always appear on the right ("user").
-        // All other messages (from the other party) appear on the left ("assistant").
         const isFromCurrentUser = msg.senderId === currentUserId;
-
         return {
           id: msg.id,
           type: isFromCurrentUser ? "user" : "assistant",
@@ -350,7 +352,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
             currentUserName,
             currentUserEmail,
           }),
-          attachments: msg.attachments?.map(att => ({
+          attachments: msg.attachments?.map((att) => ({
             id: att.id,
             fileName: att.fileName,
             fileSize: att.fileSize,
@@ -360,15 +362,11 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         };
       });
     }
-
-    // If no messages but ticket exists, show greeting
     return [initialGreetingMessage];
   }, [messages, isNewTicket, currentUserId, isAgency, currentUserName, currentUserEmail]);
 
-  // Transform AI messages
   const transformedAiMessages: ChatMessage[] = React.useMemo(() => {
     let baseMessages: ChatMessage[] = [];
-
     if (aiMessagesData && aiMessagesData.length > 0) {
       baseMessages = aiMessagesData
         .filter((msg) => msg.role === "user" || (msg.role === "assistant" && msg.content))
@@ -378,132 +376,110 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
           message: msg.content || "",
           timestamp: new Date(msg.createdAt),
         })) as ChatMessage[];
-    } else if (selectedAiChatId === "new") {
-      // New chat - return empty to show Welcome View
-      baseMessages = [];
-    } else {
-      // Transition state
-      baseMessages = [];
     }
-
-    // Merge with optimistic messages
     const filteredOptimistic = optimisticAiMessages.filter(
-      om => !baseMessages.find(bm =>
-        bm.message === om.message && bm.type === om.type
-      )
+      (om) => !baseMessages.find((bm) => bm.message === om.message && bm.type === om.type),
     );
-
     return [...baseMessages, ...filteredOptimistic];
   }, [aiMessagesData, selectedAiChatId, optimisticAiMessages]);
 
-  // Clear optimistic messages
   React.useEffect(() => {
     if (aiMessagesData && aiMessagesData.length > 0) {
       setOptimisticAiMessages([]);
     }
   }, [aiMessagesData]);
 
-  // Auto-scroll AI chat
   React.useEffect(() => {
-    if (currentView === "zepo") {
-      scrollToBottom('ai');
-      // Use a small timeout to ensure content is fully rendered
-      const timer = setTimeout(() => scrollToBottom('ai'), 100);
+    if (messagesSubView === "zepo") {
+      scrollToBottom("ai");
+      const timer = setTimeout(() => scrollToBottom("ai"), 100);
       return () => clearTimeout(timer);
     }
-  }, [transformedAiMessages, optimisticAiMessages, isSending, currentView, scrollToBottom]);
+  }, [transformedAiMessages, optimisticAiMessages, isSending, messagesSubView, scrollToBottom]);
 
-  // Auto-scroll Human chat
   React.useEffect(() => {
-    if (currentView === "chat") {
-      scrollToBottom('human');
-      const timer = setTimeout(() => scrollToBottom('human'), 100);
+    if (messagesSubView === "chat") {
+      scrollToBottom("human");
+      const timer = setTimeout(() => scrollToBottom("human"), 100);
       return () => clearTimeout(timer);
     }
-  }, [chatMessages, isSending, currentView, scrollToBottom]);
+  }, [chatMessages, isSending, messagesSubView, scrollToBottom]);
 
-  // Reset view when popover closes
-  // Cycle thinking messages
   React.useEffect(() => {
     if (!isSending) {
       setThinkingMessageIndex(0);
       return;
     }
-    const messages = [
+    const thinkingMessages = [
       "Zepo is thinking...",
       "Searching for answers...",
       "Analyzing your request...",
       "Generating response...",
     ];
     const timer = setInterval(() => {
-      setThinkingMessageIndex((prev) => (prev + 1) % messages.length);
+      setThinkingMessageIndex((prev) => (prev + 1) % thinkingMessages.length);
     }, 3000);
     return () => clearInterval(timer);
   }, [isSending]);
 
-  // Reset view when popover closes
+  // Reset on close
   React.useEffect(() => {
     if (!isOpen) {
-      setCurrentView("main");
+      setActiveTab("home");
+      setMessagesSubView("list");
+      setHelpSubView("collections");
       setMessageInput("");
       setSelectedFiles([]);
       setSelectedChatId(null);
       setSelectedAiChatId(null);
       setIsNewTicket(false);
+      setSelectedCollection(null);
+      setSelectedArticle(null);
+      setHelpSearch("");
     }
   }, [isOpen]);
 
-  const handleViewSupportTickets = () => {
-    setCurrentView("chat-list");
-  };
-
+  // Handlers
   const handleChatWithHuman = (ticketId?: string) => {
     if (ticketId && ticketId !== "new") {
       setSelectedChatId(ticketId);
       setIsNewTicket(false);
-      // Optimistically clear the unread badge immediately
       setLocallyReadIds((prev) => new Set(prev).add(ticketId));
-      // Persist the read state server-side
       markAllTicketMessagesAsRead.mutate({ ticketId });
     } else {
       setIsNewTicket(true);
       setSelectedChatId(null);
     }
-    setCurrentView("chat");
+    setMessagesSubView("chat");
   };
 
   const handleZepoChat = () => {
     setIsOpen(false);
     const role = (session?.user as { role?: string } | undefined)?.role;
-    const isAgency =
-      role === "AGENCY_USER" ||
-      role === "AGENCY_ADMIN" ||
-      role === "AGENCY_SUPER_ADMIN";
-    if (isAgency) {
+    const isAgencyRole =
+      role === "AGENCY_USER" || role === "AGENCY_ADMIN" || role === "AGENCY_SUPER_ADMIN";
+    if (isAgencyRole) {
       navigate("/agency/zeepo-ai-agent");
     } else {
       const slug = params.slug;
-      if (slug) {
-        navigate(`/${slug}/zeepo-ai-agent`);
-      }
+      if (slug) navigate(`/${slug}/zeepo-ai-agent`);
     }
   };
 
   const handleStartNewZepoChat = () => {
     setSelectedAiChatId("new");
-    setCurrentView("zepo");
+    setMessagesSubView("zepo");
   };
 
   const handleSelectPastZepoChat = (chatId: string) => {
     if (deletingAiChatId === chatId) return;
     setSelectedAiChatId(chatId);
-    setCurrentView("zepo");
+    setMessagesSubView("zepo");
   };
 
   const handleDeleteAiChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     if (deletingAiChatId) return;
-
     try {
       setDeletingAiChatId(chatId);
       await deleteAiChat.mutateAsync({ id: chatId });
@@ -522,7 +498,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         chatId: selectedAiChatId,
         reason: "User requested human agent via button.",
       });
-      setCurrentView("chat-list"); // Go back to support tickets list
+      setMessagesSubView("list");
       refetchTickets();
     } catch (error) {
       console.error("Escalation failed:", error);
@@ -537,26 +513,16 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     const diff = now.getTime() - date.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (hours < 1) {
-      return "Just now";
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else if (days === 1) {
-      return "Yesterday";
-    } else if (days < 7) {
-      return `${days}d ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours}h`;
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days}d`;
+    return date.toLocaleDateString();
   };
 
   const handleMarkAsOpen = async (chatId: string) => {
     try {
-      await updateStatus.mutateAsync({
-        ticketId: chatId,
-        status: "OPEN",
-      });
+      await updateStatus.mutateAsync({ ticketId: chatId, status: "OPEN" });
     } catch (error) {
       console.error("Failed to mark ticket as open:", error);
     }
@@ -564,27 +530,11 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
   const handleMarkAsClosed = async (chatId: string) => {
     try {
-      await updateStatus.mutateAsync({
-        ticketId: chatId,
-        status: "CLOSED",
-      });
+      await updateStatus.mutateAsync({ ticketId: chatId, status: "CLOSED" });
     } catch (error) {
       console.error("Failed to mark ticket as closed:", error);
     }
   };
-
-  // const handleAssignToUser = async (chatId: string) => {
-  //   // TODO: Open dialog/modal to select user
-  //   console.log("Assign to user:", chatId);
-  // };
-
-  // const handleArchive = async (chatId: string) => {
-  //   try {
-  //     await archiveTicket.mutateAsync({ ticketId: chatId });
-  //   } catch (error) {
-  //     console.error("Failed to archive ticket:", error);
-  //   }
-  // };
 
   const selectedTicket = selectedChatId
     ? tickets.find((t) => t.id === selectedChatId)
@@ -592,80 +542,49 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
-
-    // Validate file sizes
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
     const oversizedFiles: File[] = [];
     const validFiles: File[] = [];
-
-    files.forEach(file => {
-      if (file.size > MAX_FILE_SIZE) {
-        oversizedFiles.push(file);
-      } else {
-        validFiles.push(file);
-      }
+    files.forEach((file) => {
+      if (file.size > MAX_FILE_SIZE) oversizedFiles.push(file);
+      else validFiles.push(file);
     });
-
-    // Show warning for oversized files
     if (oversizedFiles.length > 0) {
-      toast.error(
-        `${oversizedFiles.length} file(s) exceed the 50MB limit. Please select smaller files.`,
-        {
-          description: oversizedFiles.map(f => f.name).join(", "),
-        }
-      );
+      toast.error(`${oversizedFiles.length} file(s) exceed the 50MB limit.`, {
+        description: oversizedFiles.map((f) => f.name).join(", "),
+      });
     }
-
-    // Only add valid files
-    if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
-    }
-
-    // Reset input to allow selecting the same file again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (validFiles.length > 0) setSelectedFiles((prev) => [...prev, ...validFiles]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleRemoveFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleAttachmentClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleAttachmentClick = () => fileInputRef.current?.click();
 
   const handleSendMessage = async () => {
     if (isSending || (!messageInput.trim() && selectedFiles.length === 0)) return;
 
-    if (currentView === "zepo") {
+    if (messagesSubView === "zepo") {
       if (!messageInput.trim() || !selectedAiChatId) return;
-
       setIsSending(true);
       try {
         const input = messageInput;
-        setMessageInput(""); // Optimistically clear input
-
-
-        // Add user message optimistically
+        setMessageInput("");
         const userMessage: ChatMessage = {
           id: `temp-${Date.now()}`,
           type: "user",
           message: input,
           timestamp: new Date(),
         };
-        setOptimisticAiMessages(prev => [...prev, userMessage]);
-
+        setOptimisticAiMessages((prev) => [...prev, userMessage]);
         if (selectedAiChatId === "new") {
-          const newChat = await startAiChat.mutateAsync({
-            initialMessage: input,
-          });
+          const newChat = await startAiChat.mutateAsync({ initialMessage: input });
           setSelectedAiChatId(newChat.id);
         } else {
-          await sendAiMessage.mutateAsync({
-            chatId: selectedAiChatId,
-            content: input,
-          });
+          await sendAiMessage.mutateAsync({ chatId: selectedAiChatId, content: input });
         }
       } catch (error) {
         console.error("Failed to send AI message:", error);
@@ -676,14 +595,11 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
       return;
     }
 
-    // Human chat - with files
+    // Human chat
     if (!messageInput.trim() && selectedFiles.length === 0) return;
-
     setIsSending(true);
     try {
       let ticketId = selectedChatId;
-
-      // Upload files first if any
       let attachments: Array<{
         fileName: string;
         fileSize: number;
@@ -696,11 +612,8 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         try {
           const uploadResponse = await uploadFiles(UPLOAD_ENDPOINTS.FILE, {
             files: selectedFiles,
-            onUploadProgress: (progress) => {
-              console.log("Upload progress:", progress);
-            },
+            onUploadProgress: (_progress: number) => {},
           });
-
           if (uploadResponse && uploadResponse.length > 0) {
             attachments = uploadResponse.map((file, index) => ({
               fileName: selectedFiles[index]?.name || file.name || "unknown",
@@ -719,7 +632,6 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         }
       }
 
-      // If new ticket, create it now (after files are uploaded) - this is the FIRST message
       if (isNewTicket || !ticketId) {
         const newTicket = await createTicket.mutateAsync({
           subject: messageInput.substring(0, 100) || undefined,
@@ -730,94 +642,1079 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
         });
         ticketId = newTicket.id;
         setSelectedChatId(ticketId);
-        setIsNewTicket(false); // This will trigger message fetching
-
-        // Now create the first message for this ticket
+        setIsNewTicket(false);
         await createMessage.mutateAsync({
-          ticketId: ticketId,
+          ticketId,
           content: messageInput || (attachments.length > 0 ? `Sent ${attachments.length} file(s)` : ""),
           isInternal: false,
           attachments: attachments.length > 0 ? attachments : undefined,
         });
-
-        // Refetch messages after creating the first message
         await refetchMessages();
       } else {
-        // Existing ticket - just create the message
         await createMessage.mutateAsync({
-          ticketId: ticketId,
+          ticketId,
           content: messageInput || (attachments.length > 0 ? `Sent ${attachments.length} file(s)` : ""),
           isInternal: false,
           attachments: attachments.length > 0 ? attachments : undefined,
         });
       }
-
       setMessageInput("");
       setSelectedFiles([]);
     } catch (error) {
       console.error("Failed to send message:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to send message. Please try again.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send message. Please try again.",
+      );
     } finally {
       setIsSending(false);
     }
   };
 
+  // Total unread count for notification badge on FAB
+  const totalUnread = tickets.reduce((acc, t) => {
+    const effective = locallyReadIds.has(t.id) ? 0 : t.unreadCount;
+    return acc + effective;
+  }, 0);
+
+  // Help docs filtering
+  const filteredCollections = React.useMemo(() => {
+    if (!helpSearch.trim()) return helpCollections;
+    const q = helpSearch.toLowerCase();
+    return helpCollections
+      .map((col) => ({
+        ...col,
+        articles: col.articles.filter(
+          (a) =>
+            a.title.toLowerCase().includes(q) ||
+            a.summary.toLowerCase().includes(q) ||
+            a.tags?.some((t) => t.includes(q)),
+        ),
+      }))
+      .filter((col) => col.articles.length > 0 || col.title.toLowerCase().includes(q));
+  }, [helpSearch]);
+
+  // Sub-view in messages requiring full height (no show tabs change layout)
+  const isInSubView =
+    activeTab === "messages" && messagesSubView !== "list";
+
+  const thinkingMessages = [
+    "Zepo is thinking...",
+    "Searching for answers...",
+    "Analyzing your request...",
+    "Generating response...",
+  ];
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen} modal={false}>
+      {/* ── FAB Trigger ── */}
       <PopoverTrigger asChild>
-        <AuroraGlow
+        <button
           className={cn(
-            "fixed bottom-6 right-6 z-50 rounded-full",
-            className
+            "fixed bottom-6 right-6 z-50",
+            "flex h-14 w-14 items-center justify-center rounded-full",
+            "bg-primary shadow-lg hover:shadow-xl hover:scale-105",
+            "transition-all duration-200 active:scale-95",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+            className,
           )}
-          glowClassName="rounded-full from-primary/60 via-cyan-400/80 to-teal-400/70 opacity-80 blur-xl group-hover:opacity-100 group-hover:blur-2xl"
+          aria-label="Open support"
         >
-          <Button
-            className={cn(
-              "relative flex size-[5.5rem] shrink-0 items-center justify-center rounded-full border-0 p-0 shadow-lg transition-all duration-200",
-              "bg-[#eef5f7] hover:bg-[#e2edf0] hover:shadow-xl",
-            )}
-            aria-label="Open support options"
-          >
-            {isOpen ? (
-              <ChevronDown className="size-[3.25rem] text-primary" strokeWidth={2.5} />
-            ) : (
-              <FabTicketsLottie />
-            )}
-          </Button>
-        </AuroraGlow>
+          {isOpen ? (
+            <X className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
+          ) : (
+            <MessageCircle className="h-6 w-6 text-primary-foreground" strokeWidth={2} />
+          )}
+          {/* Unread badge */}
+          {!isOpen && totalUnread > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              {totalUnread > 9 ? "9+" : totalUnread}
+            </span>
+          )}
+        </button>
       </PopoverTrigger>
+
+      {/* ── Popup ── */}
       <PopoverContent
         align="end"
         side="top"
         sideOffset={16}
         className={cn(
-          "w-[360px] p-0 rounded-2xl overflow-hidden border-0 shadow-xl bg-background/98 backdrop-blur-md",
-          "data-[state=open]:duration-500 data-[state=closed]:duration-400",
-          "data-[state=open]:ease-out data-[state=closed]:ease-in",
-          "data-[side=top]:slide-in-from-bottom-6",
-          "data-[side=top]:data-[state=closed]:slide-out-to-bottom-4",
-          (currentView === "chat-list" || currentView === "chat" || currentView === "zepo" || currentView === "zepo-history") && "h-[600px] flex flex-col"
+          "w-[360px] p-0 rounded-2xl overflow-hidden border border-border/50 shadow-2xl bg-background",
+          "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+          "data-[side=top]:slide-in-from-bottom-4",
+          "h-[580px] flex flex-col",
         )}
       >
-        {/* Subtle neutral tint only when in chat/zepo views - avoid generic gradient look */}
-        {(currentView === "chat-list" || currentView === "chat" || currentView === "zepo" || currentView === "zepo-history") && (
-          <div className="absolute inset-0 bg-muted/20 pointer-events-none rounded-2xl" />
-        )}
+        {/* ── Content area (scrollable per tab) ── */}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
 
-        <div className="relative flex flex-col z-10 h-full">
-          {currentView === "main" ? (
-            <>
-              {/* Header with logo - no sign in button */}
-              <div className="flex items-center justify-between px-5 pt-5 pb-4">
+          {/* ═══════════════════════════════════════
+              HOME TAB
+          ═══════════════════════════════════════ */}
+          {activeTab === "home" && (
+            <div className="flex flex-col h-full relative overflow-hidden">
+              {/* Fading green gradient — solid at top, fades to transparent */}
+              <div
+                className="absolute inset-x-0 top-0 pointer-events-none"
+                style={{
+                  height: "52%",
+                  background: "linear-gradient(to bottom, var(--primary) 55%, transparent 100%)",
+                }}
+              />
+
+              {/* Top bar: logo + close */}
+              <div className="relative z-10 flex items-center justify-between px-5 pt-5 pb-0 flex-shrink-0">
+                <img
+                  src="/nisclogooriginal.png"
+                  alt="Nisc Cloud"
+                  className="h-12 w-auto brightness-0 invert"
+                />
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              </div>
+
+              {/* Greeting text */}
+              <div className="relative z-10 px-5 pt-5 pb-8 flex-shrink-0">
+                <h2 className="text-[1.65rem] font-bold text-white leading-tight tracking-tight">
+                  Hi there 👋
+                </h2>
+                <p className="text-[1.35rem] font-semibold text-white/90 mt-0.5 leading-snug">
+                  How can we help?
+                </p>
+              </div>
+
+              {/* Scrollable cards — sit on top of the fading gradient */}
+              <div className="relative z-10 flex-1 min-h-0 overflow-y-auto">
+                <div className="px-4 pb-4 space-y-2.5">
+
+                  {/* Recent message card */}
+                  <div className="bg-white dark:bg-card rounded-2xl overflow-hidden shadow-md border border-border/60">
+                    <div className="px-4 py-3 border-b border-border/60">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Recent message
+                      </p>
+                    </div>
+                    {tickets.length > 0 ? (() => {
+                      const latest = tickets[0];
+                      const effectiveUnread = locallyReadIds.has(latest.id) ? 0 : latest.unreadCount;
+                      return (
+                        <button
+                          className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left"
+                          onClick={() => {
+                            setActiveTab("messages");
+                            handleChatWithHuman(latest.id);
+                          }}
+                        >
+                          {/* Brand icon square — like DigiTax */}
+                          <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                            <span className="text-sm font-bold text-primary-foreground">N</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-foreground line-clamp-1">
+                                {latest.subject || "Nisc Cloud Support"}
+                              </p>
+                              <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                                {latest.lastMessageAt ? formatTime(latest.lastMessageAt) : ""}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              {latest.lastMessage || "You'll get replies here and in your email..."}
+                            </p>
+                          </div>
+                          {effectiveUnread > 0 && (
+                            <span className="flex-shrink-0 h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                              {effectiveUnread}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })() : (
+                      <div className="px-4 py-3.5 flex items-center gap-3">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary-foreground">N</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          You'll get replies here and in your email...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contact us */}
+                  <div className="bg-white dark:bg-card rounded-2xl overflow-hidden shadow-md border border-border/60">
+                    <button
+                      className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors"
+                      onClick={() => {
+                        setActiveTab("messages");
+                        handleChatWithHuman("new");
+                      }}
+                    >
+                      <span className="text-sm font-medium text-foreground">Contact us</span>
+                      <ChevronRight className="h-4 w-4 text-primary" />
+                    </button>
+                  </div>
+
+                  {/* External links */}
+                  <div className="bg-white dark:bg-card rounded-2xl overflow-hidden shadow-md border border-border/60 divide-y divide-border/60">
+                    <a
+                      href="https://docs.nisccloud.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-foreground">Nisc Cloud Docs</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                    </a>
+                    <button
+                      className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors"
+                      onClick={() => setActiveTab("help")}
+                    >
+                      <span className="text-sm font-medium text-foreground">Support Centre</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                    </button>
+                  </div>
+
+                  {/* Search for help */}
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3.5 bg-white dark:bg-card rounded-2xl shadow-md border border-border/60 hover:bg-muted/40 transition-colors"
+                    onClick={() => setActiveTab("help")}
+                  >
+                    <span className="text-sm font-medium text-foreground">Search for help</span>
+                    <Search className="h-4 w-4 text-primary" />
+                  </button>
+
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════
+              MESSAGES TAB
+          ═══════════════════════════════════════ */}
+          {activeTab === "messages" && (
+            <div className="flex flex-col h-full">
+              {/* ── Ticket List ── */}
+              {messagesSubView === "list" && (
+                <>
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b flex-shrink-0">
+                    <h2 className="text-base font-semibold text-foreground">Messages</h2>
+                    <div className="flex items-center gap-1">
+                      {!isAgency && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleChatWithHuman("new")}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          New
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full hover:bg-accent"
+                        onClick={() => refetchTickets()}
+                        disabled={isRefetchingTickets}
+                      >
+                        {isRefetchingTickets ? (
+                          <Spinner size={14} />
+                        ) : (
+                          <RotateCw className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full hover:bg-accent"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <ScrollArea className="flex-1 min-h-0">
+                    <NotificationSettingsBanner />
+
+                    {isLoadingTickets ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                          <Spinner size={28} className="mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground">Loading messages...</p>
+                        </div>
+                      </div>
+                    ) : isErrorTickets ? (
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <h3 className="mb-2 text-base font-semibold">Failed to load</h3>
+                        <p className="mb-4 text-sm text-muted-foreground">
+                          {ticketsError?.message || "An error occurred."}
+                        </p>
+                        <Button onClick={() => refetchTickets()} variant="outline" size="sm">
+                          Try Again
+                        </Button>
+                      </div>
+                    ) : tickets.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <div className="mb-4 p-4 bg-muted/50 rounded-full w-fit mx-auto">
+                          <Icons.LiveChat className="h-10 w-10 text-muted-foreground" />
+                        </div>
+                        <h3 className="mb-1 text-base font-semibold">No messages yet</h3>
+                        {!isAgency && (
+                          <p className="mb-5 text-sm text-muted-foreground max-w-[220px]">
+                            Start a conversation with our support team.
+                          </p>
+                        )}
+                        {!isAgency && (
+                          <Button
+                            onClick={() => handleChatWithHuman("new")}
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6"
+                          >
+                            Contact us
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {tickets.map((ticket) => {
+                          const effectiveUnread = locallyReadIds.has(ticket.id)
+                            ? 0
+                            : ticket.unreadCount;
+                          const ticketTitle = isAgency
+                            ? ticket.customerName || `Ticket #${ticket.ticketNumber}`
+                            : ticket.subject ||
+                              ticket.lastMessage?.slice(0, 50) ||
+                              `Ticket #${ticket.ticketNumber}`;
+
+                          return (
+                            <div
+                              key={ticket.id}
+                              className="flex items-center gap-2 px-4 py-3 hover:bg-muted/50 transition-colors group"
+                            >
+                              <button
+                                onClick={() => handleChatWithHuman(ticket.id)}
+                                className="flex-1 flex items-start gap-3 text-left"
+                                disabled={loadingChatId === ticket.id}
+                              >
+                                <div className="flex-shrink-0 h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                                  <MessageSquare className="h-4 w-4 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-semibold text-sm text-foreground line-clamp-1 flex-1">
+                                      {ticketTitle}
+                                    </span>
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                      {loadingChatId === ticket.id && (
+                                        <Spinner size={12} className="text-primary" />
+                                      )}
+                                      {effectiveUnread > 0 && (
+                                        <span className="text-[10px] font-semibold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                                          {effectiveUnread}
+                                        </span>
+                                      )}
+                                      {ticket.lastMessageAt && (
+                                        <span className="text-[10px] text-muted-foreground">
+                                          {formatTime(ticket.lastMessageAt)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                                    {ticket.lastMessage || "No messages yet"}
+                                  </p>
+                                  <span
+                                    className={cn(
+                                      "inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded capitalize",
+                                      getTicketStatusBadgeClass(ticket.status),
+                                    )}
+                                  >
+                                    {getTicketStatusLabel(ticket.status)}
+                                  </span>
+                                </div>
+                              </button>
+
+                              {isAgency && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <TicketStatusActionsMenu
+                                      ticketId={ticket.id}
+                                      status={ticket.status}
+                                      onMarkOpen={handleMarkAsOpen}
+                                      onMarkClosed={handleMarkAsClosed}
+                                      stopPropagation
+                                    />
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </ScrollArea>
+
+                  {/* Contact us footer */}
+                  {!isAgency && tickets.length > 0 && (
+                    <div className="px-4 py-3 border-t flex-shrink-0">
+                      <Button
+                        onClick={() => handleChatWithHuman("new")}
+                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Contact us
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ── Zepo AI History ── */}
+              {messagesSubView === "zepo-history" && (
+                <>
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full hover:bg-accent"
+                        onClick={() => setMessagesSubView("list")}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      <h2 className="text-base font-semibold text-foreground">AI Chat History</h2>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-8 w-8 rounded-full hover:bg-accent",
+                          (isLoadingAiHistory || isRefetchingAiHistory) && "animate-spin",
+                        )}
+                        onClick={() => refetchAiHistory()}
+                        disabled={isLoadingAiHistory || isRefetchingAiHistory}
+                      >
+                        <RotateCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full hover:bg-accent"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="px-4 pt-3 pb-3 border-b flex-shrink-0">
+                    <Button
+                      onClick={handleStartNewZepoChat}
+                      disabled={isSending || isLoadingAiHistory}
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      {isSending ? (
+                        <Spinner size={16} className="mr-2 border-primary-foreground" />
+                      ) : (
+                        <Sparkles className="mr-2 h-4 w-4" />
+                      )}
+                      {isSending ? "Starting Chat..." : "Start New Zepo Chat"}
+                    </Button>
+                  </div>
+
+                  <ScrollArea className="flex-1 min-h-0">
+                    {isLoadingAiHistory ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Spinner size={28} className="mx-auto" />
+                      </div>
+                    ) : aiHistory.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <p className="text-sm text-muted-foreground">No recent Zepo chats.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {aiHistory.map((chat) => (
+                          <div
+                            key={chat.id}
+                            onClick={() => handleSelectPastZepoChat(chat.id)}
+                            className={cn(
+                              "w-full px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer relative group flex items-start gap-3",
+                              deletingAiChatId === chat.id && "opacity-50 pointer-events-none",
+                            )}
+                          >
+                            <div className="h-9 w-9 rounded-full overflow-hidden flex-shrink-0 bg-muted">
+                              <img
+                                src="/zepo.png"
+                                alt="Zepo"
+                                width={36}
+                                height={36}
+                                className="h-9 w-9 object-cover"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1 pr-8 min-w-0 flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-sm text-foreground">
+                                  {chat.title || "Zepo Chat"}
+                                </span>
+                                <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
+                                  {formatTime(chat.timestamp)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground line-clamp-1">
+                                {chat.lastMessage}
+                              </p>
+                            </div>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                      onClick={(e) => handleDeleteAiChat(e, chat.id)}
+                                      disabled={!!deletingAiChatId}
+                                    >
+                                      {deletingAiChatId === chat.id ? (
+                                        <Spinner size={14} />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete chat history</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </>
+              )}
+
+              {/* ── Human Chat ── */}
+              {messagesSubView === "chat" && (() => {
+                const chatTitle = isNewTicket
+                  ? "Nisc Cloud Support"
+                  : selectedChatId
+                    ? tickets.find((t) => t.id === selectedChatId)?.customerName ||
+                      tickets.find((t) => t.id === selectedChatId)?.subject ||
+                      "Nisc Cloud Support"
+                    : "Nisc Cloud Support";
+                const userInitial = (currentUserName || currentUserEmail || "U")
+                  .charAt(0)
+                  .toUpperCase();
+
+                return (
+                  <>
+                    {/* ── Chat Header ── */}
+                    <div className="flex items-center px-3 pt-3 pb-3 border-b flex-shrink-0">
+                      {/* Back */}
+                      <button
+                        onClick={() => setMessagesSubView("list")}
+                        className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-accent transition-colors flex-shrink-0 mr-1"
+                      >
+                        <ArrowLeft className="h-4 w-4 text-foreground" />
+                      </button>
+
+                      {/* Stacked avatars */}
+                      <div className="relative flex-shrink-0 mr-2.5" style={{ width: 40, height: 32 }}>
+                        {/* Brand avatar (back) */}
+                        <div className="absolute left-0 top-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center border-2 border-background z-0">
+                          <span className="text-xs font-bold text-primary-foreground">N</span>
+                        </div>
+                        {/* User avatar (front) */}
+                        <div className="absolute left-4 top-0 h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center z-10">
+                          <span className="text-xs font-semibold text-foreground">{userInitial}</span>
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      <span className="flex-1 text-sm font-semibold text-foreground truncate">
+                        {chatTitle}
+                      </span>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
+                        {isAgency && !isNewTicket && selectedChatId && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-accent transition-colors">
+                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <TicketStatusActionsMenu
+                                ticketId={selectedChatId}
+                                status={selectedTicket?.status}
+                                onMarkOpen={handleMarkAsOpen}
+                                onMarkClosed={handleMarkAsClosed}
+                              />
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                        <button
+                          onClick={() => setIsOpen(false)}
+                          className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-accent transition-colors"
+                        >
+                          <X className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ── Messages ── */}
+                    <ScrollArea className="flex-1 min-h-0">
+                      {isLoadingMessages && chatMessages.length <= 1 ? (
+                        <div className="p-5 space-y-4">
+                          {[1, 2, 3].map((i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                "flex items-end gap-2",
+                                i % 2 === 0 ? "justify-end" : "justify-start",
+                              )}
+                            >
+                              {i % 2 !== 0 && (
+                                <div className="h-6 w-6 rounded-full bg-muted animate-pulse flex-shrink-0 mb-1" />
+                              )}
+                              <div
+                                className={cn(
+                                  "rounded-2xl px-4 py-2.5 animate-pulse",
+                                  i % 2 === 0
+                                    ? "bg-primary/20 max-w-[80%] w-32"
+                                    : "bg-muted max-w-[70%] w-48",
+                                )}
+                              >
+                                <div className="h-3 bg-muted-foreground/20 rounded w-full" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : isErrorMessages ? (
+                        <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                          <h3 className="mb-2 text-base font-semibold">Failed to load</h3>
+                          <p className="mb-4 text-sm text-muted-foreground">
+                            {messagesError?.message || "An error occurred."}
+                          </p>
+                          <Button onClick={() => refetchMessages()} variant="outline" size="sm">
+                            Try Again
+                          </Button>
+                        </div>
+                      ) : (
+                        <div>
+                          {/* Greeting banner — customer only */}
+                          {!isAgency && (isNewTicket || chatMessages.length <= 1) && (
+                            <div className="px-5 pt-6 pb-4 text-sm text-muted-foreground leading-relaxed">
+                              Ask us anything, or share your feedback. For quick replies email{" "}
+                              <a
+                                href="mailto:support@nisccloud.com"
+                                className="text-primary hover:underline"
+                              >
+                                support@nisccloud.com
+                              </a>{" "}
+                              or call{" "}
+                              <a
+                                href="tel:+254748777666"
+                                className="text-primary hover:underline"
+                              >
+                                +254748777666
+                              </a>
+                              .
+                            </div>
+                          )}
+
+                          <div className="px-4 pt-3 pb-4 space-y-3">
+                            {chatMessages
+                              .filter((m) => m.id !== "greeting")
+                              .map((msg) => (
+                                <div
+                                  key={msg.id}
+                                  className={cn(
+                                    "flex items-end gap-2",
+                                    msg.type === "user" ? "justify-end" : "justify-start",
+                                  )}
+                                >
+                                  {msg.type === "assistant" && (
+                                    <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mb-0.5">
+                                      <span className="text-[10px] font-bold text-primary-foreground">
+                                        N
+                                      </span>
+                                    </div>
+                                  )}
+                                  <TicketChatBubbleBody msg={msg} />
+                                </div>
+                              ))}
+                            {isSending && (
+                              <div className="flex justify-start items-end gap-2">
+                                <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 animate-pulse">
+                                  <span className="text-[10px] font-bold text-primary-foreground">
+                                    N
+                                  </span>
+                                </div>
+                                <div className="bg-muted rounded-2xl px-4 py-3">
+                                  <div className="flex gap-1 items-center">
+                                    <span className="h-1.5 w-1.5 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:0ms]" />
+                                    <span className="h-1.5 w-1.5 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:150ms]" />
+                                    <span className="h-1.5 w-1.5 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:300ms]" />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            <div ref={humanMessagesEndRef} />
+                          </div>
+                        </div>
+                      )}
+                    </ScrollArea>
+
+                    {/* ── Input area ── */}
+                    <div className="border-t flex-shrink-0">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                        multiple
+                        accept="image/*,video/*,application/pdf"
+                        disabled={isSending}
+                      />
+
+                      {/* File previews */}
+                      {selectedFiles.length > 0 && (
+                        <div className="px-3 pt-2 flex gap-2 flex-wrap">
+                          {selectedFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-1.5 bg-muted rounded-lg px-2.5 py-1 text-xs"
+                            >
+                              <span className="max-w-[90px] truncate">{file.name}</span>
+                              <button
+                                onClick={() => handleRemoveFile(index)}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Textarea */}
+                      <div className="px-4 pt-3 pb-2">
+                        <textarea
+                          value={messageInput}
+                          onChange={(e) => setMessageInput(e.target.value)}
+                          placeholder="Message..."
+                          className={cn(
+                            "w-full bg-transparent border-0 focus:outline-none resize-none min-h-[20px] max-h-[80px] text-sm text-foreground",
+                            "placeholder:text-muted-foreground/60",
+                            isSending && "opacity-50 cursor-not-allowed",
+                          )}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendMessage();
+                            }
+                          }}
+                          rows={1}
+                          disabled={isSending}
+                        />
+                      </div>
+
+                      {/* Icon row */}
+                      <div className="flex items-center justify-between px-3 pb-3">
+                        <div className="flex items-center">
+                          <button
+                            onClick={handleAttachmentClick}
+                            disabled={isSending}
+                            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors disabled:opacity-40"
+                            title="Attach file"
+                          >
+                            <Icons.File size={20} className="text-muted-foreground" />
+                          </button>
+                        </div>
+
+                        {/* Send button */}
+                        <button
+                          onClick={handleSendMessage}
+                          disabled={
+                            (!messageInput.trim() && selectedFiles.length === 0) || isSending
+                          }
+                          className={cn(
+                            "h-9 w-9 flex items-center justify-center rounded-full transition-all duration-200",
+                            messageInput.trim() || selectedFiles.length > 0
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-muted text-muted-foreground cursor-not-allowed",
+                          )}
+                        >
+                          {isSending ? (
+                            <Spinner size={14} className="text-primary-foreground" />
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth={2.5}>
+                              <path d="M12 19V5M5 12l7-7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* ── Zepo Chat ── */}
+              {messagesSubView === "zepo" && (
+                <>
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full hover:bg-accent"
+                        onClick={() => setMessagesSubView("zepo-history")}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                      <img
+                        src="/nisclogooriginal.png"
+                        alt="Nisc Cloud"
+                        className="h-6 w-auto"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={handleEscalateToHuman}
+                        disabled={isSending}
+                      >
+                        Speak to human
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full hover:bg-accent"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <ScrollArea className="flex-1 min-h-0" viewportClassName="p-4">
+                    {isLoadingAiMessages &&
+                    transformedAiMessages.length === 0 &&
+                    optimisticAiMessages.length === 0 ? (
+                      <div className="space-y-4">
+                        {[1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "flex items-end gap-2",
+                              i % 2 === 0 ? "justify-end" : "justify-start",
+                            )}
+                          >
+                            {i % 2 !== 0 && (
+                              <div className="h-6 w-6 rounded-full bg-muted animate-pulse flex-shrink-0 mb-1" />
+                            )}
+                            <div
+                              className={cn(
+                                "rounded-2xl px-4 py-2.5 space-y-2 animate-pulse",
+                                i % 2 === 0
+                                  ? "bg-primary/20 max-w-[80%] w-32"
+                                  : "bg-muted max-w-[70%] w-48",
+                              )}
+                            >
+                              <div className="h-3 bg-muted-foreground/20 rounded w-full" />
+                              {i === 2 && (
+                                <div className="h-3 bg-muted-foreground/20 rounded w-3/4" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : isErrorAiMessages ? (
+                      <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                        <h3 className="mb-2 text-lg font-semibold">Failed to load messages</h3>
+                        <p className="mb-4 text-sm text-muted-foreground">
+                          {aiMessagesError?.message || "An error occurred."}
+                        </p>
+                        <Button onClick={() => refetchAiHistory()} variant="outline" size="sm">
+                          Try Again
+                        </Button>
+                      </div>
+                    ) : transformedAiMessages.length === 0 &&
+                      optimisticAiMessages.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full py-12 text-center animate-in fade-in duration-500">
+                        <div className="mb-3 flex justify-center">
+                          <img
+                            src="/zepo.png"
+                            alt="Zepo"
+                            width={120}
+                            height={120}
+                            className="h-28 w-28 object-contain"
+                          />
+                        </div>
+                        <h3 className="text-2xl font-bold text-primary mb-2">Hi! I'm Zepo</h3>
+                        <p className="text-muted-foreground max-w-[240px] leading-relaxed mb-8">
+                          Your AI support assistant. I can help you with services, account
+                          questions, and more!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {transformedAiMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className={cn(
+                              "flex items-end gap-2",
+                              msg.type === "user" ? "justify-end" : "justify-start",
+                            )}
+                          >
+                            {msg.type === "assistant" && (
+                              <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 mb-1 bg-muted">
+                                <img
+                                  src="/zepo.png"
+                                  alt="Zepo"
+                                  width={24}
+                                  height={24}
+                                  className="h-6 w-6 object-cover"
+                                />
+                              </div>
+                            )}
+                            <div
+                              className={cn(
+                                "max-w-[80%] rounded-2xl px-4 py-2.5",
+                                msg.type === "user"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-primary/10 text-foreground",
+                              )}
+                            >
+                              <AiMarkdownRenderer content={msg.message} />
+                            </div>
+                          </div>
+                        ))}
+                        {isSending && (
+                          <div className="flex justify-start gap-2">
+                            <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 animate-pulse bg-muted">
+                              <img
+                                src="/zepo.png"
+                                alt="Zepo"
+                                width={24}
+                                height={24}
+                                className="h-6 w-6 object-cover"
+                              />
+                            </div>
+                            <div className="bg-primary/5 rounded-xl px-4 py-2 border border-primary/10 overflow-hidden relative">
+                              <p className="text-xs text-muted-foreground">
+                                {thinkingMessages[thinkingMessageIndex]}
+                              </p>
+                              <div className="flex gap-1 mt-1.5">
+                                <span className="h-1.5 w-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0ms]" />
+                                <span className="h-1.5 w-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:150ms]" />
+                                <span className="h-1.5 w-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:300ms]" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div ref={aiMessagesEndRef} />
+                      </div>
+                    )}
+                  </ScrollArea>
+
+                  <div className="px-3 py-3 border-t flex items-end gap-2 flex-shrink-0">
+                    <div className="flex-1">
+                      <textarea
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        placeholder={isSending ? "Zepo is responding..." : "Ask Zepo anything..."}
+                        className={cn(
+                          "w-full bg-muted/50 border-0 rounded-xl px-3 py-2 focus:ring-0 resize-none min-h-[36px] max-h-[100px] text-sm",
+                          "placeholder:text-muted-foreground/50",
+                          isSending && "opacity-50 cursor-not-allowed",
+                        )}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        rows={1}
+                        disabled={isSending}
+                      />
+                    </div>
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!messageInput.trim() || isSending}
+                      className={cn(
+                        "h-9 w-9 rounded-full flex-shrink-0",
+                        messageInput.trim() ? "bg-primary" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {isSending ? (
+                        <Spinner size={14} className="text-primary-foreground" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════
+              HELP TAB
+          ═══════════════════════════════════════ */}
+          {activeTab === "help" && (
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <img
-                    src="/nisclogooriginal.png"
-                    alt="Nisc Cloud"
-                    width={100}
-                    height={32}
-                    className="h-8 w-auto"
-                  />
+                  {(helpSubView === "collection-detail" || helpSubView === "article-detail") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full hover:bg-accent"
+                      onClick={() => {
+                        if (helpSubView === "article-detail") {
+                          setHelpSubView("collection-detail");
+                          setSelectedArticle(null);
+                        } else {
+                          setHelpSubView("collections");
+                          setSelectedCollection(null);
+                        }
+                      }}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <h2 className="text-base font-semibold text-foreground">
+                    {helpSubView === "collections" && "Help"}
+                    {helpSubView === "collection-detail" && (selectedCollection?.title ?? "Articles")}
+                    {helpSubView === "article-detail" && (selectedArticle?.title ?? "Article")}
+                  </h2>
                 </div>
                 <Button
                   variant="ghost"
@@ -829,834 +1726,222 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 </Button>
               </div>
 
-              {/* Greeting message */}
-              <div className="px-5 pb-6">
-                <h2 className="text-lg font-semibold text-foreground text-center">
-                  Hi! How can we help you today?
-                </h2>
-              </div>
-
-              {/* Action buttons */}
-              <div className="px-4 pb-5 space-y-2">
-                {actionOptions.map((option) => {
-                  const IconComponent = option.icon;
-
-                  return (
-                    <button
-                      key={option.id}
-                      onClick={() => {
-                        if (option.id === "live-chat") {
-                          handleViewSupportTickets();
-                        } else if (option.id === "zepo") {
-                          handleZepoChat();
-                        } else {
-                          option.onClick?.();
-                          setIsOpen(false);
-                        }
-                      }}
-                      className={cn(
-                        "w-full flex items-center justify-between px-4 py-3.5 rounded-xl",
-                        "bg-muted/50 hover:bg-muted transition-colors",
-                        "border border-border/50",
-                        "group"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "p-2 rounded-lg",
-                          option.bgColor
-                        )}>
-                          {option.id === "whatsapp" ? (
-                            <WhatsAppIcon className={cn("h-5 w-5", option.color)} />
-                          ) : option.id === "live-chat" || option.id === "zepo" ? (
-                            <IconComponent className={cn("h-5 w-5", option.color)} />
-                          ) : (
-                            <IconComponent className={cn("h-5 w-5", option.color)} />
-                          )}
-                        </div>
-                        <span className={cn(
-                          "font-medium text-sm",
-                          option.color
-                        )}>
-                          {option.title}
-                        </span>
-                      </div>
-                      <ChevronRight className={cn(
-                        "h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors",
-                        option.color
-                      )} />
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : currentView === "chat-list" ? (
-            <>
-              {/* Chat List Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setCurrentView("main")}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <h2 className="text-lg font-semibold text-foreground">Support Tickets</h2>
-                </div>
-                <div className="flex items-center gap-1">
-                  {/* Only customers can open new tickets */}
-                  {!isAgency && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1.5 text-xs text-primary hover:text-primary hover:bg-primary/10"
-                      onClick={() => handleChatWithHuman("new")}
-                    >
-                      <MessageCircle className="h-3.5 w-3.5" />
-                      New Ticket
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => refetchTickets()}
-                    disabled={isRefetchingTickets}
-                    aria-label="Refresh tickets"
-                  >
-                    {isRefetchingTickets ? (
-                      <Spinner size={16} />
-                    ) : (
-                      <RotateCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Chat List */}
-              <ScrollArea className="flex-1 min-h-0">
-                <NotificationSettingsBanner />
-
-                {isLoadingTickets ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <Spinner size={32} className="mx-auto mb-4" />
-                      <p className="text-sm text-muted-foreground">Loading tickets...</p>
-                    </div>
-                  </div>
-                ) : isErrorTickets ? (
-                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                    <div className="mb-4">
-                      <svg
-                        className="mx-auto h-12 w-12 text-muted-foreground"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="mb-2 text-lg font-semibold">Failed to load tickets</h3>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                      {ticketsError?.message || "An error occurred while fetching tickets."}
-                    </p>
-                    <Button onClick={() => refetchTickets()} variant="outline" size="sm">
-                      Try Again
-                    </Button>
-                  </div>
-                ) : tickets.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                    <div className="mb-4 p-4 bg-muted/50 rounded-full w-fit mx-auto">
-                      <Icons.LiveChat className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                    <h3 className="mb-2 text-lg font-semibold">No support tickets</h3>
-                    {!isAgency && (
-                      <p className="mb-4 text-sm text-muted-foreground">
-                        Start a new ticket to get help from our support team.
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border">
-                    {tickets.map((ticket) => {
-                      // Effective unread count - cleared immediately when chat is opened locally
-                      const effectiveUnread = locallyReadIds.has(ticket.id) ? 0 : ticket.unreadCount;
-                      // Title: agency shows customer name, customer shows ticket subject/number
-                      const ticketTitle = isAgency
-                        ? (ticket.customerName || `Ticket #${ticket.ticketNumber}`)
-                        : (ticket.subject || ticket.lastMessage?.slice(0, 50) || `Ticket #${ticket.ticketNumber}`);
-
-                      return (
-                        <div
-                          key={ticket.id}
-                          className="flex items-center gap-2 px-4 py-3 hover:bg-muted/50 transition-colors group"
+              {/* Collections list */}
+              {helpSubView === "collections" && (
+                <>
+                  {/* Search */}
+                  <div className="px-4 py-3 border-b flex-shrink-0">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Search for help"
+                        value={helpSearch}
+                        onChange={(e) => setHelpSearch(e.target.value)}
+                        className="w-full bg-muted/50 rounded-lg pl-9 pr-3 py-2 text-sm border-0 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      />
+                      {helpSearch && (
+                        <button
+                          onClick={() => setHelpSearch("")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2"
                         >
-                          <button
-                            onClick={() => handleChatWithHuman(ticket.id)}
-                            className="flex-1 flex flex-col gap-1 text-left"
-                            disabled={loadingChatId === ticket.id}
-                          >
-                            {/* Row 1: title + unread badge */}
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold text-sm text-foreground line-clamp-1 flex-1">
-                                {ticketTitle}
-                              </span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {loadingChatId === ticket.id && (
-                                  <Spinner size={14} className="text-primary" />
-                                )}
-                                {effectiveUnread > 0 && (
-                                  <span className="text-xs font-semibold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
-                                    {effectiveUnread}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            {/* Row 2: last message + time */}
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs text-muted-foreground line-clamp-1 flex-1">
-                                {ticket.lastMessage || "No messages yet"}
-                              </p>
-                              {ticket.lastMessageAt && (
-                                <span className="text-[10px] text-muted-foreground shrink-0">
-                                  {formatTime(ticket.lastMessageAt)}
-                                </span>
-                              )}
-                            </div>
-                            {/* Row 3: status badge */}
-                            <span className={cn("self-start text-[10px] font-medium px-1.5 py-0.5 rounded capitalize", getTicketStatusBadgeClass(ticket.status))}>
-                              {getTicketStatusLabel(ticket.status)}
-                            </span>
-                          </button>
-
-                          {/* Actions menu - agency only */}
-                          {isAgency && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <TicketStatusActionsMenu
-                                  ticketId={ticket.id}
-                                  status={ticket.status}
-                                  onMarkOpen={handleMarkAsOpen}
-                                  onMarkClosed={handleMarkAsClosed}
-                                  stopPropagation
-                                />
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </>
-          ) : currentView === "zepo-history" ? (
-            <>
-              {/* Zepo History Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setCurrentView("main")}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <h2 className="text-lg font-semibold text-foreground">AI Chat History</h2>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-8 w-8 rounded-full hover:bg-accent",
-                      (isLoadingAiHistory || isRefetchingAiHistory) && "animate-spin"
-                    )}
-                    onClick={() => refetchAiHistory()}
-                    disabled={isLoadingAiHistory || isRefetchingAiHistory}
-                  >
-                    <RotateCw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Start New AI Chat Button */}
-              <div className="px-4 pt-4 pb-3 border-b">
-                <Button
-                  onClick={handleStartNewZepoChat}
-                  disabled={isSending || isLoadingAiHistory}
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {isSending ? (
-                    <Spinner size={16} className="mr-2 border-primary-foreground" />
-                  ) : (
-                    <Sparkles className="mr-2 h-4 w-4" />
-                  )}
-                  {isSending ? "Starting Chat..." : "Start New Zepo Chat"}
-                </Button>
-              </div>
-
-              {/* AI Chat History List */}
-              <ScrollArea className="flex-1 min-h-0">
-                {isLoadingAiHistory ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <Spinner size={32} className="mx-auto mb-4" />
-                      <p className="text-sm text-muted-foreground">Loading Zepo chats...</p>
+                          <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                ) : aiHistory.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                    <p className="text-sm text-muted-foreground">No recent Zepo chats.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border">
-                    {aiHistory.map((chat) => (
-                      <div
-                        key={chat.id}
-                        onClick={() => handleSelectPastZepoChat(chat.id)}
-                        className={cn(
-                          "w-full px-4 py-3 hover:bg-muted/50 transition-colors text-left cursor-pointer relative group flex items-start gap-3",
-                          deletingAiChatId === chat.id && "opacity-50 pointer-events-none"
-                        )}
-                      >
-                        <div className="h-9 w-9 rounded-full overflow-hidden flex-shrink-0 bg-muted">
-                          <img src="/zepo.png" alt="Zepo" width={36} height={36} className="h-9 w-9 object-cover" />
+
+                  <ScrollArea className="flex-1 min-h-0">
+                    <div className="px-4 py-3">
+                      {helpSearch && (
+                        <p className="text-xs text-muted-foreground mb-3">
+                          {filteredCollections.reduce((acc, c) => acc + c.articles.length, 0)}{" "}
+                          result{filteredCollections.reduce((acc, c) => acc + c.articles.length, 0) !== 1 ? "s" : ""} found
+                        </p>
+                      )}
+                      {!helpSearch && (
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                          {helpCollections.length} collections
+                        </p>
+                      )}
+
+                      <div className="space-y-2">
+                        {filteredCollections.map((collection) => (
+                          <button
+                            key={collection.id}
+                            className="w-full flex items-center gap-3 px-4 py-3.5 bg-card border border-border rounded-xl hover:bg-muted/50 transition-colors text-left"
+                            onClick={() => {
+                              setSelectedCollection(collection);
+                              setHelpSubView("collection-detail");
+                            }}
+                          >
+                            <span className="text-xl flex-shrink-0">{collection.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-foreground">
+                                {collection.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                {collection.description}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {collection.articles.length} article
+                                {collection.articles.length !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+
+                      {filteredCollections.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
+                          <p className="text-sm font-medium text-foreground mb-1">No results found</p>
+                          <p className="text-xs text-muted-foreground">
+                            Try different keywords or browse all collections.
+                          </p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-3 text-primary"
+                            onClick={() => setHelpSearch("")}
+                          >
+                            Clear search
+                          </Button>
                         </div>
-                        <div className="flex flex-col gap-1 pr-8 min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-foreground">
-                              {chat.title || "Zepo Chat"}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">
-                              {formatTime(chat.timestamp)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {chat.lastMessage}
+                      )}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
+
+              {/* Collection detail — articles list */}
+              {helpSubView === "collection-detail" && selectedCollection && (
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="px-4 py-4 space-y-2">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {selectedCollection.description}
+                    </p>
+                    {(helpSearch
+                      ? selectedCollection.articles.filter(
+                          (a) =>
+                            a.title.toLowerCase().includes(helpSearch.toLowerCase()) ||
+                            a.summary.toLowerCase().includes(helpSearch.toLowerCase()),
+                        )
+                      : selectedCollection.articles
+                    ).map((article) => (
+                      <button
+                        key={article.id}
+                        className="w-full flex items-start gap-3 px-4 py-3 bg-card border border-border rounded-xl hover:bg-muted/50 transition-colors text-left"
+                        onClick={() => {
+                          setSelectedArticle(article);
+                          setHelpSubView("article-detail");
+                        }}
+                      >
+                        <BookOpen className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">{article.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {article.summary}
                           </p>
                         </div>
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                  onClick={(e) => handleDeleteAiChat(e, chat.id)}
-                                  disabled={!!deletingAiChatId}
-                                >
-                                  {deletingAiChatId === chat.id ? (
-                                    <Spinner size={14} />
-                                  ) : (
-                                    <Trash2 className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Delete chat history</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      </button>
                     ))}
                   </div>
-                )}
-              </ScrollArea>
-            </>
-          ) : currentView === "chat" ? (
-            <>
-              {/* Chat Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setCurrentView("chat-list")}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-foreground">
-                      {isNewTicket
-                        ? "New Ticket"
-                        : selectedChatId
-                          ? tickets.find(t => t.id === selectedChatId)?.customerName || "Support Chat"
-                          : "Support Chat"
-                      }
-                    </h2>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {isAgency && !isNewTicket && selectedChatId && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full hover:bg-accent"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <TicketStatusActionsMenu
-                          ticketId={selectedChatId}
-                          status={selectedTicket?.status}
-                          onMarkOpen={handleMarkAsOpen}
-                          onMarkClosed={handleMarkAsClosed}
-                        />
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+                </ScrollArea>
+              )}
 
-              {/* Chat Messages Area */}
-              <ScrollArea className="flex-1 min-h-0" viewportClassName="p-4">
-                <div className="flex flex-col gap-4">
-                  {isNewTicket ? (
-                    // For new tickets, show greeting immediately without any loading/error states
-                    <div className="space-y-4">
-                      {chatMessages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            "flex items-end gap-2",
-                            msg.type === "user" ? "justify-end" : "justify-start"
-                          )}
-                        >
-                          {msg.type === "assistant" && (
-                            <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mb-1">
-                              <Icons.LiveChat className="h-4 w-4 text-primary" />
-                            </div>
-                          )}
-                          <TicketChatBubbleBody msg={msg} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : shouldFetchMessages && isLoadingMessages ? (
-                    <div className="space-y-4">
-                      {/* Skeleton loader for messages */}
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            "flex items-end gap-2",
-                            i % 2 === 0 ? "justify-end" : "justify-start"
-                          )}
-                        >
-                          {i % 2 !== 0 && (
-                            <div className="h-6 w-6 rounded-full bg-muted animate-pulse flex-shrink-0 mb-1" />
-                          )}
-                          <div
-                            className={cn(
-                              "rounded-2xl px-4 py-2.5 space-y-2 animate-pulse",
-                              i % 2 === 0 ? "bg-primary/20 max-w-[80%]" : "bg-muted max-w-[70%]"
-                            )}
-                          >
-                            <div className="h-4 bg-muted-foreground/20 rounded w-full" />
-                            {i === 2 && <div className="h-4 bg-muted-foreground/20 rounded w-3/4" />}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : shouldFetchMessages && isErrorMessages ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="mb-4">
-                        <svg
-                          className="mx-auto h-12 w-12 text-muted-foreground"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                          />
-                        </svg>
-                      </div>
-                      <h3 className="mb-2 text-lg font-semibold">Failed to load messages</h3>
-                      <p className="mb-4 text-sm text-muted-foreground">
-                        {messagesError?.message || "An error occurred while fetching messages."}
+              {/* Article detail */}
+              {helpSubView === "article-detail" && selectedArticle && (
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="px-4 py-4">
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                      {selectedArticle.summary}
+                    </p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                        {selectedArticle.content}
                       </p>
-                      <Button onClick={() => refetchMessages()} variant="outline" size="sm">
-                        Try Again
+                    </div>
+                    {selectedArticle.tags && selectedArticle.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-5">
+                        {selectedArticle.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[10px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-6 pt-4 border-t">
+                      <p className="text-xs text-muted-foreground mb-2 text-center">
+                        Didn't find what you were looking for?
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full rounded-full"
+                        onClick={() => {
+                          setActiveTab("messages");
+                          setMessagesSubView("list");
+                          handleChatWithHuman("new");
+                        }}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Contact Support
                       </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {chatMessages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <div className="mb-4 p-4 bg-muted/50 rounded-full w-fit mx-auto">
-                            <MessageCircle className="h-12 w-12 text-muted-foreground" />
-                          </div>
-                          <h3 className="mb-2 text-lg font-semibold">No messages yet</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Start the conversation by sending a message.
-                          </p>
-                        </div>
-                      ) : (
-                        chatMessages.map((msg) => (
-                          <div
-                            key={msg.id}
-                            className={cn(
-                              "flex items-end gap-2",
-                              msg.type === "user" ? "justify-end" : "justify-start"
-                            )}
-                          >
-                            {msg.type === "assistant" && (
-                              <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mb-1">
-                                <Icons.LiveChat className="h-4 w-4 text-primary" />
-                              </div>
-                            )}
-                            <TicketChatBubbleBody msg={msg} />
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                  <div ref={humanMessagesEndRef} />
-                </div>
-              </ScrollArea>
-
-              <div className="p-4 border-t bg-background/50 backdrop-blur-sm z-20">
-                {selectedFiles.length > 0 && (
-                  <div className="flex gap-2 pb-3 overflow-x-auto">
-                    {selectedFiles.map((file, index) => (
-                      <div key={index} className="relative group bg-muted rounded-lg p-2 min-w-[120px] max-w-[120px]">
-                        <button
-                          onClick={() => handleRemoveFile(index)}
-                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                          disabled={isSending}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                        <div className="flex flex-col items-center justify-center text-center h-full">
-                          <Paperclip className="h-4 w-4 text-muted-foreground mb-1" />
-                          <span className="text-xs truncate w-full">{file.name}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {(file.size / 1024 / 1024).toFixed(1)}MB
-                          </span>
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                )}
-
-                <div className="flex items-end gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    multiple
-                    accept="image/*,video/*,application/pdf"
-                    disabled={isSending} // Disable file input during sending
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 flex-shrink-0"
-                    onClick={handleAttachmentClick}
-                    disabled={isSending}
-                  >
-                    <Paperclip className="h-5 w-5 text-muted-foreground" />
-                  </Button>
-
-                  <div className="flex-1 relative">
-                    <textarea
-                      value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder={isSending ? "Sending..." : "Type a message..."}
-                      className={cn(
-                        "w-full bg-muted/50 border-0 rounded-xl px-4 py-2.5 focus:ring-0 resize-none min-h-[40px] max-h-[120px] text-sm",
-                        "placeholder:text-muted-foreground/50",
-                        isSending && "opacity-50 cursor-not-allowed"
-                      )}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      rows={1}
-                      disabled={isSending}
-                    />
-                  </div>
-
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={(!messageInput.trim() && selectedFiles.length === 0) || isSending}
-                    className={cn(
-                      "h-10 w-10 rounded-full flex-shrink-0 transition-all duration-200",
-                      messageInput.trim() || selectedFiles.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {isSending ? (
-                      <Spinner size={16} className="text-primary-foreground" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Zepo Chat Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setCurrentView("zepo-history")}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    <img
-                      src="/nisclogooriginal.png"
-                      alt="Nisc Cloud"
-                      width={80}
-                      height={24}
-                      className="h-6 w-auto"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    onClick={handleEscalateToHuman}
-                    disabled={isSending}
-                  >
-                    Speak to human
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full hover:bg-accent"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Zepo Chat Messages Area */}
-              <ScrollArea className="flex-1 min-h-0" viewportClassName="p-4">
-                {isLoadingAiMessages && transformedAiMessages.length === 0 && optimisticAiMessages.length === 0 ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "flex items-end gap-2",
-                          i % 2 === 0 ? "justify-end" : "justify-start"
-                        )}
-                      >
-                        {i % 2 !== 0 && (
-                          <div className="h-6 w-6 rounded-full bg-muted animate-pulse flex-shrink-0 mb-1" />
-                        )}
-                        <div
-                          className={cn(
-                            "rounded-2xl px-4 py-2.5 space-y-2 animate-pulse",
-                            i % 2 === 0 ? "bg-primary/20 max-w-[80%] w-32" : "bg-muted max-w-[70%] w-48"
-                          )}
-                        >
-                          <div className="h-3 bg-muted-foreground/20 rounded w-full" />
-                          {i === 2 && <div className="h-3 bg-muted-foreground/20 rounded w-3/4" />}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : isErrorAiMessages ? (
-                  <div className="flex flex-col items-center justify-center h-full py-12 text-center animate-in fade-in duration-500">
-                    <div className="mb-4">
-                      <svg
-                        className="mx-auto h-12 w-12 text-destructive"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                        />
-                      </svg>
-                    </div>
-                    <h3 className="mb-2 text-lg font-semibold">Failed to load messages</h3>
-                    <p className="mb-4 text-sm text-muted-foreground">
-                      {aiMessagesError?.message || "An error occurred while fetching messages."}
-                    </p>
-                    <Button onClick={() => refetchAiHistory()} variant="outline" size="sm">
-                      Try Again
-                    </Button>
-                  </div>
-                ) : transformedAiMessages.length === 0 && optimisticAiMessages.length === 0 ? (
-                  // Welcome View (No Chat ID or New Chat)
-                  <div className="flex flex-col items-center justify-center h-full py-12 text-center animate-in fade-in duration-500">
-                    <div className="mb-3 flex justify-center">
-                      <img
-                        src="/zepo.png"
-                        alt="Zepo"
-                        width={160}
-                        height={160}
-                        className="h-40 w-40 object-contain"
-                      />
-                    </div>
-                    <h3 className="text-2xl font-bold text-primary mb-2">
-                      Hi! I'm Zepo
-                    </h3>
-                    <p className="text-muted-foreground max-w-[260px] leading-relaxed mb-8">
-                      Your AI support assistant. I can help you with services, account questions, and more!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {transformedAiMessages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={cn(
-                          "flex items-end gap-2",
-                          msg.type === "user" ? "justify-end" : "justify-start"
-                        )}
-                      >
-                        {msg.type === "assistant" && (
-                          <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 mb-1 bg-muted">
-                            <img src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
-                          </div>
-                        )}
-                        <div
-                          className={cn(
-                            "max-w-[80%] rounded-2xl px-4 py-2.5",
-                            msg.type === "user"
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-primary/10 text-foreground"
-                          )}
-                        >
-                          <AiMarkdownRenderer content={msg.message} />
-                        </div>
-                      </div>
-                    ))}
-                    {isSending && (
-                      <div className="flex justify-start gap-2">
-                        <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0 animate-pulse bg-muted">
-                          <img src="/zepo.png" alt="Zepo" width={24} height={24} className="h-6 w-6 object-cover" />
-                        </div>
-                        <div className="bg-primary/5 rounded-xl px-4 py-2 border border-primary/10 overflow-hidden relative">
-                          <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-                          <p className="text-xs font-medium text-muted-foreground animate-shimmer bg-clip-text text-transparent">
-                            {[
-                              "Zepo is thinking...",
-                              "Searching for answers...",
-                              "Analyzing your request...",
-                              "Generating response...",
-                            ][thinkingMessageIndex]}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div ref={aiMessagesEndRef} />
-              </ScrollArea>
-
-              {/* Zepo Message Input - No attachment */}
-              <div className="border-t px-4 py-3 bg-background">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      placeholder="Type message here"
-                      value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      className="w-full px-4 py-2.5 rounded-full bg-muted border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-                    />
-                  </div>
-                  <Button
-                    size="icon"
-                    type="button"
-                    className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-                    onClick={handleSendMessage}
-                    disabled={
-                      isSending ||
-                      !messageInput.trim() ||
-                      createMessage.isPending ||
-                      startAiChat.isPending ||
-                      sendAiMessage.isPending
-                    }
-                  >
-                    {isSending || createMessage.isPending || startAiChat.isPending || sendAiMessage.isPending ? (
-                      <Spinner size={16} />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </>
+                </ScrollArea>
+              )}
+            </div>
           )}
         </div>
+
+        {/* ── Tab Bar ── */}
+        <div className="flex-shrink-0 border-t bg-background">
+          <div className="flex">
+            {          (
+              [
+                { id: "home", label: "Home", Icon: Icons.Home },
+                { id: "messages", label: "Messages", Icon: Icons.LiveChat },
+                { id: "help", label: "Help", Icon: Icons.Help },
+              ] as { id: ActiveTab; label: string; Icon: React.ComponentType<{ className?: string; size?: number }> }[]
+            ).map(({ id, label, Icon }) => {
+              const isActive = activeTab === id;
+              const unreadForTab = id === "messages" ? totalUnread : 0;
+              return (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setActiveTab(id);
+                  }}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-1 py-3 transition-colors relative",
+                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <div className="relative">
+                    <Icon size={22} />
+                    {unreadForTab > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                        {unreadForTab > 9 ? "9+" : unreadForTab}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-medium">{label}</span>
+                  {isActive && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 bg-primary rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </PopoverContent>
-    </Popover >
+    </Popover>
   );
 }
