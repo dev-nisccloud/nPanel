@@ -39,7 +39,7 @@ interface HostingUpsellProps {
 }
 
 // ---------------------------------------------------------------------------
-// Inline SVG icons — exact same paths as the nPanel dashboard Icons component
+// Inline SVG icons  exact same paths as the nPanel dashboard Icons component
 // ---------------------------------------------------------------------------
 
 function HostingIcon({ className }: { className?: string }) {
@@ -337,10 +337,10 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
       {/* <p className="text-sm text-muted-foreground mb-4">
         {domainName
           ? `Get ${domainName} free for the 1st year with any hosting plan below.`
-          : "Add hosting to go live right away. Pick one — you can always upgrade later."}
+          : "Add hosting to go live right away. Pick one  you can always upgrade later."}
       </p> */}
 
-      {/* Single "Recommended for you" badge — shown once at top if any plan is recommended */}
+      {/* Single "Recommended for you" badge  shown once at top if any plan is recommended */}
       {!loading && Object.values(plansCatalog).some((list) => list?.some((p) => p.isRecommended)) && (
         <div className="mb-3 flex items-center gap-2">
           <Badge className="bg-primary/10 text-primary border-primary/20 text-xs font-medium px-2.5 py-0.5">
@@ -402,7 +402,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-foreground">
-                          {plan ? `${plan.name} — ${slot.label}` : slot.label}
+                          {plan ? `${plan.name}  ${slot.label}` : slot.label}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -416,14 +416,14 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                             </span>
                           </p>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground"></span>
                         )}
                       </div>
                     </div>
 
                     <p className="text-xs text-muted-foreground mt-0.5 mb-2">{slot.tagline}</p>
 
-                    {/* Billing cycle — visible when selected */}
+                    {/* Billing cycle  visible when selected */}
                     {isSelected && plan && (
                       <div className="flex items-center gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
                         <span className="text-xs text-muted-foreground whitespace-nowrap">Billing cycle</span>
@@ -518,7 +518,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                       </div>
                     )}
 
-                    {/* Features: label — value or checkmark */}
+                    {/* Features: label  value or checkmark */}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 border-t border-border pt-2.5">
                       {features.map((f) => (
                         <div key={f.label} className="flex items-center justify-between gap-1 min-w-0">
@@ -556,7 +556,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
 
       {!selectedType && !loading && (
         <p className="text-xs text-muted-foreground text-center mt-3">
-          No hosting needed — skip and continue with the domain only.
+          No hosting needed  skip and continue with the domain only.
         </p>
       )}
     </div>

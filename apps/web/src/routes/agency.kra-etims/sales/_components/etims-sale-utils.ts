@@ -95,12 +95,12 @@ export function lineTaxableAmount(line: Record<string, unknown>) {
 }
 
 export function formatKraDateTime(value?: string | null) {
-    if (!value) return "—";
+    if (!value) return "";
     return String(value).replace("T", " ").replace(/\.0+$/, "").trim();
 }
 
 export function formatSalesDate(value?: string | null) {
-    if (!value) return "—";
+    if (!value) return "";
     const s = String(value);
     if (s.length === 8) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
     return formatKraDateTime(s);
@@ -112,14 +112,14 @@ export function formatMoney(value?: number | null) {
 }
 
 export function paymentTypeLabel(code?: string | null) {
-    if (!code) return "—";
+    if (!code) return "";
     return PAYMENT_LABELS[code] ?? code;
 }
 
 export function receiptTypeLabel(code?: string | null) {
     if (code === "S") return "Sale";
     if (code === "R") return "Credit note";
-    return code ?? "—";
+    return code ?? "";
 }
 
 export function sumLineItems(itemList: Array<Record<string, unknown>> | undefined) {

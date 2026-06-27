@@ -1,12 +1,12 @@
 /**
- * Storefront auth procedures — public landing page only.
+ * Storefront auth procedures  public landing page only.
  *
  * Security rules enforced here:
- *  • Role is ALWAYS "CUSTOMER" — it is NEVER taken from input, NEVER variable.
+ *  • Role is ALWAYS "CUSTOMER"  it is NEVER taken from input, NEVER variable.
  *  • A forced db.update({ role: "CUSTOMER" }) runs after better-auth creates
  *    the account, neutralising any default better-auth may assign.
  *  • Input schema has no `role` field at all.
- *  • `checkEmail` returns only { exists: boolean } — no names, IDs, or metadata.
+ *  • `checkEmail` returns only { exists: boolean }  no names, IDs, or metadata.
  *  • `register` returns only a short-lived storefrontToken + minimal display data.
  */
 import * as crypto from "node:crypto";
@@ -48,7 +48,7 @@ async function resolveUniqueSlug(base) {
     });
     if (!existing)
         return candidate;
-    // Collision — append 4 random hex chars
+    // Collision  append 4 random hex chars
     const suffix = crypto.randomBytes(2).toString("hex");
     return `${candidate.slice(0, 56)}-${suffix}`;
 }
@@ -89,7 +89,7 @@ const registerInputSchema = z.object({
         .string()
         .min(1, "Company name is required")
         .max(120, "Company name too long"),
-    /** Required — must match dashboard sign-up (`acceptedTermsAndConditions`). */
+    /** Required  must match dashboard sign-up (`acceptedTermsAndConditions`). */
     acceptedTermsAndConditions: z
         .boolean()
         .refine((val) => val === true, {
@@ -104,7 +104,7 @@ const registerInputSchema = z.object({
 export const storefrontAuthRouter = router({
     /**
      * Check whether an email address is already registered.
-     * Returns ONLY { exists: boolean } — never exposes any user data.
+     * Returns ONLY { exists: boolean }  never exposes any user data.
      *
      * Rate limit: enforced upstream (server middleware / Cloudflare).
      */
@@ -131,7 +131,7 @@ export const storefrontAuthRouter = router({
      *  7. Insert team_member (userId, teamId, role = "OWNER")
      *  8. Sign a short-lived storefrontToken
      *  9. Fire-and-forget: send welcome email with temp password
-     * 10. Return { storefrontToken, teamSlug, displayName } — nothing else
+     * 10. Return { storefrontToken, teamSlug, displayName }  nothing else
      *
      * Role is NEVER accepted from input. It is always "CUSTOMER". Period.
      */
@@ -190,7 +190,7 @@ export const storefrontAuthRouter = router({
             });
         }
         const userId = createdUser.id;
-        // 4. ALWAYS force role = "CUSTOMER" — no exceptions, no variables
+        // 4. ALWAYS force role = "CUSTOMER"  no exceptions, no variables
         await db
             .update(user)
             .set({ role: "CUSTOMER" })
@@ -206,7 +206,7 @@ export const storefrontAuthRouter = router({
             createdAt: now,
             updatedAt: now,
         });
-        // 6. Create team (company) — currency always KES, no members yet
+        // 6. Create team (company)  currency always KES, no members yet
         const baseSlug = slugify(input.companyName);
         const teamSlug = await resolveUniqueSlug(baseSlug);
         const teamId = crypto.randomUUID();
@@ -231,7 +231,7 @@ export const storefrontAuthRouter = router({
         });
         // 8. Sign storefront checkout token (20 min TTL)
         const storefrontToken = signStorefrontToken(userId, teamId, teamSlug);
-        // 9. Fire-and-forget welcome email — never let email failure block checkout
+        // 9. Fire-and-forget welcome email  never let email failure block checkout
         void (async () => {
             try {
                 const frontendUrl = process.env.CORS_ORIGIN?.trim() || "https://npanel.nisccloud.com";
@@ -245,7 +245,7 @@ export const storefrontAuthRouter = router({
                 });
                 await sendEmail({
                     to: email,
-                    subject: "Welcome to Nisc Cloud® — your account details",
+                    subject: "Welcome to Nisc Cloud®  your account details",
                     html,
                 });
             }
@@ -253,7 +253,7 @@ export const storefrontAuthRouter = router({
                 console.error("[storefront.register] welcome email failed:", err);
             }
         })();
-        // 10. Return minimal data — no user id, no password, no role
+        // 10. Return minimal data  no user id, no password, no role
         return {
             storefrontToken,
             teamSlug,

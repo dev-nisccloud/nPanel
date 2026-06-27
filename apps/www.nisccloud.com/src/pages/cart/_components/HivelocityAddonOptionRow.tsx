@@ -81,7 +81,7 @@ export function HivelocityAddonNoSelectionRow({
   checked,
   onSelect,
   label = "No selection",
-  description = "Skip this category — no add-on will be included.",
+  description = "Skip this category  no add-on will be included.",
 }: {
   checked: boolean;
   onSelect: () => void;

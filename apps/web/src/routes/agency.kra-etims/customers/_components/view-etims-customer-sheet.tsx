@@ -43,7 +43,7 @@ function DetailRow({
             <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
                 <p className={`mt-1 text-sm text-foreground break-words ${mono ? "font-mono" : ""}`}>
-                    {value ?? "—"}
+                    {value ?? ""}
                 </p>
             </div>
         </div>

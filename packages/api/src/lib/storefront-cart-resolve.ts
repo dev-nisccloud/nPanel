@@ -55,7 +55,7 @@ export function resolveStorefrontCartQuoteInput(
 			billingCycle: input.main?.billingCycle ?? baseMain.billingCycle,
 		};
 
-		// Domains are always billed annually — ignore client MONTHLY override.
+		// Domains are always billed annually  ignore client MONTHLY override.
 		if (mergedMain.serviceType === "domain_registration") {
 			mergedMain.billingCycle = "YEARLY";
 		}

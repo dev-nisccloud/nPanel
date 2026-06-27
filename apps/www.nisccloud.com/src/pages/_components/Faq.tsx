@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Minus } from "lucide-react";
+import { ArrowUpRight, Plus, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
 
 const faqs = [
@@ -132,6 +133,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export default function Faq() {
   const [activeCategory, setActiveCategory] = useState("General");
+  const ctaRef = useRef(null);
 
   const current = faqs.find((f) => f.category === activeCategory);
 
@@ -199,21 +201,59 @@ export default function Faq() {
 
         {/* Bottom CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="mt-12 text-center bg-muted/50 border border-border rounded-2xl p-6"
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mt-12"
         >
-          <p className="text-sm text-muted-foreground mb-3">
-            Still have questions? Our team is based in Nairobi and replies within 2 hours.
-          </p>
-          <a
-            href="/contact"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline cursor-pointer"
+          <div
+            ref={ctaRef}
+            className="relative overflow-hidden min-h-64 flex items-center justify-center px-6 py-14 border border-border rounded-3xl
+              before:absolute before:w-full before:h-4/5 before:bg-linear-to-r
+              before:from-sky-100 before:from-15% before:via-white before:via-55% before:to-amber-100 before:to-90%
+              before:rounded-full before:top-16 before:blur-3xl before:-z-10
+              dark:before:from-sky-400/10 dark:before:from-40% dark:before:via-black dark:before:via-55%
+              dark:before:to-amber-300/10 dark:before:to-60% dark:before:rounded-full dark:before:-z-10"
           >
-            Talk to us → hello@nisccloud.com
-          </a>
+            <motion.div
+              initial={{ y: "5%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 1, delay: 0.3 }}
+              className="flex flex-col gap-6 items-center mx-auto"
+            >
+              <div className="flex flex-col gap-3 items-center text-center">
+                <h2 className="text-3xl md:text-4xl font-medium">
+                  Still have questions? We're here to help.
+                </h2>
+                <p className="max-w-xl mx-auto text-muted-foreground">
+                  Our team is based in Nairobi and typically replies within 2 hours.
+                  Reach out anytime,  we'd love to help you get started.
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button
+                  asChild
+                  className="relative text-sm font-medium rounded-full h-12 p-1 ps-6 pe-14 group transition-all duration-500 hover:ps-14 hover:pe-6 w-fit overflow-hidden hover:bg-primary/80 cursor-pointer"
+                >
+                  <a href="/contact">
+                    <span className="relative z-10 transition-all duration-500">
+                      Talk to us
+                    </span>
+                    <div className="absolute right-1 w-10 h-10 bg-background text-foreground rounded-full flex items-center justify-center transition-all duration-500 group-hover:right-[calc(100%-44px)] group-hover:rotate-45">
+                      <ArrowUpRight size={16} />
+                    </div>
+                  </a>
+                </Button>
+                <a
+                  href="mailto:hello@nisccloud.com"
+                  className="text-sm font-semibold text-primary hover:underline underline-offset-4 transition-colors"
+                >
+                  hello@nisccloud.com
+                </a>
+              </div>
+            </motion.div>
+          </div>
         </motion.div>
       </div>
     </section>

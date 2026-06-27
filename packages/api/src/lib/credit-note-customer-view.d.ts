@@ -5,5 +5,5 @@ export declare function resolveCreditNoteEtimsVerificationUrl(creditNote: Pick<C
 export declare function sanitizeCreditNoteForCustomer(creditNote: CreditNote): CreditNote & {
     etimsFiscal?: ReturnType<typeof extractEtimsFiscalFieldsFromCreditNote>;
 };
-/** Customer-facing credit note detail — no KRA admin fields. */
+/** Customer-facing credit note detail  no KRA admin fields. */
 export declare function sanitizeCreditNoteDetailForCustomer(creditNote: CreditNoteDetail): CreditNoteDetail;

@@ -167,7 +167,7 @@ export function CustomerInfoStep({
         </div>
       </div>
 
-      {/* Already have an account — prominent card */}
+      {/* Already have an account  prominent card */}
       <a
         href={`${import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccloud.com"}/auth/login`}
         className="flex items-center justify-between gap-3 p-4 rounded-xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/60 transition-all mb-6 group"

@@ -1,5 +1,5 @@
 /**
- * Authoritative storefront cart pricing — never trust URL or client-supplied amounts.
+ * Authoritative storefront cart pricing  never trust URL or client-supplied amounts.
  */
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -477,7 +477,7 @@ export async function computeStorefrontCartQuote(
 ): Promise<StorefrontCartQuote> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input);
 
-	// Domains register for 1 year — checkout always uses the yearly price.
+	// Domains register for 1 year  checkout always uses the yearly price.
 	const effectiveBillingCycle =
 		parsed.main.serviceType === "domain_registration"
 			? "YEARLY"

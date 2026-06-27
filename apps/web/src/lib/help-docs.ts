@@ -163,7 +163,7 @@ export const helpCollections: HelpCollection[] = [
         id: "vps-2",
         title: "Rebooting or reinstalling your VPS",
         summary: "Restart or reset your VPS from the control panel.",
-        content: "In the Nisc Cloud panel, go to **VPS → Manage → Actions**. You can soft reboot, hard reboot, or reinstall the OS. Note that reinstalling will wipe all data — back up first.",
+        content: "In the Nisc Cloud panel, go to **VPS → Manage → Actions**. You can soft reboot, hard reboot, or reinstall the OS. Note that reinstalling will wipe all data  back up first.",
         tags: ["reboot", "reinstall"],
       },
     ],
@@ -178,7 +178,7 @@ export const helpCollections: HelpCollection[] = [
         id: "bill-1",
         title: "Paying via M-Pesa",
         summary: "How to complete payments using M-Pesa on Nisc Cloud.",
-        content: "At checkout or on the invoice page, select **M-Pesa** as your payment method. Enter your M-Pesa registered phone number and click **Pay**. You will receive an STK push prompt — enter your M-Pesa PIN to complete payment.",
+        content: "At checkout or on the invoice page, select **M-Pesa** as your payment method. Enter your M-Pesa registered phone number and click **Pay**. You will receive an STK push prompt  enter your M-Pesa PIN to complete payment.",
         tags: ["mpesa", "payment"],
       },
       {

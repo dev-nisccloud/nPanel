@@ -132,7 +132,7 @@ const TABLE_UPDATES: TableUpdate[] = [
 ];
 
 async function main() {
-	console.log(DRY_RUN ? "DRY RUN — no writes\n" : "Migrating planless product references…\n");
+	console.log(DRY_RUN ? "DRY RUN  no writes\n" : "Migrating planless product references…\n");
 
 	const targets = await listPlanlessLegacyProductMigrationTargets();
 	const idMap = await getPlanlessLegacyToCanonicalIdMap();

@@ -94,7 +94,7 @@ export default function Stats() {
             </h2>
             <p className="text-muted-foreground text-base max-w-xl">
               From hosting to marketing, we combine technology and expertise to
-              power your business online — reliably, fast, and at scale.
+              power your business online  reliably, fast, and at scale.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-3">
               {conceptBadges.map((badge, index) => (

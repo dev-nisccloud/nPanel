@@ -673,7 +673,7 @@ export default function InvoiceViewPage() {
 							emailBlocked
 								? invoice.kraStatus === "SUBMITTING"
 									? "KRA sync in progress"
-									: "KRA sync was skipped — fix configuration or retry sync"
+									: "KRA sync was skipped  fix configuration or retry sync"
 								: undefined
 						}
 					>

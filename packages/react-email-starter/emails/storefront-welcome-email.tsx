@@ -26,7 +26,7 @@ export const StorefrontWelcomeEmail = ({
   planName,
 }: StorefrontWelcomeEmailProps) => {
   return (
-    <EmailLayout preview={`Welcome to Nisc Cloud® — your account is ready`}>
+    <EmailLayout preview={`Welcome to Nisc Cloud®  your account is ready`}>
       <EmailHeader />
       <Section>
         <EmailText>Hi {firstName},</EmailText>
@@ -100,7 +100,7 @@ export const StorefrontWelcomeEmail = ({
           <EmailText style={{ margin: '0', fontSize: '14px', color: '#713f12' }}>
             We've also sent you a separate verification email. Verifying your
             email helps secure your account, but you can log in and access your
-            services right away — it's not required to get started.
+            services right away  it's not required to get started.
             {verificationLink && (
               <>
                 {' '}

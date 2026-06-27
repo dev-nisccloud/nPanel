@@ -381,7 +381,7 @@ export default function ETimsSalesPage() {
             isSandbox: cfg?.isSandbox,
         });
         if (!url) {
-            toast.error("Receipt signature is missing — cannot open KRA verification link.");
+            toast.error("Receipt signature is missing  cannot open KRA verification link.");
             return;
         }
         window.open(url, "_blank", "noopener,noreferrer");
@@ -743,7 +743,7 @@ export default function ETimsSalesPage() {
                                                     </td>
                                                     <td className="px-4 py-4">
                                                         <div className="font-mono text-xs text-muted-foreground">
-                                                            {invoice.displayKraRef ?? "—"}
+                                                            {invoice.displayKraRef ?? ""}
                                                         </div>
                                                         {invoice.displayRcptNo ? (
                                                             <div className="text-[10px] text-muted-foreground/70 mt-0.5">
@@ -860,11 +860,11 @@ export default function ETimsSalesPage() {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4">
-                                                        <div className="font-medium">#{invoice.orgInvcNo ?? "—"}</div>
+                                                        <div className="font-medium">#{invoice.orgInvcNo ?? ""}</div>
                                                     </td>
                                                     <td className="px-4 py-4">
                                                         <div className="font-mono text-xs text-muted-foreground">
-                                                            {invoice.displayKraRef ?? "—"}
+                                                            {invoice.displayKraRef ?? ""}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-4 text-muted-foreground">

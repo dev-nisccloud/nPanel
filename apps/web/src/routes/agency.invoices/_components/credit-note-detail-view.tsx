@@ -178,7 +178,7 @@ export function CreditNoteDetailView({
 							Credit Note {creditNote.creditNumber || ""}
 						</h1>
 						<p className="text-xs text-muted-foreground">
-							Original invoice: {creditNote.originalInvoiceNumber || creditNote.invoiceNumber || "—"}
+							Original invoice: {creditNote.originalInvoiceNumber || creditNote.invoiceNumber || ""}
 						</p>
 					</div>
 				</div>

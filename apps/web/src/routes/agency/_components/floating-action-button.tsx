@@ -754,7 +754,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
           ═══════════════════════════════════════ */}
           {activeTab === "home" && (
             <div className="flex flex-col h-full relative overflow-hidden">
-              {/* Fading green gradient — solid at top, fades to transparent */}
+              {/* Fading green gradient  solid at top, fades to transparent */}
               <div
                 className="absolute inset-x-0 top-0 pointer-events-none"
                 style={{
@@ -788,7 +788,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 </p>
               </div>
 
-              {/* Scrollable cards — sit on top of the fading gradient */}
+              {/* Scrollable cards  sit on top of the fading gradient */}
               <div className="relative z-10 flex-1 min-h-0 overflow-y-auto">
                 <div className="px-4 pb-4 space-y-2.5">
 
@@ -810,7 +810,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                             handleChatWithHuman(latest.id);
                           }}
                         >
-                          {/* Brand icon square — like DigiTax */}
+                          {/* Brand icon square  like DigiTax */}
                           <div className="flex-shrink-0 h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
                             <span className="text-sm font-bold text-primary-foreground">N</span>
                           </div>
@@ -1324,7 +1324,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         </div>
                       ) : (
                         <div>
-                          {/* Greeting banner — customer only */}
+                          {/* Greeting banner  customer only */}
                           {!isAgency && (isNewTicket || chatMessages.length <= 1) && (
                             <div className="px-5 pt-6 pb-4 text-sm text-muted-foreground leading-relaxed">
                               Ask us anything, or share your feedback. For quick replies email{" "}
@@ -1815,7 +1815,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                 </>
               )}
 
-              {/* Collection detail — articles list */}
+              {/* Collection detail  articles list */}
               {helpSubView === "collection-detail" && selectedCollection && (
                 <ScrollArea className="flex-1 min-h-0">
                   <div className="px-4 py-4 space-y-2">

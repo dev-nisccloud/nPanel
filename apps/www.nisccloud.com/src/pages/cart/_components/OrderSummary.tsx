@@ -38,7 +38,7 @@ interface OrderSummaryProps {
   continueDisabled?: boolean;
   /** Server-computed totals override client-side math when present. */
   authoritativeTotals?: { subtotal: number; taxAmount: number; total: number };
-  /** First load — full-page skeleton handles this; used for non-hivelocity carts. */
+  /** First load  full-page skeleton handles this; used for non-hivelocity carts. */
   quoteInitialLoading?: boolean;
   /** Background price validation (e.g. OS / add-on changes on VPS/VDS/dedicated). */
   quoteSummaryLoading?: boolean;
@@ -168,7 +168,7 @@ export function OrderSummary({
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-                {selectedDomain.isExisting ? "—" : domainPrice > 0 ? fmt(domainPrice) : "Free"}
+                {selectedDomain.isExisting ? "" : domainPrice > 0 ? fmt(domainPrice) : "Free"}
               </span>
               {onRemoveDomain && (
                 <button
@@ -239,7 +239,7 @@ export function OrderSummary({
           <span className="text-xl font-bold text-foreground">{fmt(total)}</span>
         </div>
 
-        {/* Coupon — re-enable when promo codes are supported
+        {/* Coupon  re-enable when promo codes are supported
         <button className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 font-medium mt-1 group">
           <Tag className="w-4 h-4 group-hover:scale-110 transition-transform" />
           Have a coupon code?

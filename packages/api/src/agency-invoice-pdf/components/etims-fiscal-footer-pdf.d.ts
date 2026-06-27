@@ -6,7 +6,7 @@ type EtimsFiscalFooterPdfProps = {
     fixed?: boolean;
 };
 /**
- * KRA eTIMS fiscal text block — fixed footer on synced invoices (QR lives beside payment details).
+ * KRA eTIMS fiscal text block  fixed footer on synced invoices (QR lives beside payment details).
  */
 export declare const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps>;
 export {};

@@ -336,7 +336,7 @@ export default function ETimsCustomersPage() {
                                                             {customer.email}
                                                         </div>
                                                     ) : null}
-                                                    {!customer.telNo && !customer.email ? "—" : null}
+                                                    {!customer.telNo && !customer.email ? "" : null}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">

@@ -1,10 +1,10 @@
-# Production overrides — run alongside the base file:
+# Production overrides  run alongside the base file:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
 #
 # What this does:
 #   - PostgreSQL + PgBouncer: internal only (no exposed ports)
-#   - MinIO port 9000: internal only — nginx proxies it as storage.nisccloud.com
+#   - MinIO port 9000: internal only  nginx proxies it as storage.nisccloud.com
 #   - MinIO port 9001: exposed directly → http://<VM-IP>:9001  (console)
 #   - All monitoring/admin UIs: exposed directly → http://<VM-IP>:<port>
 #   - Nginx: handles port 80 (redirect) + 443 (MinIO S3 API only)
@@ -13,11 +13,11 @@
 services:
 
   postgres:
-    # Internal only — never expose the database port to the internet
+    # Internal only  never expose the database port to the internet
     ports: []
 
   pgbouncer:
-    # Internal only — app connects via Docker network
+    # Internal only  app connects via Docker network
     ports: []
 
   minio:
@@ -30,12 +30,12 @@ services:
       # so presigned upload/download URLs are correct
       MINIO_SERVER_URL: https://${DOMAIN_STORAGE:-storage.nisccloud.com}
     ports:
-      # Port 9000 (S3 API) is handled by nginx — not exposed directly
+      # Port 9000 (S3 API) is handled by nginx  not exposed directly
       # Port 9001 (Console) is accessible directly via browser
       - "9001:9001"
 
   # ────────────────────────────────────────────
-  #  Nginx — SSL termination for MinIO S3 API only
+  #  Nginx  SSL termination for MinIO S3 API only
   #  storage.nisccloud.com → MinIO :9000
   # ────────────────────────────────────────────
   nginx:
@@ -59,7 +59,7 @@ services:
       retries: 3
 
   # ────────────────────────────────────────────
-  #  Certbot — auto-renews Let's Encrypt cert every 12h
+  #  Certbot  auto-renews Let's Encrypt cert every 12h
   # ────────────────────────────────────────────
   certbot:
     image: certbot/certbot:latest

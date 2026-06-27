@@ -47,7 +47,7 @@ const OP_TLDS = ["com", "net", "org", "africa"];
 const KENIC_TLDS_TO_CHECK = ["co.ke", "ke"];
 
 /**
- * Display order for combined results — put .co.ke and .com first
+ * Display order for combined results  put .co.ke and .com first
  * (anything not listed falls to the end in arrival order).
  */
 const TLD_SORT_ORDER = ["co.ke", "com", "ke", "net", "org", "africa"];
@@ -103,7 +103,7 @@ function DomainUpsellInner({ selectedDomain, onDomainSelect }: DomainUpsellProps
       return;
     }
     if (!isValidSearchQuery(sanitized)) {
-      setValidationError("Enter a valid domain name — letters, numbers and hyphens only.");
+      setValidationError("Enter a valid domain name  letters, numbers and hyphens only.");
       return;
     }
     setValidationError(null);
@@ -421,7 +421,7 @@ function DomainUpsellInner({ selectedDomain, onDomainSelect }: DomainUpsellProps
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            No extra charge — you already own this domain.
+            No extra charge  you already own this domain.
           </p>
         </>
       )}
@@ -457,7 +457,7 @@ function DomainUpsellInner({ selectedDomain, onDomainSelect }: DomainUpsellProps
 }
 
 // ---------------------------------------------------------------------------
-// Exported wrapper — wraps with PricingProvider
+// Exported wrapper  wraps with PricingProvider
 // ---------------------------------------------------------------------------
 
 export function DomainUpsell(props: DomainUpsellProps) {

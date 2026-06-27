@@ -354,7 +354,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
           <div>
             <h2 className="text-base font-bold text-foreground">Add-ons</h2>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Optional extras — availability depends on your selected operating system.
+              Optional extras  availability depends on your selected operating system.
             </p>
           </div>
 
@@ -401,7 +401,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
                               config.selectedOptionIds.filter((id) => !groupOptionIds.has(id)),
                             )
                           }
-                          description={`Skip ${group} — nothing from this category will be added.`}
+                          description={`Skip ${group}  nothing from this category will be added.`}
                         />
                       ) : null}
 

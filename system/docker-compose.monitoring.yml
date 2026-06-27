@@ -1,72 +1,26 @@
 # Observability + Backup stack — run alongside the base file:
 #   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 #
-# Services added:
-#   prometheus      → metrics scraping + storage     → http://localhost:9090
-#   grafana         → dashboards + alerting UI       → http://localhost:3100
-#   loki            → log aggregation + storage      → http://localhost:3101
-#   promtail        → Docker log collector → Loki
-#   node-exporter   → host CPU / memory / disk metrics
-#   postgres-exporter → PostgreSQL metrics
-#   alertmanager    → alert routing (email / Slack / webhook)
-#   uptime-kuma     → uptime checks + status page    → http://localhost:3102
-#   pg-backup       → scheduled pg_dump with retention
+# Services:
+#   loki        → log storage                           → http://localhost:3101
+#   promtail    → Docker log collector → Loki
+#   grafana     → log browser (Loki datasource only)   → http://localhost:3100
+#   uptime-kuma → uptime checks + status page          → http://localhost:3102
+#   pg-backup   → scheduled pg_dump with retention
+#   pgadmin     → PostgreSQL web GUI                   → http://localhost:5050
+#
+# What was intentionally left out (add back when you need metrics dashboards):
+#   prometheus      — 200–500 MB RAM + 2–5 GB disk (30d TSDB). Heavy for a single VM.
+#   node-exporter   — only useful when prometheus is running
+#   postgres-exporter — only useful when prometheus is running
+#   alertmanager    — only useful when prometheus is running
+#   Uptime Kuma handles downtime alerts. Add the Prometheus stack later via a
+#   separate docker-compose.metrics.yml when you actually need time-series dashboards.
 
 services:
 
   # ────────────────────────────────────────────
-  #  Prometheus — metrics scraper + time-series DB
-  #  UI: http://localhost:9090
-  # ────────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: nPanel-System-prometheus
-    restart: unless-stopped
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=30d"
-      - "--web.enable-lifecycle"
-      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
-      - "--web.console.templates=/usr/share/prometheus/consoles"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/alerts:/etc/prometheus/alerts:ro
-      - nPanel-prometheus-data:/prometheus
-    ports:
-      - "9090:9090"
-    depends_on:
-      - alertmanager
-
-  # ────────────────────────────────────────────
-  #  Grafana — dashboards, datasources, alerting
-  #  UI: http://localhost:3100
-  #  Default login: GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD
-  # ────────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:latest
-    container_name: nPanel-System-grafana
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_SERVER_ROOT_URL: ${GRAFANA_URL:-http://localhost:3100}
-      GF_FEATURE_TOGGLES_ENABLE: "alertingSimplifiedRouting"
-      # Persist alert state across restarts
-      GF_ALERTING_ENABLED: "true"
-      GF_UNIFIED_ALERTING_ENABLED: "true"
-    volumes:
-      - nPanel-grafana-data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-    ports:
-      - "3100:3000"
-    depends_on:
-      - prometheus
-      - loki
-
-  # ────────────────────────────────────────────
-  #  Loki — log aggregation and storage
+  #  Loki  log aggregation and storage
   #  Paired with Promtail (collector) and Grafana (viewer)
   # ────────────────────────────────────────────
   loki:
@@ -81,7 +35,7 @@ services:
       - "3101:3100"
 
   # ────────────────────────────────────────────
-  #  Promtail — Docker log collector → Loki
+  #  Promtail  Docker log collector → Loki
   #  Automatically tails all nPanel-System-* container logs
   # ────────────────────────────────────────────
   promtail:
@@ -97,60 +51,38 @@ services:
       - loki
 
   # ────────────────────────────────────────────
-  #  Node Exporter — host OS metrics (CPU, RAM, disk, network)
-  #  NOTE: on Linux/GCE this exposes real host metrics.
-  #        on Docker Desktop (Windows/Mac) it shows the VM metrics.
+  #  Grafana  log browser (Loki datasource)
+  #  UI: http://localhost:3100
+  #  Login: GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD
+  #
+  #  Running with Loki only — no Prometheus datasource.
+  #  When you add docker-compose.metrics.yml later, Grafana will
+  #  automatically pick up the Prometheus datasource from provisioning.
   # ────────────────────────────────────────────
-  node-exporter:
-    image: prom/node-exporter:latest
-    container_name: nPanel-System-node-exporter
-    restart: unless-stopped
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/rootfs"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    ports:
-      - "9100:9100"
-
-  # ────────────────────────────────────────────
-  #  Postgres Exporter — PostgreSQL metrics → Prometheus
-  # ────────────────────────────────────────────
-  postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
-    container_name: nPanel-System-postgres-exporter
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nPanel-System-grafana
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-npanel}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-npanel}?sslmode=disable"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  # ────────────────────────────────────────────
-  #  Alertmanager — routes alerts to email / Slack / webhook
-  #  UI: http://localhost:9093
-  # ────────────────────────────────────────────
-  alertmanager:
-    image: prom/alertmanager:latest
-    container_name: nPanel-System-alertmanager
-    restart: unless-stopped
-    command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
-      - "--storage.path=/alertmanager"
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: ${GRAFANA_URL:-http://localhost:3100}
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_ALERTING_ENABLED: "false"
     volumes:
-      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - nPanel-alertmanager-data:/alertmanager
+      - nPanel-grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
-      - "9093:9093"
+      - "3100:3000"
+    depends_on:
+      - loki
 
   # ────────────────────────────────────────────
-  #  Uptime Kuma — external health checks + status page
+  #  Uptime Kuma  uptime checks + status page
   #  UI: http://localhost:3102
-  #  Set up monitors manually via the web UI on first run.
+  #  Configure monitors via the web UI on first run.
+  #  Handles downtime alerting (email/Slack/webhook) without needing Alertmanager.
   # ────────────────────────────────────────────
   uptime-kuma:
     image: louislam/uptime-kuma:latest
@@ -162,7 +94,7 @@ services:
       - "3102:3001"
 
   # ────────────────────────────────────────────
-  #  pg-backup — scheduled daily pg_dump with retention
+  #  pg-backup  scheduled daily pg_dump with retention
   #  Backups land in the nPanel-pg-backups volume as .sql.gz files.
   #  Restore: gunzip -c backup.sql.gz | psql -h localhost -U npanel npanel
   # ────────────────────────────────────────────
@@ -176,7 +108,6 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGDATABASE: ${POSTGRES_DB:-npanel}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
-      # Cron schedule — default: 2:00 AM every day
       BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
     volumes:
       - nPanel-pg-backups:/backups
@@ -192,10 +123,15 @@ services:
         condition: service_healthy
 
   # ────────────────────────────────────────────
-  #  pgAdmin — PostgreSQL web GUI
+  #  pgAdmin  PostgreSQL web GUI
   #  UI (local): http://localhost:5050
   #  UI (prod):  https://db-admin.nisccloud.com
   #  Login: PGADMIN_EMAIL / PGADMIN_PASSWORD
+  #
+  #  IMPORTANT: PGADMIN_DEFAULT_* vars are init-only.
+  #  They are read once when the volume is empty.
+  #  To reset: docker volume rm nPanel-pgadmin-data && restart.
+  #  The nPanel Postgres server is pre-registered via servers.json.
   # ────────────────────────────────────────────
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -203,23 +139,24 @@ services:
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@nisccloud.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?PGADMIN_PASSWORD is required}
       PGADMIN_CONFIG_SERVER_MODE: "True"
       PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: "True"
       PGADMIN_CONFIG_LOGIN_BANNER: '"nPanel Database Admin"'
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
     volumes:
       - nPanel-pgadmin-data:/var/lib/pgadmin
+      - ./monitoring/pgadmin/servers.json:/pgadmin4/servers.json:ro
     ports:
       - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
-  nPanel-prometheus-data:
-    driver: local
-  nPanel-grafana-data:
-    driver: local
   nPanel-loki-data:
     driver: local
-  nPanel-alertmanager-data:
+  nPanel-grafana-data:
     driver: local
   nPanel-uptime-kuma-data:
     driver: local

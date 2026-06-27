@@ -202,8 +202,8 @@ export const etimsDataRouter = router({
 
     /**
      * Look up a customer by KRA TIN.
-     * 1. POST /selectCustomer — KRA central taxpayer registry
-     * 2. POST /selectCustomerList — branch customers saved via saveBhfCustomer (sandbox fallback)
+     * 1. POST /selectCustomer  KRA central taxpayer registry
+     * 2. POST /selectCustomerList  branch customers saved via saveBhfCustomer (sandbox fallback)
      */
     lookupCustomer: protectedProcedure
         .input(z.object({
