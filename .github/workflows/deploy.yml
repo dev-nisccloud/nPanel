@@ -322,15 +322,9 @@ jobs:
             set -euo pipefail
             cd /home/nisccloud/nPanel
 
-            # Pull latest migration files from production branch
-            git fetch --quiet origin production
-            git checkout origin/production -- packages/db packages/env
-
-            # Ensure bun is available
-            export PATH="$HOME/.bun/bin:$PATH"
-
-            # Install only what's needed for migrations
-            bun install --frozen-lockfile
+            # Pull latest code — repo was cloned with token, origin is already set
+            git fetch --quiet
+            git reset --hard origin/production
 
             # Run migrations inside a container on the Docker network so
             # it can reach postgres by service name without opening any ports
@@ -340,7 +334,7 @@ jobs:
               -v /home/nisccloud/nPanel:/app \
               -w /app \
               oven/bun:1.3.4 \
-              bun run --cwd packages/db db:migrate
+              sh -c "bun install --frozen-lockfile && bun run --cwd packages/db db:migrate"
 
             echo "✅ Production database migrations completed"
 
