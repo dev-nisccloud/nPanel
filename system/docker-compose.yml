@@ -1,11 +1,11 @@
 services:
 
   # ────────────────────────────────────────────
-  #  PostgreSQL 16
+  #  PostgreSQL 17
   #  Accessible locally at: postgresql://localhost:5432
   # ────────────────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: nPanel-System-postgres
     restart: unless-stopped
     environment:

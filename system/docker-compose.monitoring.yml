@@ -99,7 +99,7 @@ services:
   #  Restore: gunzip -c backup.sql.gz | psql -h localhost -U npanel npanel
   # ────────────────────────────────────────────
   pg-backup:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: nPanel-System-pg-backup
     restart: unless-stopped
     environment:
