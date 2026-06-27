@@ -23,16 +23,16 @@ name: System Stack Deploy (GCE)
 #                     e.g. /home/ubuntu/nPanel/system
 #
 # Trigger conditions:
-#   - Push to `production` branch with changes inside system/
-#   - Manual trigger (workflow_dispatch) for hotfixes / forced redeployments
+#   - Manual only (workflow_dispatch) — you must go to Actions → Run workflow
+#   - No automatic triggers. System stack changes never deploy without your approval.
+#
+# Approval gate:
+#   The deploy job is gated by the `system-production` GitHub environment.
+#   Go to Settings → Environments → system-production → add yourself as a
+#   required reviewer. Every run will pause and wait for your approval before
+#   SSHing into the VM.
 
 on:
-  push:
-    branches:
-      - production
-    paths:
-      # Only run when something in the system stack actually changed
-      - "system/**"
   workflow_dispatch:
     inputs:
       stack:
@@ -50,7 +50,7 @@ jobs:
     name: Deploy System Stack to GCE
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: system-production
 
     steps:
       - name: Checkout
