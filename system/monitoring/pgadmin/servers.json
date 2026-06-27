@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "nPanel PostgreSQL",
+      "Group": "nPanel",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "npanel",
+      "Username": "npanel",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpass"
+    }
+  }
+}

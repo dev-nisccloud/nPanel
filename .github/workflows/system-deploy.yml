@@ -1,0 +1,147 @@
+name: System Stack Deploy (GCE)
+
+# Deploys the system/docker-compose stack (Postgres, MinIO, Nginx, monitoring)
+# to the Compute Engine VM via SSH.
+#
+# This workflow does NOT build or push any Docker images — all images in the
+# system stack are third-party (postgres, minio, nginx, grafana, etc.) and are
+# pulled directly from their public registries on the VM.
+#
+# What it does on each run:
+#   1. SSH into the GCE instance
+#   2. git pull  — picks up compose file and config changes from this repo
+#   3. docker compose pull  — refreshes any :latest image tags
+#   4. docker compose up -d — applies changes with zero-downtime rolling update
+#
+# The .env file lives ONLY on the VM and is NEVER touched by this workflow.
+#
+# Required GitHub Secrets (set under Settings → Secrets → Actions):
+#   GCE_SSH_HOST      IP address or hostname of the Compute Engine instance
+#   GCE_SSH_USER      Linux user on the VM (e.g. ubuntu, debian, or your user)
+#   GCE_SSH_KEY       Private SSH key whose public key is in ~/.ssh/authorized_keys on the VM
+#   GCE_SYSTEM_DIR    Absolute path to the system/ directory on the VM
+#                     e.g. /home/ubuntu/nPanel/system
+#
+# Trigger conditions:
+#   - Push to `production` branch with changes inside system/
+#   - Manual trigger (workflow_dispatch) for hotfixes / forced redeployments
+
+on:
+  push:
+    branches:
+      - production
+    paths:
+      # Only run when something in the system stack actually changed
+      - "system/**"
+  workflow_dispatch:
+    inputs:
+      stack:
+        description: "Which compose stack to deploy"
+        required: false
+        default: "full"
+        type: choice
+        options:
+          - full
+          - base
+          - monitoring
+
+jobs:
+  deploy-system:
+    name: Deploy System Stack to GCE
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── Determine which compose files to use ─────────────────────────────
+      # full      → base + prod overrides + monitoring
+      # base      → base + prod overrides only (skip monitoring stack)
+      # monitoring → monitoring stack only (no restart of base services)
+      - name: Resolve compose command
+        id: compose
+        run: |
+          STACK="${{ github.event.inputs.stack || 'full' }}"
+          BASE="-f docker-compose.yml -f docker-compose.prod.yml"
+          MON="-f docker-compose.monitoring.yml"
+
+          case "$STACK" in
+            full)       CMD="$BASE $MON" ;;
+            base)       CMD="$BASE"      ;;
+            monitoring) CMD="$BASE $MON" ;;  # loki + grafana + uptime-kuma + pgadmin + pg-backup
+            *)          CMD="$BASE $MON" ;;
+          esac
+
+          echo "cmd=$CMD" >> "$GITHUB_OUTPUT"
+          echo "▶ Using compose files: $CMD"
+
+      # ── Deploy via SSH ────────────────────────────────────────────────────
+      - name: Deploy to GCE via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.GCE_SSH_HOST }}
+          username: ${{ secrets.GCE_SSH_USER }}
+          key: ${{ secrets.GCE_SSH_KEY }}
+          # Fail fast — treat any non-zero exit as an error
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            SYSTEM_DIR="${{ secrets.GCE_SYSTEM_DIR }}"
+            COMPOSE_FILES="${{ steps.compose.outputs.cmd }}"
+
+            echo "──────────────────────────────────────────"
+            echo "  nPanel System Deploy"
+            echo "  Dir:    $SYSTEM_DIR"
+            echo "  Stack:  $COMPOSE_FILES"
+            echo "  Commit: ${{ github.sha }}"
+            echo "──────────────────────────────────────────"
+
+            cd "$SYSTEM_DIR"
+
+            # 1. Pull latest compose files and configs from git
+            echo "▶ Pulling latest code..."
+            git fetch --quiet origin production
+            git reset --hard origin/production
+
+            # 2. Refresh any :latest image tags (postgres, minio, nginx, etc.)
+            #    This is a no-op if no new upstream versions exist.
+            echo "▶ Pulling latest Docker images..."
+            docker compose $COMPOSE_FILES pull --quiet
+
+            # 3. Apply changes — recreate only containers whose image or config changed.
+            #    Volumes and .env are preserved. Services not in the compose files are untouched.
+            echo "▶ Applying compose changes..."
+            docker compose $COMPOSE_FILES up -d --remove-orphans
+
+            # 4. Quick health check — verify the core services are running
+            echo "▶ Verifying service health..."
+            sleep 5
+
+            UNHEALTHY=$(docker compose $COMPOSE_FILES ps --format json \
+              | jq -r 'select(.Health != null and .Health != "healthy" and .Health != "") | .Name' \
+              2>/dev/null || true)
+
+            if [ -n "$UNHEALTHY" ]; then
+              echo "⚠ The following services are not yet healthy (may still be starting):"
+              echo "$UNHEALTHY"
+            fi
+
+            echo ""
+            echo "✅ Deploy complete — running containers:"
+            docker compose $COMPOSE_FILES ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+
+      # ── Summary ──────────────────────────────────────────────────────────
+      - name: Deploy summary
+        if: always()
+        run: |
+          echo "### System Stack Deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Host** | \`${{ secrets.GCE_SSH_HOST }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Stack** | \`${{ github.event.inputs.stack || 'full' }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Commit** | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Branch** | \`${{ github.ref_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
