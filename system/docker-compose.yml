@@ -30,7 +30,7 @@ services:
       start_period: 30s
 
   # ────────────────────────────────────────────
-  #  PgBouncer — connection pooler in front of Postgres
+  #  PgBouncer  connection pooler in front of Postgres
   #  Accessible locally at: postgresql://localhost:6432
   #  Use this URL in your app instead of direct Postgres
   # ────────────────────────────────────────────
@@ -51,7 +51,7 @@ services:
       RESERVE_POOL_SIZE: 5
       RESERVE_POOL_TIMEOUT: 3
       SERVER_RESET_QUERY: DISCARD ALL
-      # Keep these off unless debugging — noisy in logs
+      # Keep these off unless debugging  noisy in logs
       LOG_CONNECTIONS: 0
       LOG_DISCONNECTIONS: 0
       LOG_POOLER_ERRORS: 1
@@ -62,7 +62,7 @@ services:
         condition: service_healthy
 
   # ────────────────────────────────────────────
-  #  MinIO — S3-compatible object storage
+  #  MinIO  S3-compatible object storage
   #  S3 API:  http://localhost:9000
   #  Console: http://localhost:9001
   # ────────────────────────────────────────────

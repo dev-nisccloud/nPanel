@@ -28,7 +28,7 @@ export function itemTypeLabel(code?: string | null) {
         case "1": return "Raw material";
         case "2": return "Finished product";
         case "3": return "Service";
-        default: return code ?? "—";
+        default: return code ?? "";
     }
 }
 
@@ -39,7 +39,7 @@ export function taxTypeLabel(code?: string | null) {
         case "C": return "0%";
         case "D": return "Non-VAT";
         case "E": return "8% VAT";
-        default: return code ?? "—";
+        default: return code ?? "";
     }
 }
 

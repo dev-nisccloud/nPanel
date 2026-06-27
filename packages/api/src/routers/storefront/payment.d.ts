@@ -1,7 +1,7 @@
 /**
  * Storefront payment procedures.
  *
- * All procedures here are gated by a storefrontToken — a short-lived HMAC-signed
+ * All procedures here are gated by a storefrontToken  a short-lived HMAC-signed
  * token issued at registration time. No full session is required.
  *
  * - initiateStkPush: initiate M-Pesa STK Push for the checkout session
@@ -9,9 +9,9 @@
  *
  * Security:
  *  • Token is verified on every call (signature + expiry).
- *  • Amount is re-derived server-side from planId — client value is used only as
+ *  • Amount is re-derived server-side from planId  client value is used only as
  *    a hint and overridden if the plan price differs.
- *  • Returns minimal data — no transaction IDs, no raw M-Pesa fields.
+ *  • Returns minimal data  no transaction IDs, no raw M-Pesa fields.
  */
 export declare const storefrontPaymentRouter: import("@trpc/server").TRPCBuiltRouter<{
     ctx: import("../..").Context;
@@ -22,7 +22,7 @@ export declare const storefrontPaymentRouter: import("@trpc/server").TRPCBuiltRo
     /**
      * Initiate an M-Pesa STK Push for a storefront checkout session.
      *
-     * The plan price is always re-fetched from the DB — the client-supplied
+     * The plan price is always re-fetched from the DB  the client-supplied
      * amount is ignored if it doesn't match the authoritative price.
      */
     initiateStkPush: import("@trpc/server").TRPCMutationProcedure<{
@@ -52,7 +52,7 @@ export declare const storefrontPaymentRouter: import("@trpc/server").TRPCBuiltRo
         meta: object;
     }>;
     /**
-     * Poll payment status — Daraja-first for instant terminal feedback (wrong PIN, cancelled, etc.).
+     * Poll payment status  Daraja-first for instant terminal feedback (wrong PIN, cancelled, etc.).
      *
      * Returns { status, failureReason } for legacy callers; prefer queryStkPush for full result codes.
      */

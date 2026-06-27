@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #  init-ssl.sh
 #  Issues a Let's Encrypt TLS certificate for storage.nisccloud.com
-#  (the MinIO S3 API domain — required for correct presigned URLs).
+#  (the MinIO S3 API domain  required for correct presigned URLs).
 #
 #  Prerequisites:
 #    1. DNS A record: storage.nisccloud.com → this VM's external IP
@@ -28,7 +28,7 @@ CERTBOT_EMAIL="${CERTBOT_EMAIL:-admin@nisccloud.com}"
 COMPOSE_CMD="docker compose -f ../docker-compose.yml -f ../docker-compose.prod.yml"
 
 echo "─────────────────────────────────────────"
-echo " nPanel System — SSL Certificate Setup"
+echo " nPanel System  SSL Certificate Setup"
 echo "─────────────────────────────────────────"
 echo "Domain:  $DOMAIN_STORAGE"
 echo "Contact: $CERTBOT_EMAIL"

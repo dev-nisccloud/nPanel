@@ -31,7 +31,7 @@ pg_dump \
   | gzip > "$BACKUP_FILE"
 
 BACKUP_SIZE=$(du -sh "$BACKUP_FILE" | cut -f1)
-echo "[$(date -Iseconds)] Backup complete — size: ${BACKUP_SIZE}"
+echo "[$(date -Iseconds)] Backup complete  size: ${BACKUP_SIZE}"
 
 # ── Retention cleanup ────────────────────────────────────────────────────────
 echo "[$(date -Iseconds)] Removing backups older than ${RETENTION_DAYS} days..."

@@ -42,7 +42,7 @@ const NPANEL_URL = import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccl
 /** Service types that want a domain upsell */
 const HOSTING_TYPES = new Set(["web_hosting", "wordpress_hosting", "email_hosting"]);
 
-/** VPS / VDS / dedicated — require OS + hostname configuration */
+/** VPS / VDS / dedicated  require OS + hostname configuration */
 const HIVELOCITY_SERVICE_TYPES = new Set(["vps", "vds", "dedicated_servers"]);
 
 // ---------------------------------------------------------------------------
@@ -92,7 +92,7 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 }
 
 // ---------------------------------------------------------------------------
-// Minimal cart header — logo only, no step indicator
+// Minimal cart header  logo only, no step indicator
 // ---------------------------------------------------------------------------
 
 function CartHeader() {
@@ -511,7 +511,7 @@ export default function CartPage() {
           }
           aria-hidden={showSkeleton}
         >
-        {/* Step breadcrumb — lives in content, not in header */}
+        {/* Step breadcrumb  lives in content, not in header */}
         <div className="mb-5">
           <StepIndicator current={step} />
         </div>
@@ -546,7 +546,7 @@ export default function CartPage() {
                     onBillingCycleChange={handleBillingCycleChange}
                   />
 
-                  {/* Domain upsell — for hosting buyers */}
+                  {/* Domain upsell  for hosting buyers */}
                   {wantsDomainUpsell && (
                     <DomainUpsell
                       selectedDomain={selectedDomain}
@@ -554,7 +554,7 @@ export default function CartPage() {
                     />
                   )}
 
-                  {/* Hosting upsell — for domain buyers */}
+                  {/* Hosting upsell  for domain buyers */}
                   {wantsHostingUpsell && (
                     <HostingUpsell
                       selectedType={selectedHostingType}

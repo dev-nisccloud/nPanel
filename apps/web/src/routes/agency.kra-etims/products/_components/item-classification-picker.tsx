@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 const LEVEL_INFO: Record<number, { title: string; hint: string }> = {
-  1: { title: "Level 1 — Segment", hint: "Top-level UNSPSC segments" },
-  2: { title: "Level 2 — Family", hint: "Product/service families" },
-  3: { title: "Level 3 — Class", hint: "Broader service categories" },
-  4: { title: "Level 4 — Commodity", hint: "Recommended for item registration" },
-  5: { title: "Level 5 — Detail", hint: "Most specific commodity codes" },
+  1: { title: "Level 1  Segment", hint: "Top-level UNSPSC segments" },
+  2: { title: "Level 2  Family", hint: "Product/service families" },
+  3: { title: "Level 3  Class", hint: "Broader service categories" },
+  4: { title: "Level 4  Commodity", hint: "Recommended for item registration" },
+  5: { title: "Level 5  Detail", hint: "Most specific commodity codes" },
 };
 
 type Props = {
@@ -142,9 +142,9 @@ export function ItemClassificationPicker({ value, onChange, onBlur, disabled, en
   const selectedLabel = React.useMemo(() => {
     if (!value?.trim()) return null;
     const fromList = listQuery.data?.items.find((row) => row.itemClsCd === value.trim());
-    if (fromList) return `${fromList.itemClsCd} — ${fromList.itemClsNm}`;
+    if (fromList) return `${fromList.itemClsCd}  ${fromList.itemClsNm}`;
     const cached = selectedCodeQuery.data?.item;
-    if (cached) return `${cached.itemClsCd} — ${cached.itemClsNm}`;
+    if (cached) return `${cached.itemClsCd}  ${cached.itemClsNm}`;
     return `${value.trim()} (saved classification)`;
   }, [value, listQuery.data?.items, selectedCodeQuery.data?.item]);
 

@@ -1,12 +1,12 @@
 /**
- * Storefront auth procedures — public landing page only.
+ * Storefront auth procedures  public landing page only.
  *
  * Security rules enforced here:
- *  • Role is ALWAYS "CUSTOMER" — it is NEVER taken from input, NEVER variable.
+ *  • Role is ALWAYS "CUSTOMER"  it is NEVER taken from input, NEVER variable.
  *  • A forced db.update({ role: "CUSTOMER" }) runs after better-auth creates
  *    the account, neutralising any default better-auth may assign.
  *  • Input schema has no `role` field at all.
- *  • `checkEmail` returns only { exists: boolean } — no names, IDs, or metadata.
+ *  • `checkEmail` returns only { exists: boolean }  no names, IDs, or metadata.
  *  • `register` returns only a short-lived storefrontToken + minimal display data.
  */
 export declare const storefrontAuthRouter: import("@trpc/server").TRPCBuiltRouter<{
@@ -17,7 +17,7 @@ export declare const storefrontAuthRouter: import("@trpc/server").TRPCBuiltRoute
 }, import("@trpc/server").TRPCDecorateCreateRouterOptions<{
     /**
      * Check whether an email address is already registered.
-     * Returns ONLY { exists: boolean } — never exposes any user data.
+     * Returns ONLY { exists: boolean }  never exposes any user data.
      *
      * Rate limit: enforced upstream (server middleware / Cloudflare).
      */
@@ -43,7 +43,7 @@ export declare const storefrontAuthRouter: import("@trpc/server").TRPCBuiltRoute
      *  7. Insert team_member (userId, teamId, role = "OWNER")
      *  8. Sign a short-lived storefrontToken
      *  9. Fire-and-forget: send welcome email with temp password
-     * 10. Return { storefrontToken, teamSlug, displayName } — nothing else
+     * 10. Return { storefrontToken, teamSlug, displayName }  nothing else
      *
      * Role is NEVER accepted from input. It is always "CUSTOMER". Period.
      */

@@ -1,7 +1,7 @@
 /**
  * Storefront payment procedures.
  *
- * All procedures here are gated by a storefrontToken — a short-lived HMAC-signed
+ * All procedures here are gated by a storefrontToken  a short-lived HMAC-signed
  * token issued at registration time. No full session is required.
  *
  * - initiateStkPush: initiate M-Pesa STK Push for the checkout session
@@ -10,7 +10,7 @@
  * Security:
  *  • Token is verified on every call (signature + expiry).
  *  • Checkout amount is always re-computed server-side from the cart payload.
- *  • Returns minimal data — no transaction IDs, no raw M-Pesa fields.
+ *  • Returns minimal data  no transaction IDs, no raw M-Pesa fields.
  */
 
 import * as crypto from "node:crypto";
@@ -49,7 +49,7 @@ const initiateStkPushInputSchema = z.object({
     .min(9)
     .max(20)
     .regex(/^[+\d\s()-]+$/, "Invalid phone number"),
-  /** Full cart state — amount is computed server-side from this payload. */
+  /** Full cart state  amount is computed server-side from this payload. */
   cart: storefrontCartQuoteRequestSchema,
 });
 const pollPaymentStatusInputSchema = z.object({
@@ -183,7 +183,7 @@ export const storefrontPaymentRouter = router({
     }),
 
   /**
-   * Poll payment status — Daraja-first for instant terminal feedback (wrong PIN, cancelled, etc.).
+   * Poll payment status  Daraja-first for instant terminal feedback (wrong PIN, cancelled, etc.).
    *
    * Returns { status, failureReason } for legacy callers; prefer queryStkPush for full result codes.
    */

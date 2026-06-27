@@ -73,7 +73,7 @@ async function buildLegacyPlanIdMap(): Promise<Map<string, string>> {
 }
 
 async function main() {
-	console.log(DRY_RUN ? "DRY RUN — no writes\n" : "Migrating Website Hosting references…\n");
+	console.log(DRY_RUN ? "DRY RUN  no writes\n" : "Migrating Website Hosting references…\n");
 
 	const legacyProducts = await db
 		.select({ id: niscProduct.id, name: niscProduct.name, isActive: niscProduct.isActive })

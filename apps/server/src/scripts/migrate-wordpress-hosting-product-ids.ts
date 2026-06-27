@@ -38,7 +38,7 @@ const PLAN_ID_MAP = new Map<string, string>([
 const LEGACY_PLAN_IDS = [...PLAN_ID_MAP.keys()];
 
 async function main() {
-	console.log(DRY_RUN ? "DRY RUN — no writes\n" : "Migrating WordPress Hosting references…\n");
+	console.log(DRY_RUN ? "DRY RUN  no writes\n" : "Migrating WordPress Hosting references…\n");
 
 	console.log(`Product: ${LEGACY_WORDPRESS_HOSTING_PRODUCT_ID} → ${NISC_WORDPRESS_HOSTING_PRODUCT_ID}`);
 	for (const [legacy, canonical] of PLAN_ID_MAP) {

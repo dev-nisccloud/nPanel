@@ -17,7 +17,7 @@ export const niscProduct = pgTable("nisc_product", {
     highlights: jsonb("highlights").notNull().default(emptyJsonbArray),
     isAddOn: boolean("is_add_on").default(false).notNull(),
     metadata: jsonb("metadata"),
-    /** Optional KRA eTIMS fields — service-level catalog for sale itemList / saveItem. */
+    /** Optional KRA eTIMS fields  service-level catalog for sale itemList / saveItem. */
     etimsItemCd: text("etims_item_cd"),
     etimsItemClsCd: text("etims_item_cls_cd"),
     etimsTaxTyCd: text("etims_tax_ty_cd"),

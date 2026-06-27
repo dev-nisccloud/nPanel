@@ -8,7 +8,7 @@ const footerTextStyle = {
     lineHeight: 1.35,
 };
 /**
- * KRA eTIMS fiscal text block — fixed footer on synced invoices (QR lives beside payment details).
+ * KRA eTIMS fiscal text block  fixed footer on synced invoices (QR lives beside payment details).
  */
 export const EtimsFiscalFooterPdf = ({ fields, fixed = true, }) => {
     const rows = getEtimsFiscalFooterFields(fields);

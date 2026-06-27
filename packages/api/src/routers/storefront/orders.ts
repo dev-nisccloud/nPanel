@@ -6,7 +6,7 @@
  *  1. Verifies the storefrontToken
  *  2. Confirms the payment transaction belongs to this user and is SUCCESS
  *  3. Creates the niscOrder + niscOrderItems in a DB transaction
- *  4. Calls enqueueNiscOrderProcessing — IDENTICAL handoff to the existing
+ *  4. Calls enqueueNiscOrderProcessing  IDENTICAL handoff to the existing
  *     order processor (QStash → processNiscOrder).  Nothing changes here.
  *  5. Returns { orderId, orderNumber, teamSlug } so the landing page can
  *     redirect the user to nPanel.
@@ -53,7 +53,7 @@ async function processNiscOrderWithPreInvoice(niscOrderId: string) {
 const createFromPaymentInputSchema = z.object({
   storefrontToken: z.string().min(1),
   checkoutRequestId: z.string().min(1),
-  /** The plan the user purchased — optional for planless products (domains, VPS). */
+  /** The plan the user purchased  optional for planless products (domains, VPS). */
   planId: z.string().optional(),
   productId: z.string().min(1),
   billingCycle: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
@@ -203,11 +203,11 @@ export const storefrontOrdersRouter = router({
           updatedAt: now,
         });      });
 
-      // 6. Enqueue for processing — IDENTICAL HANDOFF to dashboard flow
+      // 6. Enqueue for processing  IDENTICAL HANDOFF to dashboard flow
       try {
         await enqueueNiscOrderProcessing(orderId);
       } catch {
-        // QStash unavailable (local dev without ngrok) — process inline
+        // QStash unavailable (local dev without ngrok)  process inline
         const processResult = await processNiscOrderWithPreInvoice(orderId);
         if (!processResult.ok) {
           throw new TRPCError({

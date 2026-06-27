@@ -29,7 +29,7 @@ function isLoopbackUrl(url) {
 }
 const KRA_SYNC_ELIGIBLE_STATUSES = new Set(["SENT", "PARTIALLY_PAID", "PAID", "OVERDUE"]);
 /**
- * Enqueue async KRA eTIMS sync for an invoice. Never throws — logs on failure.
+ * Enqueue async KRA eTIMS sync for an invoice. Never throws  logs on failure.
  */
 export async function scheduleInvoiceKraSyncAfterCreate(invoiceId, options) {
     const status = options?.status;

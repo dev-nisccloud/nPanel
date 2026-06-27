@@ -76,7 +76,7 @@ groups:
           severity: warning
         annotations:
           summary: "Too many PostgreSQL connections"
-          description: "Active connection count is {{ $value }}. PgBouncer should be handling this — check if the app is connecting directly."
+          description: "Active connection count is {{ $value }}. PgBouncer should be handling this  check if the app is connecting directly."
 
       - alert: PostgreSQLDeadlocks
         expr: rate(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[5m]) > 0

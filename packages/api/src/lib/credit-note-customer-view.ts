@@ -37,7 +37,7 @@ export function sanitizeCreditNoteForCustomer(
 	};
 }
 
-/** Customer-facing credit note detail — no KRA admin fields. */
+/** Customer-facing credit note detail  no KRA admin fields. */
 export function sanitizeCreditNoteDetailForCustomer(
 	creditNote: CreditNoteDetail,
 ): CreditNoteDetail {

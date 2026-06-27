@@ -31,7 +31,7 @@ export function sanitizeCreditNoteForCustomer(creditNote) {
         kraQrCode: verificationUrl,
     };
 }
-/** Customer-facing credit note detail — no KRA admin fields. */
+/** Customer-facing credit note detail  no KRA admin fields. */
 export function sanitizeCreditNoteDetailForCustomer(creditNote) {
     return sanitizeCreditNoteForCustomer(creditNote);
 }

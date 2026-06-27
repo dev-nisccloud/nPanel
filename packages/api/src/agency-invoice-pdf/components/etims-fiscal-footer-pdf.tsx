@@ -16,7 +16,7 @@ const footerTextStyle = {
 } as const;
 
 /**
- * KRA eTIMS fiscal text block — fixed footer on synced invoices (QR lives beside payment details).
+ * KRA eTIMS fiscal text block  fixed footer on synced invoices (QR lives beside payment details).
  */
 export const EtimsFiscalFooterPdf: React.FC<EtimsFiscalFooterPdfProps> = ({
 	fields,

@@ -5,7 +5,7 @@ import {
   filterGroupedOptionsForVpsVdsCheckout,
 } from "@/lib/hivelocity-option-compatibility.ts";
 
-/** Filter add-on groups for storefront checkout — mirrors dashboard buy-now dialog. */
+/** Filter add-on groups for storefront checkout  mirrors dashboard buy-now dialog. */
 export function filterStorefrontHivelocityAddonGroups(
   grouped: Record<string, HivelocityAddonOption[]>,
   productType: HivelocityDefaultHostnameProductType,

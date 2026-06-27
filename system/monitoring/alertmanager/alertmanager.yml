@@ -1,14 +1,14 @@
 global:
   # How long to wait before re-sending a resolved alert
   resolve_timeout: 5m
-  # SMTP config — used by the email receiver below
+  # SMTP config  used by the email receiver below
   smtp_smarthost: "${ALERTMANAGER_SMTP_HOST:-smtp.resend.com:465}"
   smtp_from: "${ALERTMANAGER_FROM_EMAIL:-alerts@nisccloud.com}"
   smtp_auth_username: "${ALERTMANAGER_SMTP_USER:-resend}"
   smtp_auth_password: "${ALERTMANAGER_SMTP_PASSWORD}"
   smtp_require_tls: true
 
-# Routing tree — all alerts → default receiver
+# Routing tree  all alerts → default receiver
 # Critical alerts also go to Slack if configured
 route:
   group_by: ["alertname", "severity"]
@@ -56,7 +56,7 @@ receivers:
         headers:
           Subject: "🚨 [nPanel CRITICAL] {{ .CommonAnnotations.summary }}"
 
-  # Slack — only active when SLACK_WEBHOOK_URL is set in .env
+  # Slack  only active when SLACK_WEBHOOK_URL is set in .env
   - name: "slack-critical"
     slack_configs:
       - api_url: "${SLACK_WEBHOOK_URL}"

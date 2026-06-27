@@ -195,7 +195,7 @@ export function RegisterETimsItemSheet({
     if (res?.success === false) {
       if (res?.requiresReinitialization) {
         toast.error(
-          "KRA session expired — please re-initialize your device in Settings, then try again.",
+          "KRA session expired  please re-initialize your device in Settings, then try again.",
           {
             duration: 8000,
             action: {

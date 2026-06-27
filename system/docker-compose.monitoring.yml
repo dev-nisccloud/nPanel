@@ -1,4 +1,4 @@
-# Observability + Backup stack — run alongside the base file:
+# Observability + Backup stack  run alongside the base file:
 #   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 #
 # Services added:
@@ -15,7 +15,7 @@
 services:
 
   # ────────────────────────────────────────────
-  #  Prometheus — metrics scraper + time-series DB
+  #  Prometheus  metrics scraper + time-series DB
   #  UI: http://localhost:9090
   # ────────────────────────────────────────────
   prometheus:
@@ -39,7 +39,7 @@ services:
       - alertmanager
 
   # ────────────────────────────────────────────
-  #  Grafana — dashboards, datasources, alerting
+  #  Grafana  dashboards, datasources, alerting
   #  UI: http://localhost:3100
   #  Default login: GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD
   # ────────────────────────────────────────────
@@ -66,7 +66,7 @@ services:
       - loki
 
   # ────────────────────────────────────────────
-  #  Loki — log aggregation and storage
+  #  Loki  log aggregation and storage
   #  Paired with Promtail (collector) and Grafana (viewer)
   # ────────────────────────────────────────────
   loki:
@@ -81,7 +81,7 @@ services:
       - "3101:3100"
 
   # ────────────────────────────────────────────
-  #  Promtail — Docker log collector → Loki
+  #  Promtail  Docker log collector → Loki
   #  Automatically tails all nPanel-System-* container logs
   # ────────────────────────────────────────────
   promtail:
@@ -97,7 +97,7 @@ services:
       - loki
 
   # ────────────────────────────────────────────
-  #  Node Exporter — host OS metrics (CPU, RAM, disk, network)
+  #  Node Exporter  host OS metrics (CPU, RAM, disk, network)
   #  NOTE: on Linux/GCE this exposes real host metrics.
   #        on Docker Desktop (Windows/Mac) it shows the VM metrics.
   # ────────────────────────────────────────────
@@ -118,7 +118,7 @@ services:
       - "9100:9100"
 
   # ────────────────────────────────────────────
-  #  Postgres Exporter — PostgreSQL metrics → Prometheus
+  #  Postgres Exporter  PostgreSQL metrics → Prometheus
   # ────────────────────────────────────────────
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
@@ -131,7 +131,7 @@ services:
         condition: service_healthy
 
   # ────────────────────────────────────────────
-  #  Alertmanager — routes alerts to email / Slack / webhook
+  #  Alertmanager  routes alerts to email / Slack / webhook
   #  UI: http://localhost:9093
   # ────────────────────────────────────────────
   alertmanager:
@@ -148,7 +148,7 @@ services:
       - "9093:9093"
 
   # ────────────────────────────────────────────
-  #  Uptime Kuma — external health checks + status page
+  #  Uptime Kuma  external health checks + status page
   #  UI: http://localhost:3102
   #  Set up monitors manually via the web UI on first run.
   # ────────────────────────────────────────────
@@ -162,7 +162,7 @@ services:
       - "3102:3001"
 
   # ────────────────────────────────────────────
-  #  pg-backup — scheduled daily pg_dump with retention
+  #  pg-backup  scheduled daily pg_dump with retention
   #  Backups land in the nPanel-pg-backups volume as .sql.gz files.
   #  Restore: gunzip -c backup.sql.gz | psql -h localhost -U npanel npanel
   # ────────────────────────────────────────────
@@ -176,7 +176,7 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       PGDATABASE: ${POSTGRES_DB:-npanel}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
-      # Cron schedule — default: 2:00 AM every day
+      # Cron schedule  default: 2:00 AM every day
       BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
     volumes:
       - nPanel-pg-backups:/backups
@@ -192,7 +192,7 @@ services:
         condition: service_healthy
 
   # ────────────────────────────────────────────
-  #  pgAdmin — PostgreSQL web GUI
+  #  pgAdmin  PostgreSQL web GUI
   #  UI (local): http://localhost:5050
   #  UI (prod):  https://db-admin.nisccloud.com
   #  Login: PGADMIN_EMAIL / PGADMIN_PASSWORD
