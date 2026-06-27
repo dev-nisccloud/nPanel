@@ -1,4 +1,4 @@
-/** M-Pesa STK polling helpers — aligned with dashboard buy-now / global-buy-now dialogs. */
+/** M-Pesa STK polling helpers  aligned with dashboard buy-now / global-buy-now dialogs. */
 
 export const MPESA_POLL_INTERVAL_MS = 1000;
 export const MPESA_POLL_MAX_ATTEMPTS = 90;

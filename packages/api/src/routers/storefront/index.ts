@@ -1,5 +1,5 @@
 /**
- * Storefront router — public landing page checkout.
+ * Storefront router  public landing page checkout.
  *
  * This namespace is ISOLATED from all dashboard routers by design.
  * Every procedure here is either:

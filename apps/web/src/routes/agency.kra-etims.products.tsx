@@ -119,7 +119,7 @@ export default function ETimsProductsPage() {
         onSuccess: (res: any) => {
             if (res?.success === false) {
                 if (res?.requiresReinitialization) {
-                    toast.error("KRA session expired — re-initialize your device in Settings, then try again.");
+                    toast.error("KRA session expired  re-initialize your device in Settings, then try again.");
                 } else {
                     toast.error(res?.errorMessage ?? "Failed to delete product");
                 }
@@ -324,7 +324,7 @@ export default function ETimsProductsPage() {
                                                                 <div>
                                                                     <div className="font-medium text-foreground">{item.itemNm}</div>
                                                                     <div className="text-xs text-muted-foreground">
-                                                                        {itemTypeLabel(item.itemTyCd)} · {item.pkgUnitCd ?? "—"}
+                                                                        {itemTypeLabel(item.itemTyCd)} · {item.pkgUnitCd ?? ""}
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -341,7 +341,7 @@ export default function ETimsProductsPage() {
                                                                 ${item.taxTyCd === "B" ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800" : ""}
                                                                 ${item.taxTyCd === "C" ? "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800" : ""}
                                                             `}>
-                                                                Type {item.taxTyCd ?? "—"}
+                                                                Type {item.taxTyCd ?? ""}
                                                             </Badge>
                                                         </td>
                                                         <td className="px-4 py-4 font-medium">

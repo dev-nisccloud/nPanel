@@ -34,7 +34,7 @@ export default function MarketplaceServicePage() {
   const teamSlug    = typeof params?.slug        === "string" ? params.slug        : "";
   const serviceSlug = typeof params?.serviceSlug === "string" ? params.serviceSlug : "";
 
-  /* Fetch all active products — same source as agency nisc-services page */
+  /* Fetch all active products  same source as agency nisc-services page */
   const { data: allProducts = [], isLoading: productsLoading } = trpc.products.getAll.useQuery(
     { isActive: true },
     { staleTime: 5 * 60 * 1000 }
@@ -92,7 +92,7 @@ export default function MarketplaceServicePage() {
           </Link>
         </Button>
 
-        {/* Header — exact same style as SEO / Hosting pages */}
+        {/* Header  exact same style as SEO / Hosting pages */}
         <div className="flex shrink-0 flex-col gap-2">
           <h1 className="text-base font-semibold tracking-tight">{product.name}</h1>
           {product.description && (
@@ -139,7 +139,7 @@ export default function MarketplaceServicePage() {
           </div>
         )}
 
-        {/* Pricing section — Hivelocity server grid for VPS/VDS/Dedicated, pricing table for all others */}
+        {/* Pricing section  Hivelocity server grid for VPS/VDS/Dedicated, pricing table for all others */}
         <div className="mt-6 min-h-0 flex-1">
           {(() => {
             const hivelocityType = getHivelocityTypeForSlug(serviceSlug);

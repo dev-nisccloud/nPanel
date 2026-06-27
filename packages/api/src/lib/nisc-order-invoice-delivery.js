@@ -24,7 +24,7 @@ function formatInvoiceEmailDate(value) {
 }
 /**
  * Creates invoice for a paid Nisc order, syncs to KRA eTIMS, then emails PDF when synced.
- * Provisioning must continue even when KRA or email fails — never throws.
+ * Provisioning must continue even when KRA or email fails  never throws.
  */
 export async function createAndEmailNiscOrderInvoice(input) {
     const { niscOrderId, order, teamId, userId, createdBy, teamSlug } = input;

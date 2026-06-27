@@ -63,7 +63,7 @@ export type EtimsSaleForCreditNote = {
 };
 
 export function creditNoteReasonLabel(code?: string | null) {
-    return CREDIT_NOTE_REASONS.find((r) => r.code === code)?.label ?? code ?? "—";
+    return CREDIT_NOTE_REASONS.find((r) => r.code === code)?.label ?? code ?? "";
 }
 
 export function buildCreditNotePayload(sale: EtimsSaleForCreditNote, rfdRsnCd: FormData["rfdRsnCd"], remark?: string) {
@@ -343,7 +343,7 @@ export function IssueETimsCreditNoteSheet({
                                             <SelectContent>
                                                 {availableSales.map((s) => (
                                                     <SelectItem key={s.invcNo} value={String(s.invcNo)}>
-                                                        #{s.invcNo} — {s.custNm ?? "Customer"} (
+                                                        #{s.invcNo}  {s.custNm ?? "Customer"} (
                                                         {Number(s.displayAmount ?? 0).toLocaleString()} KES)
                                                     </SelectItem>
                                                 ))}
@@ -382,7 +382,7 @@ export function IssueETimsCreditNoteSheet({
                                         <SelectContent>
                                             {CREDIT_NOTE_REASONS.map((r) => (
                                                 <SelectItem key={r.code} value={r.code}>
-                                                    {r.code} — {r.label}
+                                                    {r.code}  {r.label}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

@@ -28,7 +28,7 @@ const FALLBACK_MATCHERS: { slug: string; terms: string[] }[] = [
 ];
 
 export function getSlugFromProductName(productName: string): string {
-  // Direct slugify — works when the subscription product name is the same as
+  // Direct slugify  works when the subscription product name is the same as
   // the DB product name (most common case after the marketplace was DB-driven).
   const direct = slugifyProductName(productName);
   if (direct) return direct;

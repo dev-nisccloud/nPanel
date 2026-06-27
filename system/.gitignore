@@ -1,0 +1,6 @@
+# Never commit live credentials
+.env
+
+# Editor noise
+.DS_Store
+Thumbs.db

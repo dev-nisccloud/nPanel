@@ -1,7 +1,7 @@
 /**
  * Signed storefront cart handoff tokens.
  *
- * Buy-now links carry only `?h=<token>` — no prices, no tamperable amounts.
+ * Buy-now links carry only `?h=<token>`  no prices, no tamperable amounts.
  * Payload is HMAC-signed with STOREFRONT_JWT_SECRET (same as checkout session tokens).
  */
 import * as crypto from "node:crypto";

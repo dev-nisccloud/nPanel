@@ -156,13 +156,13 @@ export function CreditNotesTable({
 							<TableCell className="pl-6 font-medium">
 								<div className="flex items-center gap-2">
 									<FileText className="h-4 w-4 text-muted-foreground" />
-									{cn.creditNumber || "—"}
+									{cn.creditNumber || ""}
 								</div>
 							</TableCell>
-							<TableCell>{cn.originalInvoiceNumber || cn.invoiceNumber || "—"}</TableCell>
+							<TableCell>{cn.originalInvoiceNumber || cn.invoiceNumber || ""}</TableCell>
 							<TableCell>
 								<div className="flex flex-col">
-									<span>{cn.customerName || "—"}</span>
+									<span>{cn.customerName || ""}</span>
 									{cn.customerEmail ? (
 										<span className="text-xs text-muted-foreground">{cn.customerEmail}</span>
 									) : null}

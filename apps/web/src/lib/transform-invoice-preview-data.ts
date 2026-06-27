@@ -10,7 +10,7 @@ import type {
 	Item,
 } from "@/routes/agency.invoices/create/types";
 
-/** Web invoice preview — payment details + optional eTIMS verification QR only. */
+/** Web invoice preview  payment details + optional eTIMS verification QR only. */
 export function transformInvoiceToPreviewData(invoice: InvoiceDetail): {
 	yourDetails: YourDetails;
 	companyDetails: CompanyDetails;

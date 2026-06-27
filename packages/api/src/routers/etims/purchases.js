@@ -73,7 +73,7 @@ export const etimsPurchasesRouter = router({
      * POST /selectTrnsPurchaseSalesList
      *
      * Verified on KRA sandbox: this is the only valid list endpoint for purchases.
-     * resultCd "001" means no supplier invoices exist yet — not an API/endpoint error.
+     * resultCd "001" means no supplier invoices exist yet  not an API/endpoint error.
      */
     getPurchaseTransactions: protectedProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))

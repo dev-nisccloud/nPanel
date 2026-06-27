@@ -6,7 +6,7 @@
  *  1. Verifies the storefrontToken
  *  2. Confirms the payment transaction belongs to this user and is SUCCESS
  *  3. Creates the niscOrder + niscOrderItems in a DB transaction
- *  4. Calls enqueueNiscOrderProcessing — IDENTICAL handoff to the existing
+ *  4. Calls enqueueNiscOrderProcessing  IDENTICAL handoff to the existing
  *     order processor (QStash → processNiscOrder).  Nothing changes here.
  *  5. Returns { orderId, orderNumber, teamSlug } so the landing page can
  *     redirect the user to nPanel.

@@ -236,7 +236,7 @@ export function IssueCreditNoteDialog({
 											<SelectContent>
 												{CREDIT_NOTE_REASONS.map((r) => (
 													<SelectItem key={r.code} value={r.code}>
-														{r.code} — {r.label}
+														{r.code}  {r.label}
 													</SelectItem>
 												))}
 											</SelectContent>

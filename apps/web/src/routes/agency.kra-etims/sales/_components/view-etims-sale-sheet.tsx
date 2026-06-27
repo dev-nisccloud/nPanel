@@ -34,7 +34,7 @@ function InfoGrid({ rows }: { rows: Array<{ label: string; value: React.ReactNod
                 <div key={row.label} className="min-w-0">
                     <dt className="text-xs text-muted-foreground">{row.label}</dt>
                     <dd className={`mt-0.5 font-medium break-words ${row.mono ? "font-mono text-xs" : ""}`}>
-                        {row.value ?? "—"}
+                        {row.value ?? ""}
                     </dd>
                 </div>
             ))}
@@ -79,7 +79,7 @@ export function ViewETimsSaleSheet({
                             </SheetTitle>
                             <SheetDescription>
                                 {creditNote
-                                    ? `Credit against original invoice #${sale.orgInvcNo ?? "—"}`
+                                    ? `Credit against original invoice #${sale.orgInvcNo ?? ""}`
                                     : "KRA eTIMS signed sale record"}
                             </SheetDescription>
                         </div>
@@ -119,18 +119,18 @@ export function ViewETimsSaleSheet({
                                 { label: "Invoice number", value: `#${sale.invcNo}`, mono: true },
                                 ...(creditNote
                                     ? [
-                                        { label: "Original invoice", value: `#${sale.orgInvcNo ?? "—"}`, mono: true },
+                                        { label: "Original invoice", value: `#${sale.orgInvcNo ?? ""}`, mono: true },
                                         { label: "Credit reason", value: creditNoteReason(sale) },
                                         { label: "Refund date", value: formatKraDateTime(sale.rfdDt) },
                                     ]
-                                    : [{ label: "Original invoice", value: sale.orgInvcNo ? `#${sale.orgInvcNo}` : "—", mono: true }]),
+                                    : [{ label: "Original invoice", value: sale.orgInvcNo ? `#${sale.orgInvcNo}` : "", mono: true }]),
                                 { label: "Receipt type", value: receiptTypeLabel(sale.rcptTyCd) },
                                 { label: "Payment method", value: paymentTypeLabel(sale.pmtTyCd) },
                                 { label: "Status code", value: sale.salesSttsCd, mono: true },
                                 { label: "Sales date", value: formatSalesDate(sale.salesDt) },
                                 { label: "Confirmed at", value: formatKraDateTime(sale.cfmDt) },
                                 { label: "Stock released", value: formatKraDateTime(sale.stockRlsDt) },
-                                { label: "Purchase accepted", value: sale.prchrAcptcYn ?? receipt.prchrAcptcYn ?? "—" },
+                                { label: "Purchase accepted", value: sale.prchrAcptcYn ?? receipt.prchrAcptcYn ?? "" },
                                 { label: "Item count", value: sale.totItemCnt ?? itemList.length },
                                 ...(sale.remark ? [{ label: "Remark", value: sale.remark }] : []),
                             ]}
@@ -190,7 +190,7 @@ export function ViewETimsSaleSheet({
                                                         {line.itemClsCd ? ` · ${String(line.itemClsCd)}` : ""}
                                                     </div>
                                                     <div className="text-[10px] text-muted-foreground mt-0.5">
-                                                        Tax {String(line.taxTyCd ?? "—")} · {String(line.qtyUnitCd ?? "U")} × {String(line.pkgUnitCd ?? "OU")}
+                                                        Tax {String(line.taxTyCd ?? "")} · {String(line.qtyUnitCd ?? "U")} × {String(line.pkgUnitCd ?? "OU")}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right tabular-nums">{Number(line.qty ?? 0)}</td>

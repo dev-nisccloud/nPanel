@@ -84,7 +84,7 @@ export function verifyStorefrontTokenOrThrow(token) {
     const result = verifyStorefrontToken(token);
     if (result.ok)
         return result.payload;
-    // Intentionally vague — don't reveal whether the token existed or expired
+    // Intentionally vague  don't reveal whether the token existed or expired
     const { TRPCError } = require("@trpc/server");
     throw new TRPCError({
         code: "UNAUTHORIZED",

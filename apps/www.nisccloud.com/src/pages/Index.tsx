@@ -6,6 +6,7 @@ import Stats from "./_components/Stats.tsx";
 import AtomApproach from "./_components/AtomApproach.tsx";
 import DashboardPreview from "./_components/DashboardPreview.tsx";
 import Features from "./_components/Features.tsx";
+import BentoFeatures from "./_components/BentoFeatures.tsx";
 import DomainSearch from "./_components/DomainSearch.tsx";
 import Testimonials from "./_components/Testimonials.tsx";
 import Faq from "./_components/Faq.tsx";
@@ -25,7 +26,7 @@ export default function Index() {
       <AtomApproach />
       <DomainSearch />
       {/* <DashboardPreview /> */}
-      <Features />
+      <BentoFeatures />
       <Testimonials />
       <Faq />
       <Footer />

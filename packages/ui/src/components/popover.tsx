@@ -24,7 +24,7 @@ function PopoverContent({
     PopoverPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset"
   > & {
-    /** Portal target — use the open dialog element when nesting inside sheets/modals. */
+    /** Portal target  use the open dialog element when nesting inside sheets/modals. */
     container?: HTMLElement | null;
   }) {
   return (

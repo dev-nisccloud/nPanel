@@ -1,12 +1,12 @@
 /**
- * Storefront auth procedures — public landing page only.
+ * Storefront auth procedures  public landing page only.
  *
  * Security rules enforced here:
- *  • Role is ALWAYS "CUSTOMER" — it is NEVER taken from input, NEVER variable.
+ *  • Role is ALWAYS "CUSTOMER"  it is NEVER taken from input, NEVER variable.
  *  • A forced db.update({ role: "CUSTOMER" }) runs after better-auth creates
  *    the account, neutralising any default better-auth may assign.
  *  • Input schema has no `role` field at all.
- *  • `checkEmail` returns only { exists: boolean } — no names, IDs, or metadata.
+ *  • `checkEmail` returns only { exists: boolean }  no names, IDs, or metadata.
  *  • `register` returns only a short-lived storefrontToken + minimal display data.
  */
 
@@ -49,7 +49,7 @@ async function resolveUniqueSlug(base: string): Promise<string> {
     columns: { id: true },
   });
   if (!existing) return candidate;
-  // Collision — append 4 random hex chars
+  // Collision  append 4 random hex chars
   const suffix = crypto.randomBytes(2).toString("hex");
   return `${candidate.slice(0, 56)}-${suffix}`;
 }
@@ -76,7 +76,7 @@ const registerInputSchema = z.object({
     .min(1, "Company name is required")
     .max(120, "Company name too long"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  /** Required — must match dashboard sign-up (`acceptedTermsAndConditions`). */
+  /** Required  must match dashboard sign-up (`acceptedTermsAndConditions`). */
   acceptedTermsAndConditions: z
     .boolean()
     .refine((val) => val === true, {
@@ -93,7 +93,7 @@ const registerInputSchema = z.object({
 export const storefrontAuthRouter = router({
   /**
    * Check whether an email address is already registered.
-   * Returns ONLY { exists: boolean } — never exposes any user data.
+   * Returns ONLY { exists: boolean }  never exposes any user data.
    *
    * Rate limit: enforced upstream (server middleware / Cloudflare).
    */
@@ -120,7 +120,7 @@ export const storefrontAuthRouter = router({
    *  5. Insert team (company name, KES, created_by = userId)
    *  6. Insert team_member (userId, teamId, role = "OWNER")
    *  7. Sign a short-lived storefrontToken
-   *  8. Return { storefrontToken, teamSlug, displayName } — nothing else
+   *  8. Return { storefrontToken, teamSlug, displayName }  nothing else
    *
    * Role is NEVER accepted from input. It is always "CUSTOMER". Period.
    */
@@ -188,7 +188,7 @@ export const storefrontAuthRouter = router({
 
       const userId = createdUser.id;
 
-      // 3. ALWAYS force role = "CUSTOMER" — no exceptions, no variables
+      // 3. ALWAYS force role = "CUSTOMER"  no exceptions, no variables
       await db
         .update(user)
         .set({ role: "CUSTOMER" })
@@ -206,7 +206,7 @@ export const storefrontAuthRouter = router({
         updatedAt: now,
       });
 
-      // 5. Create team (company) — currency always KES, no members yet
+      // 5. Create team (company)  currency always KES, no members yet
       const baseSlug = slugify(input.companyName);
       const teamSlug = await resolveUniqueSlug(baseSlug);
       const teamId = crypto.randomUUID();
@@ -235,7 +235,7 @@ export const storefrontAuthRouter = router({
       // 7. Sign storefront checkout token (20 min TTL)
       const storefrontToken = signStorefrontToken(userId, teamId, teamSlug);
 
-      // 8. Return minimal data — no user id, no password, no role
+      // 8. Return minimal data  no user id, no password, no role
       return {
         storefrontToken,
         teamSlug,

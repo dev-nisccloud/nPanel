@@ -10,7 +10,7 @@ export const NISC_WORDPRESS_HOSTING_PLAN_IDS = {
 	pro: "nisc_wordpress_hosting_plan_pro",
 } as const;
 
-/** Previous seed ids — migrate references before deleting legacy rows. */
+/** Previous seed ids  migrate references before deleting legacy rows. */
 export const LEGACY_WORDPRESS_HOSTING_PRODUCT_ID = "nisc_wordpress_hosting_v1";
 
 export const LEGACY_WORDPRESS_HOSTING_PLAN_IDS = {

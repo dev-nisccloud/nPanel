@@ -294,7 +294,7 @@ export function StorefrontPaymentDialog({
                     <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
                     <p className="text-sm font-medium text-foreground">
                       {phase === "creating"
-                        ? "Payment confirmed — creating your order…"
+                        ? "Payment confirmed  creating your order…"
                         : "Waiting for payment confirmation…"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2 max-w-xs">

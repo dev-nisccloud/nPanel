@@ -40,7 +40,7 @@ export type PaymentMethod = "bank" | "mpesa" | "cheque";
 export type PaymentDetails = {
     paymentMethod?: PaymentMethod;
     currency?: string;
-    /** KRA eTIMS receipt verification URL — the only QR source rendered on PDFs. */
+    /** KRA eTIMS receipt verification URL  the only QR source rendered on PDFs. */
     etimsVerificationUrl?: string;
     /** @deprecated Bank/marketing QR values must not appear on fiscal PDFs. */
     qrCodeValue?: string;
