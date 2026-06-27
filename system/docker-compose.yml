@@ -55,8 +55,11 @@ services:
       LOG_CONNECTIONS: 0
       LOG_DISCONNECTIONS: 0
       LOG_POOLER_ERRORS: 1
-      # Required for PostgreSQL 16 which defaults to scram-sha-256
+      # Required for PostgreSQL 17 which defaults to scram-sha-256
       AUTH_TYPE: scram-sha-256
+      # node-postgres sends statement_timeout in startup options — ignore it
+      # instead of rejecting the connection with FATAL
+      IGNORE_STARTUP_PARAMETERS: options
     ports:
       - "6432:5432"
     depends_on:
