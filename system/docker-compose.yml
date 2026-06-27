@@ -55,6 +55,8 @@ services:
       LOG_CONNECTIONS: 0
       LOG_DISCONNECTIONS: 0
       LOG_POOLER_ERRORS: 1
+      # Required for PostgreSQL 16 which defaults to scram-sha-256
+      AUTH_TYPE: scram-sha-256
     ports:
       - "6432:5432"
     depends_on:
