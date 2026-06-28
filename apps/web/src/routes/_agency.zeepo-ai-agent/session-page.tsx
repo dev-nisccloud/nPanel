@@ -107,11 +107,12 @@ import {
 import { ZeepoGenerationsPanel } from "@/components/zeepo/zeepo-generations-panel";
 import { ZeepoSessionTitle } from "@/components/zeepo/zeepo-session-title";
 import { ZeepoTokenWallet } from "@/components/zeepo/zeepo-token-wallet";
+import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import {
+  mapStorageResultToAttachment,
   uploadErrorMessage,
-  uploadThingFileUrl,
-  uploadZeepoAgentFiles,
-} from "@/hooks/use-uploadthing";
+} from "@/lib/app-file-upload";
+import { UploadProgressRing } from "@/components/upload-progress-ring";
 import { formatDistanceToNow } from "date-fns";
 import {
   Command,
@@ -304,7 +305,7 @@ function sanitizeZeepoAgentAssistantDisplayMarkdown(content: string): string {
   // Convert bare file/CDN URLs into masked markdown links so users never see raw URLs.
   // Match URLs that are NOT already inside a markdown link ([text](url)).
   s = s.replace(
-    /(?<!\]\()https?:\/\/(?:utfs\.io|uploadthing\.com|utweb\.utfs\.io)[^\s)\]"'>]+/g,
+    /(?<!\]\()https?:\/\/(?:utfs\.io|uploadthing\.com|utweb\.utfs\.io|storage\.nisccloud\.com)[^\s)\]"'>]+/g,
     (url) => {
       // Derive a friendly label from the path's last segment or generic fallback.
       const seg = url.split("/").pop()?.split("?")[0] ?? "";
@@ -1098,6 +1099,11 @@ export default function ZeepoAiAgentSessionPage() {
     refreshZeepoTokenBalance(utils, teamId);
   }, [utils, teamId]);
   const { handleBillingError } = useZeepoTokenBilling();
+  const {
+    uploadAgentAttachments,
+    isUploading,
+    progressPercent: uploadProgressPercent,
+  } = useAppFileUpload();
 
   const isComposeHandoff = hasComposeHandoff(location.state);
   const { data: authSession, isPending: authPending } = authClient.useSession();
@@ -1173,7 +1179,6 @@ export default function ZeepoAiAgentSessionPage() {
   const [pendingFiles, setPendingFiles] = React.useState<PendingFile[]>([]);
   /** Keep backwards-compat alias for already-uploaded attachments (e.g. from question flow). */
   const [pendingAttachments, setPendingAttachments] = React.useState<Attachment[]>([]);
-  const [isUploading, setIsUploading] = React.useState(false);
   const [chatHistoryOpen, setChatHistoryOpen] = React.useState(false);
   const [isSwitchingChat, setIsSwitchingChat] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -1588,19 +1593,15 @@ export default function ZeepoAiAgentSessionPage() {
 
     // Immediate-upload path: used by question flow or other callers that need a real URL now.
     if (onUploaded) {
-      setIsUploading(true);
       try {
-        const results = await uploadZeepoAgentFiles({ files: Array.from(files) });
-        const uploaded: Attachment[] = results.map((r, i) => ({
-          url: uploadThingFileUrl(r),
-          name: files[i]?.name ?? r.name ?? "attachment",
-          mimeType: files[i]?.type ?? "image/*",
-        }));
+        const results = await uploadAgentAttachments(Array.from(files));
+        const uploaded: Attachment[] = results.map((r, i) => {
+          const mapped = mapStorageResultToAttachment(r, files[i]!);
+          return { url: mapped.url, name: mapped.name, mimeType: mapped.mimeType };
+        });
         uploaded.forEach(onUploaded);
       } catch (e) {
         toast.error(uploadErrorMessage(e));
-      } finally {
-        setIsUploading(false);
       }
       return;
     }
@@ -1630,14 +1631,12 @@ export default function ZeepoAiAgentSessionPage() {
 
     // Upload staged files on Send, then persist message with returned URLs.
     if (stagedFiles.length) {
-      setIsUploading(true);
-      uploadZeepoAgentFiles({ files: stagedFiles.map((f) => f.file) })
+      void uploadAgentAttachments(stagedFiles.map((f) => f.file))
         .then((results) => {
-          const uploaded: Attachment[] = results.map((r, i) => ({
-            url: uploadThingFileUrl(r),
-            name: stagedFiles[i]?.name ?? r.name ?? "attachment",
-            mimeType: stagedFiles[i]?.mimeType ?? "image/*",
-          }));
+          const uploaded: Attachment[] = results.map((r, i) => {
+            const mapped = mapStorageResultToAttachment(r, stagedFiles[i]!.file);
+            return { url: mapped.url, name: mapped.name, mimeType: mapped.mimeType };
+          });
           const allAttachments = [...alreadyUploaded, ...uploaded];
           setDraft("");
           setPendingFiles((prev) => {
@@ -1654,8 +1653,7 @@ export default function ZeepoAiAgentSessionPage() {
         })
         .catch((e) => {
           toast.error(uploadErrorMessage(e));
-        })
-        .finally(() => setIsUploading(false));
+        });
       return;
     }
 
@@ -1669,7 +1667,7 @@ export default function ZeepoAiAgentSessionPage() {
         ...(alreadyUploaded.length ? { attachments: alreadyUploaded } : {}),
       });
     });
-  }, [draft, pendingFiles, pendingAttachments, send, sessionId, selectedSkill, showAssistantThinking, isUploading]);
+  }, [draft, pendingFiles, pendingAttachments, send, sessionId, selectedSkill, showAssistantThinking, isUploading, uploadAgentAttachments]);
 
   // ── Auto-send initial message from index page navigation state ──────────
   const autoSentRef = React.useRef(false);
@@ -2827,13 +2825,12 @@ export default function ZeepoAiAgentSessionPage() {
                             );
                             e.target.value = "";
                             try {
-                              const results = await uploadZeepoAgentFiles({
-                                files: [file],
-                              });
+                              const results = await uploadAgentAttachments([file]);
+                              const mapped = mapStorageResultToAttachment(results[0]!, file);
                               const uploaded: Attachment = {
-                                url: uploadThingFileUrl(results[0]),
-                                name: file.name,
-                                mimeType: file.type,
+                                url: mapped.url,
+                                name: mapped.name,
+                                mimeType: mapped.mimeType,
                               };
                               // Hold the upload for user confirmation - don't advance yet.
                               setQuestionFlow((prev) =>
@@ -2862,7 +2859,12 @@ export default function ZeepoAiAgentSessionPage() {
                           onClick={() => questionFileInputRef.current?.click()}
                         >
                           {questionFlow.isUploadingForStep ? (
-                            <Spinner className="size-3" />
+                            <UploadProgressRing
+                              percent={uploadProgressPercent}
+                              size={28}
+                              strokeWidth={3}
+                              className="gap-0 [&_span]:text-[9px]"
+                            />
                           ) : (
                             <Upload className="size-3.5" />
                           )}
@@ -3136,6 +3138,7 @@ export default function ZeepoAiAgentSessionPage() {
                   pendingFiles.length + pendingAttachments.length >= 4
                 }
                 isUploading={isUploading}
+                uploadProgressPercent={uploadProgressPercent}
                 onSkills={() => setSkillsOpen(true)}
                 skillsDisabled={showAssistantThinking || skillsQuery.isPending}
                 selectedSkillTitle={selectedSkill?.title}

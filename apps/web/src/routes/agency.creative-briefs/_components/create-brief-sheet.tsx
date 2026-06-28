@@ -8,8 +8,13 @@ import { z } from "zod";
 import { FileText, XIcon, Image, X, Calendar as CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { type DateRange } from "react-day-picker";
-import { uploadFiles } from "@/hooks/use-uploadthing";
-import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+import { UploadProgressRing } from "@/components/upload-progress-ring";
+import { useAppFileUpload } from "@/hooks/use-app-file-upload";
+import {
+	mapStorageResultToReferenceImage,
+	uploadErrorMessage,
+} from "@/lib/app-file-upload";
+import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,7 +175,12 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
   });
 
   const [selectedFiles, setSelectedFiles] = React.useState<SelectedFile[]>([]);
-  const [isUploadingImages, setIsUploadingImages] = React.useState(false);
+  const {
+    uploadBatch,
+    isUploading: isUploadingImages,
+    progressPercent,
+    progressLabel,
+  } = useAppFileUpload();
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined);
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
 
@@ -227,28 +237,14 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
   }, [dateRange, form]);
 
   const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    setIsUploadingImages(true);
     try {
-      // Upload files to UploadThing first
       let uploadedImages: ReferenceImage[] = [];
       if (selectedFiles.length > 0) {
         const filesToUpload = selectedFiles.map((item) => item.file);
-        const response = await uploadFiles(UPLOAD_ENDPOINTS.IMAGE, {
-          files: filesToUpload,
-        });
-
-        if (!response || response.length === 0) {
-          throw new Error("No files were uploaded");
-        }
-
-        uploadedImages = response.map((file) => ({
-          fileUrl: file.ufsUrl || file.url || "",
-          fileKey: file.key || "",
-          fileName: file.name || "",
-          fileSize: file.size || 0,
-          mimeType: file.type || "",
-          fileMetadata: undefined,
-        }));
+        const results = await uploadBatch(filesToUpload, STORAGE_PREFIXES.IMAGES);
+        uploadedImages = results.map((file, index) =>
+          mapStorageResultToReferenceImage(file, filesToUpload[index]!),
+        );
       }
 
       // Now create the brief with uploaded images
@@ -283,10 +279,8 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
     } catch (error) {
       console.error("Error uploading images:", error);
       toast.error("Failed to upload images", {
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: uploadErrorMessage(error),
       });
-    } finally {
-      setIsUploadingImages(false);
     }
   };
 
@@ -733,6 +727,16 @@ export function CreateBriefSheet({ open, onOpenChange, onCreateBrief }: CreateBr
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {isUploadingImages ? (
+                      <div className="flex flex-col items-center gap-3 py-6">
+                        <UploadProgressRing
+                          percent={progressPercent}
+                          size={88}
+                          label={progressLabel}
+                        />
+                        <p className="text-sm text-muted-foreground">Uploading reference images…</p>
+                      </div>
+                    ) : null}
                     {selectedFiles.length < 5 && (
                       <Dropzone
                         onDrop={handleDrop}

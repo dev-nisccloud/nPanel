@@ -12,11 +12,8 @@ import { ArrowUpRight, Plus, ChevronRight, X, Clock, Trash2 } from "lucide-react
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
-import {
-  uploadErrorMessage,
-  uploadThingFileUrl,
-  uploadZeepoAgentFiles,
-} from "@/hooks/use-uploadthing";
+import { useAppFileUpload } from "@/hooks/use-app-file-upload";
+import { mapStorageResultToAttachment, uploadErrorMessage } from "@/lib/app-file-upload";
 import { RotatingText } from "@/components/rotating-text";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import {
@@ -62,9 +59,13 @@ export default function ZeepoAiAgentIndexPage() {
   const [selectedPromptTitle, setSelectedPromptTitle] = React.useState<string | null>(null);
   type PendingFile = { file: File; previewUrl: string; name: string; mimeType: string };
   const [pendingFiles, setPendingFiles] = React.useState<PendingFile[]>([]);
-  const [isUploading, setIsUploading] = React.useState(false);
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [isHandingOff, setIsHandingOff] = React.useState(false);
+  const {
+    uploadAgentAttachments,
+    isUploading,
+    progressPercent: uploadProgressPercent,
+  } = useAppFileUpload();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -143,19 +144,15 @@ export default function ZeepoAiAgentIndexPage() {
     };
 
     if (staged.length) {
-      setIsUploading(true);
       try {
-        const results = await uploadZeepoAgentFiles({ files: staged.map((f) => f.file) });
-        const uploaded: Attachment[] = results.map((r, i) => ({
-          url: uploadThingFileUrl(r),
-          name: staged[i]?.name ?? r.name ?? "attachment",
-          mimeType: staged[i]?.mimeType ?? "image/*",
-        }));
+        const results = await uploadAgentAttachments(staged.map((f) => f.file));
+        const uploaded: Attachment[] = results.map((r, i) => {
+          const mapped = mapStorageResultToAttachment(r, staged[i]!.file);
+          return { url: mapped.url, name: mapped.name, mimeType: mapped.mimeType };
+        });
         await finishHandoff([...presetAttachments, ...uploaded]);
       } catch (e) {
         toast.error(uploadErrorMessage(e));
-      } finally {
-        setIsUploading(false);
       }
       return;
     }
@@ -358,6 +355,7 @@ export default function ZeepoAiAgentIndexPage() {
                 onAttach={() => fileInputRef.current?.click()}
                 attachDisabled={createSession.isPending || pendingFiles.length >= 4}
                 isUploading={isUploading}
+                uploadProgressPercent={uploadProgressPercent}
                 pendingPreviews={pendingFiles.map((f, i) => ({
                   previewUrl: f.previewUrl,
                   name: f.name,

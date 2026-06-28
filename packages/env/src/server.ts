@@ -33,6 +33,14 @@ export const env = createEnv({
     QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),
     REPLICATE_META_ADS_ANALYSIS_WEBHOOK_URL: z.string().url().optional(),
     REPLICATE_API_TOKEN: z.string().min(1),
+    /** MinIO / S3-compatible object storage (optional until UploadThing migration) */
+    S3_ENDPOINT: z.string().url().optional(),
+    S3_ACCESS_KEY: z.string().min(1).optional(),
+    S3_SECRET_KEY: z.string().min(1).optional(),
+    S3_BUCKET: z.string().min(1).optional(),
+    S3_REGION: z.string().min(1).default("us-east-1"),
+    /** Public base URL for object reads, e.g. https://storage.nisccloud.com/npanel-uploads */
+    S3_PUBLIC_BASE_URL: z.string().url().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,

@@ -1,11 +1,12 @@
 import Replicate from "replicate";
-import { UTApi } from "uploadthing/server";
 
 import { isReplicateHostedMediaUrl } from "../replicate-hosted-url";
+import {
+	ObjectStoragePersistError,
+	persistRemoteUrlToObjectStorage,
+} from "../object-storage/persist";
 
-const utapi = new UTApi();
-
-export class NebImagePersistError extends Error {
+export class NebImagePersistError extends ObjectStoragePersistError {
 	constructor(message: string, options?: { cause?: unknown }) {
 		super(message, options);
 		this.name = "NebImagePersistError";
@@ -18,19 +19,15 @@ export async function persistUrlToUploadThing(
 	if (!isReplicateHostedMediaUrl(replicateUrl)) {
 		return { fileUrl: replicateUrl };
 	}
-	const res = await utapi.uploadFilesFromUrl(replicateUrl);
-	const result = Array.isArray(res) ? res[0] : res;
-	if (result?.data) {
-		const fileUrl = result.data.ufsUrl || result.data.url;
-		return { fileUrl, storageKey: result.data.key };
+	try {
+		const result = await persistRemoteUrlToObjectStorage(replicateUrl, {
+			skipNonReplicate: false,
+		});
+		return { fileUrl: result.fileUrl, storageKey: result.storageKey || undefined };
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : "Object storage returned no data";
+		throw new NebImagePersistError(msg, { cause: e });
 	}
-	const msg =
-		result?.error &&
-		typeof result.error === "object" &&
-		"message" in result.error
-			? String((result.error as { message?: string }).message)
-			: "UploadThing returned no data";
-	throw new NebImagePersistError(msg);
 }
 
 function extractImageUrl(output: unknown): string {
@@ -85,9 +82,7 @@ export async function generateImagen4Ultra(
 	}
 
 	if (result.status !== "succeeded") {
-		throw new Error(
-			result.error ?? `Imagen prediction ${result.status}: ${result.id}`,
-		);
+		throw new Error(result.error ?? `Imagen prediction ${result.status}: ${result.id}`);
 	}
 
 	const replicateUrl = extractImageUrl(result.output);

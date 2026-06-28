@@ -1,8 +1,8 @@
-import { UTApi } from "uploadthing/server";
-
 import { isReplicateHostedMediaUrl } from "@npanel/api/lib/replicate-hosted-url";
-
-const utapi = new UTApi();
+import {
+	ObjectStoragePersistError,
+	persistRemoteUrlToObjectStorage,
+} from "@npanel/api/lib/object-storage/persist";
 
 export class ReplicatePersistError extends Error {
 	constructor(message: string, options?: { cause?: unknown }) {
@@ -12,11 +12,8 @@ export class ReplicatePersistError extends Error {
 }
 
 /**
- * Recursively re-upload Replicate delivery URLs to UploadThing for durable URLs.
+ * Recursively re-upload Replicate delivery URLs to object storage for durable URLs.
  * Used by Zeepo Canvas and Zeepo Agent Replicate webhooks.
- *
- * **Throws ReplicatePersistError** if any Replicate-hosted URL cannot be persisted -
- * callers must mark the generation FAILED instead of saving ephemeral URLs.
  */
 export async function persistReplicateOutputToUploadThing(
 	output: unknown,
@@ -27,29 +24,21 @@ export async function persistReplicateOutputToUploadThing(
 		if (!isReplicateHostedMediaUrl(output)) return output;
 		try {
 			console.log(
-				"[persistReplicateOutput] Re-uploading Replicate URL to UploadThing:",
+				"[persistReplicateOutput] Re-uploading Replicate URL to object storage:",
 				output,
 			);
-			const res = await utapi.uploadFilesFromUrl(output);
-			const result = Array.isArray(res) ? res[0] : res;
-
-			if (result?.data) {
-				const persistentUrl = result.data.ufsUrl || result.data.url;
-				console.log("[persistReplicateOutput] Persisted to:", persistentUrl);
-				return persistentUrl;
-			}
-			const msg =
-				result?.error &&
-				typeof result.error === "object" &&
-				"message" in result.error
-					? String((result.error as { message?: string }).message)
-					: "UploadThing returned no data";
-			throw new ReplicatePersistError(msg);
+			const { fileUrl } = await persistRemoteUrlToObjectStorage(output, {
+				skipNonReplicate: false,
+			});
+			console.log("[persistReplicateOutput] Persisted to:", fileUrl);
+			return fileUrl;
 		} catch (e) {
-			if (e instanceof ReplicatePersistError) throw e;
+			if (e instanceof ReplicatePersistError || e instanceof ObjectStoragePersistError) {
+				throw new ReplicatePersistError(e.message, { cause: e });
+			}
 			console.error("[persistReplicateOutput] Upload failed:", output, e);
 			throw new ReplicatePersistError(
-				"Could not persist Replicate asset to UploadThing",
+				"Could not persist Replicate asset to object storage",
 				{ cause: e },
 			);
 		}
@@ -74,3 +63,6 @@ export async function persistReplicateOutputToUploadThing(
 
 	return output;
 }
+
+/** Preferred name for new code */
+export const persistReplicateOutputToStorage = persistReplicateOutputToUploadThing;

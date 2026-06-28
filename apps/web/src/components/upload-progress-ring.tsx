@@ -1,0 +1,76 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+
+export type UploadProgressRingProps = {
+	percent: number;
+	size?: number;
+	strokeWidth?: number;
+	className?: string;
+	/** Optional label under the ring (e.g. file name) */
+	label?: string;
+};
+
+export function UploadProgressRing({
+	percent,
+	size = 72,
+	strokeWidth = 5,
+	className,
+	label,
+}: UploadProgressRingProps) {
+	const clamped = Math.min(100, Math.max(0, Math.round(percent)));
+	const radius = (size - strokeWidth) / 2;
+	const circumference = 2 * Math.PI * radius;
+	const offset = circumference - (clamped / 100) * circumference;
+
+	return (
+		<div className={cn("flex flex-col items-center gap-2", className)}>
+			<div
+				className="relative inline-flex items-center justify-center"
+				style={{ width: size, height: size }}
+				role="progressbar"
+				aria-valuenow={clamped}
+				aria-valuemin={0}
+				aria-valuemax={100}
+				aria-label={label ? `Uploading ${label}` : "Upload progress"}
+			>
+				<svg
+					width={size}
+					height={size}
+					className="-rotate-90"
+					aria-hidden
+				>
+					<circle
+						cx={size / 2}
+						cy={size / 2}
+						r={radius}
+						fill="none"
+						stroke="currentColor"
+						strokeWidth={strokeWidth}
+						className="text-muted/30"
+					/>
+					<circle
+						cx={size / 2}
+						cy={size / 2}
+						r={radius}
+						fill="none"
+						stroke="currentColor"
+						strokeWidth={strokeWidth}
+						strokeLinecap="round"
+						strokeDasharray={circumference}
+						strokeDashoffset={offset}
+						className="text-primary transition-[stroke-dashoffset] duration-200 ease-out"
+					/>
+				</svg>
+				<span className="absolute text-sm font-semibold tabular-nums text-foreground">
+					{clamped}%
+				</span>
+			</div>
+			{label ? (
+				<p className="max-w-[12rem] truncate text-center text-xs text-muted-foreground">
+					{label}
+				</p>
+			) : null}
+		</div>
+	);
+}
