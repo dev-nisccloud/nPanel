@@ -15,14 +15,13 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NebSpinner } from "./neb-loading";
+import { UploadProgressRing } from "@/components/upload-progress-ring";
+import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import {
 	normalizeImageFilesForUpload,
 	uploadErrorMessage,
-	uploadFiles,
-	uploadThingFileUrl,
-} from "@/hooks/use-uploadthing";
-import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+} from "@/lib/app-file-upload";
+import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
@@ -38,8 +37,8 @@ type ImageLibrarySheetProps = {
 export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps) {
 	const [tab, setTab] = React.useState<"library" | "upload">("library");
 	const [search, setSearch] = React.useState("");
-	const [uploading, setUploading] = React.useState(false);
 	const fileRef = React.useRef<HTMLInputElement>(null);
+	const { uploadOne, isUploading, progressPercent, progressLabel } = useAppFileUpload();
 
 	const {
 		items,
@@ -70,19 +69,17 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 	}, [open]);
 
 	const handleUpload = async (file: File) => {
-		setUploading(true);
 		try {
-			const res = await uploadFiles(UPLOAD_ENDPOINTS.EMAIL_BUILDER_IMAGE, {
-				files: normalizeImageFilesForUpload([file]),
+			const [normalized] = normalizeImageFilesForUpload([file]);
+			const uploaded = await uploadOne(normalized, STORAGE_PREFIXES.EMAIL_BUILDER, {
+				label: file.name,
 			});
-			const uploaded = res[0];
-			if (!uploaded) throw new Error("Upload failed");
 			const created = await createLibraryItem.mutateAsync({
-				fileName: uploaded.name ?? file.name,
-				fileSize: uploaded.size ?? file.size,
-				mimeType: file.type || "image/png",
-				fileUrl: uploadThingFileUrl(uploaded),
-				storageKey: uploaded.key ?? undefined,
+				fileName: file.name,
+				fileSize: uploaded.size,
+				mimeType: normalized.type || "image/png",
+				fileUrl: uploaded.publicUrl,
+				storageKey: uploaded.key,
 				metadata: { source: "nisc-email-builder" },
 			});
 			prependItem(created.data);
@@ -91,8 +88,6 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 			toast.success("Image uploaded");
 		} catch (e) {
 			toast.error(uploadErrorMessage(e));
-		} finally {
-			setUploading(false);
 		}
 	};
 
@@ -181,10 +176,10 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 						<div
 							role="button"
 							tabIndex={0}
-							onClick={() => !uploading && fileRef.current?.click()}
+							onClick={() => !isUploading && fileRef.current?.click()}
 							className={cn(
-								"flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed bg-muted/20 px-4 py-10",
-								uploading && "pointer-events-none opacity-70",
+								"flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed bg-muted/20 px-4 py-10",
+								isUploading && "pointer-events-none opacity-90",
 							)}
 						>
 							<input
@@ -198,8 +193,15 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 									e.target.value = "";
 								}}
 							/>
-							{uploading ? (
-								<NebSpinner context="upload" size={22} className="text-primary" />
+							{isUploading ? (
+								<>
+									<UploadProgressRing
+										percent={progressPercent}
+										size={80}
+										label={progressLabel}
+									/>
+									<p className="text-sm text-muted-foreground">Uploading to storage…</p>
+								</>
 							) : (
 								<>
 									<Upload className="size-7 text-muted-foreground" />

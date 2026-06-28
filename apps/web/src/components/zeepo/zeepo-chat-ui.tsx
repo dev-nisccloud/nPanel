@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { UploadProgressRing } from "@/components/upload-progress-ring";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 
 /** Chat session: full width with hosting-detail gutters (max-w-7xl). */
@@ -386,6 +387,7 @@ export type ZeepoComposerProps = {
   onAttach?: () => void;
   attachDisabled?: boolean;
   isUploading?: boolean;
+  uploadProgressPercent?: number;
   onSkills?: () => void;
   skillsDisabled?: boolean;
   selectedSkillTitle?: string | null;
@@ -412,6 +414,7 @@ export function ZeepoComposer({
   onAttach,
   attachDisabled,
   isUploading,
+  uploadProgressPercent = 0,
   onSkills,
   skillsDisabled,
   selectedSkillTitle,
@@ -523,7 +526,11 @@ export function ZeepoComposer({
               )}
               onClick={onAttach}
             >
-              {isUploading ? <Spinner size={16} /> : <Paperclip className="size-5" />}
+              {isUploading ? (
+                <UploadProgressRing percent={uploadProgressPercent} size={28} strokeWidth={3} />
+              ) : (
+                <Paperclip className="size-5" />
+              )}
             </button>
           ) : null}
           {promptCategory ? (

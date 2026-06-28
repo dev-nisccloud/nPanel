@@ -1,10 +1,7 @@
 import Replicate from "replicate";
-import { UTApi } from "uploadthing/server";
 
 import { isReplicateHostedMediaUrl } from "../replicate-hosted-url";
-import { NebImagePersistError } from "./imagen";
-
-const utapi = new UTApi();
+import { NebImagePersistError, persistUrlToUploadThing } from "./imagen";
 
 export type NanoBananaAspectRatio =
 	| "1:1"
@@ -25,27 +22,6 @@ export type NanoBananaInput = {
 	outputFormat?: "png" | "jpg";
 	imageInput?: string[];
 };
-
-async function persistUrlToUploadThing(
-	replicateUrl: string,
-): Promise<{ fileUrl: string; storageKey?: string }> {
-	if (!isReplicateHostedMediaUrl(replicateUrl)) {
-		return { fileUrl: replicateUrl };
-	}
-	const res = await utapi.uploadFilesFromUrl(replicateUrl);
-	const result = Array.isArray(res) ? res[0] : res;
-	if (result?.data) {
-		const fileUrl = result.data.ufsUrl || result.data.url;
-		return { fileUrl, storageKey: result.data.key };
-	}
-	const msg =
-		result?.error &&
-		typeof result.error === "object" &&
-		"message" in result.error
-			? String((result.error as { message?: string }).message)
-			: "UploadThing returned no data";
-	throw new NebImagePersistError(msg);
-}
 
 function extractImageUrl(output: unknown): string {
 	if (typeof output === "string" && output.startsWith("http")) return output;
