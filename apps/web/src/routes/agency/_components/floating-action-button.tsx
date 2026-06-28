@@ -46,8 +46,10 @@ import { useTicketMutations } from "./tickets/use-ticket-mutations";
 import type { TicketMessage, TicketStatus } from "./tickets/schema";
 import { authClient } from "@/lib/auth-client";
 import { MessageAttachment } from "@/components/tickets/message-attachment";
-import { uploadFiles } from "@/hooks/use-uploadthing";
-import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+import { useAppFileUpload } from "@/hooks/use-app-file-upload";
+import { mapStorageResultToTicketAttachment, uploadErrorMessage } from "@/lib/app-file-upload";
+import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
+import { UploadProgressRing } from "@/components/upload-progress-ring";
 import { toast } from "@/components/ui/sonner";
 import { NotificationSettingsBanner } from "@/components/notification-settings-banner";
 import { useNewMessageDetector } from "@/hooks/use-new-message-detector";
@@ -301,6 +303,12 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
   const { createTicket, createMessage, updateStatus, markAllTicketMessagesAsRead } =
     useTicketMutations({ currentUserId });
+
+  const {
+    uploadBatch,
+    isUploading: isUploadingFiles,
+    progressPercent: uploadProgressPercent,
+  } = useAppFileUpload();
 
   const {
     history: aiHistory,
@@ -610,24 +618,13 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
       if (selectedFiles.length > 0) {
         try {
-          const uploadResponse = await uploadFiles(UPLOAD_ENDPOINTS.FILE, {
-            files: selectedFiles,
-            onUploadProgress: (_progress: number) => {},
-          });
-          if (uploadResponse && uploadResponse.length > 0) {
-            attachments = uploadResponse.map((file, index) => ({
-              fileName: selectedFiles[index]?.name || file.name || "unknown",
-              fileSize: file.size || selectedFiles[index]?.size || 0,
-              mimeType: file.type || selectedFiles[index]?.type || "application/octet-stream",
-              fileUrl: file.ufsUrl || file.url || "",
-              storageKey: file.key,
-            }));
-          } else {
-            throw new Error("Failed to upload files");
-          }
+          const uploadResponse = await uploadBatch(selectedFiles, STORAGE_PREFIXES.FILES);
+          attachments = uploadResponse.map((file, index) =>
+            mapStorageResultToTicketAttachment(file, selectedFiles[index]!),
+          );
         } catch (uploadError) {
           console.error("File upload error:", uploadError);
-          toast.error("Failed to upload files. Please try again.");
+          toast.error(uploadErrorMessage(uploadError));
           return;
         }
       }
@@ -1402,7 +1399,14 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
 
                       {/* File previews */}
                       {selectedFiles.length > 0 && (
-                        <div className="px-3 pt-2 flex gap-2 flex-wrap">
+                        <div className="px-3 pt-2 flex gap-2 flex-wrap items-center">
+                          {isUploadingFiles ? (
+                            <UploadProgressRing
+                              percent={uploadProgressPercent}
+                              size={48}
+                              strokeWidth={4}
+                            />
+                          ) : null}
                           {selectedFiles.map((file, index) => (
                             <div
                               key={index}
@@ -1459,7 +1463,9 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                         <button
                           onClick={handleSendMessage}
                           disabled={
-                            (!messageInput.trim() && selectedFiles.length === 0) || isSending
+                            (!messageInput.trim() && selectedFiles.length === 0) ||
+                            isSending ||
+                            isUploadingFiles
                           }
                           className={cn(
                             "h-9 w-9 flex items-center justify-center rounded-full transition-all duration-200",
@@ -1468,7 +1474,14 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                               : "bg-muted text-muted-foreground cursor-not-allowed",
                           )}
                         >
-                          {isSending ? (
+                          {isUploadingFiles ? (
+                            <UploadProgressRing
+                              percent={uploadProgressPercent}
+                              size={28}
+                              strokeWidth={3}
+                              className="gap-0 [&_span]:text-[10px]"
+                            />
+                          ) : isSending ? (
                             <Spinner size={14} className="text-primary-foreground" />
                           ) : (
                             <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth={2.5}>

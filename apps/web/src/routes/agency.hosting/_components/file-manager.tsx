@@ -57,7 +57,7 @@ import { DeleteFileDialog } from "./delete-file-dialog";
 import { RenameFileDialog } from "./rename-file-dialog";
 import { MoveFileDialog } from "./move-file-dialog";
 import { NewFolderDialog } from "./new-folder-dialog";
-import { UploadFileSheet } from "./upload-file-sheet";
+import { UploadFileSheet } from "@/components/hosting/upload-file-sheet";
 import { FileViewerSheet, isViewableFile } from "./file-viewer-sheet";
 import { MediaViewerDialog, isViewableMediaFile } from "./media-viewer-dialog";
 import { ExtractZipDialog } from "./extract-zip-dialog";

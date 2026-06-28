@@ -16,14 +16,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { nativePrimaryScrollbarClassName } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NebSpinner } from "../neb-loading";
+import { UploadProgressRing } from "@/components/upload-progress-ring";
+import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import {
 	normalizeImageFilesForUpload,
 	uploadErrorMessage,
-	uploadFiles,
-	uploadThingFileUrl,
-} from "@/hooks/use-uploadthing";
-import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+} from "@/lib/app-file-upload";
+import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
 import { cn } from "@/lib/utils";
 
 import { useCreateNebMediaLibraryItem } from "../../_api/use-create-email-builder-library-item";
@@ -50,9 +49,9 @@ export function ImageLibraryDialog({
 	const [tab, setTab] = React.useState<"library" | "upload">("library");
 	const [search, setSearch] = React.useState("");
 	const [selected, setSelected] = React.useState<NebMediaLibraryItem | null>(null);
-	const [uploading, setUploading] = React.useState(false);
 	const [dragOver, setDragOver] = React.useState(false);
 	const fileRef = React.useRef<HTMLInputElement>(null);
+	const { uploadOne, isUploading, progressPercent, progressLabel } = useAppFileUpload();
 
 	const {
 		items,
@@ -88,22 +87,17 @@ export function ImageLibraryDialog({
 	};
 
 	const persistUpload = async (file: File) => {
-		setUploading(true);
 		try {
-			const normalized = normalizeImageFilesForUpload([file]);
-			const res = await uploadFiles(UPLOAD_ENDPOINTS.EMAIL_BUILDER_IMAGE, {
-				files: normalized,
+			const [normalized] = normalizeImageFilesForUpload([file]);
+			const uploaded = await uploadOne(normalized, STORAGE_PREFIXES.EMAIL_BUILDER, {
+				label: file.name,
 			});
-			const uploaded = res[0];
-			if (!uploaded) throw new Error("Upload failed");
-
-			const fileUrl = uploadThingFileUrl(uploaded);
 			const created = await createLibraryItem.mutateAsync({
-				fileName: uploaded.name ?? file.name,
-				fileSize: uploaded.size ?? file.size,
-				mimeType: file.type || "image/png",
-				fileUrl,
-				storageKey: uploaded.key ?? undefined,
+				fileName: file.name,
+				fileSize: uploaded.size,
+				mimeType: normalized.type || "image/png",
+				fileUrl: uploaded.publicUrl,
+				storageKey: uploaded.key,
 				metadata: { source: "nisc-email-builder" },
 			});
 
@@ -115,8 +109,6 @@ export function ImageLibraryDialog({
 			toast.success("Image added to your library");
 		} catch (e) {
 			toast.error(uploadErrorMessage(e));
-		} finally {
-			setUploading(false);
 		}
 	};
 
@@ -231,7 +223,7 @@ export function ImageLibraryDialog({
 							onKeyDown={(e) => {
 								if (e.key === "Enter" || e.key === " ") fileRef.current?.click();
 							}}
-							onClick={() => !uploading && fileRef.current?.click()}
+							onClick={() => !isUploading && fileRef.current?.click()}
 							onDragOver={(e) => {
 								e.preventDefault();
 								setDragOver(true);
@@ -247,7 +239,7 @@ export function ImageLibraryDialog({
 								dragOver
 									? "border-primary bg-primary/5"
 									: "border-muted-foreground/25 bg-muted/20 hover:bg-muted/30",
-								uploading && "pointer-events-none opacity-70",
+								isUploading && "pointer-events-none opacity-90",
 							)}
 						>
 							<input
@@ -260,10 +252,14 @@ export function ImageLibraryDialog({
 									e.target.value = "";
 								}}
 							/>
-							{uploading ? (
+							{isUploading ? (
 								<>
-									<NebSpinner context="upload" size={24} className="text-primary" />
-									<p className="text-sm text-muted-foreground">Uploading…</p>
+									<UploadProgressRing
+										percent={progressPercent}
+										size={80}
+										label={progressLabel}
+									/>
+									<p className="text-sm text-muted-foreground">Uploading to storage…</p>
 								</>
 							) : (
 								<>
@@ -291,7 +287,7 @@ export function ImageLibraryDialog({
 					</Button>
 					<Button
 						type="button"
-						disabled={!selected || uploading}
+						disabled={!selected || isUploading}
 						onClick={handleUseImage}
 					>
 						Use image

@@ -125,6 +125,7 @@ import { jetbackupRestoreConditionsRouter } from "./jetbackup/restore-conditions
 import { jetbackupFilePermissionsRouter } from "./jetbackup/file-permissions";
 import { jetbackupPluginsRouter } from "./jetbackup/plugins";
 import { storefrontRouter } from "./storefront";
+import { objectStorageRouter } from "./object-storage";
 
 
 export const appRouter = router({
@@ -323,6 +324,8 @@ export const appRouter = router({
 	zeepoAgent: zeepoAgentRouter,
 	// Public landing-page storefront checkout (isolated from dashboard routers)
 	storefront: storefrontRouter,
+	// MinIO / S3-compatible object storage (presigned uploads)
+	objectStorage: objectStorageRouter,
 	// JetBackup 5 Integration
 	jetbackup: router({
 		dashboard: jetbackupDashboardRouter,

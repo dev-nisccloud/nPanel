@@ -28,41 +28,18 @@ import {
 	swapBackgroundSchema,
 	upscaleImageSchema,
 } from "./schemas";
-import { UTApi } from "uploadthing/server";
+import { persistImageUrlToStorage } from "../../lib/object-storage/persist";
 
 // ── Shared helpers ─────────────────────────────────────────────────────────
 
-const utapi = new UTApi();
-
-/** Upload a URL (Replicate CDN or data URL) to UploadThing and return a durable URL. */
+/** Upload a URL (Replicate CDN or data URL) to object storage and return a durable URL. */
 async function persistImageUrl(sourceUrlRaw: string | URL | unknown): Promise<string> {
-	// Normalise to a plain string (guards against URL objects slipping through)
-	const sourceUrl = sourceUrlRaw instanceof URL
-		? sourceUrlRaw.href
-		: String(sourceUrlRaw ?? "");
-
-	// data URL → convert to blob buffer first
-	if (sourceUrl.startsWith("data:")) {
-		const [header, b64] = sourceUrl.split(",");
-		const mimeMatch = header?.match(/data:([^;]+)/);
-		const mime = mimeMatch?.[1] ?? "image/png";
-		const buffer = Buffer.from(b64 ?? "", "base64");
-		const blob = new Blob([buffer], { type: mime });
-		const file = new File([blob], `edit-${Date.now()}.${mime.split("/")[1] ?? "png"}`, { type: mime });
-		const res = await utapi.uploadFiles(file);
-		const result = Array.isArray(res) ? res[0] : res;
-		if (result?.data) return result.data.ufsUrl ?? result.data.url;
-		throw new Error("UploadThing upload failed");
-	}
-
-	// Regular URL → use uploadFilesFromUrl
-	const res = await utapi.uploadFilesFromUrl(sourceUrl);
-	const result = Array.isArray(res) ? res[0] : res;
-	if (result?.data) return result.data.ufsUrl ?? result.data.url;
-	throw new Error("UploadThing upload failed");
+	const sourceUrl =
+		sourceUrlRaw instanceof URL ? sourceUrlRaw.href : String(sourceUrlRaw ?? "");
+	return persistImageUrlToStorage(sourceUrl);
 }
 
-/** Upload a base64 PNG data URL (canvas mask) to UploadThing and return a URL. */
+/** Upload a base64 PNG data URL (canvas mask) to object storage and return a URL. */
 async function persistMaskDataUrl(dataUrl: string): Promise<string> {
 	return persistImageUrl(dataUrl);
 }

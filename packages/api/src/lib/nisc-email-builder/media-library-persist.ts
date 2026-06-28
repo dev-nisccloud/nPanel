@@ -3,6 +3,8 @@ import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { nebMediaLibrary } from "@npanel/db/schema/nisc-email-builder";
 
+import { isPersistedStorageAsset } from "../object-storage/persist";
+
 export type SaveNebMediaLibraryParams = {
 	userId: string;
 	teamId?: string | null;
@@ -15,14 +17,15 @@ export type SaveNebMediaLibraryParams = {
 	metadata?: Record<string, unknown>;
 };
 
-/** True when the asset lives on UploadThing (not a placeholder or transient Replicate URL). */
+/** True when the asset lives on durable object storage (not a transient Replicate URL). */
 export function isPersistedUploadThingAsset(
 	fileUrl: string,
 	storageKey?: string | null,
 ): boolean {
-	if (storageKey?.trim()) return true;
-	return /uploadthing\.com|utfs\.io|ufs\.sh/i.test(fileUrl);
+	return isPersistedStorageAsset(fileUrl, storageKey);
 }
+
+export { isPersistedStorageAsset };
 
 /**
  * Upsert-by-URL into the user's Nisc media library (deduped per user + fileUrl).

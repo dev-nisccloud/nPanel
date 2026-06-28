@@ -21,11 +21,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Dropzone, DropzoneEmptyState, DropzoneContent } from "@/components/ui/shadcn-io/dropzone";
-import { Progress } from "@/components/ui/progress";
 import { formatFileSize } from "./utils";
 import { cn } from "@/lib/utils";
-import { uploadFiles } from "@/hooks/use-uploadthing";
-import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+import { UploadProgressRing } from "@/components/upload-progress-ring";
+import { useAppFileUpload } from "@/hooks/use-app-file-upload";
+import {
+	mapStorageResultToCreativeVersion,
+	uploadErrorMessage,
+} from "@/lib/app-file-upload";
+import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
 import { trpc } from "@/utils/trpc";
 
 const FormSchema = z.object({
@@ -87,8 +91,8 @@ export function UploadVersionSheet({
 }: UploadVersionSheetProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = React.useState(0);
-  const [isUploading, setIsUploading] = React.useState(false);
+  const { uploadOne, isUploading, progressPercent, progressLabel, resetProgress } =
+    useAppFileUpload();
 
   const utils = trpc.useUtils();
   const uploadVersionMutation = trpc.creativeAssets.uploadVersion.useMutation({
@@ -98,7 +102,7 @@ export function UploadVersionSheet({
       toast.success("Version uploaded successfully!");
       form.reset();
       setSelectedFile(null);
-      setUploadProgress(0);
+      resetProgress();
       onOpenChange(false);
       onUploadVersion?.();
     },
@@ -127,11 +131,10 @@ export function UploadVersionSheet({
   React.useEffect(() => {
     if (!open) {
       setSelectedFile(null);
-      setUploadProgress(0);
-      setIsUploading(false);
+      resetProgress();
       form.reset();
     }
-  }, [open, form]);
+  }, [open, form, resetProgress]);
 
   const handleDrop = React.useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -150,47 +153,20 @@ export function UploadVersionSheet({
     }
 
     setIsSubmitting(true);
-    setIsUploading(true);
-    setUploadProgress(0);
 
     try {
-      // Step 1: Upload file to UploadThing
-      const response = await uploadFiles(UPLOAD_ENDPOINTS.CREATIVE_ASSET, {
-        files: [selectedFile],
-        onUploadBegin: () => {
-          setIsUploading(true);
-          setUploadProgress(0);
-        },
-        onUploadProgress: (progress) => {
-          const normalizedProgress = normalizeProgress(progress);
-          setUploadProgress(normalizedProgress);
-        },
+      const uploaded = await uploadOne(selectedFile, STORAGE_PREFIXES.CREATIVE_ASSETS, {
+        label: selectedFile.name,
       });
+      const fileMeta = mapStorageResultToCreativeVersion(uploaded, selectedFile);
 
-      // Step 2: Extract file data from response
-      if (!response || response.length === 0) {
-        throw new Error("No file was uploaded");
-      }
-
-      const uploadedFile = response[0];
-      if (!uploadedFile) {
-        throw new Error("Invalid upload response");
-      }
-
-      // Use ufsUrl instead of url (as per user requirement)
-      const fileUrl = uploadedFile.ufsUrl || uploadedFile.url || "";
-      if (!fileUrl) {
-        throw new Error("File URL not found in upload response");
-      }
-
-      // Step 3: Save version to database via tRPC mutation
       await uploadVersionMutation.mutateAsync({
         creativeAssetId: assetId,
-        fileUrl,
-        fileKey: uploadedFile.key || "",
-        fileName: uploadedFile.name || selectedFile.name,
-        fileSize: uploadedFile.size || selectedFile.size,
-        mimeType: uploadedFile.type || selectedFile.type,
+        fileUrl: fileMeta.fileUrl,
+        fileKey: fileMeta.fileKey,
+        fileName: fileMeta.fileName,
+        fileSize: fileMeta.fileSize,
+        mimeType: fileMeta.mimeType,
         versionNotes: data.versionNotes || undefined,
         changesSummary: data.changesSummary || undefined,
       });
@@ -200,10 +176,9 @@ export function UploadVersionSheet({
       console.error("Error uploading version:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       toast.error("Failed to upload version", {
-        description: errorMessage,
+        description: uploadErrorMessage(error),
       });
-      setIsUploading(false);
-      setUploadProgress(0);
+      resetProgress();
     } finally {
       setIsSubmitting(false);
     }
@@ -334,13 +309,16 @@ export function UploadVersionSheet({
                 )}
               />
 
-              {/* Upload Progress Indicator - Only shows during upload */}
-              {isUploading && (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Uploading file...</p>
-                  <Progress value={uploadProgress} className="h-2" />
+              {isUploading ? (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <UploadProgressRing
+                    percent={progressPercent}
+                    size={88}
+                    label={progressLabel ?? selectedFile?.name}
+                  />
+                  <p className="text-sm text-muted-foreground">Uploading to storage…</p>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <SheetFooter className="gap-2 sm:gap-0">
