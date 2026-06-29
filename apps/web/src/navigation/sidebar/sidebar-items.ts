@@ -488,12 +488,6 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/cronjobs",
         icon: (props: any) => React.createElement(Icons.CRONJOB, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
       },
-      {
-        title: "Storage Test",
-        url: "/agency/storage-test",
-        icon: (props: any) => React.createElement(Icons.Database, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-        isNew: true,
-      },
       // {
       //   title: "Invoicing",
       //   url: "/agency/invoicing",
