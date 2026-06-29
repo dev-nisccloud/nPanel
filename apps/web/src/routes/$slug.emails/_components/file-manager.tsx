@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/table";
 import { Icons } from "@/components/icons";
 import { type FileManagerItem } from "./file-manager-schema";
-import { useFtpFileManager } from "./use-ftp-file-manager";
+import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
@@ -156,12 +156,12 @@ export function FileManager({ hostingData }: FileManagerProps) {
   const [availableDirectories, setAvailableDirectories] = useState<FileManagerItem[]>([]);
 
   // Extract FTP credentials from hosting data
-  const getFtpCredentials = () => {
+  const ftpCredentials = React.useMemo(() => {
     const ftpLogin = hostingData.hosting?.vrt_hst?.property?.find(
-      prop => prop.name === "ftp_login"
+      (prop) => prop.name === "ftp_login",
     )?.value;
     const ftpPassword = hostingData.hosting?.vrt_hst?.property?.find(
-      prop => prop.name === "ftp_password"
+      (prop) => prop.name === "ftp_password",
     )?.value;
 
     if (!ftpLogin || !ftpPassword) {
@@ -169,19 +169,19 @@ export function FileManager({ hostingData }: FileManagerProps) {
     }
 
     return {
-      host: process.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com", // From environment
-      port: parseInt(process.env.VITE_PUBLIC_FTP_PORT || "21"),
+      host: import.meta.env.VITE_PUBLIC_FTP_HOST || "orion.nisccloud.com",
+      port: parseInt(import.meta.env.VITE_PUBLIC_FTP_PORT || "21", 10),
       user: String(ftpLogin),
       password: String(ftpPassword),
-      secure: true, // Use FTPS
+      secure: true,
       timeout: 30000,
     };
-  };
+  }, [hostingData]);
 
-  // Use FTP file manager hook
   const {
     data,
     isLoading,
+    isRefreshing,
     isError,
     error,
     currentPath,
@@ -201,7 +201,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
     isCreating,
     isUploading,
     isDownloading,
-  } = useFtpFileManager(getFtpCredentials(), "/"); // Start at root directory
+  } = useFtpFileManager(ftpCredentials, "/");
 
   const filteredItems = (data?.items || []).filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -699,13 +699,14 @@ export function FileManager({ hostingData }: FileManagerProps) {
         <div className="flex flex-wrap items-center gap-2">
           {/* Refresh Button */}
           <Button
+            type="button"
             variant="outline"
             size="sm"
-            onClick={refreshCurrentPath}
-            disabled={isLoading}
+            onClick={() => void refreshCurrentPath()}
+            disabled={isLoading || isRefreshing}
             className="flex-shrink-0"
           >
-            <RefreshCw className={`h-4 w-4 @sm/main:mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 @sm/main:mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
             <span className="hidden @sm/main:inline">Refresh</span>
           </Button>
 
