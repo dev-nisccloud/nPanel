@@ -4,7 +4,6 @@ import SecurityHero from "./_components/SecurityHero.tsx";
 import SecurityMacbookSection from "./_components/SecurityMacbookSection.tsx";
 import SecurityPlans from "./_components/SecurityPlans.tsx";
 import SecurityFeatures from "./_components/SecurityFeatures.tsx";
-import SecuritySslSection from "./_components/SecuritySslSection.tsx";
 import SecurityCTA from "./_components/SecurityCTA.tsx";
 import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
 
@@ -47,7 +46,6 @@ export default function SecurityPage() {
       <SecurityMacbookSection />
       <SecurityPlans />
       <SecurityFeatures />
-      <SecuritySslSection />
       <FaqBlock
         faqs={securityFaqs}
         badge="Security FAQ"
