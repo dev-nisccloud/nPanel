@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Check, ChevronDown, ArrowRight, Sparkles, Star } from "lucide-react";
+import { motion } from "motion/react";
+import { Check, ArrowRight, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -10,7 +10,9 @@ import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import ServiceShowcaseSection, { type ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-import ScrollStack, { ScrollStackItem } from "@/components/ui/ScrollStack.tsx";
+import { ProcessFeatureBlock } from "@/components/shadcn-space/blocks/feature-01/process-feature.tsx";
+import { ServiceMockPricingSection } from "@/components/shadcn-space/blocks/pricing-01/service-mock-pricing.tsx";
+import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -187,9 +189,24 @@ const CornerPlus = () => (
 
 function FeaturesGrid({ features }: { features: Feature[] }) {
   return (
-    <section className="relative py-24 overflow-hidden border-t border-dashed border-border/50">
+    <section className="relative pt-16 pb-10 overflow-hidden border-t border-dashed border-border/50">
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
-        {/* Bento grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-12 max-w-2xl mx-auto text-center"
+        >
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
+            Everything{" "}
+            <span className="text-primary">You Get.</span>
+          </h2>
+          <p className="text-muted-foreground text-base mt-3">
+            A complete, battle-tested system — nothing is an afterthought.
+          </p>
+        </motion.div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((f, i) => (
             <motion.div
@@ -221,23 +238,6 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
             </motion.div>
           ))}
         </div>
-
-        {/* Editorial right-aligned heading below the grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-10 max-w-xl ml-auto text-right"
-        >
-          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
-            Everything{" "}
-            <span className="text-primary">You Get.</span>
-          </h2>
-          <p className="text-muted-foreground text-sm mt-2">
-            A complete, battle-tested system  nothing is an afterthought.
-          </p>
-        </motion.div>
       </div>
     </section>
   );
@@ -351,55 +351,6 @@ function PricingSection({
   );
 }
 
-// ─── Process ──────────────────────────────────────────────────────────────────
-
-function ProcessSection({ steps }: { steps: ProcessStep[] }) {
-  return (
-    <section className="relative py-24 overflow-hidden border-t border-border/40 bg-muted/10">
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-primary/3 via-transparent to-transparent" />
-      <div className="relative max-w-4xl mx-auto px-4 md:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Our Proven Process</h2>
-          <p className="text-muted-foreground text-base mt-3 max-w-xl mx-auto">
-            A clear, step-by-step path from where you are now to where you want to be.
-          </p>
-        </motion.div>
-
-        <div className="w-full relative">
-          <ScrollStack
-            useWindowScroll={true}
-            itemDistance={120}
-            baseScale={0.9}
-            itemScale={0.04}
-            stackPosition="30%"
-            className="w-full"
-          >
-            {steps.map((s, i) => (
-              <ScrollStackItem key={s.num} itemClassName="!p-0 !bg-transparent !shadow-none !m-0 !mt-8">
-                <div className="bg-card border border-border/60 rounded-3xl p-8 md:p-10 shadow-xl shadow-black/5 flex flex-col md:flex-row gap-6 md:gap-8 items-start group hover:border-primary/30 transition-colors">
-                  <div className="shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
-                    {s.num}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-2xl mb-3 text-foreground group-hover:text-primary transition-colors">{s.title}</h3>
-                    <p className="text-base text-muted-foreground leading-relaxed">{s.desc}</p>
-                  </div>
-                </div>
-              </ScrollStackItem>
-            ))}
-          </ScrollStack>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-
 // ─── Why Section ──────────────────────────────────────────────────────────────
 
 function WhySection({ points }: { points: WhyPoint[] }) {
@@ -431,62 +382,6 @@ function WhySection({ points }: { points: WhyPoint[] }) {
                 <h3 className="font-semibold mb-2 text-foreground">{p.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
               </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── FAQ ──────────────────────────────────────────────────────────────────────
-
-function FaqSection({ faqs }: { faqs: FaqItem[] }) {
-  const [open, setOpen] = useState<number | null>(null);
-  return (
-    <section className="py-24 border-t border-border/40">
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Common Questions</h2>
-        </div>
-        <div className="space-y-3 max-w-3xl mx-auto">
-          {faqs.map((faq, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-              className={cn(
-                "rounded-2xl border overflow-hidden transition-all duration-300",
-                open === i ? "border-primary/30 shadow-lg shadow-primary/5" : "border-border/60 bg-card"
-              )}
-            >
-              <button
-                onClick={() => setOpen(open === i ? null : i)}
-                className="w-full flex items-center justify-between px-6 py-5 text-left font-semibold text-sm cursor-pointer hover:text-primary transition-colors"
-              >
-                <span>{faq.q}</span>
-                <ChevronDown
-                  size={16}
-                  className={cn("shrink-0 ml-4 text-muted-foreground transition-transform duration-300", open === i && "rotate-180 text-primary")}
-                />
-              </button>
-              <AnimatePresence>
-                {open === i && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-6 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border/40 pt-4">
-                      {faq.a}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
           ))}
         </div>
@@ -737,14 +632,41 @@ export default function ServicePageShell({
     [badge, checkoutProductName, checkoutServiceType, scrollToPlans],
   );
 
+  const renderPricingSection = () => {
+    if (customPlansSection) return customPlansSection;
+    if (_serviceType === "marketing" && plans.length > 0) {
+      return (
+        <ServiceMockPricingSection
+          plans={plans}
+          serviceName={badge}
+          subtitle={pricingNote}
+          pricingNote={pricingNote}
+          addons={addons}
+        />
+      );
+    }
+    return (
+      <PricingSection
+        plans={plans}
+        addons={addons}
+        note={pricingNote}
+        onSelect={handlePlanSelect}
+      />
+    );
+  };
+
   const handleDefaultCta = useCallback(() => {
     if (customPlansSection || plans.length === 0) {
       scrollToPlans();
       return;
     }
+    if (_serviceType === "marketing") {
+      scrollToPlans();
+      return;
+    }
     const defaultPlan = plans[Math.floor(plans.length / 2)] ?? plans[0];
     if (defaultPlan) handlePlanSelect(defaultPlan);
-  }, [customPlansSection, handlePlanSelect, plans, scrollToPlans]);
+  }, [_serviceType, customPlansSection, handlePlanSelect, plans, scrollToPlans]);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -764,11 +686,7 @@ export default function ServicePageShell({
 
       {trustStats && <TrustBar stats={trustStats} />}
 
-      {plansUnderHero && (
-        <div id="pricing">
-          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={handlePlanSelect} />}
-        </div>
-      )}
+      {plansUnderHero && <div id="pricing">{renderPricingSection()}</div>}
 
       {features && features.length > 0 && <FeaturesGrid features={features} />}
 
@@ -776,17 +694,17 @@ export default function ServicePageShell({
         <ServiceShowcaseSection blocks={showcaseBlocks} />
       )}
 
-      {!plansUnderHero && (
-        <div id="pricing">
-          {customPlansSection ? customPlansSection : <PricingSection plans={plans} addons={addons} note={pricingNote} onSelect={handlePlanSelect} />}
-        </div>
-      )}
+      {!plansUnderHero && <div id="pricing">{renderPricingSection()}</div>}
 
-      {process && <ProcessSection steps={process} />}
+      {process && <ProcessFeatureBlock steps={process} />}
 
       {whyPoints && <WhySection points={whyPoints} />}
 
-      {faqs && <FaqSection faqs={faqs} />}
+      {faqs && faqs.length > 0 ? (
+        <FaqBlock
+          faqs={faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
+        />
+      ) : null}
 
       <ClosingCta
         headline={ctaHeadline}

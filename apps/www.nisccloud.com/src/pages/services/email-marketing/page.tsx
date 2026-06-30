@@ -1,4 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
+import { EmailMarketingPricingSection } from "@/pages/services/email-marketing/_components/EmailMarketingPricingSection.tsx";
 import { Mail, Users, BarChart2, Zap, Target, RefreshCw, Shield, Inbox } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
@@ -77,8 +78,9 @@ export default function EmailMarketingPage() {
       headline={<>Turn Your Email List<br /><span className="text-primary">Into a Revenue Machine</span></>}
       subtext="Email still delivers the highest ROI of any marketing channel - KES 380 for every KES 10 spent. We design, write, and automate campaigns that convert subscribers into customers, and customers into loyal repeat buyers."
       serviceType="marketing"
-      checkoutServiceType="email_marketing"
-      checkoutProductName="Email Marketing"
+      plansUnderHero
+      customPlansSection={<EmailMarketingPricingSection />}
+      plans={[]}
       trustStats={[
         { value: "42%", label: "Average Open Rate (2× industry)" },
         { value: "380×", label: "Average Email Marketing ROI" },
@@ -126,65 +128,6 @@ export default function EmailMarketingPage() {
           title: "List Hygiene & Cleaning",
           desc: "Monthly list cleaning removes bounced, inactive, and spam-flagged addresses. A clean list improves deliverability and reduces the cost per send.",
         },
-      ]}
-      plans={[
-        {
-          id: "email-mkt-starter",
-          name: "Email Starter",
-          price: 1500,
-          period: "mo",
-          features: [
-            "Up to 1,000 Subscribers",
-            "2 Campaigns/month",
-            "Email Template Design",
-            "Basic Segmentation",
-            "Open & Click Reports",
-            "Unsubscribe Management",
-            "DKIM/SPF Setup",
-            "Monthly Strategy Call",
-          ],
-        },
-        {
-          id: "email-mkt-growth-popular",
-          name: "Email Growth",
-          price: 4500,
-          period: "mo",
-          features: [
-            "Up to 5,000 Subscribers",
-            "8 Campaigns/month",
-            "Custom Email Design",
-            "Advanced Segmentation",
-            "Automated Welcome Sequence",
-            "A/B Subject Line Testing",
-            "Abandoned Cart Recovery",
-            "Detailed Analytics Report",
-            "List Cleaning (monthly)",
-            "Priority Email Support",
-          ],
-        },
-        {
-          id: "email-mkt-pro",
-          name: "Email Pro",
-          price: 9500,
-          period: "mo",
-          features: [
-            "Up to 20,000 Subscribers",
-            "Unlimited Campaigns",
-            "Custom HTML Templates",
-            "Full Automation Flows",
-            "Behavioural Triggers",
-            "E-commerce Revenue Tracking",
-            "SMS Integration",
-            "Multi-list Management",
-            "Dedicated Deliverability Manager",
-            "Weekly Strategy Sessions",
-          ],
-        },
-      ]}
-      addons={[
-        { id: "email-mkt-automation", label: "Full Automation Flow Build (one-off)", price: 15000, period: "once" },
-        { id: "email-mkt-sms", label: "SMS Marketing Integration", price: 2500, period: "mo" },
-        { id: "email-mkt-design", label: "Custom HTML Email Template Design", price: 8000, period: "once" },
       ]}
       process={[
         { num: "01", title: "List Audit & Strategy", desc: "We audit your existing list health, segment structure, and historical campaign performance to identify quick wins and build your 90-day email marketing strategy." },

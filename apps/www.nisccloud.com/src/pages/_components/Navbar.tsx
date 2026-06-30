@@ -3,10 +3,10 @@ import { useState, useRef, useEffect } from "react";
 const NPANEL_URL = import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccloud.com";
 import { motion, AnimatePresence } from "motion/react";
 import {
-  Menu, X, ChevronDown, Globe, Server, Mail, Shield, Cpu, Megaphone,
-  Palette, ShoppingCart, PenTool, BarChart2, Bot, Zap,
-  LogIn, TrendingUp, Users, HardDrive, Lock, MonitorSmartphone,
-  Target, AtSign, ScanLine, Database, Flame,
+  Menu, X, ChevronDown, Globe, Server, Mail, Cpu, Megaphone,
+  Palette, ShoppingCart, PenTool, BarChart2, Zap,
+  LogIn, TrendingUp, Users, HardDrive, MonitorSmartphone,
+  Target, AtSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { FlowButton } from "@/components/ui/flow-button.tsx";
@@ -56,18 +56,7 @@ const navItems: NavItem[] = [
       { label: "Domain Registration", desc: ".co.ke, .com and 50+ extensions", href: "/hosting/domains", icon: <Globe size={16} /> },
     ],
   },
-  {
-    label: "Security",
-    href: "/security",
-    children: [
-      { label: "Website Security", desc: "Malware scanning, cleanup & firewall", href: "/security", icon: <Shield size={16} /> },
-      { label: "SSL Certificates", desc: "DV, OV & EV SSL - self or managed install", href: "/security", icon: <Lock size={16} /> },
-      { label: "Web Application Firewall", desc: "Block hackers & DDoS attacks", href: "/security", icon: <Flame size={16} /> },
-      { label: "Daily Malware Scanning", desc: "Scan up to 4× daily with instant alerts", href: "/security", icon: <ScanLine size={16} /> },
-      { label: "Secure Daily Backups", desc: "Encrypted off-site backup & restore", href: "/security", icon: <Database size={16} /> },
-      { label: "Managed SSL Service", desc: "We install & maintain SSL for you", href: "/security", icon: <Bot size={16} /> },
-    ],
-  },
+  { label: "Security", href: "/security" },
   { label: "Pricing", href: "/pricing" },
   { label: "Portfolio", href: "/work" },
   { label: "Help", href: "/help" },
