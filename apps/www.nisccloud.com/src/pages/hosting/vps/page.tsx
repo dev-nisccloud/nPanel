@@ -1,71 +1,11 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { Server, Cpu, HardDrive, Network, Shield, Zap, Globe, Terminal } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import {
+  HostingHeroIllustration,
+  vpsHeroConfig,
+} from "../_components/HostingHeroIllustration.tsx";
 import { VpsPlansSection } from "./_components/VpsPlansSection.tsx";
-
-// ─── Hero Illustration ────────────────────────────────────────────────────────
-
-function VpsIllustration() {
-  return (
-    <div className="space-y-3 select-none">
-      {/* Top terminal card */}
-      <div className="rounded-2xl overflow-hidden border border-border/40 shadow-lg bg-[oklch(0.12_0.015_260)]">
-        <div className="px-4 py-2.5 bg-[oklch(0.18_0.015_260)] flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-          <span className="text-white/50 ml-2 text-xs font-mono">root@vps-nairobi-01</span>
-          <span className="ml-auto text-green-400 text-[10px] font-semibold">● Connected</span>
-        </div>
-        <div className="p-4 font-mono text-xs space-y-1.5 text-green-400">
-          <div>$ ssh root@196.201.214.xxx</div>
-          <div className="text-white/50">Welcome to Ubuntu 24.04 LTS (GNU/Linux 6.8)</div>
-          <div className="text-white/50">AMD EPYC 4 vCPU | 8 GB RAM | 160 GB NVMe</div>
-          <div>$ docker run <span className="text-cyan-400">-d</span> -p 80:80 nginx</div>
-          <div className="text-white/50">f3a1b2c4d5e6... Container started on :80</div>
-          <div>$ <span className="animate-pulse">_</span></div>
-        </div>
-      </div>
-
-      {/* Resource monitor row */}
-      <div className="bg-card rounded-2xl border border-border/40 shadow-md p-4">
-        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Live Resource Monitor</div>
-        <div className="space-y-2.5">
-          {[
-            { label: "CPU Usage", pct: 22, color: "oklch(0.60 0.22 235)" },
-            { label: "RAM", pct: 48, color: "oklch(0.55 0.18 195)" },
-            { label: "Disk I/O", pct: 15, color: "oklch(0.65 0.16 160)" },
-            { label: "Network", pct: 30, color: "oklch(0.58 0.22 300)" },
-          ].map(({ label, pct, color }) => (
-            <div key={label}>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="font-bold" style={{ color }}>{pct}%</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: "Deploy Time", value: "<5 min" },
-          { label: "Uptime SLA", value: "99.99%" },
-          { label: "Bandwidth", value: "10 Gbps" },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 text-center">
-            <div className="text-sm font-extrabold text-primary">{value}</div>
-            <div className="text-[9px] text-muted-foreground mt-0.5">{label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ─── Showcase blocks ──────────────────────────────────────────────────────────
 
@@ -185,7 +125,7 @@ export default function VpsHostingPage() {
       headline={<>Dedicated Power. <span className="text-primary">Kenyan Speed.</span> VPS Built for Serious Businesses.</>}
       subtext="Full root access, guaranteed resources, and Nairobi-based infrastructure. Deploy your custom stack in minutes - no shared resources, no compromises."
       serviceType="hosting"
-      heroIllustration={<VpsIllustration />}
+      heroIllustration={<HostingHeroIllustration config={vpsHeroConfig} />}
       heroTrustBadge={{ line1: "AMD EPYC Processors", line2: "Deployed in under 5 minutes" }}
       trustStats={[
         { value: "100+", label: "VPS Servers Active" },
