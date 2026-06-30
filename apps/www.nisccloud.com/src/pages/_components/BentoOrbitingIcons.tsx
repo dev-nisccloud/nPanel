@@ -1,96 +1,93 @@
-import { motion } from "motion/react";
-import { Server, Globe, Mail, ShieldCheck, TrendingUp, Sparkles, BarChart3 } from "lucide-react";
+import { forwardRef, useRef } from "react";
+import { Globe, Server, Sparkles, User, type LucideIcon } from "lucide-react";
 
-const orbitItems = [
-  {
-    Icon: Globe,
-    label: "Domains",
-    className: "absolute start-[70%] top-0 z-10",
-    animateY: [-15, 15, -15] as number[],
-    delay: 0,
-    size: "lg",
-  },
-  {
-    Icon: Mail,
-    label: "Email",
-    className: "absolute start-[91%] top-[28%] z-10",
-    animateY: [15, -15, 15] as number[],
-    delay: 0,
-    size: "sm",
-  },
-  {
-    Icon: ShieldCheck,
-    label: "SSL",
-    className: "absolute start-[78%] top-[61%] z-10",
-    animateY: [-15, 15, -15] as number[],
-    delay: 1,
-    size: "lg",
-  },
-  {
-    Icon: TrendingUp,
-    label: "SEO",
-    className: "absolute end-[78%] top-0",
-    animateY: [15, -15, 15] as number[],
-    delay: 0,
-    size: "sm",
-  },
-  {
-    Icon: Sparkles,
-    label: "AI",
-    className: "absolute end-[67%] lg:top-[61%] top-[80%] z-10",
-    animateY: [-15, 15, -15] as number[],
-    delay: 0.2,
-    size: "lg",
-  },
-  {
-    Icon: BarChart3,
-    label: "Analytics",
-    className: "absolute lg:end-[98%] end-[80%] lg:top-0 top-[30%]",
-    animateY: [15, -15, 15] as number[],
-    delay: 0.5,
-    size: "lg",
-  },
-  {
-    Icon: Server,
-    label: "Hosting",
-    className: "absolute end-[95%] top-[67%] z-10",
-    animateY: [-15, 15, -15] as number[],
-    delay: 0.7,
-    size: "sm",
-  },
+import { AnimatedBeam } from "@/components/ui/animated-beam.tsx";
+import { cn } from "@/lib/utils.ts";
+
+const Circle = forwardRef<
+  HTMLDivElement,
+  { className?: string; children?: React.ReactNode }
+>(({ className, children }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "z-10 flex size-10 items-center justify-center rounded-full border-2 border-border bg-background p-2 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+      className,
+    )}
+  >
+    {children}
+  </div>
+));
+
+Circle.displayName = "Circle";
+
+const services: { Icon: LucideIcon; label: string }[] = [
+  { Icon: Globe, label: "Domains" },
+  { Icon: Server, label: "Hosting" },
+  { Icon: Sparkles, label: "AI" },
 ];
 
 export default function BentoOrbitingIcons() {
-  return (
-    <div className="min-h-[216px] flex items-center justify-center relative">
-      {/* Center brand mark */}
-      <span className="flex items-center justify-center w-24 h-24">
-        <img
-          src="/nisciconoriginal.png"
-          alt="Nisc Cloud"
-          className="w-20 h-20 object-contain"
-        />
-      </span>
+  const containerRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+  const hubRef = useRef<HTMLDivElement>(null);
+  const domainRef = useRef<HTMLDivElement>(null);
+  const hostingRef = useRef<HTMLDivElement>(null);
+  const aiRef = useRef<HTMLDivElement>(null);
 
-      {orbitItems.map(({ Icon, label, className, animateY, delay, size }) => (
-        <motion.div
-          key={label}
-          className={className}
-          animate={{ y: animateY }}
-          transition={{ duration: 3, ease: "easeInOut", repeat: Infinity, delay }}
-        >
-          <span
-            aria-label={label}
-            className={`flex items-center justify-center rounded-full bg-background border border-border shadow-sm ${
-              size === "lg"
-                ? "lg:size-14 size-10"
-                : "lg:size-10 size-7"
-            }`}
-          >
-            <Icon className={size === "lg" ? "w-6 h-6" : "w-4 h-4"} />
-          </span>
-        </motion.div>
+  const serviceRefs = [domainRef, hostingRef, aiRef];
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative flex h-[220px] w-full items-center justify-center overflow-hidden"
+    >
+      <div className="flex size-full max-w-sm flex-row items-stretch justify-between gap-8 px-4">
+        <div className="flex flex-col justify-center">
+          <Circle ref={userRef}>
+            <User className="size-4 text-foreground" strokeWidth={2} />
+          </Circle>
+        </div>
+
+        <div className="flex flex-col justify-center">
+          <Circle ref={hubRef} className="size-14 border-primary/30 bg-background p-2">
+            <img
+              src="/nisciconoriginal.png"
+              alt="Nisc Cloud"
+              className="size-full object-contain"
+            />
+          </Circle>
+        </div>
+
+        <div className="flex flex-col justify-center gap-4">
+          {services.map(({ Icon, label }, index) => (
+            <Circle key={label} ref={serviceRefs[index]} aria-label={label}>
+              <Icon className="size-4 text-primary" />
+            </Circle>
+          ))}
+        </div>
+      </div>
+
+      {serviceRefs.map((serviceRef, index) => (
+        <AnimatedBeam
+          key={services[index].label}
+          containerRef={containerRef}
+          fromRef={serviceRef}
+          toRef={hubRef}
+          duration={3}
+          delay={index * 0.15}
+          gradientStartColor="#38b6ff"
+          gradientStopColor="#6366f1"
+        />
       ))}
+      <AnimatedBeam
+        containerRef={containerRef}
+        fromRef={hubRef}
+        toRef={userRef}
+        duration={3}
+        gradientStartColor="#38b6ff"
+        gradientStopColor="#6366f1"
+      />
     </div>
   );
 }
