@@ -2,9 +2,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -47,16 +48,34 @@ const budgets = [
 
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  const prefilledServiceName = searchParams.get("serviceName");
+  const prefilledPlan = searchParams.get("plan");
+  const prefilledPlanPrice = searchParams.get("planPrice");
+  const prefilledPlanPeriod = searchParams.get("planPeriod");
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  useEffect(() => {
+    const service = searchParams.get("service");
+    const message = searchParams.get("message");
+    const updates: Partial<FormData> = {};
+    if (service) updates.service = service;
+    if (message) updates.message = message;
+    if (Object.keys(updates).length > 0) {
+      reset((current) => ({ ...current, ...updates }));
+    }
+  }, [searchParams, reset]);
 
   const serviceValue = watch("service");
   const budgetValue = watch("budget");
@@ -100,6 +119,23 @@ export default function ContactForm() {
       <p className="text-sm text-muted-foreground mb-8">
         Fill in the details below and we&apos;ll get back to you with a tailored strategy.
       </p>
+
+      {prefilledPlan && prefilledServiceName ? (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3.5">
+          <Sparkles size={18} className="mt-0.5 shrink-0 text-primary" />
+          <div className="text-sm">
+            <p className="font-medium text-foreground">
+              Inquiring about: {prefilledServiceName} — {prefilledPlan}
+            </p>
+            {prefilledPlanPrice ? (
+              <p className="mt-0.5 text-muted-foreground">
+                KES {Number(prefilledPlanPrice).toLocaleString()}
+                {prefilledPlanPeriod ? `/${prefilledPlanPeriod.replace(/^mo$/i, "month")}` : ""}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Name + Email */}

@@ -102,7 +102,7 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
 
 export default function ServiceShowcaseSection({ blocks, className }: Props) {
   return (
-    <section className={cn("max-w-7xl mx-auto px-4 md:px-8 py-24 space-y-24 md:space-y-32", className)}>
+    <section className={cn("max-w-7xl mx-auto px-4 md:px-8 pt-6 pb-20 space-y-20 md:space-y-24", className)}>
       {blocks.map((b, i) => (
         <Block key={i} block={b} index={i} />
       ))}
