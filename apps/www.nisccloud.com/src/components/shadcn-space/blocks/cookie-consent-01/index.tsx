@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Cookie, Settings2 } from "lucide-react";
+import { Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils.ts";
@@ -38,36 +38,36 @@ const CookieConsent = () => {
       aria-label="Cookie consent"
     >
       <div className="pointer-events-auto mx-auto max-w-7xl">
-        <div className="rounded-xl border border-border bg-background px-5 py-6 shadow-lg md:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 sm:gap-6 md:flex-nowrap">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 shrink-0 items-center rounded-full bg-secondary px-3">
-                <Cookie className="h-4 w-4 text-secondary-foreground" />
+        <div className="rounded-xl border border-border bg-background px-4 py-3 shadow-lg md:px-6 md:py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 md:flex-nowrap">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 shrink-0 items-center rounded-full bg-secondary px-2.5">
+                <Cookie className="h-3.5 w-3.5 text-secondary-foreground" />
               </div>
-              <p className="text-base text-muted-foreground md:text-lg">
+              <p className="text-sm text-muted-foreground">
                 By clicking accept, you consent to our use of cookies.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button
+              {/* <Button
                 type="button"
                 variant="ghost"
-                className="h-10 cursor-pointer rounded-full transition-colors"
+                className="h-8 cursor-pointer rounded-full transition-colors"
                 aria-label="Cookie settings"
               >
                 <Settings2 className="h-4 w-4" />
-              </Button>
+              </Button> */}
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 cursor-pointer rounded-full px-6 font-medium"
+                className="h-8 cursor-pointer rounded-full px-5 text-sm font-medium"
                 onClick={() => dismiss(false)}
               >
                 Reject all
               </Button>
               <Button
                 type="button"
-                className="h-10 cursor-pointer rounded-full px-6 font-medium transition-colors duration-200 hover:bg-primary/80"
+                className="h-8 cursor-pointer rounded-full px-5 text-sm font-medium transition-colors duration-200 hover:bg-primary/80"
                 onClick={() => dismiss(true)}
               >
                 Accept

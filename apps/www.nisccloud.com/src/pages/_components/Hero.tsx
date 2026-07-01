@@ -92,7 +92,7 @@ export default function Hero() {
         }}
       />
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-20 lg:py-28 grid lg:grid-cols-2 gap-14 lg:gap-20 items-center w-full relative z-10">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-16 pb-0 md:pt-20 lg:pt-28 grid lg:grid-cols-2 gap-14 lg:gap-20 items-center w-full relative z-10">
 
         {/* Left: text */}
         <div className="max-w-xl">
@@ -226,7 +226,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="col-span-full pb-4"
+          className="col-span-full pb-0"
         >
           <p className="text-center text-xs font-mono font-semibold tracking-widest text-muted-foreground/60 uppercase mb-6">
             Trusted by businesses across Kenya

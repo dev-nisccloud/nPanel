@@ -122,33 +122,33 @@ export default function Stats() {
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="relative px-6 py-8 sm:py-10 gap-3 flex flex-col items-center justify-center"
+                className="relative px-5 py-6 sm:py-8 gap-2.5 flex flex-col items-center justify-center"
               >
                 {/* Vertical divider between items (desktop) */}
                 {index !== 0 && (
-                  <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-px h-32 bg-border" />
+                  <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-px h-28 bg-border" />
                 )}
 
                 {/* Icon badge */}
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center mb-1",
+                    "w-9 h-9 rounded-xl flex items-center justify-center mb-0.5",
                     stat.color
                   )}
                 >
-                  <stat.icon className="w-5 h-5" />
+                  <stat.icon className="w-4 h-4" />
                 </div>
 
                 {/* Animated number */}
-                <div className="flex items-start gap-0 text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground">
+                <div className="flex items-start gap-0 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
                   <AnimatedCounter value={stat.count} isInView={isInView} />
-                  <span className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-1.5 text-primary">
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold mt-1 text-primary">
                     {stat.suffix}
                   </span>
                 </div>
 
                 {/* Label */}
-                <p className="text-sm font-medium text-muted-foreground text-center uppercase tracking-wide">
+                <p className="text-xs sm:text-sm font-medium text-muted-foreground text-center uppercase tracking-wide">
                   {stat.label}
                 </p>
               </div>
