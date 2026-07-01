@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 
 export function CartPageSkeleton() {
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-8" aria-busy="true" aria-label="Loading cart">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-8" aria-busy="true" aria-label="Loading cart">
       {/* Step indicator */}
       <div className="mb-5 flex items-center gap-2">
         <Skeleton className="h-6 w-6 rounded-full shrink-0" />

@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import Navbar from "@/pages/_components/Navbar.tsx";
 import { CartPageSkeleton } from "./_components/CartPageSkeleton.tsx";
 import { CartItem } from "./_components/CartItem.tsx";
 import { DomainUpsell } from "./_components/DomainUpsell.tsx";
@@ -92,32 +93,12 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 }
 
 // ---------------------------------------------------------------------------
-// Minimal cart header  logo only, no step indicator
-// ---------------------------------------------------------------------------
-
-function CartHeader() {
-  return (
-    <header className="bg-white border-b border-border sticky top-0 z-20">
-      <div className="max-w-5xl mx-auto px-4 md:px-6 h-16 flex items-center">
-        <Link to="/" className="shrink-0">
-          <img
-            src="/nisccloud-logo.svg"
-            alt="Nisc Cloud"
-            className="h-14 w-auto object-contain"
-          />
-        </Link>
-      </div>
-    </header>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Empty cart state
 // ---------------------------------------------------------------------------
 
 function EmptyCart() {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center px-4">
+    <div className="flex flex-col items-center justify-center pt-16 py-24 text-center px-4">
       <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mb-4" />
       <h2 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h2>
       <p className="text-muted-foreground mb-6 max-w-xs">
@@ -471,7 +452,7 @@ export default function CartPage() {
 
   if (!handoff) return (
     <div className="min-h-screen bg-gray-50">
-      <CartHeader />
+      <Navbar />
       <EmptyCart />
     </div>
   );
@@ -479,8 +460,8 @@ export default function CartPage() {
   if (quoteError && !quote && !quoteInitialLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <CartHeader />
-        <main className="max-w-5xl mx-auto px-4 md:px-6 py-8">
+        <Navbar />
+        <main className="max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-8">
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {quoteError}
           </div>
@@ -498,7 +479,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <CartHeader />
+      <Navbar />
 
       {showSkeleton && <CartPageSkeleton />}
 
@@ -506,8 +487,8 @@ export default function CartPage() {
         <main
           className={
             showSkeleton
-              ? "max-w-5xl mx-auto px-4 md:px-6 py-8 invisible absolute inset-x-0 top-16 opacity-0 pointer-events-none h-0 overflow-hidden"
-              : "max-w-5xl mx-auto px-4 md:px-6 py-8 animate-in fade-in duration-300"
+              ? "max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
+              : "max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-8 animate-in fade-in duration-300"
           }
           aria-hidden={showSkeleton}
         >

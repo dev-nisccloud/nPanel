@@ -38,6 +38,11 @@ import CartPage from "./pages/cart/page.tsx";
 import HelpCentrePage from "./pages/help/page.tsx";
 import ScrollToTop from "./components/ScrollToTop.tsx";
 
+// Legal pages
+import TermsOfServicePage from "./pages/legal/terms/page.tsx";
+import PrivacyPolicyPage from "./pages/legal/privacy/page.tsx";
+import CookiePolicyPage from "./pages/legal/cookies/page.tsx";
+
 export default function App() {
   return (
     <DefaultProviders>
@@ -84,6 +89,11 @@ export default function App() {
 
           {/* Shared cart / checkout page */}
           <Route path="/cart" element={<CartPage />} />
+
+          {/* Legal pages */}
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/cookies" element={<CookiePolicyPage />} />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
