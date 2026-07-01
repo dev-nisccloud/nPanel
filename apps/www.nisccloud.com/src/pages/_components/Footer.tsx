@@ -35,9 +35,9 @@ const footerSections: FooterSection[] = [
   {
     title: "Legal",
     links: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "Terms of Service", href: "#" },
-      { label: "Cookie Policy", href: "#" },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Cookie Policy", href: "/cookies" },
     ],
   },
 ];
@@ -114,8 +114,26 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>© {new Date().getFullYear()} Nisc Cloud. All rights reserved.</span>
+        <div className="border-t border-border pt-8 flex flex-col gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <span>© {new Date().getFullYear()} Nisc Cloud Limited. All rights reserved.</span>
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors cursor-pointer">
+                Privacy Policy
+              </button>
+              <span>·</span>
+              <button onClick={() => navigate("/terms")} className="hover:text-foreground transition-colors cursor-pointer">
+                Terms of Service
+              </button>
+              <span>·</span>
+              <button onClick={() => navigate("/cookies")} className="hover:text-foreground transition-colors cursor-pointer">
+                Cookie Policy
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground/70 text-center md:text-left">
+            Registered Data Controller · ODPC Reg. No. 160-3417-5D07 · Kenya Data Protection Act, 2019
+          </p>
         </div>
       </div>
     </footer>
