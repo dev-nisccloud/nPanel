@@ -14,6 +14,7 @@ export const agencyMenuKeys = [
 	"/agency/tlds",
 	"/agency/domain-transfer",
 	"/agency/domains-portfolio",
+	"/agency/whois",
 
 	"/agency/hosting",
 	"/agency/dedicated-servers",
