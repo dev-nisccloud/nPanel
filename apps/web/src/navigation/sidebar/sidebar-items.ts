@@ -234,6 +234,7 @@ export const agencysidebarItems: NavGroup[] = [
           { title: "TLDs", url: "/agency/tlds", },
           { title: "Transfer", url: "/agency/domain-transfer", },
           { title: "Domains Portfolio", url: "/agency/domains-portfolio", },
+          { title: "WHOIS Checker", url: "/agency/whois", },
         ],
       },
       {
