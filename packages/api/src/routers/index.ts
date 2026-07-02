@@ -126,6 +126,7 @@ import { jetbackupFilePermissionsRouter } from "./jetbackup/file-permissions";
 import { jetbackupPluginsRouter } from "./jetbackup/plugins";
 import { storefrontRouter } from "./storefront";
 import { objectStorageRouter } from "./object-storage";
+import { whoisRouter } from "./whois";
 
 
 export const appRouter = router({
@@ -326,6 +327,8 @@ export const appRouter = router({
 	storefront: storefrontRouter,
 	// MinIO / S3-compatible object storage (presigned uploads)
 	objectStorage: objectStorageRouter,
+	// WHOIS / RDAP domain lookup (public — no auth required)
+	whois: whoisRouter,
 	// JetBackup 5 Integration
 	jetbackup: router({
 		dashboard: jetbackupDashboardRouter,
