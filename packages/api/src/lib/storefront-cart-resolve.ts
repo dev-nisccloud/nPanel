@@ -14,6 +14,7 @@ export const storefrontCartQuoteRequestSchema = z
 	.object({
 		handoff: z.string().min(1).optional(),
 		main: storefrontCartMainLineSchema.partial().optional(),
+		transferAuthCode: storefrontCartQuoteInputSchema.shape.transferAuthCode,
 		upsellDomain: storefrontCartQuoteInputSchema.shape.upsellDomain,
 		upsellHosting: storefrontCartQuoteInputSchema.shape.upsellHosting,
 		hivelocity: storefrontCartQuoteInputSchema.shape.hivelocity,
@@ -55,13 +56,17 @@ export function resolveStorefrontCartQuoteInput(
 			billingCycle: input.main?.billingCycle ?? baseMain.billingCycle,
 		};
 
-		// Domains are always billed annually  ignore client MONTHLY override.
-		if (mergedMain.serviceType === "domain_registration") {
+		// Domains and transfers are always billed annually  ignore client MONTHLY override.
+		if (
+			mergedMain.serviceType === "domain_registration" ||
+			mergedMain.serviceType === "domain_transfer"
+		) {
 			mergedMain.billingCycle = "YEARLY";
 		}
 
 		return storefrontCartQuoteInputSchema.parse({
 			main: mergedMain,
+			transferAuthCode: input.transferAuthCode,
 			upsellDomain: input.upsellDomain,
 			upsellHosting: input.upsellHosting,
 			hivelocity: input.hivelocity,
@@ -70,6 +75,7 @@ export function resolveStorefrontCartQuoteInput(
 
 	return storefrontCartQuoteInputSchema.parse({
 		main: input.main,
+		transferAuthCode: input.transferAuthCode,
 		upsellDomain: input.upsellDomain,
 		upsellHosting: input.upsellHosting,
 		hivelocity: input.hivelocity,

@@ -14,6 +14,11 @@ export interface StorefrontCartParams {
   billingCycle?: StorefrontBillingCycle;
   locationName?: string;
   bundleDomains?: string[];
+  transferProvider?: "kenic" | "openprovider";
+  providerPriceAmount?: number | null;
+  providerPriceCurrency?: string | null;
+  customerPriceAmount?: number;
+  customerPriceCurrency?: string;
 }
 
 /** Navigate to cart with a server-signed handoff token (no prices in URL). */
@@ -27,6 +32,11 @@ export async function navigateToStorefrontCart(params: StorefrontCartParams) {
     billingCycle: params.billingCycle ?? "MONTHLY",
     locationName: params.locationName,
     bundleDomains: params.bundleDomains,
+    transferProvider: params.transferProvider,
+    providerPriceAmount: params.providerPriceAmount ?? undefined,
+    providerPriceCurrency: params.providerPriceCurrency ?? undefined,
+    customerPriceAmount: params.customerPriceAmount,
+    customerPriceCurrency: params.customerPriceCurrency,
   });
   window.location.assign(`/cart?h=${encodeURIComponent(handoff)}`);
 }
@@ -44,6 +54,28 @@ export function buildSharedHostingCartParams(
     productName: plan.productName,
     currency: plan.niscCurrency || "KES",
     billingCycle: isYearly ? "YEARLY" : "MONTHLY",
+  };
+}
+
+export function buildDomainTransferCartParams(params: {
+  domain: string;
+  provider: "kenic" | "openprovider";
+  customerPriceAmount: number;
+  customerPriceCurrency: string;
+  providerPriceAmount?: number | null;
+  providerPriceCurrency?: string | null;
+}): StorefrontCartParams {
+  return {
+    serviceType: "domain_transfer",
+    planName: params.domain,
+    productName: "Domain Transfer",
+    currency: params.customerPriceCurrency,
+    billingCycle: "YEARLY",
+    transferProvider: params.provider,
+    customerPriceAmount: params.customerPriceAmount,
+    customerPriceCurrency: params.customerPriceCurrency,
+    providerPriceAmount: params.providerPriceAmount,
+    providerPriceCurrency: params.providerPriceCurrency,
   };
 }
 

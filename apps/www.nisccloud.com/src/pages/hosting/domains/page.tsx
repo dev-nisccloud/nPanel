@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils.ts";
 import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 import DomainSearch from "@/pages/_components/DomainSearch.tsx";
-import DomainsPricingSection from "./_components/DomainsPricingSection.tsx";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -393,10 +392,6 @@ function Hero() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DomainsPage() {
-  const scrollToPricing = () => {
-    document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" });
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
@@ -410,8 +405,6 @@ export default function DomainsPage() {
       <ProcessSection />
 
       <ExtensionsSection />
-
-      <DomainsPricingSection />
 
       <WhySection />
 
@@ -440,13 +433,6 @@ export default function DomainsPage() {
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             >
               Search Your Domain <ArrowRight size={15} className="ml-1.5" />
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-xl h-11 cursor-pointer font-medium hover:border-primary/40"
-              onClick={scrollToPricing}
-            >
-              View Pricing
             </Button>
           </div>
         </div>

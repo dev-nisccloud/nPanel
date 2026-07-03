@@ -14,7 +14,7 @@ import {
   Menu, X, ChevronDown, Globe, Server, Mail, Cpu, Megaphone,
   Palette, ShoppingCart, PenTool, BarChart2, Zap,
   LogIn, TrendingUp, Users, HardDrive, MonitorSmartphone,
-  Target, AtSign,
+  Target, AtSign, ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { FlowButton } from "@/components/ui/flow-button.tsx";
@@ -61,6 +61,7 @@ const navItems: NavItem[] = [
       { label: "Dedicated Servers Hosting", desc: "Full dedicated server power", href: "/hosting/dedicated-servers", icon: <TrendingUp size={16} /> },
       { label: "Business Email Hosting", desc: "Professional email for your brand", href: "/hosting/email", icon: <Mail size={16} /> },
       { label: "Domain Registration", desc: ".co.ke, .com and 50+ extensions", href: "/hosting/domains", icon: <Globe size={16} /> },
+      { label: "Domain Transfer", desc: "Move your domain to Nisc Cloud", href: "/domain-transfer", icon: <ArrowLeftRight size={16} /> },
     ],
   },
   { label: "Security", href: "/security" },

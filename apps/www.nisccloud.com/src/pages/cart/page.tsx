@@ -4,6 +4,7 @@ import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import Navbar from "@/pages/_components/Navbar.tsx";
+import { TransferEppCodeField } from "./_components/TransferEppCodeField.tsx";
 import { CartPageSkeleton } from "./_components/CartPageSkeleton.tsx";
 import { CartItem } from "./_components/CartItem.tsx";
 import { DomainUpsell } from "./_components/DomainUpsell.tsx";
@@ -127,6 +128,7 @@ export default function CartPage() {
   const [billingCycle, setBillingCycle] = React.useState<BillingCycle | null>(null);
   const billingCycleUserSetRef = React.useRef(false);
   const [selectedDomain, setSelectedDomain] = React.useState<SelectedDomain | null>(null);
+  const [transferAuthCode, setTransferAuthCode] = React.useState("");
   const [selectedHostingType, setSelectedHostingType] = React.useState<HostingUpsellType | null>(null);
   const loadedHostingPlansRef = React.useRef<Partial<Record<HostingUpsellType, UpsellPlanInfo>>>({});
   const [selectedHostingPlanInfo, setSelectedHostingPlanInfo] =
@@ -186,6 +188,10 @@ export default function CartPage() {
       };
     }
 
+    if (transferAuthCode.trim()) {
+      request.transferAuthCode = transferAuthCode.trim();
+    }
+
     return request;
   }, [
     handoff,
@@ -195,6 +201,7 @@ export default function CartPage() {
     selectedHostingPlanInfo,
     hostingCycles,
     hivelocityConfig,
+    transferAuthCode,
   ]);
 
   const { quote, quoteError, quoteInitialLoading, quoteRefreshing } = useStorefrontCartQuote(cartQuoteRequest);
@@ -236,11 +243,13 @@ export default function CartPage() {
   }, [quote, isHivelocityPlan, hivelocityProductType]);
 
   const wantsDomainUpsell = HOSTING_TYPES.has(serviceType);
-  const wantsHostingUpsell = serviceType === "domain_registration";
+  const wantsHostingUpsell =
+    serviceType === "domain_registration" || serviceType === "domain_transfer";
+  const isDomainTransfer = serviceType === "domain_transfer";
 
   React.useEffect(() => {
     if (!quote) return;
-    if (quote.serviceType !== "domain_registration") {
+    if (quote.serviceType !== "domain_registration" && quote.serviceType !== "domain_transfer") {
       setHostingUpsellLoading(false);
     }
   }, [quote?.serviceType]);
@@ -259,7 +268,12 @@ export default function CartPage() {
       if (!hivelocityConfig) return false;
       if (!hivelocityPricing || hivelocityPricing.loading) return false;
     }
-    if (quote.serviceType === "domain_registration" && hostingUpsellLoading) return false;
+    if (
+      quote.serviceType === "domain_registration" ||
+      quote.serviceType === "domain_transfer"
+    ) {
+      if (hostingUpsellLoading) return false;
+    }
     return true;
   }, [
     quoteInitialLoading,
@@ -358,6 +372,7 @@ export default function CartPage() {
   const canContinueStep1 = React.useMemo(() => {
     if (quoteInitialLoading || !quote || quoteSummaryLoading) return false;
     if (quoteError) return false;
+    if (isDomainTransfer && !transferAuthCode.trim()) return false;
     if (!isHivelocityPlan) return true;
     if (!hivelocityPricing || hivelocityPricing.loading) return false;
     if (hivelocityPricing.loadError) return false;
@@ -370,6 +385,8 @@ export default function CartPage() {
     quote,
     quoteError,
     quoteSummaryLoading,
+    isDomainTransfer,
+    transferAuthCode,
     isHivelocityPlan,
     hivelocityConfig,
     hivelocityConfigComplete,
@@ -385,7 +402,7 @@ export default function CartPage() {
   const checkoutTotal = quote?.total ?? 0;
 
   const resolvePrimaryDomain = (): string | undefined => {
-    if (serviceType === "domain_registration") return planName;
+    if (serviceType === "domain_registration" || serviceType === "domain_transfer") return planName;
     if (selectedDomain?.domain) return selectedDomain.domain;
     return undefined;
   };
@@ -432,7 +449,9 @@ export default function CartPage() {
       throw new Error("Checkout session expired. Please refresh and try again.");
     }
 
-    const resolvedProductId = resolveStorefrontProductId(serviceType, productId);
+    const resolvedProductId =
+      resolveStorefrontProductId(serviceType, productId) ||
+      (serviceType === "domain_transfer" ? productId : "");
     if (!resolvedProductId) {
       throw new Error("Missing product configuration. Please go back and select a plan again.");
     }
@@ -444,6 +463,7 @@ export default function CartPage() {
       productId: resolvedProductId,
       billingCycle: displayBillingCycle,
       primaryDomain: resolvePrimaryDomain(),
+      cart: cartQuoteRequest ?? undefined,
     });
 
     toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
@@ -526,6 +546,14 @@ export default function CartPage() {
                     item={cartItem}
                     onBillingCycleChange={handleBillingCycleChange}
                   />
+
+                  {isDomainTransfer && (
+                    <TransferEppCodeField
+                      domain={planName}
+                      value={transferAuthCode}
+                      onChange={setTransferAuthCode}
+                    />
+                  )}
 
                   {/* Domain upsell  for hosting buyers */}
                   {wantsDomainUpsell && (

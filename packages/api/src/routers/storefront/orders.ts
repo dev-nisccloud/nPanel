@@ -21,12 +21,19 @@ import { z } from "zod";
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscOrder, niscOrderItem } from "@npanel/db/schema/nisc-orders";
-import { niscProductPlan } from "@npanel/db/schema/products";import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
+import { niscProductPlan, niscProduct } from "@npanel/db/schema/products";
+import { domainTransferRequest } from "@npanel/db/schema/domain-transfer-requests";
+import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import { publicProcedure, router } from "../../trpc";
 import { verifyStorefrontTokenOrThrow } from "../../lib/storefront-token";
 import { resolveActiveNiscProductById } from "../../lib/planless-product-resolver";
-import { enqueueNiscOrderProcessing } from "../../lib/qstash/nisc-order-worker";import { processNiscOrder } from "../../lib/nisc-order-processor";
+import { enqueueNiscOrderProcessing } from "../../lib/qstash/nisc-order-worker";
+import { processNiscOrder } from "../../lib/nisc-order-processor";
 import { runPreProvisioningInvoiceForOrder } from "../../lib/nisc-order-invoice-delivery";
+import {
+  resolveStorefrontCartQuoteInput,
+  storefrontCartQuoteRequestSchema,
+} from "../../lib/storefront-cart-resolve";
 
 // ---------------------------------------------------------------------------
 // Helpers (mirrors nisc-service-orders.ts)
@@ -59,6 +66,8 @@ const createFromPaymentInputSchema = z.object({
   billingCycle: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
   /** For domain-inclusive plans. */
   primaryDomain: z.string().optional(),
+  /** Full cart payload — required for domain transfers (EPP code). */
+  cart: storefrontCartQuoteRequestSchema.optional(),
 });
 // ---------------------------------------------------------------------------
 // Router
@@ -122,12 +131,56 @@ export const storefrontOrdersRouter = router({
       }
 
       // 3. Fetch product and optional plan details for the order item
-      const product = await resolveActiveNiscProductById(input.productId);
+      let product = await resolveActiveNiscProductById(input.productId);
+      const resolvedCart = input.cart
+        ? resolveStorefrontCartQuoteInput(input.cart)
+        : null;
+
+      if (
+        resolvedCart?.main.serviceType === "domain_transfer" &&
+        (!product || product.serviceType !== "domain_transfer")
+      ) {
+        const [transferProduct] = await db
+          .select()
+          .from(niscProduct)
+          .where(
+            and(
+              eq(niscProduct.isActive, true),
+              eq(niscProduct.serviceType, "domain_transfer"),
+            ),
+          )
+          .limit(1);
+        if (transferProduct) product = transferProduct;
+      }
+
       if (!product) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "The selected product is no longer available.",
         });
+      }
+
+      const isDomainTransfer =
+        product.serviceType === "domain_transfer" ||
+        resolvedCart?.main.serviceType === "domain_transfer";
+      let transferAuthCode: string | undefined;
+      let transferProvider: "kenic" | "openprovider" | undefined;
+
+      if (isDomainTransfer) {
+        transferAuthCode = resolvedCart?.transferAuthCode?.trim();
+        transferProvider = resolvedCart?.main.transferProvider;
+        if (!transferAuthCode) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Domain transfer requires an authorization (EPP) code.",
+          });
+        }
+        if (!input.primaryDomain?.trim()) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Domain transfer requires a domain name.",
+          });
+        }
       }
 
       const plan = input.planId
@@ -154,10 +207,11 @@ export const storefrontOrdersRouter = router({
 
       const isDomainProduct =
         product.serviceType === "domain_registration" ||
+        product.serviceType === "domain_transfer" ||
         product.serviceType === "domains" ||
         product.serviceType.toLowerCase().includes("domain");
 
-      if (isDomainProduct && !input.primaryDomain?.trim()) {
+      if (isDomainProduct && !isDomainTransfer && !input.primaryDomain?.trim()) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Domain registration requires a domain name.",
@@ -171,6 +225,38 @@ export const storefrontOrdersRouter = router({
       const orderNumber = generateNiscOrderNumber();
       const orderId = crypto.randomUUID();
       const orderItemId = crypto.randomUUID();
+      let domainTransferRequestId: string | null = null;
+
+      if (isDomainTransfer && transferAuthCode) {
+        const domainName = input.primaryDomain!.trim().toLowerCase();
+        const provider =
+          transferProvider === "kenic"
+            ? "KENIC"
+            : transferProvider === "openprovider"
+              ? "OPENPROVIDER"
+              : domainName.endsWith(".ke") || domainName.includes(".co.ke")
+                ? "KENIC"
+                : "OPENPROVIDER";
+        domainTransferRequestId = crypto.randomUUID();
+        await db.insert(domainTransferRequest).values({
+          id: domainTransferRequestId,
+          domainName,
+          authCode: transferAuthCode,
+          provider,
+          status: "PENDING",
+          providerPriceAmount:
+            resolvedCart?.main.providerPriceAmount != null
+              ? String(resolvedCart.main.providerPriceAmount)
+              : null,
+          providerPriceCurrency: resolvedCart?.main.providerPriceCurrency ?? null,
+          customerPriceAmount: itemPrice,
+          customerPriceCurrency: currency,
+          teamId,
+          createdById: userId,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
 
       // 5. Create the order and order item in a single transaction
       await db.transaction(async (trx) => {
@@ -196,12 +282,27 @@ export const storefrontOrdersRouter = router({
           productPlanId: plan?.id ?? null,
           billingCycle: input.billingCycle,
           primaryDomain: input.primaryDomain?.trim() || null,
+          description: isDomainTransfer ? "transfer" : null,
+          metadata: isDomainTransfer
+            ? {
+                transferAuthCode,
+                domainTransferRequestId,
+              }
+            : null,
           itemPrice,
           itemSubtotal: itemPrice,
           status: "PENDING",
           createdAt: now,
           updatedAt: now,
-        });      });
+        });
+      });
+
+      if (domainTransferRequestId) {
+        await db
+          .update(domainTransferRequest)
+          .set({ niscOrderId: orderId, updatedAt: new Date() })
+          .where(eq(domainTransferRequest.id, domainTransferRequestId));
+      }
 
       // 6. Enqueue for processing  IDENTICAL HANDOFF to dashboard flow
       try {
