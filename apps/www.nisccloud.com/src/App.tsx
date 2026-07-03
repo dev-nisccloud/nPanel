@@ -36,6 +36,7 @@ import SecurityPage from "./pages/security/page.tsx";
 import CartPage from "./pages/cart/page.tsx";
 
 import HelpCentrePage from "./pages/help/page.tsx";
+import WhoisPage from "./pages/whois/page.tsx";
 import ScrollToTop from "./components/ScrollToTop.tsx";
 
 // Legal pages
@@ -80,6 +81,9 @@ export default function App() {
 
           {/* Help Centre */}
           <Route path="/help" element={<HelpCentrePage />} />
+
+          {/* WHOIS Checker */}
+          <Route path="/whois" element={<WhoisPage />} />
 
           {/* Security */}
           <Route path="/security" element={<SecurityPage />} />

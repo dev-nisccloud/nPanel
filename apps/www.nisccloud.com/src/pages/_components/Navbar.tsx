@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 
-const NPANEL_URL = import.meta.env.VITE_NPANEL_APP_URL ?? "https://npanel.nisccloud.com";
+function resolveNpanelUrl() {
+  const configured = import.meta.env.VITE_NPANEL_APP_URL;
+  if (typeof configured === "string" && configured.trim()) {
+    return configured.trim().replace(/\/$/, "");
+  }
+  return "https://npanel.nisccloud.com";
+}
+
+const NPANEL_URL = resolveNpanelUrl();
 import { motion, AnimatePresence } from "motion/react";
 import {
   Menu, X, ChevronDown, Globe, Server, Mail, Cpu, Megaphone,
@@ -146,6 +154,10 @@ export default function Navbar() {
     }
   };
 
+  const handleGetStarted = () => {
+    window.location.assign(NPANEL_URL);
+  };
+
   return (
     <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
@@ -221,7 +233,7 @@ export default function Navbar() {
             text="Get Started"
             size="sm"
             variant="filled"
-            onClick={() => navigate("/pricing")}
+            onClick={handleGetStarted}
           />
         </div>
 
@@ -303,7 +315,10 @@ export default function Navbar() {
                   text="Get Started"
                   size="sm"
                   variant="filled"
-                  onClick={() => { window.location.href = NPANEL_URL; setOpen(false); }}
+                  onClick={() => {
+                    handleGetStarted();
+                    setOpen(false);
+                  }}
                   className="w-full justify-center"
                 />
               </div>
