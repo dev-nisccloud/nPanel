@@ -155,7 +155,7 @@ export default function NeedSelector() {
   const tab = tabs[activeTab];
 
   return (
-    <section id="needs" className="relative overflow-hidden bg-background pt-4 pb-12 md:pt-5 md:pb-16">
+    <section id="needs" className="relative overflow-hidden bg-background pb-12 pt-6 md:pb-16 md:pt-8">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
 
         <motion.div

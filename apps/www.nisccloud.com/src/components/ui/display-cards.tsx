@@ -23,7 +23,7 @@ function DisplayCard({
   return (
     <div
       className={cn(
-        "relative flex h-36 w-[22rem] -skew-y-[8deg] select-none flex-col justify-between rounded-xl border border-primary/20 bg-background/40 backdrop-blur-xl bg-gradient-to-br from-background/40 to-primary/10 shadow-xl shadow-primary/5 px-4 py-3 transition-all duration-700 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20 [&>*]:flex [&>*]:items-center [&>*]:gap-2",
+        "relative flex h-32 w-full max-w-[22rem] -skew-y-[8deg] select-none flex-col justify-between rounded-xl border border-primary/20 bg-background/40 backdrop-blur-xl bg-gradient-to-br from-background/40 to-primary/10 px-4 py-3 shadow-xl shadow-primary/5 transition-all duration-700 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20 sm:h-36 [&>*]:flex [&>*]:items-center [&>*]:gap-2",
         className
       )}
     >
