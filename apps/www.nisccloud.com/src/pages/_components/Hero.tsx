@@ -54,7 +54,7 @@ const heroCards = [
     iconClassName: "text-primary",
     titleClassName: "text-primary",
     className:
-      "[grid-area:stack] translate-x-12 translate-y-10 hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+      "[grid-area:stack] translate-x-6 translate-y-6 sm:translate-x-12 sm:translate-y-10 hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
   },
   {
     icon: <Paintbrush className="size-4 text-primary" />,
@@ -64,7 +64,7 @@ const heroCards = [
     iconClassName: "text-primary",
     titleClassName: "text-primary",
     className:
-      "[grid-area:stack] translate-x-24 translate-y-20 hover:translate-y-10",
+      "[grid-area:stack] translate-x-10 translate-y-10 sm:translate-x-24 sm:translate-y-20 hover:translate-y-10",
   },
 ];
 
@@ -74,7 +74,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="relative flex items-center pt-16 overflow-x-hidden lg:min-h-[90vh] bg-background"
+      className="relative pt-16 overflow-x-hidden bg-background lg:flex lg:min-h-[90vh] lg:items-center"
     >
       {/* Subtle dot grid */}
       <div
@@ -92,10 +92,10 @@ export default function Hero() {
         }}
       />
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-16 pb-0 md:pt-20 lg:pt-28 grid lg:grid-cols-2 gap-14 lg:gap-20 items-center w-full relative z-10">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-8 px-4 pt-16 pb-10 md:px-8 md:pt-20 lg:grid-cols-2 lg:items-center lg:gap-20 lg:pt-28 lg:pb-14">
 
         {/* Left: text */}
-        <div className="max-w-xl">
+        <div className="order-1 max-w-xl lg:order-1">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -199,36 +199,14 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Right: Atom Visual Approach */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.25 }}
-          className="flex w-full flex-col gap-6 lg:gap-8"
-        >
-          <div className="space-y-2 text-center lg:text-left max-w-md mx-auto lg:mx-0">
-            <h3 className="text-lg font-bold tracking-tight text-foreground">
-              Everything you need to grow online, all in one place
-            </h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              No need to hire different teams or pay separate bills. We handle your design, hosting, marketing, and automation together so your business grows faster.
-            </p>
-          </div>
-          <div className="w-full flex items-center justify-center py-6">
-            <div className="w-full max-w-md">
-              <DisplayCards cards={heroCards} />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Trusted by  full-width row below both columns */}
+        {/* Trusted by — directly below hero copy on mobile */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="col-span-full pb-0"
+          className="order-2 col-span-full pb-0 lg:order-3"
         >
-          <p className="text-center text-xs font-mono font-semibold tracking-widest text-muted-foreground/60 uppercase mb-6">
+          <p className="mb-4 text-center text-xs font-mono font-semibold tracking-widest text-muted-foreground/60 uppercase lg:mb-6">
             Trusted by businesses across Kenya
           </p>
           <div className="relative overflow-hidden">
@@ -243,7 +221,7 @@ export default function Hero() {
                 {allClients.map((client, i) => (
                   <div
                     key={`${client.name}-${i}`}
-                    className="flex items-center justify-center opacity-50 hover:opacity-90 grayscale hover:grayscale-0 transition-all duration-300 shrink-0 px-1"
+                    className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-1"
                     title={client.name}
                   >
                     <img
@@ -255,6 +233,28 @@ export default function Hero() {
                   </div>
                 ))}
               </motion.div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Right: Atom Visual Approach — below logos on mobile */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.25 }}
+          className="order-3 flex w-full flex-col gap-4 lg:order-2 lg:gap-8"
+        >
+          <div className="mx-auto max-w-md space-y-2 text-center lg:mx-0 lg:text-left">
+            <h3 className="text-lg font-bold tracking-tight text-foreground">
+              Everything you need to grow online, all in one place
+            </h3>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              No need to hire different teams or pay separate bills. We handle your design, hosting, marketing, and automation together so your business grows faster.
+            </p>
+          </div>
+          <div className="flex w-full items-center justify-center py-2 sm:py-4 lg:py-6">
+            <div className="w-full max-w-md">
+              <DisplayCards cards={heroCards} />
             </div>
           </div>
         </motion.div>

@@ -126,7 +126,7 @@ export default function Stats() {
               >
                 {/* Vertical divider between items (desktop) */}
                 {index !== 0 && (
-                  <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-px h-28 bg-border" />
+                  <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 w-px h-20 bg-border" />
                 )}
 
                 {/* Icon badge */}
@@ -140,9 +140,9 @@ export default function Stats() {
                 </div>
 
                 {/* Animated number */}
-                <div className="flex items-start gap-0 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
+                <div className="flex items-start gap-0 text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
                   <AnimatedCounter value={stat.count} isInView={isInView} />
-                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold mt-1 text-primary">
+                  <span className="mt-0.5 text-base font-extrabold text-primary md:text-lg">
                     {stat.suffix}
                   </span>
                 </div>
