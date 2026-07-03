@@ -89,6 +89,16 @@ export const storefrontPaymentRouter = router({
         });
       }
 
+      if (resolved.main.serviceType === "domain_transfer") {
+        const authCode = resolved.transferAuthCode?.trim();
+        if (!authCode) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Enter your domain authorization (EPP) code before payment.",
+          });
+        }
+      }
+
       const quote = await computeStorefrontCartQuote(resolved);
       const amount = Math.ceil(quote.total);
       if (amount < 1) {

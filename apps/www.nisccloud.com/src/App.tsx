@@ -37,6 +37,7 @@ import CartPage from "./pages/cart/page.tsx";
 
 import HelpCentrePage from "./pages/help/page.tsx";
 import WhoisPage from "./pages/whois/page.tsx";
+import DomainTransferPage from "./pages/domain-transfer/page.tsx";
 import ScrollToTop from "./components/ScrollToTop.tsx";
 
 // Legal pages
@@ -84,6 +85,9 @@ export default function App() {
 
           {/* WHOIS Checker */}
           <Route path="/whois" element={<WhoisPage />} />
+
+          {/* Domain Transfer */}
+          <Route path="/domain-transfer" element={<DomainTransferPage />} />
 
           {/* Security */}
           <Route path="/security" element={<SecurityPage />} />
