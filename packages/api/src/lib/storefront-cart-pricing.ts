@@ -33,10 +33,16 @@ export const storefrontCartMainLineSchema = z.object({
 	billingCycle: storefrontBillingCycleSchema.default("MONTHLY"),
 	locationName: z.string().optional(),
 	bundleDomains: z.array(z.string().min(1)).optional(),
+	transferProvider: z.enum(["kenic", "openprovider"]).optional(),
+	providerPriceAmount: z.number().optional(),
+	providerPriceCurrency: z.string().optional(),
+	customerPriceAmount: z.number().optional(),
+	customerPriceCurrency: z.string().optional(),
 });
 
 export const storefrontCartQuoteInputSchema = z.object({
 	main: storefrontCartMainLineSchema,
+	transferAuthCode: z.string().min(1).optional(),
 	upsellDomain: z
 		.object({
 			domain: z.string().min(1),
@@ -387,6 +393,30 @@ async function resolveMainLineQuote(
 	const billingCycle = main.billingCycle;
 	const productName = main.productName?.trim() || "Nisc Cloud Service";
 
+	if (main.serviceType === "domain_transfer") {
+		const domain = main.planName?.trim();
+		if (!domain) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Domain transfer requires a domain name.",
+			});
+		}
+		const amount = main.customerPriceAmount;
+		if (amount == null || !Number.isFinite(amount) || amount <= 0) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Invalid transfer price. Please restart checkout from the transfer page.",
+			});
+		}
+		return {
+			monthly: 0,
+			yearly: Math.round(amount),
+			planName: domain,
+			productName: productName || "Domain Transfer",
+			currency: main.customerPriceCurrency?.trim() || "KES",
+		};
+	}
+
 	if (main.serviceType === "domain_registration") {
 		if (main.bundleDomains && main.bundleDomains.length > 0) {
 			const yearly = await resolveDomainBundlePriceKes(main.bundleDomains);
@@ -479,7 +509,8 @@ export async function computeStorefrontCartQuote(
 
 	// Domains register for 1 year  checkout always uses the yearly price.
 	const effectiveBillingCycle =
-		parsed.main.serviceType === "domain_registration"
+		parsed.main.serviceType === "domain_registration" ||
+		parsed.main.serviceType === "domain_transfer"
 			? "YEARLY"
 			: parsed.main.billingCycle;
 

@@ -12,6 +12,7 @@ export type StorefrontBillingCycle = "MONTHLY" | "YEARLY";
 
 export type StorefrontCartQuoteRequest = {
   handoff?: string;
+  transferAuthCode?: string;
   main?: {
     serviceType?: string;
     planId?: string;
@@ -74,6 +75,11 @@ export async function createStorefrontHandoff(input: {
   billingCycle?: StorefrontBillingCycle;
   locationName?: string;
   bundleDomains?: string[];
+  transferProvider?: "kenic" | "openprovider";
+  providerPriceAmount?: number;
+  providerPriceCurrency?: string;
+  customerPriceAmount?: number;
+  customerPriceCurrency?: string;
 }): Promise<{ handoff: string }> {
   return trpcMutation("storefront.cart.createHandoff", input);
 }
@@ -137,6 +143,7 @@ export async function createStorefrontOrderFromPayment(input: {
   productId: string;
   billingCycle: "MONTHLY" | "YEARLY";
   primaryDomain?: string;
+  cart?: StorefrontCartQuoteRequest;
 }): Promise<{ orderId: string; orderNumber: string; teamSlug: string }> {
   return trpcMutation("storefront.orders.createFromPayment", input);
 }

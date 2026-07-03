@@ -95,6 +95,17 @@ const SERVICE_META: Record<
       "Domain transfer lock",
     ],
   },
+  domain_transfer: {
+    icon: <Globe className="w-6 h-6" />,
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-50",
+    includedItems: [
+      "Includes 1 year renewal after transfer",
+      "Free DNS management",
+      "Transfer lock protection",
+      "24/7 support during transfer",
+    ],
+  },
   seo_reports: {
     icon: <BarChart2 className="w-6 h-6" />,
     color: "text-primary",
@@ -181,7 +192,8 @@ function yearlySaving(monthly: number, yearly: number) {
 
 export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps) {
   const meta = getServiceMeta(item.serviceType);
-  const isDomain = item.serviceType === "domain_registration";
+  const isDomain =
+    item.serviceType === "domain_registration" || item.serviceType === "domain_transfer";
   // Domains are always billed annually
   const isYearly = isDomain ? true : item.billingCycle === "YEARLY";
   const displayPrice = isYearly ? item.yearlyPrice : item.monthlyPrice;
@@ -227,7 +239,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Billing cycle</span>
                 <span className="inline-flex items-center h-9 px-3 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground select-none">
-                  1 year · Annual registration
+                  1 year · {item.serviceType === "domain_transfer" ? "Transfer + renewal" : "Annual registration"}
                 </span>
               </div>
             ) : (

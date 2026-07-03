@@ -21,6 +21,12 @@ export const storefrontCartHandoffPayloadSchema = z.object({
 	billingCycle: storefrontBillingCycleSchema.default("MONTHLY"),
 	locationName: z.string().optional(),
 	bundleDomains: z.array(z.string().min(1)).optional(),
+	/** Domain transfer checkout (signed so prices cannot be tampered). */
+	transferProvider: z.enum(["kenic", "openprovider"]).optional(),
+	providerPriceAmount: z.number().optional(),
+	providerPriceCurrency: z.string().optional(),
+	customerPriceAmount: z.number().optional(),
+	customerPriceCurrency: z.string().optional(),
 	iat: z.number(),
 	exp: z.number(),
 });
@@ -131,5 +137,10 @@ export function handoffPayloadToQuoteMain(
 		billingCycle: payload.billingCycle,
 		locationName: payload.locationName,
 		bundleDomains: payload.bundleDomains,
+		transferProvider: payload.transferProvider,
+		providerPriceAmount: payload.providerPriceAmount,
+		providerPriceCurrency: payload.providerPriceCurrency,
+		customerPriceAmount: payload.customerPriceAmount,
+		customerPriceCurrency: payload.customerPriceCurrency,
 	};
 }
