@@ -29,6 +29,7 @@ const footerSections: FooterSection[] = [
       { label: "Our Work", href: "/work" },
       { label: "Pricing", href: "/pricing" },
       { label: "Blog", href: "/blog" },
+      { label: "WHOIS Checker", href: "/whois" },
       { label: "Contact", href: "/contact" },
     ],
   },

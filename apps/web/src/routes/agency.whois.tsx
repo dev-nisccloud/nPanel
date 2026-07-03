@@ -6,7 +6,6 @@ import {
 	AlertCircle,
 	Building2,
 	Check,
-	Clock,
 	Copy,
 	ExternalLink,
 	Globe,
@@ -283,6 +282,66 @@ function ContactBlock({
 			<InfoRow label="Country" value={contact.country} />
 		</div>
 	);
+}
+
+function DomainEventsList({ events }: { events: WhoisData["events"] }) {
+	const list = (
+		<div className="divide-y divide-border/60">
+			{events.map((ev, i) => (
+				<div
+					key={i}
+					className="flex items-start justify-between gap-3 py-1.5 first:pt-0 last:pb-0"
+				>
+					<div className="min-w-0 flex-1">
+						<p className="text-xs font-medium capitalize leading-tight">{ev.action}</p>
+						{ev.actor && (
+							<p className="mt-0.5 truncate text-[11px] leading-tight text-muted-foreground">
+								{ev.actor}
+							</p>
+						)}
+					</div>
+					<time className="shrink-0 pt-px text-[11px] tabular-nums leading-tight text-muted-foreground">
+						{formatDate(ev.date)}
+					</time>
+				</div>
+			))}
+		</div>
+	);
+
+	if (events.length > 6) {
+		return <ScrollArea className="max-h-40 pr-2">{list}</ScrollArea>;
+	}
+
+	return list;
+}
+
+function DnssecRecordsList({ records }: { records: WhoisData["dsData"] }) {
+	const list = (
+		<div className="divide-y divide-border/60">
+			{records.map((ds, i) => (
+				<div key={i} className="py-1.5 first:pt-0 last:pb-0">
+					<div className="flex items-start justify-between gap-3">
+						<p className="text-xs font-medium leading-tight tabular-nums">
+							Tag {ds.keyTag} · Alg {ds.algorithm} · Type {ds.digestType}
+						</p>
+						<CopyButton text={ds.digest} />
+					</div>
+					<p
+						className="mt-0.5 truncate font-mono text-[11px] leading-tight text-muted-foreground"
+						title={ds.digest}
+					>
+						{ds.digest}
+					</p>
+				</div>
+			))}
+		</div>
+	);
+
+	if (records.length > 4) {
+		return <ScrollArea className="max-h-40 pr-2">{list}</ScrollArea>;
+	}
+
+	return list;
 }
 
 // ── Results ───────────────────────────────────────────────────────────────────
@@ -591,44 +650,11 @@ function WhoisResults({ data }: { data: WhoisData }) {
 			{/* ── DNSSEC DS records (only when signed + records available) ──────── */}
 			{data.dnssec === "signedDelegation" && data.dsData.length > 0 && (
 				<Card className="border shadow-sm">
-					<CardHeader className="pb-2 pt-5 px-5">
+					<CardContent className="p-4">
 						<SectionHeading icon={Shield} label="DNSSEC — DS Records" />
-					</CardHeader>
-					<CardContent className="px-5 pb-5 pt-1 overflow-x-auto">
-						<table className="w-full text-xs min-w-[480px]">
-							<thead>
-								<tr className="border-b border-border">
-									{["Key Tag", "Algorithm", "Digest Type", "Digest"].map((h) => (
-										<th
-											key={h}
-											className="text-left py-2 pr-4 text-muted-foreground font-medium"
-										>
-											{h}
-										</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{data.dsData.map((ds, i) => (
-									<tr key={i} className="border-b border-border last:border-0">
-										<td className="py-2 pr-4 font-mono">{ds.keyTag}</td>
-										<td className="py-2 pr-4 font-mono">{ds.algorithm}</td>
-										<td className="py-2 pr-4 font-mono">{ds.digestType}</td>
-										<td className="py-2">
-											<div className="flex items-center gap-2">
-												<span
-													className="font-mono truncate max-w-[180px]"
-													title={ds.digest}
-												>
-													{ds.digest.slice(0, 16)}…
-												</span>
-												<CopyButton text={ds.digest} />
-											</div>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
+						<div className="mt-2.5">
+							<DnssecRecordsList records={data.dsData} />
+						</div>
 					</CardContent>
 				</Card>
 			)}
@@ -636,39 +662,11 @@ function WhoisResults({ data }: { data: WhoisData }) {
 			{/* ── Domain events ──────────────────────────────────────────────────── */}
 			{data.events.length > 0 && (
 				<Card className="border shadow-sm">
-					<CardHeader className="pb-2 pt-5 px-5">
+					<CardContent className="p-4">
 						<SectionHeading icon={Activity} label="Domain Events" />
-					</CardHeader>
-					<CardContent className="px-5 pb-5 pt-1">
-						<ScrollArea className="h-64">
-							<div className="flex flex-col pr-3">
-								{data.events.map((ev, i) => (
-									<div
-										key={i}
-										className="flex items-start gap-3 py-3 border-b border-border last:border-0"
-									>
-										{/* Timeline dot */}
-										<div className="mt-0.5 h-2 w-2 rounded-full bg-primary/40 shrink-0 ring-2 ring-primary/10" />
-
-										<div className="flex flex-col gap-0.5 min-w-0 flex-1">
-											<span className="text-xs font-medium capitalize">
-												{ev.action}
-											</span>
-											{ev.actor && (
-												<span className="text-xs text-muted-foreground truncate">
-													{ev.actor}
-												</span>
-											)}
-										</div>
-
-										<div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-											<Clock className="h-3 w-3" />
-											<span>{formatDate(ev.date)}</span>
-										</div>
-									</div>
-								))}
-							</div>
-						</ScrollArea>
+						<div className="mt-2.5">
+							<DomainEventsList events={data.events} />
+						</div>
 					</CardContent>
 				</Card>
 			)}
