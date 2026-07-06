@@ -1239,6 +1239,9 @@ export function BuyNowDialog({
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
     onSuccess: () => {
       toast.success("Order submitted for processing.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     },
     onError: (err: { message?: string }) => {
       console.error("Create order from payment failed:", err);

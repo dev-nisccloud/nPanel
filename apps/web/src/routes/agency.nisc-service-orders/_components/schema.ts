@@ -55,3 +55,23 @@ export const createOrderFormSchema = z
 
 export type CreateOrderFormData = z.infer<typeof createOrderFormSchema>;
 export type CreateOrderItem = z.infer<typeof createOrderItemSchema>;
+
+/** Same green as active badges elsewhere in the agency UI */
+export const ACTIVE_STATUS_BADGE_CLASS =
+	"bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800";
+
+export const ORDER_STATUS_VARIANTS: Record<
+	string,
+	"default" | "secondary" | "destructive" | "outline"
+> = {
+	PENDING: "secondary",
+	PROCESSING: "default",
+	COMPLETED: "outline",
+	FAILED: "destructive",
+	PARTIAL: "secondary",
+};
+
+export function orderStatusBadgeClass(status: string): string | undefined {
+	if (status === "COMPLETED") return ACTIVE_STATUS_BADGE_CLASS;
+	return undefined;
+}

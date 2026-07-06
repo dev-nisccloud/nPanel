@@ -27,14 +27,7 @@ import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { CreateOrderSheet } from "./agency.nisc-service-orders/_components/create-order-sheet";
 import { ViewOrderSheet } from "./agency.nisc-service-orders/_components/view-order-sheet";
 import { OrderInvoiceSection } from "./agency.nisc-service-orders/_components/order-invoice-section";
-
-const STATUS_VARIANTS: Record<string, string> = {
-	PENDING: "secondary",
-	PROCESSING: "default",
-	COMPLETED: "default",
-	FAILED: "destructive",
-	PARTIAL: "secondary",
-};
+import { ORDER_STATUS_VARIANTS, orderStatusBadgeClass } from "./agency.nisc-service-orders/_components/schema";
 
 function EmptyState({
 	title,
@@ -227,7 +220,10 @@ export default function NiscServiceOrdersPage() {
 													: "- "}
 											</TableCell>
 											<TableCell>
-												<Badge variant={STATUS_VARIANTS[order.status] as any ?? "secondary"}>
+												<Badge
+													variant={ORDER_STATUS_VARIANTS[order.status] ?? "secondary"}
+													className={orderStatusBadgeClass(order.status)}
+												>
 													{order.status}
 												</Badge>
 											</TableCell>
