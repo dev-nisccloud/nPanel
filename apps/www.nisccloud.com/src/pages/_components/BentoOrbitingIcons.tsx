@@ -40,16 +40,17 @@ export default function BentoOrbitingIcons() {
   return (
     <div
       ref={containerRef}
-      className="relative flex h-[220px] w-full items-center justify-center overflow-hidden"
+      className="relative flex h-[240px] w-full items-center justify-center overflow-hidden"
     >
       <div className="flex size-full max-w-sm flex-row items-stretch justify-between gap-8 px-4">
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-col items-center justify-center gap-1.5">
           <Circle ref={userRef}>
             <User className="size-4 text-foreground" strokeWidth={2} />
           </Circle>
+          <span className="text-[10px] font-bold text-muted-foreground select-none">You</span>
         </div>
 
-        <div className="flex flex-col justify-center">
+        <div className="flex flex-col items-center justify-center gap-1.5">
           <Circle ref={hubRef} className="size-14 border-primary/30 bg-background p-2">
             <img
               src="/nisciconoriginal.png"
@@ -57,13 +58,17 @@ export default function BentoOrbitingIcons() {
               className="size-full object-contain"
             />
           </Circle>
+          <span className="text-[10px] font-bold text-primary select-none whitespace-nowrap">Nisc Cloud</span>
         </div>
 
         <div className="flex flex-col justify-center gap-4">
           {services.map(({ Icon, label }, index) => (
-            <Circle key={label} ref={serviceRefs[index]} aria-label={label}>
-              <Icon className="size-4 text-primary" />
-            </Circle>
+            <div key={label} className="flex flex-col items-center gap-1">
+              <Circle ref={serviceRefs[index]} aria-label={label}>
+                <Icon className="size-4 text-primary" />
+              </Circle>
+              <span className="text-[9px] font-bold text-muted-foreground select-none">{label}</span>
+            </div>
           ))}
         </div>
       </div>

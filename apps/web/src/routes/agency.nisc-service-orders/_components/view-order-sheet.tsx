@@ -20,6 +20,7 @@ import {
 import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { OrderInvoiceSection } from "./order-invoice-section";
+import { ORDER_STATUS_VARIANTS, orderStatusBadgeClass } from "./schema";
 
 /** Shallow type for order items in the view to avoid deep tRPC type instantiation. */
 type ViewOrderItem = {
@@ -102,7 +103,12 @@ export function ViewOrderSheet({
 						</div>
 						<div className="w-full">
 							<p className="text-sm font-medium text-muted-foreground">Status</p>
-							<Badge variant="outline">{order.status}</Badge>
+							<Badge
+								variant={ORDER_STATUS_VARIANTS[order.status] ?? "secondary"}
+								className={orderStatusBadgeClass(order.status)}
+							>
+								{order.status}
+							</Badge>
 						</div>
 						{order.failureReason && (
 							<div className="w-full">
