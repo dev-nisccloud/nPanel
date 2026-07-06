@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { ArrowRight, ChevronRight, Zap, Paintbrush, Server, Bot } from "lucide-react";
+import { ArrowRight, ChevronRight, Zap, Paintbrush, Server, Bot, TrendingUp } from "lucide-react";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text.tsx";
 import { Typewriter } from "@/components/ui/typewriter.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -38,33 +38,43 @@ const socialProof = [
 const heroCards = [
   {
     icon: <Bot className="size-4 text-primary" />,
-    title: "Grow automatically",
-    description: "Get found on Google and let AI reply to customers.",
-    date: "Step 03",
+    title: "Automate with AI",
+    description: "Zeepo AI chatbots, automated content writing, and smart lead flows.",
+    date: "Step 04",
     iconClassName: "text-primary",
     titleClassName: "text-primary",
     className:
       "[grid-area:stack] hover:-translate-y-24 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
   },
   {
+    icon: <TrendingUp className="size-4 text-primary" />,
+    title: "Get More Customers",
+    description: "High-ROI marketing via SEO, social media, and Google/Meta ads.",
+    date: "Step 03",
+    iconClassName: "text-primary",
+    titleClassName: "text-primary",
+    className:
+      "[grid-area:stack] translate-x-4 translate-y-4 sm:translate-x-8 sm:translate-y-8 hover:-translate-y-16 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+  },
+  {
     icon: <Server className="size-4 text-primary" />,
-    title: "Host your website",
-    description: "Fast, safe hosting that keeps you always online.",
+    title: "Go Online",
+    description: "High-speed SSD cloud hosting, domains, and secure business emails.",
     date: "Step 02",
     iconClassName: "text-primary",
     titleClassName: "text-primary",
     className:
-      "[grid-area:stack] translate-x-6 translate-y-6 sm:translate-x-12 sm:translate-y-10 hover:-translate-y-10 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+      "[grid-area:stack] translate-x-8 translate-y-8 sm:translate-x-16 sm:translate-y-16 hover:-translate-y-8 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
   },
   {
     icon: <Paintbrush className="size-4 text-primary" />,
-    title: "Design your brand",
-    description: "Get logos, website, and brand guidelines in days.",
+    title: "Create My Brand",
+    description: "Modern logos, custom website UI, and full brand identity kits.",
     date: "Step 01",
     iconClassName: "text-primary",
     titleClassName: "text-primary",
     className:
-      "[grid-area:stack] translate-x-10 translate-y-10 sm:translate-x-24 sm:translate-y-20 hover:translate-y-10",
+      "[grid-area:stack] translate-x-12 translate-y-12 sm:translate-x-24 sm:translate-y-24 hover:translate-y-12",
   },
 ];
 

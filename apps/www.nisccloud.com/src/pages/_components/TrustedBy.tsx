@@ -53,13 +53,13 @@ export default function TrustedBy() {
               {allClients.map((client, i) => (
                 <div
                   key={`${client.name}-${i}`}
-                  className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-2"
+                  className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-2 py-2"
                   title={client.name}
                 >
                   <img
                     src={client.logo}
                     alt={client.name}
-                    className="h-8 w-auto max-w-[140px] object-contain"
+                    className="h-24 w-auto max-w-[200px] object-contain"
                     loading="lazy"
                   />
                 </div>

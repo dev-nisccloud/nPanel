@@ -674,6 +674,10 @@ export function GlobalBuyNowDialog() {
       if (isTransferMode) {
         void utils.domainTransfer.listTransferRequests.invalidate();
       }
+      toast.success("Order submitted for processing.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     },
     onError: (err: { message?: string }) => {
       toast.error(err.message || "Order could not be created. Please contact support.");
