@@ -4,11 +4,12 @@ export type ResolveMpesaCheckoutPaymentInput = {
 	isAgencyUser: boolean;
 	formAmount: string;
 	formAccountReference: string;
-	intendedAmount: string;
+	/** Order total including VAT — always used for customer M-Pesa charges. */
+	checkoutTotalIncVat: number;
 	intendedAccountReference: string;
 };
 
-/** Customers always pay the intended checkout amount/reference, never tampered form values. */
+/** Customers always pay the checkout total (service + tax), never tampered form values. */
 export function resolveMpesaCheckoutPayment(input: ResolveMpesaCheckoutPaymentInput): {
 	amount: number;
 	accountReference: string;
@@ -24,7 +25,7 @@ export function resolveMpesaCheckoutPayment(input: ResolveMpesaCheckoutPaymentIn
 		};
 	}
 
-	const amountString = input.intendedAmount.trim();
+	const amountString = canonicalMpesaPaymentAmount(input.checkoutTotalIncVat);
 	const accountReference = input.intendedAccountReference.trim();
 
 	return {

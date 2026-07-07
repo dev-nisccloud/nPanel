@@ -1048,6 +1048,8 @@ export function BuyNowDialog({
     };
   }, [plan, hivelocityInvoiceBreakdown]);
 
+  const customerMpesaAmount = canonicalMpesaPaymentAmount(pricing.total);
+
   // Reset state when dialog opens/closes
   React.useEffect(() => {
     if (open && plan) {
@@ -1112,7 +1114,7 @@ export function BuyNowDialog({
     }
   }, [open, plan, showDomainStep, shouldStartAtPayment, showSeoConnectStep, showAgencyBillingStep]);
 
-  // Seed M-Pesa amount when entering the payment step (do not overwrite while user edits)
+  // Keep M-Pesa amount aligned with checkout total (service + tax) on the payment step.
   const prevStepRef = React.useRef<Step | null>(null);
   React.useEffect(() => {
     if (!open || !plan) {
@@ -1121,13 +1123,20 @@ export function BuyNowDialog({
     }
     const enteredPayment =
       currentStep === "payment" && prevStepRef.current !== "payment";
-    if (enteredPayment) {
-      const amountValue = canonicalMpesaPaymentAmount(pricing.total);
-      intendedPaymentAmountRef.current = amountValue;
-      setPaymentAmount(amountValue);
+    const amountValue = customerMpesaAmount;
+    if (currentStep === "payment") {
+      if (isAgencyUser) {
+        if (enteredPayment) {
+          intendedPaymentAmountRef.current = amountValue;
+          setPaymentAmount(amountValue);
+        }
+      } else {
+        intendedPaymentAmountRef.current = amountValue;
+        setPaymentAmount(amountValue);
+      }
     }
     prevStepRef.current = currentStep;
-  }, [open, plan, currentStep, pricing.total]);
+  }, [open, plan, currentStep, customerMpesaAmount, isAgencyUser]);
 
   // Helper function to get user-friendly error messages
   const getUserFriendlyError = (resultCode: string | number, resultDesc?: string): string => {
@@ -1404,7 +1413,7 @@ export function BuyNowDialog({
 
   const openPaymentStep = React.useCallback(() => {
     setCurrentStep("payment");
-    const amountValue = canonicalMpesaPaymentAmount(pricing.total);
+    const amountValue = customerMpesaAmount;
     intendedPaymentAmountRef.current = amountValue;
     setPaymentAmount(amountValue);
     if (plan) {
@@ -1414,7 +1423,7 @@ export function BuyNowDialog({
       setAccountReference(ref);
       setAccountRefError(validateMpesaAccountReference(ref));
     }
-  }, [pricing.total, plan, buildHivelocityPaymentItem]);
+  }, [customerMpesaAmount, plan, buildHivelocityPaymentItem]);
 
   const handleTeamBillingSaved = React.useCallback(async () => {
     const result = await teamBillingQuery.refetch();
@@ -1469,7 +1478,7 @@ export function BuyNowDialog({
       isAgencyUser,
       formAmount: paymentAmount,
       formAccountReference: accountReference,
-      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(pricing.total),
+      checkoutTotalIncVat: pricing.total,
       intendedAccountReference: intendedAccountReferenceRef.current,
     });
     const priceStr = resolved.amountString;
@@ -1605,7 +1614,7 @@ export function BuyNowDialog({
       isAgencyUser,
       formAmount: paymentAmount,
       formAccountReference: accountReference,
-      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(pricing.total),
+      checkoutTotalIncVat: pricing.total,
       intendedAccountReference: intendedAccountReferenceRef.current,
     });
 
@@ -1676,7 +1685,7 @@ export function BuyNowDialog({
       isAgencyUser,
       formAmount: paymentAmount,
       formAccountReference: accountReference,
-      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(pricing.total),
+      checkoutTotalIncVat: pricing.total,
       intendedAccountReference: intendedAccountReferenceRef.current,
     });
     const amount = resolved.amount;
@@ -2737,7 +2746,7 @@ export function BuyNowDialog({
                             phoneNumber={mpesaPhoneNumber}
                             onPhoneNumberChange={handlePhoneNumberChange}
                             phoneError={phoneError || undefined}
-                            amount={paymentAmount}
+                            amount={isAgencyUser ? paymentAmount : customerMpesaAmount}
                             onAmountChange={handleAmountChange}
                             amountError={amountError || undefined}
                             amountHelperText={
@@ -2823,7 +2832,7 @@ export function BuyNowDialog({
                             canEditPaymentDetails={isAgencyUser}
                             phoneNumber=""
                             onPhoneNumberChange={() => {}}
-                            amount={paymentAmount}
+                            amount={isAgencyUser ? paymentAmount : customerMpesaAmount}
                             onAmountChange={handleAmountChange}
                             amountError={amountError || undefined}
                             amountHelperText={`Order total: ${formatPrice(pricing.total, pricing.displayCurrency)}`}
