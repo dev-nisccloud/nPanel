@@ -576,6 +576,7 @@ export function GlobalBuyNowDialog() {
     effectiveSubtotal,
     VAT_RATE,
   );
+  const customerMpesaAmount = canonicalMpesaPaymentAmount(effectiveTotal);
 
   const patchPriceOverride = React.useCallback((key: string, value: string) => {
     setPriceOverrideByKey((prev) => ({ ...prev, [key]: value }));
@@ -1129,7 +1130,7 @@ export function GlobalBuyNowDialog() {
       isAgencyUser,
       formAmount: paymentAmount,
       formAccountReference: accountReference,
-      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(effectiveTotal),
+      checkoutTotalIncVat: effectiveTotal,
       intendedAccountReference: intendedAccountReferenceRef.current,
     });
 
@@ -1200,7 +1201,7 @@ export function GlobalBuyNowDialog() {
       isAgencyUser,
       formAmount: paymentAmount,
       formAccountReference: accountReference,
-      intendedAmount: intendedPaymentAmountRef.current || canonicalMpesaPaymentAmount(effectiveTotal),
+      checkoutTotalIncVat: effectiveTotal,
       intendedAccountReference: intendedAccountReferenceRef.current,
     });
     const amount = resolved.amount;
@@ -1247,7 +1248,7 @@ export function GlobalBuyNowDialog() {
 
   const openForPayment = () => {
     setCurrentStep("payment");
-    const amountValue = canonicalMpesaPaymentAmount(effectiveTotal);
+    const amountValue = customerMpesaAmount;
     intendedPaymentAmountRef.current = amountValue;
     setPaymentAmount(amountValue);
     const ref = buildCheckoutAccountReference();
@@ -1266,16 +1267,28 @@ export function GlobalBuyNowDialog() {
     }
     const enteredPayment =
       currentStep === "payment" && prevGlobalStepRef.current !== "payment";
-    if (enteredPayment) {
-      const amountValue = canonicalMpesaPaymentAmount(effectiveTotal);
-      intendedPaymentAmountRef.current = amountValue;
-      setPaymentAmount(amountValue);
-      const ref = buildCheckoutAccountReference();
-      intendedAccountReferenceRef.current = ref;
-      setAccountReference(ref);
+    const amountValue = customerMpesaAmount;
+    if (currentStep === "payment") {
+      if (isAgencyUser) {
+        if (enteredPayment) {
+          intendedPaymentAmountRef.current = amountValue;
+          setPaymentAmount(amountValue);
+          const ref = buildCheckoutAccountReference();
+          intendedAccountReferenceRef.current = ref;
+          setAccountReference(ref);
+        }
+      } else {
+        intendedPaymentAmountRef.current = amountValue;
+        setPaymentAmount(amountValue);
+        if (enteredPayment) {
+          const ref = buildCheckoutAccountReference();
+          intendedAccountReferenceRef.current = ref;
+          setAccountReference(ref);
+        }
+      }
     }
     prevGlobalStepRef.current = currentStep;
-  }, [open, currentStep, effectiveTotal, buildCheckoutAccountReference]);
+  }, [open, currentStep, customerMpesaAmount, isAgencyUser, buildCheckoutAccountReference]);
 
   const goToRegistrantStep = () => {
     setRegistrantStepCompleted(false);
@@ -2123,7 +2136,7 @@ export function GlobalBuyNowDialog() {
                           phoneNumber={mpesaPhoneNumber}
                           onPhoneNumberChange={handlePhoneNumberChange}
                           phoneError={phoneError || undefined}
-                          amount={paymentAmount}
+                          amount={isAgencyUser ? paymentAmount : customerMpesaAmount}
                           onAmountChange={handleAmountChange}
                           amountError={amountError || undefined}
                           amountHelperText={
@@ -2191,7 +2204,7 @@ export function GlobalBuyNowDialog() {
                           canEditPaymentDetails={isAgencyUser}
                           phoneNumber=""
                           onPhoneNumberChange={() => {}}
-                          amount={paymentAmount}
+                          amount={isAgencyUser ? paymentAmount : customerMpesaAmount}
                           onAmountChange={handleAmountChange}
                           amountError={amountError || undefined}
                           amountHelperText={`Order total: ${formatPrice(effectiveTotal, primaryCurr)}`}
