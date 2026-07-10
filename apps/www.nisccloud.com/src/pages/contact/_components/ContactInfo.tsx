@@ -18,7 +18,7 @@ const contactDetails = [
   {
     icon: Phone,
     label: "Call Us",
-    value: "+1 (800) NISC-CLD",
+    value: "+254 748 777 666",
     sub: "Mon–Fri, 9am–6pm GMT",
   },
   {
