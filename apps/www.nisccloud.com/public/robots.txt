@@ -1,31 +1,54 @@
 # Nisc Cloud - robots.txt
+# https://nisccloud.com
 
-# Allow all standard crawlers
 User-agent: *
 Allow: /
+Disallow: /cart
 
-# OpenAI GPT crawler
+# OpenAI
 User-agent: GPTBot
 Allow: /
 
-# Anthropic Claude crawler
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic
 User-agent: ClaudeBot
 Allow: /
 
-# Common Crawl (used by many AI training datasets)
-User-agent: CCBot
+User-agent: anthropic-ai
 Allow: /
 
-# Google Extended (Gemini)
+# Google Gemini / AI Overviews
 User-agent: Google-Extended
 Allow: /
 
-# Perplexity AI
+# Common Crawl
+User-agent: CCBot
+Allow: /
+
+# Perplexity
 User-agent: PerplexityBot
 Allow: /
 
-# Meta AI crawler
+# Meta AI
 User-agent: FacebookBot
 Allow: /
 
+# Apple Intelligence / Applebot
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Bytespider (ByteDance / TikTok)
+User-agent: Bytespider
+Allow: /
+
+# Cohere
+User-agent: cohere-ai
+Allow: /
+
 Sitemap: https://nisccloud.com/sitemap.xml
+# LLM context file: https://nisccloud.com/llms.txt

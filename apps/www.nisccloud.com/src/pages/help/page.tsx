@@ -365,7 +365,7 @@ export default function HelpCentrePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
-              href="https://wa.me/254700000000?text=Hi%20Nisc%20Cloud%2C%20I%20need%20help%20with..."
+              href="https://wa.me/254748777666?text=Hi%20Nisc%20Cloud%2C%20I%20need%20help%20with..."
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-[#25D366] text-white font-semibold px-6 py-2.5 rounded-2xl text-sm hover:opacity-90 transition-opacity cursor-pointer"
