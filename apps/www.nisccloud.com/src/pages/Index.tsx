@@ -33,7 +33,7 @@ export default function Index() {
 
       {/* WhatsApp floating CTA */}
       <a
-        href="https://wa.me/254700000000?text=Hi%20Nisc%20Cloud%2C%20I%20want%20to%20grow%20my%20business%20online"
+        href="https://wa.me/254748777666?text=Hi%20Nisc%20Cloud%2C%20I%20want%20to%20grow%20my%20business%20online"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-[#25D366] text-white font-semibold text-sm px-4 py-3 rounded-full shadow-lg hover:bg-[#1ebe5d] transition-all hover:scale-105 cursor-pointer"
