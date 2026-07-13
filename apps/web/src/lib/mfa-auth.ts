@@ -5,6 +5,7 @@ export type MfaStatus = {
   verified: boolean;
   enabled?: boolean;
   setupRequired?: boolean;
+  reauthRequired?: boolean;
 };
 
 export type MfaIntent = "LOGIN" | "SETUP";
