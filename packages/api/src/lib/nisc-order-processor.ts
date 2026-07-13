@@ -946,6 +946,7 @@ async function processKenicOrderItem(
 				agreedCostCurrency: "KES",
 				primaryDomain: domain,
 				openProviderId: null,
+				domainAuthCode: regResult.authInfo,
 				expiryDate: regResult.exDate ? new Date(regResult.exDate) : null,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
@@ -1026,6 +1027,19 @@ async function processKenicTransferOrderItem(
 			period: 1,
 			nameServers,
 		});
+
+		// CoCCA never returns plaintext auth codes later. Set a fresh outbound code when
+		// we already sponsor the domain (non-pending). Pending transfers get no stored code yet.
+		let outboundAuthCode: string | null = null;
+		if (!transferResult.pending) {
+			try {
+				const { setKenicDomainAuthCode } = await import("./kenic-nisc");
+				outboundAuthCode = await setKenicDomainAuthCode(domain);
+			} catch (err) {
+				console.error("[KENIC] Failed to set outbound auth code after transfer:", err);
+			}
+		}
+
 		const subscriptionDate = await resolveDomainTransferSubscriptionStartDate({
 			domainTransferRequestId: metadata?.domainTransferRequestId,
 			orderCreatedAt: order.createdAt,
@@ -1060,6 +1074,7 @@ async function processKenicTransferOrderItem(
 				agreedCostCurrency: "KES",
 				primaryDomain: domain,
 				openProviderId: null,
+				domainAuthCode: outboundAuthCode,
 				expiryDate,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
