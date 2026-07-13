@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { XMLParser } from "fast-xml-parser";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, isNotNull, like } from "@npanel/db";
+import { and, desc, eq, ilike, isNotNull, isNull, like } from "@npanel/db";
 import { db } from "@npanel/db";
 import { protectedProcedure, router } from "../../trpc";
 import { niscClientSubscription } from "@npanel/db/schema/products";
@@ -15,6 +15,10 @@ import {
 	isKenicTransferLocked,
 	mapKenicEppStatusesToPortfolioStatus,
 } from "../../lib/epp/kenic-domain-status";
+import {
+	isCoccaAuthInfoHash,
+	setKenicDomainAuthCode,
+} from "../../lib/kenic-nisc";
 
 const parser = new XMLParser({ ignoreAttributes: false });
 
@@ -27,12 +31,17 @@ function getEppResult(parsed: any) {
 	return { code, msg };
 }
 
+function normalizeDomainName(domain: string): string {
+	return domain.trim().toLowerCase().replace(/\.$/, "");
+}
+
 /**
  * KENIC Domain List router.
  */
 export const kenicDomainListRouter = router({
 	/**
 	 * List all KENIC domains registered through this agency.
+	 * One row per unique primaryDomain (latest non-superseded subscription).
 	 */
 	list: protectedProcedure
 		.input(z.object({}).optional().default({}))
@@ -59,13 +68,24 @@ export const kenicDomainListRouter = router({
 						and(
 							isNotNull(niscClientSubscription.primaryDomain),
 							like(niscClientSubscription.primaryDomain, "%.ke"),
+							// Exclude superseded upgrade/downgrade chain rows
+							isNull(niscClientSubscription.upgradedToSubscriptionId),
+							isNull(niscClientSubscription.downgradedToSubscriptionId),
 						),
 					)
 					.orderBy(desc(niscClientSubscription.subscriptionDate));
 
 				const now = new Date();
 
-				const mapped = rows.map((row) => {
+				// Deduplicate by domain name — keep the newest subscription row.
+				const byDomain = new Map<string, (typeof rows)[number]>();
+				for (const row of rows) {
+					const key = normalizeDomainName(row.primaryDomain ?? "");
+					if (!key || byDomain.has(key)) continue;
+					byDomain.set(key, row);
+				}
+
+				const mapped = Array.from(byDomain.values()).map((row) => {
 					const domain = row.primaryDomain ?? "";
 					const dotParts = domain.split(".");
 					const tld =
@@ -222,7 +242,18 @@ export const kenicDomainListRouter = router({
 						upDate: infoData?.["domain:upDate"],
 						trDate: infoData?.["domain:trDate"],
 						rgpStatuses,
-						authInfo: infoData?.["domain:authInfo"]?.["domain:pw"],
+						// CoCCA returns a one-way hash here — never expose it as the transfer code.
+						authInfoSet: Boolean(
+							(() => {
+								const pw = infoData?.["domain:authInfo"]?.["domain:pw"];
+								if (pw == null) return false;
+								if (typeof pw === "string") return pw.length > 0;
+								if (typeof pw === "object" && "#text" in pw) {
+									return String((pw as { "#text": string })["#text"] ?? "").length > 0;
+								}
+								return true;
+							})(),
+						),
 						raw: infoResXml,
 						parsed: infoData,
 					},
@@ -388,7 +419,100 @@ export const kenicDomainListRouter = router({
 		}),
 
 	/**
-	 * Update KENIC domain authorization (EPP) code.
+	 * Read the stored plaintext KENIC auth code (never from domain:info — CoCCA returns a hash).
+	 */
+	getAuthCode: protectedProcedure
+		.input(z.object({ domain: z.string().min(1) }))
+		.query(async ({ input }) => {
+			const domain = input.domain.trim();
+			const rows = await db
+				.select({
+					id: niscClientSubscription.id,
+					domainAuthCode: niscClientSubscription.domainAuthCode,
+				})
+				.from(niscClientSubscription)
+				.where(
+					and(
+						ilike(niscClientSubscription.primaryDomain, domain),
+						isNull(niscClientSubscription.upgradedToSubscriptionId),
+						isNull(niscClientSubscription.downgradedToSubscriptionId),
+					),
+				)
+				.orderBy(desc(niscClientSubscription.subscriptionDate))
+				.limit(1);
+
+			const row = rows[0];
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No KENIC subscription found for this domain",
+				});
+			}
+
+			const stored = row.domainAuthCode?.trim() || null;
+			if (!stored || isCoccaAuthInfoHash(stored)) {
+				return {
+					success: true,
+					data: {
+						auth_code: null as string | null,
+						needsRegenerate: true as const,
+						message:
+							"Authorization code is not available from the registry. Regenerate to set a new code.",
+					},
+				};
+			}
+
+			return {
+				success: true,
+				data: {
+					auth_code: stored,
+					needsRegenerate: false as const,
+					message: null as string | null,
+				},
+			};
+		}),
+
+	/**
+	 * Generate a new plaintext auth code, push to KENIC, and store locally.
+	 */
+	regenerateAuthCode: protectedProcedure
+		.input(z.object({ domain: z.string().min(1) }))
+		.mutation(async ({ input }) => {
+			try {
+				const domain = input.domain.trim();
+				const authCode = await setKenicDomainAuthCode(domain);
+
+				await db
+					.update(niscClientSubscription)
+					.set({ domainAuthCode: authCode, updatedAt: new Date() })
+					.where(
+						and(
+							ilike(niscClientSubscription.primaryDomain, domain),
+							isNull(niscClientSubscription.upgradedToSubscriptionId),
+							isNull(niscClientSubscription.downgradedToSubscriptionId),
+						),
+					);
+
+				return {
+					success: true,
+					data: { auth_code: authCode },
+					message: "Authorization code regenerated successfully",
+				};
+			} catch (error) {
+				console.error("[KENIC] regenerate auth code error:", error);
+				if (error instanceof TRPCError) throw error;
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to regenerate authorization code",
+				});
+			}
+		}),
+
+	/**
+	 * Update KENIC domain authorization (EPP) code and persist plaintext locally.
 	 */
 	updateAuthCode: protectedProcedure
 		.input(z.object({
@@ -396,35 +520,34 @@ export const kenicDomainListRouter = router({
 			authCode: z.string().min(1).max(128),
 		}))
 		.mutation(async ({ input }) => {
-			let socket;
 			try {
-				const config = getKenicEppConfig(true);
-				socket = await createConnection(config);
-				await readFrame(socket);
-
-				sendFrame(socket, buildLoginXml(config.username, config.password));
-				const loginResXml = (await readFrame(socket)).toString("utf8");
-				const loginResult = getEppResult(parser.parse(loginResXml));
-				if (loginResult.code !== "1000") throw new Error(`Login failed: ${loginResult.msg}`);
-
-				sendFrame(socket, buildDomainUpdateXml({
-					domain: input.domain,
-					authInfo: input.authCode.trim(),
-				}));
-				const updateResXml = (await readFrame(socket)).toString("utf8");
-				const updateResult = getEppResult(parser.parse(updateResXml));
-
-				sendFrame(socket, buildLogoutXml());
-				await readFrame(socket);
-
-				if (updateResult.code !== "1000" && updateResult.code !== "1001") {
+				const domain = input.domain.trim();
+				const trimmed = input.authCode.trim();
+				if (isCoccaAuthInfoHash(trimmed)) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: `Auth code update failed: ${updateResult.msg}`,
+						message: "That value looks like a registry hash, not a transfer code. Enter or regenerate a new code.",
 					});
 				}
 
-				return { success: true, message: "Authorization code updated successfully" };
+				const authCode = await setKenicDomainAuthCode(domain, trimmed);
+
+				await db
+					.update(niscClientSubscription)
+					.set({ domainAuthCode: authCode, updatedAt: new Date() })
+					.where(
+						and(
+							ilike(niscClientSubscription.primaryDomain, domain),
+							isNull(niscClientSubscription.upgradedToSubscriptionId),
+							isNull(niscClientSubscription.downgradedToSubscriptionId),
+						),
+					);
+
+				return {
+					success: true,
+					message: "Authorization code updated successfully",
+					data: { auth_code: authCode },
+				};
 			} catch (error) {
 				console.error("[KENIC] update auth code error:", error);
 				if (error instanceof TRPCError) throw error;
@@ -432,8 +555,6 @@ export const kenicDomainListRouter = router({
 					code: "INTERNAL_SERVER_ERROR",
 					message: error instanceof Error ? error.message : "Failed to update authorization code",
 				});
-			} finally {
-				socket?.destroy();
 			}
 		}),
 });

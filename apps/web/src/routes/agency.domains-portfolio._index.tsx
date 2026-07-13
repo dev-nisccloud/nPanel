@@ -91,16 +91,29 @@ export default function DomainsPortfolioPage() {
     kenicRefetch();
   };
 
-  // ── Merge both sources ──────────────────────────────────────────────────────
+  // ── Merge both sources (dedupe by FQDN; prefer KENIC for *.ke) ───────────────
   const allDomains = React.useMemo<DomainPortfolioWithSource[]>(() => {
-    const opDomains = ((opData?.data ?? []) as DomainPortfolio[]).map((d) => ({
-      ...d,
-      source: "openprovider" as const,
-    }));
+    const normalize = (name: string) => name.trim().toLowerCase().replace(/\.$/, "");
+
     const kenicDomains = ((kenicData?.data ?? []) as DomainPortfolio[]).map((d) => ({
       ...d,
       source: "kenic" as const,
     }));
+
+    const kenicNames = new Set(kenicDomains.map((d) => normalize(d.domain)));
+
+    const opDomains = ((opData?.data ?? []) as DomainPortfolio[])
+      .filter((d) => {
+        const name = normalize(d.domain);
+        // Avoid cross-source duplicates when the same .ke domain exists in both lists
+        if (name.endsWith(".ke") && kenicNames.has(name)) return false;
+        return true;
+      })
+      .map((d) => ({
+        ...d,
+        source: "openprovider" as const,
+      }));
+
     return [...opDomains, ...kenicDomains];
   }, [opData?.data, kenicData?.data]);
 
@@ -114,7 +127,9 @@ export default function DomainsPortfolioPage() {
       (d.clientEmail && d.clientEmail.toLowerCase().includes(query)) ||
       d.status.toLowerCase().includes(query) ||
       d.tld.toLowerCase().includes(query) ||
-      d.source.toLowerCase().includes(query),
+      d.source.toLowerCase().includes(query) ||
+      (query === "op" && d.source === "openprovider") ||
+      (query === "kc" && d.source === "kenic"),
     );
   }, [allDomains, searchQuery]);
 
@@ -163,15 +178,16 @@ export default function DomainsPortfolioPage() {
     );
   };
 
-  /** Source badge: tells the agency which registry a domain belongs to. */
+  /** Source badge: short registry codes (OP = OpenProvider, KC = KENIC). */
   const getSourceBadge = (source: "openprovider" | "kenic") => {
     if (source === "kenic") {
       return (
         <Badge
           variant="outline"
           className="text-xs border-orange-300 text-orange-700 dark:border-orange-600 dark:text-orange-400"
+          title="KENIC"
         >
-          KENIC
+          KC
         </Badge>
       );
     }
@@ -179,8 +195,9 @@ export default function DomainsPortfolioPage() {
       <Badge
         variant="outline"
         className="text-xs border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-400"
+        title="OpenProvider"
       >
-        OpenProvider
+        OP
       </Badge>
     );
   };
@@ -421,18 +438,14 @@ export default function DomainsPortfolioPage() {
         {!isLoading && allDomains.length > 0 && (
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>{allDomains.length} total domain{allDomains.length !== 1 ? "s" : ""}</span>
-            {opData?.data && (
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-blue-400 inline-block" />
-                {opData.data.length} OpenProvider
-              </span>
-            )}
-            {kenicData?.data && (
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-orange-400 inline-block" />
-                {kenicData.data.length} KENIC
-              </span>
-            )}
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-blue-400 inline-block" />
+              {allDomains.filter((d) => d.source === "openprovider").length} OP
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-orange-400 inline-block" />
+              {allDomains.filter((d) => d.source === "kenic").length} KC
+            </span>
           </div>
         )}
 
