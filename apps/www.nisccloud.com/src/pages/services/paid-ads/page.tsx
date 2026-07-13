@@ -82,6 +82,8 @@ export default function PaidAdsPage() {
       serviceType="marketing"
       checkoutServiceType="paid_ads"
       checkoutProductName="Paid Ads"
+      heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/Social%20media%20management%202.png"
+      heroImageStandalone
       trustStats={[
         { value: "KES 85M+", label: "Ad Spend Managed Annually" },
         { value: "4.8×", label: "Average Return on Ad Spend" },

@@ -135,6 +135,8 @@ export default function BrandIdentityPage() {
       serviceType="marketing"
       checkoutServiceType="brand_identity"
       checkoutProductName="Brand Identity"
+      heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/Brand%20Identity%20%26%20Logo%20Design.png"
+      heroImageStandalone
       trustStats={[
         { value: "300+", label: "Brands Created in Kenya" },
         { value: "98%", label: "Client Satisfaction Rate" },
