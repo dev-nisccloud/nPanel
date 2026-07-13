@@ -1,5 +1,9 @@
 import { auth } from "@npanel/auth";
 import { validateAndRefreshIdleSessionById } from "@npanel/auth/session-enforcement";
+import {
+  handleIpAnomaly,
+  resolveReauthRequired,
+} from "@npanel/auth/session-security";
 import type { Context as HonoContext } from "hono";
 import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
@@ -51,6 +55,8 @@ export type Context = {
   mfaRequired?: boolean;
   mfaVerified?: boolean;
   mfaSetupRequired?: boolean;
+  /** Password re-auth required after IP anomaly when MFA is disabled. */
+  reauthRequired?: boolean;
   /** Used by AI chat to get a tRPC caller. Injected by the app. */
   createCaller?: (ctx: Context) => unknown;
   ipAddress?: string | null;
@@ -165,25 +171,53 @@ export async function createContext({
     headers: context.req.raw.headers,
   });
 
+  const ipAddress = resolveIpAddress(context.req.raw.headers);
+  const userAgent = context.req.raw.headers.get("user-agent");
+
   const sessionId = session?.session?.id;
   if (typeof sessionId === "string" && sessionId.length > 0) {
-    const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+    const lifetime = await validateAndRefreshIdleSessionById(sessionId, {
+      userAgent,
+      ipAddress,
+      rotateToken: false,
+    });
     if (lifetime.status === "expired") {
       session = null;
+    } else if (lifetime.ipAnomaly && lifetime.userId) {
+      try {
+        const anomaly = await handleIpAnomaly({
+          userId: lifetime.userId,
+          sessionId,
+          ipAddress,
+          userAgent,
+          expiresAt: lifetime.expiresAt,
+        });
+        if (anomaly.invalidated) {
+          session = null;
+        }
+      } catch (error) {
+        console.error("[api][context] IP anomaly handling failed:", error);
+      }
     }
   }
-
-  const ipAddress = resolveIpAddress(context.req.raw.headers);
 
   let mfaRequired = false;
   let mfaVerified = true;
   let mfaSetupRequired = false;
+  let reauthRequired = false;
   const sessionUserId = session?.user?.id;
-  if (typeof sessionUserId === "string" && sessionUserId.length > 0 && sessionId) {
-    const mfaState = await resolveMfaContextState(sessionUserId, sessionId);
+  const activeSessionId = session?.session?.id;
+  if (
+    typeof sessionUserId === "string" &&
+    sessionUserId.length > 0 &&
+    typeof activeSessionId === "string" &&
+    activeSessionId.length > 0
+  ) {
+    const mfaState = await resolveMfaContextState(sessionUserId, activeSessionId);
     mfaRequired = mfaState.mfaRequired;
     mfaVerified = mfaState.mfaVerified;
     mfaSetupRequired = false;
+    reauthRequired = await resolveReauthRequired(activeSessionId);
   }
 
   return {
@@ -191,6 +225,7 @@ export async function createContext({
     mfaRequired,
     mfaVerified,
     mfaSetupRequired,
+    reauthRequired,
     createCaller,
     ipAddress,
     req,

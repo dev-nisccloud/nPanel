@@ -2,6 +2,7 @@ import { apiUrl } from "./auth-client";
 
 const FALLBACK_REDIRECT = "/auth/login";
 const MFA_VERIFY_PATH = "/auth/mfa";
+const REAUTH_PATH = "/auth/reauth";
 
 // Use the same server origin that authClient uses.
 const REDIRECT_TARGET_URL = apiUrl("/api/auth/redirect-target");
@@ -77,6 +78,16 @@ export function isMfaRedirectTarget(target: string): boolean {
   }
 }
 
+/** True when redirect-target indicates password re-auth is required. */
+export function isReauthRedirectTarget(target: string): boolean {
+  try {
+    const pathname = new URL(target, "http://local").pathname;
+    return pathname === REAUTH_PATH || pathname.startsWith(`${REAUTH_PATH}/`);
+  } catch {
+    return target.startsWith(REAUTH_PATH);
+  }
+}
+
 function shouldStayOnCurrentPage(target: string): boolean {
   if (typeof window === "undefined") return false;
   const current = window.location.pathname;
@@ -117,4 +128,26 @@ export async function redirectToTarget(
 ): Promise<boolean> {
   const target = await fetchRedirectTarget(retryAfterMs);
   return goToRedirectTarget(target, navigate);
+}
+
+export function redirectToReauth(returnPath?: string): void {
+  if (typeof window === "undefined") return;
+  const current = returnPath || window.location.pathname + window.location.search;
+  const params = new URLSearchParams();
+  if (current && !current.startsWith("/auth")) {
+    params.set("redirect", current);
+  }
+  const q = params.toString();
+  window.location.replace(q ? `${REAUTH_PATH}?${q}` : REAUTH_PATH);
+}
+
+export function redirectToMfa(returnPath?: string): void {
+  if (typeof window === "undefined") return;
+  const current = returnPath || window.location.pathname + window.location.search;
+  const params = new URLSearchParams();
+  if (current && !current.startsWith("/auth")) {
+    params.set("redirect", current);
+  }
+  const q = params.toString();
+  window.location.replace(q ? `${MFA_VERIFY_PATH}?${q}` : MFA_VERIFY_PATH);
 }
