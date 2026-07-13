@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { LogOut, MonitorSmartphone } from "lucide-react";
+import { LogOut, MonitorSmartphone, ShieldAlert } from "lucide-react";
+import { useNavigate } from "react-router";
 import { toast } from "@/components/ui/sonner";
 
 import {
@@ -17,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 
@@ -37,9 +39,11 @@ function AccountActivitiesListSkeleton() {
 }
 
 export function AccountActivitiesList() {
+  const navigate = useNavigate();
   const { data: sessions, isLoading, refetch } = trpc.userProfile.getSessions.useQuery();
 
   const [revokeDialogOpen, setRevokeDialogOpen] = React.useState(false);
+  const [revokeAllDialogOpen, setRevokeAllDialogOpen] = React.useState(false);
   const [sessionIdToRevoke, setSessionIdToRevoke] = React.useState<string | null>(null);
 
   const revokeSessionMutation = trpc.userProfile.revokeSession.useMutation({
@@ -51,6 +55,22 @@ export function AccountActivitiesList() {
     },
     onError: (error: { message?: string }) => {
       toast.error(error.message || "Failed to revoke session");
+    },
+  });
+
+  const revokeAllSessionsMutation = trpc.userProfile.revokeAllSessions.useMutation({
+    onSuccess: async () => {
+      toast.success("Signed out everywhere");
+      setRevokeAllDialogOpen(false);
+      try {
+        await authClient.signOut();
+      } catch {
+        // Session may already be deleted server-side.
+      }
+      navigate("/auth/login", { replace: true });
+    },
+    onError: (error: { message?: string }) => {
+      toast.error(error.message || "Failed to sign out everywhere");
     },
   });
 
@@ -95,9 +115,23 @@ export function AccountActivitiesList() {
   return (
     <>
       <div className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          Devices and browsers where you&apos;re currently signed in.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            Devices and browsers where you&apos;re currently signed in.
+          </p>
+          {sessions && sessions.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-destructive hover:text-destructive"
+              onClick={() => setRevokeAllDialogOpen(true)}
+              disabled={revokeAllSessionsMutation.isPending}
+            >
+              <ShieldAlert className="mr-1 h-3.5 w-3.5" />
+              Sign out everywhere
+            </Button>
+          )}
+        </div>
 
         {sessions && sessions.length > 0 ? (
           <div className="divide-y overflow-hidden rounded-lg border bg-card">
@@ -169,6 +203,33 @@ export function AccountActivitiesList() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {revokeSessionMutation.isPending ? "Revoking…" : "Revoke"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={revokeAllDialogOpen} onOpenChange={setRevokeAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out everywhere</AlertDialogTitle>
+            <AlertDialogDescription>
+              This ends every active session, including this one. You will need to sign in again
+              on all devices.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revokeAllSessionsMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void revokeAllSessionsMutation.mutateAsync();
+              }}
+              disabled={revokeAllSessionsMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {revokeAllSessionsMutation.isPending ? "Signing out…" : "Sign out everywhere"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

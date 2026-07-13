@@ -1,6 +1,14 @@
 import { auth } from "@npanel/auth";
 import { sendMfaEmailOtp } from "@npanel/auth/mfa-email";
-import { validateAndRefreshIdleSessionById } from "@npanel/auth/session-enforcement";
+import {
+  updateSessionBoundIp,
+  validateAndRefreshIdleSessionById,
+} from "@npanel/auth/session-enforcement";
+import {
+  clearSessionReauthRequired,
+  isSessionReauthRequired,
+} from "@npanel/auth/session-cache";
+import { handleIpAnomaly } from "@npanel/auth/session-security";
 import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-target";
 import { and, db, desc, eq, gt, isNull } from "@npanel/db";
 import {
@@ -9,19 +17,31 @@ import {
   userMfaSession,
   userMfaSettings,
 } from "@npanel/db/schema/auth-extras";
+import { account } from "@npanel/db/schema/auth";
 import { notification, notificationActivityLog } from "@npanel/db/schema/notifications";
 import { env } from "@npanel/env/server";
 import { createHash, randomInt, randomUUID } from "node:crypto";
+import { verifyPassword } from "better-auth/crypto";
 import type { Hono } from "hono";
 
 const FALLBACK_REDIRECT = "/auth/login";
 const MFA_VERIFY_REDIRECT = "/auth/mfa";
+const REAUTH_REDIRECT = "/auth/reauth";
 const MFA_OTP_TTL_MINUTES = 10;
 const MFA_MAX_ATTEMPTS = 5;
 const MFA_RESEND_COOLDOWN_SECONDS = 45;
 
 function frontendBase(): string {
   return env.CORS_ORIGIN.replace(/\/+$/, "") || "http://localhost:3002";
+}
+
+function resolveIpAddress(headers: Headers): string | null {
+  return (
+    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    headers.get("x-real-ip")?.trim() ||
+    headers.get("cf-connecting-ip")?.trim() ||
+    null
+  );
 }
 
 function hashMfaCode(code: string): string {
@@ -36,8 +56,28 @@ async function getActiveAuthSession(headers: Headers) {
   const session = await auth.api.getSession({ headers });
   const sessionId = session?.session?.id;
   if (typeof sessionId === "string" && sessionId.length > 0) {
-    const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+    const userAgent = headers.get("user-agent");
+    const ipAddress = resolveIpAddress(headers);
+    const lifetime = await validateAndRefreshIdleSessionById(sessionId, {
+      userAgent,
+      ipAddress,
+      rotateToken: false,
+    });
     if (lifetime.status === "expired") return null;
+    if (lifetime.ipAnomaly && lifetime.userId) {
+      try {
+        const anomaly = await handleIpAnomaly({
+          userId: lifetime.userId,
+          sessionId,
+          ipAddress,
+          userAgent,
+          expiresAt: lifetime.expiresAt,
+        });
+        if (anomaly.invalidated) return null;
+      } catch (error) {
+        console.error("[auth-custom] IP anomaly handling failed:", error);
+      }
+    }
   }
   return session;
 }
@@ -274,6 +314,15 @@ export function registerAuthCustomRoutes(app: Hono) {
             }).toString();
             redirect = `${MFA_VERIFY_REDIRECT}?${mfaQuery}`;
           }
+        } else if (await isSessionReauthRequired(sessionRecord.id)) {
+          const preferredPostReauthTarget =
+            (typeof requestedRedirect === "string" && requestedRedirect.trim()
+              ? requestedRedirect.trim()
+              : target) || "/";
+          const reauthQuery = new URLSearchParams({
+            redirect: preferredPostReauthTarget,
+          }).toString();
+          redirect = `${REAUTH_REDIRECT}?${reauthQuery}`;
         }
       }
       if (process.env.NODE_ENV !== "production") {
@@ -344,11 +393,13 @@ export function registerAuthCustomRoutes(app: Hono) {
 
       const mfaState = await getMfaStateForUser(sessionUser.id);
       if (!mfaState.enabled) {
+        const reauthRequired = await isSessionReauthRequired(sessionRecord.id);
         return c.json({
           required: false,
           verified: true,
           enabled: false,
           setupRequired: false,
+          reauthRequired,
         });
       }
 
@@ -358,12 +409,109 @@ export function registerAuthCustomRoutes(app: Hono) {
         verified,
         enabled: true,
         setupRequired: false,
+        reauthRequired: false,
       });
     } catch (error: unknown) {
       return c.json(
         {
           error:
             error instanceof Error ? error.message : "Failed to fetch MFA status",
+        },
+        500,
+      );
+    }
+  });
+
+  app.get("/api/auth/reauth/status", async (c) => {
+    try {
+      const { sessionRecord, sessionUser } = await getActiveAuthSessionParts(
+        c.req.raw.headers,
+      );
+      if (!sessionRecord || !sessionUser) {
+        return c.json({ error: "Authentication required" }, 401);
+      }
+      const required = await isSessionReauthRequired(sessionRecord.id);
+      return c.json({ required, email: sessionUser.email ?? null });
+    } catch (error: unknown) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Failed to fetch reauth status",
+        },
+        500,
+      );
+    }
+  });
+
+  app.post("/api/auth/reauth", async (c) => {
+    try {
+      const { sessionRecord, sessionUser } = await getActiveAuthSessionParts(
+        c.req.raw.headers,
+      );
+      if (!sessionRecord || !sessionUser) {
+        return c.json({ error: "Authentication required" }, 401);
+      }
+
+      const required = await isSessionReauthRequired(sessionRecord.id);
+      if (!required) {
+        return c.json({ success: true, message: "Re-authentication not required" });
+      }
+
+      const body = (await c.req.json()) as { password?: string };
+      const password = typeof body.password === "string" ? body.password : "";
+      if (!password) {
+        return c.json({ error: "Password is required" }, 400);
+      }
+
+      const accountRows = await db
+        .select({ password: account.password })
+        .from(account)
+        .where(
+          and(eq(account.userId, sessionUser.id), eq(account.providerId, "credential")),
+        )
+        .limit(1);
+
+      const passwordHash = accountRows[0]?.password;
+      if (!passwordHash) {
+        return c.json(
+          {
+            error:
+              "Password re-authentication is not available for this account. Enable MFA or sign out and sign in again.",
+          },
+          400,
+        );
+      }
+
+      const valid = await verifyPassword({
+        hash: passwordHash,
+        password,
+      });
+      if (!valid) {
+        return c.json({ error: "Incorrect password" }, 400);
+      }
+
+      const ipAddress = resolveIpAddress(c.req.raw.headers);
+      await updateSessionBoundIp(sessionRecord.id, ipAddress);
+      await clearSessionReauthRequired(sessionRecord.id);
+
+      await db.insert(userActivityLog).values({
+        id: randomUUID(),
+        userId: sessionUser.id,
+        action: "SESSION_REAUTH_SUCCESS",
+        description: "User re-authenticated after IP change",
+        metadata: { sessionId: sessionRecord.id },
+        ipAddress,
+        userAgent: c.req.raw.headers.get("user-agent"),
+        createdAt: new Date(),
+      });
+
+      return c.json({ success: true, message: "Re-authentication successful" });
+    } catch (error: unknown) {
+      console.error("Reauth API error:", error);
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : "Failed to re-authenticate",
         },
         500,
       );
@@ -667,6 +815,10 @@ export function registerAuthCustomRoutes(app: Hono) {
         metadata: { sessionId: sessionRecord.id, intent },
         headers: c.req.raw.headers,
       }).catch((error) => console.error("Failed to log MFA verification:", error));
+
+      // After step-up MFA, bind current IP and clear any pending password re-auth.
+      await updateSessionBoundIp(sessionRecord.id, resolveIpAddress(c.req.raw.headers));
+      await clearSessionReauthRequired(sessionRecord.id);
 
       if (intent === "SETUP" || intent === "DISABLE") {
         await createMfaNotification({

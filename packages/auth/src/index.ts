@@ -1,6 +1,6 @@
 import { db } from "@npanel/db";
 import * as authSchema from "@npanel/db/schema/auth";
-import { userActivityLog, userMfaSession, userMfaSettings } from "@npanel/db/schema/auth-extras";
+import { userActivityLog } from "@npanel/db/schema/auth-extras";
 import {
   notification,
   notificationActivityLog,
@@ -25,6 +25,11 @@ import {
 } from "./session-enforcement";
 import { invalidateSessionCache } from "./session-cache";
 import {
+  ensurePendingMfaSession,
+  handleIpAnomaly,
+  maybeNotifyNewSignIn,
+} from "./session-security";
+import {
   readCachedUserEnrichment,
   writeCachedUserEnrichment,
 } from "./user-enrich-cache";
@@ -38,7 +43,17 @@ import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS } from "./sessi
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { and, eq } from "@npanel/db";
+import { eq } from "@npanel/db";
+
+function resolveRequestIp(headers: Headers | null | undefined): string | null {
+  if (!headers) return null;
+  return (
+    headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    headers.get("x-real-ip")?.trim() ||
+    headers.get("cf-connecting-ip")?.trim() ||
+    null
+  );
+}
 
 const resolvedTrustedOrigins = (() => {
   const addUrlToList = (list: string[], url: string | undefined) => {
@@ -265,7 +280,16 @@ export const auth = betterAuth<BetterAuthOptions>({
 
         const sessionId = ctx.context.session?.session?.id;
         if (typeof sessionId === "string" && sessionId.length > 0) {
-          const lifetime = await validateAndRefreshIdleSessionById(sessionId);
+          const requestUa = ctx.headers?.get("user-agent") ?? null;
+          const requestIp = resolveRequestIp(ctx.headers);
+          // Do not rotate the session token on idle refresh. Rotating the DB token while
+          // parallel tRPC/API requests still carry the previous cookie logs the active user out.
+          // Idle extension only bumps expiresAt; UA bind + IP step-up + revoke-all cover theft.
+          const lifetime = await validateAndRefreshIdleSessionById(sessionId, {
+            userAgent: requestUa,
+            ipAddress: requestIp,
+            rotateToken: false,
+          });
           if (lifetime.status === "expired") {
             ctx.context.session = null;
             const returned = ctx.context.returned as
@@ -275,7 +299,44 @@ export const auth = betterAuth<BetterAuthOptions>({
               returned.session = null;
               returned.user = null;
             }
+            try {
+              const setCookie = (ctx as { setCookie?: Function }).setCookie;
+              const authCookies = (ctx.context as { authCookies?: { sessionToken?: { name: string; attributes: Record<string, unknown> } } }).authCookies;
+              if (typeof setCookie === "function" && authCookies?.sessionToken) {
+                setCookie(authCookies.sessionToken.name, "", {
+                  ...authCookies.sessionToken.attributes,
+                  maxAge: 0,
+                });
+              }
+            } catch {
+              // Best-effort cookie clear on expiry / UA mismatch.
+            }
             return;
+          }
+
+          if (lifetime.ipAnomaly && lifetime.userId) {
+            try {
+              const anomaly = await handleIpAnomaly({
+                userId: lifetime.userId,
+                sessionId,
+                ipAddress: requestIp,
+                userAgent: requestUa,
+                expiresAt: lifetime.expiresAt,
+              });
+              if (anomaly.invalidated) {
+                ctx.context.session = null;
+                const returned = ctx.context.returned as
+                  | { session?: unknown; user?: unknown }
+                  | undefined;
+                if (returned && typeof returned === "object") {
+                  returned.session = null;
+                  returned.user = null;
+                }
+                return;
+              }
+            } catch (error) {
+              console.error("[auth][get-session] IP anomaly handling failed:", error);
+            }
           }
 
           if (lifetime.extended) {
@@ -377,6 +438,8 @@ export const auth = betterAuth<BetterAuthOptions>({
           const loginUserId = newSession.user.id;
           const loginSessionId = newSession.session?.id;
           const loginHeaders = ctx.headers;
+          const loginIp = resolveRequestIp(loginHeaders);
+          const loginUa = loginHeaders?.get("user-agent") || null;
 
           void db
             .transaction(async (tx) => {
@@ -384,47 +447,6 @@ export const auth = betterAuth<BetterAuthOptions>({
                 .update(user)
                 .set({ lastLoginAt: new Date() })
                 .where(eq(user.id, loginUserId));
-
-              const mfaRows = await tx
-                .select({ id: userMfaSettings.id })
-                .from(userMfaSettings)
-                .where(
-                  and(
-                    eq(userMfaSettings.userId, loginUserId),
-                    eq(userMfaSettings.emailOtpEnabled, true),
-                  ),
-                )
-                .limit(1);
-
-              if (mfaRows[0] && loginSessionId) {
-                const existingMfaSession = await tx
-                  .select({ id: userMfaSession.id })
-                  .from(userMfaSession)
-                  .where(eq(userMfaSession.sessionId, loginSessionId))
-                  .limit(1);
-
-                if (!existingMfaSession[0]) {
-                  await tx.insert(userMfaSession).values({
-                    id: crypto.randomUUID(),
-                    userId: loginUserId,
-                    sessionId: loginSessionId,
-                    requiredAt: new Date(),
-                    verifiedAt: null,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                  });
-                } else {
-                  await tx
-                    .update(userMfaSession)
-                    .set({
-                      userId: loginUserId,
-                      requiredAt: new Date(),
-                      verifiedAt: null,
-                      updatedAt: new Date(),
-                    })
-                    .where(eq(userMfaSession.sessionId, loginSessionId));
-                }
-              }
 
               await tx.insert(userActivityLog).values({
                 id: crypto.randomUUID(),
@@ -435,22 +457,28 @@ export const auth = betterAuth<BetterAuthOptions>({
                   loginMethod: "email_password",
                   sessionDuration: "30 minutes idle",
                 },
-                ipAddress:
-                  loginHeaders?.get("x-forwarded-for") ||
-                  loginHeaders?.get("x-real-ip") ||
-                  "unknown",
-                userAgent: loginHeaders?.get("user-agent") || "unknown",
+                ipAddress: loginIp || "unknown",
+                userAgent: loginUa || "unknown",
                 createdAt: new Date(),
               });
             })
             .catch((error) => console.error("Failed to update login-related data:", error));
 
+          if (loginSessionId) {
+            void ensurePendingMfaSession(loginUserId, loginSessionId).catch((error) =>
+              console.error("Failed to ensure MFA session on login:", error),
+            );
+            void maybeNotifyNewSignIn({
+              userId: loginUserId,
+              sessionId: loginSessionId,
+              ipAddress: loginIp,
+              userAgent: loginUa,
+            });
+          }
+
+          // Keep a lightweight in-app notice for every email login (existing UX).
           void db
             .transaction(async (tx) => {
-                const ipAddress =
-                  loginHeaders?.get("x-forwarded-for") ||
-                  loginHeaders?.get("x-real-ip") ||
-                  null;
                 const accessTime = new Date().toLocaleString("en-US", {
                   year: "numeric",
                   month: "long",
@@ -459,7 +487,7 @@ export const auth = betterAuth<BetterAuthOptions>({
                   minute: "2-digit",
                   timeZoneName: "short",
                 });
-                const ipDisplay = ipAddress ? ` from ${ipAddress}` : "";
+                const ipDisplay = loginIp ? ` from ${loginIp}` : "";
                 const message = `Your account was recently accessed at ${accessTime}${ipDisplay}. If this was not you, kindly reach out to support to secure your account.`;
                 const nid = crypto.randomUUID();
                 await tx.insert(notification).values({
@@ -472,7 +500,7 @@ export const auth = betterAuth<BetterAuthOptions>({
                   message,
                   link: null,
                   metadata: {
-                    ipAddress,
+                    ipAddress: loginIp,
                     accessTime,
                     loginMethod: "email_password",
                   },
@@ -487,9 +515,9 @@ export const auth = betterAuth<BetterAuthOptions>({
                   userId: loginUserId,
                   action: "CREATE",
                   description: "Login notification created",
-                  metadata: { ipAddress, accessTime },
-                  ipAddress,
-                  userAgent: loginHeaders?.get("user-agent") || null,
+                  metadata: { ipAddress: loginIp, accessTime },
+                  ipAddress: loginIp,
+                  userAgent: loginUa,
                   createdAt: new Date(),
                 });
               })
@@ -519,6 +547,10 @@ export const auth = betterAuth<BetterAuthOptions>({
         const newSession = ctx.context.newSession;
         if (newSession?.user) {
           const signupUserId = newSession.user.id;
+          const googleSessionId = newSession.session?.id;
+          const googleIp = resolveRequestIp(ctx.headers);
+          const googleUa = ctx.headers?.get("user-agent") || null;
+
           void (async () => {
             const rows = await db
               .select({ createdAt: user.createdAt })
@@ -526,9 +558,41 @@ export const auth = betterAuth<BetterAuthOptions>({
               .where(eq(user.id, signupUserId))
               .limit(1);
 
-            if (
-              !isNewGoogleRegistration(ctx.context.returned, rows[0]?.createdAt)
-            ) {
+            const isNewRegistration = isNewGoogleRegistration(
+              ctx.context.returned,
+              rows[0]?.createdAt,
+            );
+
+            if (!isNewRegistration) {
+              // Returning Google sign-in: MFA gate + security notify + lastLoginAt.
+              await db
+                .update(user)
+                .set({ lastLoginAt: new Date() })
+                .where(eq(user.id, signupUserId));
+
+              await db.insert(userActivityLog).values({
+                id: crypto.randomUUID(),
+                userId: signupUserId,
+                action: "LOGIN_SUCCESS",
+                description: "User successfully logged in",
+                metadata: {
+                  loginMethod: "google",
+                  sessionDuration: "30 minutes idle",
+                },
+                ipAddress: googleIp || "unknown",
+                userAgent: googleUa || "unknown",
+                createdAt: new Date(),
+              });
+
+              if (googleSessionId) {
+                await ensurePendingMfaSession(signupUserId, googleSessionId);
+                await maybeNotifyNewSignIn({
+                  userId: signupUserId,
+                  sessionId: googleSessionId,
+                  ipAddress: googleIp,
+                  userAgent: googleUa,
+                });
+              }
               return;
             }
 

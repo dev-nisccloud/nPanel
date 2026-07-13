@@ -477,17 +477,19 @@ function ServiceHero({
 
   return (
     <section className="relative pt-28 pb-16 px-4 overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 pointer-events-none -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-3xl opacity-20"
-          style={{ background: "radial-gradient(circle, oklch(0.72 0.2 210 / 0.5), transparent)" }} />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full blur-3xl opacity-10"
-          style={{ background: "radial-gradient(circle, oklch(0.65 0.18 240 / 0.4), transparent)" }} />
-        {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-[0.025]"
-          style={{ backgroundImage: "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
-      </div>
+      {/* Background — skipped for standalone hero images */}
+      {!heroImageStandalone && (
+        <div className="absolute inset-0 pointer-events-none -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full blur-3xl opacity-20"
+            style={{ background: "radial-gradient(circle, oklch(0.72 0.2 210 / 0.5), transparent)" }} />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full blur-3xl opacity-10"
+            style={{ background: "radial-gradient(circle, oklch(0.65 0.18 240 / 0.4), transparent)" }} />
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-[0.025]"
+            style={{ backgroundImage: "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 min-h-[520px]">
@@ -549,7 +551,7 @@ function ServiceHero({
               <img
                 src={heroImage ?? "https://hercules-cdn.com/file_Y6bXDnbADxoripMl7V1UFfhr"}
                 alt={`${badge} illustration`}
-                className="w-full h-auto max-h-[min(70vh,560px)] object-contain"
+                className="w-full h-auto max-h-[min(70vh,560px)] object-contain rounded-2xl md:rounded-3xl"
               />
             ) : (
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-border/40 group">

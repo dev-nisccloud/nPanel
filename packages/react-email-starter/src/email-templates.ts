@@ -3,6 +3,7 @@ import {
   EmailOtpEmail,
   PasswordResetSuccessEmail,
   ResetPasswordEmail,
+  SecurityAlertEmail,
   TeamInviteEmail,
   WelcomeEmail,
 } from "react-email-starter/emails";
@@ -98,6 +99,24 @@ export async function renderEmailOtpEmail({
       userFirstname,
       otpCode,
       expiresInMinutes,
+    }),
+  );
+}
+
+export async function renderSecurityAlertEmail({
+  userFirstname,
+  resetPasswordLink,
+  suspiciousActivity,
+}: {
+  userFirstname: string;
+  resetPasswordLink: string;
+  suspiciousActivity: string;
+}) {
+  return render(
+    SecurityAlertEmail({
+      userFirstname,
+      resetPasswordLink,
+      suspiciousActivity,
     }),
   );
 }
