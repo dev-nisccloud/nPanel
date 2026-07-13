@@ -359,7 +359,6 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     shouldShowRenew={shouldShowRenew}
                     source={(mergedDomain as { source?: "kenic" | "openprovider" }).source ?? "openprovider"}
                     openProviderId={openProviderId}
-                    kenicAuthInfo={kenicLiveInfo?.data?.authInfo}
                     kenicIsLocked={kenicIsLocked}
                     kenicServerTransferLocked={kenicServerTransferLocked}
                     onKenicAuthCodeUpdated={() => void refetchKenicLiveInfo()}
@@ -581,7 +580,6 @@ function DomainHeaderCard({
   shouldShowRenew,
   source,
   openProviderId,
-  kenicAuthInfo,
   kenicIsLocked,
   kenicServerTransferLocked,
   onKenicAuthCodeUpdated,
@@ -592,7 +590,6 @@ function DomainHeaderCard({
   shouldShowRenew: boolean;
   source: "openprovider" | "kenic";
   openProviderId: number | null;
-  kenicAuthInfo?: string | null;
   kenicIsLocked?: boolean;
   kenicServerTransferLocked?: boolean;
   onKenicAuthCodeUpdated?: () => void;
@@ -699,7 +696,6 @@ function DomainHeaderCard({
             isLockable={source === "kenic" ? !kenicServerTransferLocked : domain.isLockable}
             isPrivateWhois={domain.isPrivateWhois}
             kenicServerTransferLocked={kenicServerTransferLocked}
-            kenicAuthInfo={kenicAuthInfo}
             onKenicAuthCodeUpdated={onKenicAuthCodeUpdated}
             onKenicLockUpdated={onKenicLockUpdated}
           />

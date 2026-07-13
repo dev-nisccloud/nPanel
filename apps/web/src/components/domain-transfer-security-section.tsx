@@ -20,8 +20,6 @@ export type DomainTransferSecuritySectionProps = {
   isLocked?: boolean;
   isLockable?: boolean;
   isPrivateWhois?: boolean;
-  /** Pre-fetched KENIC auth code from live domain info */
-  kenicAuthInfo?: string | null;
   /** Registry-level lock  registrar cannot change client lock */
   kenicServerTransferLocked?: boolean;
   onKenicAuthCodeUpdated?: () => void;
@@ -35,7 +33,6 @@ export function DomainTransferSecuritySection({
   isLocked: initialLocked = false,
   isLockable = true,
   isPrivateWhois = false,
-  kenicAuthInfo,
   kenicServerTransferLocked = false,
   onKenicAuthCodeUpdated,
   onKenicLockUpdated,
@@ -53,10 +50,10 @@ export function DomainTransferSecuritySection({
   }, [initialLocked]);
 
   React.useEffect(() => {
-    if (source === "kenic" && kenicAuthInfo) {
-      setEppCode(kenicAuthInfo);
-    }
-  }, [source, kenicAuthInfo]);
+    setEppCode(null);
+    setEppVisible(false);
+    setIsEditingEpp(false);
+  }, [domainName, source]);
 
   const updateOpLockMutation = trpc.openProvider.domains.update.useMutation({
     onSuccess: async (_data, variables) => {
@@ -81,10 +78,18 @@ export function DomainTransferSecuritySection({
   });
 
   const {
-    refetch: fetchAuthCode,
-    isFetching: isFetchingAuthCode,
+    refetch: fetchOpAuthCode,
+    isFetching: isFetchingOpAuthCode,
   } = trpc.openProvider.domains.getAuthCode.useQuery(
     { domainId: openProviderId! },
+    { enabled: false, retry: false }
+  );
+
+  const {
+    refetch: fetchKenicAuthCode,
+    isFetching: isFetchingKenicAuthCode,
+  } = trpc.kenic.domainList.getAuthCode.useQuery(
+    { domain: domainName },
     { enabled: false, retry: false }
   );
 
@@ -102,9 +107,24 @@ export function DomainTransferSecuritySection({
     },
   });
 
+  const regenerateKenicAuthCodeMutation = trpc.kenic.domainList.regenerateAuthCode.useMutation({
+    onSuccess: (result) => {
+      const code = result.data?.auth_code;
+      if (code) {
+        setEppCode(code);
+        setEppVisible(true);
+      }
+      toast.success("Authorization code regenerated");
+      onKenicAuthCodeUpdated?.();
+    },
+    onError: (error) => {
+      toast.error("Failed to regenerate authorization code", { description: error.message });
+    },
+  });
+
   const updateKenicAuthCodeMutation = trpc.kenic.domainList.updateAuthCode.useMutation({
-    onSuccess: (_data, variables) => {
-      setEppCode(variables.authCode);
+    onSuccess: (result, variables) => {
+      setEppCode(result.data?.auth_code ?? variables.authCode);
       toast.success("Authorization code updated");
       setIsEditingEpp(false);
       onKenicAuthCodeUpdated?.();
@@ -175,17 +195,10 @@ export function DomainTransferSecuritySection({
       ? updateKenicLockMutation.isPending
       : updateOpLockMutation.isPending;
 
+  const isFetchingAuthCode =
+    source === "kenic" ? isFetchingKenicAuthCode : isFetchingOpAuthCode;
+
   const handleRevealEpp = async () => {
-    if (source === "kenic") {
-      setEppVisible((v) => !v);
-      return;
-    }
-
-    if (!openProviderId) {
-      toast.error("Domain ID is unavailable");
-      return;
-    }
-
     if (eppVisible) {
       setEppVisible(false);
       return;
@@ -196,7 +209,38 @@ export function DomainTransferSecuritySection({
       return;
     }
 
-    const result = await fetchAuthCode();
+    if (source === "kenic") {
+      if (!domainName) {
+        toast.error("Domain name is unavailable");
+        return;
+      }
+      const result = await fetchKenicAuthCode();
+      const code = result.data?.data?.auth_code;
+      if (code) {
+        setEppCode(code);
+        setEppVisible(true);
+        return;
+      }
+      if (result.data?.data?.needsRegenerate) {
+        toast.message("No stored authorization code", {
+          description: "Regenerate to create a new transfer code for this domain.",
+        });
+        return;
+      }
+      if (result.error) {
+        toast.error("Failed to retrieve authorization code", {
+          description: result.error.message,
+        });
+      }
+      return;
+    }
+
+    if (!openProviderId) {
+      toast.error("Domain ID is unavailable");
+      return;
+    }
+
+    const result = await fetchOpAuthCode();
     const code = result.data?.data?.auth_code;
     if (code) {
       setEppCode(code);
@@ -209,6 +253,15 @@ export function DomainTransferSecuritySection({
   };
 
   const handleRegenerateEpp = () => {
+    if (source === "kenic") {
+      if (!domainName) {
+        toast.error("Domain name is unavailable");
+        return;
+      }
+      regenerateKenicAuthCodeMutation.mutate({ domain: domainName });
+      return;
+    }
+
     if (!openProviderId) {
       toast.error("Domain ID is unavailable");
       return;
@@ -247,6 +300,10 @@ export function DomainTransferSecuritySection({
   };
 
   const eppBlockedByLock = source === "openprovider" && isLocked;
+  const isRegenerating =
+    source === "kenic"
+      ? regenerateKenicAuthCodeMutation.isPending
+      : resetAuthCodeMutation.isPending;
 
   return (
     <>
@@ -311,7 +368,6 @@ export function DomainTransferSecuritySection({
           </div>
 
           {isEditingEpp && source === "kenic" ? (
-            /* ── Edit mode ── */
             <div className="space-y-2 pt-0.5">
               <Input
                 value={editedEpp}
@@ -340,11 +396,8 @@ export function DomainTransferSecuritySection({
               </div>
             </div>
           ) : (
-            /* ── Display mode ── */
             <div className="space-y-2 pt-0.5">
-              {/* Row 1: code + inline copy */}
               <div className="flex items-center gap-2">
-                {/* Hidden input gives copyTextToClipboard a DOM element to select from */}
                 <input
                   ref={eppInputRef}
                   readOnly
@@ -375,7 +428,6 @@ export function DomainTransferSecuritySection({
                 </Button>
               </div>
 
-              {/* Row 2: show/hide + regenerate/change */}
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
@@ -384,6 +436,7 @@ export function DomainTransferSecuritySection({
                   onClick={handleRevealEpp}
                   disabled={
                     (source === "openprovider" && (!openProviderId || eppBlockedByLock)) ||
+                    (source === "kenic" && !domainName) ||
                     isFetchingAuthCode
                   }
                 >
@@ -397,18 +450,20 @@ export function DomainTransferSecuritySection({
                   {eppVisible ? "Hide" : "Show"}
                 </Button>
 
-                {source === "openprovider" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRegenerateEpp}
-                    disabled={!openProviderId || eppBlockedByLock || resetAuthCodeMutation.isPending}
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", resetAuthCodeMutation.isPending && "animate-spin")} />
-                    Regenerate
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRegenerateEpp}
+                  disabled={
+                    (source === "openprovider" && (!openProviderId || eppBlockedByLock)) ||
+                    (source === "kenic" && !domainName) ||
+                    isRegenerating
+                  }
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", isRegenerating && "animate-spin")} />
+                  Regenerate
+                </Button>
 
                 {source === "kenic" && eppVisible && (
                   <Button
