@@ -65,6 +65,10 @@ export type ServicePageShellProps = {
   heroIllustration?: React.ReactNode;
   heroCta2?: string;
   heroTrustBadge?: { line1: string; line2: string };
+  /** Floating badges over the hero image (trust badge + 500+ clients). Default true. */
+  showHeroOverlays?: boolean;
+  /** Render hero image without browser chrome, frame, or hover scale. */
+  heroImageStandalone?: boolean;
   plansUnderHero?: boolean;
   customPlansSection?: React.ReactNode;
   /** Cart serviceType slug used when navigating to /cart from static plan cards */
@@ -453,6 +457,8 @@ function ServiceHero({
   heroIllustration,
   heroCta2,
   heroTrustBadge,
+  showHeroOverlays = true,
+  heroImageStandalone = false,
   onGetStarted,
 }: {
   badge: string;
@@ -463,8 +469,12 @@ function ServiceHero({
   heroIllustration?: React.ReactNode;
   heroCta2?: string;
   heroTrustBadge?: { line1: string; line2: string };
+  showHeroOverlays?: boolean;
+  heroImageStandalone?: boolean;
   onGetStarted: () => void;
 }) {
+  const overlays = showHeroOverlays && !heroImageStandalone;
+
   return (
     <section className="relative pt-28 pb-16 px-4 overflow-hidden">
       {/* Background */}
@@ -525,12 +535,22 @@ function ServiceHero({
             initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="flex-1 w-full lg:max-w-[580px] relative"
+            className={
+              heroImageStandalone
+                ? "flex-1 w-full lg:max-w-[720px] xl:max-w-[780px] relative"
+                : "flex-1 w-full lg:max-w-[580px] relative"
+            }
           >
             {heroIllustration ? (
               <div className="rounded-3xl overflow-hidden border border-border/40 shadow-2xl bg-gradient-to-br from-muted/60 to-muted/20 p-6">
                 {heroIllustration}
               </div>
+            ) : heroImageStandalone ? (
+              <img
+                src={heroImage ?? "https://hercules-cdn.com/file_Y6bXDnbADxoripMl7V1UFfhr"}
+                alt={`${badge} illustration`}
+                className="w-full h-auto max-h-[min(70vh,560px)] object-contain"
+              />
             ) : (
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-border/40 group">
                 {/* Browser chrome */}
@@ -547,31 +567,35 @@ function ServiceHero({
                 />
               </div>
             )}
-            {/* Floating trust badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="absolute -bottom-4 -left-4 bg-card border border-border/60 shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-sm"
-            >
-              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg">✓</div>
-              <div>
-                <div className="text-xs font-bold text-foreground">{heroTrustBadge?.line1 ?? "Nairobi-Based Servers"}</div>
-                <div className="text-[10px] text-muted-foreground">{heroTrustBadge?.line2 ?? "99.9% Uptime Guaranteed"}</div>
-              </div>
-            </motion.div>
-            {/* Secondary floating badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="absolute -top-4 -right-4 bg-card border border-primary/20 shadow-xl shadow-primary/10 rounded-2xl px-4 py-3 flex items-center gap-2"
-            >
-              <div className="flex gap-0.5">
-                {[1,2,3,4,5].map(n => <Star key={n} size={10} className="text-amber-400 fill-amber-400" />)}
-              </div>
-              <div className="text-xs font-bold">500+ Clients</div>
-            </motion.div>
+            {overlays && (
+              <>
+                {/* Floating trust badge */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                  className="absolute -bottom-4 -left-4 bg-card border border-border/60 shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-sm"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg">✓</div>
+                  <div>
+                    <div className="text-xs font-bold text-foreground">{heroTrustBadge?.line1 ?? "Nairobi-Based Servers"}</div>
+                    <div className="text-[10px] text-muted-foreground">{heroTrustBadge?.line2 ?? "99.9% Uptime Guaranteed"}</div>
+                  </div>
+                </motion.div>
+                {/* Secondary floating badge */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.8 }}
+                  className="absolute -top-4 -right-4 bg-card border border-primary/20 shadow-xl shadow-primary/10 rounded-2xl px-4 py-3 flex items-center gap-2"
+                >
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(n => <Star key={n} size={10} className="text-amber-400 fill-amber-400" />)}
+                  </div>
+                  <div className="text-xs font-bold">500+ Clients</div>
+                </motion.div>
+              </>
+            )}
           </motion.div>
         </div>
       </div>
@@ -601,6 +625,8 @@ export default function ServicePageShell({
   heroIllustration,
   heroCta2 = "View Pricing",
   heroTrustBadge = { line1: "Nairobi-Based Servers", line2: "99.9% Uptime Guaranteed" },
+  showHeroOverlays = true,
+  heroImageStandalone = false,
   plansUnderHero = false,
   customPlansSection,
   checkoutServiceType,
@@ -681,6 +707,8 @@ export default function ServicePageShell({
         heroIllustration={heroIllustration}
         heroCta2={heroCta2}
         heroTrustBadge={heroTrustBadge}
+        showHeroOverlays={showHeroOverlays}
+        heroImageStandalone={heroImageStandalone}
         onGetStarted={handleDefaultCta}
       />
 
