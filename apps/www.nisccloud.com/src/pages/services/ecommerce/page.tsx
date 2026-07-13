@@ -88,6 +88,8 @@ export default function EcommercePage() {
       serviceType="marketing"
       checkoutServiceType="ecommerce"
       checkoutProductName="E-Commerce"
+      heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/e%20commerce%20store%20development.png"
+      heroImageStandalone
       trustStats={[
         { value: "120+", label: "Online Stores Launched" },
         { value: "M-Pesa", label: "Native Payment Integration" },

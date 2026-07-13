@@ -3,118 +3,6 @@ import { BarChart2, TrendingUp, Search, Globe, Bot, Map, FileText, Zap } from "l
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { SeoPricingSection } from "./_components/SeoPricingSection.tsx";
 
-// ─── Hero Illustration ───────────────────────────────────────────────────────
-
-function SeoIllustration() {
-  const barData = [40, 55, 48, 70, 62, 85, 78, 95];
-
-  return (
-    <div className="space-y-3 select-none">
-      {/* Main keyword rankings card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border/50 shadow-lg overflow-hidden">
-        <div className="bg-primary px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp size={13} className="text-white" />
-            <span className="text-white text-xs font-bold">SEO Performance Dashboard</span>
-          </div>
-          <span className="text-white/70 text-[10px]">Last 30 days</span>
-        </div>
-
-        {/* Traffic trend chart */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-end gap-1.5 h-16">
-            {barData.map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-t-sm"
-                style={{
-                  height: `${h}%`,
-                  background: i === barData.length - 1
-                    ? "oklch(0.60 0.22 235)"
-                    : `oklch(0.60 0.22 235 / ${0.25 + (i / barData.length) * 0.5})`,
-                }}
-              />
-            ))}
-          </div>
-          <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
-            <span>Week 1</span><span>Week 2</span><span>Week 3</span><span>Week 4</span>
-          </div>
-        </div>
-
-        {/* Keyword ranking list */}
-        <div className="px-4 pb-4 space-y-2">
-          {[
-            { kw: "web hosting Kenya", pos: 1, change: "+7", delta: "up" },
-            { kw: "domain registration Kenya", pos: 2, change: "+5", delta: "up" },
-            { kw: "SEO services Nairobi", pos: 3, change: "+4", delta: "up" },
-            { kw: "website design Kenya", pos: 4, change: "+3", delta: "up" },
-          ].map(({ kw, pos, change, delta }) => (
-            <div key={kw} className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground truncate max-w-[150px]">{kw}</span>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`font-extrabold ${pos <= 3 ? "text-primary" : "text-foreground"}`}>#{pos}</span>
-                <span className={`text-[10px] font-bold ${delta === "up" ? "text-green-500" : "text-red-400"}`}>{change}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Score cards row */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-          <div className="text-lg font-extrabold text-primary">4.2×</div>
-          <div className="text-[9px] text-muted-foreground">Traffic Growth</div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-          <div className="text-lg font-extrabold text-green-500">90 days</div>
-          <div className="text-[9px] text-muted-foreground">Avg. to Top 3</div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-          <div className="text-lg font-extrabold text-primary">180+</div>
-          <div className="text-[9px] text-muted-foreground">Ranked Clients</div>
-        </div>
-      </div>
-
-      {/* AI + Local SEO status cards */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Bot size={12} className="text-primary" />
-            <span className="text-[10px] font-bold text-foreground">AI / AEO Visibility</span>
-          </div>
-          <div className="space-y-1">
-            {["ChatGPT", "Perplexity", "Google SGE"].map((ai) => (
-              <div key={ai} className="flex items-center justify-between text-[9px]">
-                <span className="text-muted-foreground">{ai}</span>
-                <span className="text-green-500 font-bold">Cited ✓</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Map size={12} className="text-primary" />
-            <span className="text-[10px] font-bold text-foreground">Local / Maps Pack</span>
-          </div>
-          <div className="space-y-1">
-            {[
-              { label: "Maps Pack", val: "#1" },
-              { label: "Reviews", val: "4.9 ⭐" },
-              { label: "Citations", val: "20+ dirs" },
-            ].map(({ label, val }) => (
-              <div key={label} className="flex items-center justify-between text-[9px]">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="text-primary font-bold">{val}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Showcase Blocks ─────────────────────────────────────────────────────────
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -255,8 +143,8 @@ export default function SeoPage() {
         { value: "Top 3", label: "Google Rankings in 90 Days" },
         { value: "60%", label: "Average Reduction in Ad Spend" },
       ]}
-      heroIllustration={<SeoIllustration />}
-      heroTrustBadge={{ line1: "SEO + AEO + Local Maps", line2: "Page 1 Results in 90 Days" }}
+      heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/SEO.png"
+      heroImageStandalone
       features={[
         {
           icon: <Search size={20} />,
