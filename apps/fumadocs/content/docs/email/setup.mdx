@@ -1,0 +1,16 @@
+---
+title: Set up email
+description: Create mailboxes and configure DNS for Business Email.
+---
+
+## Create a mailbox
+
+1. In nPanel, open your **Business Email** service.
+2. Create a mailbox (e.g. `info@example.com`).
+3. Set a strong password and optional forwarding.
+
+## DNS records
+
+Your domain needs the correct **MX** (and usually SPF/DKIM **TXT**) records. nPanel shows the exact values for your plan. Add them in [DNS management](/docs/domains/dns).
+
+Wait for DNS propagation before testing delivery.

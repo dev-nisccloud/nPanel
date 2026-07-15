@@ -1,0 +1,15 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "---Services---",
+    "wordpress",
+    "domains",
+    "hosting",
+    "email",
+    "ssl",
+    "---Platform---",
+    "npanel"
+  ]
+}
