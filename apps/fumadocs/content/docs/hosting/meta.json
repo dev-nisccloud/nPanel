@@ -1,0 +1,5 @@
+{
+  "title": "Hosting",
+  "icon": "Server",
+  "pages": ["index", "shared", "vps", "dedicated"]
+}

@@ -1,0 +1,28 @@
+---
+title: DNS management
+description: Configure DNS records for domains on Nisc Cloud.
+---
+
+## Common record types
+
+| Type | Use |
+|------|-----|
+| **A** | Point a host to an IPv4 address |
+| **AAAA** | Point a host to an IPv6 address |
+| **CNAME** | Alias one name to another |
+| **MX** | Mail routing |
+| **TXT** | SPF, DKIM, verification |
+| **NS** | Nameservers |
+
+## Edit DNS
+
+1. Open the domain in nPanel.
+2. Go to **DNS** / **Zone Editor**.
+3. Add or edit records, then save.
+
+Changes can take a few minutes to several hours to propagate globally.
+
+## Typical setups
+
+- **Website:** `A` record for `@` and `www` → hosting IP
+- **Email:** `MX` + SPF/DKIM `TXT` records. See [Business Email](/docs/email).

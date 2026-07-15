@@ -1,14 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-
-function resolveNpanelUrl() {
-  const configured = import.meta.env.VITE_NPANEL_APP_URL;
-  if (typeof configured === "string" && configured.trim()) {
-    return configured.trim().replace(/\/$/, "");
-  }
-  return "https://npanel.nisccloud.com";
-}
-
-const NPANEL_URL = resolveNpanelUrl();
 import { motion, AnimatePresence } from "motion/react";
 import {
   Menu, X, ChevronDown, Globe, Server, Mail, Cpu, Megaphone,
@@ -21,6 +11,23 @@ import { FlowButton } from "@/components/ui/flow-button.tsx";
 import { useNavigate, useLocation } from "react-router-dom";
 // import { useTheme } from "next-themes";
 
+function resolvePublicUrl(configured: unknown, fallback: string) {
+  if (typeof configured === "string" && configured.trim()) {
+    return configured.trim().replace(/\/$/, "");
+  }
+  return fallback;
+}
+
+const NPANEL_URL = resolvePublicUrl(
+  import.meta.env.VITE_NPANEL_APP_URL,
+  "https://npanel.nisccloud.com",
+);
+
+const DOCS_URL = resolvePublicUrl(
+  import.meta.env.VITE_DOCS_URL,
+  "https://docs.nisccloud.com",
+);
+
 type SubItem = {
   label: string;
   desc: string;
@@ -32,6 +39,8 @@ type NavItem = {
   label: string;
   href: string;
   children?: SubItem[];
+  /** When true, navigates with a full page load (external apps). */
+  external?: boolean;
 };
 
 const navItems: NavItem[] = [
@@ -67,7 +76,7 @@ const navItems: NavItem[] = [
   { label: "Security", href: "/security" },
   { label: "Pricing", href: "/pricing" },
   { label: "Portfolio", href: "/work" },
-  { label: "Help", href: "/help" },
+  { label: "Help", href: DOCS_URL, external: true },
 ];
 
 function MegaDropdown({
@@ -159,6 +168,19 @@ export default function Navbar() {
     window.location.assign(NPANEL_URL);
   };
 
+  const handleNavItemClick = (item: NavItem) => {
+    if (item.external) {
+      window.location.assign(item.href);
+      return;
+    }
+    if (item.children?.length) {
+      activeDropdown === item.href ? scheduleClose() : openDropdown(item.href);
+      return;
+    }
+    navigate(item.href);
+    setActiveDropdown(null);
+  };
+
   return (
     <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
@@ -179,19 +201,12 @@ export default function Navbar() {
                 onMouseLeave={() => { if (hasDropdown) scheduleClose(); }}
               >
                 <button
-                  onClick={() => {
-                    if (hasDropdown) {
-                      activeDropdown === item.href ? scheduleClose() : openDropdown(item.href);
-                    } else {
-                      navigate(item.href);
-                      setActiveDropdown(null);
-                    }
-                  }}
+                  onClick={() => handleNavItemClick(item)}
                   onMouseEnter={() => { if (hasDropdown) openDropdown(item.href); }}
                   className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer font-medium ${
                     activeDropdown === item.href
                       ? "text-primary bg-primary/5"
-                      : isCurrentPage
+                      : isCurrentPage && !item.external
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
@@ -204,7 +219,7 @@ export default function Navbar() {
                     />
                   )}
                 </button>
-                {isCurrentPage && !hasDropdown && (
+                {isCurrentPage && !hasDropdown && !item.external && (
                   <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
                 )}
                 <AnimatePresence>
@@ -260,6 +275,11 @@ export default function Navbar() {
                   <div key={item.href}>
                     <button
                       onClick={() => {
+                        if (item.external) {
+                          window.location.assign(item.href);
+                          setOpen(false);
+                          return;
+                        }
                         if (hasChildren) {
                           setMobileExpanded(mobileExpanded === item.href ? null : item.href);
                         } else {

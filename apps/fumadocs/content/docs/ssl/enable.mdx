@@ -1,0 +1,21 @@
+---
+title: Enable SSL
+description: Turn on HTTPS for your domain.
+---
+
+## Steps
+
+1. Ensure your domain’s **A** / **CNAME** records point to your hosting.
+2. In nPanel, open the hosting or SSL service for that domain.
+3. Choose **Enable SSL** / **Let’s Encrypt** (or install a purchased certificate).
+4. Wait for issuance, then visit `https://yourdomain.com`.
+
+## Force HTTPS
+
+After SSL is active, enable “Force HTTPS” or add a redirect from HTTP to HTTPS so all traffic uses the secure URL.
+
+## Troubleshooting
+
+- **Validation failed:** DNS not pointing correctly yet
+- **Mixed content:** update hardcoded `http://` assets in your site
+- **Renewal:** free certificates renew automatically when DNS stays correct

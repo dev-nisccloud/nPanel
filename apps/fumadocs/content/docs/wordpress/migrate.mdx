@@ -1,0 +1,28 @@
+---
+title: Migrate WordPress
+description: Move an existing WordPress site to Nisc Cloud.
+---
+
+## Overview
+
+You can migrate WordPress sites using:
+
+1. **Migration tools** in nPanel (when available for your plan)
+2. **Manual migration:** export files + database, then import
+3. **Assisted migration:** contact support for help
+
+## Manual checklist
+
+1. Put the old site in maintenance mode (optional)
+2. Export the WordPress database (SQL)
+3. Download `wp-content` (and other custom files)
+4. Create the site on Nisc Cloud and import the database
+5. Upload files and update `wp-config.php`
+6. Update DNS to point to the new host
+7. [Enable SSL](/docs/ssl/enable) and test
+
+## Tips
+
+- Search-replace old URLs with the new domain carefully
+- Clear caches after cutover
+- Keep the old host online until DNS fully propagates

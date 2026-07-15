@@ -1,3 +1,23 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+
+/* Nisc Cloud brand: primary #38b6ff */
+@theme {
+  --color-fd-primary: hsl(199, 100%, 61%);
+  --color-fd-primary-foreground: hsl(0, 0%, 100%);
+  --color-fd-ring: hsl(199, 100%, 61%);
+}
+
+.dark {
+  --color-fd-primary: hsl(199, 100%, 68%);
+  --color-fd-primary-foreground: hsl(210, 50%, 8%);
+  --color-fd-ring: hsl(199, 100%, 68%);
+  --color-fd-background: hsl(210, 50%, 7%);
+  --color-fd-card: hsl(210, 40%, 10%);
+  --color-fd-popover: hsl(210, 40%, 11%);
+  --color-fd-secondary: hsl(210, 30%, 14%);
+  --color-fd-muted: hsl(210, 30%, 14%);
+  --color-fd-accent: hsla(199, 100%, 68%, 0.15);
+  --color-fd-accent-foreground: hsl(199, 100%, 80%);
+}
