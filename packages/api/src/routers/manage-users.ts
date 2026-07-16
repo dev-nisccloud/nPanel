@@ -301,6 +301,8 @@ export const manageUsersRouter = router({
 					email: input.email,
 					password: input.password,
 					name: input.name,
+					// Agency-created accounts bypass the public sign-up form; terms are implied.
+					acceptedTermsAndConditions: true,
 				},
 			});
 
@@ -341,7 +343,10 @@ export const manageUsersRouter = router({
 			// Update user role to the specified role (Better Auth defaults to CUSTOMER)
 			const afterRoleRows = await db
 				.update(user)
-				.set({ role: input.role })
+				.set({
+					role: input.role,
+					acceptedTermsAndConditions: true,
+				})
 				.where(eq(user.id, updatedUser.id))
 				.returning();
 			updatedUser = afterRoleRows[0];
