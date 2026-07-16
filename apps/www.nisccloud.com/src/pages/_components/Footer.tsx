@@ -71,10 +71,10 @@ export default function Footer() {
               <div className="flex items-center gap-2">
                 <Mail size={14} className="text-primary shrink-0" />
                 <a
-                  href="mailto:hello@nisccloud.com"
+                  href="mailto:sales@nisccloud.com"
                   className="hover:text-foreground transition-colors"
                 >
-                  hello@nisccloud.com
+                  sales@nisccloud.com
                 </a>
               </div>
               <div className="flex items-center gap-2">

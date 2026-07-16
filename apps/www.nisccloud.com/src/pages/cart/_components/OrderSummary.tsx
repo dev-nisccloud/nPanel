@@ -162,8 +162,10 @@ export function OrderSummary({
               </p>
               <p className="text-xs text-muted-foreground">
                 {selectedDomain.isExisting
-                  ? "Existing domain · connect after setup"
-                  : "Domain registration · 1 year"}
+                  ? "Existing domain · subscription name only"
+                  : selectedDomain.isTransfer
+                    ? "Domain transfer · includes 1 year renewal"
+                    : "Domain registration · 1 year"}
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -263,7 +265,7 @@ export function OrderSummary({
             : isContinueLoading
             ? "Processing…"
             : step === 1
-              ? "Continue →"
+              ? "Continue"
               : "Complete Order"}
         </Button>
 

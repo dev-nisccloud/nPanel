@@ -1,7 +1,7 @@
 apiVersion: 1
 
 # Remove the old Prometheus datasource that was provisioned before we dropped
-# the metrics stack — Grafana's DB still references it and crashes on startup
+# the metrics stack  Grafana's DB still references it and crashes on startup
 # if we don't explicitly delete it here.
 deleteDatasources:
   - name: Prometheus

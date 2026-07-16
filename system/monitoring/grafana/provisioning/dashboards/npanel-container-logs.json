@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Drill into logs for any individual nPanel system container — filter by service and log level",
+  "description": "Drill into logs for any individual nPanel system container  filter by service and log level",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -262,7 +262,7 @@
         "sortOrder": "Descending",
         "wrapLogMessage": true
       },
-      "title": "Logs — $service",
+      "title": "Logs  $service",
       "type": "logs",
       "targets": [
         {
@@ -354,7 +354,7 @@
         "sortOrder": "Descending",
         "wrapLogMessage": true
       },
-      "title": "MinIO — Errors & S3 API Events",
+      "title": "MinIO  Errors & S3 API Events",
       "type": "logs",
       "targets": [
         {

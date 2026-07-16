@@ -58,8 +58,8 @@ export default function CookiePolicyPage() {
         </li>
       </ul>
       <p>
-        Similar technologies — including <strong>pixel tags</strong>, <strong>web beacons</strong>,{" "}
-        <strong>local storage</strong>, and <strong>fingerprinting</strong> — may also be used for
+        Similar technologies  including <strong>pixel tags</strong>, <strong>web beacons</strong>,{" "}
+        <strong>local storage</strong>, and <strong>fingerprinting</strong>  may also be used for
         comparable purposes. Where this policy refers to "cookies", it encompasses all such
         technologies unless stated otherwise.
       </p>
@@ -357,7 +357,7 @@ export default function CookiePolicyPage() {
       </p>
       <p>
         Under the Kenya Data Protection Act, 2019, consent must be freely given, specific,
-        informed, and unambiguous. We honour these requirements — you will not be penalised for
+        informed, and unambiguous. We honour these requirements  you will not be penalised for
         declining non-essential cookies, and our core Services function with Strictly Necessary
         cookies only.
       </p>
@@ -432,12 +432,12 @@ export default function CookiePolicyPage() {
       <ul>
         <li>
           <a href="https://optout.aboutads.info/" target="_blank" rel="noopener noreferrer">
-            Digital Advertising Alliance (DAA) — optout.aboutads.info
+            Digital Advertising Alliance (DAA)  optout.aboutads.info
           </a>
         </li>
         <li>
           <a href="https://youronlinechoices.eu/" target="_blank" rel="noopener noreferrer">
-            European Interactive Digital Advertising Alliance — youronlinechoices.eu
+            European Interactive Digital Advertising Alliance  youronlinechoices.eu
           </a>
         </li>
       </ul>

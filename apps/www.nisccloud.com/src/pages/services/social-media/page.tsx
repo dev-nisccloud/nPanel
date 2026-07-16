@@ -96,7 +96,7 @@ export default function SocialMediaPage() {
       serviceType="marketing"
       checkoutServiceType="social_media"
       checkoutProductName="Social Media"
-      heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/Social%20media%20management.png"
+      heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/social-media.png"
       heroImageStandalone
       trustStats={[
         { value: "350+", label: "Kenyan Brands Managed" },

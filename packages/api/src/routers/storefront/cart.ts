@@ -1,5 +1,5 @@
 /**
- * Storefront cart — signed handoff + authoritative pricing quotes.
+ * Storefront cart  signed handoff + authoritative pricing quotes.
  */
 import { and, eq } from "@npanel/db";
 import { db } from "@npanel/db";

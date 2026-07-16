@@ -350,7 +350,7 @@ export type RegisterKenicDomainResult = {
 	success: true;
 	domain: string;
 	exDate?: string | null;
-	/** Plaintext EPP auth code set at create — store locally; CoCCA will not return it later. */
+	/** Plaintext EPP auth code set at create  store locally; CoCCA will not return it later. */
 	authInfo: string;
 };
 
@@ -451,7 +451,7 @@ export async function registerKenicDomain(
 	}
 }
 
-/** CoCCA returns a one-way hash from domain:info — never treat those as displayable codes. */
+/** CoCCA returns a one-way hash from domain:info  never treat those as displayable codes. */
 export function isCoccaAuthInfoHash(value: string | null | undefined): boolean {
 	if (!value) return false;
 	return /^[0-9a-f]{64,}$/i.test(value.trim());

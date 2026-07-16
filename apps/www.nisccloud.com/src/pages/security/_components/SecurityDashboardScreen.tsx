@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from "motion/react";
 /* ── data ─────────────────────────────────────────────── */
 
 const EVENTS = [
-  { id: 1, color: "#ef4444", label: "SQL injection blocked",     sub: "WAF rule #4421 — 185.220.x.x",  time: "just now" },
-  { id: 2, color: "#16a34a", label: "Malware scan — Clean",      sub: "4× daily scan complete",         time: "1h ago"   },
-  { id: 3, color: "#2563eb", label: "DDoS absorbed — 3.2K req/s",sub: "Traffic normal after 4 min",     time: "2h ago"   },
+  { id: 1, color: "#ef4444", label: "SQL injection blocked",     sub: "WAF rule #4421  185.220.x.x",  time: "just now" },
+  { id: 2, color: "#16a34a", label: "Malware scan  Clean",      sub: "4× daily scan complete",         time: "1h ago"   },
+  { id: 3, color: "#2563eb", label: "DDoS absorbed  3.2K req/s",sub: "Traffic normal after 4 min",     time: "2h ago"   },
   { id: 4, color: "#7c3aed", label: "SSL auto-renewed",          sub: "Valid 365 more days · SHA-256",  time: "2d ago"   },
-  { id: 5, color: "#ea580c", label: "XSS attempt blocked",       sub: "WAF rule #2109 — 91.108.x.x",   time: "3h ago"   },
+  { id: 5, color: "#ea580c", label: "XSS attempt blocked",       sub: "WAF rule #2109  91.108.x.x",   time: "3h ago"   },
 ];
 
 const BAR_HEIGHTS = [60, 85, 72, 100, 78, 110, 90];
@@ -168,7 +168,7 @@ export default function SecurityDashboardScreen() {
 
         {/* Left: bar chart */}
         <div className="flex w-28 shrink-0 flex-col">
-          <span className="mb-1.5 text-[7px] uppercase tracking-widest text-gray-400">Firewall — 7 days</span>
+          <span className="mb-1.5 text-[7px] uppercase tracking-widest text-gray-400">Firewall  7 days</span>
           <div className="flex flex-1 items-end gap-1">
             {BAR_HEIGHTS.map((h, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-0.5">

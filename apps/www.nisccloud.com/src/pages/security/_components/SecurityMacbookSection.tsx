@@ -32,7 +32,7 @@ export default function SecurityMacbookSection() {
           </h2>
           <p className="mx-auto max-w-xl text-base leading-relaxed text-muted-foreground">
             Every plan comes with a real-time security dashboard. See threats blocked,
-            malware scans, uptime, SSL status, and DDoS events — all from one place.
+            malware scans, uptime, SSL status, and DDoS events  all from one place.
           </p>
         </div>
 
@@ -51,14 +51,14 @@ export default function SecurityMacbookSection() {
           </div>
         </div>
 
-        {/* MacBook scroll — live animated dashboard on-screen */}
+        {/* MacBook scroll  live animated dashboard on-screen */}
         <div className="w-full overflow-hidden">
           <MacbookScroll
             showGradient={false}
             content={<SecurityDashboardScreen />}
             title={
               <span className="sr-only">
-                Nisc Cloud Security Dashboard — real-time threat monitoring
+                Nisc Cloud Security Dashboard  real-time threat monitoring
               </span>
             }
           />

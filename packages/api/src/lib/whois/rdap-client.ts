@@ -6,13 +6,13 @@
  * response into a single consistent shape.
  *
  * Types are derived from real responses collected from:
- *   - Verisign  (.com / .net)  — gTLD, ICANN-compliant, registrant GDPR-redacted
- *   - Nominet   (.co.uk / .uk) — ccTLD, redacted array + richer nameserver objects
- *   - KENIC     (.ke / .co.ke) — ccTLD via https://rdap.kenic.or.ke/
+ *   - Verisign  (.com / .net)   gTLD, ICANN-compliant, registrant GDPR-redacted
+ *   - Nominet   (.co.uk / .uk)  ccTLD, redacted array + richer nameserver objects
+ *   - KENIC     (.ke / .co.ke)  ccTLD via https://rdap.kenic.or.ke/
  *
  * KENIC quirks:
  *   • Bootstrap maps only "ke"; all sub-TLDs (.co.ke, .or.ke …) share the same server
- *   • Registrar entity in the domain response has NO vcardArray — the full vcard
+ *   • Registrar entity in the domain response has NO vcardArray  the full vcard
  *     lives at the entity href. We detect this and do a second fetch to enrich the
  *     registrar with address, phone, and email. Only fires for same-origin entity URLs
  *     to avoid cross-registry requests on gTLDs.
@@ -103,7 +103,7 @@ export interface WhoisDsData {
 	keyTag: number;
 	algorithm: number;
 	digestType: number;
-	/** Hex digest — normalised to lowercase */
+	/** Hex digest  normalised to lowercase */
 	digest: string;
 }
 
@@ -152,7 +152,7 @@ export interface WhoisResult {
 	registrationDate: string | null;
 	expiryDate: string | null;
 	updatedDate: string | null;
-	/** Transfer date — present in KENIC responses */
+	/** Transfer date  present in KENIC responses */
 	transferDate: string | null;
 	status: string[];
 	registrar: WhoisRegistrar | null;
@@ -281,7 +281,7 @@ function parseVcard(entity: RdapEntity): WhoisContact {
  * a follow-up fetch. Returns null for gTLDs where the vcard is already inline.
  */
 function extractRegistrarEntityUrl(entity: RdapEntity, baseUrl: string): string | null {
-	// Already have inline vcard — no extra fetch needed
+	// Already have inline vcard  no extra fetch needed
 	if (entity.vcardArray) return null;
 
 	const links = entity.links ?? [];
@@ -290,7 +290,7 @@ function extractRegistrarEntityUrl(entity: RdapEntity, baseUrl: string): string 
 	);
 	if (!entityLink) return null;
 
-	// Only fetch from the same origin as the RDAP server we used for the domain —
+	// Only fetch from the same origin as the RDAP server we used for the domain 
 	// prevents unintended cross-registry requests.
 	try {
 		const linkOrigin = new URL(entityLink.href).origin;
@@ -305,7 +305,7 @@ function extractRegistrarEntityUrl(entity: RdapEntity, baseUrl: string): string 
 
 /**
  * Fetch a KENIC registrar entity URL and return the enriched contact fields.
- * Fails silently — the caller merges these into the base registrar object.
+ * Fails silently  the caller merges these into the base registrar object.
  */
 async function fetchRegistrarEntityEnrichment(
 	url: string,
@@ -470,7 +470,7 @@ function parseEvents(rawEvents: RdapEvent[]): {
 		}
 	}
 
-	// Build the displayable event log — filter noise, sort newest first
+	// Build the displayable event log  filter noise, sort newest first
 	const events: WhoisDomainEvent[] = rawEvents
 		.filter((e) => !HIDDEN_EVENT_ACTIONS.has(e.eventAction))
 		.map((e) => ({

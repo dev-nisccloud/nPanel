@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "High-level view of all nPanel system container logs — volume, errors, warnings, and per-service breakdown",
+  "description": "High-level view of all nPanel system container logs  volume, errors, warnings, and per-service breakdown",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,

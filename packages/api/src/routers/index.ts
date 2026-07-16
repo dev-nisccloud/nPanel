@@ -327,7 +327,7 @@ export const appRouter = router({
 	storefront: storefrontRouter,
 	// MinIO / S3-compatible object storage (presigned uploads)
 	objectStorage: objectStorageRouter,
-	// WHOIS / RDAP domain lookup (public — no auth required)
+	// WHOIS / RDAP domain lookup (public  no auth required)
 	whois: whoisRouter,
 	// JetBackup 5 Integration
 	jetbackup: router({

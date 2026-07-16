@@ -49,7 +49,7 @@ const teamData: TeamMember[] = [
     name: "Sofia Delgado",
     role: "Client Success Lead",
     description:
-      "The glue that holds client relationships together. Ensures every engagement delivers on its promises — and then some.",
+      "The glue that holds client relationships together. Ensures every engagement delivers on its promises  and then some.",
   },
 ];
 

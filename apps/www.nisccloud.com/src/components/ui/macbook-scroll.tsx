@@ -195,7 +195,7 @@ export const Keypad = () => (
       <KBtn><span className="block">*</span><span className="block">8</span></KBtn>
       <KBtn><span className="block">(</span><span className="block">9</span></KBtn>
       <KBtn><span className="block">)</span><span className="block">0</span></KBtn>
-      <KBtn><span className="block">—</span><span className="block">_</span></KBtn>
+      <KBtn><span className="block"></span><span className="block">_</span></KBtn>
       <KBtn><span className="block">+</span><span className="block">=</span></KBtn>
       <KBtn className="w-10 items-end justify-end pr-[4px] pb-[2px]" childrenClassName="items-end">delete</KBtn>
     </div>

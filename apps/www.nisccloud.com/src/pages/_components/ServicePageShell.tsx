@@ -207,7 +207,7 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
             <span className="text-primary">You Get.</span>
           </h2>
           <p className="text-muted-foreground text-base mt-3">
-            A complete, battle-tested system — nothing is an afterthought.
+            A complete, battle-tested system  nothing is an afterthought.
           </p>
         </motion.div>
 
@@ -477,7 +477,7 @@ function ServiceHero({
 
   return (
     <section className="relative pt-28 pb-16 px-4 overflow-hidden">
-      {/* Background — skipped for standalone hero images */}
+      {/* Background  skipped for standalone hero images */}
       {!heroImageStandalone && (
         <div className="absolute inset-0 pointer-events-none -z-10">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
