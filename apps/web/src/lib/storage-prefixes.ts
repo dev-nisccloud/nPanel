@@ -1,4 +1,4 @@
-/** MinIO / S3 key prefixes — keep in sync with packages/api object-storage/prefixes.ts */
+/** MinIO / S3 key prefixes  keep in sync with packages/api object-storage/prefixes.ts */
 export const STORAGE_PREFIXES = {
 	FILES: "uploads/files",
 	IMAGES: "uploads/images",

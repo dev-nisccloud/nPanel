@@ -99,7 +99,7 @@ function StepIndicator({ current }: { current: 1 | 2 }) {
 
 function EmptyCart() {
   return (
-    <div className="flex flex-col items-center justify-center pt-16 py-24 text-center px-4">
+    <div className="flex flex-col items-center justify-center pt-24 md:pt-28 pb-24 text-center px-4">
       <ShoppingCart className="w-12 h-12 text-muted-foreground/40 mb-4" />
       <h2 className="text-xl font-bold text-foreground mb-2">Your cart is empty</h2>
       <p className="text-muted-foreground mb-6 max-w-xs">
@@ -167,6 +167,8 @@ export default function CartPage() {
       request.upsellDomain = {
         domain: selectedDomain.domain,
         isExisting: selectedDomain.isExisting,
+        isTransfer: selectedDomain.isTransfer,
+        provider: selectedDomain.provider,
       };
     }
 
@@ -373,6 +375,7 @@ export default function CartPage() {
     if (quoteInitialLoading || !quote || quoteSummaryLoading) return false;
     if (quoteError) return false;
     if (isDomainTransfer && !transferAuthCode.trim()) return false;
+    if (selectedDomain?.isTransfer && !transferAuthCode.trim()) return false;
     if (!isHivelocityPlan) return true;
     if (!hivelocityPricing || hivelocityPricing.loading) return false;
     if (hivelocityPricing.loadError) return false;
@@ -387,6 +390,7 @@ export default function CartPage() {
     quoteSummaryLoading,
     isDomainTransfer,
     transferAuthCode,
+    selectedDomain,
     isHivelocityPlan,
     hivelocityConfig,
     hivelocityConfigComplete,
@@ -403,6 +407,7 @@ export default function CartPage() {
 
   const resolvePrimaryDomain = (): string | undefined => {
     if (serviceType === "domain_registration" || serviceType === "domain_transfer") return planName;
+    // Existing domains name the hosting subscription; purchased domains also link hosting to that name.
     if (selectedDomain?.domain) return selectedDomain.domain;
     return undefined;
   };
@@ -481,7 +486,7 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <main className="max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-8">
+        <main className="max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8">
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {quoteError}
           </div>
@@ -507,13 +512,13 @@ export default function CartPage() {
         <main
           className={
             showSkeleton
-              ? "max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
-              : "max-w-5xl mx-auto px-4 md:px-6 pt-16 pb-8 animate-in fade-in duration-300"
+              ? "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 invisible absolute inset-x-0 top-0 opacity-0 pointer-events-none h-0 overflow-hidden"
+              : "max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8 animate-in fade-in duration-300"
           }
           aria-hidden={showSkeleton}
         >
         {/* Step breadcrumb  lives in content, not in header */}
-        <div className="mb-5">
+        <div className="mb-6">
           <StepIndicator current={step} />
         </div>
 
@@ -559,7 +564,12 @@ export default function CartPage() {
                   {wantsDomainUpsell && (
                     <DomainUpsell
                       selectedDomain={selectedDomain}
-                      onDomainSelect={setSelectedDomain}
+                      onDomainSelect={(domain) => {
+                        setSelectedDomain(domain);
+                        if (!domain?.isTransfer) setTransferAuthCode("");
+                      }}
+                      transferAuthCode={transferAuthCode}
+                      onTransferAuthCodeChange={setTransferAuthCode}
                     />
                   )}
 

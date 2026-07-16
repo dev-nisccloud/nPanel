@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Menu, X, ChevronDown, Globe, Server, Mail, Cpu, Megaphone,
-  Palette, ShoppingCart, PenTool, BarChart2, Zap,
-  LogIn, TrendingUp, Users, HardDrive, MonitorSmartphone,
+  ShoppingCart, PenTool, BarChart2, Zap,
+  LogIn, TrendingUp, HardDrive, MonitorSmartphone,
   Target, AtSign, ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
@@ -45,21 +45,6 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    label: "Marketing & Branding",
-    href: "/services/marketing",
-    children: [
-      { label: "Brand Strategy & Positioning", desc: "Positioning, messaging & brand strategy", href: "/services/brand-identity", icon: <Target size={16} /> },
-      { label: "Brand Identity & Design", desc: "Logos, colours, fonts & brand guidelines", href: "/services/brand-identity", icon: <Palette size={16} /> },
-      { label: "Social Media Marketing", desc: "Content, scheduling & community management", href: "/services/social-media", icon: <PenTool size={16} /> },
-      { label: "SEO / AEO / GEO", desc: "Rank #1 on Google, AI & Maps", href: "/services/seo", icon: <BarChart2 size={16} /> },
-      { label: "Paid Advertising", desc: "Google, Meta & TikTok campaigns", href: "/services/paid-ads", icon: <Megaphone size={16} /> },
-      { label: "Email Marketing", desc: "Sequences, newsletters & automation", href: "/services/email-marketing", icon: <AtSign size={16} /> },
-      { label: "Influencer Marketing", desc: "Micro & macro influencer campaigns", href: "/services/social-media", icon: <Users size={16} /> },
-      { label: "Website Design", desc: "Custom sites built for conversion", href: "/services/website-design", icon: <MonitorSmartphone size={16} /> },
-      { label: "E-commerce Design", desc: "Full online stores with M-Pesa checkout", href: "/services/ecommerce", icon: <ShoppingCart size={16} /> },
-    ],
-  },
-  {
     label: "Cloud Hosting",
     href: "/hosting",
     children: [
@@ -71,6 +56,19 @@ const navItems: NavItem[] = [
       { label: "Business Email Hosting", desc: "Professional email for your brand", href: "/hosting/email", icon: <Mail size={16} /> },
       { label: "Domain Registration", desc: ".co.ke, .com and 50+ extensions", href: "/hosting/domains", icon: <Globe size={16} /> },
       { label: "Domain Transfer", desc: "Move your domain to Nisc Cloud", href: "/domain-transfer", icon: <ArrowLeftRight size={16} /> },
+    ],
+  },
+  {
+    label: "Marketing & Branding",
+    href: "/services/marketing",
+    children: [
+      { label: "Brand Strategy & Positioning", desc: "Positioning, messaging & brand strategy", href: "/services/brand-identity", icon: <Target size={16} /> },
+      { label: "Social Media Marketing", desc: "Content, scheduling & community management", href: "/services/social-media", icon: <PenTool size={16} /> },
+      { label: "SEO / AEO / GEO", desc: "Rank #1 on Google, AI & Maps", href: "/services/seo", icon: <BarChart2 size={16} /> },
+      { label: "Paid Advertising", desc: "Google, Meta & TikTok campaigns", href: "/services/paid-ads", icon: <Megaphone size={16} /> },
+      { label: "Email Marketing", desc: "Sequences, newsletters & automation", href: "/services/email-marketing", icon: <AtSign size={16} /> },
+      { label: "Website Design", desc: "Custom sites built for conversion", href: "/services/website-design", icon: <MonitorSmartphone size={16} /> },
+      { label: "E-commerce Design", desc: "Full online stores with M-Pesa checkout", href: "/services/ecommerce", icon: <ShoppingCart size={16} /> },
     ],
   },
   { label: "Security", href: "/security" },

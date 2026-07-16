@@ -59,7 +59,7 @@ export default function TrustedBy() {
                   <img
                     src={client.logo}
                     alt={client.name}
-                    className="h-24 w-auto max-w-[200px] object-contain"
+                    className="h-16 w-auto max-w-[210px] object-contain sm:h-20 md:h-24"
                     loading="lazy"
                   />
                 </div>

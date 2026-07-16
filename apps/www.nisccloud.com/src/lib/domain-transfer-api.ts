@@ -24,7 +24,7 @@ export type CheckTransferResult = {
   error: string | null;
 };
 
-/** Public tRPC procedure — no auth required. */
+/** Public tRPC procedure  no auth required. */
 export function checkDomainTransfer(domain: string): Promise<CheckTransferResult> {
   return trpcMutation<CheckTransferResult>("domainTransfer.checkTransfer", { domain });
 }

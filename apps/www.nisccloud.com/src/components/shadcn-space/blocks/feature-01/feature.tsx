@@ -33,7 +33,7 @@ export type FeatureProps = {
 
 const defaultTestimonial: FeatureTestimonial = {
   quote:
-    "We went from idea to live product in under 30 days. The process was transparent at every step — we always knew exactly what was happening next.",
+    "We went from idea to live product in under 30 days. The process was transparent at every step  we always knew exactly what was happening next.",
   name: "Sarah Mwangi",
   role: "Founder, Nairobi SaaS Startup",
   avatarSrc: "https://images.shadcnspace.com/assets/profiles/user-1.jpg",

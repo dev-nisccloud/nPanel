@@ -104,9 +104,9 @@ export default function TermsOfServicePage() {
       {/* ─── 2. ACCEPTANCE ──────────────────────────────────────────────────── */}
       <h2 id="acceptance">2. Acceptance of Terms</h2>
       <p>
-        By accessing or using the Platform in any manner — including browsing our website,
+        By accessing or using the Platform in any manner  including browsing our website,
         creating an Account, purchasing a Service, or continuing to use any Service after an
-        update to these Terms — you confirm that you have read, understood, and agree to be bound
+        update to these Terms  you confirm that you have read, understood, and agree to be bound
         by this Agreement in its entirety.
       </p>
       <p>
@@ -409,7 +409,7 @@ export default function TermsOfServicePage() {
         <li>Conduct or facilitate distributed denial-of-service (DDoS) attacks or any other form of cyberattack;</li>
         <li>Mine cryptocurrencies or engage in any activity that places excessive, unreasonable strain on shared infrastructure without prior written approval;</li>
         <li>Store or process content that infringes the intellectual property rights of any person;</li>
-        <li>Host content that constitutes child sexual abuse material (CSAM) — this is a zero-tolerance policy and will result in immediate termination and reporting to relevant authorities;</li>
+        <li>Host content that constitutes child sexual abuse material (CSAM)  this is a zero-tolerance policy and will result in immediate termination and reporting to relevant authorities;</li>
         <li>Engage in any form of online fraud, identity theft, or financial crime;</li>
         <li>Circumvent or attempt to circumvent any security measure, firewall, or access control;</li>
         <li>Reverse engineer, decompile, or disassemble any part of the Platform; or</li>

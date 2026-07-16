@@ -1,4 +1,4 @@
-# Observability + Backup stack — run alongside the base file:
+# Observability + Backup stack  run alongside the base file:
 #   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 #
 # Services:
@@ -10,10 +10,10 @@
 #   pgadmin     → PostgreSQL web GUI                   → http://localhost:5050
 #
 # What was intentionally left out (add back when you need metrics dashboards):
-#   prometheus      — 200–500 MB RAM + 2–5 GB disk (30d TSDB). Heavy for a single VM.
-#   node-exporter   — only useful when prometheus is running
-#   postgres-exporter — only useful when prometheus is running
-#   alertmanager    — only useful when prometheus is running
+#   prometheus       200–500 MB RAM + 2–5 GB disk (30d TSDB). Heavy for a single VM.
+#   node-exporter    only useful when prometheus is running
+#   postgres-exporter  only useful when prometheus is running
+#   alertmanager     only useful when prometheus is running
 #   Uptime Kuma handles downtime alerts. Add the Prometheus stack later via a
 #   separate docker-compose.metrics.yml when you actually need time-series dashboards.
 
@@ -55,7 +55,7 @@ services:
   #  UI: http://localhost:3100
   #  Login: GRAFANA_ADMIN_USER / GRAFANA_ADMIN_PASSWORD
   #
-  #  Running with Loki only — no Prometheus datasource.
+  #  Running with Loki only  no Prometheus datasource.
   #  When you add docker-compose.metrics.yml later, Grafana will
   #  automatically pick up the Prometheus datasource from provisioning.
   # ────────────────────────────────────────────

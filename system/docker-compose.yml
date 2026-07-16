@@ -57,7 +57,7 @@ services:
       LOG_POOLER_ERRORS: 1
       # Required for PostgreSQL 17 which defaults to scram-sha-256
       AUTH_TYPE: scram-sha-256
-      # node-postgres sends statement_timeout in startup options — ignore it
+      # node-postgres sends statement_timeout in startup options  ignore it
       # instead of rejecting the connection with FATAL
       IGNORE_STARTUP_PARAMETERS: options
     ports:

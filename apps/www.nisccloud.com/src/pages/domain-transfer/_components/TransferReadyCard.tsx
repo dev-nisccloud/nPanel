@@ -99,7 +99,7 @@ export function TransferReadyCard({
             <>
               The transfer price includes{" "}
               <span className="font-medium text-foreground">one year of registration</span>. Complete checkout to
-              start your transfer—we&apos;ll confirm availability and pricing for Kenyan domains shortly.
+              start your transferwe&apos;ll confirm availability and pricing for Kenyan domains shortly.
             </>
           )}
         </p>

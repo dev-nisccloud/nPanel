@@ -26,6 +26,8 @@ export type StorefrontCartQuoteRequest = {
   upsellDomain?: {
     domain: string;
     isExisting?: boolean;
+    isTransfer?: boolean;
+    provider?: "kenic" | "openprovider";
   };
   upsellHosting?: {
     serviceType: "web_hosting" | "wordpress_hosting" | "email_hosting";

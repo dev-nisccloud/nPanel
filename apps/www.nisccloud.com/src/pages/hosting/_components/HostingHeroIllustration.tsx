@@ -41,7 +41,7 @@ export const vpsHeroConfig: HostingHeroConfig = {
     { kind: "typing", text: "> docker compose up -d", className: "text-green-400" },
     { kind: "success", text: "nginx started on :80" },
     { kind: "success", text: "redis cache online" },
-    { kind: "info", primary: "ℹ Deployment complete —", secondary: "4 containers running" },
+    { kind: "info", primary: "ℹ Deployment complete ", secondary: "4 containers running" },
     { kind: "muted", text: "Success! VPS ready in 4m 32s." },
   ],
   metrics: [
@@ -67,7 +67,7 @@ export const vdsHeroConfig: HostingHeroConfig = {
     { kind: "typing", text: "> kubectl apply -f production/", className: "text-green-400" },
     { kind: "success", text: "3 replicas scaled and healthy" },
     { kind: "success", text: "Load balancer routing traffic" },
-    { kind: "info", primary: "ℹ Cluster status —", secondary: "all nodes online" },
+    { kind: "info", primary: "ℹ Cluster status ", secondary: "all nodes online" },
     { kind: "muted", text: "Success! VDS cluster deployed in 6m 12s." },
   ],
   metrics: [
@@ -92,8 +92,8 @@ export const dedicatedHeroConfig: HostingHeroConfig = {
     { kind: "success", text: "Intel Xeon 32 Cores | 256 GB RAM | 4 TB NVMe" },
     { kind: "typing", text: "> systemctl start postgresql", className: "text-green-400" },
     { kind: "success", text: "Database cluster online" },
-    { kind: "success", text: "RAID-10 array verified — all disks healthy" },
-    { kind: "info", primary: "ℹ Bare-metal status —", secondary: "100% dedicated resources" },
+    { kind: "success", text: "RAID-10 array verified  all disks healthy" },
+    { kind: "info", primary: "ℹ Bare-metal status ", secondary: "100% dedicated resources" },
     { kind: "muted", text: "Success! Dedicated server provisioned in 8m 05s." },
   ],
   metrics: [

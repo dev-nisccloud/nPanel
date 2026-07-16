@@ -12,7 +12,7 @@ const contactDetails = [
   {
     icon: Mail,
     label: "Email Us",
-    value: "hello@nisccloud.com",
+    value: "sales@nisccloud.com",
     sub: "We reply within 24 hours",
   },
   {

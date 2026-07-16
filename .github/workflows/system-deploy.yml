@@ -3,15 +3,15 @@ name: System Stack Deploy (GCE)
 # Deploys the system/docker-compose stack (Postgres, MinIO, Nginx, monitoring)
 # to the Compute Engine VM via SSH.
 #
-# This workflow does NOT build or push any Docker images — all images in the
+# This workflow does NOT build or push any Docker images  all images in the
 # system stack are third-party (postgres, minio, nginx, grafana, etc.) and are
 # pulled directly from their public registries on the VM.
 #
 # What it does on each run:
 #   1. SSH into the GCE instance
-#   2. git pull  — picks up compose file and config changes from this repo
-#   3. docker compose pull  — refreshes any :latest image tags
-#   4. docker compose up -d — applies changes with zero-downtime rolling update
+#   2. git pull   picks up compose file and config changes from this repo
+#   3. docker compose pull   refreshes any :latest image tags
+#   4. docker compose up -d  applies changes with zero-downtime rolling update
 #
 # The .env file lives ONLY on the VM and is NEVER touched by this workflow.
 #
@@ -23,7 +23,7 @@ name: System Stack Deploy (GCE)
 #                     e.g. /home/ubuntu/nPanel/system
 #
 # Trigger conditions:
-#   - Manual only (workflow_dispatch) — you must go to Actions → Run workflow
+#   - Manual only (workflow_dispatch)  you must go to Actions → Run workflow
 #   - No automatic triggers. System stack changes never deploy without your approval.
 #
 # Approval gate:
@@ -84,7 +84,7 @@ jobs:
           host: ${{ secrets.GCE_SSH_HOST }}
           username: ${{ secrets.GCE_SSH_USER }}
           key: ${{ secrets.GCE_SSH_KEY }}
-          # Fail fast — treat any non-zero exit as an error
+          # Fail fast  treat any non-zero exit as an error
           script_stop: true
           script: |
             set -euo pipefail
@@ -111,12 +111,12 @@ jobs:
             echo "▶ Pulling latest Docker images..."
             docker compose $COMPOSE_FILES pull --quiet
 
-            # 3. Apply changes — recreate only containers whose image or config changed.
+            # 3. Apply changes  recreate only containers whose image or config changed.
             #    Volumes and .env are preserved. Services not in the compose files are untouched.
             echo "▶ Applying compose changes..."
             docker compose $COMPOSE_FILES up -d --remove-orphans
 
-            # 4. Quick health check — verify the core services are running
+            # 4. Quick health check  verify the core services are running
             echo "▶ Verifying service health..."
             sleep 5
 
@@ -130,7 +130,7 @@ jobs:
             fi
 
             echo ""
-            echo "✅ Deploy complete — running containers:"
+            echo "✅ Deploy complete  running containers:"
             docker compose $COMPOSE_FILES ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 
       # ── Summary ──────────────────────────────────────────────────────────

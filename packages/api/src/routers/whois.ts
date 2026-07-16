@@ -1,5 +1,5 @@
 /**
- * WHOIS router — pure RDAP.
+ * WHOIS router  pure RDAP.
  *
  * All TLDs (including .ke via https://rdap.kenic.or.ke/) are handled by the
  * single RDAP client. The IANA bootstrap resolves the correct server per TLD.
@@ -36,7 +36,7 @@ export const whoisRouter = router({
 
 	/**
 	 * Bulk WHOIS lookup for up to 10 domains concurrently.
-	 * Individual failures are surfaced in each result's error field — the
+	 * Individual failures are surfaced in each result's error field  the
 	 * request never fails as a whole due to a single domain failing.
 	 */
 	bulkLookup: publicProcedure

@@ -16,6 +16,8 @@ import {
 	type HivelocityProductTypeKey,
 } from "./hivelocity-display-pricing";
 import { ceilConvertedPrice } from "./convert-price";
+import { checkDomainTransferEligibility } from "./domain-transfer-check";
+import { toRetailPrice } from "./agent-internal-tools/pricing";
 import { hivelocityRequest } from "./hivelocity-client";
 import { extractHivelocityProductMonthlyUsd } from "./hivelocity-product-pricing";
 
@@ -47,6 +49,8 @@ export const storefrontCartQuoteInputSchema = z.object({
 		.object({
 			domain: z.string().min(1),
 			isExisting: z.boolean().optional(),
+			isTransfer: z.boolean().optional(),
+			provider: z.enum(["kenic", "openprovider"]).optional(),
 		})
 		.optional(),
 	upsellHosting: z
@@ -113,7 +117,7 @@ export function derivePlanPricingKes(
 	return { monthly: Math.round(price), yearly: Math.round(price * 12 * 0.8) };
 }
 
-function pickCheckoutPrice(
+export function pickCheckoutPrice(
 	pricing: { monthly: number; yearly: number },
 	billingCycle: StorefrontBillingCycle,
 ): number {
@@ -188,7 +192,7 @@ function parseOptionMonthlyUsd(row: Record<string, unknown>): number {
 	return Number.isFinite(price) && price > 0 ? price : 0;
 }
 
-async function resolveNiscPlanQuote(
+export async function resolveNiscPlanQuote(
 	planId: string,
 	billingCycle: StorefrontBillingCycle,
 ): Promise<{ monthly: number; yearly: number; planName: string; currency: string }> {
@@ -218,7 +222,7 @@ async function resolveNiscPlanQuote(
 	};
 }
 
-async function resolveDomainRetailPriceKes(domain: string): Promise<number> {
+export async function resolveDomainRetailPriceKes(domain: string): Promise<number> {
 	const normalized = domain.trim().toLowerCase();
 	const dotIndex = normalized.indexOf(".");
 	if (dotIndex <= 0) {
@@ -246,6 +250,30 @@ async function resolveDomainRetailPriceKes(domain: string): Promise<number> {
 	}
 
 	return Math.round(entry.price.amount);
+}
+
+export async function resolveDomainTransferUpsellPriceKes(domain: string): Promise<number> {
+	const result = await checkDomainTransferEligibility(domain);
+	if (!result.transferrable || result.price == null || !Number.isFinite(result.price)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: result.error ?? "This domain cannot be transferred.",
+		});
+	}
+
+	const retail = await toRetailPrice(
+		result.price,
+		result.currency ?? "USD",
+		"KES",
+	);
+	if (!retail?.amount || retail.amount <= 0) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Could not resolve transfer pricing for ${domain.trim().toLowerCase()}.`,
+		});
+	}
+
+	return retail.amount;
 }
 
 async function resolveDomainBundlePriceKes(domains: string[]): Promise<number> {
@@ -380,7 +408,7 @@ async function resolveHivelocityMainPricing(
 	return { monthly, yearly };
 }
 
-async function resolveMainLineQuote(
+export async function resolveMainLineQuote(
 	main: StorefrontCartQuoteInput["main"],
 	hivelocity: StorefrontCartQuoteInput["hivelocity"],
 ): Promise<{
@@ -521,7 +549,11 @@ export async function computeStorefrontCartQuote(
 	);
 
 	if (parsed.upsellDomain && !parsed.upsellDomain.isExisting) {
-		subtotal += await resolveDomainRetailPriceKes(parsed.upsellDomain.domain);
+		if (parsed.upsellDomain.isTransfer) {
+			subtotal += await resolveDomainTransferUpsellPriceKes(parsed.upsellDomain.domain);
+		} else {
+			subtotal += await resolveDomainRetailPriceKes(parsed.upsellDomain.domain);
+		}
 	}
 
 	if (parsed.upsellHosting) {
