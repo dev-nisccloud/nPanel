@@ -311,7 +311,7 @@ jobs:
     steps:
       - name: Run migrations via SSH on GCE VM
         # Migrations run on the VM itself so they connect to Postgres via
-        # Docker's internal network (postgres:5432) — no ports exposed to internet.
+        # Docker's internal network (postgres:5432)  no ports exposed to internet.
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.GCE_SSH_HOST }}
@@ -322,7 +322,7 @@ jobs:
             set -euo pipefail
             cd /home/nisccloud/nPanel
 
-            # Pull latest code — repo was cloned with token, origin is already set
+            # Pull latest code  repo was cloned with token, origin is already set
             git fetch --quiet
             git reset --hard origin/production
 

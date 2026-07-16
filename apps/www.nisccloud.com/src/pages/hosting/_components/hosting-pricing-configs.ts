@@ -71,7 +71,7 @@ export const EMAIL_HOSTING_PRICING_CONFIG: HostingPlansPricingConfig = {
   sectionId: "plans",
   title: "Choose Your Business Email Plan",
   description:
-    "Professional email on your domain with DKIM, SPF, webmail, and mobile sync — hosted in Nairobi.",
+    "Professional email on your domain with DKIM, SPF, webmail, and mobile sync  hosted in Nairobi.",
   serviceType: "email_hosting",
   fetchPlans: fetchEmailHostingPlansPublic,
   planIcon: Mail,

@@ -60,7 +60,7 @@ export type WhoisData = {
   error: string | null;
 };
 
-/** Public tRPC procedure — no auth required. */
+/** Public tRPC procedure  no auth required. */
 export function fetchWhoisLookup(domain: string): Promise<WhoisData> {
   return trpcQuery<WhoisData>("whois.lookup", { domain });
 }

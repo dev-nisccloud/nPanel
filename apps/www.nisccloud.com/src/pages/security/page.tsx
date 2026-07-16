@@ -10,11 +10,11 @@ import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
 const securityFaqs = [
   {
     question: "Do I need an SSL certificate for my website?",
-    answer: "Yes — absolutely. Without SSL, browsers show a 'Not Secure' warning to your visitors, which damages trust and hurts your Google rankings. SSL encrypts the connection between your website and your visitors, protecting sensitive data like passwords and payment details.",
+    answer: "Yes  absolutely. Without SSL, browsers show a 'Not Secure' warning to your visitors, which damages trust and hurts your Google rankings. SSL encrypts the connection between your website and your visitors, protecting sensitive data like passwords and payment details.",
   },
   {
     question: "What's the difference between DV, OV, and EV SSL?",
-    answer: "DV (Domain Validation) is the fastest and most common — it just verifies you own the domain. OV (Organisation Validation) also verifies your business identity, building more trust. EV (Extended Validation) provides the highest level of validation and shows your company name in the address bar. For most Kenyan businesses, DV or OV is sufficient.",
+    answer: "DV (Domain Validation) is the fastest and most common  it just verifies you own the domain. OV (Organisation Validation) also verifies your business identity, building more trust. EV (Extended Validation) provides the highest level of validation and shows your company name in the address bar. For most Kenyan businesses, DV or OV is sufficient.",
   },
   {
     question: "How does malware scanning work?",
@@ -22,7 +22,7 @@ const securityFaqs = [
   },
   {
     question: "What is a Web Application Firewall (WAF)?",
-    answer: "A WAF sits in front of your website and monitors all incoming traffic. It blocks common attacks like SQL injection, cross-site scripting (XSS), and brute force attempts before they reach your site — protecting you 24/7 without any action required on your part.",
+    answer: "A WAF sits in front of your website and monitors all incoming traffic. It blocks common attacks like SQL injection, cross-site scripting (XSS), and brute force attempts before they reach your site  protecting you 24/7 without any action required on your part.",
   },
   {
     question: "How quickly can you clean a hacked website?",
@@ -34,7 +34,7 @@ const securityFaqs = [
   },
   {
     question: "Can I add security to an existing website?",
-    answer: "Yes. You can add website security and SSL to any existing website hosted anywhere — not just Nisc Cloud hosted sites. Simply purchase a plan and our team will guide you through the setup process.",
+    answer: "Yes. You can add website security and SSL to any existing website hosted anywhere  not just Nisc Cloud hosted sites. Simply purchase a plan and our team will guide you through the setup process.",
   },
 ];
 

@@ -102,7 +102,7 @@ export default function PrivacyPolicyPage() {
       <h3>3.2 Billing & Financial Data</h3>
       <ul>
         <li>Billing address;</li>
-        <li>Payment method type (M-Pesa, Visa, Mastercard) and masked payment identifiers (last 4 digits only — full card numbers are never stored on our servers);</li>
+        <li>Payment method type (M-Pesa, Visa, Mastercard) and masked payment identifiers (last 4 digits only  full card numbers are never stored on our servers);</li>
         <li>Transaction history, invoice records, and payment receipts;</li>
         <li>Tax identification numbers (where applicable by law);</li>
         <li>M-Pesa phone numbers and Checkout Request IDs for M-Pesa transactions.</li>
@@ -204,7 +204,7 @@ export default function PrivacyPolicyPage() {
         </li>
         <li>
           <strong>Consent (s.30(a)):</strong> Where you have freely given, specific, and informed
-          consent — particularly for direct marketing emails, non-essential cookies, and analytics
+          consent  particularly for direct marketing emails, non-essential cookies, and analytics
           tracking. You may withdraw consent at any time (see Section 10 below).
         </li>
         <li>
@@ -400,7 +400,7 @@ export default function PrivacyPolicyPage() {
       <ul>
         <li>
           <strong>Right to be Informed (s.26(a)):</strong> The right to know what data we hold
-          about you, how we use it, and with whom we share it — which is the purpose of this
+          about you, how we use it, and with whom we share it  which is the purpose of this
           Privacy Policy.
         </li>
         <li>

@@ -77,7 +77,7 @@ export const kenicDomainListRouter = router({
 
 				const now = new Date();
 
-				// Deduplicate by domain name — keep the newest subscription row.
+				// Deduplicate by domain name  keep the newest subscription row.
 				const byDomain = new Map<string, (typeof rows)[number]>();
 				for (const row of rows) {
 					const key = normalizeDomainName(row.primaryDomain ?? "");
@@ -242,7 +242,7 @@ export const kenicDomainListRouter = router({
 						upDate: infoData?.["domain:upDate"],
 						trDate: infoData?.["domain:trDate"],
 						rgpStatuses,
-						// CoCCA returns a one-way hash here — never expose it as the transfer code.
+						// CoCCA returns a one-way hash here  never expose it as the transfer code.
 						authInfoSet: Boolean(
 							(() => {
 								const pw = infoData?.["domain:authInfo"]?.["domain:pw"];
@@ -419,7 +419,7 @@ export const kenicDomainListRouter = router({
 		}),
 
 	/**
-	 * Read the stored plaintext KENIC auth code (never from domain:info — CoCCA returns a hash).
+	 * Read the stored plaintext KENIC auth code (never from domain:info  CoCCA returns a hash).
 	 */
 	getAuthCode: protectedProcedure
 		.input(z.object({ domain: z.string().min(1) }))

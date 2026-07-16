@@ -4,7 +4,7 @@ export type ResolveMpesaCheckoutPaymentInput = {
 	isAgencyUser: boolean;
 	formAmount: string;
 	formAccountReference: string;
-	/** Order total including VAT — always used for customer M-Pesa charges. */
+	/** Order total including VAT  always used for customer M-Pesa charges. */
 	checkoutTotalIncVat: number;
 	intendedAccountReference: string;
 };

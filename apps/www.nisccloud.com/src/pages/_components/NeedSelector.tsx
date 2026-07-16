@@ -56,7 +56,7 @@ const tabs: Tab[] = [
     headline: "Your brand is the leading",
     highlight: "platform for growth!",
     subtext:
-      "We build identities that stand out, convert, and scale — from logo to live website, all under one roof.",
+      "We build identities that stand out, convert, and scale  from logo to live website, all under one roof.",
     image: "https://storage.nisccloud.com/npanel-uploads/nisc-website/create.jpg",
     features: [
       { icon: Target, label: "Brand Strategy & Positioning", desc: "From KES 15,000", href: "/services/brand-identity" },
@@ -76,7 +76,7 @@ const tabs: Tab[] = [
     headline: "Fast, reliable hosting",
     highlight: "built for Kenya.",
     subtext:
-      "Everything you need to launch and scale your online presence — domain, hosting, email, SSL, all in one place.",
+      "Everything you need to launch and scale your online presence  domain, hosting, email, SSL, all in one place.",
     image: "https://storage.nisccloud.com/npanel-uploads/nisc-website/online.jpg",
     features: [
       { icon: HardDrive, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
@@ -178,7 +178,7 @@ export default function NeedSelector() {
             </PointerHighlight>
           </h2>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground md:text-base">
-            Pick your goal — we&apos;ll show you exactly how we deliver it.
+            Pick your goal  we&apos;ll show you exactly how we deliver it.
           </p>
         </motion.div>
 
@@ -221,7 +221,7 @@ export default function NeedSelector() {
             <div className="order-1 flex flex-col gap-5 lg:order-1">
               <div>
                 <p className="mb-2 text-sm font-medium text-primary">
-                  {tab.step} — {tab.stepLabel}
+                  {tab.step}  {tab.stepLabel}
                 </p>
                 <h3 className="text-2xl font-bold leading-snug tracking-tight text-foreground md:text-[1.75rem]">
                   {tab.headline}{" "}
@@ -250,17 +250,17 @@ export default function NeedSelector() {
                 <div className="hidden h-8 w-px bg-border sm:block" />
 
                 <div className="flex items-center gap-3">
-                  <div className="flex -space-x-2">
+                  <div className="flex -space-x-1">
                     {trustedClients.map((client) => (
                       <div
                         key={client.name}
-                        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-muted"
+                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-muted sm:h-12 sm:w-12"
                         title={client.name}
                       >
                         <img
                           src={client.logo}
                           alt={client.name}
-                          className="h-full w-full object-contain p-1"
+                          className="h-full w-full object-contain p-1.5"
                         />
                       </div>
                     ))}

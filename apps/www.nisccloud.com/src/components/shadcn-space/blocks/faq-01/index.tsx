@@ -4,7 +4,7 @@ const demoFaqs = [
   {
     question: "What services does Nisc Cloud offer?",
     answer:
-      "We offer web design, brand identity, digital marketing, cloud hosting, SEO, email marketing, and AI automation — all tailored for Kenyan businesses.",
+      "We offer web design, brand identity, digital marketing, cloud hosting, SEO, email marketing, and AI automation  all tailored for Kenyan businesses.",
   },
   {
     question: "How long does a typical project take?",

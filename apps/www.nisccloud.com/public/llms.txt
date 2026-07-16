@@ -1,15 +1,15 @@
 # Nisc Cloud
 
-> Kenya's A-to-Z digital partner. We create your brand from scratch, deploy it online, market it to generate real customers and sales, then automate everything with Zeepo AI — all under one roof, one team, one invoice.
+> Kenya's A-to-Z digital partner. We create your brand from scratch, deploy it online, market it to generate real customers and sales, then automate everything with Zeepo AI  all under one roof, one team, one invoice.
 
 Nisc Cloud provides end-to-end digital services for Kenyan businesses and businesses across Africa. Our four-step Atom Approach covers the full business digital lifecycle: Create, Host, Market, and Automate with Zeepo AI.
 
 ## Atom Approach
 
-1. **Create** — Brand identity, logo design, website design and development, e-commerce stores, creative assets, and brand copywriting.
-2. **Host** — Enterprise cloud hosting, domain registration (.co.ke, .com, .africa), business email (@yourdomain), SSL certificates, CDN, DDoS protection, and 99.9% uptime SLA.
-3. **Market** — SEO / AEO / GEO (Google, AI search engines, Google Maps), Google Ads, Meta Ads, TikTok Ads, social media management, email marketing, and lead generation funnels.
-4. **Automate with Zeepo AI** — AI-powered content creation, automated marketing campaigns, CRM workflows, chatbot flows, lead nurturing sequences, and AI email campaigns.
+1. **Create**  Brand identity, logo design, website design and development, e-commerce stores, creative assets, and brand copywriting.
+2. **Host**  Enterprise cloud hosting, domain registration (.co.ke, .com, .africa), business email (@yourdomain), SSL certificates, CDN, DDoS protection, and 99.9% uptime SLA.
+3. **Market**  SEO / AEO / GEO (Google, AI search engines, Google Maps), Google Ads, Meta Ads, TikTok Ads, social media management, email marketing, and lead generation funnels.
+4. **Automate with Zeepo AI**  AI-powered content creation, automated marketing campaigns, CRM workflows, chatbot flows, lead nurturing sequences, and AI email campaigns.
 
 ## Why Nisc Cloud
 
@@ -89,6 +89,6 @@ Nisc Cloud provides end-to-end digital services for Kenyan businesses and busine
 ## Contact
 
 - Website: https://nisccloud.com
-- Email: hello@nisccloud.com
+- Email: sales@nisccloud.com
 - Phone: +254 748 777 666
-- Location: Nairobi, Kenya — serving clients remotely worldwide
+- Location: Nairobi, Kenya  serving clients remotely worldwide

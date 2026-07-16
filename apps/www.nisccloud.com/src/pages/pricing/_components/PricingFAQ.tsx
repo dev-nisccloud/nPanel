@@ -7,7 +7,7 @@ const faqs = [
   },
   {
     question: "Is there a setup or onboarding fee?",
-    answer: "No. Every plan includes a free onboarding session and strategy call. We do not charge setup fees — the price you see is the price you pay.",
+    answer: "No. Every plan includes a free onboarding session and strategy call. We do not charge setup fees  the price you see is the price you pay.",
   },
   {
     question: "What does 'managed cloud hosting' include?",
@@ -19,7 +19,7 @@ const faqs = [
   },
   {
     question: "Do I own my website and brand assets?",
-    answer: "Yes — completely. Once your project is delivered, all brand files, website code, and creative assets are yours. If you ever leave, we provide a full handover package.",
+    answer: "Yes  completely. Once your project is delivered, all brand files, website code, and creative assets are yours. If you ever leave, we provide a full handover package.",
   },
   {
     question: "Can I cancel at any time?",
@@ -31,7 +31,7 @@ const faqs = [
   },
   {
     question: "Do you work with businesses outside Kenya?",
-    answer: "Yes — we're remote-first and work with clients worldwide. Our team operates across multiple time zones and all communication is handled digitally.",
+    answer: "Yes  we're remote-first and work with clients worldwide. Our team operates across multiple time zones and all communication is handled digitally.",
   },
 ];
 

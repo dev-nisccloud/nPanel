@@ -37,7 +37,7 @@ type WhoisData = NonNullable<ReturnType<typeof trpc.whois.lookup.useQuery>["data
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string | null | undefined): string {
-	if (!iso) return "—";
+	if (!iso) return "";
 	return new Date(iso).toLocaleDateString("en-GB", {
 		day: "2-digit",
 		month: "short",
@@ -392,7 +392,7 @@ function WhoisResults({ data }: { data: WhoisData }) {
 								)}
 							</div>
 
-							{/* Status badges row — registered + all EPP status codes */}
+							{/* Status badges row  registered + all EPP status codes */}
 							<div className="flex flex-wrap items-center gap-1.5">
 								{isActive ? (
 									<Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs border-transparent">
@@ -458,7 +458,7 @@ function WhoisResults({ data }: { data: WhoisData }) {
 									<ShieldOff className="h-3 w-3" /> Unsigned
 								</Badge>
 							) : (
-								<span className="text-sm text-muted-foreground">—</span>
+								<span className="text-sm text-muted-foreground"></span>
 							)}
 						</div>
 					</div>
@@ -478,7 +478,7 @@ function WhoisResults({ data }: { data: WhoisData }) {
 								className="text-sm font-semibold mb-3 truncate"
 								title={data.registrar.name ?? ""}
 							>
-								{data.registrar.name ?? "—"}
+								{data.registrar.name ?? ""}
 							</p>
 							<div className="divide-y divide-border">
 								<InfoRow label="Handle" value={data.registrar.handle} mono copyable />
@@ -624,7 +624,7 @@ function WhoisResults({ data }: { data: WhoisData }) {
 					</CardContent>
 				</Card>
 
-				{/* Admin / tech contacts — only rendered when present (uncommon for gTLDs) */}
+				{/* Admin / tech contacts  only rendered when present (uncommon for gTLDs) */}
 				{data.adminContact && (
 					<Card className="border shadow-sm">
 						<CardHeader className="pb-2 pt-5 px-5">
@@ -651,7 +651,7 @@ function WhoisResults({ data }: { data: WhoisData }) {
 			{data.dnssec === "signedDelegation" && data.dsData.length > 0 && (
 				<Card className="border shadow-sm">
 					<CardContent className="p-4">
-						<SectionHeading icon={Shield} label="DNSSEC — DS Records" />
+						<SectionHeading icon={Shield} label="DNSSEC  DS Records" />
 						<div className="mt-2.5">
 							<DnssecRecordsList records={data.dsData} />
 						</div>
@@ -821,7 +821,7 @@ export default function WhoisCheckerPage() {
 						</div>
 						<p className="text-sm font-medium text-foreground mb-1">Enter a domain to begin</p>
 						<p className="text-xs text-muted-foreground max-w-xs">
-							Supports any TLD with an RDAP server — .com, .net, .co.ke, .ke, .co.uk, and 590+
+							Supports any TLD with an RDAP server  .com, .net, .co.ke, .ke, .co.uk, and 590+
 							more.
 						</p>
 					</div>

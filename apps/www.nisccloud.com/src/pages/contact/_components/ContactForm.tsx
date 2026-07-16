@@ -125,7 +125,7 @@ export default function ContactForm() {
           <Sparkles size={18} className="mt-0.5 shrink-0 text-primary" />
           <div className="text-sm">
             <p className="font-medium text-foreground">
-              Inquiring about: {prefilledServiceName} — {prefilledPlan}
+              Inquiring about: {prefilledServiceName}  {prefilledPlan}
             </p>
             {prefilledPlanPrice ? (
               <p className="mt-0.5 text-muted-foreground">

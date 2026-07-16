@@ -209,7 +209,7 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Trusted by — directly below hero copy on mobile */}
+        {/* Trusted by  directly below hero copy on mobile */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -224,20 +224,20 @@ export default function Hero() {
             <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
             <div className="flex overflow-hidden">
               <motion.div
-                className="flex gap-10 items-center shrink-0"
+                className="flex gap-12 items-center shrink-0"
                 animate={{ x: ["0%", "-50%"] }}
                 transition={{ duration: 42, repeat: Infinity, ease: "linear" }}
               >
                 {allClients.map((client, i) => (
                   <div
                     key={`${client.name}-${i}`}
-                    className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-1"
+                    className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-3 py-2"
                     title={client.name}
                   >
                     <img
                       src={client.logo}
                       alt={client.name}
-                      className="h-7 w-auto max-w-[120px] object-contain"
+                    className="h-14 w-auto max-w-[190px] object-contain sm:h-16 md:h-20"
                       loading="lazy"
                     />
                   </div>
@@ -247,7 +247,7 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* Right: Atom Visual Approach — below logos on mobile */}
+        {/* Right: Atom Visual Approach  below logos on mobile */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

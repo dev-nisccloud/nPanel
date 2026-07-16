@@ -59,7 +59,7 @@ export const WORDPRESS_HOSTING_PRICING_CONFIG: CustomerHostingPlansPricingConfig
 export const EMAIL_HOSTING_PRICING_CONFIG: CustomerHostingPlansPricingConfig = {
 	title: "Choose Your Business Email Plan",
 	description:
-		"Professional email on your domain with DKIM, SPF, webmail, and mobile sync — hosted in Nairobi.",
+		"Professional email on your domain with DKIM, SPF, webmail, and mobile sync  hosted in Nairobi.",
 	planIcon: Mail,
 	highlightBadge: "DKIM Ready",
 	fallbackFeatures: [

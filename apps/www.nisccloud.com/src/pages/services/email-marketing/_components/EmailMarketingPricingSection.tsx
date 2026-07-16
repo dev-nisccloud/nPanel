@@ -6,7 +6,7 @@ export function EmailMarketingPricingSection() {
     <NpanelPricingSection
       fetchPlans={fetchEmailMarketingPlansPublic}
       title="Choose Your Email Marketing Plan"
-      description="Professional email design, list segmentation, automation flows, and campaign analytics — managed for you with plans synced from nPanel."
+      description="Professional email design, list segmentation, automation flows, and campaign analytics  managed for you with plans synced from nPanel."
       checkoutServiceType="email_marketing"
       serviceName="Email Marketing"
     />
