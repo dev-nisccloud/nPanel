@@ -2,6 +2,8 @@ import { motion } from "motion/react";
 import { ShieldCheck, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
+import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
+import { NiscWebsiteHeroImage } from "@/components/NiscWebsiteHeroImage.tsx";
 
 const trustPoints = [
   "SSL Certificates",
@@ -67,74 +69,21 @@ export default function SecurityHero() {
             </div>
           </motion.div>
 
-          {/* Right: security illustration */}
+          {/* Right: hero image */}
           <motion.div
             initial={{ opacity: 0, x: 24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.65, delay: 0.1 }}
             className="hidden lg:flex items-center justify-center"
           >
-            <SecurityIllustration />
+            <NiscWebsiteHeroImage
+              src={niscWebsiteImage("website security.png")}
+              alt="Website security protection"
+              standalone
+            />
           </motion.div>
         </div>
       </div>
     </section>
-  );
-}
-
-function SecurityIllustration() {
-  return (
-    <div
-      className="rounded-3xl border border-primary/15 shadow-2xl p-8 w-full max-w-[500px]"
-      style={{ background: "linear-gradient(135deg, oklch(0.97 0.04 240 / 0.9) 0%, oklch(0.95 0.05 260 / 0.7) 50%, oklch(0.96 0.04 210 / 0.8) 100%)" }}
-    >
-      {/* Security score card */}
-      <div className="bg-white/90 rounded-2xl p-5 mb-4 shadow-sm border border-border/30">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Security Score</p>
-            <p className="text-2xl font-extrabold text-emerald-500">A+</p>
-          </div>
-          <div className="w-14 h-14 rounded-full border-4 border-emerald-400 flex items-center justify-center">
-            <ShieldCheck size={24} className="text-emerald-500" />
-          </div>
-        </div>
-        <div className="space-y-2.5">
-          {[
-            { label: "SSL Certificate", status: "Active", color: "bg-emerald-400" },
-            { label: "Malware Scan", status: "Clean", color: "bg-emerald-400" },
-            { label: "Firewall", status: "Enabled", color: "bg-emerald-400" },
-            { label: "Daily Backup", status: "Completed", color: "bg-blue-400" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">{item.label}</span>
-              <span className={`flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600`}>
-                <span className={`w-2 h-2 rounded-full ${item.color}`} />
-                {item.status}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Threat blocked ticker */}
-      <div className="bg-white/70 rounded-xl px-4 py-3 border border-border/20">
-        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest mb-2">Recent Activity</p>
-        <div className="space-y-1.5">
-          {[
-            { event: "SQL injection attempt blocked", time: "2m ago", danger: true },
-            { event: "Malware scan completed - clean", time: "1h ago", danger: false },
-            { event: "SSL renewed automatically", time: "3d ago", danger: false },
-          ].map((e, i) => (
-            <div key={i} className="flex items-center justify-between gap-2">
-              <span className={`text-[11px] ${e.danger ? "text-destructive" : "text-foreground/70"} leading-snug`}>
-                {e.danger ? "🛡 " : "✓ "}{e.event}
-              </span>
-              <span className="text-[10px] text-muted-foreground whitespace-nowrap">{e.time}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
