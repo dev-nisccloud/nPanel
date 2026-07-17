@@ -18,6 +18,7 @@ import {
 } from "motion/react";
 
 import { cn } from "@/lib/utils.ts";
+import { ScrollArea } from "@/components/ui/scroll-area.tsx";
 
 interface SequenceContextValue {
   completeItem: (index: number) => void;
@@ -231,6 +232,12 @@ interface TerminalProps {
   sequence?: boolean;
   startOnView?: boolean;
   hideHeader?: boolean;
+  /** Restart the sequence after the last line completes. */
+  loop?: boolean;
+  /** Pause before restarting when `loop` is enabled (ms). */
+  loopDelay?: number;
+  /** Height constraints for the scrollable terminal body. */
+  scrollClassName?: string;
 }
 
 export const Terminal = ({
@@ -239,6 +246,9 @@ export const Terminal = ({
   sequence = true,
   startOnView = true,
   hideHeader = false,
+  loop = false,
+  loopDelay = 2000,
+  scrollClassName,
 }: TerminalProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInView = useInView(containerRef as React.RefObject<Element>, {
@@ -247,28 +257,60 @@ export const Terminal = ({
   });
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const sequenceHasStarted = sequence ? !startOnView || isInView : false;
+  const [runId, setRunId] = useState(0);
+  const childCount = Children.count(children);
+  const loopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sequenceHasStarted = sequence
+    ? loop
+      ? true
+      : !startOnView || isInView
+    : false;
+
+  useEffect(() => {
+    return () => {
+      if (loopTimeoutRef.current) {
+        clearTimeout(loopTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const contextValue = useMemo<SequenceContextValue | null>(() => {
     if (!sequence) return null;
     return {
       completeItem: (index: number) => {
-        setActiveIndex((current) => (index === current ? current + 1 : current));
+        setActiveIndex((current) => {
+          if (index !== current) return current;
+          const next = current + 1;
+          if (next >= childCount) {
+            if (loop) {
+              if (loopTimeoutRef.current) {
+                clearTimeout(loopTimeoutRef.current);
+              }
+              loopTimeoutRef.current = setTimeout(() => {
+                setRunId((run) => run + 1);
+                setActiveIndex(0);
+              }, loopDelay);
+            }
+            return current;
+          }
+          return next;
+        });
       },
       activeIndex,
       sequenceStarted: sequenceHasStarted,
     };
-  }, [sequence, activeIndex, sequenceHasStarted]);
+  }, [sequence, activeIndex, sequenceHasStarted, loop, loopDelay, childCount]);
 
   const wrappedChildren = useMemo(() => {
     if (!sequence) return children;
     const array = Children.toArray(children);
     return array.map((child, index) => (
-      <ItemIndexContext.Provider key={index} value={index}>
+      <ItemIndexContext.Provider key={`${runId}-${index}`} value={index}>
         {child as React.ReactNode}
       </ItemIndexContext.Provider>
     ));
-  }, [children, sequence]);
+  }, [children, sequence, runId]);
 
   const content = (
     <div
@@ -287,9 +329,13 @@ export const Terminal = ({
           </div>
         </div>
       )}
-      <pre className="p-4">
-        <code className="grid gap-y-1 overflow-auto">{wrappedChildren}</code>
-      </pre>
+      <ScrollArea className={scrollClassName}>
+        <pre className="p-4 sm:p-5">
+          <code className="grid min-w-0 gap-y-1 break-words whitespace-pre-wrap">
+            {wrappedChildren}
+          </code>
+        </pre>
+      </ScrollArea>
     </div>
   );
 

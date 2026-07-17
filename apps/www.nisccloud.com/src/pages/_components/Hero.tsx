@@ -30,8 +30,8 @@ const clients = [
 const allClients = [...clients, ...clients];
 
 const socialProof = [
-  { dot: "bg-emerald-400", text: "500+ Businesses Powered" },
-  { dot: "bg-primary", text: "99.9% Uptime" },
+  { dot: "bg-emerald-400", text: "100+ Businesses Served" },
+  { dot: "bg-primary", text: "99.99% Uptime" },
   { dot: "bg-amber-400", text: "Results in 30 Days" },
 ];
 
@@ -39,7 +39,7 @@ const heroCards = [
   {
     icon: <Bot className="size-4 text-primary" />,
     title: "Automate with AI",
-    description: "Zeepo AI chatbots, automated content writing, and smart lead flows.",
+    description: "Chatbots, content help, and follow-ups that work while you sleep.",
     date: "Step 04",
     iconClassName: "text-primary",
     titleClassName: "text-primary",
@@ -49,7 +49,7 @@ const heroCards = [
   {
     icon: <TrendingUp className="size-4 text-primary" />,
     title: "Get More Customers",
-    description: "High-ROI marketing via SEO, social media, and Google/Meta ads.",
+    description: "SEO, social, and ads that bring real people to your business.",
     date: "Step 03",
     iconClassName: "text-primary",
     titleClassName: "text-primary",
@@ -59,7 +59,7 @@ const heroCards = [
   {
     icon: <Server className="size-4 text-primary" />,
     title: "Go Online",
-    description: "High-speed SSD cloud hosting, domains, and secure business emails.",
+    description: "Fast hosting, domains, and business email that stay reliable.",
     date: "Step 02",
     iconClassName: "text-primary",
     titleClassName: "text-primary",
@@ -69,7 +69,7 @@ const heroCards = [
   {
     icon: <Paintbrush className="size-4 text-primary" />,
     title: "Create My Brand",
-    description: "Modern logos, custom website UI, and full brand identity kits.",
+    description: "Logo, website look, and brand kit that feel like one story.",
     date: "Step 01",
     iconClassName: "text-primary",
     titleClassName: "text-primary",
@@ -120,7 +120,7 @@ export default function Hero() {
                   "inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent",
                 )}
               >
-                Kenya&apos;s All-In-One Digital Partner
+                Cloud and Digital Growth Partner
               </span>
               <ChevronRight className="ml-1 size-3 text-muted-foreground transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
             </AnimatedGradientText>
@@ -167,7 +167,9 @@ export default function Hero() {
             transition={{ duration: 0.6, delay: 0.18 }}
             className="text-lg text-muted-foreground leading-relaxed mb-9 max-w-lg"
           >
-            We do everything to help your business succeed online. We design your brand, build your website, bring you customers, and set up smart tools to work for you  all in one place.
+            We help businesses of every size get online, stay online, and grow.
+            One team for hosting, brand, and marketing so you are not juggling
+            five different vendors.
           </motion.p>
 
           <motion.div
@@ -217,7 +219,7 @@ export default function Hero() {
           className="order-2 col-span-full pb-0 lg:order-3"
         >
           <p className="mb-4 text-center text-xs font-mono font-semibold tracking-widest text-muted-foreground/60 uppercase lg:mb-6">
-            Trusted by businesses across Kenya
+            Trusted by growing businesses
           </p>
           <div className="relative overflow-hidden">
             <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
@@ -256,10 +258,11 @@ export default function Hero() {
         >
           <div className="mx-auto max-w-md space-y-2 text-center lg:mx-0 lg:text-left">
             <h3 className="text-lg font-bold tracking-tight text-foreground">
-              Everything you need to grow online, all in one place
+              Everything you need to grow online
             </h3>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              No need to hire different teams or pay separate bills. We handle your design, hosting, marketing, and automation together so your business grows faster.
+              Design, hosting, marketing, and smart tools that work together.
+              You get one plan, one team, and clear next steps.
             </p>
           </div>
           <div className="flex w-full items-center justify-center py-2 sm:py-4 lg:py-6">

@@ -1,15 +1,14 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { BarChart2, TrendingUp, Search, Globe, Bot, Map, FileText, Zap } from "lucide-react";
+import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
+import { BarChart2, TrendingUp, Search, Globe, Bot, Map, FileText, Zap, CheckCircle2 } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { SeoPricingSection } from "./_components/SeoPricingSection.tsx";
-
-// ─── Showcase Blocks ─────────────────────────────────────────────────────────
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Keyword Rank Tracking",
-    headline: "Watch your keywords climb to Page 1 on Google Kenya",
-    body: "We track every target keyword daily and send you a plain-English report every month showing which positions improved, which pages earned traffic, and where we're pushing next.",
+    headline: "See which search terms bring people to you",
+    body: "We track your target keywords and send you a plain-English report every month showing which positions improved, which pages earned traffic, and where we are focusing next.",
     bullets: [
       "Weekly ranking updates for all target keywords",
       "Google Search Console integration and full management",
@@ -19,32 +18,29 @@ const showcaseBlocks: ShowcaseBlock[] = [
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Keyword Rankings - Kenya</div>
+          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Keyword Tracking</div>
           <div className="p-4 space-y-2">
             {[
-              { kw: "website design nairobi", pos: 2, change: "+5" },
-              { kw: "branding agency kenya", pos: 1, change: "+8" },
-              { kw: "seo services nairobi", pos: 3, change: "+4" },
-              { kw: "digital marketing kenya", pos: 4, change: "+3" },
-            ].map(({ kw, pos, change }) => (
+              { kw: "website design kenya", note: "Improving" },
+              { kw: "branding agency kenya", note: "Tracking" },
+              { kw: "seo services kenya", note: "Improving" },
+              { kw: "digital marketing kenya", note: "Tracking" },
+            ].map(({ kw, note }) => (
               <div key={kw} className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground truncate max-w-[140px]">{kw}</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-primary">#{pos}</span>
-                  <span className="text-green-500 font-semibold">{change}</span>
-                </div>
+                <span className="text-muted-foreground truncate max-w-[160px]">{kw}</span>
+                <span className="font-semibold text-primary">{note}</span>
               </div>
             ))}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-2xl font-extrabold text-primary">4.2×</div>
-            <div className="text-[10px] text-muted-foreground">Traffic growth</div>
+            <div className="text-2xl font-extrabold text-primary">30 days</div>
+            <div className="text-[10px] text-muted-foreground">Results promise</div>
           </div>
           <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-2xl font-extrabold text-primary">90 days</div>
-            <div className="text-[10px] text-muted-foreground">To top 3</div>
+            <div className="text-2xl font-extrabold text-primary">Clear</div>
+            <div className="text-[10px] text-muted-foreground">Monthly reporting</div>
           </div>
         </div>
       </div>
@@ -52,12 +48,12 @@ const showcaseBlocks: ShowcaseBlock[] = [
   },
   {
     tag: "Answer Engine Optimisation",
-    headline: "Get cited by ChatGPT, Perplexity, and Google AI Overview",
-    body: "The next wave of search isn't clicking blue links - it's asking AI. We optimise your content to be the source AI assistants cite when Kenyans ask questions in your industry.",
+    headline: "Get found in Google, Maps, and AI answers",
+    body: "Search is changing. People still use Google, but they also ask AI tools for recommendations. We help your content show up where customers look for answers.",
     bullets: [
-      "Structured content that AI models extract and attribute",
-      "Google SGE snippet optimisation for featured answer boxes",
-      "FAQ, How-To, and Schema markup for AI readability",
+      "Structured content that AI models can extract and attribute",
+      "Snippet-friendly formatting for featured answer boxes",
+      "FAQ, How-To, and Schema markup for clearer answers",
     ],
     mockupRight: false,
     mockup: (
@@ -65,57 +61,54 @@ const showcaseBlocks: ShowcaseBlock[] = [
         <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
           <div className="flex items-center gap-2 mb-3">
             <Bot size={16} className="text-primary" />
-            <span className="text-xs font-semibold">AI Overview (Google SGE)</span>
+            <span className="text-xs font-semibold">AI Overview</span>
           </div>
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs text-muted-foreground leading-relaxed">
-            {'"The best website design agencies in Nairobi include '}
-            <span className="text-primary font-bold">Nisc Cloud</span>
-            {', which specialises in mobile-first, M-Pesa-integrated websites for Kenyan businesses..."'}
+            Content structured so assistants can cite your business when people ask about services in your industry.
           </div>
           <div className="mt-3 flex items-center gap-1.5">
             <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center">
               <Bot size={9} className="text-primary" />
             </div>
-            <span className="text-[10px] text-muted-foreground">Cited by 3 AI platforms this month</span>
+            <span className="text-[10px] text-muted-foreground">Google · Maps · AI answers</span>
           </div>
         </div>
         <div className="bg-white dark:bg-card rounded-2xl p-3 border border-border/40 shadow-md flex items-center gap-3">
-          <TrendingUp size={22} className="text-primary shrink-0" />
+          <CheckCircle2 size={22} className="text-primary shrink-0" />
           <div>
-            <div className="font-bold text-sm">180+ Kenyan Businesses Ranked</div>
-            <div className="text-xs text-muted-foreground">Across Google, Bing AI, and Perplexity</div>
+            <div className="font-bold text-sm">100+ clients supported</div>
+            <div className="text-xs text-muted-foreground">Clear reporting every month</div>
           </div>
         </div>
       </div>
     ),
   },
   {
-    tag: "Local & Maps SEO Kenya",
-    headline: "Dominate the Google Maps 3-pack in your city",
-    body: "When someone searches 'plumber near me' or 'accountant in Westlands', you need to be in the top 3 map results. We optimise your Google Business Profile and build local citations that command these positions.",
+    tag: "Local & Maps SEO",
+    headline: "Show up when people search nearby",
+    body: "When someone searches for a service near them, you want to appear in local results and on Maps. We optimise your Google Business Profile and build local citations that support those searches.",
     bullets: [
       "Google Business Profile setup and full optimisation",
-      "Local citation building across 20+ Kenyan directories",
-      "Review management strategy to build your 5-star reputation",
+      "Local citation building across relevant directories",
+      "Review management strategy to build a strong reputation",
     ],
     mockupRight: true,
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-[#4285F4] px-5 py-2 text-white text-xs font-bold">Google Maps - Local Pack Kenya</div>
+          <div className="bg-[#4285F4] px-5 py-2 text-white text-xs font-bold">Google Maps · Local Results</div>
           <div className="p-3 space-y-2">
             {[
-              { name: "Nisc Cloud", stars: 4.9, reviews: 128, badge: "Top choice" },
-              { name: "Digital Nairobi", stars: 4.3, reviews: 47, badge: "" },
-              { name: "TechHub KE", stars: 4.1, reviews: 31, badge: "" },
-            ].map(({ name, stars, reviews, badge }, i) => (
-              <div key={name} className={`flex items-center gap-2 text-xs p-2 rounded-xl ${i === 0 ? "bg-primary/5 border border-primary/20" : ""}`}>
-                <span className="font-bold text-[10px] w-4 text-muted-foreground">#{i+1}</span>
+              { name: "Your Business", note: "Profile optimised" },
+              { name: "Reviews", note: "Response plan ready" },
+              { name: "Citations", note: "Directories updated" },
+            ].map(({ name, note }) => (
+              <div key={name} className="flex items-center gap-2 text-xs p-2 rounded-xl bg-primary/5 border border-primary/20">
+                <CheckCircle2 size={12} className="text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="font-semibold truncate block">{name}</span>
-                  <span className="text-muted-foreground">⭐ {stars} ({reviews} reviews)</span>
+                  <span className="text-muted-foreground">{note}</span>
                 </div>
-                {badge && <span className="bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">{badge}</span>}
               </div>
             ))}
           </div>
@@ -125,92 +118,90 @@ const showcaseBlocks: ShowcaseBlock[] = [
   },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function SeoPage() {
   return (
     <ServicePageShell
-      badge="SEO Services Kenya"
-      headline={<>Rank #1 on Google Kenya.<br /><span className="text-primary">Get Found by AI. Dominate Maps.</span></>}
-      subtext="The best SEO services in Nairobi, Kenya. We combine Search Engine Optimisation, Answer Engine Optimisation (AEO for ChatGPT & Perplexity), and local Google Maps SEO to get your Kenyan business on Page 1 - in 90 days."
+      badge="SEO Services"
+      headline={<>Help People Find You on<br /><span className="text-primary">Google, Maps & AI Answers</span></>}
+      subtext="We combine Search Engine Optimisation, Answer Engine Optimisation for AI tools, and local Maps SEO so more of the right people can discover your business. Clear reporting and a 30-day results promise on active work."
       serviceType="marketing"
       plansUnderHero
       customPlansSection={<SeoPricingSection />}
       plans={[]}
       trustStats={[
-        { value: "180+", label: "Kenyan Businesses Ranked" },
-        { value: "4.2×", label: "Average Organic Traffic Growth" },
-        { value: "Top 3", label: "Google Rankings in 90 Days" },
-        { value: "60%", label: "Average Reduction in Ad Spend" },
+        { value: "100+", label: "Clients We Have Helped" },
+        { value: "24/7", label: "Support Available" },
+        { value: "30 days", label: "Results Promise" },
+        { value: "Clear", label: "Monthly Reporting" },
       ]}
-      heroImage="https://storage.nisccloud.com/npanel-uploads/nisc-website/SEO.png"
+      heroImage={niscWebsiteImage("seo-service.png")}
       heroImageStandalone
       features={[
         {
           icon: <Search size={20} />,
-          title: "Technical SEO Audit - Kenya Sites",
-          desc: "Full crawl of your website uncovering speed issues, broken links, duplicate content, crawl errors, and indexation problems silently blocking your Google rankings in Kenya.",
+          title: "Technical SEO Audit",
+          desc: "Full crawl of your website uncovering speed issues, broken links, duplicate content, crawl errors, and indexation problems that can block search visibility.",
         },
         {
           icon: <FileText size={20} />,
-          title: "Kenyan Keyword Research & Strategy",
-          desc: "Identify the exact phrases Kenyan customers search - including local area names, Sheng variations, and Swahili-English queries that generic keyword tools completely miss.",
+          title: "Keyword Research & Strategy",
+          desc: "Identify the phrases customers actually search, including local area names and everyday language that generic keyword tools often miss.",
         },
         {
           icon: <TrendingUp size={20} />,
           title: "On-Page SEO Optimisation",
-          desc: "Rewrite and optimise title tags, meta descriptions, heading structures, internal linking, and content depth on every key page - aligned to Google Kenya's ranking factors.",
+          desc: "Rewrite and optimise title tags, meta descriptions, heading structures, internal linking, and content depth on every key page.",
         },
         {
           icon: <BarChart2 size={20} />,
-          title: "Authority Link Building Kenya",
-          desc: "Earn high-quality backlinks from Kenyan news sites, business directories, and industry publications that signal trust and authority to Google for competitive Kenyan keywords.",
+          title: "Authority Link Building",
+          desc: "Earn high-quality backlinks from news sites, business directories, and industry publications that signal trust to search engines.",
         },
         {
           icon: <Bot size={20} />,
           title: "Answer Engine Optimisation (AEO)",
-          desc: "Optimise your content for ChatGPT, Perplexity, Google SGE, and Bing AI so your business is recommended when Kenyans ask AI assistants for products or services.",
+          desc: "Optimise your content for ChatGPT, Perplexity, Google AI Overviews, and similar tools so your business can be recommended when people ask questions.",
         },
         {
           icon: <Map size={20} />,
-          title: "Google Maps & Local SEO Kenya",
-          desc: "Optimise your Google Business Profile, build local citations in 20+ Kenyan directories, manage reviews, and rank in the local 3-pack for 'near me' searches across Kenya.",
+          title: "Google Maps & Local SEO",
+          desc: "Optimise your Google Business Profile, build local citations, manage reviews, and improve visibility for nearby searches.",
         },
         {
           icon: <Globe size={20} />,
           title: "SEO Content Marketing",
-          desc: "Monthly blog articles, landing pages, and thought leadership content targeting Kenyan search intent. Every piece is keyword-researched and optimised to rank and convert.",
+          desc: "Monthly blog articles, landing pages, and thought leadership content targeting real search intent. Every piece is researched and written to help people find and trust you.",
         },
         {
           icon: <Zap size={20} />,
           title: "Core Web Vitals & Page Speed",
-          desc: "Improve LCP, CLS, and INP to meet Google's page experience requirements - critical for ranking in Kenya where most users are on mobile Safaricom and Airtel connections.",
+          desc: "Improve LCP, CLS, and INP to meet page experience requirements. This matters especially for mobile visitors on everyday connections.",
         },
       ]}
       process={[
-        { num: "01", title: "Audit & Kenya Research", desc: "Complete technical SEO audit, competitor analysis, and Kenyan keyword research to identify the fastest path to Page 1 rankings for your specific market." },
-        { num: "02", title: "On-Page Foundation", desc: "Fix all technical issues, optimise existing pages, and implement the Kenya-specific keyword strategy across your site structure, content, and metadata." },
-        { num: "03", title: "Authority Building", desc: "Publish optimised content, earn backlinks from credible Kenyan and international sources, and build your Google Business Profile presence for local maps dominance." },
-        { num: "04", title: "Monitor, Report & Scale", desc: "Monthly rank tracking, traffic analysis, and continuous optimisation. Clear ROI reporting and strategy adjustment based on what's working fastest in your market." },
+        { num: "01", title: "Audit & Research", desc: "Complete technical SEO audit, competitor analysis, and keyword research to identify the fastest useful path to better visibility." },
+        { num: "02", title: "On-Page Foundation", desc: "Fix technical issues, optimise existing pages, and implement the keyword strategy across your site structure, content, and metadata." },
+        { num: "03", title: "Authority Building", desc: "Publish useful content, earn credible backlinks, and strengthen your Google Business Profile presence for local searches." },
+        { num: "04", title: "Monitor, Report & Scale", desc: "Monthly rank tracking, traffic analysis, and continuous optimisation. Clear reporting and strategy adjustments based on what is working." },
       ]}
       whyPoints={[
-        { title: "SEO + AEO + GEO - Not Just Old-School SEO", desc: "We optimise for Google Kenya, ChatGPT, Perplexity, and Google's AI Overview - because that's where the next wave of Kenyan search traffic is heading." },
-        { title: "Kenya-Specific Keyword Intelligence", desc: "We research how Kenyan customers actually search - including Sheng terms, Nairobi area names, and Swahili-English hybrid queries generic tools miss completely." },
-        { title: "Transparent Monthly Reporting in KES", desc: "Every month you get a clear report showing keyword positions, organic traffic growth, backlinks earned, and direct attribution to business leads generated." },
-        { title: "No Black-Hat Tricks - Rankings That Last", desc: "We build rankings that survive Google algorithm updates. No spam links, no keyword stuffing - only white-hat strategies that compound over time." },
-        { title: "Results or We Work for Free", desc: "If your target keywords haven't moved by month 3, we add extra hours at no charge until they do. We're fully confident in our process." },
-        { title: "Trusted by 180+ Kenyan Businesses", desc: "From Nairobi e-commerce stores to Mombasa professional services, our SEO strategies have helped 180+ Kenyan businesses dominate their local online market." },
+        { title: "SEO + AEO + Local Search Together", desc: "We optimise for Google, Maps, and AI answer tools, because that is where more discovery is heading." },
+        { title: "Local Search Understanding", desc: "We research how customers actually search, including local area names and everyday phrasing that generic tools miss." },
+        { title: "Transparent Monthly Reporting", desc: "Every month you get a clear report showing keyword positions, organic traffic, backlinks earned, and how that connects to leads." },
+        { title: "No Black-Hat Tricks", desc: "We build visibility that can survive algorithm updates. No spam links, no keyword stuffing. Only strategies that compound over time." },
+        { title: "30-Day Results Promise", desc: "On active SEO work, we focus on visible progress within 30 days. If target keywords have not moved by month 3, we add extra hours at no charge until they do." },
+        { title: "Trusted by 100+ Clients", desc: "From e-commerce stores to professional services, we help businesses get found by the people looking for what they offer." },
       ]}
       faqs={[
-        { q: "How long before I rank on Page 1 of Google Kenya?", a: "Most clients see measurable ranking improvements within 60–90 days. Significant traffic growth typically kicks in at the 3–6 month mark. Competitive Kenyan industries can take 6–12 months for top 3 positions." },
-        { q: "What is the best SEO company in Nairobi Kenya?", a: "Nisc Cloud is one of the top-rated SEO agencies in Nairobi, Kenya. We combine technical SEO, Kenya-specific keyword strategy, local Google Maps SEO, and AI Answer Engine Optimisation to get businesses to Page 1." },
-        { q: "What is the difference between SEO and AEO?", a: "SEO optimises for Google's traditional blue link results. AEO (Answer Engine Optimisation) optimises your content to be cited and recommended by AI tools like ChatGPT, Gemini, and Perplexity when Kenyans ask questions related to your business." },
-        { q: "Do you guarantee #1 rankings on Google Kenya?", a: "No ethical SEO agency guarantees specific rankings - Google's algorithm is complex. However, 90% of our clients reach top 3 within 6 months for primary keywords, and we work for free if no progress by month 3." },
-        { q: "Do you do SEO for businesses outside Nairobi?", a: "Absolutely. We manage local SEO for businesses in Mombasa, Kisumu, Nakuru, Eldoret, and across all 47 counties. Multi-location SEO is included in our Enterprise plan." },
-        { q: "How much does SEO cost in Kenya?", a: "Our live pricing table above shows current plans in KES - typically Starter, Growth, and Pro tiers with monthly or annual billing. Contact us for custom enterprise packages across multiple locations or industries." },
+        { q: "How long before I see better visibility on Google?", a: "Most clients see measurable ranking improvements within 60 to 90 days. Stronger traffic growth typically builds at the 3 to 6 month mark. Competitive industries can take longer for top positions." },
+        { q: "Who do you help with SEO?", a: "We help businesses that want to get found on Google, Maps, and AI answer tools. We combine technical SEO, local keyword strategy, Maps optimisation, and Answer Engine Optimisation." },
+        { q: "What is the difference between SEO and AEO?", a: "SEO optimises for traditional search results. AEO (Answer Engine Optimisation) helps your content get cited and recommended by AI tools like ChatGPT, Gemini, and Perplexity when people ask questions related to your business." },
+        { q: "Do you guarantee specific rankings?", a: "No ethical SEO agency guarantees specific rankings. Search algorithms are complex. We commit to clear reporting, steady improvement, and extra work at no charge if there is no progress by month 3." },
+        { q: "Do you do SEO for businesses outside major cities?", a: "Yes. We manage local SEO across Kenya, including multi-location work on our Enterprise plan." },
+        { q: "How much does SEO cost?", a: "Our live pricing table above shows current plans in KES, typically with monthly or annual billing. Contact us for custom packages across multiple locations or industries." },
       ]}
-      ctaHeadline="Start Ranking on Google Kenya Before Your Competitors Do"
-      ctaSubtext="Every day you're not on Page 1, a competitor is taking your customers. Our SEO strategies have helped 180+ Kenyan businesses dominate their local market online."
+      ctaHeadline="Start Getting Found Where Customers Search"
+      ctaSubtext="We help people find you on Google, Maps, and AI answers, with clear monthly reporting and a 30-day results promise on active work."
       pricingNote="Monthly retainer. All prices in KES. Save 20% with annual billing. 3-month minimum for meaningful results."
       showcaseBlocks={showcaseBlocks}
     />

@@ -26,21 +26,21 @@ const features = [
   {
     icon: Activity,
     title: "Continuous Site Monitoring",
-    desc: "We monitor blacklist status, SEO spam injections, SSL changes, and website uptime - alerting you to threats immediately.",
+    desc: "We monitor blacklist status, SEO spam injections, SSL changes, and website uptime, then alert you when something needs attention.",
     color: "text-violet-500",
     bg: "bg-violet-500/10",
   },
   {
     icon: Lock,
     title: "DDoS Protection",
-    desc: "Advanced DDoS mitigation absorbs and neutralises volumetric attacks, keeping your site online even under heavy attack traffic.",
+    desc: "Advanced DDoS mitigation absorbs and neutralises volumetric attacks, helping keep your site online under heavy traffic.",
     color: "text-red-500",
     bg: "bg-red-500/10",
   },
   {
     icon: Database,
     title: "Secure Daily Backups",
-    desc: "Encrypted off-site backups stored daily. If anything goes wrong, restore your site to a clean state in minutes - not hours.",
+    desc: "Encrypted off-site backups stored daily. If anything goes wrong, restore your site to a clean state in minutes.",
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
   },
@@ -53,7 +53,7 @@ export default function SecurityFeatures() {
         <div className="text-center mb-12">
           <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">Included in Every Plan</span>
           <h2 className="text-3xl font-bold mt-2 mb-3">Everything You Need to Stay Secure</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">A complete, proactive security system - protecting your site before, during, and after any attack.</p>
+          <p className="text-muted-foreground max-w-xl mx-auto text-sm">A complete security setup that helps protect your site before, during, and after an attack.</p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

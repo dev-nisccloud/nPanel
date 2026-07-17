@@ -27,8 +27,8 @@ export default function WorkHero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-5xl md:text-6xl font-bold text-balance mb-5"
         >
-          Results That Speak{" "}
-          <span className="text-primary">for Themselves</span>
+          Work We Are{" "}
+          <span className="text-primary">Proud Of</span>
         </motion.h1>
 
         <motion.p
@@ -37,8 +37,8 @@ export default function WorkHero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-xl text-muted-foreground text-balance"
         >
-          Every case study below is a real client, real challenge, and real
-          outcome - powered by the Atom Approach.
+          A look at how we help businesses get online, stay online, and grow
+          with hosting and marketing under one team.
         </motion.p>
       </div>
     </section>

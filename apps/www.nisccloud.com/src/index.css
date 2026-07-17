@@ -113,6 +113,8 @@
   --sidebar-accent-foreground: #1e293b;
   --sidebar-border: rgb(0 0 0 / 9%);
   --sidebar-ring: #38b6ff;
+  --scrollbar-thumb: var(--primary);
+  --scrollbar-track: transparent;
 }
 
 .dark {
@@ -152,7 +154,30 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

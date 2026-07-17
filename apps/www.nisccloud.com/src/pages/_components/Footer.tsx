@@ -60,12 +60,11 @@ export default function Footer() {
               <img
                 src="/nisccloud-logo.svg"
                 alt="Nisc Cloud"
-                className="h-8 w-auto object-contain"
+                className="h-11 w-auto object-contain"
               />
             </button>
             <p className="text-sm text-muted-foreground leading-relaxed mb-6 max-w-xs">
-              Kenya&apos;s all-in-one digital growth partner for cloud, branding,
-              marketing, and automation.
+              Transforming businesses to stand out and succeed.
             </p>
             <div className="space-y-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -88,7 +87,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center gap-2">
                 <MapPin size={14} className="text-primary shrink-0" />
-                <span>Nairobi, Kenya · Remote Worldwide</span>
+                <span>Nairobi, Kenya</span>
               </div>
             </div>
           </div>

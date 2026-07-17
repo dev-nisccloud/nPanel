@@ -1,16 +1,17 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { Monitor, Smartphone, Code2, Zap, Globe, ShoppingBag, Lock, BarChart2, CheckCircle2, TrendingUp } from "lucide-react";
+import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
+import { Monitor, Smartphone, Code2, Zap, Globe, ShoppingBag, Lock, BarChart2, CheckCircle2 } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Speed & Performance",
-    headline: "Sub-2 second load. Every time. Everywhere.",
-    body: "Over 78% of Kenyan internet users are on mobile - often on congested 3G. We engineer every site to load instantly even on Safaricom's busiest networks. Speed isn't a feature; it's the foundation.",
+    headline: "Fast load times. On mobile and desktop.",
+    body: "Most visitors arrive on mobile, often on busy networks. We build sites that load quickly, stay stable, and feel easy to use from the first tap.",
     bullets: [
-      "95+ Google PageSpeed score on every site we build",
+      "Strong Google PageSpeed performance on every site we build",
       "CDN delivery, image compression, and lazy loading built in",
-      "Core Web Vitals optimised before launch day",
+      "Core Web Vitals checked before launch day",
     ],
     mockupRight: true,
     mockup: (
@@ -38,11 +39,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
             <div className="text-2xl font-extrabold text-primary">&lt;2s</div>
-            <div className="text-[10px] text-muted-foreground">Load time</div>
+            <div className="text-[10px] text-muted-foreground">Target load time</div>
           </div>
           <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-2xl font-extrabold text-primary">3×</div>
-            <div className="text-[10px] text-muted-foreground">Conversion lift</div>
+            <div className="text-2xl font-extrabold text-primary">24/7</div>
+            <div className="text-[10px] text-muted-foreground">Support available</div>
           </div>
         </div>
       </div>
@@ -51,20 +52,20 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Conversion Architecture",
     headline: "Built to turn browsers into buyers",
-    body: "A website that doesn't generate leads is just an expensive brochure. Every page we build is engineered with strategic CTAs, lead capture forms, and WhatsApp chat funnels that work around the clock.",
+    body: "A website that does not generate leads is just an expensive brochure. Every page we build uses clear CTAs, lead capture forms, and WhatsApp chat so customers can reach you easily.",
     bullets: [
-      "WhatsApp chat integration - customers contact you in one tap",
-      "Strategic CTA placement based on scroll heatmap data",
-      "Lead capture forms with instant email + SMS notification",
+      "WhatsApp chat integration so customers contact you in one tap",
+      "Clear CTA placement that guides people to the next step",
+      "Lead capture forms with instant email notification",
     ],
     mockupRight: false,
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Monthly Lead Summary</div>
+          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">How Leads Reach You</div>
           <div className="p-4">
             <div className="grid grid-cols-3 gap-3 mb-3">
-              {[["Visitors","1,240"],["Leads","86"],["Closed","31"]].map(([l,v]) => (
+              {[["Visitors","Tracked"],["Leads","Captured"],["Follow-up","Clear"]].map(([l,v]) => (
                 <div key={l} className="text-center">
                   <div className="text-lg font-extrabold text-primary">{v}</div>
                   <div className="text-[10px] text-muted-foreground">{l}</div>
@@ -72,14 +73,14 @@ const showcaseBlocks: ShowcaseBlock[] = [
               ))}
             </div>
             <div className="space-y-1.5">
-              {[["WhatsApp","52%"],["Contact Form","28%"],["Phone","20%"]].map(([src, pct]) => (
+              {[["WhatsApp","Easy"],["Contact Form","Ready"],["Phone","Visible"]].map(([src, pct]) => (
                 <div key={src}>
                   <div className="flex justify-between text-xs mb-0.5">
                     <span className="text-muted-foreground">{src}</span>
                     <span className="font-semibold">{pct}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: pct }} />
+                    <div className="h-full bg-primary rounded-full" style={{ width: "70%" }} />
                   </div>
                 </div>
               ))}
@@ -91,32 +92,32 @@ const showcaseBlocks: ShowcaseBlock[] = [
   },
   {
     tag: "SEO-Ready from Day One",
-    headline: "Rank on Google before you pay a single ad",
-    body: "Most agencies build websites first, then think about SEO. We bake in proper structure, schema markup, sitemap, and Core Web Vitals compliance from the wireframe stage - so you start ranking from launch day.",
+    headline: "Set up so people can find you",
+    body: "Most agencies build websites first, then think about SEO. We bake in proper structure, schema markup, sitemap, and Core Web Vitals from the wireframe stage so you start with a solid foundation.",
     bullets: [
-      "Proper H1–H6 hierarchy, canonical tags, and schema markup",
+      "Proper H1 to H6 hierarchy, canonical tags, and schema markup",
       "XML sitemap and Google Search Console submission on launch",
-      "On-page keyword targeting for your top 5 service pages",
+      "On-page keyword targeting for your top service pages",
     ],
     mockupRight: true,
     mockup: (
       <div className="space-y-3">
         <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Google Search Console</div>
-          <div className="flex items-end gap-1 h-16">
-            {[30,45,38,52,60,58,72,80,76,90,88,95].map((h, i) => (
-              <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: "oklch(0.60 0.22 235)", opacity: 0.4 + (i / 12) * 0.6 }} />
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Launch Checklist</div>
+          <div className="space-y-2">
+            {["Search Console connected","Sitemap submitted","Analytics installed","Speed checked"].map((item) => (
+              <div key={item} className="flex items-center gap-2 text-xs">
+                <CheckCircle2 size={13} className="text-primary shrink-0" />
+                <span>{item}</span>
+              </div>
             ))}
-          </div>
-          <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
-            <span>Jan</span><span>Jun</span><span>Dec</span>
           </div>
         </div>
         <div className="bg-white dark:bg-card rounded-2xl p-3 border border-border/40 shadow-md flex items-center gap-3">
-          <TrendingUp size={24} className="text-primary shrink-0" />
+          <CheckCircle2 size={24} className="text-primary shrink-0" />
           <div>
-            <div className="font-bold text-sm">+215% Organic Clicks</div>
-            <div className="text-xs text-muted-foreground">Within 6 months of launch</div>
+            <div className="font-bold text-sm">Free setup help</div>
+            <div className="text-xs text-muted-foreground">We help you launch with confidence</div>
           </div>
         </div>
       </div>
@@ -129,26 +130,28 @@ export default function WebsiteDesignPage() {
     <ServicePageShell
       badge="Website Design & Development"
       headline={<>Websites That Turn<br /><span className="text-primary">Visitors Into Customers</span></>}
-      subtext="A beautiful website means nothing if it doesn't convert. We design and build fast, mobile-first websites that rank on Google, load in under 2 seconds, and turn Kenyan internet users into paying customers."
+      subtext="A beautiful website means little if it does not convert. We design and build fast, mobile-first websites that help people find you, trust you, and get in touch."
       serviceType="marketing"
       checkoutServiceType="website_design"
       checkoutProductName="Website Design"
+      heroImage={niscWebsiteImage("web design & development.png")}
+      heroImageStandalone
       trustStats={[
-        { value: "250+", label: "Websites Launched in Kenya" },
-        { value: "<2s", label: "Average Page Load Speed" },
-        { value: "95%", label: "Google PageSpeed Score" },
-        { value: "3×", label: "Average Conversion Lift" },
+        { value: "100+", label: "Clients We Have Helped" },
+        { value: "<2s", label: "Target Page Load Speed" },
+        { value: "24/7", label: "Support Available" },
+        { value: "Free", label: "Setup Help Included" },
       ]}
       features={[
         {
           icon: <Monitor size={20} />,
           title: "Pixel-Perfect Design",
-          desc: "Custom designs built in Figma first, then coded with precision. Every pixel is deliberate - no page builder templates or generic themes.",
+          desc: "Custom designs built in Figma first, then coded with care. Every pixel is deliberate. No page builder templates or generic themes.",
         },
         {
           icon: <Smartphone size={20} />,
           title: "Mobile-First Development",
-          desc: "Over 78% of Kenyan internet users are on mobile. Every site we build is optimised for mobile screens, touch interactions, and slow 3G connections.",
+          desc: "Most visitors browse on mobile. Every site we build is optimised for mobile screens, touch interactions, and slower connections.",
         },
         {
           icon: <Code2 size={20} />,
@@ -158,7 +161,7 @@ export default function WebsiteDesignPage() {
         {
           icon: <Zap size={20} />,
           title: "Sub-2 Second Load Speed",
-          desc: "Compressed images, lazy loading, CDN delivery, and minimal JavaScript ensure your site loads fast even on Safaricom 4G networks.",
+          desc: "Compressed images, lazy loading, CDN delivery, and minimal JavaScript help your site load fast even on busy mobile networks.",
         },
         {
           icon: <Globe size={20} />,
@@ -168,7 +171,7 @@ export default function WebsiteDesignPage() {
         {
           icon: <ShoppingBag size={20} />,
           title: "Lead Generation Focused",
-          desc: "Strategic CTAs, contact forms, WhatsApp chat integration, and conversion funnels designed to capture leads around the clock.",
+          desc: "Clear CTAs, contact forms, WhatsApp chat integration, and conversion paths designed to capture leads around the clock.",
         },
         {
           icon: <Lock size={20} />,
@@ -178,7 +181,7 @@ export default function WebsiteDesignPage() {
         {
           icon: <BarChart2 size={20} />,
           title: "Analytics & Tracking",
-          desc: "Google Analytics 4, Meta Pixel, and Google Tag Manager installed and configured so you can see exactly where your leads come from.",
+          desc: "Google Analytics 4, Meta Pixel, and Google Tag Manager installed and configured so you can see where your leads come from.",
         },
       ]}
       plans={[
@@ -217,29 +220,29 @@ export default function WebsiteDesignPage() {
         { id: "web-speedaudit", label: "Website Speed & Security Audit", price: 12000, period: "once" },
       ]}
       process={[
-        { num: "01", title: "Discovery & Wireframe", desc: "We map your user journey, define your site structure, and build wireframes showing exactly how every page will flow before a single pixel is designed." },
-        { num: "02", title: "Design in Figma", desc: "Full visual designs are created and shared with you for approval. You see the finished look before development begins - no surprises." },
-        { num: "03", title: "Build & Optimise", desc: "We code the site, integrate all tools, run speed and security tests, and QA every element across mobile, tablet, and desktop." },
-        { num: "04", title: "Launch & Handover", desc: "We deploy to your domain, submit to Google Search Console, and hand over a full training guide so you can manage your site confidently." },
+        { num: "01", title: "Discovery & Wireframe", desc: "We map your user journey, define your site structure, and build wireframes showing how every page will flow before design begins." },
+        { num: "02", title: "Design in Figma", desc: "Full visual designs are created and shared with you for approval. You see the finished look before development begins." },
+        { num: "03", title: "Build & Optimise", desc: "We code the site, integrate tools, run speed and security tests, and QA every element across mobile, tablet, and desktop." },
+        { num: "04", title: "Launch & Handover", desc: "We deploy to your domain, submit to Google Search Console, and hand over training so you can manage your site confidently." },
       ]}
       whyPoints={[
-        { title: "We Build for Kenyan Connections", desc: "Sites optimised for Safaricom, Airtel, and Telkom networks - fast even on patchy 3G - because real Kenyan customers don't have fibre at home." },
-        { title: "No Page Builders", desc: "We don't use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for maximum performance, flexibility, and longevity." },
-        { title: "SEO-Ready from Day One", desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage - saving you months of retrofit work." },
-        { title: "Conversion Architecture", desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales - not just looking pretty." },
-        { title: "Transparent Fixed Pricing", desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know exactly what you're getting and when." },
-        { title: "Post-Launch Support Included", desc: "Every plan includes post-launch support. We're available to fix bugs, make updates, and answer questions well after your site goes live." },
+        { title: "Built for Real Connections", desc: "Sites tuned for everyday mobile use so customers can browse, read, and contact you without friction." },
+        { title: "No Page Builders", desc: "We do not use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for performance, flexibility, and longevity." },
+        { title: "SEO-Ready from Day One", desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage so you avoid months of retrofit work." },
+        { title: "Conversion Architecture", desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales." },
+        { title: "Transparent Fixed Pricing", desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know what you are getting and when." },
+        { title: "Post-Launch Support Included", desc: "Every plan includes post-launch support. We are available to fix bugs, make updates, and answer questions after your site goes live." },
       ]}
       faqs={[
         { q: "How long does it take to build a website?", a: "Essential sites (up to 5 pages) are delivered in 10 days. Professional sites take 14 days. Enterprise projects take 21 days. These timelines assume you provide content and feedback promptly." },
-        { q: "Do I need to provide the content?", a: "You provide the basic information about your business. We offer professional copywriting as an add-on (KES 20,000) if you want us to write compelling web copy that converts visitors." },
-        { q: "Will my website rank on Google?", a: "We build every site with on-page SEO fundamentals - proper tags, site structure, speed, and schema. For ongoing rankings growth, we recommend pairing with our SEO service." },
-        { q: "What platform will my website be built on?", a: "Depending on your needs: React (fastest, most flexible), WordPress (easiest for self-management), or a headless CMS. We recommend the best platform for your specific goals during discovery." },
+        { q: "Do I need to provide the content?", a: "You provide the basic information about your business. We offer professional copywriting as an add-on (KES 20,000) if you want us to write clear web copy that helps visitors take action." },
+        { q: "Will my website help me get found on Google?", a: "We build every site with on-page SEO fundamentals: proper tags, site structure, speed, and schema. For ongoing growth, we recommend pairing with our SEO service." },
+        { q: "What platform will my website be built on?", a: "Depending on your needs: React (fast and flexible), WordPress (easiest for self-management), or a headless CMS. We recommend the best platform for your goals during discovery." },
         { q: "Can I update the website myself after launch?", a: "Yes. If built on WordPress or a CMS, we provide a full training session. If on React, we handle updates for you through our maintenance plan." },
-        { q: "Do you provide hosting?", a: "Yes. We recommend and set up hosting on Nisc Cloud or AWS Kenya region for optimal local speed. Hosting is separate from development cost." },
+        { q: "Do you provide hosting?", a: "Yes. We recommend and set up hosting on Nisc Cloud for reliable speed and support. Hosting is separate from development cost." },
       ]}
-      ctaHeadline="Your Competitors Have a Website. Yours Should Be Better."
-      ctaSubtext="A professional, fast, SEO-ready website is the single highest-ROI investment a Kenyan business can make today. Let's build yours in under 3 weeks."
+      ctaHeadline="Let's Build a Website That Works Harder"
+      ctaSubtext="A professional, fast, SEO-ready website helps more people find you and get in touch. We can usually deliver in under 3 weeks."
       pricingNote="Fixed project price. No hourly billing. No hidden costs."
       showcaseBlocks={showcaseBlocks}
     />

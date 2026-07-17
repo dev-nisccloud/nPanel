@@ -19,13 +19,13 @@ const contactDetails = [
     icon: Phone,
     label: "Call Us",
     value: "+254 748 777 666",
-    sub: "Mon–Fri, 9am–6pm GMT",
+    sub: "Sales: Mon-Fri, 9am-6pm EAT · Support: 24/7",
   },
   {
     icon: MapPin,
     label: "Location",
-    value: "Accra, Ghana",
-    sub: "Remote-first, worldwide clients",
+    value: "Nairobi, Kenya",
+    sub: "Our office",
   },
   {
     icon: Clock,
@@ -36,8 +36,8 @@ const contactDetails = [
 ];
 
 const whyUs = [
-  { icon: MessageSquare, text: "Free strategy session on first call - no sales pitch" },
-  { icon: Calendar, text: "Proposals delivered within 48 hours of enquiry" },
+  { icon: MessageSquare, text: "Free strategy session on the first call. Clear advice, no hard sell." },
+  { icon: Calendar, text: "Proposals delivered within 48 hours of your enquiry" },
 ];
 
 export default function ContactInfo() {
@@ -80,7 +80,7 @@ export default function ContactInfo() {
         </div>
       </div>
 
-      {/* Atom steps */}
+      {/* Next steps */}
       <div
         className="rounded-2xl p-6 border border-primary/20 relative overflow-hidden"
         style={{
@@ -89,14 +89,14 @@ export default function ContactInfo() {
         }}
       >
         <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-[10px] text-primary font-mono mb-4">
-          YOUR JOURNEY
+          NEXT STEPS
         </div>
         <div className="space-y-3">
           {[
             { step: "01", label: "Submit this form" },
-            { step: "02", label: "Strategy call (free)" },
+            { step: "02", label: "Free strategy call" },
             { step: "03", label: "Custom proposal in 48hrs" },
-            { step: "04", label: "We launch your orbit" },
+            { step: "04", label: "We help you get online and grow" },
           ].map((s) => (
             <div key={s.step} className="flex items-center gap-3">
               <span className="text-xs font-mono text-primary/70 w-6 shrink-0">{s.step}</span>

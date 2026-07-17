@@ -50,7 +50,7 @@ export function TransferReadyCard({
               {statusLabel}
             </Badge>
           ) : isPendingCheck ? (
-            <Badge variant="secondary">We&apos;ll check availability</Badge>
+            <Badge variant="secondary">We will confirm availability</Badge>
           ) : null}
           <div className="flex items-start gap-2">
             <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -58,7 +58,7 @@ export function TransferReadyCard({
             </div>
             <div className="min-w-0">
               <p className="truncate text-base font-semibold tracking-tight text-foreground">{domain}</p>
-              <p className="text-xs text-muted-foreground">Transfer to Nisc Cloud · includes 1 year renewal</p>
+              <p className="text-xs text-muted-foreground">Transfer here · includes 1 year renewal</p>
             </div>
           </div>
         </div>
@@ -98,8 +98,8 @@ export function TransferReadyCard({
           ) : (
             <>
               The transfer price includes{" "}
-              <span className="font-medium text-foreground">one year of registration</span>. Complete checkout to
-              start your transferwe&apos;ll confirm availability and pricing for Kenyan domains shortly.
+              <span className="font-medium text-foreground">one year of registration</span>. Complete
+              checkout to start your transfer. We will confirm the final details for your domain shortly.
             </>
           )}
         </p>

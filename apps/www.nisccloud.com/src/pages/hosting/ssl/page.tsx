@@ -35,12 +35,12 @@ function SslIllustration() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 text-center">
-              <div className="text-lg font-extrabold text-primary">+30%</div>
-              <div className="text-[9px] text-muted-foreground">Conversions</div>
+              <div className="text-lg font-extrabold text-primary">256-bit</div>
+              <div className="text-[9px] text-muted-foreground">Encryption</div>
             </div>
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 text-center">
-              <div className="text-lg font-extrabold text-primary">SEO+</div>
-              <div className="text-[9px] text-muted-foreground">Google Boost</div>
+              <div className="text-lg font-extrabold text-primary">Padlock</div>
+              <div className="text-[9px] text-muted-foreground">Visitor trust</div>
             </div>
           </div>
         </div>
@@ -77,11 +77,11 @@ function SslIllustration() {
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "SSL in Action",
-    headline: "The padlock that makes customers buy",
-    body: "Studies show that HTTPS and the padlock icon increase conversion rates by up to 30% on e-commerce sites. Customers check for the padlock before entering any payment or personal information.",
+    headline: "The padlock that builds visitor trust",
+    body: "HTTPS and the padlock icon show visitors that your site is safe. Customers look for that signal before entering payment or personal information.",
     bullets: [
       "Padlock appears in all major browsers within 1 hour of issuance",
-      "Google confirms HTTPS as a ranking signal with direct SEO benefit",
+      "Google treats HTTPS as a ranking signal",
       "256-bit AES encryption, the same standard used by banks",
     ],
     mockupRight: true,
@@ -105,12 +105,12 @@ const showcaseBlocks: ShowcaseBlock[] = [
             </div>
             <div className="flex gap-2">
               <div className="flex-1 bg-muted/40 rounded-xl p-2 text-center text-xs">
-                <div className="font-bold text-primary">+30%</div>
-                <div className="text-muted-foreground text-[10px]">Conversions</div>
+                <div className="font-bold text-primary">256-bit</div>
+                <div className="text-muted-foreground text-[10px]">Encryption</div>
               </div>
               <div className="flex-1 bg-muted/40 rounded-xl p-2 text-center text-xs">
-                <div className="font-bold text-primary">SEO+</div>
-                <div className="text-muted-foreground text-[10px]">Google boost</div>
+                <div className="font-bold text-primary">HTTPS</div>
+                <div className="text-muted-foreground text-[10px]">Visitor trust</div>
               </div>
             </div>
           </div>
@@ -119,13 +119,13 @@ const showcaseBlocks: ShowcaseBlock[] = [
     ),
   },
   {
-    tag: "M-Pesa Requirement",
-    headline: "SSL is mandatory for M-Pesa integration",
-    body: "Safaricom requires all M-Pesa API callback URLs to use HTTPS with a valid SSL certificate. If you plan to accept M-Pesa payments online, SSL is not optional - it is a hard technical requirement.",
+    tag: "Payment Ready",
+    headline: "SSL is required for secure online payments",
+    body: "Any site that collects payment or personal data needs HTTPS with a valid SSL certificate. We help you install it correctly so checkout and forms stay protected.",
     bullets: [
-      "Required by Safaricom Daraja API for all M-Pesa integrations",
-      "PCI-DSS compliance mandates HTTPS for any payment data",
-      "Free installation included - we configure your server for you",
+      "Required for secure payment and form flows",
+      "Helps meet PCI-DSS expectations for payment pages",
+      "Free installation included. We configure your server for you",
     ],
     mockupRight: false,
     mockup: (
@@ -149,8 +149,8 @@ const showcaseBlocks: ShowcaseBlock[] = [
           </div>
         </div>
         <div className="bg-white dark:bg-card rounded-xl p-3 border border-border/40 shadow text-center">
-          <div className="text-xl font-extrabold text-primary">1,000+</div>
-          <div className="text-[10px] text-muted-foreground">Certificates issued to Kenyan sites</div>
+          <div className="text-xl font-extrabold text-primary">100+</div>
+          <div className="text-[10px] text-muted-foreground">Clients protected with SSL</div>
         </div>
       </div>
     ),
@@ -162,38 +162,38 @@ export default function SslPage() {
     <ServicePageShell
       badge="SSL Certificates"
       headline={<>Secure Your Website. <span className="text-primary">Earn Your Visitors' Trust.</span></>}
-      subtext="SSL certificates encrypt customer data, boost your Google ranking, and display the padlock that tells visitors your site is safe. Essential for every Kenyan business website and online store."
+      subtext="SSL certificates encrypt customer data, support better search visibility, and display the padlock that tells visitors your site is safe. Essential for every business website and online store."
       serviceType="hosting"
       checkoutServiceType="ssl_certificate"
       checkoutProductName="SSL Certificate"
       heroIllustration={<SslIllustration />}
       heroTrustBadge={{ line1: "256-bit AES Encryption", line2: "Issued in under 1 hour" }}
       trustStats={[
-        { value: "1,000+", label: "Certificates Issued" },
+        { value: "100+", label: "Clients Protected" },
         { value: "256-bit", label: "Encryption Strength" },
-        { value: "99.9%", label: "Browser Compatibility" },
+        { value: "24/7", label: "Support" },
         { value: "< 1hr", label: "Average Issuance Time" },
       ]}
       features={[
         {
           icon: <Lock size={20} />,
           title: "256-Bit Encryption",
-          desc: "Industry-standard 256-bit AES encryption protects all data transmitted between your visitors' browsers and your server - the same strength used by banks and governments.",
+          desc: "Industry-standard 256-bit AES encryption protects all data transmitted between your visitors' browsers and your server, the same strength used by banks and governments.",
         },
         {
           icon: <Shield size={20} />,
           title: "Malware and Phishing Warnings Removed",
-          desc: "Google Chrome and Firefox display scary warnings for sites without SSL. An SSL certificate removes these warnings instantly and shows the trusted padlock instead.",
+          desc: "Google Chrome and Firefox display scary warnings for sites without SSL. An SSL certificate removes these warnings and shows the trusted padlock instead.",
         },
         {
           icon: <Globe size={20} />,
-          title: "Google SEO Ranking Boost",
-          desc: "Google has confirmed HTTPS as a ranking signal. Secure sites rank higher in Kenyan and global search results - a direct, measurable benefit to your online visibility.",
+          title: "Google SEO Ranking Support",
+          desc: "Google has confirmed HTTPS as a ranking signal. Secure sites are better positioned in search results, which helps your online visibility.",
         },
         {
           icon: <Award size={20} />,
           title: "Globally Trusted Certificate Authorities",
-          desc: "Our SSL certificates are issued by DigiCert, Sectigo, and GlobalSign - the most trusted CAs in the world. Compatible with 99.9% of browsers and mobile devices.",
+          desc: "Our SSL certificates are issued by DigiCert, Sectigo, and GlobalSign, trusted CAs worldwide. Compatible with nearly all browsers and mobile devices.",
         },
         {
           icon: <Zap size={20} />,
@@ -208,7 +208,7 @@ export default function SslPage() {
         {
           icon: <CheckCircle size={20} />,
           title: "Wildcard and Multi-Domain Support",
-          desc: "Secure unlimited subdomains with one Wildcard certificate. Multi-Domain (SAN) certificates cover multiple sites under a single certificate - reducing cost and complexity.",
+          desc: "Secure unlimited subdomains with one Wildcard certificate. Multi-Domain (SAN) certificates cover multiple sites under a single certificate, reducing cost and complexity.",
         },
         {
           icon: <Server size={20} />,
@@ -228,8 +228,8 @@ export default function SslPage() {
             "Issued in under 1 Hour",
             "Free Installation Support",
             "Padlock in Browser Address Bar",
-            "Google SEO Boost",
-            "99.9% Browser Compatibility",
+            "Google SEO Support",
+            "Broad Browser Compatibility",
             "KES 500,000 Warranty",
             "Ideal for Blogs and Brochure Sites",
           ],
@@ -246,8 +246,8 @@ export default function SslPage() {
             "Free Installation Support",
             "Company Name in Certificate Details",
             "Padlock in Browser Address Bar",
-            "Google SEO Boost",
-            "99.9% Browser Compatibility",
+            "Google SEO Support",
+            "Broad Browser Compatibility",
             "KES 1,500,000 Warranty",
             "Ideal for Business Websites",
             "Wildcard Option Available",
@@ -265,8 +265,8 @@ export default function SslPage() {
             "Free Installation Support",
             "Company Name Visible in Address Bar",
             "Highest Trust Level Available",
-            "Google SEO Boost",
-            "99.9% Browser Compatibility",
+            "Google SEO Support",
+            "Broad Browser Compatibility",
             "KES 5,000,000 Warranty",
             "Ideal for E-Commerce and Fintech",
             "Ideal for Banks and Government Portals",
@@ -285,24 +285,24 @@ export default function SslPage() {
         { num: "04", title: "We Install and Test for You", desc: "Our team installs the certificate on your server, enforces HTTPS redirects, fixes mixed-content warnings, and confirms the padlock appears correctly in all browsers." },
       ]}
       whyPoints={[
-        { title: "HTTPS is No Longer Optional", desc: "Google marks all HTTP websites as 'Not Secure'. Without SSL, you lose visitor trust, Google ranking, and customers who see the warning and leave immediately." },
-        { title: "Protects Your Customers' Data", desc: "SSL encrypts credit card numbers, personal details, and login credentials in transit. A legal and ethical obligation for any website that collects user data in Kenya." },
-        { title: "Increases Conversion Rates", desc: "Studies show that HTTPS and the padlock icon increase conversion rates by up to 30% on e-commerce sites. Customers buy more when they feel secure." },
-        { title: "Free Installation Included", desc: "We don't just sell you a certificate - we install it. Our team configures Apache, Nginx, or cPanel to enforce HTTPS and resolve every mixed-content warning." },
-        { title: "Expiry Reminders - Never Go Unsecured", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
-        { title: "Works on All Kenyan Business Websites", desc: "Our SSL certificates work on cPanel, Plesk, AWS, Azure, and standalone Linux/Windows servers. Whatever platform your Kenyan website runs on, we have you covered." },
+        { title: "HTTPS Is No Longer Optional", desc: "Google marks all HTTP websites as 'Not Secure'. Without SSL, you lose visitor trust, search visibility, and customers who see the warning and leave." },
+        { title: "Protects Your Customers' Data", desc: "SSL encrypts credit card numbers, personal details, and login credentials in transit. A practical obligation for any website that collects user data." },
+        { title: "Builds Checkout Confidence", desc: "Visitors feel safer entering details when they see the padlock. Secure sites support smoother, more trusted form and payment flows." },
+        { title: "Free Installation Included", desc: "We don't just sell you a certificate. We install it. Our team configures Apache, Nginx, or cPanel to enforce HTTPS and resolve mixed-content warnings." },
+        { title: "Expiry Reminders, Never Go Unsecured", desc: "You will receive email and SMS alerts at 60, 30, and 7 days before expiry. We also offer auto-renewal so your site is never accidentally left without a valid certificate." },
+        { title: "Works Across Common Hosting Setups", desc: "Our SSL certificates work on cPanel, Plesk, AWS, Azure, and standalone Linux/Windows servers. Whatever platform your website runs on, we can help." },
       ]}
       faqs={[
-        { q: "What is the difference between DV, OV, and EV certificates?", a: "DV (Domain Validated) proves you control the domain and issues in minutes. OV (Organisation Validated) also verifies your business details. EV (Extended Validation) provides the highest trust level. For most Kenyan business websites, OV is the recommended choice." },
-        { q: "My hosting already includes a free SSL - why would I buy one?", a: "Free Let's Encrypt SSL is great for basic sites. Paid certificates offer higher warranty coverage, OV/EV business verification, better customer support, and compatibility with legacy systems that don't trust Let's Encrypt." },
-        { q: "Will you install the SSL on my server?", a: "Yes - free installation is included on every SSL certificate purchase. We handle the complete installation, HTTPS redirection setup, and mixed-content testing regardless of your hosting platform." },
-        { q: "What is a Wildcard SSL certificate?", a: "A Wildcard SSL (available as an add-on) secures your main domain plus all its subdomains - e.g. *.yourbusiness.co.ke covers shop.yourbusiness.co.ke, mail.yourbusiness.co.ke, and any other subdomain you create." },
-        { q: "Is SSL required for accepting M-Pesa payments?", a: "Yes. Safaricom's M-Pesa API requires your callback URLs to use HTTPS with a valid SSL certificate. Any website collecting payment information must have SSL - it is non-negotiable." },
+        { q: "What is the difference between DV, OV, and EV certificates?", a: "DV (Domain Validated) proves you control the domain and issues in minutes. OV (Organisation Validated) also verifies your business details. EV (Extended Validation) provides the highest trust level. For most business websites, OV is a strong choice." },
+        { q: "My hosting already includes a free SSL. Why would I buy one?", a: "Free Let's Encrypt SSL is great for basic sites. Paid certificates offer higher warranty coverage, OV/EV business verification, better customer support, and compatibility with legacy systems that don't trust Let's Encrypt." },
+        { q: "Will you install the SSL on my server?", a: "Yes. Free installation is included on every SSL certificate purchase. We handle the complete installation, HTTPS redirection setup, and mixed-content testing regardless of your hosting platform." },
+        { q: "What is a Wildcard SSL certificate?", a: "A Wildcard SSL (available as an add-on) secures your main domain plus all its subdomains. For example, *.yourbusiness.co.ke covers shop.yourbusiness.co.ke, mail.yourbusiness.co.ke, and any other subdomain you create." },
+        { q: "Is SSL required for accepting online payments?", a: "Yes. Sites that collect payment or personal information need HTTPS with a valid SSL certificate. It is a basic requirement for secure checkout and forms." },
         { q: "What happens if my SSL expires?", a: "An expired SSL certificate causes browsers to show a full-page security warning that blocks most visitors. We send reminders well in advance and can set up auto-renewal so this never happens to you." },
       ]}
       pricingNote="Prices shown are per year. Multi-year discounts available. Free installation included on all plans."
       ctaHeadline="Secure Your Website Today"
-      ctaSubtext="Over 1,000 Kenyan websites trust Nisc Cloud SSL certificates. Get the padlock, boost your Google ranking, and protect your customers' data."
+      ctaSubtext="Join 100+ clients who trust our SSL certificates. Get the padlock, protect customer data, and keep your site looking safe in the browser."
       showcaseBlocks={showcaseBlocks}
     />
   );

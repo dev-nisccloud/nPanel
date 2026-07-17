@@ -1,13 +1,14 @@
 {
-  "name": "Nisc Cloud - npanel",
-  "short_name": "npanel",
-  "description": "Nisc Cloud & Digital Marketing Management Platform",
+  "name": "Nisc Cloud",
+  "short_name": "Nisc Cloud",
+  "description": "Transforming businesses to stand out and succeed. Hosting and digital marketing under one team.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#38b6ff",
   "background_color": "#ffffff",
+  "lang": "en",
   "icons": [
     {
       "src": "/favicon/web-app-manifest-192x192.png",

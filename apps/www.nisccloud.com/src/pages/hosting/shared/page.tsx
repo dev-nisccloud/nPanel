@@ -1,120 +1,19 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { Server, Zap, Shield, Globe, Mail, HardDrive, Clock, Headphones } from "lucide-react";
+import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
+import { Globe, Mail, HardDrive, Clock } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { SharedPricingSection } from "./_components/SharedPricingSection.tsx";
-
-// ─── Hero Illustration ───────────────────────────────────────────────────────
-
-function SharedHostingIllustration() {
-  return (
-    <div className="space-y-3 select-none">
-      {/* Top nav bar mimicking cpanel */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border/50 shadow-lg overflow-hidden">
-        <div className="bg-primary px-4 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-white/30" />
-            <div className="w-2.5 h-2.5 rounded-full bg-white/30" />
-            <div className="w-2.5 h-2.5 rounded-full bg-white/30" />
-            <span className="text-white text-xs font-bold ml-2">Nisc Cloud cPanel</span>
-          </div>
-          <span className="text-white/70 text-[10px]">mybusiness.co.ke</span>
-        </div>
-        {/* Performance bar row */}
-        <div className="p-4 grid grid-cols-3 gap-3">
-          {[
-            { label: "Page Speed", value: 98, color: "oklch(0.60 0.22 235)" },
-            { label: "Load Time", value: 88, color: "oklch(0.55 0.20 160)" },
-            { label: "Uptime", value: 100, color: "oklch(0.52 0.18 145)" },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="text-center">
-              <div className="relative w-14 h-14 mx-auto mb-1.5">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.93 0.01 240)" strokeWidth="3.5" />
-                  <circle
-                    cx="18" cy="18" r="14" fill="none"
-                    stroke={color} strokeWidth="3.5"
-                    strokeDasharray={`${(value / 100) * 87.96} 87.96`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[11px] font-extrabold" style={{ color }}>
-                  {value}
-                </span>
-              </div>
-              <div className="text-[10px] text-muted-foreground font-medium">{label}</div>
-            </div>
-          ))}
-        </div>
-        {/* Resource bars */}
-        <div className="px-4 pb-4 space-y-2.5">
-          {[
-            { label: "Storage Used", used: 18, total: 50, unit: "GB" },
-            { label: "Bandwidth", used: 42, total: 100, unit: "GB" },
-          ].map(({ label, used, total, unit }) => (
-            <div key={label}>
-              <div className="flex justify-between text-[10px] mb-1">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="font-semibold text-foreground">{used}/{total} {unit}</span>
-              </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary"
-                  style={{ width: `${(used / total) * 100}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom stat cards */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-          <div className="text-lg font-extrabold text-primary">99.9%</div>
-          <div className="text-[9px] text-muted-foreground">Uptime SLA</div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-          <div className="text-lg font-extrabold text-primary">48ms</div>
-          <div className="text-[9px] text-muted-foreground">Avg TTFB</div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-          <div className="text-lg font-extrabold text-green-500">✓ SSL</div>
-          <div className="text-[9px] text-muted-foreground">Free & Active</div>
-        </div>
-      </div>
-
-      {/* Active services list */}
-      <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow p-3">
-        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Active Services</div>
-        <div className="space-y-1.5">
-          {[
-            { name: "Web Server (LiteSpeed)", status: "Running" },
-            { name: "MySQL Database", status: "Running" },
-            { name: "Email (Postfix)", status: "Running" },
-            { name: "SSL Certificate", status: "Active" },
-            { name: "Daily Backup", status: "Completed 2h ago" },
-          ].map(({ name, status }) => (
-            <div key={name} className="flex items-center justify-between text-[10px]">
-              <span className="text-foreground font-medium">{name}</span>
-              <span className="text-green-500 font-semibold">{status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Showcase Blocks ─────────────────────────────────────────────────────────
 
 const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Speed Dashboard",
-    headline: "Nairobi servers. Under 50ms latency for Kenyan visitors.",
-    body: "When your website is hosted locally, Kenyan visitors experience dramatically faster load times. Our Nairobi data centre means your site loads before your competitor's even starts.",
+    headline: "Fast for your visitors, wherever they are.",
+    body: "Your site should feel quick for every visitor. We use LiteSpeed and NVMe SSD storage so pages load smoothly, and CDN options are available when you need a wider reach.",
     bullets: [
-      "LiteSpeed web server - 6× faster than Apache hosting",
-      "NVMe SSD storage with sub-1ms disk read times",
+      "LiteSpeed web server, much faster than typical Apache hosting",
+      "NVMe SSD storage with very fast disk reads",
       "CDN integration available for global audiences",
     ],
     mockupRight: true,
@@ -131,7 +30,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
               <span className="absolute inset-0 flex items-center justify-center text-lg font-extrabold text-primary">98</span>
             </div>
             <div className="space-y-1.5 flex-1">
-              {[["TTFB","48ms"],["Load Time","1.1s"],["Uptime","99.9%"]].map(([k,v]) => (
+              {[["TTFB","48ms"],["Load Time","1.1s"],["Uptime","99.99%"]].map(([k,v]) => (
                 <div key={k} className="flex justify-between text-xs">
                   <span className="text-muted-foreground">{k}</span>
                   <span className="font-bold text-green-500">{v} ✓</span>
@@ -140,17 +39,17 @@ const showcaseBlocks: ShowcaseBlock[] = [
             </div>
           </div>
           <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-2.5 text-xs text-green-600">
-            <span className="font-bold">✓</span> Nairobi server - 47ms to Safaricom users
+            <span className="font-bold">✓</span> Fast response times for your visitors
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">500+</div>
-            <div className="text-[10px] text-muted-foreground">Sites hosted</div>
+            <div className="text-xl font-extrabold text-primary">100+</div>
+            <div className="text-[10px] text-muted-foreground">Clients hosted</div>
           </div>
           <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">30 min</div>
-            <div className="text-[10px] text-muted-foreground">Setup time</div>
+            <div className="text-xl font-extrabold text-primary">Setup help</div>
+            <div className="text-[10px] text-muted-foreground">We guide you live</div>
           </div>
         </div>
       </div>
@@ -159,11 +58,11 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "cPanel Management",
     headline: "Manage your hosting with a clean, simple dashboard",
-    body: "cPanel gives you complete control over your hosting account - create email addresses, manage files, install WordPress with one click, and view resource usage - all without technical knowledge.",
+    body: "cPanel gives you clear control over your hosting account. Create email addresses, manage files, install WordPress with one click, and view resource usage, without needing deep technical knowledge.",
     bullets: [
       "One-click WordPress, Joomla, and 50+ app installer",
       "Create professional email addresses like you@yourbusiness.co.ke",
-      "Daily automatic backups - restore any file in one click",
+      "Daily automatic backups, restore any file in one click",
     ],
     mockupRight: false,
     mockup: (
@@ -197,38 +96,47 @@ const showcaseBlocks: ShowcaseBlock[] = [
 export default function SharedHostingPage() {
   return (
     <ServicePageShell
-      badge="Shared Web Hosting Kenya"
-      headline={<>Fast, Reliable Web Hosting <span className="text-primary">Built for Kenya</span></>}
-      subtext="Host your Kenyan business website on NVMe SSD servers in Nairobi. Get free SSL, cPanel, daily backups, and 24/7 local support - starting at just KES 350/mo. The fastest shared hosting in Kenya."
+      badge="Shared Web Hosting"
+      headline={<>Fast, Reliable Web Hosting <span className="text-primary">That Stays Online</span></>}
+      subtext="Host your website on NVMe SSD servers with free SSL, cPanel, daily backups, and 24/7 support. Starting at KES 350/mo. Fast for your visitors, wherever they are."
       serviceType="hosting"
       plansUnderHero
       customPlansSection={<SharedPricingSection />}
       plans={[]}
+      heroImage={niscWebsiteImage("website hosting.png")}
+      heroImageStandalone
+      heroTrustBadge={{ line1: "NVMe SSD and free SSL", line2: "99.99% uptime and 24/7 support" }}
+      trustStats={[
+        { value: "100+", label: "Clients Hosted" },
+        { value: "99.99%", label: "Uptime Target" },
+        { value: "24/7", label: "Support" },
+        { value: "Free", label: "Migration Help" },
+      ]}
       process={[
-        { num: "01", title: "Choose Your Plan", desc: "Pick a plan that fits your website size and traffic. Not sure? Start with Business - our most popular option for growing Kenyan businesses." },
-        { num: "02", title: "Register or Transfer Domain", desc: "Claim your .co.ke or .com domain. We'll guide you through the setup or handle the transfer from your current registrar - free of charge." },
-        { num: "03", title: "Hosting Active in 30 Minutes", desc: "Within 30 minutes of M-Pesa payment, your cPanel is live, SSL is active, and your email is ready. No waiting for business hours." },
-        { num: "04", title: "Launch Your Website", desc: "Install WordPress with one click, import your existing site, or let our Nairobi team migrate it for free. You're live and ready for customers." },
+        { num: "01", title: "Choose Your Plan", desc: "Pick a plan that fits your website size and traffic. Not sure? Start with Business, our most popular option for growing sites." },
+        { num: "02", title: "Register or Transfer Domain", desc: "Claim your domain or transfer an existing one. We guide you through setup, or handle the transfer for free." },
+        { num: "03", title: "Hosting Ready After Checkout", desc: "After easy checkout, your account is set up with cPanel, SSL, and email ready to use. We help you get live without the guesswork." },
+        { num: "04", title: "Launch Your Website", desc: "Install WordPress with one click, import your existing site, or let our team migrate it for free. You are live and ready for customers." },
       ]}
       whyPoints={[
-        { title: "Servers in Nairobi - Fastest for .co.ke Sites", desc: "Data sovereignty + speed. Kenyan visitors load your site in under 2 seconds. Critical for Google Kenya rankings and customer trust." },
-        { title: "99.9% Uptime - Backed by SLA Credits", desc: "We put our money where our mouth is. Miss SLA? You receive service credits automatically. No questions, no forms." },
-        { title: "Free Website Migration", desc: "Moving from Truehost, Hostpinnacle, or any other host? Our team migrates your site, databases, and emails for free - zero downtime." },
-        { title: "No Hidden Fees in KES", desc: "Every price is in Kenyan Shillings. No USD surprises, no renewal shocks, no charges for features listed as free." },
-        { title: "M-Pesa Accepted - Instant Activation", desc: "Pay via M-Pesa and your hosting account is active before you finish your transaction. 24/7 including weekends." },
-        { title: "Trusted by 500+ Kenyan Businesses", desc: "From Nairobi startups to Mombasa SMEs, Nisc Cloud powers businesses across all 47 counties with local expertise." },
+        { title: "Fast for Every Visitor", desc: "LiteSpeed and NVMe SSD keep pages responsive. Your site feels quick for visitors wherever they are." },
+        { title: "99.99% Uptime Focus", desc: "We treat uptime as a promise, not a slogan. If something goes wrong, our 24/7 team is ready to help." },
+        { title: "Free Website Migration", desc: "Moving from another host? Our team migrates your site, databases, and emails for free, with careful planning to limit downtime." },
+        { title: "Clear Pricing", desc: "Every price is shown upfront. No surprise renewal shocks, and no charges for features listed as free." },
+        { title: "Paying Is Simple", desc: "Easy checkout so you can get started without friction. Support is available 24/7 if you need a hand." },
+        { title: "Trusted by 100+ Clients", desc: "Businesses choose us for reliable hosting, honest support, and help when they need it." },
       ]}
       faqs={[
-        { q: "What is the best web hosting in Kenya?", a: "Nisc Cloud offers the fastest shared hosting in Kenya with NVMe SSD servers in Nairobi, 99.9% uptime SLA, free SSL, and local support in English and Swahili. Starting at KES 350/mo." },
-        { q: "Can I host a .co.ke website with you?", a: "Absolutely. We are a KENIC-accredited registrar specialising in .co.ke domain registration and hosting. Your .co.ke domain and hosting are managed under one account." },
-        { q: "How fast is setup after M-Pesa payment?", a: "Your hosting account is provisioned within 30 minutes of M-Pesa confirmation - 24/7 including weekends and public holidays. You'll have cPanel access via email." },
+        { q: "What do I get with shared hosting?", a: "You get NVMe SSD hosting, free SSL, cPanel, daily backups, and 24/7 support. Plans start at KES 350/mo." },
+        { q: "Can I host a .co.ke website with you?", a: "Yes. You can register or transfer your domain and host it with us under one account, so naming and hosting stay simple." },
+        { q: "How long does setup take after payment?", a: "We provision your hosting after checkout and send cPanel access by email. Setup help is available 24/7 if you need guidance." },
         { q: "Is WordPress hosting included?", a: "Yes. All shared hosting plans include a one-click WordPress installer via Softaculous. For WordPress-specific optimisation, see our dedicated WordPress Hosting plans." },
-        { q: "What happens if I need more space?", a: "We notify you at 80% usage. Upgrade your plan instantly from cPanel - no migration, no downtime. We never suspend without warning." },
-        { q: "Do you offer a money-back guarantee?", a: "Yes. 30-day money-back guarantee on all new hosting accounts. Contact our team and we process your full refund - no questions asked." },
+        { q: "What happens if I need more space?", a: "We notify you at 80% usage. Upgrade your plan from cPanel with no migration and no downtime. We never suspend without warning." },
+        { q: "Do you offer a money-back guarantee?", a: "Yes. 30-day money-back guarantee on all new hosting accounts. Contact our team and we process your full refund." },
       ]}
-      pricingNote="All prices in KES. Save 20% with annual billing. M-Pesa accepted. 30-day money-back guarantee."
-      ctaHeadline="Get the Best Web Hosting in Kenya - From KES 350/mo"
-      ctaSubtext="Join 500+ local businesses already on Nisc Cloud. NVMe SSD servers in Nairobi, free SSL, daily backups, and local support in English and Swahili."
+      pricingNote="All prices in KES. Save 20% with annual billing. Easy checkout. 30-day money-back guarantee."
+      ctaHeadline="Get Reliable Web Hosting From KES 350/mo"
+      ctaSubtext="Join 100+ clients on fast shared hosting with free SSL, daily backups, free migration, and 24/7 support."
       showcaseBlocks={showcaseBlocks}
     />
   );

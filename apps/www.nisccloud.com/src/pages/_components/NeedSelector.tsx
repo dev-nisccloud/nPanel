@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import {
   Paintbrush, Server, TrendingUp, Bot,
   Globe, ShoppingCart, Layers,
@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
 import { PointerHighlight } from "@/components/ui/pointer-highlight.tsx";
 import { cn } from "@/lib/utils.ts";
+import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 
 const pointerHighlightProps = {
   rectangleClassName: "border-primary/50",
@@ -40,6 +41,7 @@ type Tab = {
   ctaHref: string;
 };
 
+
 const trustedClients = [
   { name: "Amarom", logo: "/clients/amarom2.png" },
   { name: "Medplus", logo: "/clients/medplus-logo.png" },
@@ -53,11 +55,11 @@ const tabs: Tab[] = [
     step: "01",
     stepLabel: "Create",
     badge: "CREATE",
-    headline: "Your brand is the leading",
-    highlight: "platform for growth!",
+    headline: "Your brand should open",
+    highlight: "more doors.",
     subtext:
-      "We build identities that stand out, convert, and scale  from logo to live website, all under one roof.",
-    image: "https://storage.nisccloud.com/npanel-uploads/nisc-website/create.jpg",
+      "We shape your look, message, and website so people understand you fast and trust you enough to buy.",
+    image: niscWebsiteImage("create_brand.png"),
     features: [
       { icon: Target, label: "Brand Strategy & Positioning", desc: "From KES 15,000", href: "/services/brand-identity" },
       { icon: Layers, label: "Brand Identity & Design", desc: "From KES 25,000", href: "/services/brand-identity" },
@@ -73,19 +75,19 @@ const tabs: Tab[] = [
     step: "02",
     stepLabel: "Host",
     badge: "HOST",
-    headline: "Fast, reliable hosting",
-    highlight: "built for Kenya.",
+    headline: "Hosting that stays",
+    highlight: "fast and steady.",
     subtext:
-      "Everything you need to launch and scale your online presence  domain, hosting, email, SSL, all in one place.",
-    image: "https://storage.nisccloud.com/npanel-uploads/nisc-website/online.jpg",
+      "Domain, hosting, email, and security in one place. Free migration help, 99.99% uptime, and support around the clock.",
+    image: niscWebsiteImage("Go online.png"),
     features: [
       { icon: HardDrive, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
       { icon: Zap, label: "WordPress Hosting", desc: "From KES 500/mo", href: "/hosting/wordpress" },
       { icon: Cpu, label: "VPS Hosting", desc: "From KES 2,000/mo", href: "/hosting/vps" },
       { icon: Server, label: "VDS Hosting", desc: "Dedicated virtual resources", href: "/hosting/vds" },
       { icon: Mail, label: "Business Email Hosting", desc: "From KES 250/mo", href: "/hosting/email" },
-      { icon: Link, label: "Domain Registration", desc: ".co.ke from KES 999/yr", href: "/hosting/domains" },
-      { icon: Lock, label: "Website Security", desc: "SSL & malware protection", href: "/hosting/ssl" },
+      { icon: Link, label: "Domain Registration", desc: "Search to see live prices", href: "/hosting/domains" },
+      { icon: Lock, label: "Website Security", desc: "SSL and site protection", href: "/hosting/ssl" },
     ],
     cta: "Get Hosted Today",
     ctaHref: "/hosting",
@@ -96,11 +98,11 @@ const tabs: Tab[] = [
     step: "03",
     stepLabel: "Market",
     badge: "MARKET",
-    headline: "Marketing is the engine",
-    highlight: "for your sales!",
+    headline: "Marketing that brings",
+    highlight: "real buyers.",
     subtext:
-      "Data-driven marketing that puts your business in front of the right people at the right time.",
-    image: "https://storage.nisccloud.com/npanel-uploads/nisc-website/market.jpg",
+      "We put your business in front of people who are already looking for what you sell, then help you turn visits into sales.",
+    image: niscWebsiteImage("Get more customers.jpg"),
     features: [
       { icon: Share2, label: "Social Media Marketing (SMM)", desc: "From KES 20,000/mo", href: "/services/social-media" },
       { icon: BarChart2, label: "SEO / AEO / GEO", desc: "From KES 25,000/mo", href: "/services/seo" },
@@ -117,11 +119,11 @@ const tabs: Tab[] = [
     step: "04",
     stepLabel: "Zeepo AI",
     badge: "ZEEPO AI",
-    headline: "AI is changing the game",
-    highlight: "for your business!",
+    headline: "Let smart tools handle",
+    highlight: "the busy work.",
     subtext:
-      "Zeepo AI handles the repetitive work so you can focus on building relationships and closing deals.",
-    image: "https://storage.nisccloud.com/npanel-uploads/nisc-website/ai.jpg",
+      "Zeepo AI helps with replies, content, and follow-ups so your team can focus on people and sales.",
+    image: niscWebsiteImage("Automate with AI.png"),
     features: [
       { icon: Sparkles, label: "AI Content Writer", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },
       { icon: Workflow, label: "Marketing Automation", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },
@@ -133,18 +135,57 @@ const tabs: Tab[] = [
   },
 ];
 
-function TabVisual({ tab }: { tab: Tab }) {
+function TabVisual({ tabs, activeTab }: { tabs: Tab[]; activeTab: number }) {
+  const [loadedTabs, setLoadedTabs] = useState<Set<number>>(() => new Set([0]));
+
+  useEffect(() => {
+    setLoadedTabs((prev) => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
+  useEffect(() => {
+    const preloadRemaining = () => {
+      tabs.forEach((t, i) => {
+        if (i === 0) return;
+        const img = new Image();
+        img.decoding = "async";
+        img.src = t.image;
+      });
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(preloadRemaining, { timeout: 2500 });
+      return () => window.cancelIdleCallback(id);
+    }
+
+    const timeoutId = globalThis.setTimeout(preloadRemaining, 1500);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, []);
+
   return (
-    <div className="relative h-full min-h-[260px] w-full overflow-hidden rounded-[1.75rem] sm:min-h-[300px] lg:min-h-0">
-      <motion.img
-        key={tab.badge}
-        initial={{ opacity: 0, scale: 1.03 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.45, ease: [0.21, 0.47, 0.32, 0.98] }}
-        src={tab.image}
-        alt={tab.label}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] sm:aspect-[5/4] lg:aspect-auto lg:min-h-full">
+      {tabs.map((t, i) =>
+        loadedTabs.has(i) ? (
+          <img
+            key={t.badge}
+            src={t.image}
+            alt={t.label}
+            width={960}
+            height={720}
+            decoding="async"
+            loading={i === 0 ? "eager" : "lazy"}
+            fetchPriority={i === 0 ? "high" : "low"}
+            className={cn(
+              "absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ease-out",
+              i === activeTab ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          />
+        ) : null,
+      )}
     </div>
   );
 }
@@ -178,7 +219,7 @@ export default function NeedSelector() {
             </PointerHighlight>
           </h2>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground md:text-base">
-            Pick your goal  we&apos;ll show you exactly how we deliver it.
+            Pick your goal and we will show you the clear path to get there.
           </p>
         </motion.div>
 
@@ -208,110 +249,102 @@ export default function NeedSelector() {
           })}
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            role="tabpanel"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-10"
-          >
-            <div className="order-1 flex flex-col gap-5 lg:order-1">
-              <div>
-                <p className="mb-2 text-sm font-medium text-primary">
-                  {tab.step}  {tab.stepLabel}
-                </p>
-                <h3 className="text-2xl font-bold leading-snug tracking-tight text-foreground md:text-[1.75rem]">
-                  {tab.headline}{" "}
-                  <PointerHighlight
-                    key={`panel-highlight-${activeTab}`}
-                    {...pointerHighlightProps}
-                    containerClassName="inline-block align-baseline"
-                  >
-                    <span className="text-primary">{tab.highlight}</span>
-                  </PointerHighlight>
-                </h3>
-                <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
-                  {tab.subtext}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  onClick={() => navigate(tab.ctaHref)}
-                  className="h-10 cursor-pointer gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+        <div
+          role="tabpanel"
+          className="grid items-stretch gap-6 lg:grid-cols-2 lg:gap-10"
+        >
+          <div className="order-1 flex flex-col gap-5 lg:order-1">
+            <div>
+              <p className="mb-2 text-sm font-medium text-primary">
+                {tab.step}  {tab.stepLabel}
+              </p>
+              <h3 className="text-2xl font-bold leading-snug tracking-tight text-foreground md:text-[1.75rem]">
+                {tab.headline}{" "}
+                <PointerHighlight
+                  key={`panel-highlight-${activeTab}`}
+                  {...pointerHighlightProps}
+                  containerClassName="inline-block align-baseline"
                 >
-                  {tab.cta}
-                  <ArrowRight size={16} />
-                </Button>
+                  <span className="text-primary">{tab.highlight}</span>
+                </PointerHighlight>
+              </h3>
+              <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
+                {tab.subtext}
+              </p>
+            </div>
 
-                <div className="hidden h-8 w-px bg-border sm:block" />
-
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-1">
-                    {trustedClients.map((client) => (
-                      <div
-                        key={client.name}
-                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-muted sm:h-12 sm:w-12"
-                        title={client.name}
-                      >
-                        <img
-                          src={client.logo}
-                          alt={client.name}
-                          className="h-full w-full object-contain p-1.5"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    Trusted by <strong className="font-semibold text-foreground">500+</strong> businesses
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                {tab.features.map((f, i) => (
-                  <motion.button
-                    key={f.label}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, delay: i * 0.04 }}
-                    onClick={() => navigate(f.href)}
-                    className="group flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 text-left transition-all hover:border-primary/30 hover:bg-muted/60"
-                  >
-                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
-                      <f.icon size={14} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground transition-colors group-hover:text-primary sm:text-sm">
-                        {f.label}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
-                    </div>
-                    <ArrowRight
-                      size={14}
-                      className="mt-1 shrink-0 text-primary opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-60"
-                    />
-                  </motion.button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => navigate("/contact")}
-                className="w-fit cursor-pointer text-sm font-medium text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => navigate(tab.ctaHref)}
+                className="h-10 cursor-pointer gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:opacity-90"
               >
-                Talk to us about your project →
-              </button>
+                {tab.cta}
+                <ArrowRight size={16} />
+              </Button>
+
+              <div className="hidden h-8 w-px bg-border sm:block" />
+
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-1">
+                  {trustedClients.map((client) => (
+                    <div
+                      key={client.name}
+                      className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-muted sm:h-12 sm:w-12"
+                      title={client.name}
+                    >
+                      <img
+                        src={client.logo}
+                        alt={client.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-contain p-1.5"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                Trusted by <strong className="font-semibold text-foreground">100+</strong> businesses
+                </span>
+              </div>
             </div>
 
-            <div className="order-2 h-full min-h-[260px] lg:order-2 lg:min-h-0">
-              <TabVisual tab={tab} />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {tab.features.map((f) => (
+                <button
+                  key={f.label}
+                  onClick={() => navigate(f.href)}
+                  className="group flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 text-left transition-all hover:border-primary/30 hover:bg-muted/60"
+                >
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
+                    <f.icon size={14} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-foreground transition-colors group-hover:text-primary sm:text-sm">
+                      {f.label}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
+                  </div>
+                  <ArrowRight
+                    size={14}
+                    className="mt-1 shrink-0 text-primary opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-60"
+                  />
+                </button>
+              ))}
             </div>
-          </motion.div>
-        </AnimatePresence>
+
+            <button
+              type="button"
+              onClick={() => navigate("/contact")}
+              className="w-fit cursor-pointer text-sm font-medium text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+            >
+              Talk to us about your project
+            </button>
+          </div>
+
+          <div className="order-2 lg:order-2">
+            <TabVisual tabs={tabs} activeTab={activeTab} />
+          </div>
+        </div>
       </div>
     </section>
   );

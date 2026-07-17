@@ -19,39 +19,40 @@ const teamData: TeamMember[] = [
     name: "Marcus Reid",
     role: "Founder & CEO",
     description:
-      "15 years in digital strategy. Former growth lead at two Y Combinator startups. Built the Atom Approach from first principles.",
+      "Leads our hosting and marketing work. Built the Atom Approach so businesses get a clear path online.",
   },
   {
     name: "Priya Sharma",
     role: "Head of Design",
     description:
-      "Award-winning UX designer with a background in cognitive psychology. Believes every pixel has a purpose.",
+      "Designs brands and websites that are clear, usable, and built to convert, not just look pretty.",
   },
   {
     name: "Jordan Cole",
     role: "Head of Marketing",
     description:
-      "Managed $10M+ in ad spend across Google, Meta, and LinkedIn. Obsessed with attribution and ROI.",
+      "Runs SEO, ads, and social with a focus on measurable growth and honest reporting.",
   },
   {
     name: "Aisha Okonkwo",
     role: "Lead Developer",
     description:
-      "Full-stack engineer who turned down FAANG to help small businesses scale. Ships fast, breaks nothing.",
+      "Builds fast, reliable sites and hosting setups. Ships carefully so your business stays online.",
   },
   {
     name: "Ryan Nakamura",
     role: "Automation Architect",
     description:
-      "Built automation systems that save clients hundreds of hours per month. Thinks in workflows, speaks in plain English.",
+      "Sets up workflows and automation that save time. Explains everything in plain English.",
   },
   {
     name: "Sofia Delgado",
     role: "Client Success Lead",
     description:
-      "The glue that holds client relationships together. Ensures every engagement delivers on its promises  and then some.",
+      "Keeps projects on track and makes sure you always have a real person who owns your account.",
   },
 ];
+
 
 const Team = () => {
   return (
@@ -72,7 +73,7 @@ const Team = () => {
               Team
             </Badge>
             <h2 className="text-3xl md:text-5xl font-medium text-foreground">
-              Meet the creative minds behind our success
+              Meet the people who help you grow
             </h2>
           </motion.div>
 

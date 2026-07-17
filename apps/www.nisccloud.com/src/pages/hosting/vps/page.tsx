@@ -49,7 +49,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
     headline: "Your VPS ready in under 5 minutes",
     body: "Choose your OS, add your SSH key, and click deploy. No waiting, no provisioning delays. Your AMD EPYC-powered server is live and accessible in minutes.",
     bullets: [
-      "Ubuntu, Debian, CentOS, AlmaLinux - your choice",
+      "Ubuntu, Debian, CentOS, AlmaLinux, your choice",
       "SSH access available within 5 minutes of payment",
       "One-click LAMP, LEMP, Docker, and Node.js stacks",
     ],
@@ -88,10 +88,10 @@ const showcaseBlocks: ShowcaseBlock[] = [
   {
     tag: "Popular Use Cases",
     headline: "Any workload. One powerful platform.",
-    body: "Kenyan businesses use our VPS for everything from fintech APIs to WooCommerce stores to SaaS platforms. Dedicated resources mean your app performs consistently.",
+    body: "Teams use our VPS for stores, APIs, SaaS apps, and staging environments. Dedicated resources mean your app performs consistently.",
     bullets: [
       "WooCommerce and eCommerce stores with full resource isolation",
-      "M-Pesa payment APIs and fintech backends",
+      "Payment APIs and application backends",
       "SaaS platforms, CRMs, and custom business apps",
     ],
     mockupRight: true,
@@ -99,7 +99,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       <div className="space-y-2.5">
         {[
           { icon: "🛒", label: "WooCommerce Store", desc: "High-traffic, dedicated resources" },
-          { icon: "💳", label: "M-Pesa Payment API", desc: "Low latency, secure HTTPS" },
+          { icon: "💳", label: "Payment API Backend", desc: "Secure HTTPS, steady performance" },
           { icon: "🗄️", label: "Database Server", desc: "MySQL, PostgreSQL, MongoDB" },
           { icon: "⚙️", label: "Custom SaaS App", desc: "Full stack: Node / Laravel / Django" },
           { icon: "📧", label: "Private Email Server", desc: "Unlimited mailboxes, full control" },
@@ -122,27 +122,29 @@ export default function VpsHostingPage() {
   return (
     <ServicePageShell
       badge="VPS Servers"
-      headline={<>Dedicated Power. <span className="text-primary">Kenyan Speed.</span> VPS Built for Serious Businesses.</>}
-      subtext="Full root access, guaranteed resources, and Nairobi-based infrastructure. Deploy your custom stack in minutes - no shared resources, no compromises."
+      headline={<>Dedicated Power. <span className="text-primary">Full Control.</span> VPS Built for Serious Workloads.</>}
+      subtext="Full root access, guaranteed resources, and fast provisioning. Deploy your custom stack in minutes with no shared resources and no compromises."
       serviceType="hosting"
       heroIllustration={<HostingHeroIllustration config={vpsHeroConfig} />}
+      heroIllustrationBare
+      showHeroOverlays={false}
       heroTrustBadge={{ line1: "AMD EPYC Processors", line2: "Deployed in under 5 minutes" }}
       trustStats={[
-        { value: "100+", label: "VPS Servers Active" },
+        { value: "100+", label: "Clients Served" },
         { value: "99.99%", label: "Network Uptime SLA" },
-        { value: "10 Gbps", label: "Network Bandwidth" },
+        { value: "24/7", label: "Support" },
         { value: "<5 min", label: "Average Deployment Time" },
       ]}
       features={[
         {
           icon: <Server size={20} />,
           title: "Guaranteed Dedicated Resources",
-          desc: "Unlike shared hosting, your CPU cores, RAM, and SSD are yours alone. No noisy neighbours, no resource contention - consistent performance at all times.",
+          desc: "Unlike shared hosting, your CPU cores, RAM, and SSD are yours alone. No noisy neighbours, no resource contention, consistent performance at all times.",
         },
         {
           icon: <Cpu size={20} />,
           title: "Latest-Gen AMD EPYC CPUs",
-          desc: "Powered by AMD EPYC processors, the same architecture used by major cloud providers. Your workloads get cutting-edge compute performance.",
+          desc: "Powered by AMD EPYC processors, the same architecture used by major cloud providers. Your workloads get strong compute performance.",
         },
         {
           icon: <HardDrive size={20} />,
@@ -166,8 +168,8 @@ export default function VpsHostingPage() {
         },
         {
           icon: <Globe size={20} />,
-          title: "Nairobi Data Centre Location",
-          desc: "Servers physically located in Nairobi ensure the lowest latency for your East African users. Ideal for Kenyan SaaS apps, fintech, and government portals.",
+          title: "Fast for Your Visitors",
+          desc: "Built for responsive apps and sites. Your users get a fast experience wherever they are.",
         },
         {
           icon: <Terminal size={20} />,
@@ -179,30 +181,30 @@ export default function VpsHostingPage() {
       customPlansSection={<VpsPlansSection />}
       plans={[]}
       process={[
-        { num: "01", title: "Configure Your VPS", desc: "Choose your plan, operating system (Ubuntu, CentOS, Debian, AlmaLinux), and preferred data centre location. Add your SSH public key for instant secure access." },
-        { num: "02", title: "Instant Deployment", desc: "Your VPS is provisioned in under 5 minutes. You will receive your IP address, root credentials, and connection guide by email and SMS." },
+        { num: "01", title: "Configure Your VPS", desc: "Choose your plan, operating system (Ubuntu, CentOS, Debian, AlmaLinux), and add your SSH public key for secure access." },
+        { num: "02", title: "Instant Deployment", desc: "Your VPS is provisioned in under 5 minutes. You will receive your IP address, root credentials, and connection guide by email." },
         { num: "03", title: "Deploy Your Stack", desc: "SSH in and deploy your applications. Use our one-click app scripts for LAMP, LEMP, Docker, Node.js, or any custom stack you need." },
         { num: "04", title: "Monitor and Scale", desc: "Use our monitoring dashboard to track CPU, RAM, disk, and network usage. Scale up resources with one click when your business demands it." },
       ]}
       whyPoints={[
-        { title: "Guaranteed Resources - Not Shared", desc: "Every vCPU and GB of RAM is dedicated to your VPS alone. You always get the performance you are paying for." },
-        { title: "Kenyan Data Residency", desc: "Your data stays in Kenya. Critical for fintech companies, healthcare platforms, and government projects that must comply with local data protection laws." },
-        { title: "Upgrade Without Downtime", desc: "Need more RAM or CPU? We upgrade your VPS resources live in most cases. No migration, no rebuild, no downtime for your users." },
-        { title: "Enterprise Networking Infrastructure", desc: "Redundant 10 Gbps uplinks, BGP routing, and carrier-grade switches ensure your server is always reachable with the lowest possible latency." },
+        { title: "Guaranteed Resources, Not Shared", desc: "Every vCPU and GB of RAM is dedicated to your VPS alone. You always get the performance you are paying for." },
+        { title: "Deploy in Minutes", desc: "Choose your OS, add your key, and go live quickly. Setup help is available if you need a hand." },
+        { title: "Upgrade Without Long Downtime", desc: "Need more RAM or CPU? We upgrade your VPS resources live in most cases. No migration, no rebuild for your users." },
+        { title: "Enterprise Networking Infrastructure", desc: "Redundant 10 Gbps uplinks, BGP routing, and carrier-grade switches help keep your server reachable." },
         { title: "Full Control, No Restrictions", desc: "Run Docker, Kubernetes, custom firewall rules, VPN servers, game servers, or any workload. Root access means total freedom." },
-        { title: "Managed Support Available", desc: "Don't want to manage your server yourself? Add our managed services option and our Nairobi sysadmin team handles updates, security patches, and optimisation." },
+        { title: "Managed Support Available", desc: "Don't want to manage your server yourself? Add our managed services option and our team handles updates, security patches, and optimisation." },
       ]}
       faqs={[
         { q: "What operating systems are available?", a: "We offer Ubuntu 20.04/22.04/24.04, Debian 11/12, CentOS 7/8/9, AlmaLinux 8/9, and Rocky Linux 8/9. Custom ISO uploads are available on Enterprise plans." },
-        { q: "Can I run Docker or Kubernetes on my VPS?", a: "Yes, absolutely. You have full root access and can install and run Docker, Docker Compose, or Kubernetes clusters without any restrictions from our side." },
+        { q: "Can I run Docker or Kubernetes on my VPS?", a: "Yes. You have full root access and can install and run Docker, Docker Compose, or Kubernetes clusters without restrictions from our side." },
         { q: "How does the 99.99% uptime SLA work?", a: "We guarantee 99.99% monthly network uptime. If we fail to meet this SLA, you receive service credits equal to 10x the downtime value. We publish real-time status at status.nisccloud.co.ke." },
-        { q: "Is managed hosting available for VPS?", a: "Yes. Our managed VPS add-on includes OS updates, security hardening, 24/7 proactive monitoring, incident response, and monthly performance reports handled by our Nairobi team." },
+        { q: "Is managed hosting available for VPS?", a: "Yes. Our managed VPS add-on includes OS updates, security hardening, 24/7 proactive monitoring, incident response, and monthly performance reports." },
         { q: "Can I scale my VPS up later?", a: "Yes. You can upgrade CPU, RAM, and storage at any time from your dashboard. Upgrades are applied within 15 minutes and typically require only a brief reboot." },
         { q: "Do you provide DDoS protection?", a: "All VPS plans include volumetric DDoS mitigation at the network level at no extra cost. We can absorb attacks up to 10 Gbps. For advanced Layer 7 protection, ask about our premium DDoS service." },
       ]}
       pricingNote="All prices in KES. Annual billing saves 15%. Custom configurations available for enterprise clients."
       ctaHeadline="Get a VPS That Performs as Hard as You Do"
-      ctaSubtext="Stop over-paying for sluggish shared hosting or expensive international VPS providers. Get enterprise-grade performance with Nairobi servers and local support."
+      ctaSubtext="Stop overpaying for sluggish shared hosting. Get dedicated resources, fast deployment, 99.99% uptime focus, and 24/7 support."
       showcaseBlocks={showcaseBlocks}
     />
   );

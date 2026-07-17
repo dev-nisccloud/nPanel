@@ -259,9 +259,9 @@ export function TransferDomainSection() {
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           <ArrowLeftRight className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-semibold tracking-tight">Transfer your domain to Nisc Cloud</h2>
+        <h2 className="text-xl font-semibold tracking-tight">Transfer your domain here</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Enter the domain you want to transfer and we&apos;ll check eligibility and price.
+          Enter the domain you want to move. We will check if it can transfer and show the live price.
         </p>
       </div>
 
@@ -325,9 +325,9 @@ export function TransferDomainSection() {
             <div className="flex gap-3">
               <Globe className="h-5 w-5 shrink-0 text-primary" />
               <div>
-                <h3 className="font-medium text-foreground">This domain is available for registration</h3>
+                <h3 className="font-medium text-foreground">This domain is free to register</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {message} Go to domain registration to register it.
+                  {message} It is not currently registered, so you can register it instead of transferring.
                 </p>
               </div>
             </div>
@@ -347,11 +347,10 @@ export function TransferDomainSection() {
             <div>
               <h3 className="font-medium text-foreground">Domain is locked</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                This domain is locked at the current registrar. Unlock it in your registrar&apos;s control panel,
-                then try the transfer again.
+                This domain is locked at your current provider. Turn off transfer lock in their control panel, then try again.
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                After unlocking, wait about 15 seconds for changes to reflect, then check the domain again.
+                After unlocking, wait about 15 seconds for the change to show, then check the domain again.
               </p>
             </div>
           </div>
@@ -364,7 +363,7 @@ export function TransferDomainSection() {
           >
             <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
             <div>
-              <h3 className="font-medium text-destructive">Why the transfer failed</h3>
+              <h3 className="font-medium text-destructive">This domain cannot transfer yet</h3>
               <p className="mt-1 text-sm text-muted-foreground">{message}</p>
             </div>
           </div>
@@ -373,7 +372,7 @@ export function TransferDomainSection() {
         {showPricingLoading && (
           <p className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-            Applying pricing and currency conversion…
+            Applying your live transfer price…
           </p>
         )}
       </div>

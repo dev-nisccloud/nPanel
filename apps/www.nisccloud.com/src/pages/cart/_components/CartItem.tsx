@@ -57,7 +57,7 @@ const SERVICE_META: Record<
     bgColor: "bg-primary/10",
     includedItems: [
       "Free SSL certificate included",
-      "99.9% uptime guarantee",
+      "99.99% uptime target",
       "24/7 customer support",
       "One-click app installer",
     ],

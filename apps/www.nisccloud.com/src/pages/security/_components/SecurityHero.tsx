@@ -35,12 +35,12 @@ export default function SecurityHero() {
               Website Security
             </span>
             <h1 className="text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-5 text-balance">
-              We Help Protect
+              Keep Your Website
               <br />
-              <span className="text-primary">Your Website</span>
+              <span className="text-primary">Safe and Online</span>
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-6 max-w-xl">
-              Get peace of mind with comprehensive website protection at an affordable price - SSL certificates, malware removal, firewall, and daily backups, all managed by our security experts.
+              SSL certificates, malware scanning, firewall protection, and daily backups, managed by our security team so you can focus on your business.
             </p>
             <div className="flex flex-wrap gap-2 mb-8">
               {trustPoints.map((p) => (

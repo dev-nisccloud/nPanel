@@ -207,7 +207,7 @@ function HostingPlanCard({
             <div className="mt-1 flex items-center gap-1.5">
               <MapPin className="h-4 w-4 shrink-0 text-primary" />
               <p className="line-clamp-1 text-sm font-semibold">
-                {config.locationLabel ?? "Nairobi, Kenya"}
+                {config.locationLabel ?? "Cloud infrastructure"}
               </p>
             </div>
           </div>

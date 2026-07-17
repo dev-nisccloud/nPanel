@@ -33,9 +33,9 @@ export default function ContactHero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-5xl md:text-6xl font-bold tracking-tight mb-4 text-balance"
         >
-          Let&apos;s Put Your Brand
+          Tell Us What You Need.
           <br />
-          <span className="text-primary">Into Orbit.</span>
+          <span className="text-primary">We Will Help You Grow.</span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -43,7 +43,7 @@ export default function ContactHero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg text-muted-foreground max-w-xl mx-auto"
         >
-          Tell us about your brand, your goals, and which services you need. We&apos;ll follow up within 24 hours with a custom proposal.
+          Share your goals and which services you need. We will follow up within 24 hours with a clear next step.
         </motion.p>
       </div>
     </section>
