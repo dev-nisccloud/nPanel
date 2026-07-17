@@ -14,6 +14,8 @@ import { GoogleButton } from "@/routes/auth/_components/social-auth/google-butto
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
   const [showCredentialsChrome, setShowCredentialsChrome] = useState(true);
+  const authSearch = searchParams.toString();
+  const registerHref = authSearch ? `/auth/register?${authSearch}` : "/auth/register";
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -21,6 +23,16 @@ export default function LoginPage() {
 
     if (error && message) {
       toast.error(decodeURIComponent(message));
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const redirectPath = searchParams.get("redirect");
+    const inviteCode = searchParams.get("code");
+
+    if (redirectPath && inviteCode) {
+      sessionStorage.setItem("pendingInviteRedirect", redirectPath);
+      sessionStorage.setItem("pendingInviteCode", inviteCode);
     }
   }, [searchParams]);
 
@@ -48,7 +60,7 @@ export default function LoginPage() {
           {showCredentialsChrome ? (
             <div className="text-center text-sm">
               <span className="text-muted-foreground">Don&apos;t have an account? </span>
-              <Link className="text-primary hover:underline" to="/auth/register">
+              <Link className="text-primary hover:underline" to={registerHref}>
                 Register
               </Link>
             </div>

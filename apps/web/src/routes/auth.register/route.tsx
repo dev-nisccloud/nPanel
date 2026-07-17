@@ -14,6 +14,8 @@ import { GoogleButton } from "@/routes/auth/_components/social-auth/google-butto
 export default function RegisterPage() {
   const [searchParams] = useSearchParams();
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const authSearch = searchParams.toString();
+  const loginHref = authSearch ? `/auth/login?${authSearch}` : "/auth/login";
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -61,7 +63,7 @@ export default function RegisterPage() {
           />
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Already have an account? </span>
-            <Link className="text-primary hover:underline" to="/auth/login">
+            <Link className="text-primary hover:underline" to={loginHref}>
               Login
             </Link>
           </div>

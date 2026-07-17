@@ -47,13 +47,18 @@ export default function VerifyEmailPage() {
 
         setTimeout(() => {
           const params = new URLSearchParams(window.location.search);
-          const redirectPath = params.get("redirect");
-          const inviteCode = params.get("code");
+          const redirectPath =
+            params.get("redirect") ?? sessionStorage.getItem("pendingInviteRedirect");
+          const inviteCode = params.get("code") ?? sessionStorage.getItem("pendingInviteCode");
+
           if (redirectPath === "/accept-invite" && inviteCode) {
+            sessionStorage.removeItem("pendingInviteRedirect");
+            sessionStorage.removeItem("pendingInviteCode");
             window.location.href = `/accept-invite?code=${encodeURIComponent(inviteCode)}`;
-          } else {
-            window.location.href = "/";
+            return;
           }
+
+          window.location.href = "/";
         }, 2000);
       } catch (error: unknown) {
         setVerificationStatus("error");
@@ -105,14 +110,29 @@ export default function VerifyEmailPage() {
           </p>
           <div className="pt-4">
             <Link
-              to={
-                searchParams.get("redirect") === "/accept-invite" && searchParams.get("code")
-                  ? `/accept-invite?code=${encodeURIComponent(searchParams.get("code")!)}`
-                  : "/"
-              }
+              to={(() => {
+                const redirectPath =
+                  searchParams.get("redirect") ??
+                  (typeof sessionStorage !== "undefined"
+                    ? sessionStorage.getItem("pendingInviteRedirect")
+                    : null);
+                const inviteCode =
+                  searchParams.get("code") ??
+                  (typeof sessionStorage !== "undefined"
+                    ? sessionStorage.getItem("pendingInviteCode")
+                    : null);
+
+                if (redirectPath === "/accept-invite" && inviteCode) {
+                  return `/accept-invite?code=${encodeURIComponent(inviteCode)}`;
+                }
+
+                return "/";
+              })()}
               className="text-primary hover:underline"
             >
-              {searchParams.get("redirect") === "/accept-invite"
+              {searchParams.get("redirect") === "/accept-invite" ||
+              (typeof sessionStorage !== "undefined" &&
+                sessionStorage.getItem("pendingInviteRedirect") === "/accept-invite")
                 ? "Continue to Team Invitation"
                 : "Continue to Dashboard"}
             </Link>
