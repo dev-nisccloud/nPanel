@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { motion } from "motion/react";
-import { Check, ArrowRight, Sparkles, Star } from "lucide-react";
+import { Check, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -334,13 +334,10 @@ function ServiceHero({
   badge,
   headline,
   subtext,
-  plans,
   heroImage,
   heroIllustration,
   heroIllustrationBare = false,
   heroCta2,
-  heroTrustBadge,
-  showHeroOverlays = true,
   heroImageStandalone = false,
   onGetStarted,
 }: {
@@ -352,13 +349,9 @@ function ServiceHero({
   heroIllustration?: React.ReactNode;
   heroIllustrationBare?: boolean;
   heroCta2?: string;
-  heroTrustBadge?: { line1: string; line2: string };
-  showHeroOverlays?: boolean;
   heroImageStandalone?: boolean;
   onGetStarted: () => void;
 }) {
-  const overlays = showHeroOverlays && !heroImageStandalone && !heroIllustrationBare;
-
   return (
     <section className="relative pt-28 pb-16 px-4 overflow-hidden">
       {/* Background  skipped for standalone hero images */}
@@ -384,16 +377,7 @@ function ServiceHero({
             transition={{ duration: 0.6 }}
             className="flex-1 flex flex-col items-start text-left max-w-2xl"
           >
-            <motion.span
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-6"
-            >
-              <Sparkles size={12} />
-              {badge}
-            </motion.span>
-            <h1 className="text-4xl md:text-5xl xl:text-6xl font-extrabold leading-[1.1] mb-6 text-balance">
+            <h1 className="text-[36px] font-extrabold leading-[1.15] mb-6 text-balance">
               {headline}
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-xl">
@@ -458,35 +442,6 @@ function ServiceHero({
                 />
               </div>
             )}
-            {overlays && (
-              <>
-                {/* Floating trust badge */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.6 }}
-                  className="absolute -bottom-4 -left-4 bg-card border border-border/60 shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-sm"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg">✓</div>
-                  <div>
-                    <div className="text-xs font-bold text-foreground">{heroTrustBadge?.line1 ?? "Fast for Your Visitors"}</div>
-                    <div className="text-[10px] text-muted-foreground">{heroTrustBadge?.line2 ?? "99.99% Uptime"}</div>
-                  </div>
-                </motion.div>
-                {/* Secondary floating badge */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.8 }}
-                  className="absolute -top-4 -right-4 bg-card border border-primary/20 shadow-xl shadow-primary/10 rounded-2xl px-4 py-3 flex items-center gap-2"
-                >
-                  <div className="flex gap-0.5">
-                    {[1,2,3,4,5].map(n => <Star key={n} size={10} className="text-amber-400 fill-amber-400" />)}
-                  </div>
-                  <div className="text-xs font-bold">100+ Clients</div>
-                </motion.div>
-              </>
-            )}
           </motion.div>
         </div>
       </div>
@@ -516,8 +471,6 @@ export default function ServicePageShell({
   heroIllustration,
   heroIllustrationBare = false,
   heroCta2 = "View Pricing",
-  heroTrustBadge = { line1: "Fast for Your Visitors", line2: "99.99% Uptime" },
-  showHeroOverlays = true,
   heroImageStandalone = false,
   plansUnderHero = false,
   customPlansSection,
@@ -601,8 +554,6 @@ export default function ServicePageShell({
         heroIllustration={heroIllustration}
         heroIllustrationBare={heroIllustrationBare}
         heroCta2={heroCta2}
-        heroTrustBadge={heroTrustBadge}
-        showHeroOverlays={showHeroOverlays}
         heroImageStandalone={heroImageStandalone}
         onGetStarted={handleDefaultCta}
       />

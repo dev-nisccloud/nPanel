@@ -45,7 +45,7 @@ function DomainSearchContent() {
   };
 
   return (
-    <section className="py-20 relative overflow-hidden">
+    <section className="py-4 md:py-6 relative overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -55,11 +55,11 @@ function DomainSearchContent() {
       />
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4 tracking-wide">
+        <div className="text-center mb-4">
+          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-2 tracking-wide">
             FIND YOUR NAME ONLINE
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
             Search for Your Domain
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
@@ -67,9 +67,9 @@ function DomainSearchContent() {
           </p>
         </div>
 
-        <Card className="border border-border/60 shadow-xl shadow-primary/5 mb-6">
-          <CardContent className="p-6">
-            <div className="space-y-4">
+        <Card className="border border-border/60 shadow-xl shadow-primary/5 mb-4">
+          <CardContent className="p-4 md:p-5">
+            <div className="space-y-3">
               {error && (
                 <Alert variant="destructive" className="max-w-2xl mx-auto">
                   <AlertCircle className="h-4 w-4" />

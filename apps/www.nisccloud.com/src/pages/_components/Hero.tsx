@@ -1,8 +1,6 @@
 import { motion } from "motion/react";
-import { ArrowRight, ChevronRight, Zap, Paintbrush, Server, Bot, TrendingUp } from "lucide-react";
-import { AnimatedGradientText } from "@/components/ui/animated-gradient-text.tsx";
+import { ArrowRight, Paintbrush, Server, Bot, TrendingUp } from "lucide-react";
 import { Typewriter } from "@/components/ui/typewriter.tsx";
-import { cn } from "@/lib/utils.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
 import DisplayCards from "@/components/ui/display-cards.tsx";
@@ -106,26 +104,6 @@ export default function Hero() {
 
         {/* Left: text */}
         <div className="order-1 max-w-xl lg:order-1">
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-7"
-          >
-            <AnimatedGradientText className="mx-0 rounded-full text-xs">
-              <Zap size={11} className="shrink-0 fill-[#ffaa40] text-[#ffaa40]" />
-              <hr className="mx-2 h-4 w-px shrink-0 border-0 bg-border" />
-              <span
-                className={cn(
-                  "inline animate-gradient bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent",
-                )}
-              >
-                Cloud and Digital Growth Partner
-              </span>
-              <ChevronRight className="ml-1 size-3 text-muted-foreground transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
-            </AnimatedGradientText>
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -226,20 +204,20 @@ export default function Hero() {
             <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
             <div className="flex overflow-hidden">
               <motion.div
-                className="flex gap-12 items-center shrink-0"
+                className="flex gap-8 items-center shrink-0"
                 animate={{ x: ["0%", "-50%"] }}
                 transition={{ duration: 42, repeat: Infinity, ease: "linear" }}
               >
                 {allClients.map((client, i) => (
                   <div
                     key={`${client.name}-${i}`}
-                    className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-3 py-2"
+                    className="flex items-center justify-center opacity-90 hover:opacity-100 transition-opacity duration-300 shrink-0 px-2 py-1"
                     title={client.name}
                   >
                     <img
                       src={client.logo}
                       alt={client.name}
-                    className="h-14 w-auto max-w-[190px] object-contain sm:h-16 md:h-20"
+                      className="h-9 w-auto max-w-[140px] object-contain sm:h-10 md:h-11"
                       loading="lazy"
                     />
                   </div>
