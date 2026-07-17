@@ -1,21 +1,92 @@
 ---
-title: VPS and VDS
-description: Virtual private servers and virtual dedicated servers.
+title: VPS hosting
+description: Order and manage a Virtual Private Server with root access from the customer dashboard.
 ---
 
-VPS and VDS plans give you isolated resources and (typically) root access for custom stacks.
+A **VPS (Virtual Private Server)** gives you a virtual machine with **root access** — you choose the operating system, install software, and scale CPU, RAM, and storage as your app grows.
 
-## Common use cases
+---
 
-- Custom application servers
-- High-traffic WordPress with custom tuning
-- Development / staging environments
-- Game servers and APIs
+## Order a VPS
 
-## First boot checklist
+1. Go to [nisccloud.com](https://www.nisccloud.com) → **Hosting** → **VPS** (or Cloud Servers → VPS).
+2. Pick a plan (CPU cores, RAM, SSD size, bandwidth).
+3. Choose datacenter region if offered.
+4. Select OS template (e.g. Ubuntu, AlmaLinux).
+5. Checkout and pay.
 
-1. Secure SSH (keys, disable password login where possible)
-2. Update the OS packages
-3. Configure firewall rules
-4. Install your stack (Nginx/Apache, Node, Docker, etc.)
-5. Point DNS and enable SSL
+Or use **Marketplace** in the dashboard.
+
+---
+
+## Open your VPS in the dashboard
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Cloud Servers** in the sidebar.
+3. Click **VPS**.
+4. Click your server in the list.
+
+You typically see:
+
+- **Status** (running, stopped)
+- **IP address** (public IPv4)
+- **Root password** or SSH key setup
+- **Start / Stop / Reboot** controls
+- **Console** or VNC access (if available)
+
+---
+
+## Connect with SSH
+
+From your computer (Mac, Linux, or Windows with OpenSSH):
+
+```bash
+ssh root@YOUR_SERVER_IP
+```
+
+1. Replace `YOUR_SERVER_IP` with the IP from the dashboard.
+2. Enter root password when prompted (or use SSH key if configured).
+3. You are at the server command line.
+
+**First steps after login:**
+
+- Run system updates (`apt update && apt upgrade` on Ubuntu).
+- Create a non-root sudo user for daily work.
+- Configure firewall (allow ports 22, 80, 443 as needed).
+- Install web stack (Nginx/Apache, PHP, MySQL) or Docker.
+
+---
+
+## Point your domain to the VPS
+
+1. **Domains → My Domains → [domain] → DNS**.
+2. Add **A record** for `@` and `www` pointing to VPS **IP address**.
+3. Install [SSL certificate](/docs/ssl/install) on the server (LetNisc Cloud's Encrypt or purchased SSL).
+
+---
+
+## Manage billing and renewals
+
+VPS appears under **Billing → Subscriptions**. Pay **Invoices** before renewal to avoid server removal after grace period.
+
+---
+
+## VPS vs VDS vs dedicated
+
+| | VPS | VDS | Dedicated |
+|---|-----|-----|-----------|
+| Isolation | Shared hardware, virtual | Stronger dedicated resources | Full physical machine |
+| Skill level | Intermediate | Intermediate–advanced | Advanced |
+| Use case | Apps, APIs, small SaaS | Heavier workloads | Enterprise, compliance |
+
+See [VDS](/docs/hosting/vds) and [Dedicated](/docs/hosting/dedicated).
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="DNS A records" href="/docs/domains/dns" description="Point domain to VPS IP." />
+  <Card title="Install SSL" href="/docs/ssl/install" description="HTTPS on your server." />
+  <Card title="Hosting overview" href="/docs/hosting" description="Compare all hosting types." />
+</Cards>

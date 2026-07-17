@@ -1,0 +1,73 @@
+---
+title: Nameservers
+description: Point your domain to Nisc Cloud nameservers or custom nameservers from another DNS provider.
+---
+
+**Nameservers** decide which companyNisc Cloud's DNS system controls your domain. When you use Nisc Cloud nameservers, you edit records in **Domains → My Domains → DNS** or in **Hosting → DNS**. When you use Cloudflare or another hostNisc Cloud's nameservers, you edit DNS at that provider instead.
+
+---
+
+## Open the nameservers settings
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Domains → My Domains**.
+3. Click your **domain name**.
+4. Click the **Nameservers** tab.
+5. You see current nameserver hostnames and options to change them.
+
+---
+
+## Use Nisc Cloud nameservers (recommended with Nisc Cloud hosting)
+
+Best when your **website and email** are hosted with Nisc Cloud and you want one place to manage DNS.
+
+1. Open your **Hosting** account → **Overview** tab.
+2. Note the **nameservers** listed (often two or more hostnames like `ns1.example.nisccloud.com`).
+3. Go to domain **Nameservers** tab.
+4. Choose **Custom nameservers** or **Use default** if the dashboard fills Nisc Cloud NS automatically.
+5. Enter each nameserver hostname exactly as shown in hosting Overview.
+6. Save changes.
+7. Wait **24–48 hours** for propagation (many updates work within a few hours).
+
+After propagation, manage records on the domain **DNS** tab or hosting **DNS** tab.
+
+---
+
+## Use custom nameservers (external DNS)
+
+Use when **Cloudflare**, **Google Domains DNS**, or your developer manages DNS elsewhere.
+
+1. On **Nameservers** tab, select **Custom nameservers**.
+2. Remove old Nisc Cloud nameserver entries if present.
+3. Enter the nameserver hostnames from your external provider (usually 2–4 names).
+4. Save.
+5. At the **external provider**, recreate all A, MX, CNAME, and TXT records your site and email need.
+
+Your domain **DNS tab in Nisc Cloud may no longer apply** until you switch nameservers back.
+
+---
+
+## Switch from external back to Nisc Cloud
+
+1. Copy or export records from the external DNS provider first.
+2. Set Nisc Cloud nameservers on the **Nameservers** tab.
+3. After propagation, re-add records on **DNS** tab in the dashboard.
+4. Test website and email.
+
+---
+
+## Check if nameserver change worked
+
+1. Use an online DNS lookup tool (search “DNS propagation check”) and query **NS** records for your domain.
+2. Compare results to the nameservers you set.
+3. If old nameservers still appear everywhere after 48 hours, confirm you saved correctly and contact support.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="DNS records" href="/docs/domains/dns" description="Records after using Nisc Cloud nameservers." />
+  <Card title="Manage hosting" href="/docs/hosting/manage-hosting" description="Hosting Overview nameserver list." />
+  <Card title="Domain portfolio" href="/docs/domains/portfolio" description="Overview and other tabs." />
+</Cards>

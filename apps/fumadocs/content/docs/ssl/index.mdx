@@ -1,12 +1,61 @@
 ---
-title: SSL Certificates
-description: Secure your sites with HTTPS on Nisc Cloud.
+title: SSL certificates overview
+description: Secure your website with HTTPS using SSL certificates on Nisc Cloud hosting and domains.
 ---
 
-SSL certificates encrypt traffic between visitors and your site. Most Nisc Cloud hosting products support free or paid certificates.
+An **SSL certificate** enables **HTTPS** — the padlock in the browser — so visitors know their connection to your site is encrypted. Search engines also favor HTTPS sites.
 
-## In this section
+Nisc Cloud offers SSL for domains and hosting you manage in the dashboard.
+
+---
+
+## When you need SSL
+
+- Any website collecting passwords, forms, or payments
+- Business credibility (browsers warn on HTTP sites)
+- Email and webmail hostnames
+- SEO and modern browser requirements
+
+---
+
+## Types of SSL
+
+| Type | Use case |
+|------|----------|
+| **Free / LetNisc Cloud's Encrypt** | Most websites on Nisc Cloud hosting — auto or one-click |
+| **Standard DV** | Quick validation for one domain |
+| **Wildcard / multi-domain** | Many subdomains or multiple names (plan dependent) |
+
+Order paid SSL on [nisccloud.com](https://www.nisccloud.com) if required; free options may be included with hosting.
+
+---
+
+## Enable SSL on hosting
+
+For **shared** or **WordPress hosting**:
+
+1. Follow [Enable SSL on hosting](/docs/ssl/enable).
+2. Force HTTPS in WordPress or `.htaccess` after certificate is active.
+
+For **VPS, VDS, dedicated**:
+
+1. Follow [Install SSL on your server](/docs/ssl/install) with Certbot or purchased cert.
+
+---
+
+## Guides in this section
 
 <Cards>
-  <Card title="Enable SSL" href="/docs/ssl/enable" />
+  <Card title="Enable SSL on hosting" href="/docs/ssl/enable" description="One-click or AutoSSL on shared hosting." />
+  <Card title="Install SSL on a server" href="/docs/ssl/install" description="VPS and dedicated manual install." />
 </Cards>
+
+---
+
+## Troubleshooting HTTPS
+
+- **Certificate mismatch** — cert must match domain name in browser URL
+- **Mixed content** — site loads HTTP images/scripts; update URLs to HTTPS
+- **Not secure warning** — certificate expired; renew under SSL or hosting tools
+
+After enabling SSL, wait a few minutes and hard-refresh browser (Ctrl+F5).

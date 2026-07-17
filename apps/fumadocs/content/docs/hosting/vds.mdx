@@ -1,0 +1,72 @@
+---
+title: VDS hosting
+description: Virtual Dedicated Servers with stronger resource isolation — order and manage from the dashboard.
+---
+
+A **VDS (Virtual Dedicated Server)** offers **dedicated resources** on enterprise hardware — more consistent performance than standard VPS when you need guaranteed CPU, RAM, and I/O for busy applications.
+
+---
+
+## Order a VDS
+
+1. Visit [nisccloud.com](https://www.nisccloud.com) → **VDS** under hosting or cloud servers.
+2. Compare plans by CPU, RAM, storage type (NVMe/SSD), and bandwidth.
+3. Select operating system template.
+4. Complete checkout.
+
+Available from **Marketplace** after login as well.
+
+---
+
+## Open your VDS
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Cloud Servers → VDS**.
+3. Click your instance.
+
+Dashboard shows IP address, power state, credentials, and management actions similar to VPS — start, stop, reboot, and console access where supported.
+
+---
+
+## Connect and configure
+
+Use **SSH** like a VPS:
+
+```bash
+ssh root@YOUR_VDS_IP
+```
+
+1. Secure the server (updates, firewall, non-root user).
+2. Deploy your application stack or control panel.
+3. Point domain **A records** to the VDS IP in **Domains → DNS**.
+4. Install SSL — see [Install SSL](/docs/ssl/install).
+
+---
+
+## When to choose VDS over VPS
+
+Choose **VDS** when:
+
+- Traffic spikes cause noisy-neighbor issues on VPS
+- You need predictable performance for databases or ecommerce
+- Compliance or SLA requires dedicated resource allocation
+
+Choose **VPS** when cost matters more and workloads are lighter.
+
+Choose **Dedicated** when you need an entire physical server.
+
+---
+
+## Billing
+
+Renewals appear under **Billing → Subscriptions** and **Invoices**. Keep payment current — unpaid VDS may be suspended and data removed after policy grace period.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="VPS" href="/docs/hosting/vps" description="Smaller virtual servers." />
+  <Card title="Dedicated" href="/docs/hosting/dedicated" description="Physical dedicated servers." />
+  <Card title="DNS" href="/docs/domains/dns" description="Point your domain." />
+</Cards>

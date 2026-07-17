@@ -1,22 +1,53 @@
 ---
-title: WordPress Hosting
-description: Overview of WordPress hosting on Nisc Cloud.
+title: WordPress overview
+description: Install, manage, back up, and migrate WordPress sites from the customer dashboard.
 ---
 
-Nisc Cloud WordPress Hosting gives you a managed environment for WordPress sites with optimized stacks, one-click installs, and management tools in nPanel.
+**WordPress** powers millions of business websites and blogs. Nisc Cloud offers **WordPress hosting** and one-click install on shared hosting — all manageable from **Hosting** and **WordPress** menus.
 
-## What you can do
+---
 
-- Install WordPress with one click
-- Manage themes, plugins, and updates
-- Create staging sites (where available)
-- Secure sites with SSL
-- Migrate existing WordPress sites
+## Where to manage WordPress
 
-## In this section
+| Menu | Purpose |
+|------|---------|
+| **Hosting → [site] → WordPress** | Install WordPress on a hosting package |
+| **WordPress** (sidebar) | List and open WordPress sites on your account |
+
+Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com) to access both.
+
+---
+
+## Typical workflow
+
+1. Order [WordPress hosting](/docs/hosting/wordpress-hosting) or shared hosting with WordPress support.
+2. [Install WordPress](/docs/wordpress/install) on your domain.
+3. Log in to `/wp-admin` and build your site.
+4. [Manage](/docs/wordpress/manage) updates, plugins, and themes.
+5. Set up [Backups](/docs/wordpress/backups) regularly.
+6. [Migrate](/docs/wordpress/migrate) existing sites from another host if needed.
+
+---
+
+## Connect domain and SSL
+
+1. Point domain via [Nameservers](/docs/domains/nameservers) or [DNS](/docs/domains/dns).
+2. Enable [SSL](/docs/ssl/enable) for HTTPS.
+3. In WordPress **Settings → General**, use `https://` URLs.
+
+---
+
+## Guides in this section
 
 <Cards>
-  <Card title="Install WordPress" href="/docs/wordpress/install" />
-  <Card title="Manage your site" href="/docs/wordpress/manage" />
-  <Card title="Migrate to Nisc Cloud" href="/docs/wordpress/migrate" />
+  <Card title="Install WordPress" href="/docs/wordpress/install" description="One-click install step by step." />
+  <Card title="Manage WordPress" href="/docs/wordpress/manage" description="Admin login, updates, plugins." />
+  <Card title="Backups" href="/docs/wordpress/backups" description="Backup and restore your site." />
+  <Card title="Migrate WordPress" href="/docs/wordpress/migrate" description="Move from another hosting company." />
 </Cards>
+
+---
+
+## Support scope
+
+These guides cover managing WordPress **through Nisc Cloud hosting**. Theme design, custom plugin coding, and WooCommerce store setup beyond hosting tools may need a developer or Nisc Cloud professional services from [nisccloud.com](https://www.nisccloud.com).
