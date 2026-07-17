@@ -11,7 +11,9 @@ type IconConfig = {
 
 export const SERVICE_ICON_MAP: Record<string, IconConfig> = {
   "website-hosting": { Icon: Icons.Hosting, bg: "bg-emerald-500" },
+  "wordpress-hosting": { Icon: Icons.Hosting, bg: "bg-sky-500" },
   "vps-hosting":     { Icon: Icons.Database, bg: "bg-blue-500" },
+  "email-hosting":   { Icon: Icons.Mail,     bg: "bg-violet-500" },
   "business-email":  { Icon: Icons.Mail,     bg: "bg-violet-500" },
   "email-marketing": { Icon: Icons.EmailMarketing, bg: "bg-orange-500" },
   "background-remover":  { Icon: Wand2,     bg: "bg-pink-500" },

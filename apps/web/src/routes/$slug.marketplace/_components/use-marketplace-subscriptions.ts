@@ -17,7 +17,9 @@ import { slugifyProductName } from "../marketplace-services";
  */
 const FALLBACK_MATCHERS: { slug: string; terms: string[] }[] = [
   { slug: "website-hosting",    terms: ["website hosting", "web hosting", "web host"] },
-  { slug: "business-email",     terms: ["email hosting", "business email", "professional email"] },
+  { slug: "wordpress-hosting",  terms: ["wordpress hosting", "wordpress managed", "managed wordpress"] },
+  // Canonical marketplace slug is email-hosting (from "Email Hosting"); keep legacy names covered.
+  { slug: "email-hosting",      terms: ["email hosting", "business email", "professional email"] },
   { slug: "vps-hosting",        terms: ["vps", "virtual private server"] },
   { slug: "email-marketing",    terms: ["email marketing", "nisc email marketing"] },
   { slug: "background-remover", terms: ["background remover", "bg remover", "background removal"] },
@@ -28,17 +30,13 @@ const FALLBACK_MATCHERS: { slug: string; terms: string[] }[] = [
 ];
 
 export function getSlugFromProductName(productName: string): string {
-  // Direct slugify  works when the subscription product name is the same as
-  // the DB product name (most common case after the marketplace was DB-driven).
-  const direct = slugifyProductName(productName);
-  if (direct) return direct;
-
-  // Keyword-based fallback for legacy / slightly-different naming.
+  // Keyword match first so legacy names like "Nisc Website Hosting" map to
+  // the marketplace slug ("website-hosting") instead of "nisc-website-hosting".
   const lower = productName.toLowerCase();
   for (const { slug, terms } of FALLBACK_MATCHERS) {
     if (terms.some((t) => lower.includes(t))) return slug;
   }
-  return direct;
+  return slugifyProductName(productName);
 }
 
 export function useMarketplaceSubscriptions(teamSlug: string | undefined) {

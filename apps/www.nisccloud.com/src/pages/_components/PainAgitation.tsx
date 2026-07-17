@@ -1,188 +1,216 @@
-import { motion } from "motion/react";
-import { X, Check, Paintbrush, Globe, TrendingUp, Server, Bot, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button.tsx";
+import { forwardRef, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-
-const vendors = [
-  { icon: Paintbrush, label: "Design Agency", color: "oklch(0.65 0.22 25)" },
-  { icon: Globe, label: "Web Developer", color: "oklch(0.55 0.18 265)" },
-  { icon: Server, label: "Hosting Provider", color: "oklch(0.55 0.20 200)" },
-  { icon: TrendingUp, label: "Marketing Agency", color: "oklch(0.55 0.22 145)" },
-  { icon: Bot, label: "AI Tools Vendor", color: "oklch(0.52 0.18 300)" },
-];
+import { ArrowRight, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils.ts";
+import { AnimatedBeam } from "@/components/ui/animated-beam.tsx";
+import { Button } from "@/components/ui/button.tsx";
 
 const pains = [
-  "Many bills, many logins, many people to chase",
-  "Your brand looks different on every channel",
-  "When something breaks, nobody owns the fix",
-  "Months go by with little to show for the spend",
+  { label: "Many bills & vendors", hint: "Too many people to chase" },
+  { label: "Nobody owns the fix", hint: "When something breaks" },
+  { label: "Inconsistent brand", hint: "Looks different everywhere" },
 ];
 
-const gains = [
-  "One team, one bill, one clear plan",
-  "Your brand stays consistent everywhere",
-  "One person who owns the outcome with you",
-  "Results in 30 days, or we keep working",
-  "Smart tools handle the repetitive work",
+const solutions = [
+  { label: "One team, one plan", hint: "One bill. One story." },
+  { label: "Clear ownership", hint: "We stay with the outcome" },
+  { label: "Brand stays consistent", hint: "Same look, every channel" },
 ];
+
+const Node = forwardRef<
+  HTMLDivElement,
+  {
+    className?: string;
+    tone?: "pain" | "solve" | "center";
+    label?: string;
+    hint?: string;
+    children?: React.ReactNode;
+  }
+>(({ className, tone = "solve", label, hint, children }, ref) => {
+  if (tone === "center") {
+    return (
+      <div ref={ref} className={cn("relative z-10 flex items-center justify-center", className)}>
+        <span className="pointer-events-none absolute inset-0 -m-3 rounded-full bg-primary/20 animate-ping [animation-duration:2.4s]" />
+        <span className="pointer-events-none absolute inset-0 -m-6 rounded-full border border-primary/25 animate-ping [animation-duration:2.8s] [animation-delay:0.4s]" />
+        <span className="pointer-events-none absolute inset-0 -m-10 rounded-full border border-primary/15 animate-ping [animation-duration:3.2s] [animation-delay:0.8s]" />
+        <div className="relative flex size-24 items-center justify-center rounded-full bg-white p-4 shadow-[0_8px_30px_-12px_rgba(7,110,255,0.45)] ring-4 ring-primary/15 sm:size-28">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  const isPain = tone === "pain";
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "z-10 flex w-[150px] flex-col gap-1 rounded-2xl px-3.5 py-3 text-left shadow-[0_10px_30px_-18px_rgba(0,0,0,0.35)] backdrop-blur-sm sm:w-[158px]",
+        isPain
+          ? "bg-gradient-to-br from-red-50 to-orange-50/80 ring-1 ring-red-200/70"
+          : "bg-gradient-to-br from-sky-50 to-blue-50/80 ring-1 ring-primary/20",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-1.5">
+        <span
+          className={cn(
+            "inline-flex size-5 shrink-0 items-center justify-center rounded-full",
+            isPain ? "bg-red-500/15 text-red-500" : "bg-primary/15 text-primary",
+          )}
+        >
+          {isPain ? <X size={11} strokeWidth={2.5} /> : <Check size={11} strokeWidth={2.5} />}
+        </span>
+        <p className="text-[13px] font-bold leading-snug text-foreground sm:text-sm">{label}</p>
+      </div>
+      {hint ? (
+        <p className="pl-6 text-[11px] leading-snug text-muted-foreground">{hint}</p>
+      ) : null}
+    </div>
+  );
+});
+
+Node.displayName = "Node";
 
 export default function PainAgitation() {
   const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pain1Ref = useRef<HTMLDivElement>(null);
+  const pain2Ref = useRef<HTMLDivElement>(null);
+  const pain3Ref = useRef<HTMLDivElement>(null);
+  const centerRef = useRef<HTMLDivElement>(null);
+  const solve1Ref = useRef<HTMLDivElement>(null);
+  const solve2Ref = useRef<HTMLDivElement>(null);
+  const solve3Ref = useRef<HTMLDivElement>(null);
 
   return (
-    <section className="py-16 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background pointer-events-none" />
+    <section className="relative overflow-x-hidden py-14 md:py-16">
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-background via-muted/20 to-background" />
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 relative">
-
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-10"
-        >
-          <div className="inline-flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-full px-4 py-1.5 text-xs text-destructive font-mono mb-4">
-            SOUND FAMILIAR?
-          </div>
-          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 text-balance">
+      <div className="relative mx-auto max-w-7xl px-4 md:px-8">
+        <div className="mx-auto mb-8 max-w-2xl text-center md:mb-10">
+          <p className="mb-3 text-xs font-mono font-bold uppercase tracking-widest text-destructive">
+            Sound familiar?
+          </p>
+          <h2 className="mb-3 text-balance text-3xl font-extrabold tracking-tight md:text-4xl">
             Tired of Paying Separate Teams?
           </h2>
-          <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            Design here, hosting there, marketing somewhere else. Things break,
-            nobody owns the result, and you spend more time chasing updates than
-            running your business.
+          <p className="text-base text-muted-foreground">
+            The mess on the left turns into one clear plan through Nisc Cloud.
           </p>
-        </motion.div>
-
-        {/* Vendor chaos pills */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-10"
-        >
-          <p className="text-center text-sm font-mono font-bold text-destructive tracking-widest mb-6 uppercase">
-            The scattered way
-          </p>
-          <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
-            {vendors.map((v, i) => (
-              <motion.div
-                key={v.label}
-                initial={{ opacity: 0, scale: 0.8, rotate: i % 2 === 0 ? -4 : 4 }}
-                whileInView={{ opacity: 1, scale: 1, rotate: i % 2 === 0 ? -2 : 2 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border-2 border-dashed bg-card/60"
-                style={{ borderColor: `${v.color}40` }}
-              >
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${v.color}18`, color: v.color }}
-                >
-                  <v.icon size={14} />
-                </div>
-                <span className="text-sm font-semibold text-foreground/70">{v.label}</span>
-                <span className="text-[10px] bg-destructive/15 text-destructive font-bold px-1.5 py-0.5 rounded-full">
-                  +invoice
-                </span>
-              </motion.div>
-            ))}
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: 0.5 }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-dashed border-destructive/30 bg-destructive/5"
-            >
-              <X size={14} className="text-destructive" />
-              <span className="text-sm font-bold text-destructive">No one talks to each other</span>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Before vs After */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-8">
-          {/* Pain column */}
-          <motion.div
-            initial={{ opacity: 0, x: -24 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="bg-card border-2 border-destructive/20 rounded-3xl p-7 relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-            <div className="text-xs font-mono font-bold tracking-widest text-destructive mb-6 flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-destructive/15 flex items-center justify-center">
-                <X size={10} className="text-destructive" />
-              </div>
-              WITHOUT US
-            </div>
-            <div className="space-y-4">
-              {pains.map((pain) => (
-                <div key={pain} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-destructive/15 flex items-center justify-center shrink-0 mt-0.5">
-                    <X size={10} className="text-destructive" />
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{pain}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Gain column */}
-          <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="rounded-3xl p-7 border-2 border-primary/30 relative overflow-hidden"
-            style={{
-              background: "radial-gradient(ellipse 120% 80% at 50% 0%, oklch(0.72 0.2 210 / 0.08), transparent)",
-            }}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-            <div className="text-xs font-mono font-bold tracking-widest text-primary mb-6 flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center">
-                <Check size={10} className="text-primary" />
-              </div>
-              WITH US
-            </div>
-            <div className="space-y-4">
-              {gains.map((gain) => (
-                <div key={gain} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check size={10} className="text-primary" />
-                  </div>
-                  <p className="text-sm text-foreground leading-relaxed">{gain}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
         </div>
 
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
+        <div className="mx-auto mb-5 flex max-w-[820px] items-center justify-between px-3 text-[11px] font-bold uppercase tracking-widest">
+          <span className="text-red-500/90">With other vendors</span>
+          <span className="text-primary">With Nisc Cloud</span>
+        </div>
+
+        <div
+          ref={containerRef}
+          className="relative mx-auto flex h-[520px] w-full max-w-[820px] items-center justify-center overflow-visible sm:h-[560px]"
         >
+          <div className="grid size-full max-h-[460px] w-full grid-cols-[1fr_auto_1fr] items-center gap-x-16 gap-y-14 sm:gap-x-24 sm:gap-y-16">
+            <Node ref={pain1Ref} tone="pain" label={pains[0].label} hint={pains[0].hint} className="justify-self-end" />
+            <div />
+            <Node ref={solve1Ref} tone="solve" label={solutions[0].label} hint={solutions[0].hint} className="justify-self-start" />
+
+            <Node ref={pain2Ref} tone="pain" label={pains[1].label} hint={pains[1].hint} className="justify-self-end" />
+            <Node ref={centerRef} tone="center">
+              <img
+                src="/nisccloud-logo.svg"
+                alt="Nisc Cloud"
+                className="h-11 w-auto object-contain sm:h-14"
+              />
+            </Node>
+            <Node ref={solve2Ref} tone="solve" label={solutions[1].label} hint={solutions[1].hint} className="justify-self-start" />
+
+            <Node ref={pain3Ref} tone="pain" label={pains[2].label} hint={pains[2].hint} className="justify-self-end" />
+            <div />
+            <Node ref={solve3Ref} tone="solve" label={solutions[2].label} hint={solutions[2].hint} className="justify-self-start" />
+          </div>
+
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={pain1Ref}
+            toRef={centerRef}
+            curvature={-95}
+            endYOffset={-12}
+            duration={9}
+            delay={0.2}
+            gradientStartColor="#ef4444"
+            gradientStopColor="#f97316"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={pain2Ref}
+            toRef={centerRef}
+            curvature={-28}
+            duration={10}
+            delay={0.5}
+            gradientStartColor="#ef4444"
+            gradientStopColor="#f97316"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={pain3Ref}
+            toRef={centerRef}
+            curvature={95}
+            endYOffset={12}
+            duration={9.5}
+            delay={0.8}
+            gradientStartColor="#ef4444"
+            gradientStopColor="#f97316"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={solve1Ref}
+            toRef={centerRef}
+            curvature={-95}
+            endYOffset={-12}
+            reverse
+            duration={9}
+            delay={0.3}
+            gradientStartColor="#076EFF"
+            gradientStopColor="#4FABFF"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={solve2Ref}
+            toRef={centerRef}
+            curvature={28}
+            reverse
+            duration={10}
+            delay={0.6}
+            gradientStartColor="#076EFF"
+            gradientStopColor="#4FABFF"
+          />
+          <AnimatedBeam
+            containerRef={containerRef}
+            fromRef={solve3Ref}
+            toRef={centerRef}
+            curvature={95}
+            endYOffset={12}
+            reverse
+            duration={9.5}
+            delay={0.9}
+            gradientStartColor="#076EFF"
+            gradientStopColor="#4FABFF"
+          />
+        </div>
+
+        <div className="mt-8 text-center">
           <Button
             onClick={() => navigate("/contact")}
-            className="rounded-full px-8 h-12 font-bold text-base gap-2 cursor-pointer"
+            className="h-12 cursor-pointer gap-2 rounded-full px-8 text-base font-bold"
           >
             Talk to us. It is free.
             <ArrowRight size={16} />
           </Button>
-          <p className="text-xs text-muted-foreground mt-3">
+          <p className="mt-3 text-xs text-muted-foreground">
             No pressure. We will map a simple plan for your business in about 30 minutes.
           </p>
-        </motion.div>
-
+        </div>
       </div>
     </section>
   );

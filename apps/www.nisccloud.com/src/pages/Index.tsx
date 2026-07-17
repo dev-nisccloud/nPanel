@@ -2,7 +2,7 @@ import Navbar from "./_components/Navbar.tsx";
 import Hero from "./_components/Hero.tsx";
 import PainAgitation from "./_components/PainAgitation.tsx";
 import NeedSelector from "./_components/NeedSelector.tsx";
-import Stats from "./_components/Stats.tsx";
+// import Stats from "./_components/Stats.tsx";
 import AtomApproach from "./_components/AtomApproach.tsx";
 import BentoFeatures from "./_components/BentoFeatures.tsx";
 import DomainSearch from "./_components/DomainSearch.tsx";
@@ -17,10 +17,10 @@ export default function Index() {
       <Navbar />
       <Hero />
       <NeedSelector />
-      <Stats />
+      {/* <Stats /> */}
+      <DomainSearch />
       <PainAgitation />
       <AtomApproach />
-      <DomainSearch />
       <BentoFeatures />
       <Testimonials />
       <Faq />

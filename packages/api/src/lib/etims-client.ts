@@ -10,6 +10,12 @@ export interface EtimsClientConfig {
     tokenUrl: string;
     consumerKey: string;
     consumerSecret: string;
+    /**
+     * APigee app id sent on every OSCU request.
+     * Required for Developer Platform automated testing attribution.
+     * Defaults to consumerKey when omitted.
+     */
+    apigeeAppId?: string;
 }
 
 export interface EtimsOscuHeaders {
@@ -24,50 +30,79 @@ export interface AuthResponse {
     expires_in: string;
 }
 
+/** Thrown when KRA returns a non-success business resultCd. Carries the full response body. */
+export class EtimsApiError extends Error {
+    readonly resultCd: string;
+    readonly resultMsg: string;
+    readonly response: Record<string, unknown>;
+
+    constructor(endpointKey: string, resultCd: string, resultMsg: string, response: Record<string, unknown>) {
+        super(`eTIMS API (${endpointKey}) resultCd=${resultCd}: ${resultMsg}`);
+        this.name = 'EtimsApiError';
+        this.resultCd = resultCd;
+        this.resultMsg = resultMsg;
+        this.response = response;
+    }
+}
+
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
 
 /**
- * All valid KRA OSCU API endpoints per the official specification.
- * Keys are human-friendly names; values are the exact URL paths.
+ * KRA Developer Platform (Apigee / etims-oscu) endpoint paths.
+ * Matches Postman collection + docs/kra-etims-api.md.
  */
 const ENDPOINTS = {
     // Initialization
-    selectInitOsdcInfo: '/selectInitOsdcInfo',
+    selectInitOsdcInfo: '/initialize',
     // Code Lists
     selectCodeList: '/selectCodeList',
-    // Notices
+    // Notices (dashboard test case uses /selectNotices; Postman also has selectNoticeList)
     selectNoticeList: '/selectNoticeList',
-    // Customer
-    selectCustomer: '/selectCustomer',
+    selectNotices: '/selectNotices',
+    // Customer / taxpayer
+    selectCustomer: '/customerPinInfo',
     selectCustomerList: '/selectCustomerList',
+    selectTaxPayerInfo: '/selectTaxpayerInfo',
     // Branches
-    selectBhfList: '/selectBhfList',
-    saveBhfCustomer: '/saveBhfCustomer',
-    saveBhfUser: '/saveBhfUser',
-    saveBhfInsurance: '/saveBhfInsurance',
+    selectBhfList: '/branchList',
+    saveBhfCustomer: '/branchSendCustomerInfo',
+    saveBhfUser: '/branchUserAccount',
+    saveBhfInsurance: '/branchInsuranceInfo',
     // Items
-    selectItemClsList: '/selectItemClsList',
-    selectItemList: '/selectItemList',
+    selectItemClsList: '/selectItemClass',
+    selectItemList: '/itemInfo',
     saveItem: '/saveItem',
     saveItemComposition: '/saveItemComposition',
     // Imported Items
-    selectImportItemList: '/selectImportItemList',
-    updateImportItem: '/updateImportItem',
+    selectImportItemList: '/importedItemInfo',
+    updateImportItem: '/importedItemConvertedInfo',
     // Sales
-    saveTrnsSalesOsdc: '/saveTrnsSalesOsdc',
-    selectTrnsSalesList: '/selectTrnsSalesList',
+    saveTrnsSalesOsdc: '/sendSalesTransaction',
+    selectTrnsSalesList: '/selectSalesTransactions',
+    selectInvoiceDetails: '/selectInvoiceDetail',
     // Purchases
-    selectTrnsPurchaseSalesList: '/selectTrnsPurchaseSalesList',
-    insertTrnsPurchase: '/insertTrnsPurchase',
+    selectTrnsPurchaseSalesList: '/getPurchaseTransactionInfo',
+    insertTrnsPurchase: '/sendPurchaseTransactionInfo',
     // Stock
-    selectStockMoveList: '/selectStockMoveList',
-    insertStockIO: '/insertStockIO',
-    saveStockMaster: '/saveStockMaster',
+    selectStockMoveList: '/selectStockMoveLists',
+    insertStockIO: '/insert/stockIO',
+    saveStockMaster: '/save/stockMaster',
 } as const;
 
-type EndpointKey = keyof typeof ENDPOINTS;
+export type EtimsEndpointKey = keyof typeof ENDPOINTS;
+
+export type EtimsRawResponse = {
+    endpointKey: EtimsEndpointKey;
+    kraPath: string;
+    url: string;
+    statusCode: number;
+    /** Exact response body text from KRA — unaltered */
+    bodyText: string;
+    /** Parsed JSON if body is valid JSON; otherwise null. Shape is unaltered (no responseBody unwrap). */
+    bodyJson: unknown | null;
+};
 
 const REDIS_TOKEN_KEY = 'etims:oauth_token';
 const TOKEN_BUFFER_SECS = 60; // Refresh 60s before actual expiry
@@ -189,30 +224,38 @@ export class EtimsOscuClient {
     // HTTP Core
     // ───────────────────────
 
-    private buildUrl(endpointKey: EndpointKey): string {
+    private buildUrl(endpointKey: EtimsEndpointKey): string {
         const path = ENDPOINTS[endpointKey];
         return `${this.config.baseUrl.trim().replace(/\/+$/, '')}${path}`;
     }
 
     /**
      * Build request headers.
-     * Initialization only needs Authorization.
-     * All other endpoints also need tin + bhfId + cmcKey.
+     * Initialization: Authorization + apigee_app_id + tin + bhfId (no cmcKey yet).
+     * All other endpoints also need cmcKey.
      */
     private async buildHeaders(
-        endpointKey: EndpointKey,
+        endpointKey: EtimsEndpointKey,
         oscu?: EtimsOscuHeaders
     ): Promise<Record<string, string>> {
         const token = await this.getToken();
+        const apigeeAppId = (this.config.apigeeAppId ?? this.config.consumerKey).trim();
         const base: Record<string, string> = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': `Bearer ${token}`,
+            'apigee_app_id': apigeeAppId,
         };
 
         if (endpointKey === 'selectInitOsdcInfo') {
-            // Only auth header for initialization
-            return base;
+            if (!oscu?.tin || !oscu?.bhfId) {
+                throw new Error('tin and bhfId are required for device initialization');
+            }
+            return {
+                ...base,
+                tin: oscu.tin,
+                bhfId: oscu.bhfId,
+            };
         }
 
         if (!oscu) throw new Error(`OSCU headers (tin/bhfId/cmcKey) required for endpoint: ${endpointKey}`);
@@ -243,11 +286,16 @@ export class EtimsOscuClient {
         return value;
     }
 
-    private async post<T>(
-        endpointKey: EndpointKey,
+    /**
+     * Call a KRA endpoint and return the exact response as received.
+     * Does not unwrap responseBody, does not throw on business resultCd.
+     * Used for certification testing and response typing.
+     */
+    async requestRaw(
+        endpointKey: EtimsEndpointKey,
         body: Record<string, unknown>,
-        oscu?: EtimsOscuHeaders
-    ): Promise<T> {
+        oscu?: EtimsOscuHeaders,
+    ): Promise<EtimsRawResponse> {
         const url = this.buildUrl(endpointKey);
         const headers = await this.buildHeaders(endpointKey, oscu);
         const payload = this.omitNullish(body);
@@ -263,11 +311,9 @@ export class EtimsOscuClient {
 
         let { statusCode, text } = await doRequest();
 
-        // Auto-retry once on 401 (expired token)
         if (statusCode === 401) {
             await this.clearToken();
             await this.getToken(true);
-            // Rebuild headers with new token
             const freshHeaders = await this.buildHeaders(endpointKey, oscu);
             const retryRes = await request(url, {
                 method: 'POST',
@@ -278,17 +324,48 @@ export class EtimsOscuClient {
             text = await retryRes.body.text();
         }
 
-        let data: Record<string, unknown>;
+        let bodyJson: unknown | null = null;
         try {
-            data = JSON.parse(text);
+            bodyJson = JSON.parse(text);
         } catch {
-            throw new Error(`eTIMS API (${endpointKey}): invalid JSON response (${statusCode}): ${text}`);
+            bodyJson = null;
+        }
+
+        return {
+            endpointKey,
+            kraPath: ENDPOINTS[endpointKey],
+            url,
+            statusCode,
+            bodyText: text,
+            bodyJson,
+        };
+    }
+
+    private async post<T>(
+        endpointKey: EtimsEndpointKey,
+        body: Record<string, unknown>,
+        oscu?: EtimsOscuHeaders
+    ): Promise<T> {
+        const raw = await this.requestRaw(endpointKey, body, oscu);
+        const { statusCode, bodyText, bodyJson } = raw;
+
+        if (bodyJson == null || typeof bodyJson !== 'object') {
+            throw new Error(`eTIMS API (${endpointKey}): invalid JSON response (${statusCode}): ${bodyText}`);
+        }
+
+        let data = bodyJson as Record<string, unknown>;
+
+        // Developer Platform often wraps the OSCU body in responseBody
+        const wrapped = data.responseBody;
+        if (wrapped && typeof wrapped === 'object' && !Array.isArray(wrapped)) {
+            data = wrapped as Record<string, unknown>;
         }
 
         if (statusCode !== 200) {
             const msg = (data as { resultMsg?: string }).resultMsg
                 ?? (data as { errorMessage?: string }).errorMessage
-                ?? text;
+                ?? (data as { responseHeader?: { customerMessage?: string } }).responseHeader?.customerMessage
+                ?? bodyText;
             throw new Error(`eTIMS API (${endpointKey}) HTTP ${statusCode}: ${msg}`);
         }
 
@@ -297,7 +374,7 @@ export class EtimsOscuClient {
         const resultMsg = (data as { resultMsg?: string }).resultMsg ?? 'Unknown eTIMS error';
 
         if (resultCd && resultCd !== '000' && resultCd !== '001') {
-            throw new Error(`eTIMS API (${endpointKey}) resultCd=${resultCd}: ${resultMsg}`);
+            throw new EtimsApiError(endpointKey, resultCd, resultMsg, data);
         }
 
         return data as T;
@@ -312,8 +389,25 @@ export class EtimsOscuClient {
         bhfId: string;
         dvcSrlNo: string;
     }) {
-        // No OSCU headers for init - only Authorization
-        return this.post('selectInitOsdcInfo', payload as Record<string, unknown>);
+        // Init: Authorization + apigee_app_id + tin + bhfId (cmcKey not yet available)
+        return this.post(
+            'selectInitOsdcInfo',
+            payload as Record<string, unknown>,
+            { tin: payload.tin, bhfId: payload.bhfId, cmcKey: '' },
+        );
+    }
+
+    /**
+     * Standard sync/search body for Developer Platform list endpoints.
+     * tin + bhfId (+ cmcKey) are required in the JSON body, not only headers.
+     */
+    private lastReqBody(oscu: EtimsOscuHeaders, lastReqDt: string): Record<string, unknown> {
+        return {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            lastReqDt,
+        };
     }
 
     // ───────────────────────
@@ -321,11 +415,16 @@ export class EtimsOscuClient {
     // ───────────────────────
 
     async selectCodeList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectCodeList', { lastReqDt }, oscu);
+        return this.post('selectCodeList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     async selectNoticeList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectNoticeList', { lastReqDt }, oscu);
+        return this.post('selectNoticeList', this.lastReqBody(oscu, lastReqDt), oscu);
+    }
+
+    /** Dashboard test case path: /selectNotices */
+    async selectNotices(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectNotices', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     // ───────────────────────
@@ -344,7 +443,11 @@ export class EtimsOscuClient {
 
     /** List customers registered on this branch via saveBhfCustomer. */
     async selectCustomerList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectCustomerList', { lastReqDt }, oscu);
+        return this.post('selectCustomerList', this.lastReqBody(oscu, lastReqDt), oscu);
+    }
+
+    async selectTaxPayerInfo(oscu: EtimsOscuHeaders, lastReqDt: string) {
+        return this.post('selectTaxPayerInfo', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     // ───────────────────────
@@ -352,7 +455,7 @@ export class EtimsOscuClient {
     // ───────────────────────
 
     async selectBhfList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectBhfList', { lastReqDt }, oscu);
+        return this.post('selectBhfList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     async saveBhfCustomer(oscu: EtimsOscuHeaders, customerData: Record<string, unknown>) {
@@ -365,7 +468,21 @@ export class EtimsOscuClient {
     }
 
     async saveBhfUser(oscu: EtimsOscuHeaders, userData: Record<string, unknown>) {
-        return this.post('saveBhfUser', userData, oscu);
+        return this.post('saveBhfUser', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...userData,
+        }, oscu);
+    }
+
+    async saveBhfInsurance(oscu: EtimsOscuHeaders, insurance: Record<string, unknown>) {
+        return this.post('saveBhfInsurance', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...insurance,
+        }, oscu);
     }
 
     // ───────────────────────
@@ -373,20 +490,25 @@ export class EtimsOscuClient {
     // ───────────────────────
 
     async selectItemClsList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectItemClsList', { lastReqDt }, oscu);
+        return this.post('selectItemClsList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     async selectItemList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectItemList', { lastReqDt }, oscu);
+        return this.post('selectItemList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     async saveItem(oscu: EtimsOscuHeaders, item: Record<string, unknown>) {
         // tin + bhfId must also be in the request body for KRA session tracking
-        return this.post('saveItem', { tin: oscu.tin, bhfId: oscu.bhfId, ...item }, oscu);
+        return this.post('saveItem', { tin: oscu.tin, bhfId: oscu.bhfId, cmcKey: oscu.cmcKey, ...item }, oscu);
     }
 
     async saveItemComposition(oscu: EtimsOscuHeaders, composition: Record<string, unknown>) {
-        return this.post('saveItemComposition', { tin: oscu.tin, bhfId: oscu.bhfId, ...composition }, oscu);
+        return this.post('saveItemComposition', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...composition,
+        }, oscu);
     }
 
     // ───────────────────────
@@ -394,11 +516,16 @@ export class EtimsOscuClient {
     // ───────────────────────
 
     async selectImportItemList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectImportItemList', { lastReqDt }, oscu);
+        return this.post('selectImportItemList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     async updateImportItem(oscu: EtimsOscuHeaders, item: Record<string, unknown>) {
-        return this.post('updateImportItem', item, oscu);
+        return this.post('updateImportItem', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...item,
+        }, oscu);
     }
 
     // ───────────────────────
@@ -416,7 +543,16 @@ export class EtimsOscuClient {
 
     /** List sales transactions submitted by this taxpayer/branch. */
     async selectTrnsSalesList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectTrnsSalesList', { lastReqDt }, oscu);
+        return this.post('selectTrnsSalesList', this.lastReqBody(oscu, lastReqDt), oscu);
+    }
+
+    async selectInvoiceDetails(oscu: EtimsOscuHeaders, invcNo: number) {
+        return this.post('selectInvoiceDetails', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            invcNo,
+        }, oscu);
     }
 
     // ───────────────────────
@@ -424,11 +560,16 @@ export class EtimsOscuClient {
     // ───────────────────────
 
     async selectTrnsPurchaseSalesList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectTrnsPurchaseSalesList', { lastReqDt }, oscu);
+        return this.post('selectTrnsPurchaseSalesList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     async insertTrnsPurchase(oscu: EtimsOscuHeaders, purchase: Record<string, unknown>) {
-        return this.post('insertTrnsPurchase', purchase, oscu);
+        return this.post('insertTrnsPurchase', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...purchase,
+        }, oscu);
     }
 
     // ───────────────────────
@@ -436,15 +577,25 @@ export class EtimsOscuClient {
     // ───────────────────────
 
     async selectStockMoveList(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectStockMoveList', { lastReqDt }, oscu);
+        return this.post('selectStockMoveList', this.lastReqBody(oscu, lastReqDt), oscu);
     }
 
     async insertStockIO(oscu: EtimsOscuHeaders, stockData: Record<string, unknown>) {
-        return this.post('insertStockIO', stockData, oscu);
+        return this.post('insertStockIO', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...stockData,
+        }, oscu);
     }
 
     async saveStockMaster(oscu: EtimsOscuHeaders, stockMaster: Record<string, unknown>) {
-        return this.post('saveStockMaster', stockMaster, oscu);
+        return this.post('saveStockMaster', {
+            tin: oscu.tin,
+            bhfId: oscu.bhfId,
+            cmcKey: oscu.cmcKey,
+            ...stockMaster,
+        }, oscu);
     }
 }
 

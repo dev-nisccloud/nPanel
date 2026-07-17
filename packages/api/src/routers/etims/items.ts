@@ -1,24 +1,27 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsItem } from "@npanel/db/schema/etims";
 import { getEtimsContext } from "../../lib/etims-config";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const isAgencyUser = (r: string | null | undefined) =>
     ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(r ?? "");
 const isSuperAdmin = (r: string | null | undefined) => r === "AGENCY_SUPER_ADMIN";
 
 function assertRead(role: string | null | undefined) {
+    if (skipEtimsAuthChecks()) return;
     if (!isAgencyUser(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency users can access eTIMS item data." });
 }
 function assertWrite(role: string | null | undefined) {
+    if (skipEtimsAuthChecks()) return;
     if (!isSuperAdmin(role)) throw new TRPCError({ code: "FORBIDDEN", message: "Only agency super admins can modify eTIMS item data." });
 }
 
 export const etimsItemsRouter = router({
-    getItemList: protectedProcedure
+    getItemList: etimsProcedure
         .input(z.object({ lastReqDt: z.string().regex(/^\d{14}$/) }))
         .query(async ({ ctx, input }) => {
             assertRead(ctx.session?.user?.role);
@@ -31,7 +34,7 @@ export const etimsItemsRouter = router({
             }
         }),
 
-    saveItem: protectedProcedure
+    saveItem: etimsProcedure
         .input(z.object({
             item: z.object({
                 itemCd: z.string().min(1, "itemCd is required"),
@@ -99,7 +102,7 @@ export const etimsItemsRouter = router({
             }
         }),
 
-    saveItemComposition: protectedProcedure
+    saveItemComposition: etimsProcedure
         .input(z.object({
             composition: z.object({
                 itemCd: z.string().min(1),

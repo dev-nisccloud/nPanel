@@ -37,8 +37,6 @@ type Tab = {
   subtext: string;
   image: string;
   features: Feature[];
-  cta: string;
-  ctaHref: string;
 };
 
 
@@ -66,8 +64,6 @@ const tabs: Tab[] = [
       { icon: Globe, label: "Website Design", desc: "From KES 35,000", href: "/services/website-design" },
       { icon: ShoppingCart, label: "E-commerce Design", desc: "From KES 45,000", href: "/services/ecommerce" },
     ],
-    cta: "Start Building",
-    ctaHref: "/services/brand-identity",
   },
   {
     icon: Server,
@@ -89,8 +85,6 @@ const tabs: Tab[] = [
       { icon: Link, label: "Domain Registration", desc: "Search to see live prices", href: "/hosting/domains" },
       { icon: Lock, label: "Website Security", desc: "SSL and site protection", href: "/hosting/ssl" },
     ],
-    cta: "Get Hosted Today",
-    ctaHref: "/hosting",
   },
   {
     icon: TrendingUp,
@@ -110,8 +104,6 @@ const tabs: Tab[] = [
       { icon: AtSign, label: "Email Marketing", desc: "From KES 1,500/mo", href: "/services/email-marketing" },
       { icon: Users, label: "Influencer Marketing", desc: "From KES 30,000/campaign", href: "/services/social-media" },
     ],
-    cta: "Start Growing",
-    ctaHref: "/services/seo",
   },
   {
     icon: Bot,
@@ -130,8 +122,6 @@ const tabs: Tab[] = [
       { icon: MessageSquare, label: "AI Chatbots", desc: "From KES 5,000/mo", href: "/services/zeepo-ai" },
       { icon: Zap, label: "Lead Nurturing Flows", desc: "From KES 3,000/mo", href: "/services/zeepo-ai" },
     ],
-    cta: "Meet Zeepo AI",
-    ctaHref: "/services/zeepo-ai",
   },
 ];
 
@@ -196,7 +186,7 @@ export default function NeedSelector() {
   const tab = tabs[activeTab];
 
   return (
-    <section id="needs" className="relative overflow-hidden bg-background pb-12 pt-6 md:pb-16 md:pt-8">
+    <section id="needs" className="relative overflow-hidden bg-background pb-6 pt-6 md:pb-8 md:pt-8">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
 
         <motion.div
@@ -274,16 +264,6 @@ export default function NeedSelector() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                onClick={() => navigate(tab.ctaHref)}
-                className="h-10 cursor-pointer gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-              >
-                {tab.cta}
-                <ArrowRight size={16} />
-              </Button>
-
-              <div className="hidden h-8 w-px bg-border sm:block" />
-
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-1">
                   {trustedClients.map((client) => (
@@ -310,25 +290,30 @@ export default function NeedSelector() {
 
             <div className="grid gap-2 sm:grid-cols-2">
               {tab.features.map((f) => (
-                <button
+                <div
                   key={f.label}
-                  onClick={() => navigate(f.href)}
-                  className="group flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5 text-left transition-all hover:border-primary/30 hover:bg-muted/60"
+                  className="group flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-3 text-left transition-all hover:border-primary/30 hover:bg-muted/60"
                 >
-                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
-                    <f.icon size={14} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground transition-colors group-hover:text-primary sm:text-sm">
-                      {f.label}
+                  <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
+                      <f.icon size={14} />
                     </div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground sm:text-sm">
+                        {f.label}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
+                    </div>
                   </div>
-                  <ArrowRight
-                    size={14}
-                    className="mt-1 shrink-0 text-primary opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-60"
-                  />
-                </button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(f.href)}
+                    className="h-8 w-full cursor-pointer gap-1.5 rounded-full text-xs font-semibold"
+                  >
+                    Get started
+                    <ArrowRight size={13} />
+                  </Button>
+                </div>
               ))}
             </div>
 

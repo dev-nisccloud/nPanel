@@ -6,6 +6,7 @@ import {
     Zap,
     Info,
     CheckCircle2,
+    RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { AutomatedTestChecklist } from "./agency.kra-etims/_components/automated-test-checklist";
 
 export default function ETimsSettingsPage() {
     const utils = trpc.useUtils();
@@ -24,8 +26,12 @@ export default function ETimsSettingsPage() {
     const { data: configStatus, isLoading: isLoadingConfig } = trpc.etims.auth.getConfiguration.useQuery();
 
     const initMutation = trpc.etims.initialization.initializeDevice.useMutation({
-        onSuccess: (data) => {
-            toast.success("eTIMS Initialized Successfully");
+        onSuccess: () => {
+            toast.success(
+                configStatus?.isInitialized
+                    ? "eTIMS Re-initialized Successfully"
+                    : "eTIMS Initialized Successfully",
+            );
             utils.etims.auth.getConfiguration.invalidate();
         },
         onError: (error) => {
@@ -53,6 +59,11 @@ export default function ETimsSettingsPage() {
             });
         }
     }, [configStatus]);
+
+    const isInitialized = Boolean(configStatus?.isInitialized);
+    // Sandbox allows re-init for KRA test sessions; production locks after first init.
+    const canEdit = !isInitialized || formData.isSandbox;
+    const canInitialize = canEdit && !initMutation.isPending;
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
@@ -95,12 +106,22 @@ export default function ETimsSettingsPage() {
                         </div>
                     ) : (
                         <>
-                            {(!configStatus?.isInitialized) && (
+                            {!isInitialized && (
                                 <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/50">
                                     <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                                     <AlertTitle className="text-amber-800 dark:text-amber-400">Action Required</AlertTitle>
                                     <AlertDescription className="text-amber-700 dark:text-amber-500">
                                         Device not initialized. Complete the configuration and click "Initialize Device".
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {isInitialized && formData.isSandbox && (
+                                <Alert className="bg-sky-50 border-sky-200 dark:bg-sky-900/10 dark:border-sky-900/50">
+                                    <RefreshCw className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                                    <AlertTitle className="text-sky-800 dark:text-sky-400">Sandbox Testing</AlertTitle>
+                                    <AlertDescription className="text-sky-700 dark:text-sky-500">
+                                        KRA sandbox sessions expire. Use "Re-initialize Device" to refresh the cmcKey and continue testing.
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -120,22 +141,24 @@ export default function ETimsSettingsPage() {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <Label htmlFor="kraPin">KRA PIN</Label>
-                                                    <Input id="kraPin" value={formData.kraPin} onChange={handleInputChange} placeholder="P05XXXXXXXX" disabled={configStatus?.isInitialized} />
+                                                    <Input id="kraPin" value={formData.kraPin} onChange={handleInputChange} placeholder="P05XXXXXXXX" disabled={!canEdit} />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label htmlFor="branchId">Branch ID</Label>
-                                                    <Input id="branchId" value={formData.branchId} onChange={handleInputChange} placeholder="00" disabled={configStatus?.isInitialized} />
+                                                    <Input id="branchId" value={formData.branchId} onChange={handleInputChange} placeholder="00" disabled={!canEdit} />
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="deviceSerialNumber">Device Serial Number</Label>
-                                                <Input id="deviceSerialNumber" value={formData.deviceSerialNumber} onChange={handleInputChange} placeholder="NPCXXXXXXX" disabled={configStatus?.isInitialized} />
+                                                <Input id="deviceSerialNumber" value={formData.deviceSerialNumber} onChange={handleInputChange} placeholder="NPCXXXXXXX" disabled={!canEdit} />
                                             </div>
                                         </CardContent>
                                         <CardFooter className="flex justify-end gap-3 border-t bg-muted/50 p-4">
                                             {/* Footer content if needed */}
                                         </CardFooter>
                                     </Card>
+
+                                    <AutomatedTestChecklist enabled={formData.isSandbox} />
                                 </div>
 
                                 {/* Sidebar Info/Status */}
@@ -153,17 +176,17 @@ export default function ETimsSettingsPage() {
                                                     <Label>Sandbox Mode</Label>
                                                     <p className="text-xs text-muted-foreground">Used for testing and verification.</p>
                                                 </div>
-                                                <Switch checked={formData.isSandbox} onCheckedChange={handleSwitchChange} disabled={configStatus?.isInitialized} />
+                                                <Switch checked={formData.isSandbox} onCheckedChange={handleSwitchChange} disabled={!canEdit} />
                                             </div>
 
                                             <div className="pt-4 border-t">
                                                 <div className="flex items-center justify-between text-sm">
                                                     <span className="text-muted-foreground">Initialization Status:</span>
-                                                    <Badge variant={configStatus?.isInitialized ? "outline" : "secondary"}>
-                                                        {configStatus?.isInitialized ? "COMPLETE" : "PENDING"}
+                                                    <Badge variant={isInitialized ? "outline" : "secondary"}>
+                                                        {isInitialized ? "COMPLETE" : "PENDING"}
                                                     </Badge>
                                                 </div>
-                                                {configStatus?.isInitialized && (
+                                                {isInitialized && (
                                                     <div className="mt-3 flex items-center gap-2 lg:flex-row flex-col justify-center">
                                                         <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded border border-green-200 dark:border-green-800">
                                                             <CheckCircle2 className="h-3 w-3" />
@@ -176,12 +199,17 @@ export default function ETimsSettingsPage() {
                                         <CardFooter className="p-4 pt-0">
                                             <Button
                                                 className="w-full"
-                                                variant={configStatus?.isInitialized ? "secondary" : "default"}
+                                                variant={isInitialized ? "outline" : "default"}
                                                 onClick={onHandleInitialize}
-                                                disabled={initMutation.isPending || configStatus?.isInitialized}
+                                                disabled={!canInitialize}
                                             >
                                                 {initMutation.isPending && <Spinner size={16} className="mr-2" />}
-                                                {configStatus?.isInitialized ? "Device Initialized" : "Initialize Device"}
+                                                {!initMutation.isPending && isInitialized && formData.isSandbox && (
+                                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                                )}
+                                                {isInitialized
+                                                    ? (formData.isSandbox ? "Re-initialize Device" : "Device Initialized")
+                                                    : "Initialize Device"}
                                             </Button>
                                         </CardFooter>
                                     </Card>
@@ -193,6 +221,9 @@ export default function ETimsSettingsPage() {
                                         <CardContent className="text-xs text-muted-foreground space-y-2">
                                             <p>Initialization requires a unique Device Serial Number and valid Taxpayer details.</p>
                                             <p>The <strong>cmcKey</strong> will be automatically retrieved and stored upon successful initialization.</p>
+                                            {formData.isSandbox && (
+                                                <p>In sandbox, re-initialize whenever KRA returns a session-expired error during testing.</p>
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </div>
