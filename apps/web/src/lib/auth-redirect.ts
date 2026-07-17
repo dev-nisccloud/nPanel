@@ -11,14 +11,29 @@ if (typeof window !== "undefined") {
   console.debug("[auth-redirect] REDIRECT_TARGET_URL =", REDIRECT_TARGET_URL);
 }
 
+/** Post-login return path from page query (login/register), including invite code when present. */
+export function getRequestedRedirectFromSearch(search: string): string | null {
+  const params = new URLSearchParams(search);
+  const raw = params.get("redirect") ?? params.get("returnUrl");
+  if (!raw?.trim()) return null;
+
+  let path = raw.trim();
+  const code = params.get("code");
+  if (code && (path === "/accept-invite" || path.startsWith("/accept-invite/"))) {
+    const sep = path.includes("?") ? "&" : "?";
+    path = `${path}${sep}code=${encodeURIComponent(code)}`;
+  }
+
+  return path;
+}
+
 /** Post-login return path from the current page query (set by session gate on login/register). */
 function redirectTargetRequestUrl(): string {
   if (typeof window === "undefined") return REDIRECT_TARGET_URL;
-  const params = new URLSearchParams(window.location.search);
-  const r = params.get("redirect") ?? params.get("returnUrl");
-  if (!r?.trim()) return REDIRECT_TARGET_URL;
+  const redirectPath = getRequestedRedirectFromSearch(window.location.search);
+  if (!redirectPath) return REDIRECT_TARGET_URL;
   const sep = REDIRECT_TARGET_URL.includes("?") ? "&" : "?";
-  return `${REDIRECT_TARGET_URL}${sep}redirect=${encodeURIComponent(r.trim())}`;
+  return `${REDIRECT_TARGET_URL}${sep}redirect=${encodeURIComponent(redirectPath)}`;
 }
 
 async function fetchRedirectTargetOnce(): Promise<string> {
