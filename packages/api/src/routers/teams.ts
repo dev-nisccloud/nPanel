@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
 import { and, count, desc, eq, inArray } from "@npanel/db";
-import { protectedProcedure, router } from "../trpc";
+import { protectedProcedure, publicProcedure, router } from "../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
@@ -435,7 +435,7 @@ export const teamsRouter = router({
       };
     }),
 
-  getInviteByCode: protectedProcedure
+  getInviteByCode: publicProcedure
     .input(getInviteInputSchema)
     .output(getInviteOutputSchema)
     .query(async ({ input }) => {

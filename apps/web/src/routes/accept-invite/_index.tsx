@@ -207,8 +207,8 @@ export default function AcceptInvitePage() {
             <p className="text-center text-sm text-muted-foreground">
               The invitation may have expired, been cancelled, or already been used.
             </p>
-            <Button onClick={() => navigate("/create-team")} className="w-full">
-              Go to Dashboard
+            <Button onClick={() => navigate("/auth/login")} className="w-full">
+              Go to Login
             </Button>
           </CardContent>
         </Card>
