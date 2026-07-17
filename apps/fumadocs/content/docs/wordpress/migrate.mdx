@@ -1,28 +1,88 @@
 ---
 title: Migrate WordPress
-description: Move an existing WordPress site to Nisc Cloud.
+description: Move an existing WordPress website from another host to Nisc Cloud hosting.
 ---
 
-## Overview
+**Migration** copies your existing WordPress site — files, database, uploads, themes, and plugins — from another hosting company to Nisc Cloud.
 
-You can migrate WordPress sites using:
+---
 
-1. **Migration tools** in nPanel (when available for your plan)
-2. **Manual migration:** export files + database, then import
-3. **Assisted migration:** contact support for help
+## Before migration
 
-## Manual checklist
+1. Order [WordPress](/docs/hosting/wordpress-hosting) or [shared hosting](/docs/hosting/shared) on Nisc Cloud.
+2. [Install WordPress](/docs/wordpress/install) on temporary domain OR prepare empty site on final domain.
+3. **Back up** site at old host (files + database).
+4. Lower DNS **TTL** at old registrar a day before cutover (optional, speeds switch).
 
-1. Put the old site in maintenance mode (optional)
-2. Export the WordPress database (SQL)
-3. Download `wp-content` (and other custom files)
-4. Create the site on Nisc Cloud and import the database
-5. Upload files and update `wp-config.php`
-6. Update DNS to point to the new host
-7. [Enable SSL](/docs/ssl/enable) and test
+---
 
-## Tips
+## Method A — Migration plugin (easiest)
 
-- Search-replace old URLs with the new domain carefully
-- Clear caches after cutover
-- Keep the old host online until DNS fully propagates
+On **old site** wp-admin:
+
+1. Install **All-in-One WP Migration** or similar.
+2. Export site to file (under size limit) or cloud extension.
+
+On **new Nisc Cloud site**:
+
+1. Install same plugin.
+2. **Import** exported file.
+3. Log in when prompted — permalinks may need **Settings → Permalinks → Save**.
+
+Update domain in **Settings → General** if import used old URL.
+
+---
+
+## Method B — Manual file and database move
+
+**Export database at old host**
+
+1. phpMyAdmin → Export → SQL file.
+
+**Copy files**
+
+1. Download all WordPress files via FTP or file manager from old host.
+
+**Import on Nisc Cloud**
+
+1. **Hosting → File Manager** → upload files to web root.
+2. **Hosting → Databases** → create DB and user → import SQL in phpMyAdmin.
+3. Edit `wp-config.php` with new DB name, user, password from **Databases** tab.
+
+**Fix URLs** if domain changed — use search-replace in database or WP-CLI / plugin.
+
+---
+
+## Point domain to Nisc Cloud
+
+1. At domain registrar, set [Nisc Cloud nameservers](/docs/domains/nameservers) or [A record](/docs/domains/dns) to new hosting IP.
+2. [Enable SSL](/docs/ssl/enable).
+3. Wait for DNS propagation (up to 48 hours).
+4. Cancel old hosting only after site works on new server for 48+ hours.
+
+---
+
+## After migration checklist
+
+- [ ] Homepage and key pages load
+- [ ] wp-admin login works
+- [ ] Forms and contact plugins send email
+- [ ] WooCommerce checkout test (if shop)
+- [ ] Images load (no broken media URLs)
+- [ ] HTTPS padlock valid
+
+---
+
+## Get help migrating
+
+Nisc Cloud may offer professional migration for complex sites — ask via [nisccloud.com/contact](https://www.nisccloud.com/contact) with site size and current host name.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Install WordPress" href="/docs/wordpress/install" description="Fresh install on new hosting." />
+  <Card title="Backups" href="/docs/wordpress/backups" description="Backup before and after move." />
+  <Card title="DNS" href="/docs/domains/dns" description="Cut over domain." />
+</Cards>

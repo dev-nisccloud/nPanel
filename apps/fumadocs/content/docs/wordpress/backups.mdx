@@ -1,0 +1,82 @@
+---
+title: WordPress backups
+description: Create and restore backups of your WordPress site files and database on Nisc Cloud hosting.
+---
+
+Regular **backups** protect you from hacks, bad updates, and accidental deletes. Nisc Cloud hosting provides backup tools on the **Backup** tab; you can also use WordPress backup plugins.
+
+---
+
+## Backup from hosting Backup tab
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Hosting** → your WordPress site.
+3. Click **Backup** tab.
+4. Click **Create backup**, **Generate backup**, or enable **Scheduled backups** if offered.
+5. Select **Full backup** (files + database) when possible.
+6. Wait for job to finish — status shows completion time and size.
+7. **Download** backup file if download option exists — store copy off-server (Google Drive, local PC).
+
+Schedule weekly backups minimum; daily for ecommerce or active blogs.
+
+---
+
+## Restore from hosting backup
+
+**Warning:** Restore overwrites current site data.
+
+1. **Backup** tab → list of restore points.
+2. Select backup date before the problem occurred.
+3. Click **Restore** → confirm.
+4. Wait for restore to complete (site may be briefly offline).
+5. Clear browser cache and test wp-admin and homepage.
+
+If restore fails, contact support with hosting account name and backup timestamp.
+
+---
+
+## Backup with a WordPress plugin
+
+If you prefer plugin-based backups (UpdraftPlus, All-in-One WP Migration, etc.):
+
+1. wp-admin → **Plugins → Add New** → install backup plugin.
+2. Connect remote storage (Google Drive, S3) if plugin supports it.
+3. Run manual backup; schedule automatic backups.
+4. Test **restore on staging** once so you know the process.
+
+Plugin backups complement — do not replace — hosting snapshots when both available.
+
+---
+
+## Manual backup (advanced)
+
+**Files:**
+
+1. **Hosting → File Manager** → compress `public_html` or WordPress folder → download ZIP.
+
+**Database:**
+
+1. **Hosting → Databases** → phpMyAdmin → export SQL file.
+
+Store both together with date in filename. To restore: upload files, import SQL, update `wp-config.php` if database name changed.
+
+---
+
+## Before major changes
+
+Always backup before:
+
+- WordPress core updates
+- New plugins or theme switches
+- [Migration](/docs/wordpress/migrate)
+- Editing `functions.php` or `.htaccess`
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Manage WordPress" href="/docs/wordpress/manage" description="Updates and plugins." />
+  <Card title="Migrate WordPress" href="/docs/wordpress/migrate" description="Move site using backup." />
+  <Card title="Manage hosting" href="/docs/hosting/manage-hosting" description="Backup tab location." />
+</Cards>

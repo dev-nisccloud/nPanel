@@ -1,5 +1,12 @@
 {
-  "title": "nPanel",
+  "title": "Your Dashboard",
   "icon": "LayoutDashboard",
-  "pages": ["index", "overview", "billing"]
+  "pages": [
+    "index",
+    "sign-in",
+    "home",
+    "navigation",
+    "profile",
+    "settings"
+  ]
 }

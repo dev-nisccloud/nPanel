@@ -1,28 +1,121 @@
 ---
-title: DNS management
-description: Configure DNS records for domains on Nisc Cloud.
+title: DNS records
+description: Add and edit A, CNAME, MX, and TXT DNS records for your domain in the dashboard.
 ---
 
-## Common record types
+**DNS records** tell the internet where to send people who type your domain and where to deliver email. You edit them on the **DNS** tab after opening a domain in **My Domains**.
 
-| Type | Use |
-|------|-----|
-| **A** | Point a host to an IPv4 address |
-| **AAAA** | Point a host to an IPv6 address |
-| **CNAME** | Alias one name to another |
-| **MX** | Mail routing |
-| **TXT** | SPF, DKIM, verification |
-| **NS** | Nameservers |
+---
 
-## Edit DNS
+## Open the DNS editor
 
-1. Open the domain in nPanel.
-2. Go to **DNS** / **Zone Editor**.
-3. Add or edit records, then save.
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Domains → My Domains**.
+3. Click your **domain name**.
+4. Click the **DNS** tab.
+5. You see a list of existing records and buttons to **Add record** or **Edit**.
 
-Changes can take a few minutes to several hours to propagate globally.
+If the DNS tab is read-only, your domain may use **external nameservers** — change nameservers first or edit DNS at the other provider. See [Nameservers](/docs/domains/nameservers).
 
-## Typical setups
+---
 
-- **Website:** `A` record for `@` and `www` → hosting IP
-- **Email:** `MX` + SPF/DKIM `TXT` records. See [Business Email](/docs/email).
+## Understand record types
+
+| Type | Name field | Value field | Example use |
+|------|------------|-------------|-------------|
+| **A** | `@` or subdomain | IPv4 address | Point `example.com` to `203.0.113.10` |
+| **AAAA** | `@` or subdomain | IPv6 address | IPv6 hosting |
+| **CNAME** | subdomain | target hostname | Point `www` to `example.com` |
+| **MX** | `@` | mail server + priority | Email delivery |
+| **TXT** | `@` or subdomain | text string | SPF, DKIM, domain verification |
+
+`@` means the root domain (e.g. `yourbusiness.co.ke` without `www`).
+
+---
+
+## Add an A record (website on a server IP)
+
+Use when your host gives you an **IP address**.
+
+1. On the **DNS** tab, click **Add record**.
+2. Choose type **A**.
+3. **Name / Host:** enter `@` for root domain, or `www` for `www.yourdomain.com`, or another subdomain.
+4. **Value / Points to:** enter the IP address from your hosting **Overview** (e.g. VPS or shared hosting IP).
+5. **TTL:** leave default unless support says otherwise.
+6. Save the record.
+7. Wait up to 24–48 hours for global propagation (often faster).
+
+---
+
+## Add a CNAME record
+
+Use when a hostname should **alias** another name (common for `www` or SaaS tools).
+
+1. Click **Add record** → type **CNAME**.
+2. **Name:** e.g. `www` or `shop`.
+3. **Value:** target hostname (e.g. `yourdomain.com` or `shops.myplatform.com`).
+4. Save.
+
+Do not use CNAME on `@` root if your DNS system blocks it — use A record on root instead.
+
+---
+
+## Add MX records (email)
+
+Use for **business email** on this domain.
+
+1. Open **Emails** in the sidebar and note the **MX hostnames and priorities** in your email plan.
+2. Return to domain **DNS**.
+3. Add **MX** record:
+   - **Name:** `@`
+   - **Priority:** number from email docs (lower = preferred)
+   - **Value:** mail server hostname
+4. Add secondary MX if your plan lists more than one.
+5. Add **TXT** SPF record if shown in email settings.
+
+Detailed email DNS: [Email DNS records](/docs/email/dns-records).
+
+---
+
+## Add TXT records (verification and security)
+
+TXT records prove domain ownership or authorize email senders.
+
+**Examples:**
+
+- **SPF** — `v=spf1 include:... ~all`
+- **DKIM** — long key from email provider
+- **Domain verification** — code from Google, Microsoft, or marketing tools
+
+1. Add record → **TXT**.
+2. Enter **Name** (`@` or `_dmarc`, etc.) exactly as instructed by the tool.
+3. Paste **Value** without extra quotes unless required.
+4. Save.
+
+---
+
+## Edit or delete a record
+
+1. On the **DNS** tab, find the row.
+2. Click **Edit**, change fields, and save — or click **Delete** / trash icon.
+3. Confirm deletion if prompted.
+
+Wrong DNS can take your site or email offline. Change one record at a time when troubleshooting.
+
+---
+
+## DNS on hosting vs domain portfolio
+
+If your domain uses **Nisc Cloud nameservers** and you have **shared hosting**, you may also edit DNS under **Hosting → [your site] → DNS**. Keep domain portfolio and hosting DNS in sync — avoid duplicate conflicting records in two places unless support directs you.
+
+See [Manage hosting](/docs/hosting/manage-hosting).
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Nameservers" href="/docs/domains/nameservers" description="When DNS is managed elsewhere." />
+  <Card title="Email DNS" href="/docs/email/dns-records" description="MX, SPF, and DKIM for mail." />
+  <Card title="Domain portfolio" href="/docs/domains/portfolio" description="All domain tabs explained." />
+</Cards>

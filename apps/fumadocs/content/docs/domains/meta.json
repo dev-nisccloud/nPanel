@@ -1,5 +1,5 @@
 {
   "title": "Domains",
   "icon": "Globe",
-  "pages": ["index", "register", "transfer", "dns"]
+  "pages": ["index", "register", "transfer", "portfolio", "dns", "nameservers"]
 }

@@ -1,0 +1,5 @@
+{
+  "title": "Billing",
+  "icon": "CreditCard",
+  "pages": ["index", "invoices", "subscriptions", "checkout"]
+}

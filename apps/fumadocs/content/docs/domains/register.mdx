@@ -1,20 +1,96 @@
 ---
 title: Register a domain
-description: Search for and register a new domain name.
+description: Search for and register a new domain from the dashboard or nisccloud.com.
 ---
 
-## Steps
+This guide explains how to **register a new domain name** — when the name is available for purchase — using the customer dashboard or the Nisc Cloud website.
 
-1. Open [nPanel](https://npanel.nisccloud.com) → **Domains** → **Register**.
-2. Search for your desired name (e.g. `example.com`).
-3. Choose an available TLD and registration term.
-4. Complete WHOIS / contact details accurately.
-5. Checkout and confirm payment.
+---
 
-Your domain appears under **Domains** after registration completes. Propagation of nameservers can take up to 24-48 hours.
+## Before you register
+
+- Have accurate **contact details** ready (registries require real WHOIS information).
+- Decide which **extension** you want (`.co.ke` for Kenya, `.com` for global, etc.).
+- If you also need a website, consider ordering **hosting** in the same checkout so setup is easier later.
+
+---
+
+## Register from the dashboard
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. In the left sidebar, click **Domains**.
+3. Click **Get a Domain**.
+4. In the search box, type the name **without** `www` — for example `mybusiness` or `mybusiness.co.ke`.
+5. Click **Search** or press Enter.
+6. Review results:
+   - **Available** names can be added to cart.
+   - **Taken** names cannot be registered unless the owner sells them.
+7. Select the extensions you want (checkbox or **Add** button).
+8. Choose registration **period** (often 1–5 years).
+9. Proceed to **Checkout** or **Cart**.
+10. Confirm billing details and pay with M-Pesa or card.
+11. After payment succeeds, open **Domains → My Domains** — your domain should appear within a few minutes.
+
+---
+
+## Register from nisccloud.com
+
+1. Go to [www.nisccloud.com](https://www.nisccloud.com) and open the **Domains** section or domain search on the homepage.
+2. Enter your desired name and search.
+3. Add available domains to cart.
+4. Sign in or create an account at checkout.
+5. Pay and wait for confirmation email.
+6. Manage the domain in the dashboard under **My Domains**.
+
+---
+
+## Complete WHOIS / contact information
+
+Registries require owner contact data on file:
+
+1. During checkout, fill in registrant name, organization, email, phone, and address.
+2. Use an email you monitor — renewal and transfer notices go there.
+3. For `.co.ke` and other country domains, local presence rules may apply; follow prompts on screen.
+
+Inaccurate data can block registration or cause compliance issues later.
+
+---
 
 ## After registration
 
-- Point the domain to hosting via [DNS](/docs/domains/dns)
-- Enable privacy protection if offered for your TLD
-- Set a calendar reminder for renewal
+**Find your domain**
+
+1. Click **Domains → My Domains**.
+2. Click the new domain name.
+
+**Point it to a website**
+
+- If you bought Nisc Cloud hosting, use [Nameservers](/docs/domains/nameservers) or [DNS](/docs/domains/dns) as instructed in hosting **Overview**.
+- If hosting is elsewhere, set nameservers or DNS records at the other hostNisc Cloud's instructions.
+
+**Set up email**
+
+- If you bought business email, create mailboxes under **Emails** and add MX records in domain **DNS**. See [Email DNS records](/docs/email/dns-records).
+
+**Timeline**
+
+- The domain is yours in the dashboard immediately after registration completes.
+- DNS changes worldwide can take **24–48 hours** to fully propagate.
+
+---
+
+## Tips
+
+- Register common misspellings or `.co.ke` + `.com` together if you protect a brand.
+- Enable renewal reminders by keeping billing email current in [My Profile](/docs/npanel/profile).
+- Open **Protect Brand** on the domain if offered for your TLD.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Domain portfolio" href="/docs/domains/portfolio" description="Manage DNS and nameservers after registration." />
+  <Card title="Transfer a domain" href="/docs/domains/transfer" description="If you already own the name elsewhere." />
+  <Card title="Checkout" href="/docs/billing/checkout" description="Payment during registration." />
+</Cards>

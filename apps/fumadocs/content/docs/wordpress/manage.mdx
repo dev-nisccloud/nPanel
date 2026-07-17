@@ -1,25 +1,95 @@
 ---
 title: Manage WordPress
-description: Day-to-day WordPress management on Nisc Cloud.
+description: Log in to WordPress admin, update core, and manage plugins and themes on Nisc Cloud hosting.
 ---
 
-## Access your site
+After [installing WordPress](/docs/wordpress/install), you run day-to-day changes in **wp-admin** — and use the Nisc Cloud dashboard for hosting-level tools like File Manager and backups.
 
-| Item | Where |
-|------|--------|
-| Site files | File Manager or SFTP in nPanel |
-| Database | phpMyAdmin / database manager |
-| WP Admin | `https://yourdomain.com/wp-admin` |
+---
 
-## Recommended practices
+## Log in to WordPress admin
 
-- Keep WordPress core, themes, and plugins updated
-- Use strong admin passwords and limit login attempts
-- Take backups before major changes
-- Prefer staging for testing theme/plugin updates
+1. Open browser to `https://yourdomain.com/wp-admin`
+2. Enter **username** and **password** from installation.
+3. Click **Log in**.
+4. You see the WordPress **Dashboard** with posts, pages, appearance, and plugins.
 
-## Common tasks
+Bookmark this URL. If you forget password, use **Lost your password?** on login page.
 
-- **Change PHP version:** Hosting settings in nPanel
-- **Reset admin password:** WordPress tools or database
-- **Increase upload limits:** PHP / hosting configuration
+---
+
+## Open WordPress from Nisc Cloud dashboard
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **WordPress** in sidebar OR **Hosting → [site] → WordPress**.
+3. Click **Manage**, **Login**, or **wp-admin** link next to your site — may single-sign-on into admin.
+
+---
+
+## Update WordPress safely
+
+1. In wp-admin, check **Dashboard → Updates** for core, plugin, and theme updates.
+2. **Back up first** — [Backups](/docs/wordpress/backups) tab or backup plugin.
+3. Update **plugins** and **themes** before or after core as recommended.
+4. Click **Update** buttons one section at a time.
+5. Visit front of site to confirm it still loads.
+
+Enable automatic updates for minor core releases if offered in **Dashboard → Updates**.
+
+---
+
+## Install plugins and themes
+
+**Plugins** add features (forms, SEO, ecommerce):
+
+1. **Plugins → Add New**.
+2. Search or upload ZIP.
+3. **Install Now → Activate**.
+
+**Themes** control design:
+
+1. **Appearance → Themes → Add New**.
+2. Install and **Activate**.
+
+Only install trusted plugins from WordPress.org or reputable vendors.
+
+---
+
+## Create pages and posts
+
+1. **Pages → Add New** for static pages (Home, About, Contact).
+2. **Posts → Add New** for blog articles.
+3. **Settings → Reading** — set homepage to static page if needed.
+
+---
+
+## File and database access (advanced)
+
+From Nisc Cloud:
+
+1. **Hosting → File Manager** — edit theme files, `wp-config.php` (careful).
+2. **Hosting → Databases** — phpMyAdmin link if available for database export.
+
+Wrong edits can break the site — back up first.
+
+---
+
+## Staging (if your plan includes it)
+
+Some WordPress plans offer **staging** copies:
+
+1. Open **WordPress** or hosting **WordPress** tab.
+2. **Create staging site** → test changes on staging URL.
+3. **Push to live** when satisfied.
+
+If you do not see staging, clone manually via backup restore to subdomain.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Backups" href="/docs/wordpress/backups" description="Before major updates." />
+  <Card title="Manage hosting" href="/docs/hosting/manage-hosting" description="File Manager and databases." />
+  <Card title="SSL" href="/docs/ssl/enable" description="Keep HTTPS active." />
+</Cards>
