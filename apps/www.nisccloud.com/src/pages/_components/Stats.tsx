@@ -12,30 +12,30 @@ const conceptBadges = [
 const stats = [
   {
     icon: Globe,
-    count: 500,
+    count: 100,
     suffix: "+",
-    label: "Businesses Powered",
+    label: "Businesses Served",
     color: "bg-primary/10 text-primary",
   },
   {
     icon: ShieldCheck,
     count: 99,
-    suffix: ".9%",
-    label: "Uptime Guaranteed",
+    suffix: ".99%",
+    label: "Uptime Target",
     color: "bg-emerald-500/10 text-emerald-500",
   },
   {
     icon: Headphones,
     count: 24,
     suffix: "/7",
-    label: "Expert Support",
+    label: "Support Ready",
     color: "bg-violet-500/10 text-violet-500",
   },
   {
     icon: Zap,
-    count: 5,
-    suffix: "min",
-    label: "Avg. Deploy Time",
+    count: 30,
+    suffix: " days",
+    label: "Results Promise",
     color: "bg-orange-400/10 text-orange-400",
   },
 ];
@@ -86,15 +86,14 @@ export default function Stats() {
             className="flex flex-col items-center justify-center gap-5 text-center"
           >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight max-w-3xl">
-              Trusted by Kenyan businesses to deliver{" "}
+              Numbers customers{" "}
               <span className="text-primary italic font-serif">
-                exceptional
-              </span>{" "}
-              results
+                actually care about
+              </span>
             </h2>
             <p className="text-muted-foreground text-base max-w-xl">
-              From hosting to marketing, we combine technology and expertise to
-              power your business online  reliably, fast, and at scale.
+              Clear uptime, real support, free migration help, and a 30-day
+              results promise so you know what you are getting before you buy.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-3">
               {conceptBadges.map((badge, index) => (

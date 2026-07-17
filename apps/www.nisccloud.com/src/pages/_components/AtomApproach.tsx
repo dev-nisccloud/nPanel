@@ -10,14 +10,14 @@ const steps = [
     tag: "CREATE",
     accent: "#3b82f6",
     accentLight: "#3b82f615",
-    headline: "We create & position your brand",
-    subline: "A brand people remember, trust, and choose  built in days, not months.",
+    headline: "We shape your brand and site",
+    subline: "A clear look and message so people understand you quickly and remember you.",
     proof: "Logo · Website · Copy · Identity",
-    stat: "7 days",
-    statLabel: "to brand launch",
+    stat: "Clear",
+    statLabel: "brand and site package",
     badge: "✓ Delivered",
     badgeColor: "#3b82f6",
-    emotion: "Imagine walking into any room  online or offline  and your brand speaks before you do.",
+    emotion: "Walk into any room and your brand already feels familiar.",
     progress: 88,
   },
   {
@@ -26,14 +26,14 @@ const steps = [
     tag: "HOST",
     accent: "#06b6d4",
     accentLight: "#06b6d415",
-    headline: "We take your business online & build trust",
-    subline: "Fast, secure, always-on hosting with a domain and business email that screams credibility.",
+    headline: "We keep you online and trusted",
+    subline: "Fast hosting, your domain, and business email so customers find you and believe you.",
     proof: "Hosting · Domain · Email · SSL",
-    stat: "99.9%",
-    statLabel: "uptime  we never sleep",
+    stat: "99.99%",
+    statLabel: "uptime, with 24/7 support",
     badge: "● Online",
     badgeColor: "#06b6d4",
-    emotion: "Your customers check you out at midnight. We make sure your website is always awake, always impressive.",
+    emotion: "Customers check you late at night. Your site should still look sharp.",
     progress: 99,
   },
   {
@@ -42,14 +42,14 @@ const steps = [
     tag: "MARKET",
     accent: "#8b5cf6",
     accentLight: "#8b5cf615",
-    headline: "We put you in front of the right people",
-    subline: "SEO, paid ads, social media  all dialed in to bring real paying customers through your door.",
-    proof: "SEO · Google Ads · Social · Email",
-    stat: "4.2×",
-    statLabel: "average ROAS for clients",
-    badge: "+23% MoM",
+    headline: "We bring the right people to you",
+    subline: "SEO, ads, social, and email that focus on real interest, not empty traffic.",
+    proof: "SEO · Ads · Social · Email",
+    stat: "30 days",
+    statLabel: "results promise",
+    badge: "Growing",
     badgeColor: "#8b5cf6",
-    emotion: "Your competitor is spending money on ads right now. We make sure every shilling you spend comes back multiplied.",
+    emotion: "Spend should bring people who can buy, not just more clicks.",
     progress: 72,
   },
   {
@@ -58,14 +58,14 @@ const steps = [
     tag: "AUTOMATE",
     accent: "#10b981",
     accentLight: "#10b98115",
-    headline: "We help you grow while you sleep",
-    subline: "AI, chatbots, and smart workflows that follow up, nurture, and close  24/7 with zero extra effort.",
+    headline: "We help you grow after hours",
+    subline: "AI chat, follow-ups, and simple workflows that keep working while you rest.",
     proof: "AI Chat · CRM · Campaigns · Workflows",
-    stat: "90 sec",
-    statLabel: "AI response to every lead",
+    stat: "24/7",
+    statLabel: "tools that keep following up",
     badge: "● AI Active",
     badgeColor: "#10b981",
-    emotion: "You focus on your business. Our AI handles every lead that lands  day, night, weekend.",
+    emotion: "You focus on the business. Smart tools handle the repeat work.",
     progress: 95,
   },
 ];
@@ -111,13 +111,13 @@ export default function AtomApproach() {
           className="text-center mb-14"
         >
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4 tracking-wider">
-            NISC CLOUD BUSINESS GROWTH STACK
+            YOUR GROWTH PATH
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
             Create. Host. Market. Automate.
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            One team. Four superpowers. Zero handoffs. Your growth, fully handled.
+            One team for the full journey. Fewer handoffs. Clear ownership from day one.
           </p>
         </motion.div>
 

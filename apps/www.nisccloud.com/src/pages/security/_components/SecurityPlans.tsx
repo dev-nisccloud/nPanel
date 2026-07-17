@@ -39,7 +39,7 @@ export default function SecurityPlans() {
         plans={plans}
         serviceName="Website Security"
         title="Choose Your Protection Level"
-        subtitle="100% risk-free, 30-day money-back guarantee. All plans include a free SSL certificate."
+        subtitle="30-day money-back guarantee. All plans include a free SSL certificate and setup help."
       />
     </section>
   );

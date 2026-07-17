@@ -1,0 +1,108 @@
+---
+title: Domain portfolio
+description: Open a domain in My Domains and use Overview, DNS, Nameservers, and Protect Brand tabs.
+---
+
+When you click a domain under **Domains → My Domains**, you open the **domain portfolio** — a detail page with tabs for everything about that one name.
+
+---
+
+## Open a domain
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Domains** in the sidebar.
+3. Click **My Domains**.
+4. Find your domain in the list (use search if many domains).
+5. Click the **domain name** (e.g. `yourcompany.co.ke`).
+6. The portfolio page opens with tabs across the top.
+
+---
+
+## Overview tab
+
+The **Overview** tab is the summary screen.
+
+You typically see:
+
+- **Domain status** — Active, expired, pending transfer, etc.
+- **Registration date** and **expiry / renewal date**
+- **Registrar** information
+- **Auto-renewal** or renewal reminders (if shown)
+- Shortcuts to renew or open related hosting
+
+**What to do here**
+
+- Check expiry date and pay renewal invoices under **Billing → Invoices** before the date passes.
+- Note whether the domain uses Nisc Cloud nameservers or external DNS (often shown on Overview or Nameservers tab).
+
+---
+
+## DNS tab
+
+The **DNS** tab is where you add and edit **DNS records** — the instructions that send visitors to your website and mail to your inbox.
+
+Common record types:
+
+| Type | Used for |
+|------|----------|
+| **A** | Point domain to a server IP address |
+| **CNAME** | Alias one name to another (e.g. `www` to main site) |
+| **MX** | Mail servers for email |
+| **TXT** | Verification, SPF, DKIM for email and SSL |
+
+Step-by-step editing is in [DNS records](/docs/domains/dns).
+
+---
+
+## Nameservers tab
+
+The **Nameservers** tab controls **which companyNisc Cloud's DNS system** answers lookups for your domain.
+
+**Default Nisc Cloud nameservers** — use when hosting and DNS are with Nisc Cloud. Hosting **Overview** may list the exact hostnames to use.
+
+**Custom nameservers** — use when another company (Cloudflare, external host) manages DNS. Enter their nameserver hostnames here.
+
+Full steps: [Nameservers](/docs/domains/nameservers).
+
+---
+
+## Protect Brand tab
+
+The **Protect Brand** tab includes options to help protect your domain and brand online — for example monitoring or services related to trademark and domain security depending on your plan.
+
+1. Open the **Protect Brand** tab.
+2. Read each offered option on screen.
+3. Enable or order features as needed.
+4. Save changes.
+
+Availability varies by TLD and product. If the tab is empty, the feature may not apply to that extension.
+
+---
+
+## Typical workflows
+
+**Connect domain to Nisc Cloud hosting**
+
+1. Open domain → **Nameservers** → set Nisc Cloud nameservers from hosting **Overview**.
+2. Or keep nameservers and use **DNS** → add A record to hosting IP.
+
+**Connect domain to business email**
+
+1. Open domain → **DNS**.
+2. Add **MX** records shown in **Emails** plan overview.
+3. Add **TXT** for SPF/DKIM if provided.
+
+**Point domain to external website builder**
+
+1. Open **DNS**.
+2. Add A or CNAME records from your builderNisc Cloud's instructions (Shopify, Wix, etc.).
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="DNS records" href="/docs/domains/dns" description="Add A, CNAME, MX, and TXT records." />
+  <Card title="Nameservers" href="/docs/domains/nameservers" description="Switch DNS authority." />
+  <Card title="Register a domain" href="/docs/domains/register" description="Buy a new name." />
+</Cards>

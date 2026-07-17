@@ -26,8 +26,8 @@ const PricingVisual = () => {
           </motion.div>
         </div>
         <div className="text-center">
-          <div className="text-xl font-extrabold text-primary tracking-tight">No hidden fees</div>
-          <div className="text-xs text-muted-foreground font-medium mt-0.5">What you see is what you pay</div>
+          <div className="text-xl font-extrabold text-primary tracking-tight">Clear pricing</div>
+          <div className="text-xs text-muted-foreground font-medium mt-0.5">You see the price before you pay</div>
         </div>
         <div className="flex flex-col gap-2 w-full max-w-[180px]">
           {items.map(({ label, price, color, bg }) => (
@@ -57,8 +57,8 @@ const OwnershipVisual = () => (
         </div>
       </div>
       <div className="text-center">
-        <div className="text-xl font-extrabold text-amber-500 tracking-tight">You own it all</div>
-        <div className="text-xs text-muted-foreground font-medium mt-0.5">Zero vendor lock-in, ever</div>
+        <div className="text-xl font-extrabold text-amber-500 tracking-tight">You own it</div>
+        <div className="text-xs text-muted-foreground font-medium mt-0.5">Domain, code, and data stay yours</div>
       </div>
       <div className="flex flex-col gap-2 w-full max-w-[160px]">
         {[
@@ -103,7 +103,7 @@ const ResultsVisual = () => {
         </div>
         <div className="text-center">
           <div className="text-xl font-extrabold text-violet-500 tracking-tight">30-day results</div>
-          <div className="text-xs text-muted-foreground font-medium mt-0.5">Guaranteed delivery timeline</div>
+          <div className="text-xs text-muted-foreground font-medium mt-0.5">Progress you can measure</div>
         </div>
         <div className="flex flex-col gap-1.5 w-full max-w-[180px]">
           {milestones.map(({ day, label }, i) => (
@@ -143,10 +143,11 @@ export default function BentoFeatures() {
             Why Choose Us
           </Badge>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-balance">
-            All your digital needs, beautifully handled
+            Clear help for every step online
           </h2>
           <p className="text-muted-foreground text-base max-w-2xl">
-            From brand identity to AI automation  everything your business needs to launch, grow, and scale online, managed by one expert team in Nairobi.
+            From brand and website to hosting, marketing, and smart tools.
+            One team that helps you get online, stay online, and grow.
           </p>
         </motion.div>
 
@@ -167,10 +168,10 @@ export default function BentoFeatures() {
               </div>
               <div className="flex flex-col gap-1 p-8 border-t border-border">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Everything under one roof
+                  One team for the full journey
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Eight integrated services  from design to AI  delivered by a single team with no hand-offs.
+                  Design, hosting, marketing, and automation handled together so you are not chasing five vendors.
                 </p>
               </div>
             </div>
@@ -190,10 +191,10 @@ export default function BentoFeatures() {
               </div>
               <div className="flex flex-col gap-1 p-8 border-t border-border">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Enterprise-grade tech stack
+                  Tools that work together
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Domains, hosting, email, SSL, SEO, analytics, and AI  all connected and running in perfect harmony so your business never skips a beat.
+                  Domains, hosting, email, security, SEO, and analytics connected so your site and marketing stay in sync.
                 </p>
               </div>
             </div>
@@ -211,10 +212,10 @@ export default function BentoFeatures() {
               <PricingVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Transparent, all-inclusive pricing
+                  Pricing you can understand
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Fixed monthly packages with no hidden setup fees, no surprise invoices  just clear pricing that scales with you.
+                  Clear monthly packages. Paying is simple. Scale up or pause when your needs change.
                 </p>
               </div>
             </div>
@@ -232,10 +233,10 @@ export default function BentoFeatures() {
               <OwnershipVisual />
               <div className="flex flex-col gap-1 p-8 border-t border-border">
                 <h3 className="text-xl font-semibold text-foreground">
-                  You own it all, always
+                  You keep what we build
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  Your domain, source code, and data are yours the day we hand them over  no lock-in, no hostage assets, ever.
+                  Your domain, code, and data stay yours. Leave when you want without losing your assets.
                 </p>
               </div>
             </div>
@@ -256,7 +257,7 @@ export default function BentoFeatures() {
                   Results in 30 days, guaranteed
                 </h3>
                 <p className="text-base font-normal text-muted-foreground">
-                  We commit to a clear delivery timeline  brand, website, and first marketing wins within your first month.
+                  We set a clear first-month plan. If marketing progress is missing, we keep working at no extra charge until it shows.
                 </p>
               </div>
             </div>

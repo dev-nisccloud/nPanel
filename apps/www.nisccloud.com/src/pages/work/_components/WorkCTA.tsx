@@ -15,15 +15,15 @@ export default function WorkCTA() {
           transition={{ duration: 0.6 }}
         >
           <p className="text-sm font-bold text-primary tracking-widest uppercase mb-4">
-            Your Business Could Be Next
+            Ready to Start?
           </p>
           <h2 className="text-4xl md:text-5xl font-bold mb-5 text-balance">
-            Ready to Write Your{" "}
-            <span className="text-primary">Success Story?</span>
+            Let{"'"}s Plan Your{" "}
+            <span className="text-primary">Next Step</span>
           </h2>
           <p className="text-lg text-muted-foreground mb-8 text-balance">
-            Book a free strategy call and let{"'"}s map out exactly what your
-            growth looks like with the Atom Approach.
+            Book a free strategy call and we will map clear hosting and marketing
+            next steps for your business.
           </p>
           <Button
             size="lg"

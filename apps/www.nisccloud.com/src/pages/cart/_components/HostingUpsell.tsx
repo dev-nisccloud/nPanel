@@ -117,7 +117,7 @@ const FALLBACK_FEATURES: Record<HostingUpsellType, FeatureRow[]> = {
     { label: "Websites", value: "Up to 3" },
     { label: "SSD storage", value: "20 GB" },
     { label: "SSL certificate", value: null },
-    { label: "Uptime guarantee", value: "99.9%" },
+    { label: "Uptime target", value: "99.99%" },
   ],
   wordpress_hosting: [
     { label: "WordPress pre-installed", value: null },

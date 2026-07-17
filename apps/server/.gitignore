@@ -50,6 +50,10 @@ lerna-debug.log*
 # local db
 *.db*
 
+# KRA eTIMS certification raw dumps
+.etims-certification/
+
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

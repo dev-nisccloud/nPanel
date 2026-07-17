@@ -1,0 +1,11 @@
+{
+  "title": "Digital Marketing",
+  "icon": "Megaphone",
+  "pages": [
+    "index",
+    "email-marketing",
+    "seo-reports",
+    "ad-campaigns",
+    "creative-assets"
+  ]
+}

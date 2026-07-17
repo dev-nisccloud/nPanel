@@ -93,16 +93,8 @@ export default function MarketplacePage() {
 
           <div className="relative">
             <div>
-              <img
-                src="/nisclogooriginal.png"
-                alt="Nisc Cloud"
-                className="mb-2 h-8 w-auto opacity-80"
-              />
-              <span className="text-xs font-semibold uppercase tracking-widest text-primary">
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
                 Marketplace
-              </span>
-              <h1 className="mt-0.5 text-2xl font-bold tracking-tight md:text-3xl">
-                Nisc Cloud
               </h1>
               <p className="mt-2 max-w-lg text-muted-foreground">
                 Explore and subscribe to premium services: hosting, email, AI tools, marketing and

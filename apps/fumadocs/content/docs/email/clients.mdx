@@ -1,22 +1,90 @@
 ---
-title: Mail clients
-description: Connect Outlook, Apple Mail, and other clients.
+title: Email clients
+description: Connect business email to your phone, Outlook, Apple Mail, and Thunderbird using IMAP and SMTP.
 ---
 
-## Typical settings
+Use this guide to read Nisc Cloud business email in **Outlook**, **Apple Mail**, **Gmail app**, or **Android mail** using **IMAP** (sync folders) and **SMTP** (send mail).
 
-Use the hostnames shown in nPanel for your account. Placeholder values:
+---
 
-| Setting | Value |
-|---------|--------|
-| Incoming (IMAP) | `mail.yourdomain.com`, port **993** (SSL) |
-| Incoming (POP3) | `mail.yourdomain.com`, port **995** (SSL) |
-| Outgoing (SMTP) | `mail.yourdomain.com`, port **465** or **587** |
-| Username | Full email address |
-| Password | Mailbox password |
+## Get server settings from the dashboard
 
-## Tips
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Emails** → your email plan.
+3. Find **Mail settings**, **Client configuration**, or **Manual settings**.
+4. Write down:
 
-- Prefer IMAP so mail stays synced across devices
-- Enable SSL/TLS for all connections
-- If send/receive fails, re-check DNS and firewalls
+| Setting | Typical value |
+|---------|----------------|
+| **Incoming (IMAP) server** | e.g. `mail.yourdomain.com` or hostname shown |
+| **IMAP port** | `993` with SSL/TLS |
+| **Outgoing (SMTP) server** | same or `smtp.yourdomain.com` |
+| **SMTP port** | `465` SSL or `587` STARTTLS |
+| **Username** | full email `you@yourdomain.com` |
+| **Password** | mailbox password |
+
+Use **exact** values from your dashboard — hostnames vary by plan.
+
+---
+
+## iPhone or iPad (Apple Mail)
+
+1. Open **Settings → Mail → Accounts → Add Account**.
+2. Choose **Other → Add Mail Account**.
+3. Enter name, email, password, description → **Next**.
+4. Select **IMAP**.
+5. **Incoming mail server:** IMAP hostname, username (full email), password.
+6. **Outgoing mail server:** SMTP hostname, same username and password.
+7. Save and wait for verification checkmarks.
+
+---
+
+## Android
+
+1. Open **Gmail** or **Email** app → **Add account**.
+2. Choose **Other** or **Personal (IMAP)**.
+3. Enter email and password.
+4. When asked for server settings, enter IMAP and SMTP from dashboard.
+5. Enable **SSL/TLS** for both incoming and outgoing.
+
+---
+
+## Microsoft Outlook (desktop)
+
+1. **File → Add account**.
+2. Enter email address → **Connect**.
+3. If automatic setup fails, choose **Advanced** or **Manual setup**.
+4. Select **IMAP**.
+5. Enter incoming and outgoing servers and ports from dashboard.
+6. Enable **SSL/TLS** encryption.
+7. Finish and test send/receive.
+
+---
+
+## Thunderbird
+
+1. **Account Settings → Account Actions → Add Mail Account**.
+2. Enter name, email, password.
+3. Click **Configure manually** if auto-detect fails.
+4. Set IMAP and SMTP servers, ports, SSL.
+5. Create account.
+
+---
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Can receive but not send | Check SMTP port 587/465, authentication on, same username |
+| Certificate warning | Ensure [SSL](/docs/ssl) covers mail hostname |
+| Login failed | Reset password in [mailbox setup](/docs/email/setup) |
+| No mail at all | Verify [MX DNS](/docs/email/dns-records), wait 24h propagation |
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Webmail" href="/docs/email/webmail" description="Browser access without apps." />
+  <Card title="Email DNS" href="/docs/email/dns-records" description="MX and SPF for delivery." />
+</Cards>

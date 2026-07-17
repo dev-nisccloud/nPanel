@@ -1,18 +1,81 @@
 ---
 title: Dedicated servers
-description: Bare-metal servers for maximum performance and control.
+description: Order and manage bare-metal dedicated servers for maximum performance and control.
 ---
 
-Dedicated servers provide exclusive hardware for workloads that need consistent performance or specialized configs.
+**Dedicated servers** are **physical machines** reserved for you alone — no other customer shares the CPU, RAM, or disks. Use them for high-traffic sites, large databases, game servers, or strict compliance needs.
 
-## When to choose dedicated
+---
 
-- High CPU / RAM / disk requirements
-- Compliance or isolation needs
-- Large databases or media platforms
+## Order a dedicated server
 
-## Onboarding
+1. Go to [nisccloud.com](https://www.nisccloud.com) → **Dedicated servers**.
+2. Review hardware specs (CPU model, RAM, RAID storage, bandwidth).
+3. Choose managed vs unmanaged if offered:
+   - **Unmanaged** — you administer OS and software.
+   - **Managed** — Nisc Cloud helps with OS updates and monitoring (plan dependent).
+4. Select OS or request custom setup if sales-assisted.
+5. Checkout — dedicated provisioning may take longer than VPS (hours to days).
 
-After order confirmation, you receive access details (IP, credentials or IPMI info as applicable). Use nPanel for billing, tickets, and reboots where available.
+Contact sales on the website for custom configurations if standard plans do not fit.
 
-Contact support for custom networking, RAID, or OS reinstalls.
+---
+
+## Open dedicated server in dashboard
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Cloud Servers → Dedicated**.
+3. Click your server.
+
+View primary **IP addresses**, power status, and access details. Some actions (OS reinstall, IPMI) may require support ticket depending on plan.
+
+---
+
+## Access your server
+
+**SSH** (Linux):
+
+```bash
+ssh root@YOUR_DEDICATED_IP
+```
+
+**Remote desktop** (Windows Server): use RDP with IP and credentials from the dashboard or welcome email.
+
+Store credentials securely. Change default passwords on first login.
+
+---
+
+## Networking and domains
+
+1. Assign primary website domain via **A record** in **Domains → DNS** pointing to dedicated IP.
+2. Configure additional IPs if your plan includes multiple addresses.
+3. Set up [SSL](/docs/ssl/install) on the server or load balancer.
+
+---
+
+## Maintenance and responsibility
+
+On **unmanaged** dedicated servers you are responsible for:
+
+- OS patches and security
+- Firewall and fail2ban
+- Application backups
+- Monitoring uptime
+
+Use **Backup** strategies at OS level or order backup services if available.
+
+---
+
+## Billing
+
+Dedicated servers usually bill monthly or annually. Track **Subscriptions** and pay **Invoices** on time — hardware may be reclaimed after extended non-payment per service terms.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="VDS" href="/docs/hosting/vds" description="Virtual dedicated alternative." />
+  <Card title="VPS" href="/docs/hosting/vps" description="Smaller scale cloud servers." />
+  <Card title="SSL install" href="/docs/ssl/install" description="Secure your sites." />
+</Cards>

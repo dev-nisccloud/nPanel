@@ -1,0 +1,93 @@
+---
+title: Email DNS records
+description: Configure MX, SPF, and DKIM DNS records so business email sends and receives reliably.
+---
+
+Email depends on correct **DNS records** on your domain. Without them, messages bounce, land in spam, or never arrive.
+
+---
+
+## Where to edit DNS
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Domains → My Domains → [your domain] → DNS**.
+
+If email uses hosting DNS zone instead, edit **Hosting → [site] → DNS** — use one authoritative place, not conflicting duplicates.
+
+---
+
+## Get required values
+
+1. Click **Emails** → your email plan.
+2. Open **DNS settings**, **Domain setup**, or similar.
+3. Copy **MX hostnames and priorities**, **SPF TXT**, and **DKIM** records listed.
+
+---
+
+## Add MX records
+
+MX tells the world which servers receive mail for `@yourdomain.com`.
+
+1. On domain **DNS**, click **Add record**.
+2. Type: **MX**
+3. Name: `@`
+4. Priority: number from email plan (e.g. `10`)
+5. Value: mail server hostname (e.g. `mail.yourdomain.com`)
+6. Save.
+7. Add second MX with higher priority number if your plan lists a backup server.
+
+Remove old MX records pointing to previous email host to avoid split delivery.
+
+---
+
+## Add SPF (TXT record)
+
+SPF authorizes which servers may send mail for your domain.
+
+1. Add **TXT** record.
+2. Name: `@`
+3. Value: paste SPF string from **Emails** plan (starts with `v=spf1`).
+4. Save.
+
+Only one SPF TXT record per domain — merge includes if migrating.
+
+---
+
+## Add DKIM (TXT record)
+
+DKIM cryptographically signs outgoing mail.
+
+1. Email plan provides DKIM **selector** and **public key**.
+2. Add **TXT** record with **Name** like `selector._domainkey` (exact name from dashboard).
+3. **Value:** paste DKIM key string.
+4. Save.
+
+---
+
+## Optional: DMARC
+
+After SPF and DKIM work, add DMARC TXT at `_dmarc`:
+
+```
+v=DMARC1; p=none; rua=mailto:you@yourdomain.com
+```
+
+Start with `p=none` to monitor; tighten policy later with help from support.
+
+---
+
+## Verify and wait
+
+1. Use dashboard **Verify DNS** button if available on email plan.
+2. Send test from webmail to Gmail — check headers for SPF/DKIM pass.
+3. Allow **24–48 hours** for global DNS propagation.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="DNS records" href="/docs/domains/dns" description="General DNS editing." />
+  <Card title="Set up mailboxes" href="/docs/email/setup" description="Create users after DNS." />
+  <Card title="Email clients" href="/docs/email/clients" description="Connect phone and Outlook." />
+</Cards>

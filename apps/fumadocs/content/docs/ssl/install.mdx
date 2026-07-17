@@ -1,0 +1,106 @@
+---
+title: Install SSL on a server
+description: Install SSL certificates on VPS, VDS, or dedicated servers using LetNisc Cloud's Encrypt or purchased certs.
+---
+
+On **VPS**, **VDS**, and **dedicated** servers you manage the operating system yourself. You install SSL at the web server (Nginx or Apache) using **LetNisc Cloud's Encrypt** (free) or a **purchased certificate** from Nisc Cloud.
+
+---
+
+## Prerequisites
+
+1. Domain **A record** points to server public IP (**Domains → DNS**).
+2. Ports **80** and **443** open in firewall.
+3. Web server installed and serving site on HTTP.
+
+---
+
+## LetNisc Cloud's Encrypt with Certbot (Ubuntu + Nginx example)
+
+SSH into your server:
+
+```bash
+ssh root@YOUR_SERVER_IP
+```
+
+Install Certbot:
+
+```bash
+apt update
+apt install certbot python3-certbot-nginx
+```
+
+Obtain and install certificate:
+
+```bash
+certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+1. Enter email for expiry notices.
+2. Agree to terms.
+3. Choose redirect HTTP to HTTPS when asked.
+
+Certbot configures Nginx and sets auto-renewal timer.
+
+**Test renewal:**
+
+```bash
+certbot renew --dry-run
+```
+
+---
+
+## LetNisc Cloud's Encrypt with Apache
+
+```bash
+apt install certbot python3-certbot-apache
+certbot --apache -d yourdomain.com -d www.yourdomain.com
+```
+
+---
+
+## Install purchased SSL certificate
+
+If you bought SSL from Nisc Cloud:
+
+1. Pay invoice and open SSL product in dashboard or download files from email.
+2. You receive **certificate (.crt)**, **private key (.key)**, and **CA bundle / chain**.
+3. Upload files to server (e.g. `/etc/ssl/yourdomain/`).
+4. Configure web server:
+
+**Nginx** — edit site config:
+
+```nginx
+ssl_certificate /etc/ssl/yourdomain/certificate.crt;
+ssl_certificate_key /etc/ssl/yourdomain/private.key;
+ssl_trusted_certificate /etc/ssl/yourdomain/ca-bundle.crt;
+```
+
+5. Reload Nginx: `nginx -t && systemctl reload nginx`.
+
+**Apache** — use `SSLEngine on`, `SSLCertificateFile`, `SSLCertificateKeyFile`, `SSLCertificateChainFile` in virtual host.
+
+---
+
+## Verify installation
+
+1. Visit `https://yourdomain.com`.
+2. Check padlock — no certificate warnings.
+3. Use SSL Labs test online for grade (optional).
+
+---
+
+## Renewal
+
+- **LetNisc Cloud's Encrypt:** auto-renew via certbot timer; keep port 80 open for HTTP-01 challenge.
+- **Purchased:** renew before expiry via **Billing**, install new cert files, reload web server.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="VPS" href="/docs/hosting/vps" description="Server access and basics." />
+  <Card title="Enable SSL on hosting" href="/docs/ssl/enable" description="Shared hosting one-click SSL." />
+  <Card title="DNS A record" href="/docs/domains/dns" description="Point domain to server." />
+</Cards>

@@ -1,11 +1,14 @@
 import { motion } from "motion/react";
 import { Check, Search, TrendingUp, Share2, Mail } from "lucide-react";
+import ServiceStatistics, {
+  trustStatsToStatisticsItems,
+} from "@/components/shadcn-space/blocks/statistics-02/statistics.tsx";
 
 const features = [
-  { icon: Search, title: "SEO & Content", desc: "Technical audits, keyword strategy, link building, and content that dominates search rankings." },
-  { icon: TrendingUp, title: "Paid Media", desc: "AI-optimized campaigns across Google, Meta, TikTok, and LinkedIn to maximize your ROAS." },
-  { icon: Share2, title: "Social Media", desc: "End-to-end management: strategy, design, posting, and community engagement across all platforms." },
-  { icon: Mail, title: "Email Marketing", desc: "Automated sequences, broadcast campaigns, and A/B testing to turn subscribers into buyers." },
+  { icon: Search, title: "SEO & Content", desc: "Technical audits, keyword strategy, and content that help people find you on Google, Maps, and AI answers." },
+  { icon: TrendingUp, title: "Paid Media", desc: "Campaigns across Google, Meta, TikTok, and LinkedIn managed for leads and sales, with clear reporting." },
+  { icon: Share2, title: "Social Media", desc: "Strategy, design, posting, and community replies across the platforms your customers use." },
+  { icon: Mail, title: "Email Marketing", desc: "Automated sequences, broadcast campaigns, and testing to turn subscribers into buyers." },
 ];
 
 const included = [
@@ -18,9 +21,9 @@ const included = [
 ];
 
 const metrics = [
-  { value: "3.8×", label: "Average ROAS" },
-  { value: "+247%", label: "Organic traffic" },
-  { value: "4.2%", label: "Email open rate avg." },
+  { value: "100+", label: "Clients we support" },
+  { value: "24/7", label: "Support available" },
+  { value: "30 days", label: "Results promise" },
 ];
 
 export default function MarketDetail() {
@@ -39,10 +42,10 @@ export default function MarketDetail() {
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Full-Stack Growth.<br />
-              <span style={{ color: "oklch(0.70 0.22 240)" }}>Data-Driven Results.</span>
+              <span style={{ color: "oklch(0.70 0.22 240)" }}>Clear Reporting.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              We don't run campaigns in silos. Every channel - SEO, paid ads, social, email - feeds into one unified growth strategy with a single ROI goal.
+              We do not run channels in isolation. SEO, paid ads, social, and email feed one growth plan, with reporting you can understand and a 30-day results promise on active work.
             </p>
             <ul className="grid grid-cols-2 gap-2 mb-8">
               {included.map((item) => (
@@ -52,15 +55,14 @@ export default function MarketDetail() {
                 </li>
               ))}
             </ul>
-            {/* Metrics row */}
-            <div className="flex gap-6 border-t border-border/40 pt-6">
-              {metrics.map((m) => (
-                <div key={m.label}>
-                  <div className="text-2xl font-bold" style={{ color: "oklch(0.70 0.22 240)" }}>{m.value}</div>
-                  <div className="text-xs text-muted-foreground">{m.label}</div>
-                </div>
-              ))}
-            </div>
+            <ServiceStatistics
+              embedded
+              compact
+              className="pt-6"
+              items={trustStatsToStatisticsItems(
+                metrics.map((m) => ({ label: m.label, value: m.value })),
+              )}
+            />
           </motion.div>
 
           <motion.div
@@ -77,8 +79,8 @@ export default function MarketDetail() {
             />
             <div className="absolute inset-0 bg-gradient-to-tr from-background/80 via-transparent to-transparent" />
             <div className="absolute bottom-6 right-6 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-5 py-3">
-              <div className="text-2xl font-bold" style={{ color: "oklch(0.70 0.22 240)" }}>+247%</div>
-              <div className="text-xs text-muted-foreground">Avg. organic traffic growth</div>
+              <div className="text-2xl font-bold" style={{ color: "oklch(0.70 0.22 240)" }}>30 days</div>
+              <div className="text-xs text-muted-foreground">Results promise on active work</div>
             </div>
           </motion.div>
         </div>

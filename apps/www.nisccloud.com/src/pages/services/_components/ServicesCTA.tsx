@@ -19,10 +19,10 @@ export default function ServicesCTA() {
             READY TO START?
           </div>
           <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-            Pick Your Orbit.
+            Tell Us What You Need.
           </h2>
           <p className="text-muted-foreground text-lg mb-8">
-            Need all four pillars or just one? We'll build a custom package around your goals. Book a free strategy call and let's map your path to orbit.
+            Need all four pillars or just one? We will build a package around your goals. Book a free strategy call and we will map a clear next step together.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button

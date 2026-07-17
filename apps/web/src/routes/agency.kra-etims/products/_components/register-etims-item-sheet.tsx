@@ -35,18 +35,19 @@ const formSchema = z.object({
   taxTyCd: z.enum(["A", "B", "C", "D", "E"]).default("B"),
   dftPrc: z.coerce.number().min(0, "Price must be >= 0").default(0),
 
-  // KRA itemCd format: {orgnNatCd(2)}{itemTyCd(1)}{pkgUnitCd(2)}X{qtyUnitCd(1-2)}[X]{seq(7)}
-  // Examples from existing KRA items: KE3OUXGRO0000001, KE3OUXNOX0000001, KE3OUXU0000001
+  // Official KRA itemCd (OSCU §4.19): {orgnNatCd}{itemTyCd}{pkgUnitCd}{qtyUnitCd}{seq7}
+  // Example: KE2NTBA0000012 — do NOT insert X between pkg and qty (Apigee rejects "XU").
   itemCd: z.string()
     .min(1, "Item code is required")
     .regex(
-      /^[A-Z]{2}\d[A-Z]{2}X[A-Z0-9]+\d{7}$/,
+      /^[A-Z]{2}\d[A-Z0-9]+\d{7}$/,
       "Invalid itemCd format. Use the Generate button to create a valid code."
     ),
   itemStdNm: z.string().nullable().optional(),
   orgnNatCd: z.string().length(2).default("KE"),
   pkgUnitCd: z.string().min(1).default("OU"),
-  qtyUnitCd: z.string().min(1).default("U"),
+  // Apigee rejects 1-char qty units in itemCd ("U"); prefer 2-char codes like NO.
+  qtyUnitCd: z.string().min(1).default("NO"),
   btchNo: z.string().nullable().optional(),
   bcd: z.string().nullable().optional(),
   addInfo: z.string().nullable().optional(),
@@ -236,8 +237,8 @@ export function RegisterETimsItemSheet({
     const qtyUnitCd = form.getValues("qtyUnitCd");
     // For npanel we register services only.
     const itemTyCd = "3";
-    const qtySuffix = qtyUnitCd.length === 2 ? `${qtyUnitCd}X` : qtyUnitCd;
-    const prefix = `${orgnNatCd}${itemTyCd}${pkgUnitCd}X${qtySuffix}`;
+    // Official format: Country + Type + Pkg + Qty + Seq7 (no X separator)
+    const prefix = `${orgnNatCd}${itemTyCd}${pkgUnitCd}${qtyUnitCd}`;
 
     let maxSeq = 0;
     for (const it of kraItemList) {

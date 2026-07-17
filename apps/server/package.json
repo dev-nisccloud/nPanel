@@ -21,7 +21,8 @@
     "seed:planless-services": "bun run src/scripts/seed-planless-services.ts",
     "migrate:planless-product-ids": "bun run src/scripts/migrate-planless-product-ids.ts",
     "migrate:web-hosting-product-ids": "bun run src/scripts/migrate-web-hosting-product-ids.ts",
-    "migrate:wordpress-hosting-product-ids": "bun run src/scripts/migrate-wordpress-hosting-product-ids.ts"
+    "migrate:wordpress-hosting-product-ids": "bun run src/scripts/migrate-wordpress-hosting-product-ids.ts",
+    "etims:certification": "bun run src/scripts/kra-etims-certification-test.ts"
   },
   "dependencies": {
     "@hono/trpc-server": "^0.4.0",

@@ -1,36 +1,130 @@
 ---
 title: Getting started
-description: Create your Nisc Cloud account and launch your first service.
-icon: Rocket
+description: Create your account, sign in to the dashboard, and understand how ordering and management work together.
 ---
 
-Get up and running on Nisc Cloud in a few steps.
+This guide explains how to go from browsing [nisccloud.com](https://www.nisccloud.com) to managing your services inside the customer dashboard.
 
-## 1. Create an account
+## What you need before you start
 
-1. Go to [nisccloud.com](https://nisccloud.com) and sign up.
-2. Verify your email address.
-3. Sign in to [nPanel](https://npanel.nisccloud.com).
+- A valid email address you can access (used for login and invoices)
+- A phone number (helpful for account recovery and M-Pesa payments in Kenya)
+- For domain registration: accurate contact details for WHOIS (the public registry record for your domain)
 
-## 2. Choose a service
+You do **not** need technical experience. The dashboard is built so you can register a domain, buy hosting, and set up email by following the menus.
 
-From nPanel you can order:
+---
 
-| Service | Typical use |
-|---------|-------------|
-| WordPress Hosting | Blogs, business sites, WooCommerce |
-| Shared / Website Hosting | General websites and apps |
-| Domains | Registration, transfer, DNS |
-| VPS / VDS | Custom stacks and higher control |
-| Business Email | Professional `@yourdomain` mail |
-| SSL | HTTPS for your sites |
+## Step 1: Browse services on the website
 
-## 3. Complete checkout
+1. Open [www.nisccloud.com](https://www.nisccloud.com).
+2. Use the top navigation to explore what you need:
+   - **Hosting** — shared, WordPress, VPS, VDS, dedicated servers
+   - **Domains** — search and register, or transfer an existing domain
+   - **Email** — business email on your domain
+   - **Digital marketing** — SEO, ads, email marketing, and more
+3. When you find a plan or product, click **Get started**, **Order**, or **Add to cart** (the exact button depends on the page).
 
-Follow the order flow, choose a plan and billing cycle, then complete payment. Your service appears in nPanel once provisioning finishes.
+You can order multiple items in one checkout (for example, a domain plus shared hosting plus email).
 
-## Next steps
+---
 
-- [WordPress Hosting](/docs/wordpress)
-- [Register a domain](/docs/domains/register)
-- [Using nPanel](/docs/npanel)
+## Step 2: Create an account or sign in at checkout
+
+When you checkout, you will be asked to sign in or create an account:
+
+1. If you **already have an account**, enter your email and password and continue.
+2. If you are **new**, follow the sign-up form:
+   - Enter your name and email
+   - Choose a strong password
+   - Complete any verification steps (such as confirming your email)
+
+After payment succeeds, Nisc Cloud provisions your services. This can take a few minutes for hosting and email, and up to 24–48 hours for some domain or DNS changes worldwide.
+
+---
+
+## Step 3: Open your customer dashboard
+
+Your dashboard is where you manage everything after you buy:
+
+1. Go to [https://npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Sign in with the same email and password you used at checkout.
+3. If you belong to more than one company or team, pick the correct one from the list after login.
+4. You land on **Home** — the main dashboard screen.
+
+The **left sidebar** is your map. It is grouped into sections:
+
+| Sidebar section | What it is for |
+|-----------------|----------------|
+| **Cloud Services** | Domains, hosting, WordPress, email, cloud servers |
+| **Digital Marketing** | Ads, email marketing, SEO, creatives |
+| **Gen AI Tools** | Zeepo AI Agent |
+| **Billing** | Invoices and subscriptions |
+| **Account Settings** | Your profile and company settings |
+| **More Services** | Marketplace |
+
+See [Navigation in the dashboard](/docs/npanel/navigation) for a full menu-by-menu walkthrough.
+
+---
+
+## Step 4: Confirm your order appeared
+
+After your first purchase, check that services show up:
+
+**Domains**
+
+1. In the left sidebar, click **Domains**.
+2. Click **My Domains**.
+3. You should see your registered or transferred domain listed.
+
+**Hosting**
+
+1. Click **Hosting** in the sidebar.
+2. You should see your hosting package or site listed. Click it to open **Overview**, **File Manager**, **DNS**, and other tabs.
+
+**Email**
+
+1. Click **Emails** in the sidebar.
+2. Open your email plan to create mailboxes and view webmail settings.
+
+**Invoices**
+
+1. Click **Invoices** under **Billing**.
+2. Open the latest invoice to confirm amount paid and renewal dates.
+
+---
+
+## Step 5: Complete first-time setup tasks
+
+Depending on what you bought, do these next:
+
+| You bought | Do this next |
+|------------|--------------|
+| Domain only | [Point DNS or nameservers](/docs/domains/dns) to your website or hosting |
+| Domain + hosting | Open hosting **Overview** and note nameservers or use **DNS** tab to connect the domain |
+| Business email | [Create mailboxes](/docs/email/setup) and [set up your phone or Outlook](/docs/email/clients) |
+| WordPress hosting | [Install or open WordPress](/docs/wordpress/install) from the hosting or WordPress menu |
+| VPS / VDS / dedicated | Open **Cloud Servers** in the sidebar and follow the server overview for access details |
+
+---
+
+## Paying with M-Pesa or card
+
+Kenyan customers can often pay with **M-Pesa** during checkout. Card payments may also be available depending on the product.
+
+1. At checkout on nisccloud.com, choose your payment method.
+2. For M-Pesa, approve the STK push on your phone when prompted.
+3. After payment, return to the dashboard and check **Billing → Invoices** for a paid receipt.
+
+Future renewals may appear under **Billing → Subscriptions**. See [Billing overview](/docs/billing) for paying invoices and managing renewals.
+
+---
+
+## Where to go next
+
+<Cards>
+  <Card title="Sign in and access" href="/docs/npanel/sign-in" description="Detailed sign-in and team selection steps." />
+  <Card title="Dashboard home" href="/docs/npanel/home" description="What the Home screen shows and how to use it." />
+  <Card title="Register a domain" href="/docs/domains/register" description="Search and register from the dashboard or website." />
+  <Card title="Manage hosting" href="/docs/hosting/manage-hosting" description="File Manager, databases, backups, and DNS on hosting." />
+</Cards>

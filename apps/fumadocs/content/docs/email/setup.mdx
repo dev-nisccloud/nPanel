@@ -1,16 +1,73 @@
 ---
-title: Set up email
-description: Create mailboxes and configure DNS for Business Email.
+title: Set up mailboxes
+description: Create business email accounts and passwords in the customer dashboard.
+---
+
+This guide shows how to **create mailboxes** (email accounts) on your domain after you have ordered business email from Nisc Cloud.
+
+---
+
+## Before you create mailboxes
+
+1. Your **email plan** is active under **Emails** in the dashboard.
+2. Your **domain** points mail to Nisc Cloud via [DNS MX records](/docs/email/dns-records) — some setups configure this automatically.
+
 ---
 
 ## Create a mailbox
 
-1. In nPanel, open your **Business Email** service.
-2. Create a mailbox (e.g. `info@example.com`).
-3. Set a strong password and optional forwarding.
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Emails** in the sidebar.
+3. Click your **email plan** (often named after your domain).
+4. Look for **Create mailbox**, **Add account**, or **Mailboxes**.
+5. Enter:
+   - **Username** — part before `@` (e.g. `info`, `sales`, `yourname`)
+   - **Password** — strong password (save it securely)
+   - **Display name** — how recipients see you (optional)
+   - **Storage quota** — if plan allows per-user limits
+6. Click **Create** or **Save**.
+7. Full address is `username@yourdomain.com`.
 
-## DNS records
+Repeat for each employee or role (`support@`, `accounts@`, etc.) within your planNisc Cloud's mailbox limit.
 
-Your domain needs the correct **MX** (and usually SPF/DKIM **TXT**) records. nPanel shows the exact values for your plan. Add them in [DNS management](/docs/domains/dns).
+---
 
-Wait for DNS propagation before testing delivery.
+## Reset a mailbox password
+
+1. Open **Emails → [your plan] → Mailboxes**.
+2. Select the user → **Change password** or **Reset**.
+3. Enter new password twice and save.
+4. Update password on phones and Outlook if already configured.
+
+---
+
+## Forwarding and aliases (if available)
+
+Some plans support **forwarders** (send copy to Gmail) or **aliases** (multiple names, one inbox):
+
+1. On the email plan page, open **Forwarders** or **Aliases**.
+2. Add source address and destination.
+3. Save.
+
+Exact options depend on your product tier.
+
+---
+
+## Test sending and receiving
+
+1. Configure [DNS](/docs/email/dns-records) if not done.
+2. Open [Webmail](/docs/email/webmail) and log in as the new user.
+3. Send a test email to a personal Gmail address.
+4. Reply from Gmail to confirm inbound mail works.
+
+If mail fails, wait for DNS propagation (up to 24–48 hours) and verify MX records.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Email DNS" href="/docs/email/dns-records" description="MX and SPF records." />
+  <Card title="Email clients" href="/docs/email/clients" description="Phone and desktop setup." />
+  <Card title="Webmail" href="/docs/email/webmail" description="Browser access." />
+</Cards>

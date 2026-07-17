@@ -5,11 +5,11 @@ import { useNavigate } from "react-router-dom";
 
 const perks = [
   "No long-term contracts",
-  "Dedicated account manager",
+  "A real person who owns your account",
   "Results in 30 days or we keep working",
-  "M-Pesa, Visa & Mastercard accepted",
-  "All services under one roof",
-  "Kenya-based support team",
+  "Simple checkout and billing",
+  "Hosting and marketing under one team",
+  "24/7 support when you need help",
 ];
 
 export default function ClosingCTA() {
@@ -32,17 +32,17 @@ export default function ClosingCTA() {
           transition={{ duration: 0.55 }}
         >
           <div className="inline-flex items-center gap-2 bg-white/15 border border-white/25 rounded-full px-4 py-1.5 text-xs text-white font-mono mb-6">
-            READY TO GROW YOUR BUSINESS?
+            READY TO GROW?
           </div>
 
           <h2 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] mb-6 text-balance text-white">
-            Join 500+ Businesses
+            Join 100+ Businesses
             <br />
-            That Trust Nisc Cloud
+            Growing With Us
           </h2>
 
           <p className="text-lg text-white/80 mb-10 max-w-xl mx-auto">
-            We create your brand, take it online, make it grow, and automate it - all under one roof, one team, one invoice.
+            Get online, stay online, and grow with clear hosting and marketing under one team.
           </p>
 
           {/* Perks */}

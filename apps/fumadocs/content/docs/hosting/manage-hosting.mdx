@@ -1,0 +1,139 @@
+---
+title: Manage hosting
+description: Step-by-step guide to every hosting tab — Overview, DNS, Mail, File Manager, Subdomains, Databases, WordPress, and Backup.
+---
+
+When you click a site under **Hosting** in the sidebar, you open a **hosting control page** with tabs. This guide walks through **each tab** for shared and WordPress hosting packages.
+
+---
+
+## Open your hosting account
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Hosting** under **Cloud Services**.
+3. Click the **hosting package or domain name** in the list.
+4. Tabs appear at the top of the page.
+
+---
+
+## Overview tab
+
+**Purpose:** Summary of the account — plan name, primary domain, disk usage, nameservers, IP address, and quick status.
+
+**What to do:**
+
+1. Read **nameservers** — copy them to your domain under **Domains → Nameservers** if the domain is registered with Nisc Cloud.
+2. Note **IP address** if you use A records instead of nameservers.
+3. Check **disk and bandwidth** usage if displayed.
+4. Find links to webmail or control panel if shown.
+
+---
+
+## DNS tab
+
+**Purpose:** Manage DNS records for sites using this hosting accountNisc Cloud's DNS zone.
+
+**What to do:**
+
+1. Click **DNS**.
+2. Add or edit **A**, **CNAME**, **MX**, **TXT** records like on [domain DNS](/docs/domains/dns).
+3. Use for subdomains (`blog`, `shop`) pointing to this hosting.
+
+If your domain uses nameservers elsewhere, this tab may not affect public DNS — edit at the nameserver provider instead.
+
+---
+
+## Mail tab
+
+**Purpose:** Email settings tied to this hosting package — create mailboxes, forwarders, or webmail links when email is bundled with hosting.
+
+**What to do:**
+
+1. Click **Mail**.
+2. Create mailbox username and password if the interface allows.
+3. Open webmail URL or configure clients using server hostname from this tab.
+
+For standalone **business email** products, use **Emails** in the sidebar instead. See [Business email](/docs/email).
+
+---
+
+## File Manager tab
+
+**Purpose:** Upload, edit, and delete website files in your hosting space (like `public_html`).
+
+**Upload your site:**
+
+1. Click **File Manager**.
+2. Open the web root folder (often `public_html` or `www`).
+3. Click **Upload** and select HTML, PHP, or WordPress files.
+4. Wait for upload to complete.
+
+**Edit a file:**
+
+1. Right-click or select a file → **Edit**.
+2. Change code or text, save.
+
+**Permissions:** Leave default permissions unless a CMS install guide says otherwise.
+
+For WordPress, prefer **WordPress** tab one-click install instead of manual upload when available.
+
+---
+
+## Subdomains tab
+
+**Purpose:** Create addresses like `blog.yourdomain.com`.
+
+1. Click **Subdomains**.
+2. Enter subdomain name (e.g. `blog`).
+3. Choose document root folder if asked.
+4. Save.
+5. Add DNS A or CNAME if not automatic — see **DNS** tab.
+
+---
+
+## Databases tab
+
+**Purpose:** Create **MySQL** or **MariaDB** databases for WordPress, Laravel, etc.
+
+1. Click **Databases**.
+2. Click **Create database** — note database name.
+3. Create a **database user** and strong password.
+4. Assign user to database with **All privileges**.
+5. Use these credentials in your app config (WordPress `wp-config.php`, etc.).
+
+---
+
+## WordPress tab
+
+**Purpose:** Install or manage WordPress on this hosting account.
+
+1. Click **WordPress**.
+2. Choose **Install** or select existing installation.
+3. Pick domain/subdomain, admin username, password, and email.
+4. Start install and wait for completion.
+5. Open site URL and `/wp-admin` to log in.
+
+More detail: [Install WordPress](/docs/wordpress/install) and [Manage WordPress](/docs/wordpress/manage).
+
+---
+
+## Backup tab
+
+**Purpose:** Create or restore backups of files and databases.
+
+1. Click **Backup**.
+2. Click **Create backup** or enable scheduled backups if offered.
+3. Wait for backup job to finish.
+4. To restore, choose a backup point and follow prompts — **restoring overwrites current data**.
+
+See [WordPress backups](/docs/wordpress/backups).
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Shared hosting" href="/docs/hosting/shared" description="Getting started with shared plans." />
+  <Card title="DNS on domains" href="/docs/domains/dns" description="Point your domain here." />
+  <Card title="SSL" href="/docs/ssl" description="Enable HTTPS on this site." />
+</Cards>

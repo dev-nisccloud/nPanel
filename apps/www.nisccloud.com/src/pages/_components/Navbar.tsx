@@ -48,27 +48,27 @@ const navItems: NavItem[] = [
     label: "Cloud Hosting",
     href: "/hosting",
     children: [
-      { label: "Website Hosting", desc: "Fast, reliable shared hosting", href: "/hosting/shared", icon: <Server size={16} /> },
-      { label: "WordPress Hosting", desc: "Optimised WordPress performance", href: "/hosting/wordpress", icon: <Zap size={16} /> },
-      { label: "VPS Hosting", desc: "Virtual private servers with full control", href: "/hosting/vps", icon: <Cpu size={16} /> },
-      { label: "VDS Hosting", desc: "Virtual dedicated server resources", href: "/hosting/vds", icon: <HardDrive size={16} /> },
-      { label: "Dedicated Servers Hosting", desc: "Full dedicated server power", href: "/hosting/dedicated-servers", icon: <TrendingUp size={16} /> },
-      { label: "Business Email Hosting", desc: "Professional email for your brand", href: "/hosting/email", icon: <Mail size={16} /> },
-      { label: "Domain Registration", desc: ".co.ke, .com and 50+ extensions", href: "/hosting/domains", icon: <Globe size={16} /> },
-      { label: "Domain Transfer", desc: "Move your domain to Nisc Cloud", href: "/domain-transfer", icon: <ArrowLeftRight size={16} /> },
+      { label: "Website Hosting", desc: "Simple hosting that stays fast", href: "/hosting/shared", icon: <Server size={16} /> },
+      { label: "WordPress Hosting", desc: "WordPress that loads quickly and stays secure", href: "/hosting/wordpress", icon: <Zap size={16} /> },
+      { label: "VPS Hosting", desc: "Private server power with full control", href: "/hosting/vps", icon: <Cpu size={16} /> },
+      { label: "VDS Hosting", desc: "Dedicated virtual resources when you need more", href: "/hosting/vds", icon: <HardDrive size={16} /> },
+      { label: "Dedicated Servers Hosting", desc: "Whole server, reserved for you", href: "/hosting/dedicated-servers", icon: <TrendingUp size={16} /> },
+      { label: "Business Email Hosting", desc: "Email that uses your own domain", href: "/hosting/email", icon: <Mail size={16} /> },
+      { label: "Domain Registration", desc: ".co.ke, .com and many more endings", href: "/hosting/domains", icon: <Globe size={16} /> },
+      { label: "Domain Transfer", desc: "Move your domain to us with help", href: "/domain-transfer", icon: <ArrowLeftRight size={16} /> },
     ],
   },
   {
     label: "Marketing & Branding",
     href: "/services/marketing",
     children: [
-      { label: "Brand Strategy & Positioning", desc: "Positioning, messaging & brand strategy", href: "/services/brand-identity", icon: <Target size={16} /> },
-      { label: "Social Media Marketing", desc: "Content, scheduling & community management", href: "/services/social-media", icon: <PenTool size={16} /> },
-      { label: "SEO / AEO / GEO", desc: "Rank #1 on Google, AI & Maps", href: "/services/seo", icon: <BarChart2 size={16} /> },
-      { label: "Paid Advertising", desc: "Google, Meta & TikTok campaigns", href: "/services/paid-ads", icon: <Megaphone size={16} /> },
-      { label: "Email Marketing", desc: "Sequences, newsletters & automation", href: "/services/email-marketing", icon: <AtSign size={16} /> },
-      { label: "Website Design", desc: "Custom sites built for conversion", href: "/services/website-design", icon: <MonitorSmartphone size={16} /> },
-      { label: "E-commerce Design", desc: "Full online stores with M-Pesa checkout", href: "/services/ecommerce", icon: <ShoppingCart size={16} /> },
+      { label: "Brand Strategy & Positioning", desc: "Clear message, look, and story", href: "/services/brand-identity", icon: <Target size={16} /> },
+      { label: "Social Media Marketing", desc: "Content and posts that bring people in", href: "/services/social-media", icon: <PenTool size={16} /> },
+      { label: "SEO / AEO / GEO", desc: "Show up on Google, Maps, and AI answers", href: "/services/seo", icon: <BarChart2 size={16} /> },
+      { label: "Paid Advertising", desc: "Google, Meta, and TikTok ads that sell", href: "/services/paid-ads", icon: <Megaphone size={16} /> },
+      { label: "Email Marketing", desc: "Newsletters and follow-ups that convert", href: "/services/email-marketing", icon: <AtSign size={16} /> },
+      { label: "Website Design", desc: "Sites built to win trust and sales", href: "/services/website-design", icon: <MonitorSmartphone size={16} /> },
+      { label: "E-commerce Design", desc: "Online stores that make checkout easy", href: "/services/ecommerce", icon: <ShoppingCart size={16} /> },
     ],
   },
   { label: "Security", href: "/security" },
@@ -119,7 +119,7 @@ function MegaDropdown({
       <div className="border-t border-border bg-muted/30 px-5 py-3 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">Not sure? We'll help you choose.</span>
         <Button size="sm" variant="ghost" className="text-xs h-7 cursor-pointer" onClick={() => { navigate("/contact"); onClose(); }}>
-          Talk to us →
+          Talk to us
         </Button>
       </div>
     </motion.div>

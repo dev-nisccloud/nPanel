@@ -3,13 +3,20 @@
   "pages": [
     "index",
     "getting-started",
-    "---Services---",
-    "wordpress",
+    "---Your dashboard---",
+    "npanel",
+    "billing",
+    "---Cloud services---",
     "domains",
     "hosting",
     "email",
     "ssl",
-    "---Platform---",
-    "npanel"
+    "wordpress",
+    "---Digital marketing---",
+    "marketing",
+    "---AI tools---",
+    "ai",
+    "---More---",
+    "marketplace"
   ]
 }

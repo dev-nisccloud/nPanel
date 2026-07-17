@@ -32,31 +32,31 @@ const services = [
   {
     icon: Server,
     title: "Cloud Hosting",
-    desc: "Enterprise-grade infrastructure with auto-scaling, CDN, DDoS protection, and 99.9% SLA uptime.",
+    desc: "Reliable hosting with auto-scaling, CDN, DDoS protection, and a 99.99% uptime target.",
     tag: "Host",
   },
   {
     icon: ShieldCheck,
     title: "Domains & Email",
-    desc: "Professional domain and business email @yourdomain.co.ke. SSL, daily backups, and security included.",
+    desc: "Your domain and business email @yourdomain. SSL, backups, and security included.",
     tag: "Host",
   },
   {
     icon: Search,
     title: "SEO / AEO / GEO",
-    desc: "Rank #1 on Google, AI search engines, and Google Maps. Technical SEO, content strategy, and local ranking.",
+    desc: "Help people find you on Google, Maps, and AI answers with clear SEO and content work.",
     tag: "Market",
   },
   {
     icon: Megaphone,
     title: "Paid Advertising",
-    desc: "Google, Meta, and TikTok ad campaigns optimized for ROAS. Performance-based pricing - we win when you win.",
+    desc: "Google, Meta, and TikTok campaigns focused on real buyers, with clear reporting.",
     tag: "Market",
   },
   {
     icon: Share2,
     title: "Social Media",
-    desc: "End-to-end social management - strategy, content creation, scheduling, community, and analytics.",
+    desc: "Strategy, content, scheduling, community care, and analytics in one plan.",
     tag: "Market",
   },
   {

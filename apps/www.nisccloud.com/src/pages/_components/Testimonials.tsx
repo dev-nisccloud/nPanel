@@ -13,21 +13,21 @@ const testimonials: Testimonial[] = [
   {
     name: "Sarah M.",
     role: "CEO, TechStart Kenya",
-    text: "Nisc Cloud took us from zero online presence to generating 200+ leads per month in just 60 days. The all-in-one approach saved us from managing 5 different vendors.",
+    text: "We went from almost no online presence to a steady flow of leads. Having design, hosting, and marketing under one team meant fewer meetings and clearer results.",
     initials: "SM",
     accentClass: "bg-blue-500/20 text-blue-400",
   },
   {
     name: "James O.",
     role: "Founder, AfriCommerce",
-    text: "Their hosting is rock-solid and the marketing team actually understands our market. We've seen 3× ROI on our ad spend since switching to Nisc.",
+    text: "Hosting stayed steady and the marketing team understood our buyers. Support answered when we needed them, day or night.",
     initials: "JO",
     accentClass: "bg-violet-500/20 text-violet-400",
   },
   {
     name: "Grace W.",
     role: "Marketing Director, BuildAfrica",
-    text: "The AI automation tools alone are worth it - we create social media content, email campaigns, and landing pages in minutes. Plus the dedicated server never goes down.",
+    text: "The automation tools cut busywork. We still approve everything, but drafts and follow-ups no longer wait for someone to be free.",
     initials: "GW",
     accentClass: "bg-emerald-500/20 text-emerald-400",
   },
@@ -48,10 +48,10 @@ export default function Testimonials() {
             CLIENT STORIES
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            500+ Kenyan Businesses Trust Nisc
+            What Our Clients Say
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            Real results from real businesses we helped create, launch, and grow.
+            Stories from businesses we helped get online, stay online, and grow.
           </p>
         </motion.div>
 

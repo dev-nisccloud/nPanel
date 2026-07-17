@@ -23,11 +23,11 @@ export default function SecurityCTA() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-6">
             <ShieldCheck size={11} />
-            GET PROTECTED TODAY
+            WEBSITE SECURITY
           </div>
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Your Website Is Being Attacked Right Now</h2>
+          <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Protect Your Site With Clear, Managed Security</h2>
           <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-            Hackers scan the web for vulnerable sites 24/7. A hacked website costs you traffic, customers, and reputation. Protect yours before it's too late.
+            Add SSL, malware scanning, firewall protection, and backups so your website stays safe and available for your customers.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
@@ -44,7 +44,7 @@ export default function SecurityCTA() {
               Talk to an Expert
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-6">100% risk-free. 30-day money-back guarantee.</p>
+          <p className="text-xs text-muted-foreground mt-6">30-day money-back guarantee. Setup help included.</p>
         </div>
       </motion.div>
     </section>

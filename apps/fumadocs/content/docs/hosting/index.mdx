@@ -1,14 +1,83 @@
 ---
-title: Hosting
-description: Shared hosting, VPS, VDS, and dedicated servers on Nisc Cloud.
+title: Hosting overview
+description: Shared, WordPress, VPS, VDS, and dedicated hosting — what Nisc Cloud offers and where to manage each type.
 ---
 
-Choose the hosting product that matches your workload, from simple websites to dedicated hardware.
+**Hosting** is where your website files, databases, and applications live on the internet. Nisc Cloud offers several hosting types for different needs — from simple websites to full servers you control yourself.
 
-## Products
+All hosting you own appears under **Cloud Services** in the customer dashboard.
+
+---
+
+## Hosting types
+
+| Type | Best for | Where in dashboard |
+|------|----------|-------------------|
+| **Shared hosting** | Small business sites, brochures, blogs | **Hosting** |
+| **WordPress hosting** | WordPress sites with optimized stack | **Hosting** and **WordPress** menus |
+| **VPS** | Developers, custom apps, root access | **Cloud Servers → VPS** |
+| **VDS** | Stronger isolation, heavier workloads | **Cloud Servers → VDS** |
+| **Dedicated** | Maximum power, compliance, large traffic | **Cloud Servers → Dedicated** |
+
+Order any plan on [nisccloud.com](https://www.nisccloud.com) or **Marketplace**, then manage it in the dashboard.
+
+---
+
+## Open shared or WordPress hosting
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. Click **Hosting** in the sidebar.
+3. Click your hosting package or site name in the list.
+4. Use tabs: **Overview**, **DNS**, **Mail**, **File Manager**, **Subdomains**, **Databases**, **WordPress**, **Backup**.
+
+Full tab guide: [Manage hosting](/docs/hosting/manage-hosting).
+
+---
+
+## Open cloud servers (VPS, VDS, dedicated)
+
+1. Click **Cloud Servers** in the sidebar.
+2. Click **VPS**, **VDS**, or **Dedicated**.
+3. Click a server in the list to view IP address, status, credentials, and controls.
+
+---
+
+## Choose the right plan
+
+**Shared hosting** — lowest cost, easiest setup, good for one or few websites without server admin skills.
+
+**WordPress hosting** — shared environment tuned for WordPress (updates, staging, one-click install).
+
+**VPS** — your own virtual machine; you install software and manage security; scalable CPU/RAM.
+
+**VDS** — dedicated resources on virtual hardware; middle ground between VPS and bare metal.
+
+**Dedicated** — physical server for your exclusive use; highest performance and control.
+
+---
+
+## Guides in this section
 
 <Cards>
-  <Card title="Shared / Website Hosting" description="Great for standard websites and apps." href="/docs/hosting/shared" />
-  <Card title="VPS & VDS" description="Root access and flexible resources." href="/docs/hosting/vps" />
-  <Card title="Dedicated Servers" description="Full hardware for demanding workloads." href="/docs/hosting/dedicated" />
+  <Card title="Shared hosting" href="/docs/hosting/shared" description="Order and use shared web hosting." />
+  <Card title="WordPress hosting" href="/docs/hosting/wordpress-hosting" description="Hosting optimized for WordPress." />
+  <Card title="VPS" href="/docs/hosting/vps" description="Virtual private servers." />
+  <Card title="VDS" href="/docs/hosting/vds" description="Virtual dedicated servers." />
+  <Card title="Dedicated servers" href="/docs/hosting/dedicated" description="Bare-metal dedicated hosting." />
+  <Card title="Manage hosting" href="/docs/hosting/manage-hosting" description="File Manager, DNS, databases, backups." />
 </Cards>
+
+---
+
+## Connect a domain to hosting
+
+1. Register or transfer domain under **Domains**.
+2. In hosting **Overview**, copy **nameservers** or **IP address**.
+3. On the domain, set [Nameservers](/docs/domains/nameservers) or [DNS A record](/docs/domains/dns).
+4. Enable [SSL](/docs/ssl) for HTTPS.
+
+---
+
+## Billing
+
+Hosting renews on a schedule shown under **Billing → Subscriptions**. Pay renewal **Invoices** before due date to avoid suspension.

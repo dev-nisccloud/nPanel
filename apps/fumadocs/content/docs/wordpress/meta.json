@@ -1,5 +1,5 @@
 {
-  "title": "WordPress Hosting",
+  "title": "WordPress",
   "icon": "AppWindow",
-  "pages": ["index", "install", "manage", "migrate"]
+  "pages": ["index", "install", "manage", "backups", "migrate"]
 }

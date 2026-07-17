@@ -1,5 +1,5 @@
 {
   "title": "Business Email",
   "icon": "Mail",
-  "pages": ["index", "setup", "clients"]
+  "pages": ["index", "setup", "webmail", "clients", "dns-records"]
 }

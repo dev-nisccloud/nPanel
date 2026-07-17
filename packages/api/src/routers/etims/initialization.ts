@@ -1,11 +1,13 @@
 import * as crypto from "node:crypto";
 import { z } from "zod";
 import { eq } from "@npanel/db";
-import { router, protectedProcedure } from "../../trpc";
+import { router } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { db } from "@npanel/db";
 import { eTimsConfiguration } from "@npanel/db/schema/etims";
 import { buildClientConfigFromEnv, getEtimsClient } from "../../lib/etims-config";
+import { EtimsApiError } from "../../lib/etims-client";
+import { etimsProcedure, skipEtimsAuthChecks } from "./_procedure";
 
 const isSuperAdmin = (role: string | null | undefined) =>
     role === "AGENCY_SUPER_ADMIN";
@@ -19,7 +21,7 @@ export const etimsInitializationRouter = router({
      * Body:     { tin, bhfId, dvcSrlNo }
      * Response: { resultCd: "000", data: { info: { cmcKey, ... } } }
      */
-    initializeDevice: protectedProcedure
+    initializeDevice: etimsProcedure
         .input(z.object({
             tin: z.string().min(1, "TIN is required"),
             bhfId: z.string().default("00"),
@@ -27,7 +29,7 @@ export const etimsInitializationRouter = router({
             isSandbox: z.boolean().default(true),
         }))
         .mutation(async ({ ctx, input }) => {
-            if (!isSuperAdmin(ctx.session?.user?.role)) {
+            if (!skipEtimsAuthChecks() && !isSuperAdmin(ctx.session?.user?.role)) {
                 throw new TRPCError({
                     code: "FORBIDDEN",
                     message: "Only agency super admins can initialize eTIMS devices.",
@@ -49,13 +51,10 @@ export const etimsInitializationRouter = router({
             try {
                 result = await client.selectInitOsdcInfo({ tin, bhfId, dvcSrlNo }) as Record<string, unknown>;
             } catch (error: unknown) {
-                const err = error as Error;
-                const msg = err.message ?? "";
-
                 // resultCd 902 = "device already installed"
-                // In sandbox this is expected when re-initializing - KRA still returns a cmcKey.
+                // In sandbox this is expected when re-initializing — KRA still returns a cmcKey.
                 // In production this is a hard error.
-                if (msg.includes("resultCd=902")) {
+                if (error instanceof EtimsApiError && error.resultCd === "902") {
                     if (!input.isSandbox) {
                         throw new TRPCError({
                             code: "PRECONDITION_FAILED",
@@ -64,18 +63,14 @@ export const etimsInitializationRouter = router({
                                 "Contact KRA support to reset the device registration.",
                         });
                     }
-                    // Sandbox: attempt to parse cmcKey from the error payload if present
-                    // (KRA returns the body even on 902 in sandbox)
-                    // We'll fall through with an empty result and handle below
+                    result = error.response;
                 } else {
+                    const msg = error instanceof Error ? error.message : String(error);
                     throw new TRPCError({
                         code: "INTERNAL_SERVER_ERROR",
                         message: `eTIMS initialization failed: ${msg}`,
                     });
                 }
-
-                // For sandbox 902, try to re-parse as a soft result
-                result = {};
             }
 
             // Extract cmcKey: response shape is { data: { info: { cmcKey } } }
@@ -83,7 +78,18 @@ export const etimsInitializationRouter = router({
                 data?: { info?: { cmcKey?: string; taxprNm?: string; bhfNm?: string; sdcId?: string; mrcNo?: string } }
             }).data?.info;
 
-            const cmcKey = info?.cmcKey;
+            // Upsert the global eTIMS configuration record
+            const now = new Date();
+            const [existing] = await db
+                .select()
+                .from(eTimsConfiguration)
+                .limit(1);
+
+            // Sandbox re-init may return 902 without a fresh cmcKey — reuse the stored one.
+            let cmcKey = info?.cmcKey ?? null;
+            if (!cmcKey && input.isSandbox && existing?.cmcKey) {
+                cmcKey = existing.cmcKey;
+            }
             if (!cmcKey) {
                 throw new TRPCError({
                     code: "INTERNAL_SERVER_ERROR",
@@ -93,17 +99,10 @@ export const etimsInitializationRouter = router({
                 });
             }
 
-            // Upsert the global eTIMS configuration record
-            const now = new Date();
-            const [existing] = await db
-                .select({ id: eTimsConfiguration.id })
-                .from(eTimsConfiguration)
-                .limit(1);
-
             const upsertData = {
                 kraPin: tin,
                 branchId: bhfId,
-                branchName: info?.bhfNm ?? null,
+                branchName: info?.bhfNm ?? existing?.branchName ?? null,
                 deviceSerialNumber: dvcSrlNo,
                 cmcKey,
                 isSandbox: input.isSandbox,
@@ -122,6 +121,7 @@ export const etimsInitializationRouter = router({
                     cmcKey,
                     configId: existing.id,
                     info: info ?? null,
+                    reusedExistingCmcKey: !info?.cmcKey,
                 };
             }
 
@@ -138,6 +138,7 @@ export const etimsInitializationRouter = router({
                 cmcKey,
                 configId: newId,
                 info: info ?? null,
+                reusedExistingCmcKey: false,
             };
         }),
 });

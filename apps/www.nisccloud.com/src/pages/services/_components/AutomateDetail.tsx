@@ -2,10 +2,10 @@ import { motion } from "motion/react";
 import { Check, Bot, Workflow, MessageSquare, BarChart3 } from "lucide-react";
 
 const features = [
-  { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel - we build custom automations that move leads through your funnel on autopilot." },
-  { icon: MessageSquare, title: "AI Chatbots", desc: "Intelligent chatbots trained on your brand voice to qualify leads, answer questions, and book calls 24/7." },
-  { icon: Bot, title: "Email Sequences", desc: "Drip campaigns triggered by behavior: sign-ups, cart abandonment, re-engagement, upsell - fully automated." },
-  { icon: BarChart3, title: "Reporting Dashboards", desc: "Unified real-time dashboards showing all your KPIs - traffic, conversions, revenue - in one place." },
+  { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel: we build automations that move leads through your funnel without manual chasing." },
+  { icon: MessageSquare, title: "AI Chatbots", desc: "Chatbots trained on your brand voice to qualify leads, answer questions, and book calls 24/7." },
+  { icon: Bot, title: "Email Sequences", desc: "Drip campaigns triggered by behaviour: sign-ups, cart abandonment, re-engagement, and upsells." },
+  { icon: BarChart3, title: "Reporting Dashboards", desc: "Clear dashboards showing traffic, conversations, conversions, and revenue in one place." },
 ];
 
 const included = [
@@ -37,12 +37,12 @@ export default function AutomateDetail() {
             />
             <div className="absolute inset-0 bg-gradient-to-tl from-background/80 via-transparent to-transparent" />
             <div className="absolute top-6 left-6 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-5 py-3">
-              <div className="text-2xl font-bold" style={{ color: "oklch(0.78 0.16 150)" }}>30hrs</div>
-              <div className="text-xs text-muted-foreground">Saved per week on avg.</div>
+              <div className="text-2xl font-bold" style={{ color: "oklch(0.78 0.16 150)" }}>24/7</div>
+              <div className="text-xs text-muted-foreground">Follow-up and support coverage</div>
             </div>
             {/* Workflow nodes visual */}
             <div className="absolute bottom-6 right-6 flex flex-col gap-1.5">
-              {["Lead Capture", "Email Sent", "CRM Updated"].map((step, i) => (
+              {["Lead Capture", "Email Sent", "CRM Updated"].map((step) => (
                 <div key={step} className="flex items-center gap-2 bg-card/90 backdrop-blur border border-border/60 rounded-lg px-3 py-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
                   <span className="text-[10px] text-muted-foreground font-mono">{step}</span>
@@ -63,10 +63,10 @@ export default function AutomateDetail() {
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Your Business.<br />
-              <span style={{ color: "oklch(0.78 0.16 150)" }}>Running 24/7.</span>
+              <span style={{ color: "oklch(0.78 0.16 150)" }}>Working 24/7.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              The best marketing systems are the ones that work while you sleep. We plug in AI-powered automations across your CRM, email, chat, and analytics so no lead ever falls through the cracks.
+              Good marketing systems keep working after office hours. We set up AI automations across your CRM, email, chat, and reporting so leads get a fast reply and your team stays focused.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (

@@ -1,0 +1,84 @@
+---
+title: Email marketing
+description: Create campaigns, manage audiences, use the AI email builder, and verify sending domains.
+---
+
+**Email marketing** in the dashboard lets you send newsletters and promotional emails to your contact lists — separate from day-to-day **business email** mailboxes under **Emails**.
+
+Access it under **Digital Marketing → Email Marketing** in the sidebar.
+
+---
+
+## Open email marketing
+
+1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
+2. In the left sidebar, click **Email Marketing** (under **Digital Marketing**).
+3. The section expands to show sub-menus:
+
+| Sub-menu | Purpose |
+|----------|---------|
+| **Campaigns** | Create and send email blasts |
+| **Audiences** | Contact lists and segments |
+| **AI Email Builder** | Design emails with AI help |
+| **Domains** | Verify domain for sending |
+
+---
+
+## Verify sending domain
+
+Before recipients see mail from `@yourdomain.com`, verify the domain:
+
+1. Click **Email Marketing → Domains**.
+2. Click **Add domain** and enter your domain name.
+3. Copy **DNS TXT/CNAME records** shown on screen.
+4. Add records at **Domains → My Domains → [domain] → DNS** (or your DNS provider).
+5. Return to **Domains** in email marketing and click **Verify**.
+6. Wait for DNS propagation if verification fails at first.
+
+See also [Email DNS records](/docs/email/dns-records) for SPF/DKIM concepts.
+
+---
+
+## Build an audience
+
+1. Click **Email Marketing → Audiences**.
+2. Click **Create audience** or **Import contacts**.
+3. Upload CSV with email, name columns OR add contacts manually.
+4. Tag or segment lists (customers, newsletter, etc.) if the tool supports segments.
+5. Save audience.
+
+Only email people who opted in — follow Kenya Data Protection Act and anti-spam best practices.
+
+---
+
+## Create a campaign
+
+1. Click **Email Marketing → Campaigns**.
+2. Click **New campaign** or **Create**.
+3. Choose audience/list.
+4. Write subject line and preview text.
+5. Design body using editor or import from **AI Email Builder**.
+6. Send **test email** to yourself.
+7. Schedule send or **Send now**.
+8. Review opens/clicks on campaign report after send.
+
+---
+
+## Use AI Email Builder
+
+1. Click **Email Marketing → AI Email Builder** (or **AI Email Builder** under sub-menu — may open dedicated page).
+2. Describe the email you want (promotion, welcome series, event invite).
+3. Review generated layout and copy — edit before sending.
+4. Save template and use in a **Campaign**.
+
+AI output should be reviewed for accuracy and brand tone before sending to customers.
+
+---
+
+## Related guides
+
+<Cards>
+  <Card title="Business email" href="/docs/email" description="Mailbox email vs marketing email." />
+  <Card title="DNS records" href="/docs/domains/dns" description="Add verification records." />
+  <Card title="Digital marketing overview" href="/docs/marketing" description="All marketing tools." />
+</Cards>

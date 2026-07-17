@@ -3,6 +3,10 @@
 
 User-agent: *
 Allow: /
+Allow: /llms.txt
+Allow: /sitemap.xml
+Allow: /humans.txt
+Allow: /.well-known/security.txt
 Disallow: /cart
 
 # OpenAI
@@ -50,5 +54,11 @@ Allow: /
 User-agent: cohere-ai
 Allow: /
 
+# Bing
+User-agent: bingbot
+Allow: /
+
 Sitemap: https://nisccloud.com/sitemap.xml
-# LLM context file: https://nisccloud.com/llms.txt
+
+# LLM / AI context
+# https://nisccloud.com/llms.txt
