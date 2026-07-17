@@ -1,18 +1,21 @@
 # Nisc Cloud
 
-> We help businesses of every size get online, stay online, and grow with clear hosting and marketing under one team.
+> Transforming businesses to stand out and succeed.
 
-Nisc Cloud provides hosting and digital marketing for businesses of every size. Our four-step Atom Approach covers the full path online: Create, Host, Market, and Automate with Zeepo AI.
+Nisc Cloud helps businesses of every size get online, stay online, and grow with clear hosting and marketing under one team. Based in Nairobi, Kenya.
+
+Our four-step Atom Approach covers the full path online: Create, Host, Market, and Automate with Zeepo AI.
 
 ## Atom Approach
 
 1. **Create** Brand identity, logo design, website design and development, e-commerce stores, creative assets, and brand copywriting.
-2. **Host** Cloud hosting, domain registration (.co.ke, .com, .africa), business email (@yourdomain), SSL certificates, CDN, DDoS protection, 99.99% uptime target, free migration, and setup help.
+2. **Host** Cloud hosting, domain registration (.co.ke, .com, .africa and more), domain transfer, business email, SSL certificates, CDN, DDoS protection, 99.99% uptime target, free migration, and setup help. Domain prices appear after you search.
 3. **Market** SEO / AEO / GEO (Google, AI search, Maps), Google Ads, Meta Ads, TikTok Ads, social media management, email marketing, and lead generation.
 4. **Automate with Zeepo AI** AI-powered content creation, automated marketing campaigns, CRM workflows, chatbot flows, lead nurturing sequences, and AI email campaigns.
 
 ## Why Work With Us
 
+- Transforming businesses to stand out and succeed
 - One team for hosting and marketing
 - Clear plans and simple billing
 - 100+ businesses growing with us
@@ -20,6 +23,7 @@ Nisc Cloud provides hosting and digital marketing for businesses of every size. 
 - 24/7 support
 - Results in 30 days or we keep working
 - Free migration and setup help
+- Paying is simple with easy checkout
 
 ## Core Pages
 
@@ -38,7 +42,7 @@ Nisc Cloud provides hosting and digital marketing for businesses of every size. 
 - [Brand Identity](https://nisccloud.com/services/brand-identity): Logos, visual systems, and brand packages. From KES 25,000
 - [Website Design](https://nisccloud.com/services/website-design): Custom websites built for conversion and SEO
 - [E-commerce](https://nisccloud.com/services/ecommerce): Online stores with payments and inventory. From KES 45,000
-- [SEO / AEO / GEO](https://nisccloud.com/services/seo): Rank on Google, AI search, and Maps. From KES 25,000/mo
+- [SEO / AEO / GEO](https://nisccloud.com/services/seo): Help people find you on Google, AI search, and Maps. From KES 25,000/mo
 - [Paid Ads](https://nisccloud.com/services/paid-ads): Google, Meta, and TikTok campaigns
 - [Social Media](https://nisccloud.com/services/social-media): Strategy, content, and management. From KES 20,000/mo
 - [Email Marketing](https://nisccloud.com/services/email-marketing): Sequences, newsletters, and automation. From KES 1,500/mo
@@ -53,10 +57,10 @@ Nisc Cloud provides hosting and digital marketing for businesses of every size. 
 - [VDS](https://nisccloud.com/hosting/vds): Virtual dedicated servers
 - [Dedicated Servers](https://nisccloud.com/hosting/dedicated-servers): Bare-metal and dedicated plans
 - [Domains](https://nisccloud.com/hosting/domains): .co.ke, .com, .africa and more. Search to see live pricing
+- [Domain Transfer](https://nisccloud.com/domain-transfer): Move your domain here. Check eligibility for the live transfer price
 - [Business Email](https://nisccloud.com/hosting/email): Professional email @yourdomain. From KES 250/mo
 - [SSL Certificates](https://nisccloud.com/hosting/ssl): HTTPS and certificate options
 - [WHOIS Lookup](https://nisccloud.com/whois): Domain WHOIS checker
-- [Domain Transfer](https://nisccloud.com/domain-transfer): Transfer domains to us
 
 ## Blog Posts
 

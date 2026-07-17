@@ -1,0 +1,7 @@
+Contact: mailto:sales@nisccloud.com
+Contact: tel:+254748777666
+Expires: 2027-07-17T00:00:00.000Z
+Preferred-Languages: en, sw
+Canonical: https://nisccloud.com/.well-known/security.txt
+Policy: https://nisccloud.com/privacy
+Hiring: https://nisccloud.com/contact

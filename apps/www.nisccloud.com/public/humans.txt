@@ -1,0 +1,16 @@
+/* TEAM */
+Company: Nisc Cloud Limited
+Site: https://nisccloud.com
+Location: Nairobi, Kenya
+Contact: sales@nisccloud.com
+Phone: +254 748 777 666
+
+/* SITE */
+Standards: HTML5, CSS3, JavaScript
+Components: React
+Doctype: HTML5
+Language: English
+
+/* NOTE */
+Transforming businesses to stand out and succeed.
+Hosting and digital marketing under one team.
