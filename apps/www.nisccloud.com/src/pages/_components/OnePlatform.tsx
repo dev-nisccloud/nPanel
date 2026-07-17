@@ -2,12 +2,12 @@ import { motion } from "motion/react";
 import { LayoutDashboard, Headphones, BarChart3, Bot, ShieldCheck, Users } from "lucide-react";
 
 const pillars = [
-  { icon: LayoutDashboard, label: "All-in-One", desc: "One team, one dashboard, one invoice. Create, host, market, automate - no juggling vendors." },
-  { icon: Headphones, label: "24/7 Support", desc: "Real humans, always on. No ticket queues, no wait times - we pick up." },
-  { icon: BarChart3, label: "Data-Driven", desc: "Every decision backed by analytics. We don't guess - we measure, optimise, and scale." },
-  { icon: Bot, label: "Zeepo AI-Powered", desc: "Built-in AI that creates content, runs campaigns, and automates your entire marketing stack." },
-  { icon: ShieldCheck, label: "Enterprise Security", desc: "SSL, WAF, DDoS protection, GDPR compliance, and 99.9% uptime SLA on every plan." },
-  { icon: Users, label: "Local Market Experts", desc: "We know Kenya. Our strategists understand your customers, your competition, and your market." },
+  { icon: LayoutDashboard, label: "One Clear Team", desc: "One team, one plan, one bill. Create, host, market, and automate without juggling vendors." },
+  { icon: Headphones, label: "24/7 Support", desc: "Real people ready around the clock when something needs fixing." },
+  { icon: BarChart3, label: "Clear Reporting", desc: "We measure what matters and show you progress in plain language." },
+  { icon: Bot, label: "Zeepo AI-Powered", desc: "Smart tools that help with content, campaigns, and follow-ups." },
+  { icon: ShieldCheck, label: "Strong Security", desc: "SSL, WAF, DDoS protection, and a 99.99% uptime target on hosting." },
+  { icon: Users, label: "Built for Growth", desc: "Hosting and marketing that work together for businesses of every size." },
 ];
 
 export default function OnePlatform() {

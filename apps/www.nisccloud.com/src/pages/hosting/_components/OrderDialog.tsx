@@ -380,7 +380,7 @@ export default function OrderDialog({ open, onClose, plan, addons = [], serviceT
 
                 <p className="text-xs text-muted-foreground text-center mb-5 leading-relaxed">
                   Our team will contact you within <strong>2 hours</strong> to complete setup.
-                  Pay via M-Pesa, card, or bank transfer.
+                  Paying is simple with easy checkout.
                 </p>
 
                 <Button
@@ -393,7 +393,7 @@ export default function OrderDialog({ open, onClose, plan, addons = [], serviceT
                 <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">
                   <span>🔒 Secure checkout</span>
                   <span>•</span>
-                  <span>M-Pesa accepted</span>
+                  <span>Easy checkout</span>
                   <span>•</span>
                   <span>Cancel anytime</span>
                 </div>

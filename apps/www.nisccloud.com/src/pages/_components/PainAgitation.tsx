@@ -12,18 +12,18 @@ const vendors = [
 ];
 
 const pains = [
-  "5 invoices, 5 logins, 5 different contacts",
-  "Brand looks different on every channel",
-  "Nobody takes ownership when things break",
-  "Months pass with no measurable results",
+  "Many bills, many logins, many people to chase",
+  "Your brand looks different on every channel",
+  "When something breaks, nobody owns the fix",
+  "Months go by with little to show for the spend",
 ];
 
 const gains = [
-  "One team, one invoice, one strategy",
-  "Consistent brand voice everywhere",
-  "One account manager who owns outcomes",
-  "Results in 30 days  or we keep working",
-  "AI automation runs the repetitive work",
+  "One team, one bill, one clear plan",
+  "Your brand stays consistent everywhere",
+  "One person who owns the outcome with you",
+  "Results in 30 days, or we keep working",
+  "Smart tools handle the repetitive work",
 ];
 
 export default function PainAgitation() {
@@ -47,10 +47,12 @@ export default function PainAgitation() {
             SOUND FAMILIAR?
           </div>
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 text-balance">
-            Still Paying 5 Vendors Separately?
+            Tired of Paying Separate Teams?
           </h2>
           <p className="text-muted-foreground text-base max-w-xl mx-auto">
-            Most Nairobi businesses waste KES 100K+ a year on fragmented tools that don't talk to each other  and get half the results.
+            Design here, hosting there, marketing somewhere else. Things break,
+            nobody owns the result, and you spend more time chasing updates than
+            running your business.
           </p>
         </motion.div>
 
@@ -63,7 +65,7 @@ export default function PainAgitation() {
           className="mb-10"
         >
           <p className="text-center text-sm font-mono font-bold text-destructive tracking-widest mb-6 uppercase">
-            The old way  chaos
+            The scattered way
           </p>
           <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
             {vendors.map((v, i) => (
@@ -116,7 +118,7 @@ export default function PainAgitation() {
               <div className="w-5 h-5 rounded-full bg-destructive/15 flex items-center justify-center">
                 <X size={10} className="text-destructive" />
               </div>
-              WITHOUT NISC CLOUD
+              WITHOUT US
             </div>
             <div className="space-y-4">
               {pains.map((pain) => (
@@ -146,7 +148,7 @@ export default function PainAgitation() {
               <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center">
                 <Check size={10} className="text-primary" />
               </div>
-              WITH NISC CLOUD
+              WITH US
             </div>
             <div className="space-y-4">
               {gains.map((gain) => (
@@ -173,11 +175,11 @@ export default function PainAgitation() {
             onClick={() => navigate("/contact")}
             className="rounded-full px-8 h-12 font-bold text-base gap-2 cursor-pointer"
           >
-            Talk to us  it's free
+            Talk to us. It is free.
             <ArrowRight size={16} />
           </Button>
           <p className="text-xs text-muted-foreground mt-3">
-            No commitment. We'll map out a plan for your business in 30 minutes.
+            No pressure. We will map a simple plan for your business in about 30 minutes.
           </p>
         </motion.div>
 

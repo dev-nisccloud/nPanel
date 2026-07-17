@@ -30,10 +30,10 @@ export default function PricingAddons() {
             ADD-ONS
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-            Customize Your Plan
+            Add What You Need
           </h2>
           <p className="text-muted-foreground text-base max-w-lg mx-auto">
-            Stack any of these on top of your base plan for a fully custom package.
+            Stack any of these on top of your base plan for a package that fits your business.
           </p>
         </motion.div>
 

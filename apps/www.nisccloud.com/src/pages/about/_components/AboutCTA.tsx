@@ -19,13 +19,12 @@ export default function AboutCTA() {
             Ready to Work Together?
           </p>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
-            Let{"'"}s Build Something{" "}
-            <span className="text-primary">Worth Orbiting</span>
+            Let{"'"}s Get Your Business{" "}
+            <span className="text-primary">Online and Growing</span>
           </h2>
           <p className="text-xl text-muted-foreground mb-10 text-balance">
-            Our team is passionate about taking businesses to the next level.
-            Book a free strategy call and find out what the Atom Approach can
-            do for you.
+            Book a free strategy call. We will map clear hosting and marketing
+            next steps for your business, with no pressure.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button

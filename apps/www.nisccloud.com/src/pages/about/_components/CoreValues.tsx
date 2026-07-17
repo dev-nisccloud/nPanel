@@ -6,7 +6,7 @@ const values = [
     icon: Target,
     title: "Results First",
     description:
-      "Every strategy we recommend is tied to a measurable outcome. If it doesn't move the needle, we don't build it.",
+      "Every plan we recommend ties to a clear outcome. If it does not help you get online, stay online, or grow, we do not build it.",
     color: "text-red-400",
     bg: "bg-red-400/10",
   },
@@ -14,7 +14,7 @@ const values = [
     icon: Zap,
     title: "Speed Matters",
     description:
-      "In digital, momentum compounds. We move fast, iterate quickly, and ship before perfection kills progress.",
+      "Momentum compounds online. We move quickly, ship what works, and improve as we go instead of waiting for perfect.",
     color: "text-yellow-400",
     bg: "bg-yellow-400/10",
   },
@@ -22,7 +22,7 @@ const values = [
     icon: Heart,
     title: "Client-Obsessed",
     description:
-      "We treat every business like it's our own. Your wins are our wins - and your challenges wake us up at night.",
+      "We treat every business like it is our own. Your wins are our wins, and we stay with you when things get hard.",
     color: "text-pink-400",
     bg: "bg-pink-400/10",
   },
@@ -30,7 +30,7 @@ const values = [
     icon: Shield,
     title: "Radical Transparency",
     description:
-      "No jargon, no vanity metrics, no hidden fees. You'll always know exactly what we're doing and why.",
+      "No jargon, no fluff metrics, no hidden fees. You always know what we are doing and why.",
     color: "text-blue-400",
     bg: "bg-blue-400/10",
   },
@@ -38,7 +38,7 @@ const values = [
     icon: Lightbulb,
     title: "Always Learning",
     description:
-      "Digital evolves daily. We invest heavily in staying ahead - so you never have to worry if your strategy is outdated.",
+      "Hosting and marketing change fast. We keep learning so your setup stays current without you chasing every trend.",
     color: "text-primary",
     bg: "bg-primary/10",
   },
@@ -46,7 +46,7 @@ const values = [
     icon: Users,
     title: "Built Together",
     description:
-      "The best outcomes happen when client and agency work as one team. We're collaborators, not vendors.",
+      "The best outcomes happen when we work as one team with you. We are collaborators, not distant vendors.",
     color: "text-green-400",
     bg: "bg-green-400/10",
   },
@@ -68,8 +68,8 @@ export default function CoreValues() {
           </p>
           <h2 className="text-4xl md:text-5xl font-bold mb-4">Core Values</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            These aren't words on a wall. They're the principles that shape
-            every decision, every strategy, every result.
+            These are not words on a wall. They shape every decision, every
+            plan, and every result we ship.
           </p>
         </motion.div>
 

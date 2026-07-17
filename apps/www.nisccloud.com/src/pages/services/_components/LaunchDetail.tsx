@@ -2,10 +2,10 @@ import { motion } from "motion/react";
 import { Check, Server, Zap, ShieldCheck, Globe } from "lucide-react";
 
 const features = [
-  { icon: Zap, title: "Ultra-Fast CDN", desc: "Global content delivery network with edge nodes in 50+ regions. Your site loads in milliseconds, anywhere." },
-  { icon: ShieldCheck, title: "Enterprise Security", desc: "WAF, DDoS protection, SSL, automated vulnerability scanning, and daily backups as standard." },
-  { icon: Server, title: "Auto-Scaling Infra", desc: "Traffic spike? No problem. Our infrastructure scales instantly to handle any load without downtime." },
-  { icon: Globe, title: "99.9% Uptime SLA", desc: "Contractual uptime guarantee backed by 24/7 monitoring, incident response, and status updates." },
+  { icon: Zap, title: "Fast CDN Delivery", desc: "Content delivered from a global network so your site loads quickly for visitors wherever they are." },
+  { icon: ShieldCheck, title: "Strong Security", desc: "WAF, DDoS protection, SSL, vulnerability scanning, and daily backups included as standard." },
+  { icon: Server, title: "Auto-Scaling Infra", desc: "Traffic spike? Our infrastructure scales to handle the load without unnecessary downtime." },
+  { icon: Globe, title: "99.99% Uptime", desc: "We aim for 99.99% uptime with 24/7 monitoring, incident response, and clear status updates." },
 ];
 
 const included = [
@@ -13,8 +13,8 @@ const included = [
   "Free SSL certificate",
   "Daily automated backups",
   "DDoS protection included",
-  "Global CDN (50+ PoPs)",
-  "Zero-downtime deployments",
+  "Global CDN delivery",
+  "Free setup help",
 ];
 
 export default function LaunchDetail() {
@@ -38,8 +38,8 @@ export default function LaunchDetail() {
             <div className="absolute inset-0 bg-gradient-to-tl from-background/80 via-transparent to-transparent" />
             {/* Uptime badge */}
             <div className="absolute top-6 right-6 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-5 py-3">
-              <div className="text-2xl font-bold" style={{ color: "oklch(0.75 0.18 180)" }}>99.9%</div>
-              <div className="text-xs text-muted-foreground">Uptime SLA</div>
+              <div className="text-2xl font-bold" style={{ color: "oklch(0.75 0.18 180)" }}>99.99%</div>
+              <div className="text-xs text-muted-foreground">Uptime target</div>
             </div>
             {/* Live status dot */}
             <div className="absolute bottom-6 left-6 flex items-center gap-2 bg-card/90 backdrop-blur border border-border/60 rounded-full px-4 py-2">
@@ -59,11 +59,11 @@ export default function LaunchDetail() {
               02 - LAUNCH
             </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
-              Enterprise Cloud.<br />
-              <span style={{ color: "oklch(0.75 0.18 180)" }}>Startup Speed.</span>
+              Reliable Cloud Hosting.<br />
+              <span style={{ color: "oklch(0.75 0.18 180)" }}>Simple to Launch.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              We host on the same infrastructure used by Fortune 500s - then make it accessible to any business. From domain to deployment, we handle everything so you can focus on growth.
+              We host your site on solid cloud infrastructure and help you get online without the technical stress. From domain to deployment, we handle the setup so you can focus on your customers.
             </p>
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (

@@ -40,9 +40,9 @@ const services = [
 
 const budgets = [
   { value: "under-1k", label: "Under $1,000" },
-  { value: "1k-5k", label: "$1,000 – $5,000" },
-  { value: "5k-15k", label: "$5,000 – $15,000" },
-  { value: "15k-50k", label: "$15,000 – $50,000" },
+  { value: "1k-5k", label: "$1,000 to $5,000" },
+  { value: "5k-15k", label: "$5,000 to $15,000" },
+  { value: "15k-50k", label: "$15,000 to $50,000" },
   { value: "50k-plus", label: "$50,000+" },
 ];
 
@@ -99,10 +99,10 @@ export default function ContactForm() {
         </div>
         <h3 className="text-2xl font-bold mb-3">Message Received!</h3>
         <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">
-          Thanks for reaching out. A member of the Nisc Cloud team will review your submission and follow up within 24 hours.
+          Thanks for reaching out. Someone on our team will review your message and follow up within 24 hours.
         </p>
         <div className="mt-8 inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono">
-          ORBIT INITIATED
+          WE WILL BE IN TOUCH
         </div>
       </motion.div>
     );
@@ -117,7 +117,7 @@ export default function ContactForm() {
     >
       <h2 className="text-xl font-bold mb-1">Send Us a Message</h2>
       <p className="text-sm text-muted-foreground mb-8">
-        Fill in the details below and we&apos;ll get back to you with a tailored strategy.
+        Fill in the details below and we will get back to you with a clear plan.
       </p>
 
       {prefilledPlan && prefilledServiceName ? (
@@ -250,7 +250,7 @@ export default function ContactForm() {
               Sending...
             </>
           ) : (
-            "Get a Digital Growth Plan"
+            "Send Message"
           )}
         </Button>
 

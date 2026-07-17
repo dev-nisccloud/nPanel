@@ -32,7 +32,7 @@ export default function PricingHero() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-balance"
         >
-          Explore Nisc Cloud Plans &amp; Pricing
+          Clear Plans for Hosting &amp; Marketing
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -40,7 +40,7 @@ export default function PricingHero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4"
         >
-          All prices in KES. No hidden fees. Every plan includes onboarding support and a dedicated account manager.
+          All prices in KES. No hidden fees. Every plan includes setup help and a dedicated account contact.
         </motion.p>
       </div>
     </section>

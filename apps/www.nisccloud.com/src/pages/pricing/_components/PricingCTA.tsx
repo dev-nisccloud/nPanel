@@ -25,11 +25,11 @@ export default function PricingCTA() {
             NOT SURE WHICH PLAN?
           </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            Let Us Build You
+            We Can Build You
             <br />a Custom Package.
           </h2>
           <p className="text-muted-foreground text-base mb-8 max-w-md mx-auto">
-            Every brand is different. Talk to our team and we'll design a plan around your exact goals and budget - no pressure.
+            Every business is different. Talk to our team and we will design a plan around your goals and budget. No pressure.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button

@@ -1,38 +1,36 @@
 # Nisc Cloud
 
-> Kenya's A-to-Z digital partner. We create your brand from scratch, deploy it online, market it to generate real customers and sales, then automate everything with Zeepo AI  all under one roof, one team, one invoice.
+> We help businesses of every size get online, stay online, and grow with clear hosting and marketing under one team.
 
-Nisc Cloud provides end-to-end digital services for Kenyan businesses and businesses across Africa. Our four-step Atom Approach covers the full business digital lifecycle: Create, Host, Market, and Automate with Zeepo AI.
+Nisc Cloud provides hosting and digital marketing for businesses of every size. Our four-step Atom Approach covers the full path online: Create, Host, Market, and Automate with Zeepo AI.
 
 ## Atom Approach
 
-1. **Create**  Brand identity, logo design, website design and development, e-commerce stores, creative assets, and brand copywriting.
-2. **Host**  Enterprise cloud hosting, domain registration (.co.ke, .com, .africa), business email (@yourdomain), SSL certificates, CDN, DDoS protection, and 99.9% uptime SLA.
-3. **Market**  SEO / AEO / GEO (Google, AI search engines, Google Maps), Google Ads, Meta Ads, TikTok Ads, social media management, email marketing, and lead generation funnels.
-4. **Automate with Zeepo AI**  AI-powered content creation, automated marketing campaigns, CRM workflows, chatbot flows, lead nurturing sequences, and AI email campaigns.
+1. **Create** Brand identity, logo design, website design and development, e-commerce stores, creative assets, and brand copywriting.
+2. **Host** Cloud hosting, domain registration (.co.ke, .com, .africa), business email (@yourdomain), SSL certificates, CDN, DDoS protection, 99.99% uptime target, free migration, and setup help.
+3. **Market** SEO / AEO / GEO (Google, AI search, Maps), Google Ads, Meta Ads, TikTok Ads, social media management, email marketing, and lead generation.
+4. **Automate with Zeepo AI** AI-powered content creation, automated marketing campaigns, CRM workflows, chatbot flows, lead nurturing sequences, and AI email campaigns.
 
-## Why Nisc Cloud
+## Why Work With Us
 
-- One team that owns your brand, hosting, marketing, and automation
-- One invoice instead of juggling multiple vendors
-- 500+ businesses powered across Kenya and Africa
-- 300+ campaigns delivered
-- KES 50M+ in revenue generated for clients
-- 99.9% uptime guaranteed
-- 24/7 Kenya-based support
+- One team for hosting and marketing
+- Clear plans and simple billing
+- 100+ businesses growing with us
+- 99.99% uptime target
+- 24/7 support
 - Results in 30 days or we keep working
-- M-Pesa, Visa, Mastercard, and bank transfer accepted
+- Free migration and setup help
 
 ## Core Pages
 
-- [Homepage](https://nisccloud.com/): Overview of Nisc Cloud and the Atom Approach
+- [Homepage](https://nisccloud.com/): Overview and the Atom Approach
 - [Services](https://nisccloud.com/services): Full service catalogue
 - [Pricing](https://nisccloud.com/pricing): Plans and package pricing
-- [Work / Case Studies](https://nisccloud.com/work): Client results and portfolio
+- [Work / Case Studies](https://nisccloud.com/work): Selected client work
 - [About](https://nisccloud.com/about): Company story and team
 - [Contact](https://nisccloud.com/contact): Get in touch / free strategy session
-- [Blog](https://nisccloud.com/blog): Guides on hosting, marketing, and AI for Kenyan businesses
-- [Security](https://nisccloud.com/security): Platform security and protection
+- [Blog](https://nisccloud.com/blog): Guides on hosting, marketing, and AI
+- [Security](https://nisccloud.com/security): Website security and protection
 - [Help Centre](https://nisccloud.com/help): Support and documentation
 
 ## Brand & Marketing Services
@@ -54,11 +52,11 @@ Nisc Cloud provides end-to-end digital services for Kenyan businesses and busine
 - [VPS](https://nisccloud.com/hosting/vps): From KES 2,000/mo
 - [VDS](https://nisccloud.com/hosting/vds): Virtual dedicated servers
 - [Dedicated Servers](https://nisccloud.com/hosting/dedicated-servers): Bare-metal and dedicated plans
-- [Domains](https://nisccloud.com/hosting/domains): .co.ke, .com, .africa and more
+- [Domains](https://nisccloud.com/hosting/domains): .co.ke, .com, .africa and more. Search to see live pricing
 - [Business Email](https://nisccloud.com/hosting/email): Professional email @yourdomain. From KES 250/mo
 - [SSL Certificates](https://nisccloud.com/hosting/ssl): HTTPS and certificate options
 - [WHOIS Lookup](https://nisccloud.com/whois): Domain WHOIS checker
-- [Domain Transfer](https://nisccloud.com/domain-transfer): Transfer domains to Nisc Cloud
+- [Domain Transfer](https://nisccloud.com/domain-transfer): Transfer domains to us
 
 ## Blog Posts
 
@@ -91,4 +89,4 @@ Nisc Cloud provides end-to-end digital services for Kenyan businesses and busine
 - Website: https://nisccloud.com
 - Email: sales@nisccloud.com
 - Phone: +254 748 777 666
-- Location: Nairobi, Kenya  serving clients remotely worldwide
+- Location: Nairobi, Kenya

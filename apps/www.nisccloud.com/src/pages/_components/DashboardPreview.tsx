@@ -47,10 +47,10 @@ const tabs = [
 ];
 
 const stats = [
-  { value: "500+", label: "Businesses Powered" },
-  { value: "99.9%", label: "Uptime SLA" },
-  { value: "30 days", label: "First Results" },
-  { value: "1 Login", label: "Everything Managed" },
+  { value: "100+", label: "Businesses Served" },
+  { value: "99.99%", label: "Uptime Target" },
+  { value: "30 days", label: "Results Promise" },
+  { value: "24/7", label: "Support Ready" },
 ];
 
 export default function DashboardPreview() {

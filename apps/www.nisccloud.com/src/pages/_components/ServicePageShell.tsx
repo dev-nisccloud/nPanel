@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback } from "react";
 import { motion } from "motion/react";
 import { Check, ArrowRight, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
@@ -13,6 +13,11 @@ import ServiceShowcaseSection, { type ShowcaseBlock } from "@/pages/_components/
 import { ProcessFeatureBlock } from "@/components/shadcn-space/blocks/feature-01/process-feature.tsx";
 import { ServiceMockPricingSection } from "@/components/shadcn-space/blocks/pricing-01/service-mock-pricing.tsx";
 import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
+import { NiscWebsiteHeroImage } from "@/components/NiscWebsiteHeroImage.tsx";
+import ServiceStatistics, {
+  trustStatsToStatisticsItems,
+} from "@/components/shadcn-space/blocks/statistics-02/statistics.tsx";
+import BuiltDifferentBento from "@/components/shadcn-space/blocks/built-different-01/built-different-bento.tsx";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,9 +68,11 @@ export type ServicePageShellProps = {
   showcaseBlocks?: ShowcaseBlock[];
   heroImage?: string;
   heroIllustration?: React.ReactNode;
+  /** Render hero illustration without gradient frame or padding (e.g. terminal-only heroes). */
+  heroIllustrationBare?: boolean;
   heroCta2?: string;
   heroTrustBadge?: { line1: string; line2: string };
-  /** Floating badges over the hero image (trust badge + 500+ clients). Default true. */
+  /** Floating badges over the hero image (trust badge + client count). Default true. */
   showHeroOverlays?: boolean;
   /** Render hero image without browser chrome, frame, or hover scale. */
   heroImageStandalone?: boolean;
@@ -75,96 +82,10 @@ export type ServicePageShellProps = {
   checkoutServiceType?: string;
   /** Product label shown in cart order summary */
   checkoutProductName?: string;
+  /** Optional headline for the Built Different bento section */
+  whySectionHeadline?: string;
+  whySectionBadge?: string;
 };
-
-// ─── Animated Counter Hook ───────────────────────────────────────────────────
-
-/**
- * Parses a stat string like "KES 85M+", "4.8×", "220+", "32%", "99.9%"
- * into { prefix, number, suffix, decimals }
- */
-function parseStatValue(value: string): { prefix: string; number: number; suffix: string; decimals: number } {
-  // Match optional prefix (non-digit chars at start), then number (with optional decimal), then suffix
-  const match = value.match(/^([^\d]*)([\d,.]+)([^\d]*)$/);
-  if (!match) return { prefix: "", number: 0, suffix: value, decimals: 0 };
-  const [, prefix, numStr, suffix] = match;
-  const cleaned = numStr.replace(/,/g, "");
-  const decimals = cleaned.includes(".") ? cleaned.split(".")[1].length : 0;
-  return { prefix: prefix.trim(), number: parseFloat(cleaned), suffix, decimals };
-}
-
-function useAnimatedCounter(target: number, decimals: number, duration = 1800) {
-  const [count, setCount] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          const startTime = performance.now();
-          const animate = (now: number) => {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            // Ease out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(parseFloat((eased * target).toFixed(decimals)));
-            if (progress < 1) requestAnimationFrame(animate);
-          };
-          requestAnimationFrame(animate);
-        }
-      },
-      { threshold: 0.5 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [target, duration, decimals]);
-
-  return { count, ref };
-}
-
-function AnimatedStat({ value, label, delay }: { value: string; label: string; delay: number }) {
-  const { prefix, number, suffix, decimals } = parseStatValue(value);
-  const { count, ref } = useAnimatedCounter(number, decimals);
-
-  const displayNum = decimals > 0
-    ? count.toFixed(decimals)
-    : Math.floor(count).toLocaleString();
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay }}
-      className="text-center group"
-    >
-      <div className="text-3xl font-extrabold text-primary mb-1 group-hover:scale-105 transition-transform duration-300 tabular-nums">
-        {prefix}{displayNum}{suffix}
-      </div>
-      <div className="text-xs text-muted-foreground font-medium tracking-wide uppercase">{label}</div>
-    </motion.div>
-  );
-}
-
-// ─── Trust Bar ────────────────────────────────────────────────────────────────
-
-function TrustBar({ stats }: { stats: { label: string; value: string }[] }) {
-  return (
-    <div className="relative overflow-hidden border-y border-border/50">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-2 md:grid-cols-4 gap-6">
-        {stats.map((s, i) => (
-          <AnimatedStat key={s.label} value={s.value} label={s.label} delay={i * 0.08} />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ─── Features Grid ────────────────────────────────────────────────────────────
 
@@ -203,11 +124,11 @@ function FeaturesGrid({ features }: { features: Feature[] }) {
           className="mb-12 max-w-2xl mx-auto text-center"
         >
           <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">
-            Everything{" "}
-            <span className="text-primary">You Get.</span>
+            What{" "}
+            <span className="text-primary">You Get</span>
           </h2>
           <p className="text-muted-foreground text-base mt-3">
-            A complete, battle-tested system  nothing is an afterthought.
+            Clear features that help you go live, stay online, and grow with less stress.
           </p>
         </motion.div>
 
@@ -265,9 +186,9 @@ function PricingSection({
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-muted/20 to-transparent" />
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Transparent. No Surprises.</h2>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Simple Pricing</h2>
           <p className="text-muted-foreground text-base max-w-md mx-auto">
-            {note ?? "All plans include onboarding support. Scale or cancel anytime."}
+            {note ?? "Every plan includes setup help. Upgrade, pause, or cancel when you need to."}
           </p>
         </div>
         <div className={cn("grid gap-6", plans.length === 2 ? "md:grid-cols-2 max-w-3xl mx-auto" : plans.length === 4 ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3")}>
@@ -355,45 +276,6 @@ function PricingSection({
   );
 }
 
-// ─── Why Section ──────────────────────────────────────────────────────────────
-
-function WhySection({ points }: { points: WhyPoint[] }) {
-  return (
-    <section className="relative py-24 overflow-hidden border-t border-border/40">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 right-0 w-[500px] h-[400px] rounded-full blur-3xl opacity-20"
-          style={{ background: "radial-gradient(ellipse, oklch(0.60 0.22 235 / 0.4), transparent)" }} />
-      </div>
-      <div className="relative max-w-7xl mx-auto px-4 md:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Built Different, Purposely</h2>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {points.map((p, i) => (
-            <motion.div
-              key={p.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.07 }}
-              className="group relative bg-card rounded-3xl border border-border/60 p-6 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-20 h-20 rounded-full -translate-y-8 translate-x-8 bg-primary/5 group-hover:bg-primary/10 transition-colors" />
-              <div className="relative">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-bold flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all duration-300">
-                  ✓
-                </div>
-                <h3 className="font-semibold mb-2 text-foreground">{p.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{p.desc}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ─── Closing CTA ──────────────────────────────────────────────────────────────
 
 function ClosingCta({ headline, subtext, onCta }: { headline: string; subtext: string; onCta: () => void }) {
@@ -420,7 +302,7 @@ function ClosingCta({ headline, subtext, onCta }: { headline: string; subtext: s
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-6 tracking-wide">
             <Sparkles size={12} />
-            LET'S BUILD TOGETHER
+            READY WHEN YOU ARE
           </div>
           <h2 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">{headline}</h2>
           <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto leading-relaxed">{subtext}</p>
@@ -436,10 +318,10 @@ function ClosingCta({ headline, subtext, onCta }: { headline: string; subtext: s
               className="border border-border/60 rounded-2xl h-12 cursor-pointer font-medium hover:border-primary/40 hover:bg-primary/5 transition-all"
               onClick={() => (window.location.href = "/contact")}
             >
-              Talk to an Expert
+              Talk to Our Team
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-6 opacity-70">No contracts. Cancel anytime. Setup within 24 hours.</p>
+          <p className="text-xs text-muted-foreground mt-6 opacity-70">No long contracts. Cancel anytime. Free migration and setup help included.</p>
         </div>
       </motion.div>
     </section>
@@ -455,6 +337,7 @@ function ServiceHero({
   plans,
   heroImage,
   heroIllustration,
+  heroIllustrationBare = false,
   heroCta2,
   heroTrustBadge,
   showHeroOverlays = true,
@@ -467,13 +350,14 @@ function ServiceHero({
   plans: OrderPlan[];
   heroImage?: string;
   heroIllustration?: React.ReactNode;
+  heroIllustrationBare?: boolean;
   heroCta2?: string;
   heroTrustBadge?: { line1: string; line2: string };
   showHeroOverlays?: boolean;
   heroImageStandalone?: boolean;
   onGetStarted: () => void;
 }) {
-  const overlays = showHeroOverlays && !heroImageStandalone;
+  const overlays = showHeroOverlays && !heroImageStandalone && !heroIllustrationBare;
 
   return (
     <section className="relative pt-28 pb-16 px-4 overflow-hidden">
@@ -540,21 +424,27 @@ function ServiceHero({
             className={
               heroImageStandalone
                 ? "flex-1 w-full lg:max-w-[720px] xl:max-w-[780px] relative"
-                : "flex-1 w-full lg:max-w-[580px] relative"
+                : heroIllustrationBare
+                  ? "flex-1 w-full lg:max-w-[640px] relative"
+                  : "flex-1 w-full lg:max-w-[580px] relative"
             }
           >
             {heroIllustration ? (
-              <div className="rounded-3xl overflow-hidden border border-border/40 shadow-2xl bg-gradient-to-br from-muted/60 to-muted/20 p-6">
-                {heroIllustration}
-              </div>
+              heroIllustrationBare ? (
+                <div className="w-full min-w-0">{heroIllustration}</div>
+              ) : (
+                <div className="rounded-3xl overflow-hidden border border-border/40 shadow-2xl bg-gradient-to-br from-muted/60 to-muted/20 p-6">
+                  {heroIllustration}
+                </div>
+              )
             ) : heroImageStandalone ? (
-              <img
+              <NiscWebsiteHeroImage
                 src={heroImage ?? "https://hercules-cdn.com/file_Y6bXDnbADxoripMl7V1UFfhr"}
                 alt={`${badge} illustration`}
-                className="w-full h-auto max-h-[min(70vh,560px)] object-contain rounded-2xl md:rounded-3xl"
+                standalone
               />
             ) : (
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-border/40 group">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-border/40">
                 {/* Browser chrome */}
                 <div className="flex items-center gap-1.5 px-4 py-3 bg-muted/80 border-b border-border/40 backdrop-blur-sm">
                   <div className="w-2.5 h-2.5 rounded-full bg-destructive/70" />
@@ -562,10 +452,9 @@ function ServiceHero({
                   <div className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
                   <span className="ml-3 text-xs text-muted-foreground font-mono">nisccloud.co.ke</span>
                 </div>
-                <img
+                <NiscWebsiteHeroImage
                   src={heroImage ?? "https://hercules-cdn.com/file_Y6bXDnbADxoripMl7V1UFfhr"}
                   alt={`${badge} illustration`}
-                  className="w-full object-cover h-72 md:h-96 lg:h-[420px] group-hover:scale-[1.02] transition-transform duration-700"
                 />
               </div>
             )}
@@ -580,8 +469,8 @@ function ServiceHero({
                 >
                   <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg">✓</div>
                   <div>
-                    <div className="text-xs font-bold text-foreground">{heroTrustBadge?.line1 ?? "Nairobi-Based Servers"}</div>
-                    <div className="text-[10px] text-muted-foreground">{heroTrustBadge?.line2 ?? "99.9% Uptime Guaranteed"}</div>
+                    <div className="text-xs font-bold text-foreground">{heroTrustBadge?.line1 ?? "Fast for Your Visitors"}</div>
+                    <div className="text-[10px] text-muted-foreground">{heroTrustBadge?.line2 ?? "99.99% Uptime"}</div>
                   </div>
                 </motion.div>
                 {/* Secondary floating badge */}
@@ -594,7 +483,7 @@ function ServiceHero({
                   <div className="flex gap-0.5">
                     {[1,2,3,4,5].map(n => <Star key={n} size={10} className="text-amber-400 fill-amber-400" />)}
                   </div>
-                  <div className="text-xs font-bold">500+ Clients</div>
+                  <div className="text-xs font-bold">100+ Clients</div>
                 </motion.div>
               </>
             )}
@@ -619,20 +508,23 @@ export default function ServicePageShell({
   whyPoints,
   faqs,
   ctaHeadline = "Ready to Get Started?",
-  ctaSubtext = "Join 500+ Kenyan businesses that trust Nisc Cloud to build, host, and grow their digital presence.",
+  ctaSubtext = "Join 100+ businesses that build, host, and grow with one clear team behind them.",
   trustStats,
   pricingNote,
   showcaseBlocks,
   heroImage = "https://hercules-cdn.com/file_Y6bXDnbADxoripMl7V1UFfhr",
   heroIllustration,
+  heroIllustrationBare = false,
   heroCta2 = "View Pricing",
-  heroTrustBadge = { line1: "Nairobi-Based Servers", line2: "99.9% Uptime Guaranteed" },
+  heroTrustBadge = { line1: "Fast for Your Visitors", line2: "99.99% Uptime" },
   showHeroOverlays = true,
   heroImageStandalone = false,
   plansUnderHero = false,
   customPlansSection,
   checkoutServiceType,
   checkoutProductName,
+  whySectionHeadline,
+  whySectionBadge,
 }: ServicePageShellProps) {
   const scrollToPlans = useCallback(() => {
     const target = document.getElementById("plans") ?? document.getElementById("pricing");
@@ -707,6 +599,7 @@ export default function ServicePageShell({
         plans={plans}
         heroImage={heroImage}
         heroIllustration={heroIllustration}
+        heroIllustrationBare={heroIllustrationBare}
         heroCta2={heroCta2}
         heroTrustBadge={heroTrustBadge}
         showHeroOverlays={showHeroOverlays}
@@ -714,7 +607,12 @@ export default function ServicePageShell({
         onGetStarted={handleDefaultCta}
       />
 
-      {trustStats && <TrustBar stats={trustStats} />}
+      {trustStats && (
+        <ServiceStatistics
+          compact
+          items={trustStatsToStatisticsItems(trustStats)}
+        />
+      )}
 
       {plansUnderHero && <div id="pricing">{renderPricingSection()}</div>}
 
@@ -728,7 +626,13 @@ export default function ServicePageShell({
 
       {process && <ProcessFeatureBlock steps={process} />}
 
-      {whyPoints && <WhySection points={whyPoints} />}
+      {whyPoints && (
+        <BuiltDifferentBento
+          points={whyPoints}
+          badge={whySectionBadge}
+          headline={whySectionHeadline}
+        />
+      )}
 
       {faqs && faqs.length > 0 ? (
         <FaqBlock

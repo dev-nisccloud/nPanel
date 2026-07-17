@@ -30,7 +30,7 @@ export default function AboutHero() {
         >
           <Atom className="w-5 h-5 text-primary" />
           <span className="text-sm font-medium text-primary tracking-widest uppercase">
-            Our Story
+            About Us
           </span>
         </motion.div>
 
@@ -41,7 +41,7 @@ export default function AboutHero() {
           className="text-5xl md:text-7xl font-bold text-balance mb-6 leading-tight"
         >
           We Help Businesses{" "}
-          <span className="text-primary">Orbit Further</span>
+          <span className="text-primary">Get Online and Grow</span>
         </motion.h1>
 
         <motion.p
@@ -50,9 +50,8 @@ export default function AboutHero() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="text-xl text-muted-foreground text-balance max-w-2xl mx-auto"
         >
-          Nisc Cloud is a digital growth agency built on one belief - that
-          every business deserves a systematic, science-backed approach to
-          scaling online.
+          We help businesses of every size get online, stay online, and grow
+          with clear hosting and marketing under one team.
         </motion.p>
       </div>
     </section>

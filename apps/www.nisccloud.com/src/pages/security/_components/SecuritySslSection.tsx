@@ -11,7 +11,7 @@ const sslOptions = [
     points: [
       "Available in DV, OV and EV SSL certificates",
       "Protect one site, multiple sites or subdomains",
-      "1-year validity period - longer terms available",
+      "1-year validity period. Longer terms available",
       "Full management and control",
     ],
     from: 999,
@@ -23,12 +23,12 @@ const sslOptions = [
   {
     type: "We'll do it for you",
     name: "Managed SSL Service",
-    desc: "Our Nisc Cloud experts handle the installation, maintenance and updates for you - so you can focus on running your business.",
+    desc: "Our experts handle installation, maintenance, and updates for you so you can focus on running your business.",
     points: [
       "Includes one DV SSL certificate",
       "Protect one site, multiple sites or subdomains",
       "Terms up to 5 years available",
-      "Hands-off - we handle everything",
+      "Hands-off. We handle everything",
     ],
     from: 2000,
     period: "yr",
@@ -46,9 +46,9 @@ export default function SecuritySslSection() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
           <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">SSL Solutions</span>
-          <h2 className="text-3xl font-bold mt-2 mb-3">We Offer Both Self-Managed &amp; Fully Managed SSL</h2>
+          <h2 className="text-3xl font-bold mt-2 mb-3">Self-Managed or Fully Managed SSL</h2>
           <p className="text-muted-foreground max-w-xl mx-auto text-sm">
-            An SSL certificate adds the padlock icon and HTTPS to your site. Without it, browsers show a "Not Secure" warning that drives visitors away.
+            An SSL certificate adds the padlock and HTTPS to your site. Without it, browsers show a Not Secure warning that drives visitors away.
           </p>
         </div>
 

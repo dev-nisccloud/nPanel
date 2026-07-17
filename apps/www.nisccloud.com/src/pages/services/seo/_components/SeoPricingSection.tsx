@@ -6,7 +6,7 @@ export function SeoPricingSection() {
     <NpanelPricingSection
       fetchPlans={fetchSeoPlansPublic}
       title="Choose Your SEO Plan"
-      description="Done-for-you SEO with keyword research, on-page and technical fixes, content optimization, and live performance reporting in your portal."
+      description="Done-for-you SEO with keyword research, on-page and technical fixes, content optimisation, and clear performance reporting in your portal."
       checkoutServiceType="seo_reports"
       serviceName="SEO Services"
     />

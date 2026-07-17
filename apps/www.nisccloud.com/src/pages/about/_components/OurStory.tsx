@@ -6,25 +6,25 @@ export default function OurStory() {
       year: "2018",
       title: "The Spark",
       description:
-        "Founded in a small co-working space, Nisc Cloud started with a single mission: help local businesses compete online with enterprise-grade strategy.",
+        "We started with a simple goal: help local businesses get online with reliable hosting and clear marketing support.",
     },
     {
       year: "2020",
       title: "The Atom Approach",
       description:
-        "After serving 50+ clients, we distilled our best practices into a repeatable framework - Create, Launch, Market, Automate - that consistently delivers results.",
+        "After working with dozens of clients, we shaped a repeatable process: Create, Host, Market, Automate. It keeps projects clear and results measurable.",
     },
     {
       year: "2022",
-      title: "Going National",
+      title: "Growing With Our Clients",
       description:
-        "Word spread fast. We expanded from regional projects to working with brands across the country, growing our team and sharpening our methodology.",
+        "Word spread. We grew our team and started supporting businesses of every size, near and far, with the same hands-on approach.",
     },
     {
       year: "2024",
-      title: "300+ Launches",
+      title: "100+ Businesses",
       description:
-        "Today, Nisc Cloud has helped over 300 businesses launch, grow, and automate - and we're just getting started.",
+        "Today we help 100+ businesses get online, stay online, and grow. Free migration, setup help, and 24/7 support are part of how we work.",
     },
   ];
 
@@ -42,12 +42,12 @@ export default function OurStory() {
           <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-3xl" />
           <img
             src="https://images.unsplash.com/photo-1556761175-b413da4baf72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NzIwMTN8MHwxfHNlYXJjaHwzfHx0ZWNoJTIwdGVhbSUyMHByb2Zlc3Npb25hbHMlMjBvZmZpY2UlMjBjb2xsYWJvcmF0aW9ufGVufDB8fHx8MTc3NzYxOTExNnww&ixlib=rb-4.1.0&q=80&w=1080"
-            alt="Nisc Cloud team collaborating"
+            alt="Our team collaborating"
             className="relative rounded-2xl w-full object-cover aspect-[4/3]"
           />
           <div className="absolute -bottom-6 -right-6 bg-primary text-primary-foreground rounded-xl px-6 py-4 shadow-xl">
-            <p className="text-3xl font-bold">300+</p>
-            <p className="text-sm opacity-80">Launches & counting</p>
+            <p className="text-3xl font-bold">100+</p>
+            <p className="text-sm opacity-80">Businesses growing with us</p>
           </div>
         </motion.div>
 
@@ -63,9 +63,9 @@ export default function OurStory() {
               Built from the Ground Up
             </h2>
             <p className="text-muted-foreground">
-              Every great agency has an origin story. Ours began with a
-              frustration - too many businesses were leaving growth on the
-              table because they lacked the right systems.
+              Too many businesses were stuck between flaky hosting and scattered
+              marketing vendors. We built one team that handles both, with clear
+              plans and real support.
             </p>
           </motion.div>
 

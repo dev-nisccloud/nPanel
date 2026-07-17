@@ -1,6 +1,4 @@
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button.tsx";
 
 export default function ServiceHero() {
   return (
@@ -40,7 +38,7 @@ export default function ServiceHero() {
         >
           Everything Your Brand
           <br />
-          <span className="text-primary">Needs to Orbit.</span>
+          <span className="text-primary">Needs to Grow.</span>
         </motion.h1>
 
         <motion.p
@@ -49,7 +47,7 @@ export default function ServiceHero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8"
         >
-          Four fully integrated service pillars - each powerful alone, unstoppable together. No handoffs, no gaps, no finger-pointing.
+          Four service pillars that work together: create your brand, launch online, market to the right people, and automate the follow-up. One team, clear reporting, and 24/7 support.
         </motion.p>
 
         <motion.div

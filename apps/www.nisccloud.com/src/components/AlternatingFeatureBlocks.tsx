@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { NiscWebsiteFeatureImage } from "@/components/NiscWebsiteHeroImage.tsx";
 
 export type FeatureBlockItem = {
   tag: string;
@@ -74,11 +75,7 @@ export default function AlternatingFeatureBlocks({ items, accentColor }: Props) 
             transition={{ duration: 0.65, delay: 0.1 }}
             className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-xl"
           >
-            <img
-              src={item.imageUrl}
-              alt={item.imageAlt}
-              className="w-full h-full object-cover"
-            />
+            <NiscWebsiteFeatureImage src={item.imageUrl} alt={item.imageAlt} />
             <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent" />
             {item.badge && (
               <div className="absolute bottom-5 left-5 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-4 py-2.5 flex items-center gap-2.5 shadow-lg">

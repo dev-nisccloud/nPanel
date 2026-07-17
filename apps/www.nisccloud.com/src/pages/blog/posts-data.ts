@@ -351,7 +351,7 @@ export const posts: Post[] = [
       {
         type: "stat-row",
         stats: [
-          { value: "99.9%", label: "Uptime SLA on Nisc Cloud shared hosting" },
+          { value: "99.99%", label: "Uptime target on shared hosting" },
           { value: "KES 350", label: "Starting price per month" },
           { value: "24/7", label: "Support included on all plans" },
         ],

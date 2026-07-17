@@ -109,7 +109,7 @@ export function EcommercePricing() {
           period: "once",
           features: [
             "Up to 50 products",
-            "M-Pesa STK Push integration",
+            "Mobile money and card checkout setup",
             "Card payment gateway",
             "Order management dashboard",
             "Mobile-responsive storefront",
@@ -243,7 +243,7 @@ export function ZeepoAiPricing() {
             "Custom AI trained on your business",
             "Full sales pipeline automation",
             "Voice AI phone call handling",
-            "M-Pesa collection via WhatsApp",
+            "Payment collection via WhatsApp",
             "Dedicated AI success manager",
           ],
         },
@@ -256,7 +256,7 @@ export function CloudBundlesPricing() {
   return (
     <MockPricing
       serviceName="Cloud Plans"
-      subtitle="Brand, hosting, and marketing bundled for Kenyan businesses that want everything managed."
+      subtitle="Brand, hosting, and marketing bundled for businesses that want everything managed under one team."
       plans={[
         {
           id: "launchpad",
