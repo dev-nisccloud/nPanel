@@ -10,7 +10,10 @@ import {
 	renderNiscOrderFailedEmail,
 } from "@npanel/api/lib/email-templates";
 import { sendEmail, sendEmailBatch } from "@npanel/api/lib/email";
-import { runPreProvisioningInvoiceForOrder } from "@npanel/api/lib/nisc-order-invoice-delivery";
+import {
+	niscOrderSkipsInvoice,
+	runPreProvisioningInvoiceForOrder,
+} from "@npanel/api/lib/nisc-order-invoice-delivery";
 import { formatNiscDateTime } from "@npanel/api/lib/nisc-datetime-format";
 import { buildNiscOrderReceivedEmailItems } from "@npanel/api/lib/nisc-order-received-email";
 import { verifySignature } from "../../lib/qstash-verify";
@@ -87,6 +90,7 @@ export async function handleProcessNiscOrder(c: Context) {
 
 		await niscLog("worker_processor_start", { niscOrderId });
 		const result = await processNiscOrder(niscOrderId);
+		const skipCustomerEmails = niscOrderSkipsInvoice(order.metadata);
 		await niscLog("worker_processor_done", {
 			niscOrderId,
 			ok: result.ok,
@@ -122,7 +126,12 @@ export async function handleProcessNiscOrder(c: Context) {
 		}
 		if (!customerName) customerName = "Customer";
 
-		if (result.ok && result.status === "COMPLETED" && orderAfter) {
+		if (
+			!skipCustomerEmails &&
+			result.ok &&
+			result.status === "COMPLETED" &&
+			orderAfter
+		) {
 			const billingSettings = order.teamId
 				? await db.query.teamBillingSettings.findFirst({
 					where: (fields, { eq }) => eq(fields.teamId, order.teamId as string),

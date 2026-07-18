@@ -716,15 +716,19 @@ async function processPleskOrderItem(
 		return { ok: false, error: "Domain is required for hosting. Select a domain subscription." };
 	}
 
-	const teamOwnerId = order.teamId
-		? (
-				await db
-					.select({ createdById: team.createdById })
-					.from(team)
-					.where(eq(team.id, order.teamId))
-					.limit(1)
-			)[0]?.createdById
-		: order.userId;
+	const meta = item.metadata as { provisionUserId?: string } | null;
+	const provisionUserIdFromMeta = meta?.provisionUserId?.trim() || null;
+	const teamOwnerId = provisionUserIdFromMeta
+		? provisionUserIdFromMeta
+		: order.teamId
+			? (
+					await db
+						.select({ createdById: team.createdById })
+						.from(team)
+						.where(eq(team.id, order.teamId))
+						.limit(1)
+				)[0]?.createdById
+			: order.userId;
 	if (!teamOwnerId || !order.createdBy) {
 		return { ok: false, error: "Order must have a team or user and createdBy for Plesk provisioning." };
 	}
@@ -845,9 +849,22 @@ function billingCycleToYears(billingCycle: string | null): number {
 }
 
 async function resolveOwnerId(order: DomainOrder, item: DomainOrderItem): Promise<string | null> {
-	const metadata = item.metadata as { useRegistrantInfo?: string } | null;
+	const metadata = item.metadata as {
+		useRegistrantInfo?: string;
+		provisionUserId?: string;
+	} | null;
 	if (metadata?.useRegistrantInfo === "myself") {
 		return order.createdBy;
+	}
+
+	const provisionUserId = metadata?.provisionUserId?.trim();
+	if (provisionUserId) {
+		return provisionUserId;
+	}
+
+	/** Agency billed-for user when registrant is the customer (not the agency agent). */
+	if (metadata?.useRegistrantInfo === "customer" && order.userId) {
+		return order.userId;
 	}
 
 	if (order.teamId) {
