@@ -1052,6 +1052,17 @@ export const niscServiceOrdersRouter = router({
 				orderUserId = billedFor;
 			}
 
+			const skipInvoiceRequested = input.skipInvoice === true;
+			if (skipInvoiceRequested) {
+				const role = session.user.role as string | undefined;
+				if (!canAssignBilledForUserId(role) && !(await userIsAgencyStaff(userId))) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Only agency users can create orders without invoices.",
+					});
+				}
+			}
+			const skipInvoice = skipInvoiceRequested;
 			const payOrderIns = await db
 				.insert(niscOrder)
 				.values({
@@ -1065,6 +1076,14 @@ export const niscServiceOrdersRouter = router({
 					total,
 					currency,
 					paymentTransactionId: transaction.id,
+					...(skipInvoice
+						? {
+								metadata: {
+									skipInvoice: true,
+									agencyManualCreate: true,
+								},
+							}
+						: {}),
 				})
 				.returning();
 			const order = payOrderIns[0];
@@ -1146,62 +1165,64 @@ export const niscServiceOrdersRouter = router({
 				}
 			}
 
-			// Fire-and-forget: send "order received" email to the logged-in user
-			void (async () => {
-				try {
-					const orderWithUser = await db.query.niscOrder.findFirst({
-						where: eq(niscOrder.id, order.id),
-						with: {
-							orderItems: {
-								with: {
-									product: { columns: { name: true, serviceType: true } },
-									productPlan: { columns: { name: true } },
+			// Fire-and-forget: send "order received" email (skipped for agency manual provision).
+			if (!skipInvoice) {
+				void (async () => {
+					try {
+						const orderWithUser = await db.query.niscOrder.findFirst({
+							where: eq(niscOrder.id, order.id),
+							with: {
+								orderItems: {
+									with: {
+										product: { columns: { name: true, serviceType: true } },
+										productPlan: { columns: { name: true } },
+									},
 								},
+								user: { columns: { id: true, name: true, email: true } },
 							},
-							user: { columns: { id: true, name: true, email: true } },
-						},
-					});
-					if (!orderWithUser?.user?.email) return;
-					const { sendEmail } = await import("../lib/email");
-					const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
-					const { buildNiscOrderReceivedEmailItems } = await import(
-						"../lib/nisc-order-received-email"
-					);
-					const { formatNiscDateTime } = await import("../lib/nisc-datetime-format");
-					const { orderItems, totalAmount } = buildNiscOrderReceivedEmailItems({
-						createdAt: orderWithUser.createdAt,
-						currency: orderWithUser.currency,
-						subtotal: orderWithUser.subtotal,
-						orderItems: orderWithUser.orderItems.map((i) => ({
-							itemPrice: i.itemPrice,
-							itemSubtotal: i.itemSubtotal,
-							primaryDomain: i.primaryDomain,
-							billingCycle: i.billingCycle,
-							description: i.description,
-							product: {
-								name: i.product?.name ?? "Service",
-								serviceType: i.product?.serviceType ?? null,
-							},
-							productPlan: i.productPlan,
-						})),
-					});
-					const html = await renderNiscOrderReceivedEmail({
-						customerName: orderWithUser.user.name ?? undefined,
-						orderNumber: orderWithUser.orderNumber,
-						orderDate: formatNiscDateTime(orderWithUser.createdAt),
-						totalAmount,
-						currency: orderWithUser.currency,
-						orderItems,
-					});
-					await sendEmail({
-						to: orderWithUser.user.email,
-						subject: `Order ${orderWithUser.orderNumber} received`,
-						html,
-					});
-				} catch (e) {
-					console.error("Failed to send order received email:", e);
-				}
-			})();
+						});
+						if (!orderWithUser?.user?.email) return;
+						const { sendEmail } = await import("../lib/email");
+						const { renderNiscOrderReceivedEmail } = await import("../lib/email-templates");
+						const { buildNiscOrderReceivedEmailItems } = await import(
+							"../lib/nisc-order-received-email"
+						);
+						const { formatNiscDateTime } = await import("../lib/nisc-datetime-format");
+						const { orderItems, totalAmount } = buildNiscOrderReceivedEmailItems({
+							createdAt: orderWithUser.createdAt,
+							currency: orderWithUser.currency,
+							subtotal: orderWithUser.subtotal,
+							orderItems: orderWithUser.orderItems.map((i) => ({
+								itemPrice: i.itemPrice,
+								itemSubtotal: i.itemSubtotal,
+								primaryDomain: i.primaryDomain,
+								billingCycle: i.billingCycle,
+								description: i.description,
+								product: {
+									name: i.product?.name ?? "Service",
+									serviceType: i.product?.serviceType ?? null,
+								},
+								productPlan: i.productPlan,
+							})),
+						});
+						const html = await renderNiscOrderReceivedEmail({
+							customerName: orderWithUser.user.name ?? undefined,
+							orderNumber: orderWithUser.orderNumber,
+							orderDate: formatNiscDateTime(orderWithUser.createdAt),
+							totalAmount,
+							currency: orderWithUser.currency,
+							orderItems,
+						});
+						await sendEmail({
+							to: orderWithUser.user.email,
+							subject: `Order ${orderWithUser.orderNumber} received`,
+							html,
+						});
+					} catch (e) {
+						console.error("Failed to send order received email:", e);
+					}
+				})();
+			}
 
 			return db.query.niscOrder.findFirst({
 				where: eq(niscOrder.id, order.id),
