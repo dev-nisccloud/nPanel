@@ -1345,6 +1345,124 @@ export const teamsRouter = router({
       return { success: true };
     }),
 
+  /**
+   * Agency-only: add an existing user to a team immediately (no invite email).
+   */
+  addMember: protectedProcedure
+    .input(
+      z.object({
+        teamId: z.string(),
+        userId: z.string().min(1),
+        role: z.enum(["OWNER", "ADMIN", "MEMBER", "VIEWER"]).default("MEMBER"),
+      }),
+    )
+    .output(
+      z.object({
+        success: z.boolean(),
+        memberId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const session = ctx.session;
+      if (!session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be logged in",
+        });
+      }
+
+      const userRole = session.user.role;
+      if (!isAgencyRole(userRole)) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only agency users can add members without an invitation",
+        });
+      }
+      await assertTeamMutationAccess(input.teamId, session.user.id, userRole);
+
+      const [teamRow] = await db.select().from(team).where(eq(team.id, input.teamId)).limit(1);
+      if (!teamRow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Team not found",
+        });
+      }
+
+      const [targetUser] = await db
+        .select({ id: user.id, email: user.email, name: user.name })
+        .from(user)
+        .where(eq(user.id, input.userId))
+        .limit(1);
+      if (!targetUser) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found. Create the account first, or send an invitation instead.",
+        });
+      }
+
+      const [existingTm] = await db
+        .select({ id: teamMember.id })
+        .from(teamMember)
+        .where(and(eq(teamMember.userId, targetUser.id), eq(teamMember.teamId, input.teamId)))
+        .limit(1);
+      if (existingTm) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "User is already a member of this team",
+        });
+      }
+
+      const now = new Date();
+      const memberId = crypto.randomUUID();
+
+      await db.transaction(async (tx) => {
+        await tx.insert(teamMember).values({
+          id: memberId,
+          teamId: input.teamId,
+          userId: targetUser.id,
+          role: input.role,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        // Clear any pending invite for this email so the list stays clean.
+        if (targetUser.email) {
+          await tx
+            .update(teamInvite)
+            .set({ status: "CANCELLED", updatedAt: now })
+            .where(
+              and(
+                eq(teamInvite.teamId, input.teamId),
+                eq(teamInvite.email, targetUser.email),
+                eq(teamInvite.status, "PENDING"),
+              ),
+            );
+        }
+
+        await tx.insert(userActivityLog).values({
+          id: crypto.randomUUID(),
+          userId: session.user.id,
+          action: "TEAM_MEMBER_ADDED_BY_ADMIN",
+          description: `Team member added by admin (no invite): ${targetUser.email ?? targetUser.id}`,
+          metadata: {
+            teamId: teamRow.id,
+            teamName: teamRow.name,
+            addedUserId: targetUser.id,
+            addedUserEmail: targetUser.email,
+            role: input.role,
+            memberId,
+            addedBy: session.user.id,
+            addedByEmail: session.user.email,
+          },
+          ipAddress: null,
+          userAgent: null,
+          createdAt: now,
+        });
+      });
+
+      return { success: true, memberId };
+    }),
+
   inviteMember: protectedProcedure
     .input(
       z.object({

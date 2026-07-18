@@ -57,7 +57,7 @@ const tabs: Tab[] = [
     highlight: "more doors.",
     subtext:
       "We shape your look, message, and website so people understand you fast and trust you enough to buy.",
-    image: niscWebsiteImage("create_brand.png"),
+    image: niscWebsiteImage("website design.png"),
     features: [
       { icon: Target, label: "Brand Strategy & Positioning", desc: "From KES 15,000", href: "/services/brand-identity" },
       { icon: Layers, label: "Brand Identity & Design", desc: "From KES 25,000", href: "/services/brand-identity" },
@@ -75,7 +75,7 @@ const tabs: Tab[] = [
     highlight: "fast and steady.",
     subtext:
       "Domain, hosting, email, and security in one place. Free migration help, 99.99% uptime, and support around the clock.",
-    image: niscWebsiteImage("Go online.png"),
+    image: niscWebsiteImage("Go online (1).png"),
     features: [
       { icon: HardDrive, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
       { icon: Zap, label: "WordPress Hosting", desc: "From KES 500/mo", href: "/hosting/wordpress" },
@@ -96,7 +96,7 @@ const tabs: Tab[] = [
     highlight: "real buyers.",
     subtext:
       "We put your business in front of people who are already looking for what you sell, then help you turn visits into sales.",
-    image: niscWebsiteImage("Get more customers.jpg"),
+    image: niscWebsiteImage("Get more customers.png"),
     features: [
       { icon: Share2, label: "Social Media Marketing (SMM)", desc: "From KES 20,000/mo", href: "/services/social-media" },
       { icon: BarChart2, label: "SEO / AEO / GEO", desc: "From KES 25,000/mo", href: "/services/seo" },
@@ -115,7 +115,7 @@ const tabs: Tab[] = [
     highlight: "the busy work.",
     subtext:
       "Zeepo AI helps with replies, content, and follow-ups so your team can focus on people and sales.",
-    image: niscWebsiteImage("Automate with AI.png"),
+    image: niscWebsiteImage("Automate with AI (1).png"),
     features: [
       { icon: Sparkles, label: "AI Content Writer", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },
       { icon: Workflow, label: "Marketing Automation", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },

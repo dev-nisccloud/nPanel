@@ -36,6 +36,7 @@ import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { useUsersLookup } from "@/hooks/use-user-lookup";
 import { InviteMemberDialog } from "./invite-member-dialog";
+import { AddMemberDialog } from "./add-member-dialog";
 import { BillingSettingsTab } from "./billing-settings-tab";
 
 interface TeamViewSheetProps {
@@ -50,6 +51,7 @@ export function TeamViewSheet({
     teamId,
 }: TeamViewSheetProps) {
     const [isInviteDialogOpen, setIsInviteDialogOpen] = React.useState(false);
+    const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = React.useState(false);
     const [removeMemberDialog, setRemoveMemberDialog] = React.useState<{
         open: boolean;
         memberId: string | null;
@@ -114,6 +116,17 @@ export function TeamViewSheet({
         utils.teams.getInvites.invalidate({ teamId });
         setIsInviteDialogOpen(false);
     };
+
+    const handleAddMemberSuccess = () => {
+        void utils.teams.getMembers.invalidate({ teamId });
+        void utils.teams.getInvites.invalidate({ teamId });
+        setIsAddMemberDialogOpen(false);
+    };
+
+    const existingMemberUserIds = React.useMemo(
+        () => (members ?? []).map((m) => m.userId),
+        [members],
+    );
 
     const removeMemberMutation = trpc.teams.removeMember.useMutation({
         onSuccess: () => {
@@ -278,12 +291,20 @@ export function TeamViewSheet({
 
                                     {/* Members Card */}
                                     <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-lg flex items-center gap-2">
-                                                <Users className="h-5 w-5" />
-                                                Team Members
-                                            </CardTitle>
-                                            <CardDescription>Manage group access</CardDescription>
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                                            <div>
+                                                <CardTitle className="text-lg flex items-center gap-2">
+                                                    <Users className="h-5 w-5" />
+                                                    Team Members
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    Add existing users directly (no email invite)
+                                                </CardDescription>
+                                            </div>
+                                            <Button size="sm" onClick={() => setIsAddMemberDialogOpen(true)}>
+                                                <UserPlus className="mr-2 h-4 w-4" />
+                                                Add member
+                                            </Button>
                                         </CardHeader>
                                         <CardContent>
                                             {isLoadingMembers || isLoadingUsers ? (
@@ -345,7 +366,9 @@ export function TeamViewSheet({
                                                     <Mail className="h-5 w-5" />
                                                     Active Invitations
                                                 </CardTitle>
-                                                <CardDescription>Pending membership requests</CardDescription>
+                                                <CardDescription>
+                                                    Email invite when the person does not have an account yet
+                                                </CardDescription>
                                             </div>
                                             <Button size="sm" onClick={() => setIsInviteDialogOpen(true)}>
                                                 <UserPlus className="mr-2 h-4 w-4" />
@@ -480,6 +503,14 @@ export function TeamViewSheet({
                     </ScrollArea>
                 </SheetContent>
             </Sheet>
+
+            <AddMemberDialog
+                open={isAddMemberDialogOpen}
+                onOpenChange={setIsAddMemberDialogOpen}
+                teamId={teamId}
+                existingMemberUserIds={existingMemberUserIds}
+                onSuccess={handleAddMemberSuccess}
+            />
 
             <InviteMemberDialog
                 open={isInviteDialogOpen}
