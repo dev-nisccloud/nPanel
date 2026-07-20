@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "nPanel System Architecture",
+    "subtitle": "Beginner guide — how the landing page, dashboard, API, data stores, and background jobs fit together",
+    "output": "npanel-runtime.html",
+    "viewBox": [1120, 780]
+  },
+  "components": [
+    {
+      "id": "people",
+      "type": "external",
+      "label": "People",
+      "sublabel": "customers & agencies",
+      "pos": [36, 292],
+      "size": [128, 64]
+    },
+    {
+      "id": "landing",
+      "type": "frontend",
+      "label": "Landing Page",
+      "sublabel": "www.nisccloud.com",
+      "pos": [210, 150],
+      "size": [150, 68],
+      "tag": "marketing + shop"
+    },
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "nPanel Dashboard",
+      "sublabel": "npanel.nisccloud.com",
+      "pos": [210, 290],
+      "size": [150, 68],
+      "tag": "apps/web"
+    },
+    {
+      "id": "docs",
+      "type": "frontend",
+      "label": "Docs Site",
+      "sublabel": "help articles",
+      "pos": [210, 440],
+      "size": [150, 60],
+      "tag": "fumadocs"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API Server",
+      "sublabel": "Hono + tRPC",
+      "pos": [430, 290],
+      "size": [148, 68],
+      "tag": "apps/server"
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Login & Security",
+      "sublabel": "Better Auth",
+      "pos": [430, 140],
+      "size": [148, 68],
+      "tag": "cookies · MFA"
+    },
+    {
+      "id": "queue",
+      "type": "messagebus",
+      "label": "Job Queue",
+      "sublabel": "Upstash QStash",
+      "pos": [430, 450],
+      "size": [148, 64],
+      "tag": "async work"
+    },
+    {
+      "id": "redis",
+      "type": "database",
+      "label": "Redis Cache",
+      "sublabel": "fast short-term memory",
+      "pos": [660, 120],
+      "size": [150, 64]
+    },
+    {
+      "id": "pg",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "main database",
+      "pos": [660, 280],
+      "size": [150, 68],
+      "tag": "source of truth"
+    },
+    {
+      "id": "files",
+      "type": "cloud",
+      "label": "File Storage",
+      "sublabel": "MinIO / S3 uploads",
+      "pos": [660, 430],
+      "size": [150, 64]
+    },
+    {
+      "id": "workers",
+      "type": "backend",
+      "label": "Background Workers",
+      "sublabel": "long-running jobs",
+      "pos": [860, 450],
+      "size": [160, 64],
+      "tag": "role=workers"
+    },
+    {
+      "id": "vendors",
+      "type": "external",
+      "label": "Partner Services",
+      "sublabel": "payments · hosting · AI",
+      "pos": [860, 280],
+      "size": [160, 68]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "1 · Websites people open in a browser",
+      "wraps": ["landing", "dashboard", "docs"]
+    },
+    {
+      "kind": "security-group",
+      "label": "2 · Backend on Google Cloud Run (login wall)",
+      "wraps": ["api", "auth", "queue"]
+    },
+    {
+      "kind": "region",
+      "label": "3 · Private data (not reachable from the browser)",
+      "wraps": ["redis", "pg", "files"]
+    },
+    {
+      "kind": "region",
+      "label": "4 · Background processing",
+      "wraps": ["workers"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "people",
+      "to": "landing",
+      "label": "browse & buy",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "labelDy": -18
+    },
+    {
+      "from": "people",
+      "to": "dashboard",
+      "label": "sign in & manage",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "labelDy": -28
+    },
+    {
+      "from": "people",
+      "to": "docs",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "route": "orthogonal-h"
+    },
+    {
+      "from": "landing",
+      "to": "api",
+      "label": "/api proxy",
+      "fromSide": "right",
+      "toSide": "top",
+      "route": "orthogonal-v",
+      "labelAt": [400, 220]
+    },
+    {
+      "from": "dashboard",
+      "to": "api",
+      "label": "/api/trpc",
+      "variant": "emphasis",
+      "labelDy": 36
+    },
+    {
+      "from": "api",
+      "to": "auth",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "auth",
+      "to": "redis",
+      "label": "session cache",
+      "labelDy": -26
+    },
+    {
+      "from": "auth",
+      "to": "pg",
+      "label": "save login",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "top",
+      "route": "orthogonal-v",
+      "labelAt": [620, 200]
+    },
+    {
+      "from": "api",
+      "to": "pg",
+      "label": "read / write",
+      "variant": "emphasis",
+      "labelDy": 36
+    },
+    {
+      "from": "api",
+      "to": "files",
+      "label": "uploads",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "labelAt": [560, 420]
+    },
+    {
+      "from": "api",
+      "to": "queue",
+      "label": "enqueue",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 34
+    },
+    {
+      "from": "queue",
+      "to": "workers",
+      "label": "signed job",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "labelDy": 36
+    },
+    {
+      "from": "workers",
+      "to": "pg",
+      "label": "update DB",
+      "fromSide": "top",
+      "toSide": "right",
+      "route": "orthogonal-v",
+      "labelAt": [840, 360]
+    },
+    {
+      "from": "api",
+      "to": "vendors",
+      "label": "HTTPS",
+      "variant": "dashed",
+      "labelAt": [780, 260]
+    },
+    {
+      "from": "workers",
+      "to": "vendors",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Start here — the three websites",
+      "items": [
+        "Landing Page (apps/www.nisccloud.com): public site for marketing, pricing, domain search, cart, and checkout",
+        "nPanel Dashboard (apps/web): the signed-in control panel for agencies and customers (hosting, billing, creatives, ads…)",
+        "Docs Site (apps/fumadocs): help articles only — it does not call the API",
+        "Both the Landing Page and Dashboard talk to the API through a same-origin /api proxy so login cookies stay safe"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "What the API Server does",
+      "items": [
+        "Built with Hono + tRPC in apps/server (packages/api holds the business logic)",
+        "Main doors: /api/auth (login), /api/trpc (app features), /api/uploadthing (files), /api/webhooks/* (partner callbacks)",
+        "Feature areas include hosting (Plesk/Hivelocity), domains, billing, teams, creatives/AI, email marketing, ads, and tax (eTIMS)",
+        "Can run as role=api (user traffic) or role=workers (background jobs) on Google Cloud Run"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Login wall (who is allowed in)",
+      "items": [
+        "People never talk to the database directly — only through the API after login checks",
+        "Dashboard users: Better Auth cookie sessions stored in PostgreSQL, cached in Redis, with MFA email OTP when needed",
+        "Machines/integrations: API keys that start with npanel_sk_* (stored hashed)",
+        "Background workers ignore user cookies — they only accept cryptographically signed QStash requests"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Where data lives",
+      "items": [
+        "PostgreSQL (+ PgBouncer): the real source of truth for users, orders, hosting, invoices, and more (Drizzle ORM in packages/db)",
+        "Redis (Upstash): optional fast cache for sessions, rate limits, and short-lived tokens — if Redis is down, the app falls back to Postgres",
+        "File Storage (MinIO/S3 + UploadThing): images, uploads, and generated creative assets",
+        "Job Queue (QStash): holds slow work (send campaigns, provision orders, run AI jobs) until workers finish it"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Partner services (outside our cloud)",
+      "items": [
+        "Payments: M-Pesa STK Push  ·  Hosting: Plesk, Hivelocity, JetBackup  ·  Domains: OpenProvider, KENIC (.ke)",
+        "Email: AWS SES (and some legacy Resend)  ·  AI: Replicate, Stability AI  ·  Ads: Meta, Instagram, LinkedIn, Google Ads",
+        "Tax: KRA eTIMS / DigiTax  ·  SEO: Google PageSpeed",
+        "Partners call back through signed webhooks (M-Pesa, Replicate, SES/SNS) — never trusted blindly"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Simple story of one request",
+      "items": [
+        "1) You open the Landing Page or nPanel Dashboard in your browser",
+        "2) The site forwards /api calls to the API Server (same-origin proxy)",
+        "3) Login & Security checks your session (Redis first, PostgreSQL if cache miss)",
+        "4) The API reads/writes PostgreSQL, may store files, or enqueues a background job",
+        "5) Workers finish slow tasks and update the database; the UI shows the result"
+      ]
+    }
+  ]
+}

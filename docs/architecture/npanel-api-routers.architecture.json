@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "nPanel API Router Map",
+    "subtitle": "How tRPC appRouter is grouped — Landing Page & Dashboard call these domains via /api/trpc",
+    "output": "npanel-api-routers.html",
+    "viewBox": [1180, 880]
+  },
+  "components": [
+    {
+      "id": "landing",
+      "type": "frontend",
+      "label": "Landing Page",
+      "sublabel": "www.nisccloud.com",
+      "pos": [40, 100],
+      "size": [140, 60],
+      "tag": "storefront.*"
+    },
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "nPanel Dashboard",
+      "sublabel": "apps/web",
+      "pos": [40, 280],
+      "size": [140, 64],
+      "tag": "most routers"
+    },
+    {
+      "id": "hub",
+      "type": "backend",
+      "label": "appRouter",
+      "sublabel": "packages/api",
+      "pos": [260, 250],
+      "size": [150, 72],
+      "tag": "/api/trpc"
+    },
+    {
+      "id": "authwall",
+      "type": "security",
+      "label": "Auth Gates",
+      "sublabel": "public vs protected",
+      "pos": [260, 100],
+      "size": [150, 64],
+      "tag": "session · API key"
+    },
+    {
+      "id": "hosting",
+      "type": "cloud",
+      "label": "Hosting",
+      "sublabel": "Plesk · VPS · backups",
+      "pos": [520, 40],
+      "size": [150, 64],
+      "tag": "plesk.* jetbackup.*"
+    },
+    {
+      "id": "domains",
+      "type": "cloud",
+      "label": "Domains",
+      "sublabel": "register · transfer · DNS",
+      "pos": [740, 40],
+      "size": [150, 64],
+      "tag": "openProvider kenic"
+    },
+    {
+      "id": "billing",
+      "type": "database",
+      "label": "Billing",
+      "sublabel": "orders · invoices · pay",
+      "pos": [960, 120],
+      "size": [150, 64],
+      "tag": "M-Pesa"
+    },
+    {
+      "id": "teams",
+      "type": "security",
+      "label": "Teams & Access",
+      "sublabel": "users · RBAC · keys",
+      "pos": [520, 160],
+      "size": [150, 64],
+      "tag": "agencyRbac"
+    },
+    {
+      "id": "creatives",
+      "type": "backend",
+      "label": "Creatives & AI",
+      "sublabel": "images · Zeepo · studio",
+      "pos": [740, 180],
+      "size": [150, 64],
+      "tag": "Replicate"
+    },
+    {
+      "id": "email",
+      "type": "messagebus",
+      "label": "Email Marketing",
+      "sublabel": "campaigns · builders",
+      "pos": [960, 260],
+      "size": [150, 64],
+      "tag": "SES / Resend"
+    },
+    {
+      "id": "ads",
+      "type": "external",
+      "label": "Ads & Social",
+      "sublabel": "Meta · Google · LinkedIn",
+      "pos": [520, 300],
+      "size": [150, 64]
+    },
+    {
+      "id": "storefront",
+      "type": "frontend",
+      "label": "Public Storefront",
+      "sublabel": "pricing · cart · whois",
+      "pos": [740, 340],
+      "size": [150, 64],
+      "tag": "mostly public"
+    },
+    {
+      "id": "tax",
+      "type": "database",
+      "label": "Tax & Reports",
+      "sublabel": "eTIMS · analytics",
+      "pos": [960, 400],
+      "size": [150, 64]
+    },
+    {
+      "id": "support",
+      "type": "backend",
+      "label": "Support & Utils",
+      "sublabel": "tickets · files · SEO",
+      "pos": [520, 460],
+      "size": [150, 64]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Clients",
+      "wraps": ["landing", "dashboard"]
+    },
+    {
+      "kind": "security-group",
+      "label": "API entry — Better Auth cookies or npanel_sk_* keys",
+      "wraps": ["hub", "authwall"]
+    },
+    {
+      "kind": "region",
+      "label": "Router domains (each box = a group of tRPC routers)",
+      "wraps": ["hosting", "domains", "billing", "teams", "creatives", "email", "ads", "storefront", "tax", "support"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "landing",
+      "to": "hub",
+      "fromSide": "right",
+      "toSide": "top",
+      "route": "orthogonal-v"
+    },
+    {
+      "from": "dashboard",
+      "to": "hub",
+      "label": "/api/trpc",
+      "variant": "emphasis",
+      "labelDy": 36
+    },
+    {
+      "from": "hub",
+      "to": "authwall",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "hub",
+      "to": "teams",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "teams",
+      "to": "hosting",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "hosting",
+      "to": "domains"
+    },
+    {
+      "from": "domains",
+      "to": "billing",
+      "fromSide": "right",
+      "toSide": "top",
+      "route": "orthogonal-v"
+    },
+    {
+      "from": "teams",
+      "to": "creatives",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "creatives",
+      "to": "email",
+      "fromSide": "right",
+      "toSide": "top",
+      "route": "orthogonal-v"
+    },
+    {
+      "from": "hub",
+      "to": "ads",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "orthogonal-v",
+      "via": [[335, 360], [595, 360]]
+    },
+    {
+      "from": "ads",
+      "to": "storefront"
+    },
+    {
+      "from": "storefront",
+      "to": "tax",
+      "fromSide": "right",
+      "toSide": "top",
+      "route": "orthogonal-v"
+    },
+    {
+      "from": "ads",
+      "to": "support",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "landing",
+      "to": "storefront",
+      "label": "public shop APIs",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[110, 560], [700, 560]],
+      "labelAt": [380, 548]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "How to read this map",
+      "items": [
+        "Every colored box on the right is a domain of tRPC routers under packages/api → appRouter",
+        "Call shape: trpc.<router>.<procedure>  e.g. trpc.orders.create or trpc.plesk.domains.list",
+        "Landing Page mainly uses Public Storefront routers (storefront, publicPricing, whois, payments)",
+        "nPanel Dashboard uses almost every domain after login"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Hosting routers",
+      "items": [
+        "plesk.* — customers, domains, DNS, email, DBs, FTP, subscriptions, WordPress toolkit",
+        "hosting, hostingPlans, wordpressSubscriptions — Nisc hosting catalog & subscriptions",
+        "hivelocity, hivelocityPricingSettings — VPS / dedicated servers",
+        "jetbackup.* — dashboard, accounts, jobs, schedules, backups, restores, settings"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Domains routers",
+      "items": [
+        "openProvider — global domain registrar API",
+        "kenic — .ke EPP registry",
+        "domains, domainTransfer, nameserverGroups, tldSettings, aiDomainSearch, whois"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Billing & commerce routers",
+      "items": [
+        "orders, invoicing, quotations, teamBilling, products",
+        "paymentGateway, paymentTransactions — M-Pesa and payment records",
+        "clientSubscriptions, subscriptionUsage, serviceSubscriptions, niscServiceOrders",
+        "currency, publicPricing — FX and public price helpers"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Teams, access & public doors",
+      "items": [
+        "teams, clients, manageUsers, user, userProfile, agencyRbac, apiKeys",
+        "storefront — Landing Page cart/checkout (isolated from dashboard routers)",
+        "Auth gates: publicProcedure (open) vs protectedProcedure (must be logged in)",
+        "Nested giants: plesk.* and jetbackup.* are routers-inside-routers"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Creatives · email · ads · tax · support",
+      "items": [
+        "Creatives/AI: creativeAssets, creativeBriefs, imageGenStudio, stabilityAi, imageGenerator, backgroundRemover, zeepoCanvas, zeepoAgent, ai",
+        "Email: emailMarketing, niscEmailMarketing, emailBuilder, emailBuilderLibrary, niscEmailBuilder",
+        "Ads/Social: socialMediaMarketing.{meta,linkedin,instagram}, googleAds, metaAds, instagramAds, linkedInAds",
+        "Tax/Reports: etims, digitax, reports, niscReports · Utils: tickets, notifications, objectStorage, pagespeedInsights, seoReports, webDesignQuotes, ipRecords, cronWorkflowRun"
+      ]
+    }
+  ]
+}
