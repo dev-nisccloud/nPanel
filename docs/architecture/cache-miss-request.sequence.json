@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Cache-Miss Request Path",
+    "subtitle": "Browser → Web App → API → JWT → Redis → PostgreSQL fallback",
+    "output": "cache-miss-request.html",
+    "viewBox": [820, 720]
+  },
+  "participants": [
+    { "id": "browser", "type": "external", "label": "Browser", "sublabel": "user agent" },
+    { "id": "web", "type": "frontend", "label": "Web App", "sublabel": "apps/web" },
+    { "id": "api", "type": "backend", "label": "API", "sublabel": "Hono / tRPC" },
+    { "id": "jwt", "type": "security", "label": "JWT", "sublabel": "verify claims" },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "session cache" },
+    { "id": "pg", "type": "database", "label": "PostgreSQL", "sublabel": "source of truth" }
+  ],
+  "segments": [
+    { "from": 150, "to": 300, "label": "01 / REQUEST + AUTH" },
+    { "from": 320, "to": 520, "label": "02 / CACHE MISS → DB" },
+    { "from": 540, "to": 655, "label": "03 / RESPONSE" }
+  ],
+  "messages": [
+    { "from": "browser", "to": "web", "y": 180, "label": "open panel", "variant": "default" },
+    { "from": "web", "to": "api", "y": 220, "label": "GET /api/trpc", "variant": "emphasis" },
+    { "from": "api", "to": "jwt", "y": 260, "label": "verify JWT", "variant": "security" },
+    { "from": "jwt", "to": "api", "y": 295, "label": "claims ok", "variant": "return" },
+    { "from": "api", "to": "redis", "y": 350, "label": "read cache", "variant": "default" },
+    { "from": "redis", "to": "api", "y": 388, "label": "MISS", "variant": "return" },
+    { "from": "api", "to": "pg", "y": 445, "label": "SELECT session / data", "variant": "emphasis" },
+    { "from": "pg", "to": "api", "y": 490, "label": "rows", "variant": "return" },
+    { "from": "api", "to": "redis", "y": 540, "label": "SET cache TTL", "variant": "dashed" },
+    { "from": "api", "to": "web", "y": 590, "label": "200 JSON", "variant": "return" },
+    { "from": "web", "to": "browser", "y": 630, "label": "render", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "web", "from": 210, "to": 638, "type": "frontend" },
+    { "participant": "api", "from": 220, "to": 598, "type": "backend" },
+    { "participant": "jwt", "from": 255, "to": 300, "type": "security" },
+    { "participant": "redis", "from": 345, "to": 400, "type": "database" },
+    { "participant": "pg", "from": 440, "to": 498, "type": "database" },
+    { "participant": "redis", "from": 530, "to": 560, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Cache-miss path (highlighted)",
+      "items": [
+        "Redis returns MISS before any Postgres read",
+        "API falls back to PostgreSQL as source of truth",
+        "Result is written back to Redis with a short TTL"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "nPanel note",
+      "items": [
+        "Panel auth is primarily Better Auth cookie sessions",
+        "Redis → Postgres idle-session validation matches this shape",
+        "Narrow JWTs exist for storefront handoff and invoices"
+      ]
+    }
+  ]
+}

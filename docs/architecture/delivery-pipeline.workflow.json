@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Delivery Pipeline",
+    "subtitle": "PR → tests → approval → build → staging → smoke → production (rollback on failure)",
+    "output": "delivery-pipeline.html"
+  },
+  "lanes": [
+    { "id": "dev", "label": "Developer" },
+    { "id": "ci", "label": "CI / Build" },
+    { "id": "ops", "label": "Release Ops" },
+    { "id": "rollback", "label": "Rollback Path", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "intake", "label": "Intake", "fromCol": 0, "toCol": 1 },
+    { "id": "gate", "label": "Gate", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "ship", "label": "Ship", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "ci_checks", "label": "Verify + package", "lane": "ci", "fromCol": 1, "toCol": 3, "variant": "emphasis" },
+    { "id": "promote", "label": "Promote", "lane": "ops", "fromCol": 4, "toCol": 5, "variant": "dashed" },
+    { "id": "fail_path", "label": "On failure", "lane": "rollback", "fromCol": 3, "toCol": 5, "variant": "security" }
+  ],
+  "mainPath": ["pr", "tests", "approval", "build", "staging", "smoke", "prod"],
+  "nodes": [
+    { "id": "pr", "lane": "dev", "col": 0, "type": "frontend", "label": "Open PR", "sublabel": "feature branch" },
+    { "id": "tests", "lane": "ci", "col": 1, "type": "backend", "label": "Tests", "sublabel": "lint + unit + type", "tag": "blocking" },
+    { "id": "approval", "lane": "ops", "col": 2, "type": "security", "label": "Approval", "sublabel": "review + sign-off", "tag": "required" },
+    { "id": "build", "lane": "ci", "col": 3, "type": "cloud", "label": "Build", "sublabel": "image / artifact" },
+    { "id": "staging", "lane": "ops", "col": 4, "type": "cloud", "label": "Staging", "sublabel": "deploy candidate" },
+    { "id": "smoke", "lane": "ci", "col": 5, "type": "backend", "label": "Smoke Test", "sublabel": "critical paths", "width": 100 },
+    { "id": "prod", "lane": "ops", "col": 5, "type": "backend", "label": "Production", "sublabel": "Cloud Run live" },
+    { "id": "fail", "lane": "rollback", "col": 5, "type": "security", "label": "Failure", "sublabel": "gate failed" },
+    { "id": "rollback", "lane": "rollback", "col": 3, "type": "messagebus", "label": "Rollback", "sublabel": "previous revision" }
+  ],
+  "edges": [
+    { "from": "pr", "to": "tests", "label": "webhook", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop", "labelSegment": 1 },
+    { "from": "tests", "to": "approval", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop" },
+    { "from": "approval", "to": "build", "label": "approved", "variant": "security", "fromSide": "top", "toSide": "bottom", "route": "drop", "labelSegment": 1, "labelDy": 14 },
+    { "from": "build", "to": "staging", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop" },
+    { "from": "staging", "to": "smoke", "label": "probe", "variant": "emphasis", "fromSide": "top", "toSide": "bottom", "route": "drop", "labelSegment": 1, "labelDy": 12 },
+    { "from": "smoke", "to": "prod", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "route": "drop" },
+    { "from": "smoke", "to": "fail", "label": "fail", "variant": "security", "role": "error", "fromSide": "right", "toSide": "right", "route": "outside-right", "labelDy": 20 },
+    { "from": "staging", "to": "rollback", "label": "deploy fail", "variant": "dashed", "role": "error", "fromSide": "bottom", "toSide": "top", "route": "drop", "bias": 0.2, "labelSegment": 1, "labelDy": 14 },
+    { "from": "fail", "to": "rollback", "variant": "security", "role": "branch" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Happy path",
+      "items": [
+        "PR triggers tests, then human approval",
+        "Build deploys to staging, smoke gates production",
+        "Only a green smoke test promotes the candidate"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Rollback",
+      "items": [
+        "Staging deploy failure or smoke failure enters the exception lane",
+        "Rollback restores the previous production revision",
+        "Failure never continues into Production"
+      ]
+    }
+  ]
+}

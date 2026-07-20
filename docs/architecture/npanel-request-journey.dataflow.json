@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "How a Request Travels Through nPanel",
+    "subtitle": "Beginner path — from Landing Page / Dashboard into the API, data stores, and background jobs",
+    "output": "npanel-request-journey.html",
+    "viewBox": [1080, 720]
+  },
+  "stages": [
+    { "label": "You open" },
+    { "label": "API checks" },
+    { "label": "Data" },
+    { "label": "Slow work" },
+    { "label": "Outside world" }
+  ],
+  "nodes": [
+    {
+      "id": "landing",
+      "type": "frontend",
+      "label": "Landing Page",
+      "sublabel": "www.nisccloud.com",
+      "stage": 0,
+      "row": 0,
+      "tag": "shop & marketing"
+    },
+    {
+      "id": "dashboard",
+      "type": "frontend",
+      "label": "nPanel Dashboard",
+      "sublabel": "apps/web",
+      "stage": 0,
+      "row": 2,
+      "tag": "signed-in panel"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API Server",
+      "sublabel": "/api/trpc",
+      "stage": 1,
+      "row": 1,
+      "tag": "Hono"
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Login Check",
+      "sublabel": "session / API key",
+      "stage": 1,
+      "row": 3,
+      "tag": "Better Auth"
+    },
+    {
+      "id": "redis",
+      "type": "database",
+      "label": "Redis",
+      "sublabel": "cache first",
+      "stage": 2,
+      "row": 0,
+      "tag": "fast"
+    },
+    {
+      "id": "pg",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "real data",
+      "stage": 2,
+      "row": 2,
+      "tag": "source of truth"
+    },
+    {
+      "id": "files",
+      "type": "cloud",
+      "label": "File Storage",
+      "sublabel": "uploads",
+      "stage": 2,
+      "row": 4,
+      "tag": "S3 / MinIO"
+    },
+    {
+      "id": "queue",
+      "type": "messagebus",
+      "label": "Job Queue",
+      "sublabel": "QStash",
+      "stage": 3,
+      "row": 1,
+      "tag": "async"
+    },
+    {
+      "id": "workers",
+      "type": "backend",
+      "label": "Workers",
+      "sublabel": "background",
+      "stage": 3,
+      "row": 3,
+      "tag": "signed only"
+    },
+    {
+      "id": "vendors",
+      "type": "external",
+      "label": "Partners",
+      "sublabel": "M-Pesa · Plesk · AI",
+      "stage": 4,
+      "row": 2,
+      "tag": "HTTPS"
+    }
+  ],
+  "flows": [
+    {
+      "from": "landing",
+      "to": "api",
+      "label": "storefront /api",
+      "classification": "public + checkout",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [[250, 157], [250, 271]],
+      "labelAt": [268, 200]
+    },
+    {
+      "from": "dashboard",
+      "to": "api",
+      "label": "panel /api/trpc",
+      "classification": "cookie session",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [[250, 385], [250, 271]],
+      "labelAt": [268, 360]
+    },
+    {
+      "from": "api",
+      "to": "auth",
+      "label": "who are you?",
+      "classification": "auth wall",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [400, 400]
+    },
+    {
+      "from": "auth",
+      "to": "redis",
+      "label": "session cache",
+      "classification": "fast path",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [[400, 420], [400, 157], [520, 157]],
+      "labelAt": [418, 280]
+    },
+    {
+      "from": "auth",
+      "to": "pg",
+      "label": "cache miss → DB",
+      "classification": "source of truth",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [[480, 499], [480, 385]],
+      "labelAt": [500, 450]
+    },
+    {
+      "from": "api",
+      "to": "pg",
+      "label": "business data",
+      "classification": "orders · hosting · teams",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [[480, 271], [480, 385]],
+      "labelAt": [500, 320]
+    },
+    {
+      "from": "api",
+      "to": "files",
+      "label": "uploads",
+      "classification": "images · assets",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [[360, 320], [360, 613], [520, 613]],
+      "labelAt": [380, 560]
+    },
+    {
+      "from": "api",
+      "to": "queue",
+      "label": "enqueue slow job",
+      "classification": "non-blocking",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [[500, 271], [500, 271]],
+      "labelAt": [580, 250]
+    },
+    {
+      "from": "queue",
+      "to": "workers",
+      "label": "signed worker call",
+      "classification": "QStash signature",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "straight",
+      "labelAt": [745, 360]
+    },
+    {
+      "from": "workers",
+      "to": "pg",
+      "label": "write results",
+      "classification": "DB update",
+      "variant": "default",
+      "fromSide": "left",
+      "toSide": "right",
+      "via": [[700, 499], [700, 385]],
+      "labelAt": [680, 450]
+    },
+    {
+      "from": "api",
+      "to": "vendors",
+      "label": "live API calls",
+      "classification": "partner HTTPS",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [[500, 240], [900, 240], [900, 385]],
+      "labelAt": [780, 228]
+    },
+    {
+      "from": "workers",
+      "to": "vendors",
+      "label": "provision / AI / email",
+      "classification": "async partner work",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [[860, 499], [860, 385]],
+      "labelAt": [880, 450]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Two front doors",
+      "items": [
+        "Landing Page = public marketing + storefront (browse, cart, checkout)",
+        "nPanel Dashboard = signed-in system where agencies/customers manage services",
+        "Both reach the API through a same-origin /api proxy (cookies stay on the website domain)"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Security in plain English",
+      "items": [
+        "Login Check asks: cookie session, MFA, or npanel_sk_* API key?",
+        "Redis answers fast; if missing, PostgreSQL is the authority",
+        "Workers never trust browser cookies — only QStash signatures"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Why jobs are separate",
+      "items": [
+        "Fast UI work: API ↔ PostgreSQL / Redis / files",
+        "Slow work (emails, provisioning, AI): Job Queue → Workers → Partners → write back to PostgreSQL",
+        "That split keeps the Landing Page and Dashboard feeling responsive"
+      ]
+    }
+  ]
+}
