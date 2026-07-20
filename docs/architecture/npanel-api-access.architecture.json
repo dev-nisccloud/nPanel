@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "API Access Control — Public vs Protected",
+    "subtitle": "What every /api/trpc call must pass — then which routers are open, mixed, or login-only",
+    "output": "npanel-api-access.html",
+    "viewBox": [1100, 820]
+  },
+  "components": [
+    {
+      "id": "caller",
+      "type": "external",
+      "label": "Caller",
+      "sublabel": "Landing · Dashboard · script",
+      "pos": [40, 300],
+      "size": [150, 68]
+    },
+    {
+      "id": "trpc",
+      "type": "backend",
+      "label": "/api/trpc",
+      "sublabel": "appRouter entry",
+      "pos": [240, 300],
+      "size": [140, 68]
+    },
+    {
+      "id": "ratelimit",
+      "type": "database",
+      "label": "Rate Limit",
+      "sublabel": "Redis buckets",
+      "pos": [240, 160],
+      "size": [140, 60],
+      "tag": "all calls"
+    },
+    {
+      "id": "apikey",
+      "type": "security",
+      "label": "API Key Guard",
+      "sublabel": "npanel_sk_* scopes",
+      "pos": [240, 440],
+      "size": [140, 64],
+      "tag": "if Bearer"
+    },
+    {
+      "id": "pub",
+      "type": "frontend",
+      "label": "publicProcedure",
+      "sublabel": "no login required",
+      "pos": [460, 160],
+      "size": [160, 68],
+      "tag": "~40 endpoints"
+    },
+    {
+      "id": "prot",
+      "type": "security",
+      "label": "protectedProcedure",
+      "sublabel": "session required",
+      "pos": [460, 320],
+      "size": [160, 72],
+      "tag": "~850+ endpoints"
+    },
+    {
+      "id": "etims",
+      "type": "cloud",
+      "label": "etimsProcedure",
+      "sublabel": "toggle via env",
+      "pos": [460, 480],
+      "size": [160, 64],
+      "tag": "31 endpoints"
+    },
+    {
+      "id": "session",
+      "type": "security",
+      "label": "Session Gates",
+      "sublabel": "MFA · reauth · user.id",
+      "pos": [680, 300],
+      "size": [160, 72],
+      "tag": "protected only"
+    },
+    {
+      "id": "biz",
+      "type": "backend",
+      "label": "Business Rules",
+      "sublabel": "team · RBAC · OAuth",
+      "pos": [900, 300],
+      "size": [150, 72],
+      "tag": "per router"
+    },
+    {
+      "id": "openbox",
+      "type": "frontend",
+      "label": "Public-only routers",
+      "sublabel": "storefront · whois · pricing",
+      "pos": [680, 120],
+      "size": [160, 64]
+    },
+    {
+      "id": "mixbox",
+      "type": "cloud",
+      "label": "Mixed routers",
+      "sublabel": "products · plesk · domains…",
+      "pos": [900, 140],
+      "size": [150, 64]
+    },
+    {
+      "id": "lockbox",
+      "type": "database",
+      "label": "Protected-only",
+      "sublabel": "57 routers · dashboard",
+      "pos": [900, 460],
+      "size": [150, 64]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "1 · Always-on middleware (every procedure)",
+      "wraps": ["trpc", "ratelimit", "apikey"]
+    },
+    {
+      "kind": "security-group",
+      "label": "2 · Procedure class (public / protected / etims)",
+      "wraps": ["pub", "prot", "etims"]
+    },
+    {
+      "kind": "region",
+      "label": "3 · After auth — router business checks",
+      "wraps": ["session", "biz", "lockbox"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "caller",
+      "to": "trpc",
+      "label": "HTTPS",
+      "variant": "emphasis",
+      "labelDy": -28
+    },
+    {
+      "from": "trpc",
+      "to": "ratelimit",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "trpc",
+      "to": "apikey",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "trpc",
+      "to": "pub",
+      "label": "open",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "labelAt": [400, 200]
+    },
+    {
+      "from": "trpc",
+      "to": "prot",
+      "label": "login wall",
+      "variant": "security",
+      "labelDy": 36
+    },
+    {
+      "from": "trpc",
+      "to": "etims",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "labelAt": [400, 500]
+    },
+    {
+      "from": "prot",
+      "to": "session",
+      "variant": "security",
+      "labelDy": -28
+    },
+    {
+      "from": "session",
+      "to": "biz",
+      "variant": "emphasis",
+      "labelDy": -28
+    },
+    {
+      "from": "pub",
+      "to": "openbox",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "from": "pub",
+      "to": "mixbox",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[650, 194], [650, 172]],
+      "labelAt": [780, 120]
+    },
+    {
+      "from": "prot",
+      "to": "mixbox",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "via": [[660, 356], [660, 172]]
+    },
+    {
+      "from": "biz",
+      "to": "lockbox",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "etims",
+      "to": "session",
+      "label": "default = protected",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [620, 460]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "PUBLIC_ONLY routers (3)",
+      "items": [
+        "storefront — Landing Page cart, auth helpers, M-Pesa STK, order create-from-payment",
+        "whois — lookup, bulkLookup",
+        "publicPricing — margins, FX rates, convertPricesPublic"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "MIXED routers (8)",
+      "items": [
+        "products — many get*ForPricing public; catalog CRUD protected",
+        "openProvider / kenic / domainTransfer — some public domain checks; mutations protected",
+        "plesk — healthCheck public; all hosting ops protected",
+        "hivelocity + hivelocityPricingSettings — public plan catalogs; manage/deploy protected",
+        "teams — getInviteByCode public; everything else protected"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "What protected success requires",
+      "items": [
+        "1) Valid Better Auth cookie OR valid npanel_sk_* key (key → owner session)",
+        "2) Pass MFA_SETUP / MFA_REQUIRED / REAUTH_REQUIRED if flagged on context",
+        "3) Pass router checks: team membership, agency RBAC, vendor OAuth, credits, etc.",
+        "4) See API-ACCESS-MAP.md for every procedure name under all 69 routers"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "ETIMS_TOGGLE (1 router)",
+      "items": [
+        "etims.* uses etimsProcedure (31 procedures)",
+        "Normal: same as protectedProcedure",
+        "Only when ETIMS_CERTIFICATION_PUBLIC=1: temporarily public for KRA certification"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "PROTECTED_ONLY (57 routers)",
+      "items": [
+        "Dashboard domains: hosting, jetbackup, invoicing, ads, email marketing, creatives/AI, digitax, reports, tickets, apiKeys, agencyRbac, …",
+        "No anonymous access — Landing Page must not call these without a session",
+        "Full name lists: docs/architecture/API-ACCESS-MAP.md"
+      ]
+    }
+  ]
+}

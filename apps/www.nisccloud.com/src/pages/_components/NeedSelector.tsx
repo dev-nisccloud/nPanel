@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
   Paintbrush, Server, TrendingUp, Bot,
-  Globe, ShoppingCart, Layers,
-  HardDrive, Mail, Lock, Cpu, Link,
-  BarChart2, Megaphone, Share2, AtSign,
+  ShoppingCart, HardDrive, Mail, Cpu,
+  BarChart2, Megaphone, AtSign,
   Sparkles, MessageSquare, Workflow, Zap,
-  ArrowRight, Target, Users,
+  ArrowRight, Target, Globe, PenTool,
+  MonitorSmartphone, ArrowLeftRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
@@ -36,6 +36,7 @@ type Tab = {
   highlight: string;
   subtext: string;
   image: string;
+  primaryCta: { label: string; href: string };
   features: Feature[];
 };
 
@@ -58,10 +59,10 @@ const tabs: Tab[] = [
     subtext:
       "We shape your look, message, and website so people understand you fast and trust you enough to buy.",
     image: niscWebsiteImage("website design.png"),
+    primaryCta: { label: "Start my brand project", href: "/contact" },
     features: [
       { icon: Target, label: "Brand Strategy & Positioning", desc: "From KES 15,000", href: "/services/brand-identity" },
-      { icon: Layers, label: "Brand Identity & Design", desc: "From KES 25,000", href: "/services/brand-identity" },
-      { icon: Globe, label: "Website Design", desc: "From KES 35,000", href: "/services/website-design" },
+      { icon: MonitorSmartphone, label: "Website Design", desc: "From KES 35,000", href: "/services/website-design" },
       { icon: ShoppingCart, label: "E-commerce Design", desc: "From KES 45,000", href: "/services/ecommerce" },
     ],
   },
@@ -76,14 +77,16 @@ const tabs: Tab[] = [
     subtext:
       "Domain, hosting, email, and security in one place. Free migration help, 99.99% uptime, and support around the clock.",
     image: niscWebsiteImage("Go online (1).png"),
+    primaryCta: { label: "Get online today", href: "/hosting/shared" },
     features: [
-      { icon: HardDrive, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
+      { icon: Server, label: "Website Hosting", desc: "From KES 350/mo", href: "/hosting/shared" },
       { icon: Zap, label: "WordPress Hosting", desc: "From KES 500/mo", href: "/hosting/wordpress" },
       { icon: Cpu, label: "VPS Hosting", desc: "From KES 2,000/mo", href: "/hosting/vps" },
-      { icon: Server, label: "VDS Hosting", desc: "Dedicated virtual resources", href: "/hosting/vds" },
+      { icon: HardDrive, label: "VDS Hosting", desc: "Dedicated virtual resources", href: "/hosting/vds" },
+      { icon: TrendingUp, label: "Dedicated Servers Hosting", desc: "Custom pricing", href: "/hosting/dedicated-servers" },
       { icon: Mail, label: "Business Email Hosting", desc: "From KES 250/mo", href: "/hosting/email" },
-      { icon: Link, label: "Domain Registration", desc: "Search to see live prices", href: "/hosting/domains" },
-      { icon: Lock, label: "Website Security", desc: "SSL and site protection", href: "/hosting/ssl" },
+      { icon: Globe, label: "Domain Registration", desc: "Search to see live prices", href: "/hosting/domains" },
+      { icon: ArrowLeftRight, label: "Domain Transfer", desc: "Move your domain to us with help", href: "/domain-transfer" },
     ],
   },
   {
@@ -96,13 +99,13 @@ const tabs: Tab[] = [
     highlight: "real buyers.",
     subtext:
       "We put your business in front of people who are already looking for what you sell, then help you turn visits into sales.",
-    image: niscWebsiteImage("Get more customers.png"),
+    image: niscWebsiteImage("marketing.png"),
+    primaryCta: { label: "Grow my customers", href: "/contact" },
     features: [
-      { icon: Share2, label: "Social Media Marketing (SMM)", desc: "From KES 20,000/mo", href: "/services/social-media" },
+      { icon: PenTool, label: "Social Media Marketing", desc: "From KES 20,000/mo", href: "/services/social-media" },
       { icon: BarChart2, label: "SEO / AEO / GEO", desc: "From KES 25,000/mo", href: "/services/seo" },
       { icon: Megaphone, label: "Paid Advertising", desc: "11% of ad spend + KES 6,000/mo", href: "/services/paid-ads" },
       { icon: AtSign, label: "Email Marketing", desc: "From KES 1,500/mo", href: "/services/email-marketing" },
-      { icon: Users, label: "Influencer Marketing", desc: "From KES 30,000/campaign", href: "/services/social-media" },
     ],
   },
   {
@@ -115,7 +118,8 @@ const tabs: Tab[] = [
     highlight: "the busy work.",
     subtext:
       "Zeepo AI helps with replies, content, and follow-ups so your team can focus on people and sales.",
-    image: niscWebsiteImage("Automate with AI (1).png"),
+    image: niscWebsiteImage("Automate with AI (2).png"),
+    primaryCta: { label: "Try Zeepo AI", href: "/services/zeepo-ai" },
     features: [
       { icon: Sparkles, label: "AI Content Writer", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },
       { icon: Workflow, label: "Marketing Automation", desc: "From KES 1,500/mo", href: "/services/zeepo-ai" },
@@ -263,7 +267,15 @@ export default function NeedSelector() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <Button
+                onClick={() => navigate(tab.primaryCta.href)}
+                className="h-10 cursor-pointer gap-1.5 rounded-full px-5 text-sm font-semibold"
+              >
+                {tab.primaryCta.label}
+                <ArrowRight size={14} />
+              </Button>
+              <div className="hidden h-8 w-px shrink-0 bg-border sm:block" aria-hidden />
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-1">
                   {trustedClients.map((client) => (
@@ -283,37 +295,33 @@ export default function NeedSelector() {
                   ))}
                 </div>
                 <span className="text-sm text-muted-foreground">
-                Trusted by <strong className="font-semibold text-foreground">100+</strong> businesses
+                  Trusted by <strong className="font-semibold text-foreground">100+</strong> businesses
                 </span>
               </div>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
               {tab.features.map((f) => (
-                <div
+                <button
                   key={f.label}
-                  className="group flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-3 text-left transition-all hover:border-primary/30 hover:bg-muted/60"
+                  type="button"
+                  onClick={() => navigate(f.href)}
+                  className="group flex w-full items-start gap-2.5 rounded-xl border border-border/50 bg-muted/30 px-3.5 py-3 text-left transition-all hover:border-primary/30 hover:bg-muted/60"
                 >
-                  <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
-                      <f.icon size={14} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground sm:text-sm">
-                        {f.label}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
-                    </div>
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background text-primary">
+                    <f.icon size={14} />
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => navigate(f.href)}
-                    className="h-8 w-full cursor-pointer gap-1.5 rounded-full text-xs font-semibold"
-                  >
-                    Get started
-                    <ArrowRight size={13} />
-                  </Button>
-                </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-foreground sm:text-sm">
+                      {f.label}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{f.desc}</div>
+                  </div>
+                  <ArrowRight
+                    size={14}
+                    className="mt-1.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                  />
+                </button>
               ))}
             </div>
 
