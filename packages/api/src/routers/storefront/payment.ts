@@ -89,6 +89,22 @@ export const storefrontPaymentRouter = router({
         });
       }
 
+      const domainRequiredHosting = new Set([
+        "web_hosting",
+        "wordpress_hosting",
+        "email_hosting",
+      ]);
+      if (
+        domainRequiredHosting.has(resolved.main.serviceType) &&
+        !resolved.upsellDomain?.domain?.trim()
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Add a domain before payment — register, transfer, or connect one you already own.",
+        });
+      }
+
       if (resolved.main.serviceType === "domain_transfer") {
         const authCode = resolved.transferAuthCode?.trim();
         if (!authCode) {

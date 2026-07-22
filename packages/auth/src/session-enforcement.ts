@@ -22,6 +22,12 @@ export type SessionEnforcementOpts = {
   ipAddress?: string | null;
   /** Only enable when the caller can rewrite the Better Auth signed session cookie. */
   rotateToken?: boolean;
+  /**
+   * When true, failed checks return `expired` without deleting the session row.
+   * Used for storefront/landing probes so a cross-app request cannot log the user
+   * out of nPanel (missing UA through a proxy, IP header mismatch, etc.).
+   */
+  softFail?: boolean;
 };
 
 export async function invalidateSessionById(sessionId: string): Promise<void> {
@@ -84,11 +90,27 @@ export async function validateAndRefreshIdleSessionById(
   const requestUa = normalizeUserAgent(opts?.userAgent);
   const requestIp = normalizeIpAddress(opts?.ipAddress);
   const rotateToken = opts?.rotateToken === true;
+  const softFail = opts?.softFail === true;
 
-  const cached = await readCachedSessionValidation(sessionId, {
-    userAgent: requestUa,
-    ipAddress: requestIp,
-  });
+  const fail = async (
+    reason: "missing" | "idle" | "ua_mismatch",
+  ): Promise<IdleSessionValidation> => {
+    const expired: IdleSessionValidation = { status: "expired", reason };
+    if (!softFail) {
+      if (reason !== "missing") {
+        await invalidateSessionById(sessionId);
+      }
+      await writeCachedSessionValidation(sessionId, expired);
+    }
+    return expired;
+  };
+
+  const cached = softFail
+    ? null
+    : await readCachedSessionValidation(sessionId, {
+        userAgent: requestUa,
+        ipAddress: requestIp,
+      });
   if (cached) {
     return cached;
   }
@@ -107,17 +129,30 @@ export async function validateAndRefreshIdleSessionById(
 
   const row = rows[0];
   if (!row) {
-    const expired: IdleSessionValidation = { status: "expired", reason: "missing" };
-    await writeCachedSessionValidation(sessionId, expired);
-    return expired;
+    return fail("missing");
   }
 
   const now = new Date();
   if (isSessionLifetimeExpired(row.expiresAt, now)) {
+    if (softFail) {
+      return { status: "expired", reason: "idle" };
+    }
     await invalidateSessionById(sessionId);
     const expired: IdleSessionValidation = { status: "expired", reason: "idle" };
     await writeCachedSessionValidation(sessionId, expired);
     return expired;
+  }
+
+  // Landing/storefront: cookie proves the session; skip UA/IP binding so proxy
+  // header differences cannot hide a valid nPanel login from checkoutIdentity.
+  if (softFail) {
+    return {
+      status: "valid",
+      expiresAt: row.expiresAt,
+      extended: false,
+      ipAnomaly: false,
+      userId: row.userId,
+    };
   }
 
   const boundUa = normalizeUserAgent(row.userAgent);
@@ -130,13 +165,7 @@ export async function validateAndRefreshIdleSessionById(
       requestUserAgent: requestUa,
       ipAddress: requestIp,
     });
-    await invalidateSessionById(sessionId);
-    const expired: IdleSessionValidation = {
-      status: "expired",
-      reason: "ua_mismatch",
-    };
-    await writeCachedSessionValidation(sessionId, expired);
-    return expired;
+    return fail("ua_mismatch");
   }
 
   if (boundUa && !requestUa) {
@@ -147,13 +176,7 @@ export async function validateAndRefreshIdleSessionById(
       requestUserAgent: null,
       ipAddress: requestIp,
     });
-    await invalidateSessionById(sessionId);
-    const expired: IdleSessionValidation = {
-      status: "expired",
-      reason: "ua_mismatch",
-    };
-    await writeCachedSessionValidation(sessionId, expired);
-    return expired;
+    return fail("ua_mismatch");
   }
 
   let effectiveBoundUa = boundUa;

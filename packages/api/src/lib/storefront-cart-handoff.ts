@@ -6,7 +6,7 @@
  */
 import * as crypto from "node:crypto";
 import { z } from "zod";
-import { storefrontBillingCycleSchema } from "./storefront-cart-pricing";
+import { storefrontBillingCycleSchema, type StorefrontBillingCycle } from "./storefront-cart-pricing";
 
 const HANDOFF_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const ALGORITHM = "sha256";
@@ -124,7 +124,7 @@ export function handoffPayloadToQuoteMain(
 	productId?: string;
 	planName?: string;
 	productName?: string;
-	billingCycle: "MONTHLY" | "YEARLY";
+	billingCycle: StorefrontBillingCycle;
 	locationName?: string;
 	bundleDomains?: string[];
 } {

@@ -7,6 +7,7 @@ import { Globe } from "lucide-react";
 
 import { APP_CONFIG } from "@/config/app-config";
 import { toast } from "@/components/ui/sonner";
+import { persistPendingAuthRedirect } from "@/lib/auth-redirect";
 
 import { LoginForm } from "@/routes/auth/_components/login-form";
 import { GoogleButton } from "@/routes/auth/_components/social-auth/google-button";
@@ -29,6 +30,11 @@ export default function LoginPage() {
   useEffect(() => {
     const redirectPath = searchParams.get("redirect");
     const inviteCode = searchParams.get("code");
+
+    // Survive refresh / OAuth / MFA navigations that drop `?redirect=` from the URL.
+    if (redirectPath) {
+      persistPendingAuthRedirect(redirectPath);
+    }
 
     if (redirectPath && inviteCode) {
       sessionStorage.setItem("pendingInviteRedirect", redirectPath);

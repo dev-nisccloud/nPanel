@@ -33,6 +33,7 @@ import {
   storefrontCartQuoteRequestSchema,
 } from "../../lib/storefront-cart-resolve";
 import { buildStorefrontCartOrderLines } from "../../lib/storefront-cart-order-lines";
+import { storefrontBillingCycleSchema } from "../../lib/storefront-cart-pricing";
 
 // ---------------------------------------------------------------------------
 // Helpers (mirrors nisc-service-orders.ts)
@@ -62,7 +63,7 @@ const createFromPaymentInputSchema = z.object({
   /** The plan the user purchased  optional for planless products (domains, VPS). */
   planId: z.string().optional(),
   productId: z.string().min(1),
-  billingCycle: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
+  billingCycle: storefrontBillingCycleSchema.default("MONTHLY"),
   /** For domain-inclusive plans. */
   primaryDomain: z.string().optional(),
   /** Full cart payload  required for domain transfers (EPP code). */

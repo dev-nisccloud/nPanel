@@ -1,6 +1,7 @@
 import "dotenv/config";
 export declare const env: Readonly<{
     DIGITAX_API_KEY?: string | undefined;
+    LANDING_PAGE_ORIGINS?: string | undefined;
     REPLICATE_ZEEPO_CANVAS_WEBHOOK_URL?: string | undefined;
     QSTASH_ZEEPO_AGENT_WORKER_ENDPOINT?: string | undefined;
     REPLICATE_ZEEPO_AGENT_WEBHOOK_URL?: string | undefined;

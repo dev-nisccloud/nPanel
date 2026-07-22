@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import type { CartItemData, BillingCycle } from "./CartItem.tsx";
 import type { SelectedDomain } from "./DomainUpsell.tsx";
 import type { HivelocitySummaryLine } from "@/lib/vps-plans-api.ts";
+import { billingCyclePeriodLabel, periodPrice } from "@/lib/billing-cycle.ts";
 
 export type { HivelocitySummaryLine };
 
@@ -53,7 +54,7 @@ function fmt(amount: number) {
 }
 
 function getItemPrice(item: CartItemData) {
-  return item.billingCycle === "YEARLY" ? item.yearlyPrice : item.monthlyPrice;
+  return periodPrice(item.monthlyPrice, item.yearlyPrice, item.billingCycle);
 }
 
 function OrderSummaryPricingSkeleton() {
@@ -100,7 +101,6 @@ export function OrderSummary({
   quoteInitialLoading = false,
   quoteSummaryLoading = false,
 }: OrderSummaryProps) {
-  const isYearly = billingCycle === "YEARLY";
   const mainPrice = getItemPrice(item);
 
   // Existing-domain costs nothing; purchased domain adds to total
@@ -109,9 +109,11 @@ export function OrderSummary({
     : 0;
 
   const hostingPrice = selectedHostingPlan
-    ? hostingCycle === "YEARLY"
-      ? selectedHostingPlan.yearlyPrice
-      : selectedHostingPlan.monthlyPrice
+    ? periodPrice(
+        selectedHostingPlan.monthlyPrice,
+        selectedHostingPlan.yearlyPrice,
+        hostingCycle,
+      )
     : 0;
 
   const hivelocityExtras = hivelocityLines.reduce((s, l) => s + l.priceKes, 0);
@@ -140,11 +142,11 @@ export function OrderSummary({
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground leading-tight">{item.planName}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {item.serviceType === "domain_registration"
-                ? "1 year · Annual registration"
-                : isYearly
-                  ? "12-month billing cycle"
-                  : "Monthly billing cycle"}{" "}
+              {item.serviceType === "domain_transfer"
+                ? "1 year · Transfer + renewal"
+                : item.serviceType === "domain_registration"
+                  ? `${billingCyclePeriodLabel(billingCycle)} · Domain registration`
+                  : `${billingCyclePeriodLabel(billingCycle)} billing cycle`}{" "}
               · {item.productName}
             </p>
           </div>
@@ -193,7 +195,7 @@ export function OrderSummary({
                 {selectedHostingPlan.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {hostingCycle === "YEARLY" ? "12-month billing cycle" : "Monthly billing cycle"}
+                {billingCyclePeriodLabel(hostingCycle)} billing cycle
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -258,7 +260,7 @@ export function OrderSummary({
           form={step === 2 ? customerFormId : undefined}
           className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-sm transition-all"
           onClick={step === 1 ? onContinue : undefined}
-          disabled={isContinueLoading || summaryBusy || (step === 1 && continueDisabled)}
+          disabled={isContinueLoading || summaryBusy || continueDisabled}
         >
           {summaryBusy
             ? "Please wait…"
@@ -266,7 +268,7 @@ export function OrderSummary({
             ? "Processing…"
             : step === 1
               ? "Continue"
-              : "Complete Order"}
+              : "Continue to payment"}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center mt-3">

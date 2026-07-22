@@ -1,8 +1,46 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
+import type { Plugin } from "vite";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import tsconfigPaths from "vite-tsconfig-paths";
+
+/**
+ * Vite answers OPTIONS before the `/api` proxy runs, and its default CORS
+ * response omits Access-Control-Allow-Origin for credentialed cross-origin
+ * calls (www storefront → nPanel web). Handle `/api` preflight here so
+ * completeProfile / createOrganization / etc. work from the landing origin.
+ */
+function apiCredentialedPreflight(): Plugin {
+  return {
+    name: "npanel-api-credentialed-preflight",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.method !== "OPTIONS" || !req.url?.startsWith("/api")) {
+          next();
+          return;
+        }
+        const origin = req.headers.origin;
+        if (!origin) {
+          next();
+          return;
+        }
+        res.statusCode = 204;
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+        res.setHeader(
+          "Access-Control-Allow-Headers",
+          req.headers["access-control-request-headers"] ??
+            "Content-Type, Authorization, upstash-signature",
+        );
+        res.setHeader("Access-Control-Max-Age", "86400");
+        res.setHeader("Vary", "Origin, Access-Control-Request-Headers");
+        res.end();
+      });
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -10,6 +48,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
+      apiCredentialedPreflight(),
       tailwindcss(),
       reactRouter(),
       tsconfigPaths({
@@ -37,6 +76,11 @@ export default defineConfig(({ mode }) => {
         "npanel-web.vercel.app",
         "npanel-server.vercel.app"
       ],
+      // Reflect Origin for non-/api Vite responses; /api preflight handled above.
+      cors: {
+        origin: true,
+        credentials: true,
+      },
       proxy: {
         // Keep the original `Host` header (e.g. `localhost:5173`) so Better Auth
         // sets cookies for the same host the browser will later send them from.

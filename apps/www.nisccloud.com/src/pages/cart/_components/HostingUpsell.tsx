@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { cn } from "@/lib/utils.ts";
 import type { BillingCycle } from "./CartItem.tsx";
+import { periodPrice, SERVICE_BILLING_CYCLES } from "@/lib/billing-cycle.ts";
 import {
   fetchSharedHostingPlansPublic,
   fetchWordPressHostingPlansPublic,
@@ -408,11 +409,12 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                       <div className="text-right shrink-0">
                         {plan ? (
                           <p className="text-base font-bold text-foreground">
-                            {getCycle(slot.id) === "YEARLY"
-                              ? fmt(plan.yearlyPrice, plan.currency)
-                              : fmt(plan.monthlyPrice, plan.currency)}
+                            {fmt(
+                              periodPrice(plan.monthlyPrice, plan.yearlyPrice, getCycle(slot.id)),
+                              plan.currency,
+                            )}
                             <span className="text-xs font-normal text-muted-foreground">
-                              /{getCycle(slot.id) === "YEARLY" ? "yr" : "mo"}
+                              /{getCycle(slot.id) === "MONTHLY" ? "mo" : "term"}
                             </span>
                           </p>
                         ) : (
@@ -435,12 +437,16 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="MONTHLY" className="text-xs">
-                              Monthly · {fmt(plan.monthlyPrice, plan.currency)}/mo
-                            </SelectItem>
-                            <SelectItem value="YEARLY" className="text-xs">
-                              12 months · {fmt(plan.yearlyPrice, plan.currency)}/yr
-                            </SelectItem>
+                            {SERVICE_BILLING_CYCLES.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                                {opt.label} ·{" "}
+                                {fmt(
+                                  periodPrice(plan.monthlyPrice, plan.yearlyPrice, opt.value),
+                                  plan.currency,
+                                )}
+                                /{opt.value === "MONTHLY" ? "mo" : "term"}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -477,10 +483,10 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                             {catalog.map((option) => {
                               const isActive = option.planId === plan?.planId;
                               const cycle = getCycle(slot.id);
-                              const price =
-                                cycle === "YEARLY"
-                                  ? fmt(option.yearlyPrice, option.currency)
-                                  : fmt(option.monthlyPrice, option.currency);
+                              const price = fmt(
+                                periodPrice(option.monthlyPrice, option.yearlyPrice, cycle),
+                                option.currency,
+                              );
 
                               return (
                                 <button
@@ -507,7 +513,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                                   <span className="text-xs font-semibold text-foreground whitespace-nowrap shrink-0">
                                     {price}
                                     <span className="text-muted-foreground font-normal">
-                                      /{cycle === "YEARLY" ? "yr" : "mo"}
+                                      /{cycle === "MONTHLY" ? "mo" : "term"}
                                     </span>
                                   </span>
                                 </button>

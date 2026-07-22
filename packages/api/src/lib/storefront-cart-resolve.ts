@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
 	computeStorefrontCartQuote,
+	isDomainYearlyBillingCycle,
 	storefrontCartMainLineSchema,
 	storefrontCartQuoteInputSchema,
 } from "./storefront-cart-pricing";
@@ -56,12 +57,13 @@ export function resolveStorefrontCartQuoteInput(
 			billingCycle: input.main?.billingCycle ?? baseMain.billingCycle,
 		};
 
-		// Domains and transfers are always billed annually  ignore client MONTHLY override.
-		if (
-			mergedMain.serviceType === "domain_registration" ||
-			mergedMain.serviceType === "domain_transfer"
-		) {
+		// Transfers are always 1 year. Domain registration allows multi-year terms (never monthly).
+		if (mergedMain.serviceType === "domain_transfer") {
 			mergedMain.billingCycle = "YEARLY";
+		} else if (mergedMain.serviceType === "domain_registration") {
+			mergedMain.billingCycle = isDomainYearlyBillingCycle(mergedMain.billingCycle)
+				? mergedMain.billingCycle
+				: "YEARLY";
 		}
 
 		return storefrontCartQuoteInputSchema.parse({

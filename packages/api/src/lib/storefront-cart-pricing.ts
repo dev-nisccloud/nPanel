@@ -21,8 +21,75 @@ import { toRetailPrice } from "./agent-internal-tools/pricing";
 import { hivelocityRequest } from "./hivelocity-client";
 import { extractHivelocityProductMonthlyUsd } from "./hivelocity-product-pricing";
 
-export const storefrontBillingCycleSchema = z.enum(["MONTHLY", "YEARLY"]);
+export const storefrontBillingCycleSchema = z.enum([
+	"MONTHLY",
+	"YEARLY",
+	"BIENNIALLY",
+	"TRIENNIALLY",
+	"QUADRENNIALLY",
+]);
 export type StorefrontBillingCycle = z.infer<typeof storefrontBillingCycleSchema>;
+
+/** Service checkout: 1 / 12 / 24 / 48 months. */
+export const STOREFRONT_SERVICE_BILLING_CYCLES = [
+	"MONTHLY",
+	"YEARLY",
+	"BIENNIALLY",
+	"QUADRENNIALLY",
+] as const satisfies readonly StorefrontBillingCycle[];
+
+/** Domain registration terms (years only — never monthly). */
+export const STOREFRONT_DOMAIN_BILLING_CYCLES = [
+	"YEARLY",
+	"BIENNIALLY",
+	"TRIENNIALLY",
+	"QUADRENNIALLY",
+] as const satisfies readonly StorefrontBillingCycle[];
+
+export function billingCycleToMonths(cycle: string | null | undefined): number | null {
+	switch ((cycle ?? "").trim().toUpperCase()) {
+		case "MONTHLY":
+			return 1;
+		case "YEARLY":
+			return 12;
+		case "BIENNIALLY":
+			return 24;
+		case "TRIENNIALLY":
+			return 36;
+		case "QUADRENNIALLY":
+			return 48;
+		default:
+			return null;
+	}
+}
+
+export function billingCycleToYears(cycle: string | null | undefined): number {
+	const months = billingCycleToMonths(cycle);
+	if (!months || months < 12) return 1;
+	return Math.round(months / 12);
+}
+
+export function isDomainYearlyBillingCycle(cycle: string | null | undefined): boolean {
+	const c = (cycle ?? "").trim().toUpperCase();
+	return (
+		c === "YEARLY" ||
+		c === "BIENNIALLY" ||
+		c === "TRIENNIALLY" ||
+		c === "QUADRENNIALLY"
+	);
+}
+
+/** Domains never use MONTHLY; transfers are always 1 year. */
+export function normalizeStorefrontMainBillingCycle(
+	serviceType: string,
+	billingCycle: StorefrontBillingCycle,
+): StorefrontBillingCycle {
+	if (serviceType === "domain_transfer") return "YEARLY";
+	if (serviceType === "domain_registration") {
+		return isDomainYearlyBillingCycle(billingCycle) ? billingCycle : "YEARLY";
+	}
+	return billingCycle;
+}
 
 const HIVELOCITY_SERVICE_TYPES = new Set(["vps", "vds", "dedicated_servers"]);
 
@@ -121,7 +188,9 @@ export function pickCheckoutPrice(
 	pricing: { monthly: number; yearly: number },
 	billingCycle: StorefrontBillingCycle,
 ): number {
-	return billingCycle === "YEARLY" ? pricing.yearly : pricing.monthly;
+	if (billingCycle === "MONTHLY") return pricing.monthly;
+	const years = billingCycleToYears(billingCycle);
+	return Math.round(pricing.yearly * years);
 }
 
 function marginRowFromSettings(row: {
@@ -535,12 +604,11 @@ export async function computeStorefrontCartQuote(
 ): Promise<StorefrontCartQuote> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input);
 
-	// Domains register for 1 year  checkout always uses the yearly price.
-	const effectiveBillingCycle =
-		parsed.main.serviceType === "domain_registration" ||
-		parsed.main.serviceType === "domain_transfer"
-			? "YEARLY"
-			: parsed.main.billingCycle;
+	// Domains: yearly terms only. Transfers are always 1 year.
+	const effectiveBillingCycle = normalizeStorefrontMainBillingCycle(
+		parsed.main.serviceType,
+		parsed.main.billingCycle,
+	);
 
 	const mainQuote = await resolveMainLineQuote(parsed.main, parsed.hivelocity);
 	let subtotal = pickCheckoutPrice(

@@ -44,6 +44,19 @@ export function resolveProcedureRateLimit(path: string): {
   anonymous: number;
   windowSec: number;
 } {
+  if (path === "storefront.auth.checkoutIdentity") {
+    return { authenticated: 30, apiKey: 30, anonymous: 20, windowSec: 60 };
+  }
+  if (path === "storefront.auth.issueCheckoutToken") {
+    return { authenticated: 10, apiKey: 10, anonymous: 5, windowSec: 60 };
+  }
+  if (path === "storefront.auth.completeProfile") {
+    return { authenticated: 8, apiKey: 8, anonymous: 3, windowSec: 60 };
+  }
+  if (path === "storefront.auth.createOrganization") {
+    return { authenticated: 5, apiKey: 5, anonymous: 2, windowSec: 60 };
+  }
+
   const heavyPrefixes = [
     "clientSubscriptions.",
     "invoicing.",

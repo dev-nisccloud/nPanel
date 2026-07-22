@@ -97,7 +97,12 @@ function buildProxyHeaders(request: Request, incoming: URL): Headers {
   headers.set("x-forwarded-host", incoming.host);
   headers.set("x-forwarded-proto", incoming.protocol.replace(":", ""));
   if (!headers.has("x-forwarded-for")) {
-    headers.set("x-forwarded-for", incoming.host);
+    // Prefer a real client address; never use the Host header (hostname:port).
+    const clientIp =
+      request.headers.get("cf-connecting-ip")?.trim() ||
+      request.headers.get("x-real-ip")?.trim() ||
+      "unknown";
+    headers.set("x-forwarded-for", clientIp);
   }
 
   return headers;
