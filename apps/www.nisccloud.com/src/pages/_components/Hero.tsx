@@ -103,7 +103,7 @@ export default function Hero() {
         }}
       />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-8 px-4 pt-16 pb-10 md:px-8 md:pt-20 lg:grid-cols-2 lg:items-center lg:gap-20 lg:pt-28 lg:pb-14">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-start gap-8 px-4 pt-16 pb-10 md:px-8 md:pt-20 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:items-center lg:gap-12 lg:pt-28 lg:pb-14">
 
         {/* Left: text */}
         <div className="order-1 max-w-xl lg:order-1">
@@ -235,7 +235,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.25 }}
-          className="order-3 hidden w-full items-center justify-center lg:order-2 lg:flex lg:max-w-[720px] xl:max-w-[780px]"
+          className="order-3 hidden w-full items-center justify-center overflow-visible lg:order-2 lg:flex"
         >
           {/*
           <div className="mx-auto max-w-md space-y-2 text-center lg:mx-0 lg:text-left">
@@ -254,10 +254,10 @@ export default function Hero() {
           </div>
           */}
           <NiscWebsiteHeroImage
-            src={niscWebsiteImage("everything you need online.png")}
+            src={niscWebsiteImage("everything you need online (2).png")}
             alt="Everything you need online"
             standalone
-            className="max-h-[min(82vh,720px)]"
+            className="max-h-none w-[118%] max-w-none"
           />
         </motion.div>
 

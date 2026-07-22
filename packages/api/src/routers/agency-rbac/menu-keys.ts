@@ -74,6 +74,8 @@ export const agencyMenuKeys = [
 	"/agency/subscriptions",
 	"/agency/quotations",
 
+	"/agency/nisc-payment-gateway",
+
 	"/agency/kra-etims/sales",
 	"/agency/kra-etims/purchases",
 	"/agency/kra-etims/products",

@@ -38,4 +38,5 @@ export * from "./ip-records";
 export * from "./zeepo-canvas";
 export * from "./zeepo-agent";
 export * from "./nisc-email-builder";
+export * from "./nisc-payment-gateway";
 export {};

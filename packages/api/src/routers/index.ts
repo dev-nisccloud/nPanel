@@ -127,6 +127,7 @@ import { jetbackupPluginsRouter } from "./jetbackup/plugins";
 import { storefrontRouter } from "./storefront";
 import { objectStorageRouter } from "./object-storage";
 import { whoisRouter } from "./whois";
+import { niscPaymentGatewayRouter } from "./nisc-payment-gateway";
 
 
 export const appRouter = router({
@@ -349,5 +350,7 @@ export const appRouter = router({
 		filePermissions: jetbackupFilePermissionsRouter,
 		plugins: jetbackupPluginsRouter,
 	}),
+	// Nisc Payment Gateway (White-label Payment Gateway)
+	niscPaymentGateway: niscPaymentGatewayRouter,
 });
 export type AppRouter = typeof appRouter;

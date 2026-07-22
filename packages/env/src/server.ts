@@ -46,6 +46,20 @@ export const env = createEnv({
     S3_REGION: z.string().min(1).default("us-east-1"),
     /** Public base URL for object reads, e.g. https://storage.nisccloud.com/npanel-uploads */
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
+    
+    // Nisc Payment Gateway
+    /** AES-256 encryption key for payment gateway credentials (hex, 64 chars) */
+    NISC_PAYMENT_GATEWAY_ENCRYPTION_KEY: z.string().length(64).regex(/^[0-9a-f]{64}$/i),
+    /** M-Pesa Sandbox URLs for testing */
+    NISC_GATEWAY_MPESA_SANDBOX_BASE_URL: z.string().url(),
+    NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL: z.string().url(),
+    NISC_GATEWAY_MPESA_SANDBOX_STK_URL: z.string().url(),
+    /** M-Pesa Production URLs for live payments */
+    NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL: z.string().url(),
+    NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL: z.string().url(),
+    NISC_GATEWAY_MPESA_PRODUCTION_STK_URL: z.string().url(),
+    /** Optional base URL for gateway webhooks (defaults to BETTER_AUTH_URL) */
+    NISC_GATEWAY_BASE_URL: z.string().url().optional(),
   },
   runtimeEnv: process.env,
   emptyStringAsUndefined: true,
