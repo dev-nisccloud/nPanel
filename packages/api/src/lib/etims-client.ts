@@ -50,48 +50,80 @@ export class EtimsApiError extends Error {
 // ─────────────────────────────────────────────
 
 /**
+ * Classic OSCU sandbox/prod host paths (etims-api*.kra.go.ke/etims-api).
+ * This is the shape that worked before commit 2ffc841e.
+ */
+const LEGACY_ENDPOINTS = {
+    selectInitOsdcInfo: '/selectInitOsdcInfo',
+    selectCodeList: '/selectCodeList',
+    selectNoticeList: '/selectNoticeList',
+    selectNotices: '/selectNoticeList',
+    selectCustomer: '/selectCustomer',
+    selectCustomerList: '/selectCustomerList',
+    selectTaxPayerInfo: '/selectCustomer',
+    selectBhfList: '/selectBhfList',
+    saveBhfCustomer: '/saveBhfCustomer',
+    saveBhfUser: '/saveBhfUser',
+    saveBhfInsurance: '/saveBhfInsurance',
+    selectItemClsList: '/selectItemClsList',
+    selectItemList: '/selectItemList',
+    saveItem: '/saveItem',
+    saveItemComposition: '/saveItemComposition',
+    selectImportItemList: '/selectImportItemList',
+    updateImportItem: '/updateImportItem',
+    saveTrnsSalesOsdc: '/saveTrnsSalesOsdc',
+    selectTrnsSalesList: '/selectTrnsSalesList',
+    selectInvoiceDetails: '/selectInvoiceDetails',
+    selectTrnsPurchaseSalesList: '/selectTrnsPurchaseSalesList',
+    insertTrnsPurchase: '/insertTrnsPurchase',
+    selectStockMoveList: '/selectStockMoveList',
+    insertStockIO: '/insertStockIO',
+    saveStockMaster: '/saveStockMaster',
+} as const;
+
+/**
  * KRA Developer Platform (Apigee / etims-oscu) endpoint paths.
  * Matches Postman collection + docs/kra-etims-api.md.
  */
-const ENDPOINTS = {
-    // Initialization
+const DEV_PLATFORM_ENDPOINTS = {
     selectInitOsdcInfo: '/initialize',
-    // Code Lists
     selectCodeList: '/selectCodeList',
-    // Notices (dashboard test case uses /selectNotices; Postman also has selectNoticeList)
     selectNoticeList: '/selectNoticeList',
     selectNotices: '/selectNotices',
-    // Customer / taxpayer
     selectCustomer: '/customerPinInfo',
     selectCustomerList: '/selectCustomerList',
     selectTaxPayerInfo: '/selectTaxpayerInfo',
-    // Branches
     selectBhfList: '/branchList',
     saveBhfCustomer: '/branchSendCustomerInfo',
     saveBhfUser: '/branchUserAccount',
     saveBhfInsurance: '/branchInsuranceInfo',
-    // Items
     selectItemClsList: '/selectItemClass',
     selectItemList: '/itemInfo',
     saveItem: '/saveItem',
     saveItemComposition: '/saveItemComposition',
-    // Imported Items
     selectImportItemList: '/importedItemInfo',
     updateImportItem: '/importedItemConvertedInfo',
-    // Sales
     saveTrnsSalesOsdc: '/sendSalesTransaction',
     selectTrnsSalesList: '/selectSalesTransactions',
     selectInvoiceDetails: '/selectInvoiceDetail',
-    // Purchases
     selectTrnsPurchaseSalesList: '/getPurchaseTransactionInfo',
     insertTrnsPurchase: '/sendPurchaseTransactionInfo',
-    // Stock
     selectStockMoveList: '/selectStockMoveLists',
     insertStockIO: '/insert/stockIO',
     saveStockMaster: '/save/stockMaster',
 } as const;
 
-export type EtimsEndpointKey = keyof typeof ENDPOINTS;
+export type EtimsEndpointKey = keyof typeof DEV_PLATFORM_ENDPOINTS;
+
+function isDeveloperPlatformHost(baseUrl: string): boolean {
+    return /etims-oscu/i.test(baseUrl);
+}
+
+function resolveEndpoints(baseUrl: string): Record<EtimsEndpointKey, string> {
+    return isDeveloperPlatformHost(baseUrl)
+        ? DEV_PLATFORM_ENDPOINTS
+        : LEGACY_ENDPOINTS;
+}
 
 export type EtimsRawResponse = {
     endpointKey: EtimsEndpointKey;
@@ -224,28 +256,38 @@ export class EtimsOscuClient {
     // HTTP Core
     // ───────────────────────
 
+    private endpointPath(endpointKey: EtimsEndpointKey): string {
+        return resolveEndpoints(this.config.baseUrl)[endpointKey];
+    }
+
     private buildUrl(endpointKey: EtimsEndpointKey): string {
-        const path = ENDPOINTS[endpointKey];
-        return `${this.config.baseUrl.trim().replace(/\/+$/, '')}${path}`;
+        return `${this.config.baseUrl.trim().replace(/\/+$/, '')}${this.endpointPath(endpointKey)}`;
     }
 
     /**
      * Build request headers.
-     * Initialization: Authorization + apigee_app_id + tin + bhfId (no cmcKey yet).
-     * All other endpoints also need cmcKey.
+     * Legacy host: Authorization + tin/bhfId(/cmcKey) — apigee optional.
+     * Developer Platform: also sends apigee_app_id (required for saveItem / session scoring).
      */
     private async buildHeaders(
         endpointKey: EtimsEndpointKey,
         oscu?: EtimsOscuHeaders
     ): Promise<Record<string, string>> {
         const token = await this.getToken();
-        const apigeeAppId = (this.config.apigeeAppId ?? this.config.consumerKey).trim();
+        const onDevPlatform = isDeveloperPlatformHost(this.config.baseUrl);
+        const explicitApigee = this.config.apigeeAppId?.trim();
         const base: Record<string, string> = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': `Bearer ${token}`,
-            'apigee_app_id': apigeeAppId,
         };
+
+        // Only force apigee on Developer Platform. Legacy worked without it (pre-2ffc841e).
+        if (onDevPlatform) {
+            base.apigee_app_id = (explicitApigee || this.config.consumerKey).trim();
+        } else if (explicitApigee) {
+            base.apigee_app_id = explicitApigee;
+        }
 
         if (endpointKey === 'selectInitOsdcInfo') {
             if (!oscu?.tin || !oscu?.bhfId) {
@@ -333,7 +375,7 @@ export class EtimsOscuClient {
 
         return {
             endpointKey,
-            kraPath: ENDPOINTS[endpointKey],
+            kraPath: this.endpointPath(endpointKey),
             url,
             statusCode,
             bodyText: text,
@@ -447,7 +489,21 @@ export class EtimsOscuClient {
     }
 
     async selectTaxPayerInfo(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        return this.post('selectTaxPayerInfo', this.lastReqBody(oscu, lastReqDt), oscu);
+        // Classic OSCU has no /selectTaxPayerInfo — look up own PIN via /selectCustomer.
+        // Developer Platform keeps /selectTaxpayerInfo + lastReqDt.
+        if (isDeveloperPlatformHost(this.config.baseUrl)) {
+            return this.post('selectTaxPayerInfo', this.lastReqBody(oscu, lastReqDt), oscu);
+        }
+        return this.post(
+            'selectTaxPayerInfo',
+            {
+                tin: oscu.tin,
+                bhfId: oscu.bhfId,
+                cmcKey: oscu.cmcKey,
+                custmTin: oscu.tin,
+            },
+            oscu,
+        );
     }
 
     // ───────────────────────
@@ -613,12 +669,8 @@ export function getEtimsClient(config: EtimsClientConfig): EtimsOscuClient {
     if (!_singleton) {
         _singleton = new EtimsOscuClient(config);
     } else {
-        // Update the config in case env vars changed (e.g. sandbox → prod switch)
-        // We do this by assigning the new config; the token cache is only invalidated
-        // if the tokenUrl changed (different env), since the old token won't be valid.
-        const prevUrl = (_singleton as unknown as { config: EtimsClientConfig }).config.tokenUrl;
-        if (prevUrl !== config.tokenUrl) {
-            // Environment changed - kill the old singleton and the cached token
+        const prev = (_singleton as unknown as { config: EtimsClientConfig }).config;
+        if (prev.tokenUrl !== config.tokenUrl || prev.baseUrl !== config.baseUrl) {
             _singleton.clearToken().catch(() => undefined);
             _singleton = new EtimsOscuClient(config);
         }

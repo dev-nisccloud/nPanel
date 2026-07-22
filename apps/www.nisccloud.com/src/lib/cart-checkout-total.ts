@@ -2,6 +2,7 @@ import type { BillingCycle } from "@/pages/cart/_components/CartItem.tsx";
 import type { SelectedDomain } from "@/pages/cart/_components/DomainUpsell.tsx";
 import type { SelectedHostingPlan } from "@/pages/cart/_components/OrderSummary.tsx";
 import type { HivelocitySummaryLine } from "@/lib/vps-plans-api.ts";
+import { periodPrice } from "@/lib/billing-cycle.ts";
 
 export function computeCartCheckoutTotal(params: {
   monthlyPrice: number;
@@ -12,8 +13,7 @@ export function computeCartCheckoutTotal(params: {
   hostingCycle: BillingCycle;
   hivelocityLines?: HivelocitySummaryLine[];
 }): { subtotal: number; taxAmount: number; total: number } {
-  const main =
-    params.billingCycle === "YEARLY" ? params.yearlyPrice : params.monthlyPrice;
+  const main = periodPrice(params.monthlyPrice, params.yearlyPrice, params.billingCycle);
 
   const domain =
     params.selectedDomain && !params.selectedDomain.isExisting
@@ -21,9 +21,11 @@ export function computeCartCheckoutTotal(params: {
       : 0;
 
   const hosting = params.selectedHostingPlan
-    ? params.hostingCycle === "YEARLY"
-      ? params.selectedHostingPlan.yearlyPrice
-      : params.selectedHostingPlan.monthlyPrice
+    ? periodPrice(
+        params.selectedHostingPlan.monthlyPrice,
+        params.selectedHostingPlan.yearlyPrice,
+        params.hostingCycle,
+      )
     : 0;
 
   const hivelocityExtras = (params.hivelocityLines ?? []).reduce((s, l) => s + l.priceKes, 0);

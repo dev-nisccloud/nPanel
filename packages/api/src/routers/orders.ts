@@ -64,7 +64,14 @@ type NiscServicePlanRow = typeof niscServicePlan.$inferSelect;
 // ZOD SCHEMAS - Independent from database schema
 // ============================================================================
 
-const billingCycleSchema = z.enum(["MONTHLY", "YEARLY", "BIENNIALLY", "CUSTOM"]);
+const billingCycleSchema = z.enum([
+	"MONTHLY",
+	"YEARLY",
+	"BIENNIALLY",
+	"TRIENNIALLY",
+	"QUADRENNIALLY",
+	"CUSTOM",
+]);
 
 const orderItemStatusSchema = z.enum(["PENDING", "PROVISIONING", "PROVISIONED", "FAILED", "SKIPPED"]);
 
@@ -302,6 +309,8 @@ function getBillingCycleMultiplier(planCycle: string, orderCycle: string): numbe
 		MONTHLY: 1,
 		YEARLY: 12,
 		BIENNIALLY: 24,
+		TRIENNIALLY: 36,
+		QUADRENNIALLY: 48,
 		CUSTOM: 1, // Default to 1 for custom
 	};
 
@@ -320,6 +329,8 @@ function isValidBillingCycle(planCycle: string, orderCycle: string): boolean {
 		MONTHLY: 1,
 		YEARLY: 12,
 		BIENNIALLY: 24,
+		TRIENNIALLY: 36,
+		QUADRENNIALLY: 48,
 		CUSTOM: 1, // Custom needs special handling
 	};
 

@@ -1,9 +1,12 @@
 import { motion } from "motion/react";
-import { ArrowRight, Paintbrush, Server, Bot, TrendingUp } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+// import { Paintbrush, Server, Bot, TrendingUp } from "lucide-react";
 import { Typewriter } from "@/components/ui/typewriter.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
-import DisplayCards from "@/components/ui/display-cards.tsx";
+// import DisplayCards from "@/components/ui/display-cards.tsx";
+import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
+import { NiscWebsiteHeroImage } from "@/components/NiscWebsiteHeroImage.tsx";
 
 const clients = [
   { name: "Amarom", logo: "/clients/amarom2.png" },
@@ -33,48 +36,48 @@ const socialProof = [
   { dot: "bg-amber-400", text: "Results in 30 Days" },
 ];
 
-const heroCards = [
-  {
-    icon: <Bot className="size-4 text-primary" />,
-    title: "Automate with AI",
-    description: "Chatbots, content help, and follow-ups that work while you sleep.",
-    date: "Step 04",
-    iconClassName: "text-primary",
-    titleClassName: "text-primary",
-    className:
-      "[grid-area:stack] hover:-translate-y-24 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
-  },
-  {
-    icon: <TrendingUp className="size-4 text-primary" />,
-    title: "Get More Customers",
-    description: "SEO, social, and ads that bring real people to your business.",
-    date: "Step 03",
-    iconClassName: "text-primary",
-    titleClassName: "text-primary",
-    className:
-      "[grid-area:stack] translate-x-4 translate-y-4 sm:translate-x-8 sm:translate-y-8 hover:-translate-y-16 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
-  },
-  {
-    icon: <Server className="size-4 text-primary" />,
-    title: "Go Online",
-    description: "Fast hosting, domains, and business email that stay reliable.",
-    date: "Step 02",
-    iconClassName: "text-primary",
-    titleClassName: "text-primary",
-    className:
-      "[grid-area:stack] translate-x-8 translate-y-8 sm:translate-x-16 sm:translate-y-16 hover:-translate-y-8 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
-  },
-  {
-    icon: <Paintbrush className="size-4 text-primary" />,
-    title: "Create My Brand",
-    description: "Logo, website look, and brand kit that feel like one story.",
-    date: "Step 01",
-    iconClassName: "text-primary",
-    titleClassName: "text-primary",
-    className:
-      "[grid-area:stack] translate-x-12 translate-y-12 sm:translate-x-24 sm:translate-y-24 hover:translate-y-12",
-  },
-];
+// const heroCards = [
+//   {
+//     icon: <Bot className="size-4 text-primary" />,
+//     title: "Automate with AI",
+//     description: "Chatbots, content help, and follow-ups that work while you sleep.",
+//     date: "Step 04",
+//     iconClassName: "text-primary",
+//     titleClassName: "text-primary",
+//     className:
+//       "[grid-area:stack] hover:-translate-y-24 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+//   },
+//   {
+//     icon: <TrendingUp className="size-4 text-primary" />,
+//     title: "Get More Customers",
+//     description: "SEO, social, and ads that bring real people to your business.",
+//     date: "Step 03",
+//     iconClassName: "text-primary",
+//     titleClassName: "text-primary",
+//     className:
+//       "[grid-area:stack] translate-x-4 translate-y-4 sm:translate-x-8 sm:translate-y-8 hover:-translate-y-16 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+//   },
+//   {
+//     icon: <Server className="size-4 text-primary" />,
+//     title: "Go Online",
+//     description: "Fast hosting, domains, and business email that stay reliable.",
+//     date: "Step 02",
+//     iconClassName: "text-primary",
+//     titleClassName: "text-primary",
+//     className:
+//       "[grid-area:stack] translate-x-8 translate-y-8 sm:translate-x-16 sm:translate-y-16 hover:-translate-y-8 before:absolute before:w-[100%] before:outline-1 before:rounded-xl before:outline-border before:h-[100%] before:content-[''] before:bg-blend-overlay before:bg-background/50 hover:before:opacity-0 before:transition-opacity before:duration-700 before:left-0 before:top-0",
+//   },
+//   {
+//     icon: <Paintbrush className="size-4 text-primary" />,
+//     title: "Create My Brand",
+//     description: "Logo, website look, and brand kit that feel like one story.",
+//     date: "Step 01",
+//     iconClassName: "text-primary",
+//     titleClassName: "text-primary",
+//     className:
+//       "[grid-area:stack] translate-x-12 translate-y-12 sm:translate-x-24 sm:translate-y-24 hover:translate-y-12",
+//   },
+// ];
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -227,13 +230,14 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* Right: Atom Visual Approach  below logos on mobile */}
+        {/* Right: hero image (same pattern as service pages) */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.25 }}
-          className="order-3 flex w-full flex-col gap-4 lg:order-2 lg:gap-8"
+          className="order-3 hidden w-full items-center justify-center lg:order-2 lg:flex lg:max-w-[720px] xl:max-w-[780px]"
         >
+          {/*
           <div className="mx-auto max-w-md space-y-2 text-center lg:mx-0 lg:text-left">
             <h3 className="text-lg font-bold tracking-tight text-foreground">
               Everything you need to grow online
@@ -248,6 +252,13 @@ export default function Hero() {
               <DisplayCards cards={heroCards} />
             </div>
           </div>
+          */}
+          <NiscWebsiteHeroImage
+            src={niscWebsiteImage("everything you need online.png")}
+            alt="Everything you need online"
+            standalone
+            className="max-h-[min(82vh,720px)]"
+          />
         </motion.div>
 
       </div>

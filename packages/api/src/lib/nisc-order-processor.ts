@@ -26,6 +26,7 @@ import { OpenProviderApiError } from "./openprovider-client";
 import {
 	computeSubscriptionExpiryFromBillingCycle,
 	resolveDomainTransferSubscriptionStartDate,
+	resolveSubscriptionPeriodDates,
 } from "./nisc-subscription-dates";
 import { processHivelocityOrderItem } from "./hivelocity-nisc-processor";
 import { HIVELOCITY_SERVICE_TYPES } from "../routers/nisc-service-orders-schemas";
@@ -51,7 +52,12 @@ function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
 }
 
 /** Service types that require external provisioning (Plesk or domain provider). All other service types are treated as DB-only: create NiscClientSubscription and optionally provision NiscClientSubscriptionUsage from plan. */
-const PLESK_SERVICE_TYPES = ["web_hosting", "email_hosting"];
+const PLESK_SERVICE_TYPES = [
+	"web_hosting",
+	"email_hosting",
+	"wordpress_hosting",
+	"website_hosting",
+];
 const OPENPROVIDER_SERVICE_TYPES = ["domain_registration", "domain_transfer"];
 
 /** Product serviceType "domains" is treated as domain_registration. */
@@ -631,6 +637,7 @@ async function createSubscriptionForOrderItem(
 	const name = plan ? `${item.product.name} - ${plan.name}` : item.product.name;
 	const pricingModel = (plan?.pricingModel as "FIXED" | "COMMISSION") ?? "FIXED";
 	const now = new Date();
+	const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
 	const subId = randomUUID();
 	const inserted = await db
 		.insert(niscClientSubscription)
@@ -657,6 +664,8 @@ async function createSubscriptionForOrderItem(
 			providerCostCurrency: "KES",
 			agreedCommissionRate: null as any,
 			agreedCommissionBase: null,
+			expiryDate: periodDates.expiryDate,
+			nextRenewalDate: periodDates.nextRenewalDate,
 			metadata: null,
 		})
 		.returning();
@@ -713,7 +722,7 @@ async function processPleskOrderItem(
 		item.domainSubscription?.name ||
 		null;
 	if (!domainName) {
-		return { ok: false, error: "Domain is required for hosting. Select a domain subscription." };
+		return { ok: false, error: "Domain is required for hosting. Enter a domain name for Plesk." };
 	}
 
 	const meta = item.metadata as { provisionUserId?: string } | null;
@@ -752,6 +761,8 @@ async function processPleskOrderItem(
 
 		const name = `${item.product.name} - ${item.productPlan.name}`;
 		const subId = randomUUID();
+		const subscriptionDate = new Date();
+		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, item.billingCycle);
 		const inserted = await db
 			.insert(niscClientSubscription)
 			.values({
@@ -765,7 +776,7 @@ async function processPleskOrderItem(
 				niscOrderId: order.id,
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
-				subscriptionDate: new Date(),
+				subscriptionDate,
 				billingCycle: item.billingCycle as any ?? null,
 				pricingModel: item.productPlan.pricingModel as any,
 				agreedPrice: item.itemPrice,
@@ -780,6 +791,8 @@ async function processPleskOrderItem(
 				hostingType: item.productPlan.hostingType as any ?? null,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
+				expiryDate: periodDates.expiryDate,
+				nextRenewalDate: periodDates.nextRenewalDate,
 				metadata: null,
 			})
 			.returning();
@@ -844,7 +857,11 @@ type DomainOrder = {
 
 function billingCycleToYears(billingCycle: string | null): number {
 	if (!billingCycle) return 1;
-	if (billingCycle === "BIENNIALLY") return 2;
+	const cycle = billingCycle.trim().toUpperCase();
+	if (cycle === "BIENNIALLY") return 2;
+	if (cycle === "TRIENNIALLY") return 3;
+	if (cycle === "QUADRENNIALLY") return 4;
+	if (cycle === "YEARLY") return 1;
 	return 1;
 }
 
@@ -940,6 +957,11 @@ async function processKenicOrderItem(
 			nameServers,
 		});
 		const subId = randomUUID();
+		const subscriptionDate = new Date();
+		const registryExpiry = regResult.exDate ? new Date(regResult.exDate) : null;
+		const periodDates = resolveSubscriptionPeriodDates(subscriptionDate, item.billingCycle, {
+			expiryOverride: registryExpiry,
+		});
 		const inserted = await db
 			.insert(niscClientSubscription)
 			.values({
@@ -954,7 +976,7 @@ async function processKenicOrderItem(
 				niscOrderId: order.id,
 				subscribedBy: order.createdBy,
 				status: "ACTIVE",
-				subscriptionDate: new Date(),
+				subscriptionDate,
 				billingCycle: (item.billingCycle as "YEARLY" | "BIENNIALLY" | null) ?? null,
 				pricingModel: "FIXED",
 				agreedPrice: item.itemPrice,
@@ -964,7 +986,8 @@ async function processKenicOrderItem(
 				primaryDomain: domain,
 				openProviderId: null,
 				domainAuthCode: regResult.authInfo,
-				expiryDate: regResult.exDate ? new Date(regResult.exDate) : null,
+				expiryDate: periodDates.expiryDate,
+				nextRenewalDate: periodDates.nextRenewalDate,
 				agreedCommissionRate: null as any,
 				agreedCommissionBase: null,
 				metadata: null,

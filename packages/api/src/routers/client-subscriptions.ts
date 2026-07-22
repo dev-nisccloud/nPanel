@@ -19,6 +19,7 @@ import { NISC_SEO_REPORTS_PRODUCT_ID } from "../lib/seo-reports-billing";
 import { NISC_MEDIA_BUYING_PRODUCT_ID } from "../lib/media-buying-billing";
 import { NISC_DOMAINS_PRODUCT_ID } from "../lib/planless-services-billing";
 import { resolveActiveNiscProductById, resolveActiveNiscProductId } from "../lib/planless-product-resolver";
+import { domainProductSqlFilter } from "../lib/nisc-domain-product";
 
 // ============================================================================
 // ZOD SCHEMAS   independent from the database schema layer
@@ -1360,7 +1361,7 @@ export const clientSubscriptionsRouter = router({
             const domainProducts = await db
                 .select({ id: niscProduct.id })
                 .from(niscProduct)
-                .where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%domains%")));
+                .where(and(eq(niscProduct.isActive, true), domainProductSqlFilter()));
             const productIds = domainProducts.map((p) => p.id);
             if (productIds.length === 0) return [];
 

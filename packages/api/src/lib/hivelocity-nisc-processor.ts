@@ -22,6 +22,7 @@ import { assertHivelocityOptionIdsExclusive } from "./hivelocity-option-validati
 import { applyHivelocityVpsReactivation } from "./hivelocity-vps-instance-suspend";
 import { reloadHivelocityDevice } from "./hivelocity-vps-reload";
 import { upgradeHivelocityVpsInstance } from "./hivelocity-vps-upgrade";
+import { resolveSubscriptionPeriodDates } from "./nisc-subscription-dates";
 
 function buildHivelocityDeploymentName(orderNumberOrId: string): string {
 	const base = orderNumberOrId.trim();
@@ -158,6 +159,7 @@ async function processHivelocityVpsUpgradeOrderItem(
 		item.description?.trim() ||
 		`${item.product.name} upgrade · device ${deviceId}`;
 
+	const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
 	const inserted = await db
 		.insert(niscClientSubscription)
 		.values({
@@ -183,6 +185,8 @@ async function processHivelocityVpsUpgradeOrderItem(
 			providerCostCurrency: "USD",
 			agreedCommissionRate: null as any,
 			agreedCommissionBase: null,
+			expiryDate: periodDates.expiryDate,
+			nextRenewalDate: periodDates.nextRenewalDate,
 			serviceRefs: {
 				hivelocityDeviceId: String(deviceId),
 				hivelocityServiceType: "vps" as const,
@@ -304,6 +308,7 @@ async function processHivelocityVpsReloadOrderItem(
 		item.description?.trim() ||
 		`${item.product.name} OS reload · device ${deviceId}`;
 
+	const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
 	const inserted = await db
 		.insert(niscClientSubscription)
 		.values({
@@ -329,6 +334,8 @@ async function processHivelocityVpsReloadOrderItem(
 			providerCostCurrency: "USD",
 			agreedCommissionRate: null as any,
 			agreedCommissionBase: null,
+			expiryDate: periodDates.expiryDate,
+			nextRenewalDate: periodDates.nextRenewalDate,
 			serviceRefs: {
 				hivelocityDeviceId: String(deviceId),
 				hivelocityServiceType: "vps" as const,
@@ -526,6 +533,7 @@ export async function processHivelocityOrderItem(
 	const purchasedAddons = buildHivelocityPurchasedAddons(meta, invoiceLines);
 	const totalProviderUsd = computeHivelocityTotalProviderCostUsd(meta);
 
+	const periodDates = resolveSubscriptionPeriodDates(now, item.billingCycle);
 	const inserted = await db
 		.insert(niscClientSubscription)
 		.values({
@@ -551,6 +559,8 @@ export async function processHivelocityOrderItem(
 			providerCostCurrency: "USD",
 			agreedCommissionRate: null as any,
 			agreedCommissionBase: null,
+			expiryDate: periodDates.expiryDate,
+			nextRenewalDate: periodDates.nextRenewalDate,
 			serviceRefs: deploymentResult.deviceId
 				? {
 						hivelocityDeviceId: String(deploymentResult.deviceId),

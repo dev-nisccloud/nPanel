@@ -15,9 +15,30 @@ export default function RootPage() {
   const inlineScript = `
     const FALLBACK = "${FALLBACK_REDIRECT}";
     const REDIRECT_TARGET_URL = ${JSON.stringify(REDIRECT_TARGET_URL)};
+    const PENDING_KEY = "npanel_pending_auth_redirect";
     let cancelled = false;
-    
+
     console.log("[RootPage] Bootstrapping redirect...", REDIRECT_TARGET_URL);
+
+    function readPendingRedirect() {
+      try {
+        var value = sessionStorage.getItem(PENDING_KEY);
+        return value && value.trim() ? value.trim() : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function clearPendingRedirect() {
+      try { sessionStorage.removeItem(PENDING_KEY); } catch (e) {}
+    }
+
+    function buildRedirectTargetUrl() {
+      var pending = readPendingRedirect();
+      if (!pending) return REDIRECT_TARGET_URL;
+      var sep = REDIRECT_TARGET_URL.indexOf("?") >= 0 ? "&" : "?";
+      return REDIRECT_TARGET_URL + sep + "redirect=" + encodeURIComponent(pending);
+    }
 
     // Safety timeout in case fetch hangs
     setTimeout(function() {
@@ -28,7 +49,7 @@ export default function RootPage() {
       }
     }, ${META_REFRESH_SECONDS * 1000});
 
-    fetch(REDIRECT_TARGET_URL, { cache: "no-store", credentials: "include" })
+    fetch(buildRedirectTargetUrl(), { cache: "no-store", credentials: "include" })
       .then(function(res) {
         if (!res.ok) throw new Error("redirect-target http " + res.status);
         const contentType = res.headers.get("content-type") || "";
@@ -39,9 +60,11 @@ export default function RootPage() {
       })
       .then(function(data) {
         if (!cancelled) {
-          console.log("[RootPage] Redirecting to:", data.redirect || FALLBACK);
+          var target = data.redirect || FALLBACK;
+          console.log("[RootPage] Redirecting to:", target);
           cancelled = true;
-          window.location.replace(data.redirect || FALLBACK);
+          if (target !== FALLBACK) clearPendingRedirect();
+          window.location.replace(target);
         }
       })
       .catch(function(err) {

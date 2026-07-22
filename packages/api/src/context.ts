@@ -4,6 +4,11 @@ import {
   handleIpAnomaly,
   resolveReauthRequired,
 } from "@npanel/auth/session-security";
+import {
+  getRequestBrowserOrigin,
+  isAllowedStorefrontBrowserRequest,
+  isLandingPageOrigin,
+} from "@npanel/auth/landing-page-origins";
 import type { Context as HonoContext } from "hono";
 import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
@@ -173,6 +178,9 @@ export async function createContext({
 
   const ipAddress = resolveIpAddress(context.req.raw.headers);
   const userAgent = context.req.raw.headers.get("user-agent");
+  const softFail =
+    isLandingPageOrigin(getRequestBrowserOrigin(context.req.raw.headers)) ||
+    isAllowedStorefrontBrowserRequest(context.req.raw.headers);
 
   const sessionId = session?.session?.id;
   if (typeof sessionId === "string" && sessionId.length > 0) {
@@ -180,10 +188,11 @@ export async function createContext({
       userAgent,
       ipAddress,
       rotateToken: false,
+      softFail,
     });
     if (lifetime.status === "expired") {
       session = null;
-    } else if (lifetime.ipAnomaly && lifetime.userId) {
+    } else if (lifetime.ipAnomaly && lifetime.userId && !softFail) {
       try {
         const anomaly = await handleIpAnomaly({
           userId: lifetime.userId,

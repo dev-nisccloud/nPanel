@@ -106,9 +106,8 @@ const SERVICE_PRODUCTS: ServiceProductDef[] = [
 		id: "wordpress_hosting",
 		label: "WordPress Hosting",
 		needsPlan: true,
-		/** DB subscription today; enable domain/Plesk fields when plans have pleskServicePlanId. */
-		needsDomain: false,
-		needsProvisionUser: false,
+		needsDomain: true,
+		needsProvisionUser: true,
 		supportsZeepoTokens: false,
 		defaultBillingCycle: "MONTHLY",
 	},

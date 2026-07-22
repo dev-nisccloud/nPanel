@@ -2,7 +2,12 @@ import type { SharedHostingPlan } from "@/lib/vps-plans-api.ts";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { createStorefrontHandoff } from "@/lib/storefront-checkout-api.ts";
 
-export type StorefrontBillingCycle = "MONTHLY" | "YEARLY";
+export type StorefrontBillingCycle =
+  | "MONTHLY"
+  | "YEARLY"
+  | "BIENNIALLY"
+  | "TRIENNIALLY"
+  | "QUADRENNIALLY";
 
 export interface StorefrontCartParams {
   serviceType: string;

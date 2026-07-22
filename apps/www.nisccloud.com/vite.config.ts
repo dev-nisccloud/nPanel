@@ -14,16 +14,17 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       host: "0.0.0.0",
-      port: 5173,
+      port: 5174,
       allowedHosts: true,
       hmr: {
         overlay: false,
       },
       proxy: {
-        // Same-origin /api → npanel-server (avoids CORS in local dev)
+        // Keep Host as the landing origin so forwarded Cookie headers match
+        // sessions set on the same host (nPanel web on another port locally).
         "/api": {
           target: apiTarget,
-          changeOrigin: true,
+          changeOrigin: false,
           timeout: 120_000,
           proxyTimeout: 120_000,
         },

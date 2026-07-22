@@ -108,7 +108,10 @@ async function proxyToBackend(request: Request): Promise<Response> {
   const target = `${API_TARGET}${incoming.pathname}${incoming.search}`;
   const headers = buildProxyHeaders(request, incoming);
 
-  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  const hasBody =
+    request.method !== "GET" &&
+    request.method !== "HEAD" &&
+    request.method !== "OPTIONS";
 
   const backendResponse = await fetch(target, {
     method: request.method,

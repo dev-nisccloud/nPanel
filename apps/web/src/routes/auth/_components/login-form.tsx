@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { fetchRedirectTarget, goToRedirectTarget, isMfaRedirectTarget } from "@/lib/auth-redirect";
+import { fetchRedirectTarget, goToRedirectTarget, getRequestedRedirectFromSearch, isMfaRedirectTarget, persistPendingAuthRedirect } from "@/lib/auth-redirect";
 import type { MfaIntent } from "@/lib/mfa-auth";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { MfaVerifyStep } from "@/routes/auth/_components/mfa-verify-step";
@@ -66,6 +66,7 @@ export function LoginForm({ onChromeVisibilityChange }: LoginFormProps) {
 
   const beginMfaStep = useCallback(
     async (intent: MfaIntent) => {
+      persistPendingAuthRedirect(getRequestedRedirectFromSearch(window.location.search));
       setMfaIntent(intent);
       setAuthStep("mfa");
     },
