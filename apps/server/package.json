@@ -40,6 +40,7 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "hono": "catalog:",
+    "nanoid": "^6.0.0",
     "prettier": "^3.5.1",
     "react": "catalog:",
     "react-dom": "catalog:",
