@@ -444,6 +444,12 @@ export const agencysidebarItems: NavGroup[] = [
         ],
       },
       {
+        title: "Payment Gateway",
+        url: "/agency/nisc-payment-gateway",
+        icon: (props: any) => React.createElement(Icons.PAYMENT_GATEWAY, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+        isNew: true,
+      },
+      {
         title: "Digitax eTIMS",
         url: "/agency/digitax/sales",
         icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),

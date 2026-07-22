@@ -46,6 +46,7 @@ import { ensureClientIpOnRequest, readClientIpFromHeaders } from "./request-clie
 import { apiKeyAuth } from "./middleware/auth-middleware";
 import { handleExternalImageGeneration } from "./api/ai/image-generator";
 import { createCorsOriginMatcher } from "./cors-origins";
+import { createNiscPaymentGatewayRoutes } from "./api/nisc-payment-gateway";
 
 export type NpanelServiceRole = "api" | "workers" | "all";
 
@@ -149,6 +150,9 @@ export function createApp(options: CreateAppOptions = {}) {
     app.get("/api/my-ip", handleMyIp);
 
     app.post("/api/ai/image-generator", apiKeyAuth, handleExternalImageGeneration);
+
+    // Nisc Payment Gateway - External REST API for merchants
+    app.route("/api/nisc-gateway", createNiscPaymentGatewayRoutes());
 
     app.on(["POST"], "/api/webhooks/mpesa", handleMpesaWebhook);
     app.on(["POST"], "/api/webhooks/replicate", handleReplicateWebhook);
