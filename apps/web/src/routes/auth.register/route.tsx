@@ -7,6 +7,7 @@ import { Globe } from "lucide-react";
 
 import { APP_CONFIG } from "@/config/app-config";
 import { toast } from "@/components/ui/sonner";
+import { persistPendingAuthRedirect } from "@/lib/auth-redirect";
 
 import { RegisterForm } from "@/routes/auth/_components/register-form";
 import { GoogleButton } from "@/routes/auth/_components/social-auth/google-button";
@@ -33,6 +34,10 @@ export default function RegisterPage() {
   useEffect(() => {
     const redirectPath = searchParams.get("redirect");
     const inviteCode = searchParams.get("code");
+
+    if (redirectPath) {
+      persistPendingAuthRedirect(redirectPath);
+    }
 
     if (redirectPath && inviteCode) {
       sessionStorage.setItem("pendingInviteRedirect", redirectPath);

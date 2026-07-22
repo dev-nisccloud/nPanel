@@ -36,3 +36,24 @@ export function computeSubscriptionExpiryFromBillingCycle(
 ): Date | null {
 	return addBillingCycleToDate(subscriptionDate, billingCycle);
 }
+
+/**
+ * Prefill expiry + next renewal for new subscriptions.
+ * - Prefer an explicit registry/provider expiry when provided.
+ * - Otherwise derive from billing cycle (null-safe when cycle missing/unknown).
+ * - nextRenewalDate mirrors expiryDate (renewal due when the period ends).
+ */
+export function resolveSubscriptionPeriodDates(
+	subscriptionDate: Date,
+	billingCycle: string | null | undefined,
+	options?: { expiryOverride?: Date | null },
+): { expiryDate: Date | null; nextRenewalDate: Date | null } {
+	const override = options?.expiryOverride ?? null;
+	const expiry =
+		override ??
+		computeSubscriptionExpiryFromBillingCycle(subscriptionDate, billingCycle);
+	if (!expiry) {
+		return { expiryDate: null, nextRenewalDate: null };
+	}
+	return { expiryDate: expiry, nextRenewalDate: expiry };
+}

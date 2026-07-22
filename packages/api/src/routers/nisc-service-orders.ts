@@ -73,9 +73,21 @@ function requiresExternalProvisioning(serviceType: string): boolean {
 	return (
 		resolved === "web_hosting" ||
 		resolved === "email_hosting" ||
+		resolved === "wordpress_hosting" ||
+		resolved === "website_hosting" ||
 		resolved === "domain_registration" ||
 		resolved === "domain_transfer" ||
 		HIVELOCITY_SERVICE_TYPES.includes(resolved as (typeof HIVELOCITY_SERVICE_TYPES)[number])
+	);
+}
+
+function isHostingServiceType(serviceType: string): boolean {
+	const st = serviceType.trim().toLowerCase();
+	return (
+		st === "web_hosting" ||
+		st === "email_hosting" ||
+		st === "wordpress_hosting" ||
+		st === "website_hosting"
 	);
 }
 
@@ -385,46 +397,47 @@ export const niscServiceOrdersRouter = router({
 					});
 				}
 
-				if (
-					product.serviceType === "web_hosting" ||
-					product.serviceType === "email_hosting"
-				) {
-					const domainSubId = item.domainSubscriptionId ?? null;
-					if (!domainSubId) {
+				if (isHostingServiceType(product.serviceType)) {
+					const domainSubId = item.domainSubscriptionId?.trim() || null;
+					const primaryDomain = item.primaryDomain?.trim() || null;
+					// Hosting needs a FQDN for Plesk / primaryDomain — not a separate Domains subscription.
+					if (!domainSubId && !primaryDomain) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
-							message: `Hosting item "${product.name}" requires selecting a domain subscription.`,
+							message: `Hosting item "${product.name}" requires a domain name (primaryDomain).`,
 						});
 					}
-					const domainParts = [
-						eq(niscClientSubscription.id, domainSubId),
-						or(
-							ilike(niscProduct.serviceType, "%domain%"),
-							ilike(niscProduct.name, "%domain%"),
-						),
-					];
-					if (input.userId != null) {
-						domainParts.push(eq(niscClientSubscription.userId, input.userId));
-					}
-					if (input.teamId != null) {
-						domainParts.push(eq(niscClientSubscription.teamId, input.teamId));
-					}
-					const domainSubRows = await db
-						.select({
-							id: niscClientSubscription.id,
-							primaryDomain: niscClientSubscription.primaryDomain,
-							name: niscProduct.name,
-						})
-						.from(niscClientSubscription)
-						.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
-						.where(and(...domainParts))
-						.limit(1);
-					const domainSub = domainSubRows[0];
-					if (!domainSub) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: `Invalid or inaccessible domain subscription for "${product.name}".`,
-						});
+					if (domainSubId) {
+						const domainParts = [
+							eq(niscClientSubscription.id, domainSubId),
+							or(
+								ilike(niscProduct.serviceType, "%domain%"),
+								ilike(niscProduct.name, "%domain%"),
+							),
+						];
+						if (input.userId != null) {
+							domainParts.push(eq(niscClientSubscription.userId, input.userId));
+						}
+						if (input.teamId != null) {
+							domainParts.push(eq(niscClientSubscription.teamId, input.teamId));
+						}
+						const domainSubRows = await db
+							.select({
+								id: niscClientSubscription.id,
+								primaryDomain: niscClientSubscription.primaryDomain,
+								name: niscProduct.name,
+							})
+							.from(niscClientSubscription)
+							.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
+							.where(and(...domainParts))
+							.limit(1);
+						const domainSub = domainSubRows[0];
+						if (!domainSub) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: `Invalid or inaccessible domain subscription for "${product.name}".`,
+							});
+						}
 					}
 				}
 
@@ -466,6 +479,8 @@ export const niscServiceOrdersRouter = router({
 					return (
 						p?.serviceType === "web_hosting" ||
 						p?.serviceType === "email_hosting" ||
+						p?.serviceType === "wordpress_hosting" ||
+						p?.serviceType === "website_hosting" ||
 						p?.serviceType === "domain_registration" ||
 						p?.serviceType === "domain_transfer"
 					);

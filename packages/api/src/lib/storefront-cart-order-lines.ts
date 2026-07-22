@@ -8,6 +8,7 @@ import { db } from "@npanel/db";
 import { niscProduct, niscProductPlan } from "@npanel/db/schema/products";
 import {
 	computeStorefrontCartQuote,
+	normalizeStorefrontMainBillingCycle,
 	pickCheckoutPrice,
 	resolveDomainRetailPriceKes,
 	resolveDomainTransferUpsellPriceKes,
@@ -27,6 +28,13 @@ const HOSTING_SERVICE_TYPES = new Set([
 	"vps",
 	"vds",
 	"dedicated_servers",
+]);
+
+/** Shared / email hosting must be bound to a customer domain at checkout. */
+const DOMAIN_REQUIRED_HOSTING_TYPES = new Set([
+	"web_hosting",
+	"wordpress_hosting",
+	"email_hosting",
 ]);
 
 export type StorefrontCartOrderLine = {
@@ -92,13 +100,24 @@ export async function buildStorefrontCartOrderLines(input: {
 	quote: Awaited<ReturnType<typeof computeStorefrontCartQuote>>;
 }> {
 	const parsed = storefrontCartQuoteInputSchema.parse(input.cart);
+
+	if (
+		DOMAIN_REQUIRED_HOSTING_TYPES.has(parsed.main.serviceType) &&
+		!parsed.upsellDomain?.domain?.trim()
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"A domain is required for this hosting plan — register, transfer, or connect one you already own.",
+		});
+	}
+
 	const quote = await computeStorefrontCartQuote(parsed);
 
-	const effectiveBillingCycle =
-		parsed.main.serviceType === "domain_registration" ||
-		parsed.main.serviceType === "domain_transfer"
-			? "YEARLY"
-			: parsed.main.billingCycle;
+	const effectiveBillingCycle = normalizeStorefrontMainBillingCycle(
+		parsed.main.serviceType,
+		parsed.main.billingCycle,
+	);
 
 	const mainQuote = await resolveMainLineQuote(parsed.main, parsed.hivelocity);
 	const mainPrice = pickCheckoutPrice(

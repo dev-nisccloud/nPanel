@@ -46,6 +46,8 @@ interface DomainUpsellProps {
   onDomainSelect: (domain: SelectedDomain | null) => void;
   transferAuthCode?: string;
   onTransferAuthCodeChange?: (code: string) => void;
+  /** When true, copy makes clear a domain is mandatory before checkout. */
+  required?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +96,7 @@ function DomainUpsellInner({
   onDomainSelect,
   transferAuthCode = "",
   onTransferAuthCodeChange,
+  required = false,
 }: DomainUpsellProps) {
   const { calculatePricesBatch, getPricingInfo } = usePricing();
 
@@ -387,10 +390,19 @@ function DomainUpsellInner({
     <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-1">
         <Search className="w-5 h-5 text-muted-foreground" />
-        <h3 className="text-base font-bold text-foreground">Secure your domain</h3>
+        <h3 className="text-base font-bold text-foreground">
+          {required ? "Domain required" : "Secure your domain"}
+        </h3>
+        {required && (
+          <Badge variant="secondary" className="text-[10px] font-semibold uppercase tracking-wide">
+            Required
+          </Badge>
+        )}
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Search to register a new domain, transfer one you own elsewhere, or connect an existing domain.
+        {required
+          ? "This hosting plan needs a domain before you can continue. Register a new one, transfer from elsewhere, or connect a domain you already own."
+          : "Search to register a new domain, transfer one you own elsewhere, or connect an existing domain."}
       </p>
 
       <CartPillTabs

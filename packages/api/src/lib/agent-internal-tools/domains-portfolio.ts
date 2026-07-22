@@ -15,6 +15,7 @@ import { user as userTable } from "@npanel/db/schema/auth";
 import { team as teamTable } from "@npanel/db/schema/teams";
 import { createOpenProviderClient } from "../openprovider-client";
 import { getRedisClient } from "../redis";
+import { domainProductSqlFilter } from "../nisc-domain-product";
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -230,12 +231,14 @@ async function fetchKenicDomains(): Promise<PortfolioDomainEntry[]> {
 				teamName: teamTable.name,
 			})
 			.from(niscClientSubscription)
+			.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
 			.leftJoin(userTable, eq(niscClientSubscription.userId, userTable.id))
 			.leftJoin(teamTable, eq(niscClientSubscription.teamId, teamTable.id))
 			.where(
 				and(
 					isNotNull(niscClientSubscription.primaryDomain),
 					like(niscClientSubscription.primaryDomain, "%.ke"),
+					domainProductSqlFilter(),
 				),
 			)
 			.orderBy(desc(niscClientSubscription.subscriptionDate));
@@ -276,16 +279,11 @@ async function fetchCustomerPortfolio(
 	teamName: string | null,
 ): Promise<DomainsPortfolioResult> {
 	try {
-		// Resolve domain product IDs
+		// Resolve domain product IDs (Domains product only — never hosting with a .ke primaryDomain).
 		const domainProducts = await db
 			.select({ id: niscProduct.id })
 			.from(niscProduct)
-			.where(
-				and(
-					eq(niscProduct.isActive, true),
-					ilike(niscProduct.name, "%domains%"),
-				),
-			);
+			.where(and(eq(niscProduct.isActive, true), domainProductSqlFilter()));
 		const productIds = domainProducts.map((p) => p.id);
 
 		const domains: PortfolioDomainEntry[] = [];

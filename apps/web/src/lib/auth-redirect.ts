@@ -4,6 +4,9 @@ const FALLBACK_REDIRECT = "/auth/login";
 const MFA_VERIFY_PATH = "/auth/mfa";
 const REAUTH_PATH = "/auth/reauth";
 
+/** Survives refresh / OAuth round-trips when `?redirect=` is dropped from the URL. */
+export const PENDING_AUTH_REDIRECT_KEY = "npanel_pending_auth_redirect";
+
 // Use the same server origin that authClient uses.
 const REDIRECT_TARGET_URL = apiUrl("/api/auth/redirect-target");
 
@@ -11,20 +14,90 @@ if (typeof window !== "undefined") {
   console.debug("[auth-redirect] REDIRECT_TARGET_URL =", REDIRECT_TARGET_URL);
 }
 
-/** Post-login return path from page query (login/register), including invite code when present. */
+function readSessionStorage(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = sessionStorage.getItem(key);
+    return value?.trim() ? value.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionStorage(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // Private mode / quota — URL query remains the primary signal.
+  }
+}
+
+function removeSessionStorage(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+/** Persist intended post-auth destination (internal path or landing cart URL). */
+export function persistPendingAuthRedirect(redirect: string | null | undefined): void {
+  const value = redirect?.trim();
+  if (!value) return;
+  // Don't stash auth pages as the destination.
+  if (value.startsWith("/auth")) return;
+  writeSessionStorage(PENDING_AUTH_REDIRECT_KEY, value);
+}
+
+export function peekPendingAuthRedirect(): string | null {
+  return readSessionStorage(PENDING_AUTH_REDIRECT_KEY);
+}
+
+/** Read and clear the persisted redirect after a successful handoff. */
+export function consumePendingAuthRedirect(): string | null {
+  const value = peekPendingAuthRedirect();
+  if (value) removeSessionStorage(PENDING_AUTH_REDIRECT_KEY);
+  return value;
+}
+
+export function clearPendingAuthRedirect(): void {
+  removeSessionStorage(PENDING_AUTH_REDIRECT_KEY);
+}
+
+/**
+ * Post-login return path from page query (login/register), including invite code when present.
+ * Falls back to sessionStorage so refresh / OAuth / MFA navigations do not lose the destination.
+ */
 export function getRequestedRedirectFromSearch(search: string): string | null {
   const params = new URLSearchParams(search);
   const raw = params.get("redirect") ?? params.get("returnUrl");
-  if (!raw?.trim()) return null;
+  let path = raw?.trim() || "";
 
-  let path = raw.trim();
-  const code = params.get("code");
-  if (code && (path === "/accept-invite" || path.startsWith("/accept-invite/"))) {
-    const sep = path.includes("?") ? "&" : "?";
-    path = `${path}${sep}code=${encodeURIComponent(code)}`;
+  if (path) {
+    const code = params.get("code");
+    if (code && (path === "/accept-invite" || path.startsWith("/accept-invite/"))) {
+      const sep = path.includes("?") ? "&" : "?";
+      path = `${path}${sep}code=${encodeURIComponent(code)}`;
+    }
+    persistPendingAuthRedirect(path);
+    return path;
   }
 
-  return path;
+  return peekPendingAuthRedirect();
+}
+
+/** Build login/register/MFA links that keep `?redirect=` when present. */
+export function authPathWithRedirect(
+  path: string,
+  redirect: string | null | undefined = peekPendingAuthRedirect(),
+): string {
+  const base = path.split("?")[0] || path;
+  const value = redirect?.trim();
+  if (!value || value.startsWith("/auth")) return base;
+  const params = new URLSearchParams({ redirect: value });
+  return `${base}?${params.toString()}`;
 }
 
 /** Post-login return path from the current page query (set by session gate on login/register). */
@@ -123,6 +196,11 @@ export function goToRedirectTarget(
 ): boolean {
   if (shouldStayOnCurrentPage(target)) return false;
 
+  // Destination accepted — drop the backup so a later login doesn't reuse it.
+  if (target !== FALLBACK_REDIRECT && !isMfaRedirectTarget(target) && !isReauthRedirectTarget(target)) {
+    clearPendingAuthRedirect();
+  }
+
   if (navigate && target.startsWith("/")) {
     navigate(target, { replace: true });
     return true;
@@ -145,24 +223,32 @@ export async function redirectToTarget(
   return goToRedirectTarget(target, navigate);
 }
 
+/** Prefer the original post-auth destination over the current auth page URL. */
+function resolveReturnRedirect(returnPath?: string): string | null {
+  if (returnPath?.trim()) {
+    const value = returnPath.trim();
+    if (!value.startsWith("/auth")) return value;
+  }
+  if (typeof window === "undefined") return null;
+  return getRequestedRedirectFromSearch(window.location.search);
+}
+
 export function redirectToReauth(returnPath?: string): void {
   if (typeof window === "undefined") return;
-  const current = returnPath || window.location.pathname + window.location.search;
+  const destination = resolveReturnRedirect(returnPath);
+  if (destination) persistPendingAuthRedirect(destination);
   const params = new URLSearchParams();
-  if (current && !current.startsWith("/auth")) {
-    params.set("redirect", current);
-  }
+  if (destination) params.set("redirect", destination);
   const q = params.toString();
   window.location.replace(q ? `${REAUTH_PATH}?${q}` : REAUTH_PATH);
 }
 
 export function redirectToMfa(returnPath?: string): void {
   if (typeof window === "undefined") return;
-  const current = returnPath || window.location.pathname + window.location.search;
+  const destination = resolveReturnRedirect(returnPath);
+  if (destination) persistPendingAuthRedirect(destination);
   const params = new URLSearchParams();
-  if (current && !current.startsWith("/auth")) {
-    params.set("redirect", current);
-  }
+  if (destination) params.set("redirect", destination);
   const q = params.toString();
   window.location.replace(q ? `${MFA_VERIFY_PATH}?${q}` : MFA_VERIFY_PATH);
 }

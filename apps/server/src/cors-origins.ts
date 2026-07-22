@@ -1,12 +1,16 @@
-/** Vercel deployment origins that are always allowed regardless of env config. */
-const HARDCODED_ALLOWED_ORIGINS = [
-  "https://nisccloud-website.vercel.app",
-];
+import {
+  isLandingPageOrigin,
+  isLocalDevOrigin,
+  resolveLandingPageOrigins,
+} from "@npanel/auth/landing-page-origins";
+
+export { isLandingPageOrigin, isLocalDevOrigin, resolveLandingPageOrigins };
 
 /**
  * Resolve allowed browser origins for Hono CORS.
- * CORS_ORIGIN is the primary app origin; CORS_EXTRA_ORIGINS adds comma-separated URLs
- * (e.g. https://www.nisccloud.com,https://nisccloud.com).
+ * - CORS_ORIGIN: nPanel web app
+ * - LANDING_PAGE_ORIGINS: marketing / storefront (www, Vercel, …)
+ * - CORS_EXTRA_ORIGINS: optional extra comma-separated URLs
  */
 export function resolveCorsAllowedOrigins(primaryOrigin: string): string[] {
   const origins = new Set<string>();
@@ -18,7 +22,7 @@ export function resolveCorsAllowedOrigins(primaryOrigin: string): string[] {
 
   add(primaryOrigin);
 
-  for (const o of HARDCODED_ALLOWED_ORIGINS) {
+  for (const o of resolveLandingPageOrigins()) {
     add(o);
   }
 
@@ -30,20 +34,6 @@ export function resolveCorsAllowedOrigins(primaryOrigin: string): string[] {
   }
 
   return [...origins];
-}
-
-/** Local/LAN dev origins (Vite on 5173/5174, etc.) when not in production. */
-export function isLocalDevOrigin(origin: string): boolean {
-  try {
-    const { protocol, hostname } = new URL(origin);
-    if (protocol !== "http:" && protocol !== "https:") return false;
-    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
-    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
-    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
-    return false;
-  } catch {
-    return false;
-  }
 }
 
 export function createCorsOriginMatcher(primaryOrigin: string) {

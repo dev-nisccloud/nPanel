@@ -7,16 +7,21 @@
  * Prerequisites:
  *   1. Start Automated App Test on the KRA Developer Portal first
  *   2. Device already initialized in nPanel (cmcKey in DB) OR step 1 will init
- *   3. ETIMS_* env vars set in apps/server/.env
+ *   3. Prefer apps/server/.env.etims-certification (portal session), else .env
  *
  * Run from apps/server:
- *   bun run src/scripts/kra-etims-certification-test.ts
+ *   bun run etims:certification
+ *   bun run src/scripts/write-etims-cert-env.ts   # refresh cert env from .env + portal stamps
  *
  * Optional:
  *   SKIP_INIT=1          skip re-initialization
  *   ONLY=selectCodeList  run a single step by endpointKey
+ *
+ * Cert-env identity overrides (ETIMS_CERT_*):
+ *   TIN, BHF_ID, DEVICE_SERIAL, CMC_KEY, APP_TEST_PIN, SANDBOX
  */
 import { config } from "dotenv";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,7 +38,14 @@ import type {
 } from "@npanel/api/lib/etims-client";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-config({ path: path.resolve(__dirname, "../../.env") });
+const SERVER_ROOT = path.resolve(__dirname, "../..");
+const CERT_ENV = path.join(SERVER_ROOT, ".env.etims-certification");
+const DEFAULT_ENV = path.join(SERVER_ROOT, ".env");
+// Load default first, then cert env overrides so portal session wins.
+config({ path: DEFAULT_ENV });
+if (existsSync(CERT_ENV)) {
+    config({ path: CERT_ENV, override: true });
+}
 
 const LAST_REQ_DT = "20180101000000";
 const OUT_DIR = path.resolve(__dirname, "../../.etims-certification");
@@ -69,6 +81,10 @@ type RunContext = {
     dvcSrlNo: string;
     cmcKey: string;
     isSandbox: boolean;
+    /** KRA Developer Portal "Application Test Pin" for this session */
+    appTestPin: string;
+    tisName: string;
+    tisVersion: string;
     /** Full product list from KRA selectItemList */
     kraItems: KraItem[];
     /** Classification codes from selectItemClsList (required for SAVE ITEM) */
@@ -338,6 +354,20 @@ function isInvcNoHistoryCollision(raw: EtimsRawResponse): boolean {
     return cd === "924" || text.includes("invoice number already exists");
 }
 
+/** Highest invcNo in a sales-list response (0 if empty). */
+function maxInvcNoFromSalesList(bodyJson: unknown): number {
+    const body = unwrapBody(bodyJson);
+    const data = body?.data as Record<string, unknown> | undefined;
+    const list = data?.salesList;
+    if (!Array.isArray(list)) return 0;
+    let max = 0;
+    for (const row of list) {
+        const n = Number((row as Record<string, unknown>)?.invcNo);
+        if (Number.isFinite(n)) max = Math.max(max, n);
+    }
+    return max;
+}
+
 /** Build one stock I/O line (amounts must satisfy splyAmt = prc * qty). */
 function stockIoLine(item: KraItem, itemSeq: number, qty: number) {
     const unitTaxbl = item.dftPrc > 0 ? item.dftPrc : 1000;
@@ -516,8 +546,10 @@ const STEPS: Step[] = [
             bhfId: ctx.bhfId,
             cmcKey: ctx.cmcKey,
             custNo: "CUST001",
-            custTin: ctx.tin,
-            custNm: "NPanel Certification Customer",
+            custTin: ctx.appTestPin || ctx.tin,
+            custNm: ctx.appTestPin
+                ? "Automated Test Customer"
+                : "NPanel Certification Customer",
             adrs: "Nairobi",
             telNo: "0700000000",
             email: "cert@nisccloud.com",
@@ -721,6 +753,10 @@ const STEPS: Step[] = [
             // Session invcNo must start at 1; trdInvcNo can be a unique trade reference
             // so we do not collide with historical production invoices (e.g. invcNo=1 credit note).
             const trdInvcNo = `CERT${String(Date.now()).slice(-10)}`;
+            const custTin = ctx.appTestPin || null;
+            const custNm = ctx.appTestPin
+                ? "Automated Test Customer"
+                : "Walk-in Customer";
             return {
                 tin: ctx.tin,
                 bhfId: ctx.bhfId,
@@ -728,8 +764,8 @@ const STEPS: Step[] = [
                 trdInvcNo,
                 invcNo: ctx.invcNo,
                 orgInvcNo: 0,
-                custTin: null,
-                custNm: "Walk-in Customer",
+                custTin,
+                custNm,
                 salesTyCd: "N",
                 rcptTyCd: "S",
                 pmtTyCd: "01",
@@ -767,8 +803,8 @@ const STEPS: Step[] = [
                 modrId: "Admin",
                 modrNm: "Admin",
                 receipt: {
-                    custTin: null,
-                    custMblNo: null,
+                    custTin,
+                    custMblNo: ctx.appTestPin ? "0700000000" : null,
                     rcptPbctDt: cfmDt,
                     trdeNm: null,
                     adrs: null,
@@ -921,7 +957,14 @@ const STEPS: Step[] = [
         testCase: "LOOK UP TAX PAYER INFO",
         kraLabel: "/selectTaxPayerInfo",
         endpointKey: "selectTaxPayerInfo",
-        body: lastReq,
+        // Classic OSCU maps this to /selectCustomer (own PIN). Dev Platform uses lastReqDt.
+        body: (ctx) => ({
+            tin: ctx.tin,
+            bhfId: ctx.bhfId,
+            cmcKey: ctx.cmcKey,
+            lastReqDt: "20180101000000",
+            custmTin: ctx.tin,
+        }),
     },
 ];
 
@@ -939,14 +982,56 @@ function extractCmcKey(bodyJson: unknown): string | null {
     return typeof key === "string" && key.length > 0 ? key : null;
 }
 
-async function loadDeviceConfig() {
+type DeviceConfig = {
+    kraPin: string;
+    branchId: string;
+    deviceSerialNumber: string;
+    cmcKey: string | null;
+    isSandbox: boolean;
+    source: string;
+};
+
+/**
+ * Prefer .env.etims-certification identity; fall back to DB for missing fields (esp. cmcKey).
+ */
+async function loadDeviceConfig(): Promise<DeviceConfig> {
     const [row] = await db.select().from(eTimsConfiguration).limit(1);
-    if (!row) {
+
+    const tin = process.env.ETIMS_CERT_TIN?.trim() || row?.kraPin;
+    const branchId = process.env.ETIMS_CERT_BHF_ID?.trim() || row?.branchId;
+    const serial =
+        process.env.ETIMS_CERT_DEVICE_SERIAL?.trim() ||
+        row?.deviceSerialNumber;
+    const cmcKey =
+        process.env.ETIMS_CERT_CMC_KEY?.trim() || row?.cmcKey || null;
+    const isSandbox =
+        process.env.ETIMS_CERT_SANDBOX !== undefined
+            ? process.env.ETIMS_CERT_SANDBOX !== "false"
+            : (row?.isSandbox ?? true);
+
+    if (!tin || !branchId || !serial) {
         throw new Error(
-            "No eTIMS configuration in DB. Initialize the device in Agency → KRA eTIMS → Settings first.",
+            "Missing TIN / branch / serial. Set ETIMS_CERT_* in .env.etims-certification or initialize the device in Settings.",
         );
     }
-    return row;
+
+    const fromCert = Boolean(
+        process.env.ETIMS_CERT_TIN ||
+            process.env.ETIMS_CERT_BHF_ID ||
+            process.env.ETIMS_CERT_DEVICE_SERIAL,
+    );
+    return {
+        kraPin: tin,
+        branchId,
+        deviceSerialNumber: serial,
+        cmcKey,
+        isSandbox,
+        source: fromCert
+            ? existsSync(CERT_ENV)
+                ? ".env.etims-certification (+ DB cmcKey if unset)"
+                : "ETIMS_CERT_* env (+ DB)"
+            : "DB etims_configuration",
+    };
 }
 
 async function main() {
@@ -963,6 +1048,9 @@ async function main() {
         dvcSrlNo: cfg.deviceSerialNumber,
         cmcKey: cfg.cmcKey ?? "",
         isSandbox: cfg.isSandbox,
+        appTestPin: process.env.ETIMS_CERT_APP_TEST_PIN?.trim() || "",
+        tisName: process.env.ETIMS_CERT_TIS_NAME?.trim() || "nPanel",
+        tisVersion: process.env.ETIMS_CERT_TIS_VERSION?.trim() || "1.0.0",
         kraItems: [],
         itemClsOptions: [],
         serviceTemplate: null,
@@ -976,11 +1064,18 @@ async function main() {
     };
 
     if (!ctx.cmcKey && skipInit) {
-        throw new Error("No cmcKey in DB and SKIP_INIT=1 — cannot continue.");
+        throw new Error("No cmcKey in DB/cert-env and SKIP_INIT=1 — cannot continue.");
     }
 
+    console.log(`config source: ${cfg.source}`);
     console.log(`TIN=${ctx.tin}  bhfId=${ctx.bhfId}  serial=${ctx.dvcSrlNo}`);
-    console.log(`sandbox=${ctx.isSandbox}  invcNo=${ctx.invcNo}\n`);
+    console.log(
+        `sandbox=${ctx.isSandbox}  invcNo=${ctx.invcNo}  appTestPin=${ctx.appTestPin || "(none)"}`,
+    );
+    console.log(`TIS=${ctx.tisName} v${ctx.tisVersion}`);
+    console.log(
+        `Apigee=${(process.env.ETIMS_APIGEE_APP_ID ?? "").slice(0, 12)}…\n`,
+    );
     console.log(
         "Mocks are built from KRA selectItemList / selectItemClsList (UI Products flow).\n",
     );
@@ -1090,7 +1185,7 @@ async function main() {
             if (isStepOk(raw)) ctx.sarNo += 1;
         }
 
-        // saveTrnsSalesOsdc: session invcNo starts at 1; retry on counter / date skew.
+        // saveTrnsSalesOsdc: session invcNo starts at 1; retry on counter / date / 924 collision.
         if (step.endpointKey === "saveTrnsSalesOsdc") {
             for (let attempt = 0; attempt < 8 && !isStepOk(raw); attempt++) {
                 const cd = resultCdOf(raw);
@@ -1113,11 +1208,30 @@ async function main() {
                             rcptPbctDt: cfmDt,
                         },
                     };
-                } else if (cd === "924") {
+                } else if (cd === "924" || isInvcNoHistoryCollision(raw)) {
+                    // Historical invcNo collision — advance past max used on this device.
+                    let next = ctx.invcNo + 1;
+                    try {
+                        const hist = await client.requestRaw(
+                            "selectTrnsSalesList",
+                            {
+                                tin: ctx.tin,
+                                bhfId: ctx.bhfId,
+                                cmcKey: ctx.cmcKey,
+                                lastReqDt: "20180101000000",
+                            },
+                            oscuFrom(ctx),
+                        );
+                        const max = maxInvcNoFromSalesList(hist.bodyJson);
+                        if (max >= ctx.invcNo) next = max + 1;
+                    } catch {
+                        /* keep next = invcNo + 1 */
+                    }
                     console.log(
-                        "   invcNo already exists in taxpayer history while session requires this number — cannot auto-fix.",
+                        `   invcNo ${ctx.invcNo} already exists → retrying as ${next}`,
                     );
-                    break;
+                    ctx.invcNo = next;
+                    body = { ...body, invcNo: next };
                 } else {
                     break;
                 }
@@ -1180,14 +1294,10 @@ async function main() {
         if (
             step.endpointKey === "saveTrnsSalesOsdc" &&
             !isStepOk(raw) &&
-            ctx.invcNo === 1 &&
             isInvcNoHistoryCollision(raw)
         ) {
             console.log(
-                "   BLOCKER: session requires invcNo=1 but this TIN/device already has invcNo=1 (historical invoice).",
-            );
-            console.log(
-                "   Fix: start Automated App Test on a freshly initialized device serial with no prior sales, then re-run.",
+                "   Could not allocate a free invcNo after retries — check sales history on this device.",
             );
         }
 

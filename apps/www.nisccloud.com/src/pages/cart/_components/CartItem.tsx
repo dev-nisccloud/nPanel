@@ -6,11 +6,17 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
+import {
+  billingCyclePeriodLabel,
+  billingCycleShortSuffix,
+  billingCycleToMonths,
+  DOMAIN_BILLING_CYCLES,
+  periodPrice,
+  SERVICE_BILLING_CYCLES,
+  type BillingCycle,
+} from "@/lib/billing-cycle.ts";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
+export type { BillingCycle };
 export type CartServiceType =
   | "web_hosting"
   | "wordpress_hosting"
@@ -24,8 +30,6 @@ export type CartServiceType =
   | "social_media"
   | "email_marketing"
   | string;
-
-export type BillingCycle = "MONTHLY" | "YEARLY";
 
 export interface CartItemData {
   planName: string;
@@ -186,21 +190,34 @@ function yearlySaving(monthly: number, yearly: number) {
   return { saved, pct };
 }
 
+function multiYearSaving(monthly: number, yearly: number, cycle: BillingCycle) {
+  if (cycle === "MONTHLY") return null;
+  const months = billingCycleToMonths(cycle);
+  const fullMonthly = monthly * months;
+  const period = periodPrice(monthly, yearly, cycle);
+  const saved = fullMonthly - period;
+  if (saved <= 0) return null;
+  const pct = Math.round((saved / fullMonthly) * 100);
+  return { saved, pct };
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps) {
   const meta = getServiceMeta(item.serviceType);
-  const isDomain =
-    item.serviceType === "domain_registration" || item.serviceType === "domain_transfer";
-  // Domains are always billed annually
-  const isYearly = isDomain ? true : item.billingCycle === "YEARLY";
-  const displayPrice = isYearly ? item.yearlyPrice : item.monthlyPrice;
-  const saving = isYearly && !isDomain ? yearlySaving(item.monthlyPrice, item.yearlyPrice) : null;
-  const renewalPrice = isYearly
-    ? item.yearlyPrice
-    : item.monthlyPrice;
+  const isDomainRegistration = item.serviceType === "domain_registration";
+  const isDomainTransfer = item.serviceType === "domain_transfer";
+  const isDomain = isDomainRegistration || isDomainTransfer;
+  const cycle = isDomainTransfer ? "YEARLY" : item.billingCycle;
+  const displayPrice = periodPrice(item.monthlyPrice, item.yearlyPrice, cycle);
+  const saving = !isDomain ? multiYearSaving(item.monthlyPrice, item.yearlyPrice, cycle) : null;
+  const renewalPrice = isDomain || cycle !== "MONTHLY" ? item.yearlyPrice : item.monthlyPrice;
+  const strikeThrough =
+    !isDomain && cycle !== "MONTHLY"
+      ? item.monthlyPrice * billingCycleToMonths(cycle)
+      : null;
 
   return (
     <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
@@ -235,33 +252,36 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
 
           {/* Billing cycle */}
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
-            {isDomain ? (
+            {isDomainTransfer ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Billing cycle</span>
                 <span className="inline-flex items-center h-9 px-3 rounded-lg border border-border bg-muted/40 text-sm font-medium text-foreground select-none">
-                  1 year · {item.serviceType === "domain_transfer" ? "Transfer + renewal" : "Annual registration"}
+                  1 year · Transfer + renewal
                 </span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground font-medium whitespace-nowrap">Billing cycle</span>
                 <Select
-                  value={item.billingCycle}
+                  value={cycle}
                   onValueChange={(v) => onBillingCycleChange(v as BillingCycle)}
                 >
                   <SelectTrigger className="w-52 h-9 text-sm rounded-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MONTHLY">1 month</SelectItem>
-                    <SelectItem value="YEARLY">
-                      12 months
-                      {saving && (
-                        <span className="ml-2 text-xs text-emerald-600 font-semibold">
-                          Save {saving.pct}%
-                        </span>
-                      )}
-                    </SelectItem>
+                    {(isDomainRegistration ? DOMAIN_BILLING_CYCLES : SERVICE_BILLING_CYCLES).map(
+                      (opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                          {opt.value === "YEARLY" && saving && !isDomainRegistration && (
+                            <span className="ml-2 text-xs text-emerald-600 font-semibold">
+                              Save {saving.pct}%
+                            </span>
+                          )}
+                        </SelectItem>
+                      ),
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -269,16 +289,16 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
 
             {/* Price display */}
             <div className="flex items-baseline gap-2">
-              {isYearly && !isDomain && (
+              {strikeThrough != null && strikeThrough > displayPrice && (
                 <span className="text-sm line-through text-muted-foreground">
-                  {formatPrice(item.monthlyPrice * 12, item.currency)}
+                  {formatPrice(strikeThrough, item.currency)}
                 </span>
               )}
               <span className="text-xl font-bold text-foreground">
                 {formatPrice(displayPrice, item.currency)}
               </span>
               <span className="text-sm text-muted-foreground">
-                /{isDomain ? "yr" : isYearly ? "yr" : "mo"}
+                /{billingCycleShortSuffix(cycle)}
               </span>
               {saving && (
                 <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs font-semibold">
@@ -291,7 +311,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
           <p className="text-xs text-muted-foreground mt-1.5">
             {isDomain
               ? `Renews at ${formatPrice(renewalPrice, item.currency)}/yr. Standard renewal applies.`
-              : `Renews at ${formatPrice(renewalPrice, item.currency)}/${isYearly ? "yr" : "mo"}. Cancel anytime.`}
+              : `Billed for ${billingCyclePeriodLabel(cycle)}. Renews at ${formatPrice(renewalPrice, item.currency)}/${billingCycleShortSuffix(cycle === "MONTHLY" ? "MONTHLY" : "YEARLY")}. Cancel anytime.`}
           </p>
         </div>
       </div>

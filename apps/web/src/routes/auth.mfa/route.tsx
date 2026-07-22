@@ -4,11 +4,12 @@ import { Globe } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 import { APP_CONFIG } from "@/config/app-config";
-import { redirectToTarget } from "@/lib/auth-redirect";
+import { authPathWithRedirect, redirectToTarget } from "@/lib/auth-redirect";
 import { MfaVerifyStep } from "@/routes/auth/_components/mfa-verify-step";
 
 export default function MfaVerifyPage() {
   const navigate = useNavigate();
+  const loginHref = authPathWithRedirect("/auth/login");
 
   return (
     <>
@@ -21,7 +22,7 @@ export default function MfaVerifyPage() {
 
       <div className="absolute top-5 flex w-full justify-end px-10">
         <div className="text-muted-foreground text-sm">
-          <Link className="text-foreground" to="/auth/login">
+          <Link className="text-foreground" to={loginHref}>
             Back to Login
           </Link>
         </div>

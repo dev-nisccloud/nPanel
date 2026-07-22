@@ -5,7 +5,7 @@ import { Globe } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 
 import { APP_CONFIG } from "@/config/app-config";
-import { redirectToTarget } from "@/lib/auth-redirect";
+import { authPathWithRedirect, redirectToTarget } from "@/lib/auth-redirect";
 import { fetchReauthStatus, submitReauthPassword } from "@/lib/reauth-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 export default function ReauthPage() {
   const navigate = useNavigate();
+  const loginHref = authPathWithRedirect("/auth/login");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +37,7 @@ export default function ReauthPage() {
         const message =
           error instanceof Error ? error.message : "Unable to verify session";
         toast.error(message);
-        navigate("/auth/login", { replace: true });
+        navigate(loginHref, { replace: true });
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -44,7 +45,7 @@ export default function ReauthPage() {
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [navigate, loginHref]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -111,7 +112,7 @@ export default function ReauthPage() {
 
       <div className="absolute top-5 flex w-full justify-end px-10">
         <div className="text-muted-foreground text-sm">
-          <Link className="text-foreground" to="/auth/login">
+          <Link className="text-foreground" to={loginHref}>
             Back to Login
           </Link>
         </div>

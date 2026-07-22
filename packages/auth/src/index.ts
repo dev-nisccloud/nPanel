@@ -40,6 +40,11 @@ import {
   signupRequestAcceptsTerms,
 } from "./signup-terms";
 import { STANDARD_SESSION_MAX_AGE_SEC, SESSION_TOUCH_THROTTLE_MS } from "./session-policy";
+import {
+  getRequestBrowserOrigin,
+  isAllowedStorefrontBrowserRequest,
+  isLandingPageOrigin,
+} from "./landing-page-origins";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
@@ -65,6 +70,16 @@ const resolvedTrustedOrigins = (() => {
     }
   };
 
+  const addLandingPageOrigins = (list: string[]) => {
+    for (const part of (process.env.LANDING_PAGE_ORIGINS ?? "").split(",")) {
+      addUrlToList(list, part);
+    }
+    // Fallback so Vercel landing can call credentialed auth before env is set.
+    if (!process.env.LANDING_PAGE_ORIGINS?.trim()) {
+      addUrlToList(list, "https://nisccloud-website.vercel.app");
+    }
+  };
+
   if (process.env.BETTER_AUTH_ACCEPT_ANY_HTTPS === "true") {
     const list = process.env.BETTER_AUTH_URLS
       ? process.env.BETTER_AUTH_URLS.split(",").map((s) => s.trim()).filter(Boolean)
@@ -73,6 +88,7 @@ const resolvedTrustedOrigins = (() => {
     addUrlToList(list, process.env.BETTER_AUTH_URL);
     addUrlToList(list, process.env.APP_URL);
     addUrlToList(list, process.env.CORS_ORIGIN);
+    addLandingPageOrigins(list);
 
     const normalized = list.map((url) => url.replace(/\/+$/, ""));
     console.log(
@@ -90,6 +106,7 @@ const resolvedTrustedOrigins = (() => {
     addUrlToList(list, process.env.BETTER_AUTH_URL);
     addUrlToList(list, process.env.APP_URL);
     addUrlToList(list, process.env.CORS_ORIGIN);
+    addLandingPageOrigins(list);
 
     const normalized = list.map((url) => url.replace(/\/+$/, ""));
     console.log(
@@ -104,6 +121,7 @@ const resolvedTrustedOrigins = (() => {
     addUrlToList(urls, process.env.BETTER_AUTH_URL);
     addUrlToList(urls, process.env.APP_URL);
     addUrlToList(urls, process.env.CORS_ORIGIN);
+    addLandingPageOrigins(urls);
 
     const normalized = urls.map((url) => url.replace(/\/+$/, ""));
     console.log(
@@ -114,9 +132,11 @@ const resolvedTrustedOrigins = (() => {
   }
 
   if (process.env.APP_URL) {
-    const normalized = process.env.APP_URL.replace(/\/+$/, "");
-    console.log("[Better Auth Config] Using APP_URL as trustedOrigin:", normalized);
-    return [normalized];
+    const urls = [process.env.APP_URL.replace(/\/+$/, "")];
+    addLandingPageOrigins(urls);
+    const normalized = urls.map((url) => url.replace(/\/+$/, ""));
+    console.log("[Better Auth Config] Using APP_URL + landing origins as trustedOrigins:", normalized);
+    return normalized;
   }
 
   console.log(
@@ -282,13 +302,20 @@ export const auth = betterAuth<BetterAuthOptions>({
         if (typeof sessionId === "string" && sessionId.length > 0) {
           const requestUa = ctx.headers?.get("user-agent") ?? null;
           const requestIp = resolveRequestIp(ctx.headers);
+          const softFail =
+            isLandingPageOrigin(
+              getRequestBrowserOrigin(ctx.headers ?? new Headers()),
+            ) ||
+            isAllowedStorefrontBrowserRequest(ctx.headers ?? undefined);
           // Do not rotate the session token on idle refresh. Rotating the DB token while
           // parallel tRPC/API requests still carry the previous cookie logs the active user out.
           // Idle extension only bumps expiresAt; UA bind + IP step-up + revoke-all cover theft.
+          // softFail: storefront/landing probes must not delete the session or clear cookies.
           const lifetime = await validateAndRefreshIdleSessionById(sessionId, {
             userAgent: requestUa,
             ipAddress: requestIp,
             rotateToken: false,
+            softFail,
           });
           if (lifetime.status === "expired") {
             ctx.context.session = null;
@@ -299,22 +326,24 @@ export const auth = betterAuth<BetterAuthOptions>({
               returned.session = null;
               returned.user = null;
             }
-            try {
-              const setCookie = (ctx as { setCookie?: Function }).setCookie;
-              const authCookies = (ctx.context as { authCookies?: { sessionToken?: { name: string; attributes: Record<string, unknown> } } }).authCookies;
-              if (typeof setCookie === "function" && authCookies?.sessionToken) {
-                setCookie(authCookies.sessionToken.name, "", {
-                  ...authCookies.sessionToken.attributes,
-                  maxAge: 0,
-                });
+            if (!softFail) {
+              try {
+                const setCookie = (ctx as { setCookie?: Function }).setCookie;
+                const authCookies = (ctx.context as { authCookies?: { sessionToken?: { name: string; attributes: Record<string, unknown> } } }).authCookies;
+                if (typeof setCookie === "function" && authCookies?.sessionToken) {
+                  setCookie(authCookies.sessionToken.name, "", {
+                    ...authCookies.sessionToken.attributes,
+                    maxAge: 0,
+                  });
+                }
+              } catch {
+                // Best-effort cookie clear on expiry / UA mismatch.
               }
-            } catch {
-              // Best-effort cookie clear on expiry / UA mismatch.
             }
             return;
           }
 
-          if (lifetime.ipAnomaly && lifetime.userId) {
+          if (lifetime.ipAnomaly && lifetime.userId && !softFail) {
             try {
               const anomaly = await handleIpAnomaly({
                 userId: lifetime.userId,
@@ -997,6 +1026,28 @@ export const auth = betterAuth<BetterAuthOptions>({
         return env.NODE_ENV === "production" && isHttps;
       })(),
       httpOnly: true,
+      // Share session across npanel.* and www.* on the real domain so the
+      // storefront cart can see an existing nPanel login. Skip on *.run.app /
+      // localhost / raw IPs ( Domains are invalid or wrong there ).
+      domain: (() => {
+        const explicit = process.env.BETTER_AUTH_COOKIE_DOMAIN?.trim();
+        if (explicit) return explicit;
+        const url =
+          process.env.APP_URL ||
+          process.env.CORS_ORIGIN ||
+          process.env.BETTER_AUTH_URL ||
+          env.CORS_ORIGIN ||
+          "";
+        try {
+          const host = new URL(url).hostname.toLowerCase();
+          if (host === "nisccloud.com" || host.endsWith(".nisccloud.com")) {
+            return ".nisccloud.com";
+          }
+        } catch {
+          /* ignore */
+        }
+        return undefined;
+      })(),
     },
   },
 });

@@ -5,6 +5,7 @@ import { team, teamMember } from "@npanel/db/schema/teams";
 import { and, asc, eq } from "@npanel/db";
 
 import { auth } from "./index";
+import { parseSafeLandingPageRedirect } from "./landing-page-origins";
 
 /**
  * First path segments that are never treated as customer team slugs when validating
@@ -297,6 +298,18 @@ export async function getRootRedirectTargetFromHeaders(
     ? "/agency/dashboard"
     : // CUSTOMER roles go through team routing (dashboard or create-team).
     await getCustomerTeamRedirectPath(u);
+
+  const safeLandingRedirect = parseSafeLandingPageRedirect(requestedRedirect ?? null);
+  if (safeLandingRedirect) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[redirect-target][using landing-page redirect]", {
+        userId: u.id,
+        role,
+        safeLandingRedirect,
+      });
+    }
+    return safeLandingRedirect;
+  }
 
   const safeRequested = parseSafeInternalRedirectPath(requestedRedirect ?? null);
   if (safeRequested) {

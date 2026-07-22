@@ -10,7 +10,8 @@ import { CartItem } from "./_components/CartItem.tsx";
 import { DomainUpsell } from "./_components/DomainUpsell.tsx";
 import { HostingUpsell } from "./_components/HostingUpsell.tsx";
 import { OrderSummary } from "./_components/OrderSummary.tsx";
-import { CustomerInfoStep, CUSTOMER_INFO_FORM_ID } from "./_components/CustomerInfoStep.tsx";
+import { CustomerInfoStep, CUSTOMER_INFO_FORM_ID, SIGNED_IN_CHECKOUT_FORM_ID, SIGNED_IN_ORG_FORM_ID, SIGNED_IN_PROFILE_FORM_ID } from "./_components/CustomerInfoStep.tsx";
+import type { CustomerInfoIdentity } from "./_components/CustomerInfoStep.tsx";
 import { StorefrontPaymentDialog } from "./_components/StorefrontPaymentDialog.tsx";
 import {
   HivelocityConfigStep,
@@ -27,10 +28,17 @@ import type { CustomerInfo } from "./_components/CustomerInfoStep.tsx";
 import { computeHivelocitySummaryLines } from "@/lib/vps-plans-api.ts";
 import {
   checkStorefrontEmail,
+  clearStorefrontCartResume,
+  completeStorefrontProfile,
   createStorefrontOrderFromPayment,
+  createStorefrontOrganization,
+  fetchStorefrontCheckoutIdentity,
+  issueStorefrontCheckoutToken,
+  peekStorefrontCartResume,
   registerStorefrontCustomer,
   resolveStorefrontProductId,
   type StorefrontCartQuoteRequest,
+  type StorefrontProfilePrefill,
 } from "@/lib/storefront-checkout-api.ts";
 import { useStorefrontCartQuote } from "@/lib/use-storefront-cart-quote.ts";
 import { serviceTypeToHivelocityProductType } from "@/lib/hivelocity-default-hostname.ts";
@@ -121,8 +129,12 @@ function EmptyCart() {
 // ---------------------------------------------------------------------------
 
 export default function CartPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const handoff = searchParams.get("h")?.trim() ?? "";
+  const resumeFromQuery = searchParams.get("resume") === "1";
+  const resumeFromStorage =
+    typeof window !== "undefined" && handoff ? peekStorefrontCartResume(handoff) : false;
+  const shouldResumeCheckout = resumeFromQuery || resumeFromStorage;
 
   // ---- State ----
   const [billingCycle, setBillingCycle] = React.useState<BillingCycle | null>(null);
@@ -134,8 +146,12 @@ export default function CartPage() {
   const [selectedHostingPlanInfo, setSelectedHostingPlanInfo] =
     React.useState<UpsellPlanInfo | null>(null);
   const [hostingCycles, setHostingCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>({});
-  const [step, setStep] = React.useState<1 | 2>(1);
+  const [step, setStep] = React.useState<1 | 2>(shouldResumeCheckout ? 2 : 1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [checkoutIdentity, setCheckoutIdentity] = React.useState<CustomerInfoIdentity>({
+    status: shouldResumeCheckout ? "loading" : "guest",
+  });
+  const resumeHandledRef = React.useRef(false);
   const [paymentOpen, setPaymentOpen] = React.useState(false);
   const [checkoutSession, setCheckoutSession] = React.useState<{
     storefrontToken: string;
@@ -350,24 +366,61 @@ export default function CartPage() {
     setBillingCycle(cycle);
   };
 
-  const handleContinue = () => {
-    if (step === 1) {
-      setStep(2);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+  const applySignedInIdentity = React.useCallback(
+    (identity: Awaited<ReturnType<typeof fetchStorefrontCheckoutIdentity>>) => {
+      if (!identity.authenticated) {
+        setCheckoutIdentity({ status: "guest" });
+        return;
+      }
+      clearStorefrontCartResume();
+      setCheckoutIdentity({
+        status: "signed-in",
+        userName: identity.user.name,
+        profileComplete: identity.profile.complete,
+        profilePrefill: identity.profile.prefill,
+        teams: identity.teams,
+      });
+    },
+    [],
+  );
 
-  const hivelocitySummaryLines = React.useMemo(() => {
-    if (!hivelocityConfig || !hivelocityPricing || hivelocityPricing.loading) return [];
-    return computeHivelocitySummaryLines({
-      selectedOsId: hivelocityConfig.selectedOsId,
-      selectedOptionIds: hivelocityConfig.selectedOptionIds,
-      osList: hivelocityPricing.osList,
-      addonGroups: hivelocityPricing.addonGroups,
-      pricing: hivelocityPricing.pricing,
-      kesRate: hivelocityPricing.kesRate,
-    });
-  }, [hivelocityConfig, hivelocityPricing]);
+  // After "Sign in" on the cart → nPanel login → redirect back (URL ?resume=1 and/or sessionStorage).
+  React.useEffect(() => {
+    if (!shouldResumeCheckout || !handoff || resumeHandledRef.current) return;
+    resumeHandledRef.current = true;
+
+    let cancelled = false;
+    setStep(2);
+    setCheckoutIdentity({ status: "loading" });
+
+    void fetchStorefrontCheckoutIdentity()
+      .then((identity) => {
+        if (cancelled) return;
+        applySignedInIdentity(identity);
+        if (identity.authenticated) {
+          toast.success(`Signed in as ${identity.user.name}`);
+        } else {
+          toast.message("You're back — sign in again if checkout still shows the guest form.");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCheckoutIdentity({ status: "guest" });
+      })
+      .finally(() => {
+        if (cancelled) return;
+        // Drop resume so a later refresh relies on sessionStorage / Continue, not re-toast.
+        if (searchParams.get("resume") === "1") {
+          const next = new URLSearchParams(searchParams);
+          next.delete("resume");
+          setSearchParams(next, { replace: true });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldResumeCheckout, handoff, applySignedInIdentity]);
 
   const quoteSummaryLoading = quoteRefreshing;
 
@@ -376,6 +429,10 @@ export default function CartPage() {
     if (quoteError) return false;
     if (isDomainTransfer && !transferAuthCode.trim()) return false;
     if (selectedDomain?.isTransfer && !transferAuthCode.trim()) return false;
+    // Web / WordPress / email hosting require a domain (register, transfer, or existing).
+    if (wantsDomainUpsell) {
+      if (!selectedDomain?.domain?.trim()) return false;
+    }
     if (!isHivelocityPlan) return true;
     if (!hivelocityPricing || hivelocityPricing.loading) return false;
     if (hivelocityPricing.loadError) return false;
@@ -391,11 +448,52 @@ export default function CartPage() {
     isDomainTransfer,
     transferAuthCode,
     selectedDomain,
+    wantsDomainUpsell,
     isHivelocityPlan,
     hivelocityConfig,
     hivelocityConfigComplete,
     hivelocityPricing,
   ]);
+
+  const handleContinue = () => {
+    if (step === 1) {
+      if (!canContinueStep1) {
+        if (wantsDomainUpsell && !selectedDomain?.domain?.trim()) {
+          toast.error("Add a domain to continue", {
+            description: "Register, transfer, or connect a domain you already own.",
+          });
+        }
+        return;
+      }
+      setCheckoutIdentity({ status: "loading" });
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      void fetchStorefrontCheckoutIdentity()
+        .then(applySignedInIdentity)
+        .catch(() => {
+          setCheckoutIdentity({ status: "guest" });
+        });
+    }
+  };
+
+  const detailsFormId = React.useMemo(() => {
+    if (checkoutIdentity.status !== "signed-in") return CUSTOMER_INFO_FORM_ID;
+    if (!checkoutIdentity.profileComplete) return SIGNED_IN_PROFILE_FORM_ID;
+    if (checkoutIdentity.teams.length === 0) return SIGNED_IN_ORG_FORM_ID;
+    return SIGNED_IN_CHECKOUT_FORM_ID;
+  }, [checkoutIdentity]);
+
+  const hivelocitySummaryLines = React.useMemo(() => {
+    if (!hivelocityConfig || !hivelocityPricing || hivelocityPricing.loading) return [];
+    return computeHivelocitySummaryLines({
+      selectedOsId: hivelocityConfig.selectedOsId,
+      selectedOptionIds: hivelocityConfig.selectedOptionIds,
+      osList: hivelocityPricing.osList,
+      addonGroups: hivelocityPricing.addonGroups,
+      pricing: hivelocityPricing.pricing,
+      kesRate: hivelocityPricing.kesRate,
+    });
+  }, [hivelocityConfig, hivelocityPricing]);
 
   const showQuoteErrorBanner = Boolean(
     quoteError &&
@@ -443,6 +541,80 @@ export default function CartPage() {
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to create your account. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSignedInSubmit = async (teamId: string) => {
+    setIsSubmitting(true);
+    try {
+      const issued = await issueStorefrontCheckoutToken(teamId);
+      const phone =
+        checkoutIdentity.status === "signed-in"
+          ? checkoutIdentity.profilePrefill.phone
+          : "";
+      setCheckoutSession({
+        storefrontToken: issued.storefrontToken,
+        teamSlug: issued.teamSlug,
+        phone,
+      });
+      setPaymentOpen(true);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to start checkout. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCompleteProfile = async (profile: StorefrontProfilePrefill) => {
+    setIsSubmitting(true);
+    try {
+      const result = await completeStorefrontProfile(profile);
+      setCheckoutIdentity((prev) => {
+        if (prev.status !== "signed-in") return prev;
+        return {
+          ...prev,
+          userName: result.displayName || prev.userName,
+          profileComplete: result.complete,
+          profilePrefill: result.prefill,
+        };
+      });
+      if (!result.complete) {
+        toast.error("Some required profile fields are still missing.");
+        return;
+      }
+      toast.success("Profile saved. Continue with your organization.");
+      // Refresh teams in case nothing else changed
+      const identity = await fetchStorefrontCheckoutIdentity();
+      applySignedInIdentity(identity);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save your profile. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateOrganization = async (name: string) => {
+    setIsSubmitting(true);
+    try {
+      const org = await createStorefrontOrganization(name);
+      setCheckoutIdentity((prev) => {
+        if (prev.status !== "signed-in") return prev;
+        return {
+          ...prev,
+          teams: [...prev.teams, org],
+        };
+      });
+      toast.success("Organization created.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create organization. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -563,6 +735,7 @@ export default function CartPage() {
                   {/* Domain upsell  for hosting buyers */}
                   {wantsDomainUpsell && (
                     <DomainUpsell
+                      required
                       selectedDomain={selectedDomain}
                       onDomainSelect={(domain) => {
                         setSelectedDomain(domain);
@@ -604,6 +777,10 @@ export default function CartPage() {
                   <CustomerInfoStep
                     onBack={() => setStep(1)}
                     onSubmit={handleSubmit}
+                    onSignedInSubmit={handleSignedInSubmit}
+                    onCompleteProfile={handleCompleteProfile}
+                    onCreateOrganization={handleCreateOrganization}
+                    identity={checkoutIdentity}
                   />
                 </motion.div>
               )}
@@ -623,9 +800,12 @@ export default function CartPage() {
               onRemoveHostingPlan={selectedHostingType ? () => handleHostingTypeSelect(null) : undefined}
               isContinueLoading={isSubmitting}
               step={step}
-              customerFormId={CUSTOMER_INFO_FORM_ID}
+              customerFormId={detailsFormId}
               hivelocityLines={isHivelocityPlan ? [] : hivelocitySummaryLines}
-              continueDisabled={step === 1 && !canContinueStep1}
+              continueDisabled={
+                (step === 1 && !canContinueStep1) ||
+                (step === 2 && checkoutIdentity.status === "loading")
+              }
               authoritativeTotals={
                 quote && !quoteSummaryLoading
                   ? {
@@ -654,10 +834,16 @@ export default function CartPage() {
           </div>
           <button
             className="flex-1 max-w-44 h-11 bg-primary hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed text-primary-foreground font-bold rounded-xl text-sm transition-colors"
-            form={step === 2 ? CUSTOMER_INFO_FORM_ID : undefined}
+            form={step === 2 ? detailsFormId : undefined}
             type={step === 2 ? "submit" : "button"}
             onClick={step === 1 ? handleContinue : undefined}
-            disabled={isSubmitting || showSkeleton || quoteSummaryLoading || (step === 1 && !canContinueStep1)}
+            disabled={
+              isSubmitting ||
+              showSkeleton ||
+              quoteSummaryLoading ||
+              (step === 1 && !canContinueStep1) ||
+              (step === 2 && checkoutIdentity.status === "loading")
+            }
           >
             {quoteSummaryLoading
               ? "Please wait…"
@@ -665,7 +851,13 @@ export default function CartPage() {
               ? "Processing…"
               : step === 1
                 ? "Continue →"
-                : "Complete Order"}
+                : checkoutIdentity.status === "signed-in"
+                  ? !checkoutIdentity.profileComplete
+                    ? "Save profile →"
+                    : checkoutIdentity.teams.length === 0
+                      ? "Create organization →"
+                      : "Continue to payment →"
+                  : "Complete Order"}
           </button>
         </div>
 

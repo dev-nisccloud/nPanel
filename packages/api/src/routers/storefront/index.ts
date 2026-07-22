@@ -4,7 +4,9 @@
  * This namespace is ISOLATED from all dashboard routers by design.
  * Every procedure here is either:
  *   • publicProcedure   (no session required)
- *   • token-gated       (requires a valid storefrontToken issued at registration)
+ *   • token-gated       (requires a valid storefrontToken issued at registration
+ *                        or via session-backed issueCheckoutToken)
+ *   • optional-session  (checkoutIdentity / issueCheckoutToken only; LANDING_PAGE_ORIGINS gated)
  *
  * No dashboard protectedProcedure is ever used here.
  * No role other than "CUSTOMER" can be created through this router.

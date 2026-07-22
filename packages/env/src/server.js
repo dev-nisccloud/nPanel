@@ -9,6 +9,11 @@ export const env = createEnv({
         BETTER_AUTH_SECRET: z.string().min(32),
         BETTER_AUTH_URL: z.url(),
         CORS_ORIGIN: z.url(),
+        /**
+         * Comma-separated marketing / storefront origins (www, Vercel, etc.).
+         * Distinct from CORS_ORIGIN (nPanel web app).
+         */
+        LANDING_PAGE_ORIGINS: z.string().min(1).optional(),
         NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
         GOOGLE_CLIENT_ID: z.string().min(1),
         GOOGLE_CLIENT_SECRET: z.string().min(1),

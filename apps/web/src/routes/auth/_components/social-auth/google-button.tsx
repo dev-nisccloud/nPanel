@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
 import { authClient } from "@/lib/auth-client";
+import {
+  getRequestedRedirectFromSearch,
+  persistPendingAuthRedirect,
+} from "@/lib/auth-redirect";
 import { setSignupTermsCookie } from "@/lib/signup-terms-cookie";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +82,11 @@ export function GoogleButton({
 
     setIsLoading(true);
     sessionStorage.setItem(GOOGLE_OAUTH_REDIRECT_KEY, "1");
+    // OAuth returns to `/` without `?redirect=` — keep the cart/invite destination here.
+    const pendingRedirect = getRequestedRedirectFromSearch(window.location.search);
+    if (pendingRedirect) {
+      persistPendingAuthRedirect(pendingRedirect);
+    }
     if (mode === "signup") {
       setSignupTermsCookie();
     }
