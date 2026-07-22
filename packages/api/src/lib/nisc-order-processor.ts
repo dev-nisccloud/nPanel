@@ -52,7 +52,12 @@ function buildProvisioningErrorDetails(err: unknown): Record<string, unknown> {
 }
 
 /** Service types that require external provisioning (Plesk or domain provider). All other service types are treated as DB-only: create NiscClientSubscription and optionally provision NiscClientSubscriptionUsage from plan. */
-const PLESK_SERVICE_TYPES = ["web_hosting", "email_hosting"];
+const PLESK_SERVICE_TYPES = [
+	"web_hosting",
+	"email_hosting",
+	"wordpress_hosting",
+	"website_hosting",
+];
 const OPENPROVIDER_SERVICE_TYPES = ["domain_registration", "domain_transfer"];
 
 /** Product serviceType "domains" is treated as domain_registration. */
@@ -717,7 +722,7 @@ async function processPleskOrderItem(
 		item.domainSubscription?.name ||
 		null;
 	if (!domainName) {
-		return { ok: false, error: "Domain is required for hosting. Select a domain subscription." };
+		return { ok: false, error: "Domain is required for hosting. Enter a domain name for Plesk." };
 	}
 
 	const meta = item.metadata as { provisionUserId?: string } | null;

@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, ilike, inArray, isNotNull, like } from "@npanel/db";
+import { and, eq, inArray, isNotNull, like } from "@npanel/db";
 import { db } from "@npanel/db";
 import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
 import { createOpenProviderClient } from "./openprovider-client";
+import { domainProductSqlFilter } from "./nisc-domain-product";
 
 type DomainExpiryEntry = {
 	domain: string;
@@ -82,11 +83,13 @@ async function fetchKenicDomainsForTeam(teamId: string, now: Date): Promise<Doma
 			subscriptionDate: niscClientSubscription.subscriptionDate,
 		})
 		.from(niscClientSubscription)
+		.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
 		.where(
 			and(
 				eq(niscClientSubscription.teamId, teamId),
 				isNotNull(niscClientSubscription.primaryDomain),
 				like(niscClientSubscription.primaryDomain, "%.ke"),
+				domainProductSqlFilter(),
 			),
 		);
 
@@ -105,7 +108,7 @@ export async function getTeamLiveDomainsSummary(teamId: string) {
 	const domainProducts = await db
 		.select({ id: niscProduct.id })
 		.from(niscProduct)
-		.where(and(eq(niscProduct.isActive, true), ilike(niscProduct.name, "%domains%")));
+		.where(and(eq(niscProduct.isActive, true), domainProductSqlFilter()));
 	const productIds = domainProducts.map((p) => p.id);
 	if (productIds.length === 0) {
 		return { total: 0, active: 0, expired: 0 };

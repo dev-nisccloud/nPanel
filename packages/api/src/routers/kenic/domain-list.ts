@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, ilike, isNotNull, isNull, like } from "@npanel/db";
 import { db } from "@npanel/db";
 import { protectedProcedure, router } from "../../trpc";
-import { niscClientSubscription } from "@npanel/db/schema/products";
+import { niscClientSubscription, niscProduct } from "@npanel/db/schema/products";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { team as teamTable } from "@npanel/db/schema/teams";
 import { createConnection, readFrame, sendFrame } from "../../lib/epp/epp-client";
@@ -19,6 +19,7 @@ import {
 	isCoccaAuthInfoHash,
 	setKenicDomainAuthCode,
 } from "../../lib/kenic-nisc";
+import { domainProductSqlFilter } from "../../lib/nisc-domain-product";
 
 const parser = new XMLParser({ ignoreAttributes: false });
 
@@ -62,12 +63,14 @@ export const kenicDomainListRouter = router({
 						teamName: teamTable.name,
 					})
 					.from(niscClientSubscription)
+					.innerJoin(niscProduct, eq(niscClientSubscription.productId, niscProduct.id))
 					.leftJoin(userTable, eq(niscClientSubscription.userId, userTable.id))
 					.leftJoin(teamTable, eq(niscClientSubscription.teamId, teamTable.id))
 					.where(
 						and(
 							isNotNull(niscClientSubscription.primaryDomain),
 							like(niscClientSubscription.primaryDomain, "%.ke"),
+							domainProductSqlFilter(),
 							// Exclude superseded upgrade/downgrade chain rows
 							isNull(niscClientSubscription.upgradedToSubscriptionId),
 							isNull(niscClientSubscription.downgradedToSubscriptionId),

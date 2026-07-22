@@ -38,7 +38,12 @@ import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { createOrderFormSchema, type CreateOrderFormData } from "./schema";
 import { Link } from "react-router";
-const HOSTING_SERVICE_TYPES = ["web_hosting", "email_hosting"];
+const HOSTING_SERVICE_TYPES = [
+	"web_hosting",
+	"email_hosting",
+	"wordpress_hosting",
+	"website_hosting",
+];
 const DOMAIN_SERVICE_TYPE = "domain_registration";
 /** Sentinel value for "None" in Select; empty string is reserved by Radix for clearing selection. */
 const NONE_VALUE = "__none__";
@@ -381,49 +386,63 @@ function OrderItemRow({
 				/>
 			)}
 			{isHosting && (
-				<FormField
-					control={control}
-					name={`items.${index}.domainSubscriptionId`}
-					render={({ field }) => (
-						<FormItem className="w-full">
-							<FormLabel className="text-xs">Domain (required for hosting)</FormLabel>
-							<Select
-								onValueChange={field.onChange}
-								value={field.value ?? ""}
-							>
+				<>
+					<FormField
+						control={control}
+						name={`items.${index}.primaryDomain`}
+						render={({ field }) => (
+							<FormItem className="w-full">
+								<FormLabel className="text-xs">
+									Domain name (for Plesk — not a Domains subscription)
+								</FormLabel>
 								<FormControl>
-									<SelectTrigger className="w-full">
-										<SelectValue placeholder="Select domain" />
-									</SelectTrigger>
+									<Input
+										className="w-full"
+										placeholder="example.com"
+										{...field}
+										value={field.value ?? ""}
+									/>
 								</FormControl>
-								<SelectContent>
-									{loadingDomainSubs ? (
-										<div className="p-2 text-sm text-muted-foreground">
-											Loading domains…
-										</div>
-									) : domainSubs.length === 0 ? (
-										<div className="p-2 text-sm text-muted-foreground">
-											No domain subscriptions.{" "}
-											<Link
-												to="/agency/domains-portfolio"
-												className="text-primary underline"
-											>
-												Register domain
-											</Link>
-										</div>
-									) : (
-										domainSubs.map((d) => (
-											<SelectItem key={d.id} value={d.id}>
-												{d.primaryDomain ?? d.name ?? d.id}
-											</SelectItem>
-										))
-									)}
-								</SelectContent>
-							</Select>
-							<FormMessage />
-						</FormItem>
+								<p className="text-[11px] text-muted-foreground">
+									Used as the hosting primary domain / Plesk webspace only. Does not
+									create a separate Domains subscription.
+								</p>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+					{domainSubs.length > 0 && (
+						<div className="space-y-1.5">
+							<FormLabel className="text-xs">Or fill from an existing domain</FormLabel>
+							<div className="flex flex-wrap gap-1.5">
+								{domainSubs.map((d) => {
+									const label = d.primaryDomain ?? d.name ?? d.id;
+									return (
+										<button
+											key={d.id}
+											type="button"
+											className="rounded-md border border-border px-2 py-1 text-xs hover:bg-muted"
+											onClick={() => {
+												setValue(`items.${index}.primaryDomain`, label);
+												setValue(`items.${index}.domainSubscriptionId`, undefined);
+											}}
+										>
+											{label}
+										</button>
+									);
+								})}
+							</div>
+						</div>
 					)}
-				/>
+					{!loadingDomainSubs && domainSubs.length === 0 && hasOwner && (
+						<p className="text-[11px] text-muted-foreground">
+							No existing Domains subscriptions for this owner — enter a FQDN above.{" "}
+							<Link to="/agency/domains-portfolio" className="text-primary underline">
+								Domains portfolio
+							</Link>
+						</p>
+					)}
+				</>
 			)}
 			{isDomain && (
 				<>
