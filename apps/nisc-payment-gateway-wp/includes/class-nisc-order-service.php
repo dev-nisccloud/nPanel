@@ -117,11 +117,17 @@ final class Nisc_PG_Order_Service {
 		}
 
 		if ( ! empty( $payload['transactionId'] ) ) {
+			// Prefer meta_query (HPOS-friendly) over top-level meta_key/meta_value.
 			$orders = wc_get_orders(
 				array(
 					'limit'      => 1,
-					'meta_key'   => self::META_PAYMENT_ID,
-					'meta_value' => (string) $payload['transactionId'],
+					'return'     => 'objects',
+					'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- lookup by our payment id only as fallback.
+						array(
+							'key'   => self::META_PAYMENT_ID,
+							'value' => (string) $payload['transactionId'],
+						),
+					),
 				)
 			);
 			if ( ! empty( $orders[0] ) && $orders[0] instanceof WC_Order ) {

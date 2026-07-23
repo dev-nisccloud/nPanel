@@ -5,9 +5,12 @@
  * Description:       Accept M-Pesa payments through Nisc Cloud Payment Gateway. Paste your API key — webhooks register automatically.
  * Version:           0.1.0
  * Requires at least: 6.4
+ * Tested up to:      7.0
  * Requires PHP:      8.0
  * Author:            Nisc Cloud
  * Author URI:        https://nisccloud.com
+ * License:           GPLv2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:        nisc-payment-gateway
  * Domain Path:       /languages
  * Requires Plugins:  woocommerce
