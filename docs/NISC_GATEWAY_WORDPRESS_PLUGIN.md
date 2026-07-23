@@ -183,7 +183,7 @@ Plugin header:
  * Plugin Name: Nisc Payment Gateway for WooCommerce
  * Version: 0.1.0
  * Requires at least: 6.4
- * Tested up to: 6.8
+ * Tested up to: 7.0
  * Requires PHP: 8.0
  * Requires Plugins: woocommerce
  * WC requires at least: 8.0
