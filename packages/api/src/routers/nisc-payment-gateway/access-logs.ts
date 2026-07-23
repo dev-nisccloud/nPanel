@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq } from "@npanel/db";
 
 import { protectedProcedure, router } from "../..";
 import { db } from "@npanel/db";

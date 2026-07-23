@@ -4,7 +4,7 @@ Tags: woocommerce, mpesa, payments, kenya, nisc
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,6 +45,10 @@ From your Nisc Cloud / nPanel merchant account under Payment Gateway → API key
 Not in v1. M-Pesa STK Push only.
 
 == Changelog ==
+
+= 0.1.1 =
+* Admin UI: white/cyan branding, fixed step number alignment, clearer copy.
+* ZIP builds via GitHub Actions only (Linux paths for reliable WordPress install).
 
 = 0.1.0 =
 * Initial private release: connect flow, STK checkout, HMAC webhooks, HPOS support.
