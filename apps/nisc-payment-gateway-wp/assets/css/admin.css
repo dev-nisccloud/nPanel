@@ -1,6 +1,6 @@
 /**
  * Nisc Payment Gateway — WooCommerce admin settings.
- * Brand: cyan #00ADEF on dark hero (matches logo plate).
+ * Brand: cyan #00ADEF on white.
  */
 
 .nisc-pg-admin {
@@ -21,13 +21,14 @@
 .nisc-pg-hero {
 	display: flex;
 	gap: 20px;
-	align-items: stretch;
-	background: #050505;
+	align-items: center;
+	background: #fff;
 	border-radius: 14px;
 	overflow: hidden;
-	padding: 0;
+	padding: 16px 20px;
 	margin-bottom: 20px;
-	border: 1px solid #111;
+	border: 1px solid var(--nisc-line);
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .nisc-pg-hero__brand {
@@ -35,22 +36,23 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 18px 20px;
-	background: #000;
+	padding: 0;
+	background: transparent;
 }
 
 .nisc-pg-hero__logo {
 	display: block;
-	height: 72px;
+	height: 64px;
 	width: auto;
-	max-width: 280px;
+	max-width: 260px;
 	object-fit: contain;
+	border-radius: 10px;
 }
 
 .nisc-pg-hero__copy {
 	flex: 1;
-	padding: 22px 24px 22px 8px;
-	color: #e8f7ff;
+	padding: 4px 0;
+	color: var(--nisc-ink);
 }
 
 .nisc-pg-hero__eyebrow {
@@ -58,13 +60,13 @@
 	font-size: 11px;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--nisc-cyan);
+	color: var(--nisc-cyan-deep);
 	font-weight: 600;
 }
 
 .nisc-pg-hero__copy h2 {
 	margin: 0 0 8px;
-	color: #fff;
+	color: var(--nisc-ink);
 	font-size: 22px;
 	line-height: 1.25;
 	font-weight: 650;
@@ -72,18 +74,31 @@
 
 .nisc-pg-hero__copy p {
 	margin: 0;
-	color: #a9c2d4;
-	max-width: 42ch;
+	color: var(--nisc-muted);
+	max-width: 46ch;
 	line-height: 1.5;
 }
 
 .nisc-pg-steps {
-	list-style: none;
+	list-style: none !important;
 	margin: 0 0 20px;
-	padding: 0;
+	padding: 0 !important;
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 12px;
+	counter-reset: none;
+}
+
+.nisc-pg-steps > li {
+	list-style: none !important;
+	margin: 0;
+	padding: 0;
+}
+
+.nisc-pg-steps > li::marker,
+.nisc-pg-steps > li::before {
+	content: none !important;
+	display: none !important;
 }
 
 .nisc-pg-steps__item {
@@ -108,22 +123,31 @@
 }
 
 .nisc-pg-steps__num {
+	box-sizing: border-box;
 	flex: 0 0 28px;
+	width: 28px;
+	min-width: 28px;
+	max-width: 28px;
 	height: 28px;
-	border-radius: 999px;
-	display: inline-flex;
+	margin: 0;
+	padding: 0;
+	border-radius: 50%;
+	display: flex !important;
 	align-items: center;
 	justify-content: center;
 	font-weight: 700;
 	font-size: 13px;
+	line-height: 1;
+	text-align: center;
 	background: #eef2f7;
 	color: var(--nisc-muted);
+	float: none !important;
 }
 
 .nisc-pg-steps__item.is-done .nisc-pg-steps__num,
 .nisc-pg-steps__item.is-current .nisc-pg-steps__num {
 	background: var(--nisc-cyan);
-	color: #041018;
+	color: #fff;
 }
 
 .nisc-pg-steps__item strong {
@@ -208,6 +232,7 @@
 	font-size: 14px;
 	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	letter-spacing: 0.02em;
+	background: #fff;
 }
 
 .nisc-pg-input:focus {
@@ -218,26 +243,27 @@
 
 .nisc-pg-btn-primary.button-primary {
 	background: var(--nisc-cyan) !important;
-	border-color: var(--nisc-cyan-deep) !important;
-	color: #041018 !important;
+	border-color: var(--nisc-cyan) !important;
+	color: #fff !important;
 	font-weight: 650;
 	border-radius: 10px;
 	min-height: 42px;
 	padding: 0 18px;
-	text-shadow: none;
-	box-shadow: none;
+	text-shadow: none !important;
+	box-shadow: none !important;
 }
 
 .nisc-pg-btn-primary.button-primary:hover,
 .nisc-pg-btn-primary.button-primary:focus {
-	background: #33bff2 !important;
+	background: var(--nisc-cyan-deep) !important;
 	border-color: var(--nisc-cyan-deep) !important;
-	color: #041018 !important;
+	color: #fff !important;
 }
 
 .nisc-pg-btn-danger {
 	color: var(--nisc-danger) !important;
 	border-color: rgba(198, 40, 40, 0.35) !important;
+	background: #fff !important;
 }
 
 .nisc-pg-help {
@@ -337,7 +363,7 @@
 	padding: 20px;
 	border-radius: 14px;
 	border: 1px solid #d9e7f0;
-	background: linear-gradient(180deg, #f4fbff 0%, #fff 70%);
+	background: #fff;
 	max-width: 520px;
 }
 
@@ -362,10 +388,11 @@
 @media (max-width: 782px) {
 	.nisc-pg-hero {
 		flex-direction: column;
+		align-items: flex-start;
 	}
 
 	.nisc-pg-hero__copy {
-		padding: 8px 18px 20px;
+		padding: 0;
 	}
 
 	.nisc-pg-steps {
@@ -381,7 +408,6 @@
 	}
 }
 
-/* Hide default WC gateway heading duplication a bit cleaner */
 .woocommerce .nisc-pg-admin + h2 {
 	display: none;
 }

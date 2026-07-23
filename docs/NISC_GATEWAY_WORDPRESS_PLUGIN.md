@@ -27,7 +27,7 @@
 - Guided admin UI: 3-step setup, Connect with API key, auto webhook registration
 - WooCommerce payment method (M-Pesa STK)
 - REST webhook `POST /wp-json/nisc-gateway/v1/webhook` with HMAC verify
-- Current version: **0.1.0** (keep `package.json`, plugin header, `NISC_PG_VERSION`, and `readme.txt` Stable tag in sync)
+- Current version: **0.1.1** (keep `package.json`, plugin header, `NISC_PG_VERSION`, and `readme.txt` Stable tag in sync)
 - **ZIP builds only via GitHub Actions** (Ubuntu) — no local zip script (Windows `Compress-Archive` broke activation with backslash paths)
 - CI release: `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml` — **manual only**
 
@@ -78,7 +78,8 @@ This workflow is intentionally **not** linked to `deploy.yml` / `system-deploy.y
 
 Workflow: `.github/workflows/wordpress-plugin-check.yml`
 
-- Runs on **manual dispatch**, and on PRs/pushes that touch `apps/nisc-payment-gateway-wp/**`
+- **Manual only** (`workflow_dispatch`) — Actions → **WordPress Plugin Check (Nisc Payment Gateway)** → Run workflow
+- Does **not** run on push/PR
 - **Not** linked to deploy or the ZIP release workflow
 - Copies a clean plugin tree (excludes `dist/`, `scripts/`, `package.json`) then runs [`wordpress/plugin-check-action`](https://github.com/WordPress/plugin-check-action)
 

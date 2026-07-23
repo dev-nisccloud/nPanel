@@ -25,7 +25,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 	public function __construct() {
 		$this->id                 = 'nisc_payment_gateway';
 		$this->method_title       = __( 'Nisc Payment Gateway', 'nisc-payment-gateway' );
-		$this->method_description = __( 'Accept M-Pesa STK Push payments via Nisc Cloud. Paste your API key — everything else is automatic.', 'nisc-payment-gateway' );
+		$this->method_description = __( 'Accept payments via Nisc Cloud. Paste your API key; everything else is automatic.', 'nisc-payment-gateway' );
 		$this->has_fields         = true;
 		$this->supports           = array( 'products' );
 /**
@@ -105,34 +105,34 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 				</div>
 				<div class="nisc-pg-hero__copy">
 					<p class="nisc-pg-hero__eyebrow"><?php esc_html_e( 'WooCommerce payment method', 'nisc-payment-gateway' ); ?></p>
-					<h2><?php esc_html_e( 'Accept M-Pesa in three steps', 'nisc-payment-gateway' ); ?></h2>
-					<p><?php esc_html_e( 'Paste the API key from your nPanel merchant account. We register webhooks for you — no technical setup.', 'nisc-payment-gateway' ); ?></p>
+					<h2><?php esc_html_e( 'Accept payments in three steps', 'nisc-payment-gateway' ); ?></h2>
+					<p><?php esc_html_e( 'Paste the API key from your nPanel merchant account. We register webhooks for you. No technical setup.', 'nisc-payment-gateway' ); ?></p>
 				</div>
 			</header>
 
-			<ol class="nisc-pg-steps" aria-label="<?php esc_attr_e( 'Setup steps', 'nisc-payment-gateway' ); ?>">
-				<li class="nisc-pg-steps__item is-done">
-					<span class="nisc-pg-steps__num">1</span>
+			<div class="nisc-pg-steps" role="list" aria-label="<?php esc_attr_e( 'Setup steps', 'nisc-payment-gateway' ); ?>">
+				<div class="nisc-pg-steps__item is-done" role="listitem">
+					<span class="nisc-pg-steps__num" aria-hidden="true">1</span>
 					<div>
 						<strong><?php esc_html_e( 'Install plugin', 'nisc-payment-gateway' ); ?></strong>
-						<span><?php esc_html_e( 'You are here — plugin is active.', 'nisc-payment-gateway' ); ?></span>
+						<span><?php esc_html_e( 'You are here. Plugin is active.', 'nisc-payment-gateway' ); ?></span>
 					</div>
-				</li>
-				<li class="nisc-pg-steps__item <?php echo $connected ? 'is-done' : 'is-current'; ?>">
-					<span class="nisc-pg-steps__num">2</span>
+				</div>
+				<div class="nisc-pg-steps__item <?php echo $connected ? 'is-done' : 'is-current'; ?>" role="listitem">
+					<span class="nisc-pg-steps__num" aria-hidden="true">2</span>
 					<div>
 						<strong><?php esc_html_e( 'Connect with API key', 'nisc-payment-gateway' ); ?></strong>
 						<span><?php esc_html_e( 'From nPanel → Payment Gateway → your merchant → API keys.', 'nisc-payment-gateway' ); ?></span>
 					</div>
-				</li>
-				<li class="nisc-pg-steps__item <?php echo $connected ? 'is-done' : ''; ?>">
-					<span class="nisc-pg-steps__num">3</span>
+				</div>
+				<div class="nisc-pg-steps__item <?php echo $connected ? 'is-done' : ''; ?>" role="listitem">
+					<span class="nisc-pg-steps__num" aria-hidden="true">3</span>
 					<div>
 						<strong><?php esc_html_e( 'Enable at checkout', 'nisc-payment-gateway' ); ?></strong>
 						<span><?php esc_html_e( 'Turn on the method below and take a test order.', 'nisc-payment-gateway' ); ?></span>
 					</div>
-				</li>
-			</ol>
+				</div>
+			</div>
 
 			<section class="nisc-pg-panel <?php echo $connected ? 'is-connected' : 'is-disconnected'; ?>" id="nisc-pg-connection-panel">
 				<div class="nisc-pg-panel__status">
@@ -180,7 +180,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 						</button>
 					</div>
 					<p class="nisc-pg-help">
-						<?php esc_html_e( 'Sandbox or production is already set on the key in nPanel — you only need the key here.', 'nisc-payment-gateway' ); ?>
+						<?php esc_html_e( 'Sandbox or production is already set on the key in nPanel. You only need the key here.', 'nisc-payment-gateway' ); ?>
 					</p>
 					<div class="nisc-pg-alert" id="nisc-pg-alert" hidden role="alert"></div>
 				</div>
@@ -405,7 +405,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 					}
 					?>
 				</p>
-				<p class="nisc-pg-thankyou__hint"><?php esc_html_e( 'This page updates when payment is confirmed. You can also close it — we will email you when the order is paid.', 'nisc-payment-gateway' ); ?></p>
+				<p class="nisc-pg-thankyou__hint"><?php esc_html_e( 'This page updates when payment is confirmed. You can also close it. We will email you when the order is paid.', 'nisc-payment-gateway' ); ?></p>
 			</div>
 		</div>
 		<?php

@@ -19,9 +19,8 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import { eq, and } from "drizzle-orm";
 
-import { db } from "@npanel/db";
+import { db, eq, and } from "@npanel/db";
 import {
   niscPaymentGatewayApiKey,
   niscPaymentGatewayMerchant,

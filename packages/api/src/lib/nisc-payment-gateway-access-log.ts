@@ -15,10 +15,10 @@
  * - Both logs written on EVERY request
  */
 
-import { eq, and, sql } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { nanoid } from "nanoid";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
+import { eq, and, sql } from "@npanel/db";
 import { niscPaymentGatewayAccessLog } from "@npanel/db/schema/nisc-payment-gateway";
 
 // =============================================================================

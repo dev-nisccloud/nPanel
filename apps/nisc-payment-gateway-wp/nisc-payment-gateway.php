@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Nisc Payment Gateway for WooCommerce
  * Plugin URI:        https://nisccloud.com
- * Description:       Accept M-Pesa payments through Nisc Cloud Payment Gateway. Paste your API key — webhooks register automatically.
- * Version:           0.1.0
+ * Description:       Accept payments through Nisc Cloud Payment Gateway. Paste your API key; webhooks register automatically.
+ * Version:           0.1.1
  * Requires at least: 6.4
  * Tested up to:      7.0
  * Requires PHP:      8.0
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NISC_PG_VERSION', '0.1.0' );
+define( 'NISC_PG_VERSION', '0.1.1' );
 define( 'NISC_PG_FILE', __FILE__ );
 define( 'NISC_PG_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NISC_PG_URL', plugin_dir_url( __FILE__ ) );
