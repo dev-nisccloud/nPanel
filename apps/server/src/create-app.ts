@@ -8,8 +8,8 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { createRouteHandler } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing";
-import { createBunWebSocket } from "hono/bun";
 import { handleVpsSshUpgrade } from "./api/ws/vps-ssh";
+import { upgradeWebSocket, websocket } from "./bun-ws";
 
 import { registerAuthCustomRoutes } from "./auth-custom-routes";
 import { handleImageGenerator } from "./api/workers/image-generator";
@@ -72,8 +72,6 @@ function shouldMountWorkers(role: NpanelServiceRole): boolean {
 function shouldMountApi(role: NpanelServiceRole): boolean {
   return role === "api" || role === "all";
 }
-
-const { upgradeWebSocket, websocket } = createBunWebSocket();
 
 export function createApp(options: CreateAppOptions = {}) {
   const role = resolveRole(options.role);
