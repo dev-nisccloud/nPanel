@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc } from "@npanel/db";
 
 import { protectedProcedure, router } from "../..";
 import { db } from "@npanel/db";

@@ -1,18 +1,8 @@
 name: WordPress Plugin Check (Nisc Payment Gateway)
 
-# Standalone — not linked to deploy.yml / system-deploy.yml / release ZIP workflow
+# Manual only — not linked to deploy.yml / system-deploy.yml / release ZIP workflow
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - "apps/nisc-payment-gateway-wp/**"
-      - ".github/workflows/wordpress-plugin-check.yml"
-  push:
-    branches:
-      - main
-    paths:
-      - "apps/nisc-payment-gateway-wp/**"
-      - ".github/workflows/wordpress-plugin-check.yml"
 
 concurrency:
   group: nisc-pg-plugin-check-${{ github.ref }}

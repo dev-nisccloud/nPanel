@@ -7,7 +7,7 @@
  */
 
 import { TRPCError } from "@trpc/server";
-import { eq, or, and, inArray, type SQL } from "drizzle-orm";
+import { eq, or, and, inArray, type SQL } from "@npanel/db";
 
 type ActorRole = string | null | undefined;
 
