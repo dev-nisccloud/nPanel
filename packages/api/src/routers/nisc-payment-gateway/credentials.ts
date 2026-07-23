@@ -10,6 +10,7 @@ import { eq, and } from "drizzle-orm";
 
 import { protectedProcedure, router } from "../..";
 import { db } from "@npanel/db";
+import { env } from "@npanel/env/server";
 import {
   niscPaymentGatewayMerchantCredentials,
   niscPaymentGatewayMerchant,
@@ -71,8 +72,8 @@ async function testMpesaCredentials(
     // Get M-Pesa URLs based on environment
     const tokenUrl =
       environment === "PRODUCTION"
-        ? process.env.NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL
-        : process.env.NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL;
+        ? env.NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL
+        : env.NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL;
 
     if (!tokenUrl) {
       return {
