@@ -131,7 +131,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0 --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -147,12 +147,6 @@ jobs:
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
             NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
-            NISC_GATEWAY_MPESA_SANDBOX_BASE_URL=https://sandbox.safaricom.co.ke
-            NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL=https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_SANDBOX_STK_URL=https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest
-            NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL=https://api.safaricom.co.ke
-            NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL=https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_PRODUCTION_STK_URL=https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest
 
       - name: Health check
         continue-on-error: true
@@ -203,7 +197,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVER_SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args src/workers-index.ts'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args dist/workers-index.js --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -220,12 +214,6 @@ jobs:
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
             NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
-            NISC_GATEWAY_MPESA_SANDBOX_BASE_URL=https://sandbox.safaricom.co.ke
-            NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL=https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_SANDBOX_STK_URL=https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest
-            NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL=https://api.safaricom.co.ke
-            NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL=https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_PRODUCTION_STK_URL=https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest
 
       - name: Workers URL handoff
         run: |
@@ -394,7 +382,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 2Gi --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0 --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -410,12 +398,6 @@ jobs:
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
             NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
-            NISC_GATEWAY_MPESA_SANDBOX_BASE_URL=https://sandbox.safaricom.co.ke
-            NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL=https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_SANDBOX_STK_URL=https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest
-            NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL=https://api.safaricom.co.ke
-            NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL=https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_PRODUCTION_STK_URL=https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest
 
       - name: Health check
         continue-on-error: true
@@ -465,7 +447,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVER_SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 4Gi --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args src/workers-index.ts'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args dist/workers-index.js --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -482,12 +464,6 @@ jobs:
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
             NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
-            NISC_GATEWAY_MPESA_SANDBOX_BASE_URL=https://sandbox.safaricom.co.ke
-            NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL=https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_SANDBOX_STK_URL=https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest
-            NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL=https://api.safaricom.co.ke
-            NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL=https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials
-            NISC_GATEWAY_MPESA_PRODUCTION_STK_URL=https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest
 
       - name: Workers URL handoff
         run: |
