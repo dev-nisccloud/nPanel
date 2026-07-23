@@ -27,9 +27,9 @@
 - Guided admin UI: 3-step setup, Connect with API key, auto webhook registration
 - WooCommerce payment method (M-Pesa STK)
 - REST webhook `POST /wp-json/nisc-gateway/v1/webhook` with HMAC verify
-- Private ZIP: `cd apps/nisc-payment-gateway-wp && bun run zip` → `dist/nisc-payment-gateway-0.1.0.zip`
 - Current version: **0.1.0** (keep `package.json`, plugin header, `NISC_PG_VERSION`, and `readme.txt` Stable tag in sync)
-- CI: `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml` — **manual only** (`workflow_dispatch`), uploads GitHub Actions artifact + optional GitHub Release
+- **ZIP builds only via GitHub Actions** (Ubuntu) — no local zip script (Windows `Compress-Archive` broke activation with backslash paths)
+- CI release: `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml` — **manual only**
 
 Default API base: `https://npanel-server.nisccloud.com/api/nisc-gateway`  
 Override: WordPress filter `nisc_pg_api_base_url`.
@@ -46,26 +46,28 @@ Before every release, bump these to the same value:
 2. `nisc-payment-gateway.php` → `Version:` header and `NISC_PG_VERSION`
 3. `readme.txt` → `Stable tag:` + changelog entry
 
-### Manual GitHub Actions release
+### Manual GitHub Actions release (only supported build)
 
-1. Merge plugin changes to the branch you want to release from.
+1. Merge plugin changes.
 2. Actions → **WordPress Plugin (Nisc Payment Gateway)** → Run workflow.
-3. Options:
-   - **Create GitHub Release** (default on) — attaches ZIP to tag `nisc-payment-gateway-wp/vX.Y.Z`
-   - **Prerelease** (default on for early versions)
-4. Download from:
+3. Download:
    - Workflow **Artifacts**, or
-   - **Releases** on the repo
+   - **Releases** tag `nisc-payment-gateway-wp/vX.Y.Z` (if enabled)
 
-This workflow is intentionally **not** linked to `deploy.yml` / `system-deploy.yml`.
+ZIP layout (required by WordPress):
 
-Local ZIP:
-
-```bash
-cd apps/nisc-payment-gateway-wp
-bun run zip
+```text
+nisc-payment-gateway/
+  nisc-payment-gateway.php
+  includes/
+  assets/
+  readme.txt
+  ...
 ```
 
+If a previous broken ZIP was installed, delete that plugin folder in WP Admin before uploading the new one.
+
+This workflow is intentionally **not** linked to `deploy.yml` / `system-deploy.yml`.
 ---
 
 ## Plugin Check (PCP)
@@ -206,12 +208,11 @@ apps/nisc-payment-gateway-wp/
 │   └── class-nisc-plugin.php
 ├── assets/
 ├── languages/
-├── scripts/build-zip.mjs
 ├── readme.txt
-└── package.json
+└── package.json          # version only — ZIP built in GitHub Actions
 ```
 
-Build artifact: ZIP contains top-level folder `nisc-payment-gateway/` (required for WP upload).
+ZIP artifact is produced only by `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml`.
 
 ---
 
@@ -231,7 +232,7 @@ Build artifact: ZIP contains top-level folder `nisc-payment-gateway/` (required 
 - [x] On Connect: register webhook
 - [x] `process_payment` → create payment
 - [x] REST webhook controller → order status
-- [x] Private ZIP build script + manual GitHub Actions release
+- [x] Private ZIP via GitHub Actions only (no local zip script)
 
 ### Phase C — Hardening
 

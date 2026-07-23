@@ -7,27 +7,34 @@
  * DYNAMIC: URLs loaded from env based on merchant's chosen environment
  */
 
-import { env } from "@npanel/env/server";
 import type { MpesaCredentials } from "./nisc-payment-gateway-encryption";
 
 /**
  * Get M-Pesa URLs based on environment
  * Merchant chooses "SANDBOX" or "PRODUCTION", we handle the URLs
+ * 
+ * Uses process.env directly for runtime access (avoids startup validation)
  */
 function getMpesaUrls(environment: "SANDBOX" | "PRODUCTION") {
   if (environment === "PRODUCTION") {
     return {
-      tokenUrl: env.NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,
-      stkUrl: env.NISC_GATEWAY_MPESA_PRODUCTION_STK_URL,
-      baseUrl: env.NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,
+      tokenUrl: process.env.NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL || 
+        "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+      stkUrl: process.env.NISC_GATEWAY_MPESA_PRODUCTION_STK_URL || 
+        "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+      baseUrl: process.env.NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL || 
+        "https://api.safaricom.co.ke",
     };
   }
 
   // Sandbox (default)
   return {
-    tokenUrl: env.NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,
-    stkUrl: env.NISC_GATEWAY_MPESA_SANDBOX_STK_URL,
-    baseUrl: env.NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,
+    tokenUrl: process.env.NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL || 
+      "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+    stkUrl: process.env.NISC_GATEWAY_MPESA_SANDBOX_STK_URL || 
+      "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+    baseUrl: process.env.NISC_GATEWAY_MPESA_SANDBOX_BASE_URL || 
+      "https://sandbox.safaricom.co.ke",
   };
 }
 
@@ -36,9 +43,14 @@ function getMpesaUrls(environment: "SANDBOX" | "PRODUCTION") {
  * 
  * Dynamically built based on server URL + merchantId
  * All merchants use same server, different merchantId in path
+ * 
+ * Uses process.env directly for runtime access (avoids startup validation)
  */
 export function getGatewayMpesaCallbackUrl(merchantId: string): string {
-  const baseUrl = env.NISC_GATEWAY_BASE_URL || env.BETTER_AUTH_URL;
+  const baseUrl = process.env.NISC_GATEWAY_BASE_URL || process.env.BETTER_AUTH_URL || "";
+  if (!baseUrl) {
+    throw new Error("NISC_GATEWAY_BASE_URL or BETTER_AUTH_URL must be set");
+  }
   return `${baseUrl}/api/nisc-gateway/webhooks/mpesa/${merchantId}`;
 }
 
