@@ -154,7 +154,6 @@ jobs:
           max_attempts=45
           attempt=0
           while [ $attempt -lt $max_attempts ]; do
-            # Assumes health endpoint exists, adjust as needed
             if curl -f -s -o /dev/null "${{ steps.deploy.outputs.url }}/api/health"; then
               echo "✅ Cloud Run server deployment successful and healthy! URL: ${{ steps.deploy.outputs.url }}"
               exit 0

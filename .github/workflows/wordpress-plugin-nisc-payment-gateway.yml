@@ -1,0 +1,90 @@
+name: WordPress Plugin (Nisc Payment Gateway)
+
+# Manual only — not tied to deploy.yml / system-deploy.yml
+on:
+  workflow_dispatch:
+    inputs:
+      create_github_release:
+        description: "Also publish a GitHub Release with this ZIP attached"
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark GitHub Release as prerelease"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nisc-payment-gateway-wp-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-zip:
+    name: Build plugin ZIP
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/nisc-payment-gateway-wp
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      zip_name: ${{ steps.meta.outputs.zip_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read plugin version
+        id: meta
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          ZIP_NAME="nisc-payment-gateway-${VERSION}.zip"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "zip_name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Building Nisc Payment Gateway WP plugin v${VERSION}"
+
+      - name: Verify version sync
+        run: |
+          HEADER=$(grep -E '^\s*\*\s*Version:' nisc-payment-gateway.php | head -1 | sed -E 's/.*Version:[[:space:]]*//')
+          DEFINE=$(grep -E "define\(\s*'NISC_PG_VERSION'" nisc-payment-gateway.php | sed -E "s/.*'([0-9.]+)'.*/\1/")
+          STABLE=$(grep -iE '^Stable tag:' readme.txt | sed -E 's/.*:[[:space:]]*//')
+          PKG="${{ steps.meta.outputs.version }}"
+          echo "package.json=$PKG header=$HEADER define=$DEFINE stable=$STABLE"
+          test "$HEADER" = "$PKG"
+          test "$DEFINE" = "$PKG"
+          test "$STABLE" = "$PKG"
+
+      - name: Build ZIP
+        run: node ./scripts/build-zip.mjs
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nisc-payment-gateway-${{ steps.meta.outputs.version }}
+          path: apps/nisc-payment-gateway-wp/dist/${{ steps.meta.outputs.zip_name }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_github_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nisc-payment-gateway-wp/v${{ steps.meta.outputs.version }}
+          name: Nisc Payment Gateway for WooCommerce v${{ steps.meta.outputs.version }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: apps/nisc-payment-gateway-wp/dist/${{ steps.meta.outputs.zip_name }}
+          body: |
+            Private distribution ZIP for **Nisc Payment Gateway for WooCommerce**.
+
+            ### Install
+            1. Download `nisc-payment-gateway-${{ steps.meta.outputs.version }}.zip`
+            2. WordPress → Plugins → Add New → Upload Plugin
+            3. Activate, then WooCommerce → Settings → Payments → Nisc Payment Gateway
+            4. Paste API key → **Connect**
+
+            ### Notes
+            - Not linked to the main nPanel deploy pipeline
+            - WordPress.org listing is not required for this artifact release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -474,5 +474,164 @@ export function createNiscPaymentGatewayRoutes() {
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // WEBHOOK SELF-REGISTRATION (WordPress plugin / merchant clients)
+  // ---------------------------------------------------------------------------
+
+  const registerWebhookSchema = z.object({
+    url: z.string().url().refine(
+      (url) => {
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol === "https:") return true;
+          // Allow http only for local development hosts
+          if (parsed.protocol === "http:") {
+            return (
+              parsed.hostname === "localhost" ||
+              parsed.hostname === "127.0.0.1" ||
+              parsed.hostname.endsWith(".local")
+            );
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      },
+      { message: "Webhook URL must be HTTPS (or http://localhost for development)" }
+    ),
+  });
+
+  /** GET current webhook registration (secret never returned) */
+  app.get("/v1/webhook", async (c) => {
+    const gateway = c.get("gateway") as GatewayContext;
+
+    const merchant = await db
+      .select()
+      .from(niscPaymentGatewayMerchant)
+      .where(eq(niscPaymentGatewayMerchant.id, gateway.merchantId))
+      .limit(1);
+
+    if (!merchant[0]) {
+      return c.json({
+        error: { code: "MERCHANT_NOT_FOUND", message: "Merchant not found" },
+      }, 404);
+    }
+
+    const settings = (merchant[0].settings || {}) as {
+      webhookUrl?: string;
+      webhookSecret?: string;
+      webhookRegisteredAt?: string;
+    };
+
+    return c.json({
+      registered: Boolean(settings.webhookUrl),
+      url: settings.webhookUrl || null,
+      registeredAt: settings.webhookRegisteredAt || null,
+      merchantId: gateway.merchantId,
+      merchantName: gateway.merchantName,
+      environment: gateway.environment,
+    });
+  });
+
+  /** PUT register / rotate webhook URL + secret */
+  app.put("/v1/webhook", async (c) => {
+    try {
+      const gateway = c.get("gateway") as GatewayContext;
+      const body = await c.req.json();
+      const input = registerWebhookSchema.parse(body);
+
+      const merchant = await db
+        .select()
+        .from(niscPaymentGatewayMerchant)
+        .where(eq(niscPaymentGatewayMerchant.id, gateway.merchantId))
+        .limit(1);
+
+      if (!merchant[0]) {
+        return c.json({
+          error: { code: "MERCHANT_NOT_FOUND", message: "Merchant not found" },
+        }, 404);
+      }
+
+      const existingSettings = (merchant[0].settings || {}) as Record<string, unknown>;
+      const webhookSecret = `whsec_${crypto.randomBytes(32).toString("hex")}`;
+      const registeredAt = new Date().toISOString();
+
+      const nextSettings = {
+        ...existingSettings,
+        webhookUrl: input.url,
+        webhookSecret,
+        webhookRegisteredAt: registeredAt,
+        webhookRegisteredByApiKeyId: gateway.apiKeyId,
+      };
+
+      await db
+        .update(niscPaymentGatewayMerchant)
+        .set({
+          settings: nextSettings,
+          updatedAt: new Date(),
+        })
+        .where(eq(niscPaymentGatewayMerchant.id, gateway.merchantId));
+
+      return c.json({
+        url: input.url,
+        webhookSecret,
+        registeredAt,
+        merchantId: gateway.merchantId,
+        merchantName: gateway.merchantName,
+        environment: gateway.environment,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return c.json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid request body",
+            details: error.errors,
+          },
+        }, 400);
+      }
+      throw error;
+    }
+  });
+
+  /** DELETE clear webhook registration */
+  app.delete("/v1/webhook", async (c) => {
+    const gateway = c.get("gateway") as GatewayContext;
+
+    const merchant = await db
+      .select()
+      .from(niscPaymentGatewayMerchant)
+      .where(eq(niscPaymentGatewayMerchant.id, gateway.merchantId))
+      .limit(1);
+
+    if (!merchant[0]) {
+      return c.json({
+        error: { code: "MERCHANT_NOT_FOUND", message: "Merchant not found" },
+      }, 404);
+    }
+
+    const existingSettings = (merchant[0].settings || {}) as Record<string, unknown>;
+    const {
+      webhookUrl: _url,
+      webhookSecret: _secret,
+      webhookRegisteredAt: _at,
+      webhookRegisteredByApiKeyId: _key,
+      ...rest
+    } = existingSettings;
+
+    await db
+      .update(niscPaymentGatewayMerchant)
+      .set({
+        settings: rest,
+        updatedAt: new Date(),
+      })
+      .where(eq(niscPaymentGatewayMerchant.id, gateway.merchantId));
+
+    return c.json({
+      cleared: true,
+      merchantId: gateway.merchantId,
+    });
+  });
+
   return app;
 }
