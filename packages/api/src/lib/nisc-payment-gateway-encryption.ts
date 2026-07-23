@@ -85,7 +85,7 @@ function getEncryptionKey(version: string = "v1"): Buffer {
 
   switch (version) {
     case "v1":
-      keyHex = env.NISC_PAYMENT_GATEWAY_ENCRYPTION_KEY;
+      keyHex = env.NISC_PAYMENT_GATEWAY_ENCRYPTION_KEY ?? "";
       if (!keyHex) {
         throw new Error(
           "NISC_PAYMENT_GATEWAY_ENCRYPTION_KEY environment variable not set. " +
