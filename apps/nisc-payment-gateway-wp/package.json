@@ -1,0 +1,9 @@
+{
+  "name": "nisc-payment-gateway-wp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nisc Payment Gateway for WooCommerce (private ZIP distribution)",
+  "scripts": {
+    "zip": "node ./scripts/build-zip.mjs"
+  }
+}
