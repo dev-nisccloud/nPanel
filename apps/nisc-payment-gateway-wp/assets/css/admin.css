@@ -1,0 +1,387 @@
+/**
+ * Nisc Payment Gateway — WooCommerce admin settings.
+ * Brand: cyan #00ADEF on dark hero (matches logo plate).
+ */
+
+.nisc-pg-admin {
+	--nisc-cyan: #00adef;
+	--nisc-cyan-deep: #0090c7;
+	--nisc-ink: #0b1220;
+	--nisc-muted: #5b6575;
+	--nisc-line: #e6eaf0;
+	--nisc-ok: #0f9d6e;
+	--nisc-danger: #c62828;
+	--nisc-surface: #f7f9fc;
+	max-width: 860px;
+	margin: 12px 0 32px;
+	font-size: 14px;
+	color: var(--nisc-ink);
+}
+
+.nisc-pg-hero {
+	display: flex;
+	gap: 20px;
+	align-items: stretch;
+	background: #050505;
+	border-radius: 14px;
+	overflow: hidden;
+	padding: 0;
+	margin-bottom: 20px;
+	border: 1px solid #111;
+}
+
+.nisc-pg-hero__brand {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 18px 20px;
+	background: #000;
+}
+
+.nisc-pg-hero__logo {
+	display: block;
+	height: 72px;
+	width: auto;
+	max-width: 280px;
+	object-fit: contain;
+}
+
+.nisc-pg-hero__copy {
+	flex: 1;
+	padding: 22px 24px 22px 8px;
+	color: #e8f7ff;
+}
+
+.nisc-pg-hero__eyebrow {
+	margin: 0 0 6px;
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--nisc-cyan);
+	font-weight: 600;
+}
+
+.nisc-pg-hero__copy h2 {
+	margin: 0 0 8px;
+	color: #fff;
+	font-size: 22px;
+	line-height: 1.25;
+	font-weight: 650;
+}
+
+.nisc-pg-hero__copy p {
+	margin: 0;
+	color: #a9c2d4;
+	max-width: 42ch;
+	line-height: 1.5;
+}
+
+.nisc-pg-steps {
+	list-style: none;
+	margin: 0 0 20px;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+}
+
+.nisc-pg-steps__item {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	background: #fff;
+	border: 1px solid var(--nisc-line);
+	border-radius: 12px;
+	padding: 14px;
+	min-height: 88px;
+}
+
+.nisc-pg-steps__item.is-done {
+	border-color: rgba(15, 157, 110, 0.35);
+	background: linear-gradient(180deg, #f3fbf7 0%, #fff 100%);
+}
+
+.nisc-pg-steps__item.is-current {
+	border-color: rgba(0, 173, 239, 0.55);
+	box-shadow: 0 0 0 3px rgba(0, 173, 239, 0.12);
+}
+
+.nisc-pg-steps__num {
+	flex: 0 0 28px;
+	height: 28px;
+	border-radius: 999px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 13px;
+	background: #eef2f7;
+	color: var(--nisc-muted);
+}
+
+.nisc-pg-steps__item.is-done .nisc-pg-steps__num,
+.nisc-pg-steps__item.is-current .nisc-pg-steps__num {
+	background: var(--nisc-cyan);
+	color: #041018;
+}
+
+.nisc-pg-steps__item strong {
+	display: block;
+	margin-bottom: 4px;
+	font-size: 13px;
+}
+
+.nisc-pg-steps__item span {
+	display: block;
+	color: var(--nisc-muted);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.nisc-pg-panel {
+	background: #fff;
+	border: 1px solid var(--nisc-line);
+	border-radius: 14px;
+	padding: 20px;
+	margin-bottom: 16px;
+}
+
+.nisc-pg-panel.is-connected {
+	border-color: rgba(15, 157, 110, 0.4);
+}
+
+.nisc-pg-panel__status {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	margin-bottom: 16px;
+}
+
+.nisc-pg-status-dot {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	margin-top: 5px;
+	background: #c5ccd6;
+	box-shadow: 0 0 0 4px rgba(197, 204, 214, 0.35);
+}
+
+.nisc-pg-panel.is-connected .nisc-pg-status-dot {
+	background: var(--nisc-ok);
+	box-shadow: 0 0 0 4px rgba(15, 157, 110, 0.2);
+}
+
+.nisc-pg-panel.is-disconnected .nisc-pg-status-dot {
+	background: #f0a202;
+	box-shadow: 0 0 0 4px rgba(240, 162, 2, 0.2);
+}
+
+.nisc-pg-status-label {
+	display: block;
+	font-size: 16px;
+}
+
+.nisc-pg-status-meta {
+	margin: 4px 0 0;
+	color: var(--nisc-muted);
+}
+
+.nisc-pg-label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.nisc-pg-connect__row {
+	display: flex;
+	gap: 10px;
+	align-items: stretch;
+}
+
+.nisc-pg-input {
+	flex: 1;
+	min-height: 42px;
+	border: 1px solid var(--nisc-line);
+	border-radius: 10px;
+	padding: 8px 12px;
+	font-size: 14px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	letter-spacing: 0.02em;
+}
+
+.nisc-pg-input:focus {
+	border-color: var(--nisc-cyan);
+	box-shadow: 0 0 0 3px rgba(0, 173, 239, 0.18);
+	outline: none;
+}
+
+.nisc-pg-btn-primary.button-primary {
+	background: var(--nisc-cyan) !important;
+	border-color: var(--nisc-cyan-deep) !important;
+	color: #041018 !important;
+	font-weight: 650;
+	border-radius: 10px;
+	min-height: 42px;
+	padding: 0 18px;
+	text-shadow: none;
+	box-shadow: none;
+}
+
+.nisc-pg-btn-primary.button-primary:hover,
+.nisc-pg-btn-primary.button-primary:focus {
+	background: #33bff2 !important;
+	border-color: var(--nisc-cyan-deep) !important;
+	color: #041018 !important;
+}
+
+.nisc-pg-btn-danger {
+	color: var(--nisc-danger) !important;
+	border-color: rgba(198, 40, 40, 0.35) !important;
+}
+
+.nisc-pg-help {
+	margin: 10px 0 0;
+	color: var(--nisc-muted);
+	font-size: 12px;
+}
+
+.nisc-pg-alert {
+	margin-top: 12px;
+	padding: 10px 12px;
+	border-radius: 10px;
+	font-size: 13px;
+}
+
+.nisc-pg-alert.is-error {
+	background: #fdecea;
+	color: #7f1d1d;
+	border: 1px solid #f5c2c0;
+}
+
+.nisc-pg-alert.is-success {
+	background: #e8f8f1;
+	color: #0b5c40;
+	border: 1px solid #b7ebd4;
+}
+
+.nisc-pg-facts {
+	margin: 0 0 16px;
+	display: grid;
+	gap: 12px;
+}
+
+.nisc-pg-facts > div {
+	display: grid;
+	grid-template-columns: 110px 1fr;
+	gap: 10px;
+	align-items: start;
+	padding: 10px 12px;
+	background: var(--nisc-surface);
+	border-radius: 10px;
+}
+
+.nisc-pg-facts dt {
+	margin: 0;
+	font-size: 12px;
+	color: var(--nisc-muted);
+	font-weight: 600;
+}
+
+.nisc-pg-facts dd {
+	margin: 0;
+}
+
+.nisc-pg-mono {
+	display: inline-block;
+	word-break: break-all;
+	font-size: 12px;
+}
+
+.nisc-pg-badge {
+	display: inline-block;
+	margin-left: 8px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: rgba(0, 173, 239, 0.12);
+	color: var(--nisc-cyan-deep);
+	font-size: 11px;
+	font-weight: 650;
+	vertical-align: middle;
+}
+
+.nisc-pg-connected__actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.nisc-pg-panel--settings h3 {
+	margin: 0 0 4px;
+	font-size: 15px;
+}
+
+.nisc-pg-panel--settings .form-table th {
+	width: 180px;
+	padding-left: 0;
+}
+
+.nisc-pg-checkout-hint {
+	margin: 6px 0 0;
+	font-size: 13px;
+	opacity: 0.8;
+}
+
+.nisc-pg-thankyou__card {
+	margin: 16px 0;
+	padding: 20px;
+	border-radius: 14px;
+	border: 1px solid #d9e7f0;
+	background: linear-gradient(180deg, #f4fbff 0%, #fff 70%);
+	max-width: 520px;
+}
+
+.nisc-pg-thankyou__logo {
+	height: 48px;
+	width: auto;
+	display: block;
+	margin-bottom: 12px;
+	border-radius: 8px;
+}
+
+.nisc-pg-thankyou__card h3 {
+	margin: 0 0 8px;
+}
+
+.nisc-pg-thankyou__hint {
+	margin: 10px 0 0;
+	font-size: 13px;
+	color: #5b6575;
+}
+
+@media (max-width: 782px) {
+	.nisc-pg-hero {
+		flex-direction: column;
+	}
+
+	.nisc-pg-hero__copy {
+		padding: 8px 18px 20px;
+	}
+
+	.nisc-pg-steps {
+		grid-template-columns: 1fr;
+	}
+
+	.nisc-pg-connect__row {
+		flex-direction: column;
+	}
+
+	.nisc-pg-facts > div {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Hide default WC gateway heading duplication a bit cleaner */
+.woocommerce .nisc-pg-admin + h2 {
+	display: none;
+}

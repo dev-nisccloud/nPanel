@@ -1,0 +1,62 @@
+name: WordPress Plugin Check (Nisc Payment Gateway)
+
+# Standalone — not linked to deploy.yml / system-deploy.yml / release ZIP workflow
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/nisc-payment-gateway-wp/**"
+      - ".github/workflows/wordpress-plugin-check.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/nisc-payment-gateway-wp/**"
+      - ".github/workflows/wordpress-plugin-check.yml"
+
+concurrency:
+  group: nisc-pg-plugin-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plugin-check:
+    name: Plugin Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare plugin build directory
+        run: |
+          # Plugin Check expects a clean plugin tree (what merchants install),
+          # not monorepo tooling (package.json, scripts, dist).
+          mkdir -p /tmp/nisc-payment-gateway
+          rsync -a \
+            --exclude 'dist/' \
+            --exclude 'scripts/' \
+            --exclude 'node_modules/' \
+            --exclude 'package.json' \
+            --exclude '.gitignore' \
+            apps/nisc-payment-gateway-wp/ \
+            /tmp/nisc-payment-gateway/
+
+      - name: Run WordPress Plugin Check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          build-dir: /tmp/nisc-payment-gateway
+          slug: nisc-payment-gateway
+          # Repo-facing checks matter most for wordpress.org readiness.
+          # Drop categories later if you want a narrower gate.
+          categories: |
+            general
+            security
+            performance
+            plugin_repo
+          exclude-directories: |
+            languages
+          # Start without ignoring codes so failures are visible; add codes here only if justified.
+          ignore-codes: |
+          ignore-warnings: false
+          ignore-errors: false
+          include-experimental: false
+          wp-version: latest
