@@ -1,6 +1,7 @@
 name: WordPress Plugin (Nisc Payment Gateway)
 
 # Manual only — not tied to deploy.yml / system-deploy.yml
+# ZIP is built only here (ubuntu) so paths use forward slashes WordPress expects.
 on:
   workflow_dispatch:
     inputs:
@@ -24,9 +25,6 @@ jobs:
   build-zip:
     name: Build plugin ZIP
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/nisc-payment-gateway-wp
     outputs:
       version: ${{ steps.meta.outputs.version }}
       zip_name: ${{ steps.meta.outputs.zip_name }}
@@ -36,6 +34,7 @@ jobs:
 
       - name: Read plugin version
         id: meta
+        working-directory: apps/nisc-payment-gateway-wp
         run: |
           VERSION=$(node -p "require('./package.json').version")
           ZIP_NAME="nisc-payment-gateway-${VERSION}.zip"
@@ -44,6 +43,7 @@ jobs:
           echo "Building Nisc Payment Gateway WP plugin v${VERSION}"
 
       - name: Verify version sync
+        working-directory: apps/nisc-payment-gateway-wp
         run: |
           HEADER=$(grep -E '^\s*\*\s*Version:' nisc-payment-gateway.php | head -1 | sed -E 's/.*Version:[[:space:]]*//')
           DEFINE=$(grep -E "define\(\s*'NISC_PG_VERSION'" nisc-payment-gateway.php | sed -E "s/.*'([0-9.]+)'.*/\1/")
@@ -54,14 +54,52 @@ jobs:
           test "$DEFINE" = "$PKG"
           test "$STABLE" = "$PKG"
 
-      - name: Build ZIP
-        run: node ./scripts/build-zip.mjs
+      - name: Stage plugin tree
+        run: |
+          STAGE="${{ runner.temp }}/nisc-pg-stage"
+          PLUGIN_DIR="${STAGE}/nisc-payment-gateway"
+          mkdir -p "${PLUGIN_DIR}"
+          rsync -a \
+            --exclude 'dist/' \
+            --exclude 'scripts/' \
+            --exclude 'node_modules/' \
+            --exclude 'package.json' \
+            --exclude '.gitignore' \
+            apps/nisc-payment-gateway-wp/ \
+            "${PLUGIN_DIR}/"
+          # Must exist for WordPress to activate
+          test -f "${PLUGIN_DIR}/nisc-payment-gateway.php"
+          echo "Staged files:"
+          find "${PLUGIN_DIR}" -type f | sort
+
+      - name: Build ZIP (POSIX paths)
+        id: zip
+        run: |
+          STAGE="${{ runner.temp }}/nisc-pg-stage"
+          OUT_DIR="${{ runner.temp }}/nisc-pg-dist"
+          ZIP_NAME="${{ steps.meta.outputs.zip_name }}"
+          mkdir -p "${OUT_DIR}"
+          (
+            cd "${STAGE}"
+            zip -r "${OUT_DIR}/${ZIP_NAME}" nisc-payment-gateway \
+              -x "*.DS_Store" \
+              -x "*/.git/*"
+          )
+          echo "zip_path=${OUT_DIR}/${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "ZIP entries (first 30):"
+          unzip -l "${OUT_DIR}/${ZIP_NAME}" | head -n 40
+          # Guard against Windows-style backslash paths
+          if unzip -l "${OUT_DIR}/${ZIP_NAME}" | grep -F '\\'; then
+            echo "::error::ZIP contains backslash paths"
+            exit 1
+          fi
+          unzip -l "${OUT_DIR}/${ZIP_NAME}" | grep -F "nisc-payment-gateway/nisc-payment-gateway.php"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: nisc-payment-gateway-${{ steps.meta.outputs.version }}
-          path: apps/nisc-payment-gateway-wp/dist/${{ steps.meta.outputs.zip_name }}
+          path: ${{ steps.zip.outputs.zip_path }}
           if-no-files-found: error
           retention-days: 90
 
@@ -73,18 +111,18 @@ jobs:
           name: Nisc Payment Gateway for WooCommerce v${{ steps.meta.outputs.version }}
           prerelease: ${{ inputs.prerelease }}
           generate_release_notes: true
-          files: apps/nisc-payment-gateway-wp/dist/${{ steps.meta.outputs.zip_name }}
+          files: ${{ steps.zip.outputs.zip_path }}
           body: |
             Private distribution ZIP for **Nisc Payment Gateway for WooCommerce**.
 
             ### Install
-            1. Download `nisc-payment-gateway-${{ steps.meta.outputs.version }}.zip`
-            2. WordPress → Plugins → Add New → Upload Plugin
-            3. Activate, then WooCommerce → Settings → Payments → Nisc Payment Gateway
-            4. Paste API key → **Connect**
+            1. Download `nisc-payment-gateway-${{ steps.meta.outputs.version }}.zip` from this release (or the workflow artifact)
+            2. In WordPress: delete any broken previous install of this plugin first
+            3. Plugins → Add New → Upload Plugin → Activate
+            4. WooCommerce → Settings → Payments → Nisc Payment Gateway → paste API key → **Connect**
 
             ### Notes
+            - Built on Linux GitHub Actions only (correct ZIP paths for WordPress)
             - Not linked to the main nPanel deploy pipeline
-            - WordPress.org listing is not required for this artifact release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

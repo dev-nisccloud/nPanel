@@ -131,7 +131,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0 --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0 --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -146,7 +146,6 @@ jobs:
             QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING }}
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
 
       - name: Health check
         continue-on-error: true
@@ -196,7 +195,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVER_SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args src/workers-index.ts --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args src/workers-index.ts --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -212,7 +211,6 @@ jobs:
             QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_STAGING }}
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_STAGING }}
 
       - name: Workers URL handoff
         run: |
@@ -381,7 +379,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0 --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 40 --max-instances 10 --min-instances 0 --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -396,7 +394,6 @@ jobs:
             QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION }}
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
 
       - name: Health check
         continue-on-error: true
@@ -446,7 +443,7 @@ jobs:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVER_SERVICE_NAME }}:${{ github.sha }}
-          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args src/workers-index.ts --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080 --remove-env-vars=NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,NISC_GATEWAY_MPESA_SANDBOX_STK_URL,NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,NISC_GATEWAY_MPESA_PRODUCTION_STK_URL'
+          flags: '--allow-unauthenticated --memory 4Gi --cpu=2 --cpu-boost --concurrency 20 --max-instances 10 --min-instances 0 --command bun --args src/workers-index.ts --startup-probe=periodSeconds=10,timeoutSeconds=5,failureThreshold=24,tcpSocket.port=8080'
           env_vars_update_strategy: merge
           env_vars: |
             NODE_ENV=production
@@ -462,7 +459,6 @@ jobs:
             QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT=${{ secrets.QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION }}
             QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT=${{ secrets.QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION }}
             REPLICATE_API_TOKEN=${{ secrets.REPLICATE_API_TOKEN }}
-            NISC_GATEWAY_BASE_URL=${{ secrets.BETTER_AUTH_URL_PRODUCTION }}
 
       - name: Workers URL handoff
         run: |

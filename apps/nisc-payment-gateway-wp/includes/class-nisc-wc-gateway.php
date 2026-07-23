@@ -243,7 +243,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 			}
 		}
 
-		return update_option( $this->get_option_key(), apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $this->id, $this->settings ), 'yes' );
+		return update_option( $this->get_option_key(), $this->settings, 'yes' );
 	}
 
 	public function is_available(): bool {
