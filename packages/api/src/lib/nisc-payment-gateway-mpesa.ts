@@ -17,17 +17,17 @@ import type { MpesaCredentials } from "./nisc-payment-gateway-encryption";
 function getMpesaUrls(environment: "SANDBOX" | "PRODUCTION") {
   if (environment === "PRODUCTION") {
     return {
-      tokenUrl: process.env.NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL!,
-      stkUrl: process.env.NISC_GATEWAY_MPESA_PRODUCTION_STK_URL!,
-      baseUrl: process.env.NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL!,
+      tokenUrl: env.NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL,
+      stkUrl: env.NISC_GATEWAY_MPESA_PRODUCTION_STK_URL,
+      baseUrl: env.NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL,
     };
   }
-  
+
   // Sandbox (default)
   return {
-    tokenUrl: process.env.NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL!,
-    stkUrl: process.env.NISC_GATEWAY_MPESA_SANDBOX_STK_URL!,
-    baseUrl: process.env.NISC_GATEWAY_MPESA_SANDBOX_BASE_URL!,
+    tokenUrl: env.NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL,
+    stkUrl: env.NISC_GATEWAY_MPESA_SANDBOX_STK_URL,
+    baseUrl: env.NISC_GATEWAY_MPESA_SANDBOX_BASE_URL,
   };
 }
 

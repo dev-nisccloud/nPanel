@@ -48,16 +48,42 @@ export const env = createEnv({
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
     
     // Nisc Payment Gateway
-    /** AES-256 encryption key for payment gateway credentials (hex, 64 chars) */
-    NISC_PAYMENT_GATEWAY_ENCRYPTION_KEY: z.string().length(64).regex(/^[0-9a-f]{64}$/i),
-    /** M-Pesa Sandbox URLs for testing */
-    NISC_GATEWAY_MPESA_SANDBOX_BASE_URL: z.string().url(),
-    NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL: z.string().url(),
-    NISC_GATEWAY_MPESA_SANDBOX_STK_URL: z.string().url(),
-    /** M-Pesa Production URLs for live payments */
-    NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL: z.string().url(),
-    NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL: z.string().url(),
-    NISC_GATEWAY_MPESA_PRODUCTION_STK_URL: z.string().url(),
+    /** AES-256 encryption key for credentials (hex, 64 chars). Required when using the gateway. */
+    NISC_PAYMENT_GATEWAY_ENCRYPTION_KEY: z
+      .string()
+      .length(64)
+      .regex(/^[0-9a-f]{64}$/i)
+      .optional(),
+    /** M-Pesa Sandbox URLs (public Safaricom endpoints; overridable) */
+    NISC_GATEWAY_MPESA_SANDBOX_BASE_URL: z
+      .string()
+      .url()
+      .default("https://sandbox.safaricom.co.ke"),
+    NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL: z
+      .string()
+      .url()
+      .default(
+        "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+      ),
+    NISC_GATEWAY_MPESA_SANDBOX_STK_URL: z
+      .string()
+      .url()
+      .default("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"),
+    /** M-Pesa Production URLs (public Safaricom endpoints; overridable) */
+    NISC_GATEWAY_MPESA_PRODUCTION_BASE_URL: z
+      .string()
+      .url()
+      .default("https://api.safaricom.co.ke"),
+    NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL: z
+      .string()
+      .url()
+      .default(
+        "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
+      ),
+    NISC_GATEWAY_MPESA_PRODUCTION_STK_URL: z
+      .string()
+      .url()
+      .default("https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest"),
     /** Optional base URL for gateway webhooks (defaults to BETTER_AUTH_URL) */
     NISC_GATEWAY_BASE_URL: z.string().url().optional(),
   },
