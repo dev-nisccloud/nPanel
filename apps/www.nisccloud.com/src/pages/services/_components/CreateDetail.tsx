@@ -29,9 +29,6 @@ export default function CreateDetail() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center gap-2 bg-[oklch(0.72_0.2_210/0.1)] border border-[oklch(0.72_0.2_210/0.3)] rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ color: "oklch(0.72 0.2 210)" }}>
-              01 - CREATE
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               We Build Your<br />
               <span style={{ color: "oklch(0.72 0.2 210)" }}>Brand from the Ground Up.</span>

@@ -58,9 +58,6 @@ export default function AutomateDetail() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="order-1 lg:order-2"
           >
-            <div className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ backgroundColor: "oklch(0.78 0.16 150 / 0.1)", borderColor: "oklch(0.78 0.16 150 / 0.3)", color: "oklch(0.78 0.16 150)" }}>
-              04 - AUTOMATE
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Your Business.<br />
               <span style={{ color: "oklch(0.78 0.16 150)" }}>Working 24/7.</span>

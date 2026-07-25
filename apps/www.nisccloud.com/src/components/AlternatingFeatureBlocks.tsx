@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { NiscWebsiteFeatureImage } from "@/components/NiscWebsiteHeroImage.tsx";
 
 export type FeatureBlockItem = {
-  tag: string;
+  tag?: string;
   tagColor?: string;
   headline: string;
   description: string;
@@ -38,12 +38,14 @@ export default function AlternatingFeatureBlocks({ items, accentColor }: Props) 
             transition={{ duration: 0.65 }}
             className="flex flex-col justify-center"
           >
-            <span
-              className="inline-flex items-center self-start text-[11px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border mb-4"
-              style={{ color: accent, borderColor: `${accent}30`, backgroundColor: `${accent}10` }}
-            >
-              {item.tag}
-            </span>
+            {item.tag ? (
+              <span
+                className="inline-flex items-center self-start text-[11px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border mb-4"
+                style={{ color: accent, borderColor: `${accent}30`, backgroundColor: `${accent}10` }}
+              >
+                {item.tag}
+              </span>
+            ) : null}
             <h3 className="text-2xl md:text-3xl font-bold tracking-tight mb-4 leading-snug">
               {item.headline}
             </h3>
