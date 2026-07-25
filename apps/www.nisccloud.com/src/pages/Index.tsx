@@ -9,7 +9,6 @@ import DomainSearch from "./_components/DomainSearch.tsx";
 import Testimonials from "./_components/Testimonials.tsx";
 import Faq from "./_components/Faq.tsx";
 import Footer from "./_components/Footer.tsx";
-import { MessageCircle } from "lucide-react";
 
 export default function Index() {
   return (
@@ -25,18 +24,6 @@ export default function Index() {
       <Testimonials />
       <Faq />
       <Footer />
-
-      {/* WhatsApp floating CTA */}
-      <a
-        href="https://wa.me/254748777666?text=Hi%20Nisc%20Cloud%2C%20I%20want%20to%20grow%20my%20business%20online"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-[#25D366] text-white font-semibold text-sm px-4 py-3 rounded-full shadow-lg hover:bg-[#1ebe5d] transition-all hover:scale-105 cursor-pointer"
-        aria-label="Chat on WhatsApp"
-      >
-        <MessageCircle size={18} className="fill-white" />
-        <span className="hidden sm:inline">Chat with us</span>
-      </a>
     </div>
   );
 }
