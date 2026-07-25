@@ -1,6 +1,6 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import { Monitor, Smartphone, Code2, Zap, Globe, ShoppingBag, Lock, BarChart2, CheckCircle2 } from "lucide-react";
+import { Monitor, Smartphone, Code2, Zap, Globe, ShoppingBag, Lock, BarChart2 } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -14,40 +14,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Core Web Vitals checked before launch day",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">PageSpeed Score</div>
-          <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20 shrink-0">
-              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="oklch(0.93 0.01 240)" strokeWidth="3"/>
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="oklch(0.60 0.22 235)" strokeWidth="3" strokeDasharray="95 100" strokeLinecap="round"/>
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-xl font-extrabold text-primary">95</span>
-            </div>
-            <div className="space-y-1.5 flex-1">
-              {[["LCP","1.2s"],["FID","8ms"],["CLS","0.02"]].map(([k,v]) => (
-                <div key={k} className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">{k}</span>
-                  <span className="font-bold text-green-500">{v} ✓</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-2xl font-extrabold text-primary">&lt;2s</div>
-            <div className="text-[10px] text-muted-foreground">Target load time</div>
-          </div>
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-2xl font-extrabold text-primary">24/7</div>
-            <div className="text-[10px] text-muted-foreground">Support available</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "speed",
   },
   {
     tag: "Conversion Architecture",
@@ -59,36 +26,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Lead capture forms with instant email notification",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">How Leads Reach You</div>
-          <div className="p-4">
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              {[["Visitors","Tracked"],["Leads","Captured"],["Follow-up","Clear"]].map(([l,v]) => (
-                <div key={l} className="text-center">
-                  <div className="text-lg font-extrabold text-primary">{v}</div>
-                  <div className="text-[10px] text-muted-foreground">{l}</div>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-1.5">
-              {[["WhatsApp","Easy"],["Contact Form","Ready"],["Phone","Visible"]].map(([src, pct]) => (
-                <div key={src}>
-                  <div className="flex justify-between text-xs mb-0.5">
-                    <span className="text-muted-foreground">{src}</span>
-                    <span className="font-semibold">{pct}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: "70%" }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "funnel",
   },
   {
     tag: "SEO-Ready from Day One",
@@ -100,28 +38,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "On-page keyword targeting for your top service pages",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Launch Checklist</div>
-          <div className="space-y-2">
-            {["Search Console connected","Sitemap submitted","Analytics installed","Speed checked"].map((item) => (
-              <div key={item} className="flex items-center gap-2 text-xs">
-                <CheckCircle2 size={13} className="text-primary shrink-0" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-2xl p-3 border border-border/40 shadow-md flex items-center gap-3">
-          <CheckCircle2 size={24} className="text-primary shrink-0" />
-          <div>
-            <div className="font-bold text-sm">Free setup help</div>
-            <div className="text-xs text-muted-foreground">We help you launch with confidence</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "growth",
   },
 ];
 

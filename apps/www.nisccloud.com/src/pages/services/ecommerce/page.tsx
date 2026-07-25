@@ -1,5 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -13,38 +13,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Clear order confirmation and delivery updates",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-3 flex items-center justify-between">
-            <span className="text-white text-sm font-bold">Checkout Flow</span>
-            <Smartphone size={16} className="text-white/80" />
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="bg-muted/40 rounded-xl p-3 text-center">
-              <div className="text-2xl font-extrabold text-primary">3 steps</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Cart · Pay · Confirm</div>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-xl p-3">
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <span className="text-white text-[10px]">✓</span>
-              </div>
-              <span>Order confirmed · Customer notified</span>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">100+</div>
-            <div className="text-[10px] text-muted-foreground">Clients helped</div>
-          </div>
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">99.99%</div>
-            <div className="text-[10px] text-muted-foreground">Uptime target</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "payment",
   },
   {
     tag: "Sales Analytics",
@@ -56,25 +25,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Best-selling product rankings updated regularly",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Store Performance</div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {[["Revenue","Tracked"],["Orders","Live"],["Avg Order","Clear"],["Cart Recovery","Ready"]].map(([l,v]) => (
-              <div key={l} className="bg-muted/40 rounded-xl p-2.5 text-center">
-                <div className="font-extrabold text-primary text-sm">{v}</div>
-                <div className="text-[10px] text-muted-foreground">{l}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <CheckCircle2 size={14} className="text-primary shrink-0" />
-            <span className="text-muted-foreground">Clear reporting included</span>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "reporting",
   },
 ];
 

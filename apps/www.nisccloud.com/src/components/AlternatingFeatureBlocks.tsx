@@ -1,7 +1,8 @@
 import { motion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { NiscWebsiteFeatureImage } from "@/components/NiscWebsiteHeroImage.tsx";
+import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
+import type { VisualTheme } from "@/components/shadcn-space/blocks/built-different-01/visual-context.ts";
 
 export type FeatureBlockItem = {
   tag?: string;
@@ -10,9 +11,12 @@ export type FeatureBlockItem = {
   description: string;
   bullets: string[];
   stat?: { value: string; label: string };
-  imageUrl: string;
-  imageAlt: string;
-  /** If true, image goes on the right. If false/undefined, image goes on the left. Alternates automatically if not set. */
+  /** Themed visual card (preferred over imageUrl) */
+  visual?: VisualTheme;
+  /** @deprecated Prefer visual */
+  imageUrl?: string;
+  imageAlt?: string;
+  /** If true, visual goes on the right. Alternates automatically if not set. */
   imageRight?: boolean;
   badge?: { icon?: LucideIcon; text: string; color?: string };
 };
@@ -29,6 +33,7 @@ export default function AlternatingFeatureBlocks({ items, accentColor }: Props) 
       {items.map((item, i) => {
         const imageRight = item.imageRight !== undefined ? item.imageRight : i % 2 === 0;
         const accent = item.tagColor ?? accentColor ?? "var(--color-primary)";
+        const visual: VisualTheme = item.visual ?? "default";
 
         const textBlock = (
           <motion.div
@@ -40,16 +45,16 @@ export default function AlternatingFeatureBlocks({ items, accentColor }: Props) 
           >
             {item.tag ? (
               <span
-                className="inline-flex items-center self-start text-[11px] font-mono font-bold tracking-widest px-3 py-1 rounded-full border mb-4"
+                className="mb-4 inline-flex items-center self-start rounded-full border px-3 py-1 text-[11px] font-mono font-bold tracking-widest"
                 style={{ color: accent, borderColor: `${accent}30`, backgroundColor: `${accent}10` }}
               >
                 {item.tag}
               </span>
             ) : null}
-            <h3 className="text-2xl md:text-3xl font-bold tracking-tight mb-4 leading-snug">
+            <h3 className="mb-4 text-2xl font-bold leading-snug tracking-tight md:text-3xl">
               {item.headline}
             </h3>
-            <p className="text-muted-foreground leading-relaxed mb-6 text-[15px]">
+            <p className="mb-6 text-[15px] leading-relaxed text-muted-foreground">
               {item.description}
             </p>
             <ul className="space-y-2.5">
@@ -60,48 +65,38 @@ export default function AlternatingFeatureBlocks({ items, accentColor }: Props) 
                 </li>
               ))}
             </ul>
-            {item.stat && (
+            {item.stat ? (
               <div className="mt-8 inline-flex items-baseline gap-2 border-l-4 pl-4" style={{ borderColor: accent }}>
-                <span className="text-3xl font-extrabold" style={{ color: accent }}>{item.stat.value}</span>
+                <span className="text-3xl font-extrabold" style={{ color: accent }}>
+                  {item.stat.value}
+                </span>
                 <span className="text-sm text-muted-foreground">{item.stat.label}</span>
               </div>
-            )}
+            ) : null}
           </motion.div>
         );
 
-        const imageBlock = (
+        const visualBlock = (
           <motion.div
             initial={{ opacity: 0, x: imageRight ? 30 : -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.65, delay: 0.1 }}
-            className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-xl"
           >
-            <NiscWebsiteFeatureImage src={item.imageUrl} alt={item.imageAlt} />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/50 via-transparent to-transparent" />
-            {item.badge && (
-              <div className="absolute bottom-5 left-5 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-4 py-2.5 flex items-center gap-2.5 shadow-lg">
-                {item.badge.icon && (
-                  <item.badge.icon size={14} style={{ color: item.badge.color ?? accent }} />
-                )}
-                <span className="text-sm font-semibold" style={{ color: item.badge.color ?? accent }}>
-                  {item.badge.text}
-                </span>
-              </div>
-            )}
+            <ShowcaseVisualCard visual={visual} headline={item.headline} />
           </motion.div>
         );
 
         return (
-          <div key={i} className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+          <div key={item.headline} className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
             {imageRight ? (
               <>
                 {textBlock}
-                {imageBlock}
+                {visualBlock}
               </>
             ) : (
               <>
-                {imageBlock}
+                {visualBlock}
                 {textBlock}
               </>
             )}

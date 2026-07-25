@@ -17,37 +17,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "HTTP/2 multiplexing for parallel asset loading",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">WordPress Speed Comparison</div>
-          <div className="space-y-2.5">
-            {[["Generic Hosting","4.2s","oklch(0.65 0.22 27)"],["Nisc WP Hosting","1.1s","oklch(0.60 0.22 235)"]].map(([host, time, color]) => (
-              <div key={String(host)}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">{host}</span>
-                  <span className="font-bold" style={{ color: String(color) }}>{time}</span>
-                </div>
-                <div className="h-2 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: String(host).includes("Generic") ? "85%" : "22%", background: String(color) }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 text-center text-xs font-bold text-primary">Same WordPress site, clearer speed</div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">100+</div>
-            <div className="text-[10px] text-muted-foreground">Clients served</div>
-          </div>
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">Free</div>
-            <div className="text-[10px] text-muted-foreground">Migration included</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "speed",
   },
   {
     tag: "Staging and Safety",
@@ -59,28 +29,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "30-day backup retention, restore any version in one click",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Staging Environment</div>
-          <div className="p-4 space-y-2.5 text-xs">
-            <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-2.5">
-              <span className="font-semibold text-green-700 dark:text-green-300">yourbusiness.co.ke</span>
-              <span className="bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">LIVE</span>
-            </div>
-            <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-2.5">
-              <span className="font-semibold text-blue-700 dark:text-blue-300">staging.yourbusiness.co.ke</span>
-              <span className="bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">TESTING</span>
-            </div>
-            <div className="bg-muted/40 rounded-xl p-2.5 text-muted-foreground">
-              <div className="font-semibold mb-1 text-foreground">Last push to live:</div>
-              <div>WooCommerce 8.5.0 - tested ✓</div>
-              <div>Elementor Pro 3.21 - tested ✓</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "deploy",
   },
 ];
 

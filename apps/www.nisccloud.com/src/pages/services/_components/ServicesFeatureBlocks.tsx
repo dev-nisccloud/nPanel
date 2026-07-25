@@ -13,10 +13,8 @@ const items = [
       "Starter brands delivered in about 7 days",
     ],
     stat: { value: "7 days", label: "typical brand delivery" },
-    imageUrl: "https://hercules-cdn.com/file_dsJ6msxASR0iwMgZUbaSIVyW",
-    imageAlt: "Brand design and creation dashboard",
+    visual: "brand" as const,
     imageRight: true,
-    tagColor: "#3b82f6",
   },
   {
     headline: "We take your business online and keep it reliable",
@@ -30,10 +28,8 @@ const items = [
       "Free setup help so you can go live quickly",
     ],
     stat: { value: "99.99%", label: "uptime we aim to deliver" },
-    imageUrl: "https://hercules-cdn.com/file_pKLYpmvgblyzJ2o57ONxd5L2",
-    imageAlt: "Cloud server infrastructure dashboard",
+    visual: "uptime" as const,
     imageRight: false,
-    tagColor: "#06b6d4",
   },
   {
     headline: "We put you in front of the right people",
@@ -47,10 +43,8 @@ const items = [
       "Clear reporting so you know where every lead comes from",
     ],
     stat: { value: "30 days", label: "results promise on active work" },
-    imageUrl: "https://hercules-cdn.com/file_S6KC8vtS1HpomrwzArDDvgJQ",
-    imageAlt: "Digital marketing analytics dashboard",
+    visual: "growth" as const,
     imageRight: true,
-    tagColor: "#8b5cf6",
   },
   {
     headline: "We help your business follow up without the grind",
@@ -64,17 +58,15 @@ const items = [
       "24/7 availability with human handoff when needed",
     ],
     stat: { value: "24/7", label: "AI and support coverage" },
-    imageUrl: "https://hercules-cdn.com/file_GuxQlsmKkjML1cKcuwtqBgue",
-    imageAlt: "AI automation dashboard",
+    visual: "automation" as const,
     imageRight: false,
-    tagColor: "#10b981",
   },
 ];
 
 export default function ServicesFeatureBlocks() {
   return (
-    <section className="py-20 border-t border-border/40">
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
+    <section className="border-t border-border/40 py-20">
+      <div className="mx-auto max-w-7xl px-4 md:px-8">
         <AlternatingFeatureBlocks items={items} />
       </div>
     </section>

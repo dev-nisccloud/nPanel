@@ -1,6 +1,6 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import { Share2, Users, Calendar, Camera, TrendingUp, MessageSquare, BarChart2, Star, CheckCircle2 } from "lucide-react";
+import { Share2, Users, Calendar, Camera, TrendingUp, MessageSquare, BarChart2, Star } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -14,36 +14,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Posting times tuned for when your audience is online",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Monthly Social Report</div>
-          <div className="p-4">
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {[["Reach","Tracked"],["Engagement","Measured"],["Leads","Reported"]].map(([l,v]) => (
-                <div key={l} className="text-center">
-                  <div className="text-lg font-extrabold text-primary">{v}</div>
-                  <div className="text-[10px] text-muted-foreground">{l}</div>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-1.5">
-              {[["Video Reels","Strong"],["Carousel Posts","Steady"],["Stories","Active"]].map(([type, pct]) => (
-                <div key={type}>
-                  <div className="flex justify-between text-xs mb-0.5">
-                    <span className="text-muted-foreground">{type}</span>
-                    <span className="font-semibold">{pct}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: "70%" }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "engagement",
   },
   {
     tag: "Community Management",
@@ -55,43 +26,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Crisis escalation protocol: we alert you before it goes public",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Response Dashboard</div>
-          <div className="space-y-2.5">
-            {[
-              { user: "Janet M.", msg: "Do you deliver to Mombasa?", time: "2m ago", status: "replied" },
-              { user: "Brian K.", msg: "Amazing service! 5 stars", time: "8m ago", status: "replied" },
-              { user: "Aisha R.", msg: "What are your prices?", time: "12m ago", status: "pending" },
-            ].map(({ user, msg, time, status }) => (
-              <div key={user} className="flex items-start gap-2.5 text-xs">
-                <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0 text-[10px]">
-                  {user[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between mb-0.5">
-                    <span className="font-semibold">{user}</span>
-                    <span className="text-muted-foreground">{time}</span>
-                  </div>
-                  <div className="text-muted-foreground truncate">{msg}</div>
-                </div>
-                <span className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${status === "replied" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"}`}>
-                  {status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl p-3 border border-border/40 shadow flex items-center gap-3">
-          <CheckCircle2 size={20} className="text-primary shrink-0" />
-          <div>
-            <div className="font-bold text-sm">24/7 support available</div>
-            <div className="text-xs text-muted-foreground">Community replies handled for you</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "inbox",
   },
 ];
 

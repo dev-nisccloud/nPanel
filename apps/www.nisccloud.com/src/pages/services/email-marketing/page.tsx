@@ -1,7 +1,7 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { EmailMarketingPricingSection } from "@/pages/services/email-marketing/_components/EmailMarketingPricingSection.tsx";
-import { Mail, Users, BarChart2, Zap, Target, RefreshCw, Shield, Inbox, CheckCircle2 } from "lucide-react";
+import { Mail, Users, BarChart2, Zap, Target, RefreshCw, Shield, Inbox } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -15,27 +15,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Monthly reports you can actually understand",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Campaign Report</div>
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {[["Sent","Tracked"],["Opened","Measured"],["Clicked","Reported"],["Revenue","Attributed"]].map(([l,v]) => (
-                <div key={l} className="bg-muted/40 rounded-xl p-2.5 text-center">
-                  <div className="font-extrabold text-primary text-sm">{v}</div>
-                  <div className="text-[10px] text-muted-foreground">{l}</div>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <CheckCircle2 size={14} className="text-primary shrink-0" />
-              Clear reporting included
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "reporting",
   },
   {
     tag: "Automation Flows",
@@ -47,27 +27,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Behavioural triggers based on clicks, purchases, and site visits",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Automation Flow · Welcome Series</div>
-          <div className="p-4 space-y-2.5">
-            {[
-              { step: "Day 0", action: "Welcome email + discount code", status: "active" },
-              { step: "Day 2", action: "Brand story + top products", status: "active" },
-              { step: "Day 5", action: "Customer testimonial showcase", status: "active" },
-              { step: "Day 7", action: "Discount reminder", status: "active" },
-            ].map(({ step, action, status }) => (
-              <div key={step} className="flex items-center gap-2.5 text-xs">
-                <div className="w-14 shrink-0 text-primary font-bold">{step}</div>
-                <div className="flex-1 truncate text-muted-foreground">{action}</div>
-                <span className="bg-green-100 text-green-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">{status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "automation",
   },
 ];
 

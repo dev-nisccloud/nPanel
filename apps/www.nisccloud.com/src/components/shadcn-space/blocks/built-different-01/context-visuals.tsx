@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
@@ -18,6 +18,7 @@ import {
   PenTool,
   Search,
   Server,
+  Settings2,
   Shield,
   ShieldCheck,
   Smartphone,
@@ -31,6 +32,35 @@ type VisualProps = {
   point: BuiltDifferentPoint;
 };
 
+/** When true, play continuous / remount-friendly animate instead of one-shot whileInView. */
+const VisualLoopContext = createContext(false);
+
+function useLoop() {
+  return useContext(VisualLoopContext);
+}
+
+const softInBase = {
+  initial: { opacity: 0, y: 8 },
+  viewport: { once: true, margin: "-20px" as const },
+};
+
+function useSoftIn(delay = 0) {
+  const loop = useLoop();
+  if (loop) {
+    return {
+      initial: softInBase.initial,
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: 0.4, delay },
+    };
+  }
+  return {
+    ...softInBase,
+    whileInView: { opacity: 1, y: 0 },
+    transition: { duration: 0.45, delay },
+  };
+}
+
+/** @deprecated Prefer useSoftIn — kept for spreads that still work when not looping */
 const softIn = {
   initial: { opacity: 0, y: 8 },
   whileInView: { opacity: 1, y: 0 },
@@ -56,9 +86,10 @@ function IconMark({ children }: { children: ReactNode }) {
 /** Uptime — calm status pulse */
 export function UptimeVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "99.99%";
+  const soft = useSoftIn();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.45 }} className="w-full space-y-3">
+      <motion.div {...soft} className="w-full space-y-3">
         <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3 py-2.5">
           <div className="flex items-center gap-2">
             <Server className="size-4 text-primary" />
@@ -85,6 +116,7 @@ export function UptimeVisual({ point }: VisualProps) {
 /** Speed — progress ring filling once */
 export function SpeedVisual({ point }: VisualProps) {
   const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "Fast";
+  const loop = useLoop();
   return (
     <Frame>
       <div className="relative size-[112px]">
@@ -101,9 +133,14 @@ export function SpeedVisual({ point }: VisualProps) {
             className="text-primary"
             strokeDasharray={239}
             initial={{ strokeDashoffset: 239 }}
-            whileInView={{ strokeDashoffset: 48 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.1, ease: "easeOut" }}
+            animate={loop ? { strokeDashoffset: [239, 48, 239] } : undefined}
+            whileInView={!loop ? { strokeDashoffset: 48 } : undefined}
+            viewport={!loop ? { once: true } : undefined}
+            transition={
+              loop
+                ? { duration: 2.4, repeat: Infinity, ease: "easeInOut" }
+                : { duration: 1.1, ease: "easeOut" }
+            }
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -117,16 +154,23 @@ export function SpeedVisual({ point }: VisualProps) {
 
 /** Security — lock settles in */
 export function SecurityVisual(_props: VisualProps) {
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-3">
+      <motion.div {...soft} className="flex flex-col items-center gap-3">
         <div className="relative flex size-16 items-center justify-center">
           <Shield className="absolute size-16 text-muted" strokeWidth={1} />
           <motion.div
             initial={{ y: -6, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.4 }}
+            animate={loop ? { y: [-6, 0, 0, -6], opacity: [0, 1, 1, 0] } : undefined}
+            whileInView={!loop ? { y: 0, opacity: 1 } : undefined}
+            viewport={!loop ? { once: true } : undefined}
+            transition={
+              loop
+                ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }
+                : { delay: 0.2, duration: 0.4 }
+            }
           >
             <Lock className="relative size-6 text-primary" />
           </motion.div>
@@ -139,10 +183,12 @@ export function SecurityVisual(_props: VisualProps) {
 
 /** Migration — simple A → B handoff */
 export function MigrationVisual(_props: VisualProps) {
+  const softLeft = useSoftIn();
+  const softRight = useSoftIn(0.1);
   return (
     <Frame>
       <div className="flex w-full items-center justify-between gap-2 px-1">
-        <motion.div {...softIn} transition={{ duration: 0.4 }} className="flex flex-col items-center gap-1.5">
+        <motion.div {...softLeft} className="flex flex-col items-center gap-1.5">
           <IconMark>
             <Server className="size-4 text-muted-foreground" />
           </IconMark>
@@ -159,11 +205,7 @@ export function MigrationVisual(_props: VisualProps) {
           <ArrowRight className="absolute left-1/2 top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
         </div>
 
-        <motion.div
-          {...softIn}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex flex-col items-center gap-1.5"
-        >
+        <motion.div {...softRight} className="flex flex-col items-center gap-1.5">
           <IconMark>
             <Server className="size-4 text-primary" />
           </IconMark>
@@ -184,18 +226,28 @@ const TRUST_CLIENT_LOGOS = [
 /** Trust — client logos + count */
 export function TrustVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "100+";
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-3">
+      <motion.div {...soft} className="flex flex-col items-center gap-3">
         <div className="flex -space-x-2.5">
           {TRUST_CLIENT_LOGOS.map((client, i) => (
             <motion.div
               key={client.name}
               className="flex size-9 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-card shadow-sm"
               initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.35 }}
+              animate={loop ? { opacity: 1, scale: [1, 1.06, 1] } : undefined}
+              whileInView={!loop ? { opacity: 1, scale: 1 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? {
+                      opacity: { duration: 0.35, delay: i * 0.08 },
+                      scale: { duration: 2.2, repeat: Infinity, delay: 0.4 + i * 0.08, ease: "easeInOut" },
+                    }
+                  : { delay: i * 0.08, duration: 0.35 }
+              }
             >
               <img
                 src={client.logo}
@@ -218,13 +270,11 @@ export function TrustVisual({ point }: VisualProps) {
 /** Inbox — deliverability / spam filter */
 export function InboxVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc);
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div
-        {...softIn}
-        transition={{ duration: 0.4 }}
-        className="w-full rounded-xl border border-border/70 bg-card px-3 py-2.5"
-      >
+      <motion.div {...soft} className="w-full rounded-xl border border-border/70 bg-card px-3 py-2.5">
         <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Inbox className="size-3.5 text-primary" />
           Inbox health
@@ -239,9 +289,14 @@ export function InboxVisual({ point }: VisualProps) {
               key={row.label}
               className="flex items-center justify-between text-xs"
               initial={{ opacity: 0, x: -6 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 + i * 0.1 }}
+              animate={loop ? { opacity: [0, 1, 1, 0], x: [-6, 0, 0, -6] } : undefined}
+              whileInView={!loop ? { opacity: 1, x: 0 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }
+                  : { delay: 0.1 + i * 0.1 }
+              }
             >
               <span className="text-foreground">{row.label}</span>
               <Check className="size-3.5 text-primary" />
@@ -256,13 +311,11 @@ export function InboxVisual({ point }: VisualProps) {
 /** Pricing — included checklist */
 export function PricingVisual(_props: VisualProps) {
   const items = ["Setup", "SSL", "Support"];
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div
-        {...softIn}
-        transition={{ duration: 0.4 }}
-        className="w-full rounded-xl border border-border/70 bg-card px-3 py-2.5"
-      >
+      <motion.div {...soft} className="w-full rounded-xl border border-border/70 bg-card px-3 py-2.5">
         <div className="mb-2 text-[11px] font-medium text-muted-foreground">What you get</div>
         <ul className="space-y-1.5">
           {items.map((item, i) => (
@@ -270,9 +323,14 @@ export function PricingVisual(_props: VisualProps) {
               key={item}
               className="flex items-center justify-between text-xs"
               initial={{ opacity: 0, x: -6 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 + i * 0.1 }}
+              animate={loop ? { opacity: [0, 1, 1, 0], x: [-6, 0, 0, -6] } : undefined}
+              whileInView={!loop ? { opacity: 1, x: 0 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }
+                  : { delay: 0.1 + i * 0.1 }
+              }
             >
               <span className="text-foreground">{item}</span>
               <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -290,6 +348,7 @@ export function PricingVisual(_props: VisualProps) {
 /** Growth — rank climbing bars */
 export function GrowthVisual(_props: VisualProps) {
   const bars = [28, 48, 68, 92];
+  const loop = useLoop();
   return (
     <Frame>
       <div className="flex h-[96px] w-full items-end justify-center gap-2.5 px-4">
@@ -298,9 +357,14 @@ export function GrowthVisual(_props: VisualProps) {
             key={i}
             className="w-7 rounded-t-md bg-primary/15"
             initial={{ height: 8 }}
-            whileInView={{ height: h }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.55, delay: i * 0.1, ease: "easeOut" }}
+            animate={loop ? { height: [8, h, h, 8] } : undefined}
+            whileInView={!loop ? { height: h } : undefined}
+            viewport={!loop ? { once: true } : undefined}
+            transition={
+              loop
+                ? { duration: 3.2, repeat: Infinity, delay: i * 0.1, ease: "easeInOut" }
+                : { duration: 0.55, delay: i * 0.1, ease: "easeOut" }
+            }
           >
             <div
               className="h-full w-full rounded-t-md bg-primary"
@@ -420,30 +484,58 @@ export function SupportVisual(_props: VisualProps) {
   );
 }
 
-/** Deploy — quiet provision steps */
-export function DeployVisual({ point }: VisualProps) {
-  const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "Ready";
-  const steps = ["Provision", "Configure", "Live"];
+/** Deploy — stacked step carousel (same motion pattern as home “full journey” bento) */
+const DEPLOY_STEPS = [
+  { id: "provision", title: "Provision server", icon: Server },
+  { id: "configure", title: "Configure stack", icon: Settings2 },
+  { id: "secure", title: "Secure & SSL", icon: ShieldCheck },
+  { id: "launch", title: "Go live", icon: Zap },
+  { id: "ready", title: "Ready to use", icon: Check },
+] as const;
+
+export function DeployVisual(_props: VisualProps) {
+  const [visible, setVisible] = useState(() => DEPLOY_STEPS.slice(0, 3));
+  const [pointer, setPointer] = useState(2);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible((prev) => {
+        const nextIndex = (pointer + 1) % DEPLOY_STEPS.length;
+        setPointer(nextIndex);
+        return [...prev.slice(1), DEPLOY_STEPS[nextIndex]!];
+      });
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [pointer]);
+
+  const rowH = 40;
+
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.4 }} className="w-full space-y-2.5">
-        {steps.map((step, i) => (
-          <motion.div
-            key={step}
-            className="flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-xs"
-            initial={{ opacity: 0.35 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.18 }}
-          >
-            <Check className="size-3.5 text-primary" />
-            <span className="text-foreground">{step}</span>
-            {i === steps.length - 1 ? (
-              <span className="ml-auto text-[10px] text-muted-foreground">{stat}</span>
-            ) : null}
-          </motion.div>
-        ))}
-      </motion.div>
+      <div className="relative h-[120px] w-full overflow-hidden">
+        <AnimatePresence initial={false}>
+          {visible.map((item, i) => (
+            <motion.div
+              key={item.id}
+              initial={{ y: 130, opacity: 0, scale: 0.92 }}
+              animate={{
+                y: i * rowH,
+                scale: i === 1 ? 1 : 0.92,
+                opacity: i === 1 ? 1 : 0.45,
+              }}
+              exit={{ y: -56, opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.55, ease: "easeInOut" }}
+              className="absolute inset-x-0 flex items-center justify-between rounded-xl border border-border/70 bg-card px-3 py-2.5 text-foreground shadow-sm"
+            >
+              <div className="flex items-center gap-2">
+                <item.icon className="size-3.5 shrink-0 text-primary" />
+                <span className="text-xs font-medium">{item.title}</span>
+              </div>
+              <Check className="size-3.5 shrink-0 text-primary" />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </Frame>
   );
 }
@@ -451,13 +543,11 @@ export function DeployVisual({ point }: VisualProps) {
 /** Reporting — simple chart card */
 export function ReportingVisual(_props: VisualProps) {
   const bars = [40, 62, 48, 78, 66, 88];
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div
-        {...softIn}
-        transition={{ duration: 0.4 }}
-        className="w-full rounded-xl border border-border/70 bg-card p-3"
-      >
+      <motion.div {...soft} className="w-full rounded-xl border border-border/70 bg-card p-3">
         <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <BarChart3 className="size-3.5 text-primary" />
           Monthly report
@@ -468,9 +558,14 @@ export function ReportingVisual(_props: VisualProps) {
               key={i}
               className="flex-1 rounded-sm bg-primary/70"
               initial={{ height: 6 }}
-              whileInView={{ height: `${h}%` }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: i * 0.05 }}
+              animate={loop ? { height: ["6%", `${h}%`, `${h}%`, "6%"] } : undefined}
+              whileInView={!loop ? { height: `${h}%` } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.1, ease: "easeInOut" }
+                  : { duration: 0.45, delay: i * 0.05 }
+              }
             />
           ))}
         </div>
@@ -482,9 +577,11 @@ export function ReportingVisual(_props: VisualProps) {
 /** Results — target progress */
 export function ResultsVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "30 days";
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-3">
+      <motion.div {...soft} className="flex flex-col items-center gap-3">
         <IconMark>
           <Sparkles className="size-4" />
         </IconMark>
@@ -497,9 +594,14 @@ export function ResultsVisual({ point }: VisualProps) {
             <motion.div
               className="h-full rounded-full bg-primary"
               initial={{ width: "0%" }}
-              whileInView={{ width: "72%" }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.9, ease: "easeOut" }}
+              animate={loop ? { width: ["0%", "72%", "72%", "0%"] } : undefined}
+              whileInView={!loop ? { width: "72%" } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
+                  : { duration: 0.9, ease: "easeOut" }
+              }
             />
           </div>
         </div>
@@ -510,9 +612,11 @@ export function ResultsVisual({ point }: VisualProps) {
 
 /** Brand — palette swatches */
 export function BrandVisual(_props: VisualProps) {
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.4 }} className="flex flex-col items-center gap-3">
+      <motion.div {...soft} className="flex flex-col items-center gap-3">
         <IconMark>
           <Palette className="size-4" />
         </IconMark>
@@ -522,9 +626,17 @@ export function BrandVisual(_props: VisualProps) {
               key={tone}
               className={`size-7 rounded-full border border-border/60 ${tone}`}
               initial={{ opacity: 0, scale: 0.85 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08, duration: 0.3 }}
+              animate={loop ? { opacity: 1, scale: [1, 1.08, 1] } : undefined}
+              whileInView={!loop ? { opacity: 1, scale: 1 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? {
+                      opacity: { duration: 0.3, delay: i * 0.08 },
+                      scale: { duration: 2.2, repeat: Infinity, delay: 0.35 + i * 0.08, ease: "easeInOut" },
+                    }
+                  : { delay: i * 0.08, duration: 0.3 }
+              }
             />
           ))}
         </div>
@@ -535,18 +647,25 @@ export function BrandVisual(_props: VisualProps) {
 
 /** Clarity — search → clear result */
 export function ClarityVisual(_props: VisualProps) {
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.4 }} className="w-full space-y-2">
+      <motion.div {...soft} className="w-full space-y-2">
         <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground">
           <Search className="size-3.5 text-primary" />
           yourbrand.co.ke
         </div>
         <motion.div
           initial={{ opacity: 0, y: 4 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.25 }}
+          animate={loop ? { opacity: [0, 1, 1, 0], y: [4, 0, 0, 4] } : undefined}
+          whileInView={!loop ? { opacity: 1, y: 0 } : undefined}
+          viewport={!loop ? { once: true } : undefined}
+          transition={
+            loop
+              ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.25 }
+              : { delay: 0.25 }
+          }
           className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-foreground"
         >
           <Check className="size-3.5 text-primary" />
@@ -559,6 +678,7 @@ export function ClarityVisual(_props: VisualProps) {
 
 /** Local market — pin drops on a soft map */
 export function LocalMarketVisual(_props: VisualProps) {
+  const loop = useLoop();
   return (
     <Frame>
       <div className="relative flex size-[112px] items-center justify-center">
@@ -574,9 +694,14 @@ export function LocalMarketVisual(_props: VisualProps) {
         />
         <motion.div
           initial={{ y: -18, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ type: "spring", stiffness: 280, damping: 18 }}
+          animate={loop ? { y: [-18, 0, 0, -18], opacity: [0, 1, 1, 0] } : undefined}
+          whileInView={!loop ? { y: 0, opacity: 1 } : undefined}
+          viewport={!loop ? { once: true } : undefined}
+          transition={
+            loop
+              ? { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
+              : { type: "spring", stiffness: 280, damping: 18 }
+          }
         >
           <MapPin className="size-8 text-primary" fill="currentColor" fillOpacity={0.15} />
         </motion.div>
@@ -587,30 +712,41 @@ export function LocalMarketVisual(_props: VisualProps) {
 
 /** Strategy — research lines resolve into a mark */
 export function StrategyVisual(_props: VisualProps) {
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.4 }} className="w-full space-y-2">
+      <motion.div {...soft} className="w-full space-y-2">
         {["Audience", "Competitors", "Position"].map((label, i) => (
           <motion.div
             key={label}
             className="flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-xs"
             initial={{ opacity: 0, x: -8 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            animate={loop ? { opacity: 1, x: 0 } : undefined}
+            whileInView={!loop ? { opacity: 1, x: 0 } : undefined}
+            viewport={!loop ? { once: true } : undefined}
             transition={{ delay: i * 0.12 }}
           >
             <motion.div
               className="h-1 flex-1 overflow-hidden rounded-full bg-muted"
               initial={{ opacity: 0.5 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
+              animate={loop ? { opacity: 1 } : undefined}
+              whileInView={!loop ? { opacity: 1 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
             >
               <motion.div
                 className="h-full rounded-full bg-primary"
                 initial={{ width: "0%" }}
-                whileInView={{ width: `${55 + i * 15}%` }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.15 + i * 0.12, duration: 0.6 }}
+                animate={
+                  loop ? { width: ["0%", `${55 + i * 15}%`, `${55 + i * 15}%`, "0%"] } : undefined
+                }
+                whileInView={!loop ? { width: `${55 + i * 15}%` } : undefined}
+                viewport={!loop ? { once: true } : undefined}
+                transition={
+                  loop
+                    ? { duration: 3.2, repeat: Infinity, delay: i * 0.1, ease: "easeInOut" }
+                    : { delay: 0.15 + i * 0.12, duration: 0.6 }
+                }
               />
             </motion.div>
             <span className="w-16 text-right text-[10px] text-muted-foreground">{label}</span>
@@ -624,13 +760,12 @@ export function StrategyVisual(_props: VisualProps) {
 /** Assets — files stack into a folder */
 export function AssetsVisual(_props: VisualProps) {
   const files = ["Logo.svg", "Guide.pdf", "Social.zip"];
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
       <div className="relative w-full">
-        <motion.div
-          {...softIn}
-          className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"
-        >
+        <motion.div {...soft} className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <FolderOpen className="size-3.5 text-primary" />
           Brand kit
         </motion.div>
@@ -640,9 +775,16 @@ export function AssetsVisual(_props: VisualProps) {
               key={file}
               className="flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-xs text-foreground"
               initial={{ opacity: 0, y: 10, scale: 0.96 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.14, duration: 0.35 }}
+              animate={
+                loop ? { opacity: [0, 1, 1, 0], y: [10, 0, 0, 10], scale: [0.96, 1, 1, 0.96] } : undefined
+              }
+              whileInView={!loop ? { opacity: 1, y: 0, scale: 1 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }
+                  : { delay: i * 0.14, duration: 0.35 }
+              }
             >
               <FileText className="size-3.5 text-primary" />
               {file}
@@ -656,6 +798,7 @@ export function AssetsVisual(_props: VisualProps) {
 
 /** Craft — pen draws a mark */
 export function CraftVisual(_props: VisualProps) {
+  const loop = useLoop();
   return (
     <Frame>
       <div className="relative size-[112px]">
@@ -668,9 +811,14 @@ export function CraftVisual(_props: VisualProps) {
             strokeLinecap="round"
             className="text-primary"
             initial={{ pathLength: 0, opacity: 0.4 }}
-            whileInView={{ pathLength: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.2, ease: "easeInOut" }}
+            animate={loop ? { pathLength: [0, 1, 1, 0], opacity: [0.4, 1, 1, 0.4] } : undefined}
+            whileInView={!loop ? { pathLength: 1, opacity: 1 } : undefined}
+            viewport={!loop ? { once: true } : undefined}
+            transition={
+              loop
+                ? { duration: 3.2, repeat: Infinity, ease: "easeInOut" }
+                : { duration: 1.2, ease: "easeInOut" }
+            }
           />
           <motion.circle
             cx="48"
@@ -678,17 +826,27 @@ export function CraftVisual(_props: VisualProps) {
             r="4"
             className="fill-primary"
             initial={{ scale: 0, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.9, duration: 0.3 }}
+            animate={loop ? { scale: [0, 1, 1, 0], opacity: [0, 1, 1, 0] } : undefined}
+            whileInView={!loop ? { scale: 1, opacity: 1 } : undefined}
+            viewport={!loop ? { once: true } : undefined}
+            transition={
+              loop
+                ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.15 }
+                : { delay: 0.9, duration: 0.3 }
+            }
           />
         </svg>
         <motion.div
           className="absolute right-3 top-4 text-primary"
           initial={{ x: 8, y: -8, opacity: 0 }}
-          whileInView={{ x: 0, y: 0, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.35, duration: 0.4 }}
+          animate={loop ? { x: [8, 0, 0, 8], y: [-8, 0, 0, -8], opacity: [0, 1, 1, 0] } : undefined}
+          whileInView={!loop ? { x: 0, y: 0, opacity: 1 } : undefined}
+          viewport={!loop ? { once: true } : undefined}
+          transition={
+            loop
+              ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
+              : { delay: 0.35, duration: 0.4 }
+          }
         >
           <PenTool className="size-4" />
         </motion.div>
@@ -701,6 +859,7 @@ export function CraftVisual(_props: VisualProps) {
 export function ProcessVisual({ point }: VisualProps) {
   const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "7 days";
   const steps = ["Brief", "Design", "Deliver"];
+  const loop = useLoop();
   return (
     <Frame>
       <div className="w-full space-y-3">
@@ -710,9 +869,14 @@ export function ProcessVisual({ point }: VisualProps) {
               <motion.div
                 className="flex size-7 items-center justify-center rounded-full border border-border/70 bg-card text-[10px] font-medium text-foreground"
                 initial={{ scale: 0.8, opacity: 0.4 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2 }}
+                animate={loop ? { scale: [0.8, 1, 1, 0.8], opacity: [0.4, 1, 1, 0.4] } : undefined}
+                whileInView={!loop ? { scale: 1, opacity: 1 } : undefined}
+                viewport={!loop ? { once: true } : undefined}
+                transition={
+                  loop
+                    ? { duration: 3.2, repeat: Infinity, delay: i * 0.55, ease: "easeInOut" }
+                    : { delay: i * 0.2 }
+                }
               >
                 {i + 1}
               </motion.div>
@@ -720,9 +884,14 @@ export function ProcessVisual({ point }: VisualProps) {
                 <motion.div
                   className="mx-1 h-px flex-1 bg-primary/40"
                   initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.15 + i * 0.2, duration: 0.35 }}
+                  animate={loop ? { scaleX: [0, 1, 1, 0] } : undefined}
+                  whileInView={!loop ? { scaleX: 1 } : undefined}
+                  viewport={!loop ? { once: true } : undefined}
+                  transition={
+                    loop
+                      ? { duration: 3.2, repeat: Infinity, delay: 0.15 + i * 0.55, ease: "easeInOut" }
+                      : { delay: 0.15 + i * 0.2, duration: 0.35 }
+                  }
                   style={{ transformOrigin: "left" }}
                 />
               ) : null}
@@ -739,9 +908,10 @@ export function ProcessVisual({ point }: VisualProps) {
 
 /** Ownership — key unlocks transfer */
 export function OwnershipVisual(_props: VisualProps) {
+  const soft = useSoftIn();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.4 }} className="flex flex-col items-center gap-3">
+      <motion.div {...soft} className="flex flex-col items-center gap-3">
         <motion.div
           className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-card"
           animate={{ rotate: [0, -8, 0] }}
@@ -799,6 +969,7 @@ export function EngagementVisual(_props: VisualProps) {
 
 /** Approval — stamp lands */
 export function ApprovalVisual(_props: VisualProps) {
+  const loop = useLoop();
   return (
     <Frame>
       <div className="relative flex size-[112px] items-center justify-center">
@@ -810,9 +981,18 @@ export function ApprovalVisual(_props: VisualProps) {
         <motion.div
           className="absolute -right-1 bottom-3 flex items-center gap-1 rounded-full border border-primary/30 bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground shadow-sm"
           initial={{ scale: 1.4, opacity: 0, rotate: -12 }}
-          whileInView={{ scale: 1, opacity: 1, rotate: -6 }}
-          viewport={{ once: true }}
-          transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.25 }}
+          animate={
+            loop
+              ? { scale: [1.4, 1, 1, 1.4], opacity: [0, 1, 1, 0], rotate: [-12, -6, -6, -12] }
+              : undefined
+          }
+          whileInView={!loop ? { scale: 1, opacity: 1, rotate: -6 } : undefined}
+          viewport={!loop ? { once: true } : undefined}
+          transition={
+            loop
+              ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.25 }
+              : { type: "spring", stiffness: 260, damping: 16, delay: 0.25 }
+          }
         >
           <Check className="size-3" />
           Approved
@@ -824,6 +1004,7 @@ export function ApprovalVisual(_props: VisualProps) {
 
 /** Targeting — focus ring tightens */
 export function TargetingVisual(_props: VisualProps) {
+  const loop = useLoop();
   return (
     <Frame>
       <div className="relative flex size-[112px] items-center justify-center">
@@ -833,9 +1014,21 @@ export function TargetingVisual(_props: VisualProps) {
             className="absolute rounded-full border border-primary/25"
             style={{ width: size, height: size }}
             initial={{ scale: 1.15, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.12, duration: 0.4 }}
+            animate={
+              loop
+                ? { scale: [1.15, 1, 1.05, 1], opacity: [0, 1, 1, 1] }
+                : undefined
+            }
+            whileInView={!loop ? { scale: 1, opacity: 1 } : undefined}
+            viewport={!loop ? { once: true } : undefined}
+            transition={
+              loop
+                ? {
+                    scale: { duration: 2.4, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" },
+                    opacity: { duration: 0.4, delay: i * 0.12 },
+                  }
+                : { delay: i * 0.12, duration: 0.4 }
+            }
           />
         ))}
         <Crosshair className="relative size-6 text-primary" />
@@ -922,10 +1115,11 @@ export function CreativeVisual(_props: VisualProps) {
 
 /** Mobile — phone frame tap */
 export function MobileVisual(_props: VisualProps) {
+  const soft = useSoftIn();
   return (
     <Frame>
       <motion.div
-        {...softIn}
+        {...soft}
         className="relative h-[108px] w-[64px] rounded-[1.1rem] border-2 border-border bg-card p-1.5 shadow-sm"
       >
         <div className="mx-auto mb-1.5 h-1 w-8 rounded-full bg-muted" />
@@ -954,6 +1148,7 @@ export function InventoryVisual(_props: VisualProps) {
     { name: "SKU-02", level: 45 },
     { name: "SKU-03", level: 18 },
   ];
+  const loop = useLoop();
   return (
     <Frame>
       <div className="w-full space-y-2">
@@ -967,9 +1162,18 @@ export function InventoryVisual(_props: VisualProps) {
               <motion.div
                 className="h-full rounded-full bg-primary"
                 initial={{ width: "0%" }}
-                whileInView={{ width: `${row.level}%` }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.12, duration: 0.55 }}
+                animate={
+                  loop
+                    ? { width: ["0%", `${row.level}%`, `${row.level}%`, "0%"] }
+                    : undefined
+                }
+                whileInView={!loop ? { width: `${row.level}%` } : undefined}
+                viewport={!loop ? { once: true } : undefined}
+                transition={
+                  loop
+                    ? { duration: 3.2, repeat: Infinity, delay: i * 0.1, ease: "easeInOut" }
+                    : { delay: i * 0.12, duration: 0.55 }
+                }
               />
             </div>
           </div>
@@ -981,20 +1185,24 @@ export function InventoryVisual(_props: VisualProps) {
 
 /** Payment — settle confirmation */
 export function PaymentVisual(_props: VisualProps) {
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div
-        {...softIn}
-        className="w-full rounded-xl border border-border/70 bg-card px-3 py-3 text-center"
-      >
+      <motion.div {...soft} className="w-full rounded-xl border border-border/70 bg-card px-3 py-3 text-center">
         <Package className="mx-auto mb-2 size-5 text-primary" />
         <div className="text-xs font-medium text-foreground">Payment settled</div>
         <motion.div
           className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary"
           initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
+          animate={loop ? { opacity: [0, 1, 1, 0], scale: [0.9, 1, 1, 0.9] } : undefined}
+          whileInView={!loop ? { opacity: 1, scale: 1 } : undefined}
+          viewport={!loop ? { once: true } : undefined}
+          transition={
+            loop
+              ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }
+              : { delay: 0.3 }
+          }
         >
           <Check className="size-3" />
           To your account
@@ -1007,6 +1215,7 @@ export function PaymentVisual(_props: VisualProps) {
 /** Automation — nodes connect */
 export function AutomationVisual(_props: VisualProps) {
   const nodes = ["Join", "Wait", "Send"];
+  const loop = useLoop();
   return (
     <Frame>
       <div className="flex w-full items-center justify-between gap-1 px-1">
@@ -1015,9 +1224,14 @@ export function AutomationVisual(_props: VisualProps) {
             <motion.div
               className="rounded-lg border border-border/70 bg-card px-2 py-1.5 text-[10px] font-medium text-foreground"
               initial={{ opacity: 0, y: 6 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.18 }}
+              animate={loop ? { opacity: [0, 1, 1, 0], y: [6, 0, 0, 6] } : undefined}
+              whileInView={!loop ? { opacity: 1, y: 0 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.55, ease: "easeInOut" }
+                  : { delay: i * 0.18 }
+              }
             >
               {node}
             </motion.div>
@@ -1025,9 +1239,14 @@ export function AutomationVisual(_props: VisualProps) {
               <motion.div
                 className="mx-0.5 h-px flex-1 bg-primary"
                 initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 + i * 0.18, duration: 0.35 }}
+                animate={loop ? { scaleX: [0, 1, 1, 0] } : undefined}
+                whileInView={!loop ? { scaleX: 1 } : undefined}
+                viewport={!loop ? { once: true } : undefined}
+                transition={
+                  loop
+                    ? { duration: 3.2, repeat: Infinity, delay: 0.2 + i * 0.55, ease: "easeInOut" }
+                    : { delay: 0.2 + i * 0.18, duration: 0.35 }
+                }
                 style={{ transformOrigin: "left" }}
               />
             ) : null}
@@ -1041,9 +1260,11 @@ export function AutomationVisual(_props: VisualProps) {
 /** Segments — list splits */
 export function SegmentsVisual(_props: VisualProps) {
   const chips = ["Buyers", "Local", "New"];
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} className="w-full space-y-2">
+      <motion.div {...soft} className="w-full space-y-2">
         <div className="rounded-lg border border-border/70 bg-muted/40 px-2.5 py-1.5 text-[10px] text-muted-foreground">
           Full list · 12,400
         </div>
@@ -1053,9 +1274,17 @@ export function SegmentsVisual(_props: VisualProps) {
               key={chip}
               className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[10px] font-medium text-foreground"
               initial={{ opacity: 0, scale: 0.85 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15 + i * 0.12 }}
+              animate={loop ? { opacity: 1, scale: [1, 1.06, 1] } : undefined}
+              whileInView={!loop ? { opacity: 1, scale: 1 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? {
+                      opacity: { duration: 0.3, delay: 0.15 + i * 0.12 },
+                      scale: { duration: 2.2, repeat: Infinity, delay: 0.4 + i * 0.12, ease: "easeInOut" },
+                    }
+                  : { delay: 0.15 + i * 0.12 }
+              }
             >
               {chip}
             </motion.span>
@@ -1117,11 +1346,12 @@ export function TypingVisual(_props: VisualProps) {
 
 /** Bot — AI reply card */
 export function BotVisual(_props: VisualProps) {
+  const soft = useSoftIn();
   return (
     <Frame>
       <div className="w-full space-y-2">
         <motion.div
-          {...softIn}
+          {...soft}
           className="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-muted px-2.5 py-1.5 text-[11px] text-foreground"
         >
           Do you deliver to Westlands?
@@ -1142,6 +1372,7 @@ export function BotVisual(_props: VisualProps) {
 /** Integrate — links connect */
 export function IntegrateVisual(_props: VisualProps) {
   const tools = ["CRM", "Cal", "Pay"];
+  const loop = useLoop();
   return (
     <Frame>
       <div className="flex w-full flex-col items-center gap-3">
@@ -1151,9 +1382,14 @@ export function IntegrateVisual(_props: VisualProps) {
               key={tool}
               className="rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-[10px] font-medium text-foreground"
               initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
+              animate={loop ? { opacity: [0, 1, 1, 0], y: [8, 0, 0, 8] } : undefined}
+              whileInView={!loop ? { opacity: 1, y: 0 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }
+                  : { delay: i * 0.1 }
+              }
             >
               {tool}
             </motion.div>
@@ -1162,9 +1398,14 @@ export function IntegrateVisual(_props: VisualProps) {
         <motion.div
           className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
           initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.35 }}
+          animate={loop ? { opacity: [0, 1, 1, 0] } : undefined}
+          whileInView={!loop ? { opacity: 1 } : undefined}
+          viewport={!loop ? { once: true } : undefined}
+          transition={
+            loop
+              ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.35 }
+              : { delay: 0.35 }
+          }
         >
           <Link2 className="size-3.5 text-primary" />
           Connected
@@ -1177,6 +1418,7 @@ export function IntegrateVisual(_props: VisualProps) {
 /** Code — lines build */
 export function CodeVisual(_props: VisualProps) {
   const lines = ["w-3/4", "w-full", "w-2/3", "w-5/6"];
+  const loop = useLoop();
   return (
     <Frame>
       <div className="w-full rounded-xl border border-border/70 bg-card p-3 font-mono">
@@ -1187,9 +1429,14 @@ export function CodeVisual(_props: VisualProps) {
               key={i}
               className={`h-1.5 ${w} rounded-full bg-primary/70`}
               initial={{ scaleX: 0, opacity: 0 }}
-              whileInView={{ scaleX: 1, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.12, duration: 0.35 }}
+              animate={loop ? { scaleX: [0, 1, 1, 0], opacity: [0, 1, 1, 0] } : undefined}
+              whileInView={!loop ? { scaleX: 1, opacity: 1 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }
+                  : { delay: i * 0.12, duration: 0.35 }
+              }
               style={{ transformOrigin: "left" }}
             />
           ))}
@@ -1206,6 +1453,7 @@ export function FunnelVisual(_props: VisualProps) {
     { label: "Engage", w: "w-4/5" },
     { label: "Convert", w: "w-3/5" },
   ];
+  const loop = useLoop();
   return (
     <Frame>
       <div className="flex w-full flex-col items-center gap-1.5">
@@ -1214,9 +1462,14 @@ export function FunnelVisual(_props: VisualProps) {
             key={stage.label}
             className={`${stage.w} rounded-md bg-primary/15 px-2 py-1.5 text-center text-[10px] font-medium text-foreground`}
             initial={{ opacity: 0, scaleX: 0.7 }}
-            whileInView={{ opacity: 1, scaleX: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.15 }}
+            animate={loop ? { opacity: [0, 1, 1, 0], scaleX: [0.7, 1, 1, 0.7] } : undefined}
+            whileInView={!loop ? { opacity: 1, scaleX: 1 } : undefined}
+            viewport={!loop ? { once: true } : undefined}
+            transition={
+              loop
+                ? { duration: 3.2, repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }
+                : { delay: i * 0.15 }
+            }
           >
             <span className="inline-block rounded bg-primary/20 px-1.5 py-0.5">{stage.label}</span>
           </motion.div>
@@ -1228,6 +1481,7 @@ export function FunnelVisual(_props: VisualProps) {
 
 /** Calendar — week fills in */
 export function CalendarVisual(_props: VisualProps) {
+  const loop = useLoop();
   return (
     <Frame>
       <div className="w-full rounded-xl border border-border/70 bg-card p-2.5">
@@ -1238,17 +1492,27 @@ export function CalendarVisual(_props: VisualProps) {
               key={i}
               className="flex aspect-square items-center justify-center rounded-md bg-muted text-[9px] text-muted-foreground"
               initial={{ opacity: 0.3 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
+              animate={loop ? { opacity: [0.3, 1, 1, 0.3] } : undefined}
+              whileInView={!loop ? { opacity: 1 } : undefined}
+              viewport={!loop ? { once: true } : undefined}
+              transition={
+                loop
+                  ? { duration: 3.2, repeat: Infinity, delay: i * 0.08, ease: "easeInOut" }
+                  : { delay: i * 0.08 }
+              }
             >
               {i < 5 ? (
                 <motion.span
                   className="size-1.5 rounded-full bg-primary"
                   initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.2 + i * 0.1 }}
+                  animate={loop ? { scale: [0, 1, 1, 0] } : undefined}
+                  whileInView={!loop ? { scale: 1 } : undefined}
+                  viewport={!loop ? { once: true } : undefined}
+                  transition={
+                    loop
+                      ? { duration: 3.2, repeat: Infinity, delay: 0.2 + i * 0.1, ease: "easeInOut" }
+                      : { delay: 0.2 + i * 0.1 }
+                  }
                 />
               ) : null}
             </motion.div>
@@ -1284,12 +1548,18 @@ export function AlgorithmVisual(_props: VisualProps) {
 
 /** Ethical — clean shield check */
 export function EthicalVisual(_props: VisualProps) {
+  const soft = useSoftIn();
+  const loop = useLoop();
   return (
     <Frame>
-      <motion.div {...softIn} className="flex flex-col items-center gap-2">
-        <div className="relative">
+      <motion.div {...soft} className="flex flex-col items-center gap-2">
+        <motion.div
+          className="relative"
+          animate={loop ? { scale: [1, 1.06, 1] } : undefined}
+          transition={loop ? { duration: 2.4, repeat: Infinity, ease: "easeInOut" } : undefined}
+        >
           <ShieldCheck className="size-14 text-primary" strokeWidth={1.25} />
-        </div>
+        </motion.div>
         <div className="text-center text-[11px] text-muted-foreground">
           White-hat only
         </div>
@@ -1300,6 +1570,7 @@ export function EthicalVisual(_props: VisualProps) {
 
 /** Maps — pin + search */
 export function MapsVisual(_props: VisualProps) {
+  const loop = useLoop();
   return (
     <Frame>
       <div className="w-full space-y-2">
@@ -1310,9 +1581,14 @@ export function MapsVisual(_props: VisualProps) {
         <motion.div
           className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-foreground"
           initial={{ opacity: 0, y: 6 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
+          animate={loop ? { opacity: [0, 1, 1, 0], y: [6, 0, 0, 6] } : undefined}
+          whileInView={!loop ? { opacity: 1, y: 0 } : undefined}
+          viewport={!loop ? { once: true } : undefined}
+          transition={
+            loop
+              ? { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }
+              : { delay: 0.2 }
+          }
         >
           <MapPin className="size-3.5 text-primary" />
           Your business · Maps
@@ -1325,9 +1601,10 @@ export function MapsVisual(_props: VisualProps) {
 /** Default — quiet icon + optional stat */
 export function DefaultVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc);
+  const soft = useSoftIn();
   return (
     <Frame>
-      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-2.5">
+      <motion.div {...soft} className="flex flex-col items-center gap-2.5">
         <IconMark>
           <FileText className="size-4" />
         </IconMark>
@@ -1350,10 +1627,21 @@ export function DefaultVisual({ point }: VisualProps) {
 export function ContextualVisual({
   point,
   theme,
+  loop = false,
 }: {
   point: BuiltDifferentPoint;
   theme: VisualTheme;
+  /** Continuous / remount-friendly motion for showcase cards */
+  loop?: boolean;
 }) {
+  return (
+    <VisualLoopContext.Provider value={loop}>
+      <VisualByTheme point={point} theme={theme} />
+    </VisualLoopContext.Provider>
+  );
+}
+
+function VisualByTheme({ point, theme }: { point: BuiltDifferentPoint; theme: VisualTheme }) {
   switch (theme) {
     case "uptime":
       return <UptimeVisual point={point} />;

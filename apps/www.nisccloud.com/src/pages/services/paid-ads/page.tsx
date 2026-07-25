@@ -1,5 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { Target, TrendingUp, BarChart2, Globe, Megaphone, Zap, Eye, DollarSign, CheckCircle2 } from "lucide-react";
+import { Target, TrendingUp, BarChart2, Globe, Megaphone, Zap, Eye, DollarSign } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -13,27 +13,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Clear dashboards updated as campaigns run",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Campaign Dashboard</div>
-          <div className="p-4 space-y-2">
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              {[["Ad Spend","Tracked"],["Leads","Attributed"],["CPL","Reported"],["Sales","Linked"]].map(([l,v]) => (
-                <div key={l} className="bg-muted/40 rounded-xl p-2.5 text-center">
-                  <div className="font-extrabold text-primary text-sm">{v}</div>
-                  <div className="text-[10px] text-muted-foreground">{l}</div>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <CheckCircle2 size={14} className="text-primary shrink-0" />
-              Clear reporting every week
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "tracking",
   },
   {
     tag: "Audience Targeting",
@@ -45,30 +25,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Interest-based audience layering on Meta",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Audience Focus</div>
-          <div className="space-y-2">
-            {[["Local areas","Priority"],["Interests","Matched"],["Lookalikes","Built"],["Retargeting","Active"]].map(([loc, pct]) => (
-              <div key={loc}>
-                <div className="flex justify-between text-xs mb-0.5">
-                  <span className="text-muted-foreground">{loc}</span>
-                  <span className="font-semibold">{pct}</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full bg-primary rounded-full" style={{ width: "72%" }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl p-3 border border-border/40 shadow text-center">
-          <div className="text-2xl font-extrabold text-primary">30 days</div>
-          <div className="text-[10px] text-muted-foreground">Results promise on active campaigns</div>
-        </div>
-      </div>
-    ),
+    visual: "targeting",
   },
 ];
 

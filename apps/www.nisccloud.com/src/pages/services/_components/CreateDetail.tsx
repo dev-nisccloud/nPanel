@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { Check, Paintbrush, Layers, Type, Palette } from "lucide-react";
+import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const features = [
   { icon: Palette, title: "Brand Identity", desc: "Logo, colour palette, typography system, and brand guidelines delivered as one clear package." },
@@ -51,19 +52,8 @@ export default function CreateDetail() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="relative rounded-2xl overflow-hidden aspect-[4/3]"
           >
-            <img
-              src="https://images.unsplash.com/photo-1684503830693-117be55da983?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900"
-              alt="Brand creation"
-              className="w-full h-full object-cover opacity-70"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-background/80 via-transparent to-transparent" />
-            {/* Floating stat */}
-            <div className="absolute bottom-6 left-6 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-5 py-3">
-              <div className="text-2xl font-bold text-primary">100+</div>
-              <div className="text-xs text-muted-foreground">Clients we have helped</div>
-            </div>
+            <ShowcaseVisualCard visual="brand" headline="Brand from the ground up" />
           </motion.div>
         </div>
 
