@@ -1,6 +1,6 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import { Palette, Layers, PenTool, Award, Sparkles, FileText, Users, Globe, CheckCircle2, Star } from "lucide-react";
+import { Palette, Layers, PenTool, Award, Sparkles, FileText, Users, Globe } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -14,39 +14,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Colour and type choices tuned for clarity and recognition",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 bg-white dark:bg-card rounded-2xl p-4 shadow-md border border-border/40">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shrink-0">
-            <Palette size={22} className="text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold truncate">Brand Identity Kit</div>
-            <div className="text-xs text-muted-foreground">Logo · Colours · Typography</div>
-          </div>
-          <CheckCircle2 size={18} className="text-green-500 shrink-0" />
-        </div>
-        <div className="grid grid-cols-5 gap-2">
-          {["oklch(0.60 0.22 235)","oklch(0.50 0.20 265)","oklch(0.65 0.16 160)","oklch(0.75 0.05 240)","oklch(0.20 0.02 260)"].map((c) => (
-            <div key={c} className="h-10 rounded-xl border border-border/30 shadow-sm" style={{ background: c }} />
-          ))}
-        </div>
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs text-muted-foreground mb-2 font-medium">HOW WE SUPPORT YOU</div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-extrabold text-primary">24/7</span>
-            <span className="text-xs text-muted-foreground">support available</span>
-          </div>
-          <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary" style={{ width: "100%" }} />
-          </div>
-          <div className="flex items-center gap-1 mt-2">
-            {[1,2,3,4,5].map(s => <Star key={s} size={12} className="fill-yellow-400 text-yellow-400" />)}
-            <span className="text-xs text-muted-foreground ml-1">Clear feedback at every step</span>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "brand",
   },
   {
     tag: "Brand Guide",
@@ -58,34 +26,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Print, digital, and social media application rules",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-3 flex items-center justify-between">
-            <span className="text-white text-sm font-bold">Brand Guidelines</span>
-            <FileText size={16} className="text-white/80" />
-          </div>
-          <div className="p-4 space-y-2.5">
-            {["Logo Usage Rules","Colour Palette","Typography System","Spacing & Grid","Imagery Style","Do's & Don'ts"].map(item => (
-              <div key={item} className="flex items-center gap-2.5 text-sm">
-                <CheckCircle2 size={13} className="text-primary shrink-0" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex-1 bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">100+</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Clients Helped</div>
-          </div>
-          <div className="flex-1 bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">30 days</div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Post-delivery support</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "clarity",
   },
   {
     tag: "Clear Positioning",
@@ -97,28 +38,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Packaging, signage, and vehicle wrap mockups available",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wide">What You Get</div>
-          <div className="space-y-2">
-            {[["Logo system","Complete"],["Colour & type","Documented"],["Usage rules","Ready to share"]].map(([label, status]) => (
-              <div key={String(label)} className="flex justify-between text-xs">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="font-bold text-primary">{status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md flex items-center gap-3">
-          <CheckCircle2 size={28} className="text-primary shrink-0" />
-          <div>
-            <div className="font-bold text-sm">Free setup help</div>
-            <div className="text-xs text-muted-foreground">We walk you through files and usage</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "trust",
   },
 ];
 
@@ -223,12 +143,12 @@ export default function BrandIdentityPage() {
         { num: "04", title: "Deliver & Launch", desc: "You receive a complete asset pack plus brand guide. We stay available for 30 days after delivery for adjustments." },
       ]}
       whyPoints={[
-        { title: "Local Market Understanding", desc: "We understand local culture, colour psychology, and what communicates trust and quality to Kenyan audiences." },
-        { title: "Strategy Before Aesthetics", desc: "Every design decision is rooted in research, not personal taste. Your logo should communicate before a word is spoken." },
-        { title: "Practical Business Assets", desc: "You leave with files, guidelines, and templates you can use across your website, social, and print materials right away." },
-        { title: "Experienced Designers", desc: "Every project is handled by an experienced brand designer. You work with people who know how to run a clear process." },
-        { title: "Fast Turnaround, Clear Process", desc: "Starter brands in a few days. Enterprise projects in about 7 to 10 days. We move quickly because the process is tight, not because we cut corners." },
-        { title: "You Own Everything", desc: "All source files, all intellectual property. You get every original working file with full ownership transfer." },
+        { title: "Local Market Understanding", desc: "We understand local culture, colour psychology, and what communicates trust and quality to Kenyan audiences.", visual: "localMarket" },
+        { title: "Strategy Before Aesthetics", desc: "Every design decision is rooted in research, not personal taste. Your logo should communicate before a word is spoken.", visual: "strategy" },
+        { title: "Practical Business Assets", desc: "You leave with files, guidelines, and templates you can use across your website, social, and print materials right away.", visual: "assets" },
+        { title: "Experienced Designers", desc: "Every project is handled by an experienced brand designer. You work with people who know how to run a clear process.", visual: "craft" },
+        { title: "Fast Turnaround, Clear Process", desc: "Starter brands in a few days. Enterprise projects in about 7 to 10 days. We move quickly because the process is tight, not because we cut corners.", visual: "process" },
+        { title: "You Own Everything", desc: "All source files, all intellectual property. You get every original working file with full ownership transfer.", visual: "ownership" },
       ]}
       faqs={[
         { q: "How many logo concepts will I receive?", a: "Depending on your plan: Starter gets 3 concepts, Growth gets 5, and Enterprise gets unlimited directions. Each concept is unique and comes with a design rationale explaining the thinking behind it." },

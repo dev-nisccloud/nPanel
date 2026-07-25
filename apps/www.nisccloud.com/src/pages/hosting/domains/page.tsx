@@ -71,7 +71,6 @@ export default function DomainsPage() {
         { num: "03", title: "Quick Activation", desc: "Domain is registered after payment. Email confirmation with nameservers and DNS login arrives shortly after." },
         { num: "04", title: "Connect Your Site", desc: "Point DNS to your hosting, set up MX records for email, or connect to any website builder. We help for free." },
       ]}
-      whySectionBadge="Why Choose Us"
       whySectionHeadline="Clear Names. Easy Buying."
       whyPoints={[
         { title: "A Clear Name, Easy to Buy", desc: "Search, choose, and register in a few steps. Your brand gets a clean online address without the confusion." },

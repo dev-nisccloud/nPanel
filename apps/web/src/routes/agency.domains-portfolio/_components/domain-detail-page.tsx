@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2, AlertCircle, Calendar, MoreVertical, RefreshCw, FilePlus2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Info, QrCode, Monitor, LayoutDashboard, Network, Server, Globe, ChevronRight, Code2, AlertCircle, Calendar, MoreVertical, RefreshCw, FilePlus2, Link2 } from "lucide-react";
 import { Link } from "react-router";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
+import { LinkKenicDomainToTeamDialog } from "./link-kenic-domain-to-team-dialog";
 import { DomainPortfolioContactInfo, type KenicRegistrantInfo } from "./domain-portfolio-contact-info";
 import { DomainTransferSecuritySection } from "@/components/domain-transfer-security-section";
 import type { DomainPortfolio } from "./domain-portfolio-card";
@@ -44,6 +45,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [activeTab, setActiveTab] = React.useState("overview");
   const [webDesignDialogOpen, setWebDesignDialogOpen] = React.useState(false);
   const [createSubscriptionDialogOpen, setCreateSubscriptionDialogOpen] = React.useState(false);
+  const [linkToTeamDialogOpen, setLinkToTeamDialogOpen] = React.useState(false);
 
   // 1. Fetch OpenProvider domains
   const { data: opDomainsData, isLoading: isOpLoading } = trpc.openProvider.domains.list.useQuery(
@@ -124,6 +126,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
 
   const existingSubscription = isKenic ? kenicSubscription : opSubscription;
   const hasExistingSubscription = !!existingSubscription;
+  const kenicNeedsTeamLink = isKenic && !!kenicSubscription && !kenicSubscription.teamId;
 
   const kenicStatuses = kenicLiveInfo?.data?.allStatuses ?? [];
   const kenicIsLocked =
@@ -250,26 +253,34 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="block w-full">
-                      <DropdownMenuItem
-                        onClick={() => !hasExistingSubscription && setCreateSubscriptionDialogOpen(true)}
-                        disabled={hasExistingSubscription}
-                      >
-                        <FilePlus2 className="h-4 w-4 mr-2" />
-                        Create subscription
-                      </DropdownMenuItem>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="max-w-xs">
-                    {hasExistingSubscription
-                      ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                      : "Create a Nisc subscription for this domain and link it to a user or team."}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {!isKenic && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="block w-full">
+                        <DropdownMenuItem
+                          onClick={() => !hasExistingSubscription && setCreateSubscriptionDialogOpen(true)}
+                          disabled={hasExistingSubscription}
+                        >
+                          <FilePlus2 className="h-4 w-4 mr-2" />
+                          Create subscription
+                        </DropdownMenuItem>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      {hasExistingSubscription
+                        ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
+                        : "Create a Nisc subscription for this domain and link it to a user or team."}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {kenicNeedsTeamLink && (
+                <DropdownMenuItem onClick={() => setLinkToTeamDialogOpen(true)}>
+                  <Link2 className="h-4 w-4 mr-2" />
+                  Link to team
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -423,6 +434,15 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         open={createSubscriptionDialogOpen}
         onOpenChange={setCreateSubscriptionDialogOpen}
         domain={mergedDomain as DomainPortfolio}
+      />
+      <LinkKenicDomainToTeamDialog
+        open={linkToTeamDialogOpen}
+        onOpenChange={setLinkToTeamDialogOpen}
+        domain={
+          mergedDomain
+            ? { id: mergedDomain.id, domain: mergedDomain.domain }
+            : null
+        }
       />
     </div>
   );

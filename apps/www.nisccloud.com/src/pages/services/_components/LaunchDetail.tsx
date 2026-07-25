@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { Check, Server, Zap, ShieldCheck, Globe } from "lucide-react";
+import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const features = [
   { icon: Zap, title: "Fast CDN Delivery", desc: "Content delivered from a global network so your site loads quickly for visitors wherever they are." },
@@ -28,24 +29,9 @@ export default function LaunchDetail() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="relative rounded-2xl overflow-hidden aspect-[4/3] order-2 lg:order-1"
+            className="order-2 lg:order-1"
           >
-            <img
-              src="https://images.unsplash.com/photo-1683322499436-f4383dd59f5a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900"
-              alt="Cloud hosting infrastructure"
-              className="w-full h-full object-cover opacity-60"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tl from-background/80 via-transparent to-transparent" />
-            {/* Uptime badge */}
-            <div className="absolute top-6 right-6 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-5 py-3">
-              <div className="text-2xl font-bold" style={{ color: "oklch(0.75 0.18 180)" }}>99.99%</div>
-              <div className="text-xs text-muted-foreground">Uptime target</div>
-            </div>
-            {/* Live status dot */}
-            <div className="absolute bottom-6 left-6 flex items-center gap-2 bg-card/90 backdrop-blur border border-border/60 rounded-full px-4 py-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs text-muted-foreground">All systems operational</span>
-            </div>
+            <ShowcaseVisualCard visual="uptime" headline="99.99% uptime hosting" />
           </motion.div>
 
           <motion.div
@@ -55,9 +41,6 @@ export default function LaunchDetail() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="order-1 lg:order-2"
           >
-            <div className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ backgroundColor: "oklch(0.75 0.18 180 / 0.1)", borderColor: "oklch(0.75 0.18 180 / 0.3)", color: "oklch(0.75 0.18 180)" }}>
-              02 - LAUNCH
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Reliable Cloud Hosting.<br />
               <span style={{ color: "oklch(0.75 0.18 180)" }}>Simple to Launch.</span>

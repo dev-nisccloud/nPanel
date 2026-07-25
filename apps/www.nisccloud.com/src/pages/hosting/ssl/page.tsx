@@ -85,38 +85,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "256-bit AES encryption, the same standard used by banks",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-muted/60 px-4 py-2.5 flex items-center gap-2.5 text-xs border-b border-border/40">
-            <Lock size={12} className="text-green-500 shrink-0" />
-            <span className="font-mono text-green-600 font-semibold">https://</span>
-            <span className="font-mono text-muted-foreground">yourbusiness.co.ke</span>
-            <span className="ml-auto bg-green-100 text-green-700 text-[9px] font-bold px-1.5 py-0.5 rounded-full">Secure</span>
-          </div>
-          <div className="p-4 space-y-2.5">
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3 text-xs">
-              <div className="font-bold text-green-700 dark:text-green-300 mb-1">Certificate Valid</div>
-              <div className="text-green-600 space-y-0.5">
-                <div>Issued to: Nisc Cloud Ltd</div>
-                <div>Valid until: 15 May 2026</div>
-                <div>Encryption: TLS 1.3 / 256-bit</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1 bg-muted/40 rounded-xl p-2 text-center text-xs">
-                <div className="font-bold text-primary">256-bit</div>
-                <div className="text-muted-foreground text-[10px]">Encryption</div>
-              </div>
-              <div className="flex-1 bg-muted/40 rounded-xl p-2 text-center text-xs">
-                <div className="font-bold text-primary">HTTPS</div>
-                <div className="text-muted-foreground text-[10px]">Visitor trust</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "trust",
   },
   {
     tag: "Payment Ready",
@@ -128,32 +97,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Free installation included. We configure your server for you",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">SSL Certificate Types</div>
-          <div className="space-y-2.5">
-            {[
-              { type: "DV Certificate", use: "Blogs and brochure sites", price: "KES 1,500/yr", color: "text-primary" },
-              { type: "OV Certificate", use: "Business websites", price: "KES 3,500/yr", color: "text-primary" },
-              { type: "EV Certificate", use: "E-commerce and fintech", price: "KES 8,000/yr", color: "text-primary" },
-            ].map(({ type, use, price, color }) => (
-              <div key={type} className="flex items-start justify-between text-xs p-2 rounded-xl bg-muted/30">
-                <div>
-                  <div className="font-semibold">{type}</div>
-                  <div className="text-muted-foreground">{use}</div>
-                </div>
-                <span className={`font-bold shrink-0 ml-2 ${color}`}>{price}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white dark:bg-card rounded-xl p-3 border border-border/40 shadow text-center">
-          <div className="text-xl font-extrabold text-primary">100+</div>
-          <div className="text-[10px] text-muted-foreground">Clients protected with SSL</div>
-        </div>
-      </div>
-    ),
+    visual: "security",
   },
 ];
 

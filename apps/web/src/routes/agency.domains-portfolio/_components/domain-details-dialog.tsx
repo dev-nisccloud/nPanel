@@ -35,6 +35,7 @@ import {
   Check,
   MoreVertical,
   FilePlus2,
+  Link2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -55,6 +56,7 @@ import { toast } from "@/components/ui/sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
+import { LinkKenicDomainToTeamDialog } from "./link-kenic-domain-to-team-dialog";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
 interface DomainDetailsDialogProps {
@@ -1411,14 +1413,26 @@ function DnsRecordsTab({ domain }: { domain: DomainPortfolio }) {
 // Domain Actions Menu Component
 function DomainActionsMenu({ domain }: { domain: DomainPortfolio }) {
   const [createSubscriptionOpen, setCreateSubscriptionOpen] = React.useState(false);
+  const [linkToTeamOpen, setLinkToTeamOpen] = React.useState(false);
+  const isKenic = domain.source === "kenic";
+  const kenicSubscriptionId = isKenic
+    ? domain.id.startsWith("kenic-")
+      ? domain.id.slice("kenic-".length)
+      : domain.id
+    : null;
   const openProviderId =
     typeof domain.id === "string" ? Number.parseInt(domain.id, 10) : domain.id;
   const { data: existingSubscription } =
     trpc.clientSubscriptions.getByOpenProviderId.useQuery(
       { openProviderId },
-      { enabled: !Number.isNaN(openProviderId) }
+      { enabled: !isKenic && !Number.isNaN(openProviderId) }
     );
+  const { data: kenicSubscription } = trpc.clientSubscriptions.getById.useQuery(
+    { id: kenicSubscriptionId! },
+    { enabled: !!kenicSubscriptionId }
+  );
   const hasExistingSubscription = !!existingSubscription;
+  const kenicNeedsTeamLink = isKenic && !!kenicSubscription && !kenicSubscription.teamId;
 
   return (
     <>
@@ -1429,32 +1443,45 @@ function DomainActionsMenu({ domain }: { domain: DomainPortfolio }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="block w-full">
-                  <DropdownMenuItem
-                    onClick={() => !hasExistingSubscription && setCreateSubscriptionOpen(true)}
-                    disabled={hasExistingSubscription}
-                  >
-                    <FilePlus2 className="mr-2 h-4 w-4" />
-                    Create subscription
-                  </DropdownMenuItem>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-xs">
-                {hasExistingSubscription
-                  ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
-                  : "Create a Nisc subscription for this domain and link it to a user or team."}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {!isKenic && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="block w-full">
+                    <DropdownMenuItem
+                      onClick={() => !hasExistingSubscription && setCreateSubscriptionOpen(true)}
+                      disabled={hasExistingSubscription}
+                    >
+                      <FilePlus2 className="mr-2 h-4 w-4" />
+                      Create subscription
+                    </DropdownMenuItem>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="max-w-xs">
+                  {hasExistingSubscription
+                    ? "This domain already has a connected subscription. To connect you need to first suspend the existing to connect it."
+                    : "Create a Nisc subscription for this domain and link it to a user or team."}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {kenicNeedsTeamLink && (
+            <DropdownMenuItem onClick={() => setLinkToTeamOpen(true)}>
+              <Link2 className="mr-2 h-4 w-4" />
+              Link to team
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       <CreateSubscriptionFromDomainDialog
         open={createSubscriptionOpen}
         onOpenChange={setCreateSubscriptionOpen}
         domain={domain}
+      />
+      <LinkKenicDomainToTeamDialog
+        open={linkToTeamOpen}
+        onOpenChange={setLinkToTeamOpen}
+        domain={{ id: domain.id, domain: domain.domain }}
       />
     </>
   );

@@ -71,7 +71,7 @@ function FaqAccordion({ faqs }: { faqs: FaqBlockItem[] }) {
 export default function Faq({
   faqs = [],
   categories,
-  badge = "FAQs",
+  badge,
   title = "Got questions? We've got answers ready",
   defaultCategory = "General",
 }: FaqBlockProps) {
@@ -88,12 +88,14 @@ export default function Faq({
     <section className="border-t border-border/40">
       <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 py-8 sm:px-6 lg:px-8 xl:py-24">
         <div className="flex animate-in fade-in slide-in-from-top-10 flex-col items-center gap-4 duration-1000 ease-in-out fill-mode-both delay-100">
-          <Badge
-            variant="outline"
-            className="h-auto border-0 px-3 py-1 text-sm outline outline-border"
-          >
-            {badge}
-          </Badge>
+          {badge ? (
+            <Badge
+              variant="outline"
+              className="h-auto border-0 px-3 py-1 text-sm outline outline-border"
+            >
+              {badge}
+            </Badge>
+          ) : null}
           <h2 className="max-w-lg text-center text-3xl font-medium sm:text-5xl">{title}</h2>
         </div>
 

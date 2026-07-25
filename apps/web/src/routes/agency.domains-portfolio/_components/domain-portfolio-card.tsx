@@ -29,6 +29,7 @@ import {
   ExternalLink,
   Trash2,
   FilePlus2,
+  Link2,
 } from "lucide-react";
 
 export type DomainPortfolio = {
@@ -42,6 +43,11 @@ export type DomainPortfolio = {
   tld: string;
   autoRenewal: boolean;
   nameservers: string[];
+  /** Present for KENIC portfolio rows backed by nisc_client_subscription. */
+  source?: "openprovider" | "kenic";
+  teamId?: string | null;
+  userId?: string | null;
+  teamName?: string | null;
   // Additional OpenProvider fields (optional)
   ownerHandle?: string;
   adminHandle?: string;
@@ -88,6 +94,7 @@ interface DomainPortfolioCardProps {
   onTransfer?: (id: string) => void;
   onDelete?: (id: string) => void;
   onCreateSubscription?: (domain: DomainPortfolio) => void;
+  onLinkToTeam?: (domain: DomainPortfolio) => void;
   hasExistingSubscription?: boolean;
   className?: string;
 }
@@ -105,10 +112,15 @@ export function DomainPortfolioCard({
   onTransfer,
   onDelete,
   onCreateSubscription,
+  onLinkToTeam,
   hasExistingSubscription = false,
   className,
 }: DomainPortfolioCardProps) {
   const [isActionMenuOpen, setIsActionMenuOpen] = React.useState(false);
+  const canLinkToTeam =
+    !!onLinkToTeam && data.source === "kenic" && !data.teamId;
+  const showCreateSubscription =
+    !!onCreateSubscription && data.source !== "kenic";
 
   const handleCardClick = () => {
     if (onView) {
@@ -222,7 +234,7 @@ export function DomainPortfolioCard({
               <ExternalLink className="mr-2 h-4 w-4" />
               View Details
             </DropdownMenuItem>
-            {onCreateSubscription && (
+            {showCreateSubscription && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -246,6 +258,17 @@ export function DomainPortfolioCard({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+            )}
+            {canLinkToTeam && (
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onLinkToTeam(data);
+                }}
+              >
+                <Link2 className="mr-2 h-4 w-4" />
+                Link to team
+              </DropdownMenuItem>
             )}
             <DropdownMenuItem
               onSelect={(e) => {
@@ -303,6 +326,7 @@ interface DomainPortfolioCardsListProps {
   onTransfer?: (id: string) => void;
   onDelete?: (id: string) => void;
   onCreateSubscription?: (domain: DomainPortfolio) => void;
+  onLinkToTeam?: (domain: DomainPortfolio) => void;
   openProviderIdsWithSubscriptions?: Set<number>;
   className?: string;
   cols?: 1 | 2 | 3 | 4;
@@ -320,6 +344,7 @@ export function DomainPortfolioCardsList({
   onTransfer,
   onDelete,
   onCreateSubscription,
+  onLinkToTeam,
   openProviderIdsWithSubscriptions,
   cols = 1,
   className,
@@ -345,6 +370,7 @@ export function DomainPortfolioCardsList({
           onTransfer={onTransfer}
           onDelete={onDelete}
           onCreateSubscription={onCreateSubscription}
+          onLinkToTeam={onLinkToTeam}
           hasExistingSubscription={
             openProviderIdsWithSubscriptions?.has(domainIdToNumber(domain.id)) ?? false
           }

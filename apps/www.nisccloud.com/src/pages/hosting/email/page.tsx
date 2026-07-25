@@ -17,33 +17,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Shared calendars and group inboxes for your whole team",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">Business Email Inbox</div>
-          <div className="p-4 space-y-2.5">
-            {[
-              { from: "james@client.co.ke", subj: "Re: Project Proposal", time: "9:42", unread: true },
-              { from: "support@bank.co.ke", subj: "Your invoice is ready", time: "8:15", unread: false },
-              { from: "newsletter@industry.com", subj: "Weekly digest", time: "Yest", unread: false },
-            ].map(({ from, subj, time, unread }) => (
-              <div key={from} className={`flex items-start gap-2.5 text-xs p-2 rounded-xl ${unread ? "bg-primary/5 border border-primary/20" : ""}`}>
-                <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold shrink-0 text-[10px]">
-                  {from[0].toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between">
-                    <span className={`truncate ${unread ? "font-bold" : "font-medium"}`}>{from}</span>
-                    <span className="text-muted-foreground shrink-0 ml-1">{time}</span>
-                  </div>
-                  <div className={`truncate ${unread ? "text-foreground font-semibold" : "text-muted-foreground"}`}>{subj}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "inbox",
   },
   {
     tag: "Deliverability",
@@ -55,36 +29,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "SpamExperts AI-powered inbound filtering with 99% spam caught",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Email Authentication Status</div>
-          <div className="space-y-2.5">
-            {[
-              { check: "DKIM Signature", status: "Passing ✓", color: "text-green-500" },
-              { check: "SPF Record", status: "Passing ✓", color: "text-green-500" },
-              { check: "DMARC Policy", status: "Enforced ✓", color: "text-green-500" },
-              { check: "Spam Score", status: "0.2 / 10 ✓", color: "text-green-500" },
-            ].map(({ check, status, color }) => (
-              <div key={check} className="flex justify-between text-xs">
-                <span className="text-muted-foreground">{check}</span>
-                <span className={`font-bold ${color}`}>{status}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">24/7</div>
-            <div className="text-[10px] text-muted-foreground">Email support</div>
-          </div>
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">99%</div>
-            <div className="text-[10px] text-muted-foreground">Spam caught</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "security",
   },
 ];
 

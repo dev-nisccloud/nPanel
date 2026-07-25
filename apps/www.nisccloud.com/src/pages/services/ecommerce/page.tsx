@@ -1,5 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
-import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, CreditCard, Package, Truck, BarChart2, Shield, Smartphone, Globe } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const showcaseBlocks: ShowcaseBlock[] = [
@@ -13,38 +13,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Clear order confirmation and delivery updates",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-3 flex items-center justify-between">
-            <span className="text-white text-sm font-bold">Checkout Flow</span>
-            <Smartphone size={16} className="text-white/80" />
-          </div>
-          <div className="p-4 space-y-3">
-            <div className="bg-muted/40 rounded-xl p-3 text-center">
-              <div className="text-2xl font-extrabold text-primary">3 steps</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Cart · Pay · Confirm</div>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-xl p-3">
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <span className="text-white text-[10px]">✓</span>
-              </div>
-              <span>Order confirmed · Customer notified</span>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">100+</div>
-            <div className="text-[10px] text-muted-foreground">Clients helped</div>
-          </div>
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">99.99%</div>
-            <div className="text-[10px] text-muted-foreground">Uptime target</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "payment",
   },
   {
     tag: "Sales Analytics",
@@ -56,25 +25,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Best-selling product rankings updated regularly",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Store Performance</div>
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            {[["Revenue","Tracked"],["Orders","Live"],["Avg Order","Clear"],["Cart Recovery","Ready"]].map(([l,v]) => (
-              <div key={l} className="bg-muted/40 rounded-xl p-2.5 text-center">
-                <div className="font-extrabold text-primary text-sm">{v}</div>
-                <div className="text-[10px] text-muted-foreground">{l}</div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <CheckCircle2 size={14} className="text-primary shrink-0" />
-            <span className="text-muted-foreground">Clear reporting included</span>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "reporting",
   },
 ];
 
@@ -179,12 +130,12 @@ export default function EcommercePage() {
         { num: "04", title: "Launch & Train", desc: "We go live, submit to Google, and run a training session covering how to add products, manage orders, process refunds, and grow your store." },
       ]}
       whyPoints={[
-        { title: "Checkout Built for Real Shoppers", desc: "We design product pages and checkout flows that feel simple on mobile, so customers finish buying without friction." },
-        { title: "Built for Local Shopping Habits", desc: "Customers compare prices, shop on mobile, and expect clear delivery info. Our stores are built around that behaviour." },
-        { title: "Inventory That Actually Works", desc: "Real-time stock updates help prevent overselling. Automated low-stock alerts mean you can restock before a busy sales day." },
-        { title: "Your Store, Your Money", desc: "Payments settle to your business account. No middleman holding your revenue longer than the payment provider requires." },
-        { title: "Scales From Small to Large Catalogues", desc: "Our architecture handles small boutiques and large distributors. Your store can grow without needing a rebuild every 18 months." },
-        { title: "Training & Ongoing Support", desc: "We do not just hand over the keys. Full training, walkthroughs, and 24/7 support help you succeed long-term." },
+        { title: "Checkout Built for Real Shoppers", desc: "We design product pages and checkout flows that feel simple on mobile, so customers finish buying without friction.", visual: "mobile" },
+        { title: "Built for Local Shopping Habits", desc: "Customers compare prices, shop on mobile, and expect clear delivery info. Our stores are built around that behaviour.", visual: "localMarket" },
+        { title: "Inventory That Actually Works", desc: "Real-time stock updates help prevent overselling. Automated low-stock alerts mean you can restock before a busy sales day.", visual: "inventory" },
+        { title: "Your Store, Your Money", desc: "Payments settle to your business account. No middleman holding your revenue longer than the payment provider requires.", visual: "payment" },
+        { title: "Scales From Small to Large Catalogues", desc: "Our architecture handles small boutiques and large distributors. Your store can grow without needing a rebuild every 18 months.", visual: "growth" },
+        { title: "Training & Ongoing Support", desc: "We do not just hand over the keys. Full training, walkthroughs, and 24/7 support help you succeed long-term.", visual: "support" },
       ]}
       faqs={[
         { q: "How do payments work for my customers?", a: "At checkout, customers choose a payment method they prefer. Mobile money customers can approve payment on their phone. Card customers pay through a secure gateway. Confirmation is shown right away." },

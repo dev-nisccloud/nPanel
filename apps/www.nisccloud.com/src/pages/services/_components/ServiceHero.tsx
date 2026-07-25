@@ -21,19 +21,10 @@ export default function ServiceHero() {
       />
 
       <div className="max-w-4xl mx-auto px-4 md:px-8 text-center relative">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-6"
-        >
-          OUR SERVICES
-        </motion.div>
-
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
+          transition={{ duration: 0.6 }}
           className="text-5xl md:text-6xl font-bold tracking-tight mb-6 text-balance"
         >
           Everything Your Brand

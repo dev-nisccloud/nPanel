@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Plus, RefreshCw, Search, Globe, Grid3X3, List, EllipsisVertical, FilePlus2 } from "lucide-react";
+import { Plus, RefreshCw, Search, Globe, Grid3X3, List, EllipsisVertical, FilePlus2, Link2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { DomainPortfolioCardsList, type DomainPortfolio } from "./agency.domains-portfolio/_components/domain-portfolio-card";
 import { CreateSubscriptionFromDomainDialog } from "./agency.domains-portfolio/_components/create-subscription-from-domain-dialog";
+import { LinkKenicDomainToTeamDialog } from "./agency.domains-portfolio/_components/link-kenic-domain-to-team-dialog";
 import { EmptyState } from "./agency.domains-portfolio/_components/empty-state";
 import { trpc } from "@/utils/trpc";
 import {
@@ -45,6 +46,7 @@ export default function DomainsPortfolioPage() {
   const [offset, setOffset] = React.useState(0);
   const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [createSubscriptionDomain, setCreateSubscriptionDomain] = React.useState<DomainPortfolio | null>(null);
+  const [linkToTeamDomain, setLinkToTeamDomain] = React.useState<DomainPortfolio | null>(null);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -306,6 +308,13 @@ export default function DomainsPortfolioPage() {
                                 </TooltipContent>
                               </Tooltip>
                             )}
+                            {/* KENIC domains already have a subscription — link missing teamId */}
+                            {domain.source === "kenic" && !domain.teamId && (
+                              <DropdownMenuItem onClick={() => setLinkToTeamDomain(domain)}>
+                                <Link2 className="mr-2 h-4 w-4" />
+                                Link to team
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TooltipTrigger>
@@ -330,6 +339,7 @@ export default function DomainsPortfolioPage() {
       cols={4}
       onView={(id) => handleNavigation(`/agency/domains-portfolio/${id}`)}
       onCreateSubscription={(d) => setCreateSubscriptionDomain(d)}
+      onLinkToTeam={(d) => setLinkToTeamDomain(d)}
       openProviderIdsWithSubscriptions={openProviderIdsWithSubscriptionsSet}
     />
   );
@@ -478,6 +488,12 @@ export default function DomainsPortfolioPage() {
                   onSuccess={() => setCreateSubscriptionDomain(null)}
                 />
               )}
+              <LinkKenicDomainToTeamDialog
+                open={!!linkToTeamDomain}
+                onOpenChange={(open) => !open && setLinkToTeamDomain(null)}
+                domain={linkToTeamDomain}
+                onSuccess={() => setLinkToTeamDomain(null)}
+              />
               {filteredDomains.length < allDomains.length && (
                 <div className="text-center text-sm text-muted-foreground">
                   Showing {filteredDomains.length} of {allDomains.length} domains
