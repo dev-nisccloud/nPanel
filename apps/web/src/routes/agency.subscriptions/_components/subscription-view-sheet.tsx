@@ -147,7 +147,7 @@ export function SubscriptionViewSheet({
 	const productPlanName = sub?.productPlan?.name ?? null;
 	const teamName = sub?.team?.name ?? null;
 	const userName = sub?.userName ?? null;
-	const displayOwner = userName ?? teamName ?? "- ";
+	const displayOwner = userName ?? "- ";
 
 	const isSuspended = sub?.status === "SUSPENDED";
 	const canReactivate = isSuspended;
@@ -261,6 +261,13 @@ export function SubscriptionViewSheet({
 											<span className="text-muted-foreground">Owner</span>
 											<span className="font-medium">{displayOwner}</span>
 										</div>
+										{teamName ? (
+											<div className="flex items-center gap-2 text-sm">
+												<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+												<span className="text-muted-foreground">Team</span>
+												<span className="font-medium">{teamName}</span>
+											</div>
+										) : null}
 										{isHostingLinked && hostingServiceId ? (
 											<div className="flex items-center gap-2 text-sm">
 												<Server className="h-4 w-4 text-muted-foreground shrink-0" />

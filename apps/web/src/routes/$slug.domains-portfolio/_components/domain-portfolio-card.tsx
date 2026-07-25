@@ -42,6 +42,9 @@ export type DomainPortfolio = {
   tld: string;
   autoRenewal: boolean;
   nameservers: string[];
+  /** Present for KENIC portfolio rows backed by nisc_client_subscription. */
+  source?: "openprovider" | "kenic";
+  teamId?: string | null;
   // Additional OpenProvider fields (optional)
   ownerHandle?: string;
   adminHandle?: string;
