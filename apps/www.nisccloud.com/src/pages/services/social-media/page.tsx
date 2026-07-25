@@ -196,12 +196,12 @@ export default function SocialMediaPage() {
         { num: "04", title: "Analyse & Improve", desc: "Monthly deep-dive into performance data. We identify what drove the most reach, engagement, and leads, then improve next month's strategy." },
       ]}
       whyPoints={[
-        { title: "Local-Fluent Content", desc: "We know local culture, trending topics, public holidays, and the type of content that resonates with audiences across Kenya and the diaspora." },
-        { title: "Real Engagement, Not Empty Metrics", desc: "We do not chase likes alone. We build communities that comment, share, DM, and become customers. Engagement quality matters most." },
-        { title: "Dedicated Account Manager", desc: "You have one person who knows your brand inside out, not a rotating team. Consistent quality and a direct communication channel." },
-        { title: "Content Approved Before Publishing", desc: "You review and approve the full month's content before anything goes live. Brand safety and message accuracy stay in your control." },
-        { title: "We Handle Everything", desc: "Strategy, design, copywriting, scheduling, community management, reporting. You do not need to think about social media day to day." },
-        { title: "Platform Algorithm Experts", desc: "Instagram, TikTok, LinkedIn, and Facebook algorithms change constantly. Our team tracks updates and adjusts content strategy to maintain reach." },
+        { title: "Local-Fluent Content", desc: "We know local culture, trending topics, public holidays, and the type of content that resonates with audiences across Kenya and the diaspora.", visual: "localMarket" },
+        { title: "Real Engagement, Not Empty Metrics", desc: "We do not chase likes alone. We build communities that comment, share, DM, and become customers. Engagement quality matters most.", visual: "engagement" },
+        { title: "Dedicated Account Manager", desc: "You have one person who knows your brand inside out, not a rotating team. Consistent quality and a direct communication channel.", visual: "support" },
+        { title: "Content Approved Before Publishing", desc: "You review and approve the full month's content before anything goes live. Brand safety and message accuracy stay in your control.", visual: "approval" },
+        { title: "We Handle Everything", desc: "Strategy, design, copywriting, scheduling, community management, reporting. You do not need to think about social media day to day.", visual: "calendar" },
+        { title: "Platform Algorithm Experts", desc: "Instagram, TikTok, LinkedIn, and Facebook algorithms change constantly. Our team tracks updates and adjusts content strategy to maintain reach.", visual: "algorithm" },
       ]}
       faqs={[
         { q: "Will you post content without my approval?", a: "Never. We create the full monthly content calendar and share it with you for review and approval at least 5 days before the first post of the month. You can request changes before anything is published." },

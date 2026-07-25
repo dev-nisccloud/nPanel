@@ -179,12 +179,12 @@ export default function EcommercePage() {
         { num: "04", title: "Launch & Train", desc: "We go live, submit to Google, and run a training session covering how to add products, manage orders, process refunds, and grow your store." },
       ]}
       whyPoints={[
-        { title: "Checkout Built for Real Shoppers", desc: "We design product pages and checkout flows that feel simple on mobile, so customers finish buying without friction." },
-        { title: "Built for Local Shopping Habits", desc: "Customers compare prices, shop on mobile, and expect clear delivery info. Our stores are built around that behaviour." },
-        { title: "Inventory That Actually Works", desc: "Real-time stock updates help prevent overselling. Automated low-stock alerts mean you can restock before a busy sales day." },
-        { title: "Your Store, Your Money", desc: "Payments settle to your business account. No middleman holding your revenue longer than the payment provider requires." },
-        { title: "Scales From Small to Large Catalogues", desc: "Our architecture handles small boutiques and large distributors. Your store can grow without needing a rebuild every 18 months." },
-        { title: "Training & Ongoing Support", desc: "We do not just hand over the keys. Full training, walkthroughs, and 24/7 support help you succeed long-term." },
+        { title: "Checkout Built for Real Shoppers", desc: "We design product pages and checkout flows that feel simple on mobile, so customers finish buying without friction.", visual: "mobile" },
+        { title: "Built for Local Shopping Habits", desc: "Customers compare prices, shop on mobile, and expect clear delivery info. Our stores are built around that behaviour.", visual: "localMarket" },
+        { title: "Inventory That Actually Works", desc: "Real-time stock updates help prevent overselling. Automated low-stock alerts mean you can restock before a busy sales day.", visual: "inventory" },
+        { title: "Your Store, Your Money", desc: "Payments settle to your business account. No middleman holding your revenue longer than the payment provider requires.", visual: "payment" },
+        { title: "Scales From Small to Large Catalogues", desc: "Our architecture handles small boutiques and large distributors. Your store can grow without needing a rebuild every 18 months.", visual: "growth" },
+        { title: "Training & Ongoing Support", desc: "We do not just hand over the keys. Full training, walkthroughs, and 24/7 support help you succeed long-term.", visual: "support" },
       ]}
       faqs={[
         { q: "How do payments work for my customers?", a: "At checkout, customers choose a payment method they prefer. Mobile money customers can approve payment on their phone. Card customers pay through a secure gateway. Confirmation is shown right away." },

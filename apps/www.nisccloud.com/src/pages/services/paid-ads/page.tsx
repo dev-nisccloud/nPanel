@@ -173,12 +173,12 @@ export default function PaidAdsPage() {
         { num: "04", title: "Report & Scale", desc: "Monthly reports with plain-English insights. We show what your ad budget produced and how we will improve results next month." },
       ]}
       whyPoints={[
-        { title: "We Understand Local Buyers", desc: "Ad copy that works elsewhere does not always work here. We craft messaging, visuals, and offers tuned to local culture and buying behaviour." },
-        { title: "No Wasted Impressions", desc: "We focus on targeting precision. Every impression should be seen by someone more likely to buy, not wasted on the wrong audience." },
-        { title: "Management Fee Separate from Ad Spend", desc: "Our management fee is fixed. Your ad spend goes to the platforms. No hidden markups on ad spend." },
-        { title: "Conversion Tracking Done Properly", desc: "We set up Google Tag Manager, Meta Pixel, and server-side tracking so every lead is attributed clearly." },
-        { title: "Accountable, Measurable Results", desc: "We agree on KPIs upfront: cost per lead, cost per sale, and return targets. Every report shows progress against these metrics." },
-        { title: "Creative That Converts", desc: "Pretty ads do not always convert. We test direct-response creative, testimonial ads, and offer-led copy to find what drives sales." },
+        { title: "We Understand Local Buyers", desc: "Ad copy that works elsewhere does not always work here. We craft messaging, visuals, and offers tuned to local culture and buying behaviour.", visual: "localMarket" },
+        { title: "No Wasted Impressions", desc: "We focus on targeting precision. Every impression should be seen by someone more likely to buy, not wasted on the wrong audience.", visual: "targeting" },
+        { title: "Management Fee Separate from Ad Spend", desc: "Our management fee is fixed. Your ad spend goes to the platforms. No hidden markups on ad spend.", visual: "pricing" },
+        { title: "Conversion Tracking Done Properly", desc: "We set up Google Tag Manager, Meta Pixel, and server-side tracking so every lead is attributed clearly.", visual: "tracking" },
+        { title: "Accountable, Measurable Results", desc: "We agree on KPIs upfront: cost per lead, cost per sale, and return targets. Every report shows progress against these metrics.", visual: "results" },
+        { title: "Creative That Converts", desc: "Pretty ads do not always convert. We test direct-response creative, testimonial ads, and offer-led copy to find what drives sales.", visual: "creative" },
       ]}
       faqs={[
         { q: "How much budget do I need for paid ads to work?", a: "We recommend a minimum monthly ad spend of KES 30,000 for meaningful results on a single platform. This gives enough data for optimisation. Budgets of KES 100,000+ per month typically see better scale." },

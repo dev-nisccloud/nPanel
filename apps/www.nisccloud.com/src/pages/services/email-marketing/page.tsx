@@ -138,12 +138,12 @@ export default function EmailMarketingPage() {
         { num: "04", title: "Optimise & Scale", desc: "Monthly performance review identifies your best-performing content, highest-converting segments, and new automation opportunities." },
       ]}
       whyPoints={[
-        { title: "Strong Return When Done Well", desc: "Email marketing outperforms many other digital channels when lists are clean and messages are relevant. We build strategies that protect that advantage." },
-        { title: "We Write Your Emails", desc: "Our copywriters craft every subject line and email body. You do not need to find time to write. We produce content in your brand voice after onboarding." },
-        { title: "Segmentation That Actually Works", desc: "Most email lists are treated as one blob. We segment by behaviour, purchase history, and geography to send relevant messages that convert better." },
-        { title: "Automation Running 24/7", desc: "Once built, your automation flows work continuously. A subscriber joins late at night and immediately enters your welcome sequence." },
-        { title: "Deliverability First Infrastructure", desc: "We manage sender reputation, list hygiene, and technical email configuration so campaigns reach inboxes at Gmail, Outlook, and beyond." },
-        { title: "Transparent Reporting", desc: "Monthly reports show what your email programme earned. Open rate, click rate, revenue attributed, and list growth, every number in plain English." },
+        { title: "Strong Return When Done Well", desc: "Email marketing outperforms many other digital channels when lists are clean and messages are relevant. We build strategies that protect that advantage.", visual: "results" },
+        { title: "We Write Your Emails", desc: "Our copywriters craft every subject line and email body. You do not need to find time to write. We produce content in your brand voice after onboarding.", visual: "typing" },
+        { title: "Segmentation That Actually Works", desc: "Most email lists are treated as one blob. We segment by behaviour, purchase history, and geography to send relevant messages that convert better.", visual: "segments" },
+        { title: "Automation Running 24/7", desc: "Once built, your automation flows work continuously. A subscriber joins late at night and immediately enters your welcome sequence.", visual: "automation" },
+        { title: "Deliverability First Infrastructure", desc: "We manage sender reputation, list hygiene, and technical email configuration so campaigns reach inboxes at Gmail, Outlook, and beyond.", visual: "inbox" },
+        { title: "Transparent Reporting", desc: "Monthly reports show what your email programme earned. Open rate, click rate, revenue attributed, and list growth, every number in plain English.", visual: "reporting" },
       ]}
       faqs={[
         { q: "Do I need to already have an email list?", a: "No. We can help you build your list from scratch using your website, social media, and in-store channels. We set up lead magnets, sign-up forms, and list-building strategies alongside your campaigns." },

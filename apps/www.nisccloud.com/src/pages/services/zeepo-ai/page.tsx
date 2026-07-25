@@ -173,12 +173,12 @@ export default function AiAutomationPage() {
         { num: "04", title: "Launch & Optimise", desc: "Go live, monitor every conversation, and optimise monthly. AI performance improves over time as it handles more real interactions." },
       ]}
       whyPoints={[
-        { title: "Local Business Context Built In", desc: "Our AI understands local payment habits, business hours, everyday terminology, and Swahili, unlike generic chatbot tools built for other markets." },
-        { title: "Never Lose a Lead to Slow Response", desc: "Buyers often choose the company that responds first. Our AI helps you stay first even when you are in a meeting or offline." },
-        { title: "Not Just a FAQ Bot", desc: "It qualifies leads, books appointments, can support payment flows where configured, and hands off complex cases. A real sales and support helper." },
-        { title: "Works With Your Existing Tools", desc: "Integrates with Google Calendar, HubSpot, Zoho CRM, Google Sheets, payment tools, and other systems via Zapier and native APIs." },
-        { title: "Cost-Effective Coverage", desc: "A human sales assistant costs far more each month plus benefits. Our AI covers high-volume replies and follow-up at a fraction of that cost, 24/7." },
-        { title: "Your Team Stays Human", desc: "AI handles the repetitive volume work so your team focuses on high-value relationships, complex deals, and the things that need a human touch." },
+        { title: "Local Business Context Built In", desc: "Our AI understands local payment habits, business hours, everyday terminology, and Swahili, unlike generic chatbot tools built for other markets.", visual: "localMarket" },
+        { title: "Never Lose a Lead to Slow Response", desc: "Buyers often choose the company that responds first. Our AI helps you stay first even when you are in a meeting or offline.", visual: "speed" },
+        { title: "Not Just a FAQ Bot", desc: "It qualifies leads, books appointments, can support payment flows where configured, and hands off complex cases. A real sales and support helper.", visual: "bot" },
+        { title: "Works With Your Existing Tools", desc: "Integrates with Google Calendar, HubSpot, Zoho CRM, Google Sheets, payment tools, and other systems via Zapier and native APIs.", visual: "integrate" },
+        { title: "Cost-Effective Coverage", desc: "A human sales assistant costs far more each month plus benefits. Our AI covers high-volume replies and follow-up at a fraction of that cost, 24/7.", visual: "pricing" },
+        { title: "Your Team Stays Human", desc: "AI handles the repetitive volume work so your team focuses on high-value relationships, complex deals, and the things that need a human touch.", visual: "support" },
       ]}
       faqs={[
         { q: "Will customers know they're talking to AI?", a: "You choose. We can configure the AI to be transparent, or to operate under your brand. Most clients choose a branded assistant with clear AI disclosure when directly asked." },

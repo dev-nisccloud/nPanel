@@ -185,12 +185,12 @@ export default function SeoPage() {
         { num: "04", title: "Monitor, Report & Scale", desc: "Monthly rank tracking, traffic analysis, and continuous optimisation. Clear reporting and strategy adjustments based on what is working." },
       ]}
       whyPoints={[
-        { title: "SEO + AEO + Local Search Together", desc: "We optimise for Google, Maps, and AI answer tools, because that is where more discovery is heading." },
-        { title: "Local Search Understanding", desc: "We research how customers actually search, including local area names and everyday phrasing that generic tools miss." },
-        { title: "Transparent Monthly Reporting", desc: "Every month you get a clear report showing keyword positions, organic traffic, backlinks earned, and how that connects to leads." },
-        { title: "No Black-Hat Tricks", desc: "We build visibility that can survive algorithm updates. No spam links, no keyword stuffing. Only strategies that compound over time." },
-        { title: "30-Day Results Promise", desc: "On active SEO work, we focus on visible progress within 30 days. If target keywords have not moved by month 3, we add extra hours at no charge until they do." },
-        { title: "Trusted by 100+ Clients", desc: "From e-commerce stores to professional services, we help businesses get found by the people looking for what they offer." },
+        { title: "SEO + AEO + Local Search Together", desc: "We optimise for Google, Maps, and AI answer tools, because that is where more discovery is heading.", visual: "maps" },
+        { title: "Local Search Understanding", desc: "We research how customers actually search, including local area names and everyday phrasing that generic tools miss.", visual: "localMarket" },
+        { title: "Transparent Monthly Reporting", desc: "Every month you get a clear report showing keyword positions, organic traffic, backlinks earned, and how that connects to leads.", visual: "reporting" },
+        { title: "No Black-Hat Tricks", desc: "We build visibility that can survive algorithm updates. No spam links, no keyword stuffing. Only strategies that compound over time.", visual: "ethical" },
+        { title: "30-Day Results Promise", desc: "On active SEO work, we focus on visible progress within 30 days. If target keywords have not moved by month 3, we add extra hours at no charge until they do.", visual: "results" },
+        { title: "Trusted by 100+ Clients", desc: "From e-commerce stores to professional services, we help businesses get found by the people looking for what they offer.", visual: "trust" },
       ]}
       faqs={[
         { q: "How long before I see better visibility on Google?", a: "Most clients see measurable ranking improvements within 60 to 90 days. Stronger traffic growth typically builds at the 3 to 6 month mark. Competitive industries can take longer for top positions." },

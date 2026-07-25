@@ -18,6 +18,7 @@ import ServiceStatistics, {
   trustStatsToStatisticsItems,
 } from "@/components/shadcn-space/blocks/statistics-02/statistics.tsx";
 import BuiltDifferentBento from "@/components/shadcn-space/blocks/built-different-01/built-different-bento.tsx";
+import type { VisualTheme } from "@/components/shadcn-space/blocks/built-different-01/visual-context.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ export type FaqItem = {
 export type WhyPoint = {
   title: string;
   desc: string;
+  /** Optional pinned bento visual (keeps cards unique per section). */
+  visual?: VisualTheme;
 };
 
 export type Addon = {
@@ -300,10 +303,6 @@ function ClosingCta({ headline, subtext, onCta }: { headline: string; subtext: s
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
 
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-6 tracking-wide">
-            <Sparkles size={12} />
-            READY WHEN YOU ARE
-          </div>
           <h2 className="text-3xl md:text-5xl font-extrabold mb-4 leading-tight">{headline}</h2>
           <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto leading-relaxed">{subtext}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -477,7 +476,7 @@ export default function ServicePageShell({
   checkoutServiceType,
   checkoutProductName,
   whySectionHeadline,
-  whySectionBadge,
+  whySectionBadge: _whySectionBadge,
 }: ServicePageShellProps) {
   const scrollToPlans = useCallback(() => {
     const target = document.getElementById("plans") ?? document.getElementById("pricing");
@@ -580,7 +579,6 @@ export default function ServicePageShell({
       {whyPoints && (
         <BuiltDifferentBento
           points={whyPoints}
-          badge={whySectionBadge}
           headline={whySectionHeadline}
         />
       )}

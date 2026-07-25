@@ -223,12 +223,12 @@ export default function BrandIdentityPage() {
         { num: "04", title: "Deliver & Launch", desc: "You receive a complete asset pack plus brand guide. We stay available for 30 days after delivery for adjustments." },
       ]}
       whyPoints={[
-        { title: "Local Market Understanding", desc: "We understand local culture, colour psychology, and what communicates trust and quality to Kenyan audiences." },
-        { title: "Strategy Before Aesthetics", desc: "Every design decision is rooted in research, not personal taste. Your logo should communicate before a word is spoken." },
-        { title: "Practical Business Assets", desc: "You leave with files, guidelines, and templates you can use across your website, social, and print materials right away." },
-        { title: "Experienced Designers", desc: "Every project is handled by an experienced brand designer. You work with people who know how to run a clear process." },
-        { title: "Fast Turnaround, Clear Process", desc: "Starter brands in a few days. Enterprise projects in about 7 to 10 days. We move quickly because the process is tight, not because we cut corners." },
-        { title: "You Own Everything", desc: "All source files, all intellectual property. You get every original working file with full ownership transfer." },
+        { title: "Local Market Understanding", desc: "We understand local culture, colour psychology, and what communicates trust and quality to Kenyan audiences.", visual: "localMarket" },
+        { title: "Strategy Before Aesthetics", desc: "Every design decision is rooted in research, not personal taste. Your logo should communicate before a word is spoken.", visual: "strategy" },
+        { title: "Practical Business Assets", desc: "You leave with files, guidelines, and templates you can use across your website, social, and print materials right away.", visual: "assets" },
+        { title: "Experienced Designers", desc: "Every project is handled by an experienced brand designer. You work with people who know how to run a clear process.", visual: "craft" },
+        { title: "Fast Turnaround, Clear Process", desc: "Starter brands in a few days. Enterprise projects in about 7 to 10 days. We move quickly because the process is tight, not because we cut corners.", visual: "process" },
+        { title: "You Own Everything", desc: "All source files, all intellectual property. You get every original working file with full ownership transfer.", visual: "ownership" },
       ]}
       faqs={[
         { q: "How many logo concepts will I receive?", a: "Depending on your plan: Starter gets 3 concepts, Growth gets 5, and Enterprise gets unlimited directions. Each concept is unique and comes with a design rationale explaining the thinking behind it." },

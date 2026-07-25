@@ -1,653 +1,1439 @@
-import { motion } from "motion/react";
+import { useEffect, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
+  ArrowRight,
+  BarChart3,
   Check,
-  CheckCircle2,
-  Globe2,
+  Crosshair,
+  FileText,
+  FolderOpen,
+  Inbox,
+  KeyRound,
+  Link2,
   Lock,
   MapPin,
+  MessageCircle,
+  Package,
+  Palette,
+  PenTool,
+  Search,
   Server,
   Shield,
   ShieldCheck,
   Smartphone,
+  Sparkles,
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { extractStat, type BuiltDifferentPoint } from "./visual-context.ts";
-import type { VisualTheme } from "./visual-context.ts";
+import { extractStat, type BuiltDifferentPoint, type VisualTheme } from "./visual-context.ts";
 
 type VisualProps = {
   point: BuiltDifferentPoint;
-  compact?: boolean;
 };
 
-/* ─── Uptime: pulsing server grid + live status ─── */
-export function UptimeVisual({ point, compact }: VisualProps) {
-  const stat = extractStat(point.title) ?? "99.99%";
-  const nodes = [0, 1, 2, 3, 4, 5];
+const softIn = {
+  initial: { opacity: 0, y: 8 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-20px" as const },
+};
 
+function Frame({ children }: { children: ReactNode }) {
   return (
-    <div className={compact ? "w-full max-w-[220px] mx-auto" : "w-full"}>
-      <div className="relative rounded-xl border border-border bg-muted/30 p-3">
-        <div className="mb-2 flex items-center justify-between text-[10px] font-mono">
-          <span className="text-muted-foreground">cluster status</span>
-          <motion.span
-            className="flex items-center gap-1 text-green-500 font-semibold"
-            animate={{ opacity: [1, 0.5, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <span className="size-1.5 rounded-full bg-green-500" />
-            LIVE
-          </motion.span>
+    <div className="mx-auto flex h-[132px] w-full max-w-[220px] items-center justify-center">
+      {children}
+    </div>
+  );
+}
+
+function IconMark({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex size-11 items-center justify-center rounded-2xl border border-border/70 bg-muted/40 text-primary">
+      {children}
+    </div>
+  );
+}
+
+/** Uptime — calm status pulse */
+export function UptimeVisual({ point }: VisualProps) {
+  const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "99.99%";
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.45 }} className="w-full space-y-3">
+        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <Server className="size-4 text-primary" />
+            <span className="text-xs text-muted-foreground">Status</span>
+          </div>
+          <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            <motion.span
+              className="size-1.5 rounded-full bg-primary"
+              animate={{ opacity: [1, 0.35, 1] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            Online
+          </span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {nodes.map((i) => (
+        <div className="text-center">
+          <div className="text-2xl font-semibold tracking-tight text-foreground">{stat}</div>
+          <div className="text-[11px] text-muted-foreground">uptime target</div>
+        </div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Speed — progress ring filling once */
+export function SpeedVisual({ point }: VisualProps) {
+  const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "Fast";
+  return (
+    <Frame>
+      <div className="relative size-[112px]">
+        <svg viewBox="0 0 96 96" className="size-full -rotate-90" aria-hidden>
+          <circle cx="48" cy="48" r="38" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted" />
+          <motion.circle
+            cx="48"
+            cy="48"
+            r="38"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="6"
+            strokeLinecap="round"
+            className="text-primary"
+            strokeDasharray={239}
+            initial={{ strokeDashoffset: 239 }}
+            whileInView={{ strokeDashoffset: 48 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.1, ease: "easeOut" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <Zap className="mb-0.5 size-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">{stat}</span>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Security — lock settles in */
+export function SecurityVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-3">
+        <div className="relative flex size-16 items-center justify-center">
+          <Shield className="absolute size-16 text-muted" strokeWidth={1} />
+          <motion.div
+            initial={{ y: -6, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <Lock className="relative size-6 text-primary" />
+          </motion.div>
+        </div>
+        <span className="text-xs text-muted-foreground">Protected by default</span>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Migration — simple A → B handoff */
+export function MigrationVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <div className="flex w-full items-center justify-between gap-2 px-1">
+        <motion.div {...softIn} transition={{ duration: 0.4 }} className="flex flex-col items-center gap-1.5">
+          <IconMark>
+            <Server className="size-4 text-muted-foreground" />
+          </IconMark>
+          <span className="text-[10px] text-muted-foreground">Old</span>
+        </motion.div>
+
+        <div className="relative h-px flex-1 bg-border">
+          <motion.div
+            className="absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary"
+            initial={{ left: "0%", opacity: 0 }}
+            animate={{ left: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <ArrowRight className="absolute left-1/2 top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />
+        </div>
+
+        <motion.div
+          {...softIn}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="flex flex-col items-center gap-1.5"
+        >
+          <IconMark>
+            <Server className="size-4 text-primary" />
+          </IconMark>
+          <span className="text-[10px] font-medium text-foreground">Nisc</span>
+        </motion.div>
+      </div>
+    </Frame>
+  );
+}
+
+const TRUST_CLIENT_LOGOS = [
+  { name: "Amarom", logo: "/clients/amarom2.png" },
+  { name: "Medplus", logo: "/clients/medplus-logo.png" },
+  { name: "Epitome", logo: "/clients/epitome-logo.png" },
+  { name: "Ashut", logo: "/clients/ashut-logo.png" },
+] as const;
+
+/** Trust — client logos + count */
+export function TrustVisual({ point }: VisualProps) {
+  const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "100+";
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-3">
+        <div className="flex -space-x-2.5">
+          {TRUST_CLIENT_LOGOS.map((client, i) => (
             <motion.div
-              key={i}
-              className="flex flex-col items-center gap-1 rounded-lg border border-border/60 bg-card px-2 py-2"
+              key={client.name}
+              className="flex size-9 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-card shadow-sm"
               initial={{ opacity: 0, scale: 0.8 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
+              transition={{ delay: i * 0.08, duration: 0.35 }}
             >
-              <Server className="size-3.5 text-primary/70" />
-              <motion.div
-                className="size-1.5 rounded-full bg-green-500"
-                animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+              <img
+                src={client.logo}
+                alt={client.name}
+                className="size-6 object-contain"
+                loading="lazy"
               />
             </motion.div>
           ))}
         </div>
-        <motion.div
-          className="mt-3 text-center text-3xl font-bold text-primary"
-          initial={{ opacity: 0, y: 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-        >
-          {stat}
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Speed: animated speedometer + data packets ─── */
-export function SpeedVisual({ point, compact }: VisualProps) {
-  const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "<2s";
-
-  return (
-    <div className={`relative mx-auto ${compact ? "size-36" : "size-44"}`}>
-      <svg viewBox="0 0 120 120" className="size-full -rotate-90" aria-hidden>
-        <circle cx="60" cy="60" r="48" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
-        <motion.circle
-          cx="60" cy="60" r="48" fill="none" stroke="currentColor" strokeWidth="6"
-          strokeLinecap="round" className="text-primary"
-          strokeDasharray={301.6}
-          initial={{ strokeDashoffset: 301.6 }}
-          whileInView={{ strokeDashoffset: 301.6 * 0.15 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.4, ease: "easeOut" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <motion.div
-          className="absolute top-1/2 left-1/2 h-[38%] w-0.5 origin-bottom rounded-full bg-primary"
-          style={{ x: "-50%", y: "-100%" }}
-          initial={{ rotate: -120 }}
-          whileInView={{ rotate: 20 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.8, ease: "easeOut" }}
-        />
-        <Zap className="relative z-10 size-5 text-primary mb-0.5" />
-        <span className="relative z-10 text-lg font-bold text-primary">{stat}</span>
-      </div>
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute size-1.5 rounded-full bg-primary"
-          style={{ top: "50%", left: "50%" }}
-          animate={{
-            x: [0, (i - 1) * 40],
-            y: [0, -30 - i * 10],
-            opacity: [0, 1, 0],
-            scale: [0.5, 1, 0.5],
-          }}
-          transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.5 }}
-        />
-      ))}
-    </div>
-  );
-}
-
-/* ─── M-Pesa: phone + STK push success flow ─── */
-export function MpesaVisual({ compact }: VisualProps) {
-  return (
-    <div className={`relative mx-auto ${compact ? "h-36 w-44" : "h-44 w-52"}`}>
-      <motion.div
-        className="absolute inset-x-4 top-2 rounded-2xl border-2 border-green-500/30 bg-green-500/5 p-3"
-        initial={{ y: 20, opacity: 0 }}
-        whileInView={{ y: 0, opacity: 1 }}
-        viewport={{ once: true }}
-      >
-        <div className="flex items-center gap-2 mb-2">
-          <Smartphone className="size-4 text-green-600" />
-          <span className="text-[10px] font-bold text-green-600">M-PESA</span>
+        <div className="text-center">
+          <div className="text-2xl font-semibold tracking-tight text-foreground">{stat}</div>
+          <div className="text-[11px] text-muted-foreground">clients we support</div>
         </div>
-        <motion.div
-          className="rounded-lg bg-green-600 px-2 py-1.5 text-[9px] font-semibold text-white text-center"
-          initial={{ scale: 0.9, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
-        >
-          STK Push Sent
-        </motion.div>
-        <motion.div
-          className="mt-2 flex items-center gap-1.5 text-[9px] text-green-700"
-          initial={{ opacity: 0, x: -8 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.9 }}
-        >
-          <CheckCircle2 className="size-3.5" />
-          Payment confirmed
-        </motion.div>
       </motion.div>
+    </Frame>
+  );
+}
+
+/** Inbox — deliverability / spam filter */
+export function InboxVisual({ point }: VisualProps) {
+  const stat = extractStat(point.title) ?? extractStat(point.desc);
+  return (
+    <Frame>
       <motion.div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-1"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 1.2 }}
+        {...softIn}
+        transition={{ duration: 0.4 }}
+        className="w-full rounded-xl border border-border/70 bg-card px-3 py-2.5"
       >
-        {[0, 1, 2].map((i) => (
-          <motion.span
+        <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <Inbox className="size-3.5 text-primary" />
+          Inbox health
+        </div>
+        <ul className="space-y-1.5">
+          {[
+            { label: "Spam blocked" },
+            { label: "Inbox delivery" },
+            { label: stat ? `${stat} catch rate` : "Clean reputation" },
+          ].map((row, i) => (
+            <motion.li
+              key={row.label}
+              className="flex items-center justify-between text-xs"
+              initial={{ opacity: 0, x: -6 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 + i * 0.1 }}
+            >
+              <span className="text-foreground">{row.label}</span>
+              <Check className="size-3.5 text-primary" />
+            </motion.li>
+          ))}
+        </ul>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Pricing — included checklist */
+export function PricingVisual(_props: VisualProps) {
+  const items = ["Setup", "SSL", "Support"];
+  return (
+    <Frame>
+      <motion.div
+        {...softIn}
+        transition={{ duration: 0.4 }}
+        className="w-full rounded-xl border border-border/70 bg-card px-3 py-2.5"
+      >
+        <div className="mb-2 text-[11px] font-medium text-muted-foreground">What you get</div>
+        <ul className="space-y-1.5">
+          {items.map((item, i) => (
+            <motion.li
+              key={item}
+              className="flex items-center justify-between text-xs"
+              initial={{ opacity: 0, x: -6 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 + i * 0.1 }}
+            >
+              <span className="text-foreground">{item}</span>
+              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                <Check className="size-3 text-primary" />
+                Included
+              </span>
+            </motion.li>
+          ))}
+        </ul>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Growth — rank climbing bars */
+export function GrowthVisual(_props: VisualProps) {
+  const bars = [28, 48, 68, 92];
+  return (
+    <Frame>
+      <div className="flex h-[96px] w-full items-end justify-center gap-2.5 px-4">
+        {bars.map((h, i) => (
+          <motion.div
             key={i}
-            className="size-1.5 rounded-full bg-green-500"
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-          />
+            className="w-7 rounded-t-md bg-primary/15"
+            initial={{ height: 8 }}
+            whileInView={{ height: h }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.55, delay: i * 0.1, ease: "easeOut" }}
+          >
+            <div
+              className="h-full w-full rounded-t-md bg-primary"
+              style={{ opacity: 0.35 + i * 0.18 }}
+            />
+          </motion.div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+type SupportPhase = "idle" | "user" | "typing" | "reply";
+
+/** Support — looping chat exchange */
+export function SupportVisual(_props: VisualProps) {
+  const [phase, setPhase] = useState<SupportPhase>("idle");
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, ms);
+      });
+
+    const loop = async () => {
+      while (!cancelled) {
+        setPhase("idle");
+        await wait(500);
+        if (cancelled) break;
+        setPhase("user");
+        await wait(900);
+        if (cancelled) break;
+        setPhase("typing");
+        await wait(1100);
+        if (cancelled) break;
+        setPhase("reply");
+        await wait(2400);
+      }
+    };
+
+    void loop();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const showUser = phase === "user" || phase === "typing" || phase === "reply";
+  const showTyping = phase === "typing";
+  const showReply = phase === "reply";
+
+  return (
+    <Frame>
+      <div className="flex h-full w-full flex-col justify-end gap-2 px-1">
+        <div className="flex min-h-[88px] flex-col justify-end gap-2">
+          <AnimatePresence>
+            {showUser ? (
+              <motion.div
+                key="user"
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-primary px-2.5 py-1.5 text-[11px] text-primary-foreground"
+              >
+                Need a quick hand?
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <AnimatePresence mode="wait">
+            {showTyping ? (
+              <motion.div
+                key="typing"
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="mr-auto flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border/70 bg-card px-3 py-2"
+              >
+                {[0, 1, 2].map((i) => (
+                  <motion.span
+                    key={i}
+                    className="size-1.5 rounded-full bg-muted-foreground/70"
+                    animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                    transition={{
+                      duration: 0.9,
+                      repeat: Infinity,
+                      delay: i * 0.15,
+                      ease: "easeInOut",
+                    }}
+                  />
+                ))}
+              </motion.div>
+            ) : null}
+
+            {showReply ? (
+              <motion.div
+                key="reply"
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                className="mr-auto flex max-w-[90%] items-start gap-1.5 rounded-2xl rounded-bl-md border border-border/70 bg-card px-2.5 py-1.5 text-[11px] text-foreground"
+              >
+                <MessageCircle className="mt-0.5 size-3 shrink-0 text-primary" />
+                We are on it.
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Deploy — quiet provision steps */
+export function DeployVisual({ point }: VisualProps) {
+  const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "Ready";
+  const steps = ["Provision", "Configure", "Live"];
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.4 }} className="w-full space-y-2.5">
+        {steps.map((step, i) => (
+          <motion.div
+            key={step}
+            className="flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-xs"
+            initial={{ opacity: 0.35 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.18 }}
+          >
+            <Check className="size-3.5 text-primary" />
+            <span className="text-foreground">{step}</span>
+            {i === steps.length - 1 ? (
+              <span className="ml-auto text-[10px] text-muted-foreground">{stat}</span>
+            ) : null}
+          </motion.div>
         ))}
       </motion.div>
-    </div>
+    </Frame>
   );
 }
 
-/* ─── Security: shield scan + lock close ─── */
-export function SecurityVisual({ compact }: VisualProps) {
+/** Reporting — simple chart card */
+export function ReportingVisual(_props: VisualProps) {
+  const bars = [40, 62, 48, 78, 66, 88];
   return (
-    <div className={`relative mx-auto flex items-center justify-center ${compact ? "size-36" : "size-44"}`}>
+    <Frame>
       <motion.div
-        className="absolute inset-4 rounded-full border border-primary/20"
-        animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0, 0.4] }}
-        transition={{ duration: 2.5, repeat: Infinity }}
-      />
-      <Shield className="size-16 text-primary/20 absolute" strokeWidth={0.75} />
-      <motion.div
-        className="relative z-10 flex size-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/30"
-        whileHover={{ scale: 1.05 }}
+        {...softIn}
+        transition={{ duration: 0.4 }}
+        className="w-full rounded-xl border border-border/70 bg-card p-3"
       >
-        <motion.div
-          initial={{ y: -4, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ type: "spring", stiffness: 300, delay: 0.3 }}
-        >
-          <Lock className="size-7 text-primary" />
-        </motion.div>
-      </motion.div>
-      <motion.div
-        className="absolute inset-x-6 h-0.5 bg-primary/60 rounded-full"
-        initial={{ top: "20%" }}
-        animate={{ top: ["20%", "75%", "20%"] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-[9px] font-bold text-green-600"
-        initial={{ scale: 0 }}
-        whileInView={{ scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.8, type: "spring" }}
-      >
-        <ShieldCheck className="size-3" />
-        HTTPS
-      </motion.div>
-    </div>
-  );
-}
-
-/* ─── Migration: files flying between servers ─── */
-export function MigrationVisual({ compact }: VisualProps) {
-  return (
-    <div className={`relative mx-auto ${compact ? "h-32 w-full max-w-xs" : "h-44 w-full"}`}>
-      <div className="flex items-center justify-between px-2">
-        <motion.div
-          className="flex flex-col items-center gap-1"
-          initial={{ opacity: 0, x: -12 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-        >
-          <div className="rounded-lg border border-border bg-muted p-2">
-            <Server className="size-5 text-muted-foreground" />
-          </div>
-          <span className="text-[8px] text-muted-foreground">Old host</span>
-        </motion.div>
-
-        <div className="relative flex-1 mx-2 h-8">
-          {[0, 1, 2].map((i) => (
+        <div className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          <BarChart3 className="size-3.5 text-primary" />
+          Monthly report
+        </div>
+        <div className="flex h-14 items-end gap-1.5">
+          {bars.map((h, i) => (
             <motion.div
               key={i}
-              className="absolute top-1/2 -translate-y-1/2 size-2 rounded-sm bg-primary"
-              initial={{ left: "0%", opacity: 0 }}
-              animate={{ left: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
-              transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.5, ease: "easeInOut" }}
+              className="flex-1 rounded-sm bg-primary/70"
+              initial={{ height: 6 }}
+              whileInView={{ height: `${h}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: i * 0.05 }}
             />
           ))}
-          <div className="absolute inset-x-0 top-1/2 h-px bg-primary/30 -translate-y-1/2" />
         </div>
+      </motion.div>
+    </Frame>
+  );
+}
 
-        <motion.div
-          className="flex flex-col items-center gap-1"
-          initial={{ opacity: 0, x: 12 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="rounded-lg border border-primary/40 bg-primary/10 p-2">
-            <Server className="size-5 text-primary" />
+/** Results — target progress */
+export function ResultsVisual({ point }: VisualProps) {
+  const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "30 days";
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-3">
+        <IconMark>
+          <Sparkles className="size-4" />
+        </IconMark>
+        <div className="w-40">
+          <div className="mb-1.5 flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-medium text-foreground">{stat}</span>
           </div>
-          <span className="text-[8px] text-primary font-semibold">Nisc Cloud</span>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={{ width: "0%" }}
+              whileInView={{ width: "72%" }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Brand — palette swatches */
+export function BrandVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.4 }} className="flex flex-col items-center gap-3">
+        <IconMark>
+          <Palette className="size-4" />
+        </IconMark>
+        <div className="flex gap-2">
+          {["bg-primary", "bg-foreground/80", "bg-muted-foreground/40", "bg-muted"].map((tone, i) => (
+            <motion.span
+              key={tone}
+              className={`size-7 rounded-full border border-border/60 ${tone}`}
+              initial={{ opacity: 0, scale: 0.85 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08, duration: 0.3 }}
+            />
+          ))}
+        </div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Clarity — search → clear result */
+export function ClarityVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.4 }} className="w-full space-y-2">
+        <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground">
+          <Search className="size-3.5 text-primary" />
+          yourbrand.co.ke
+        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.25 }}
+          className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-foreground"
+        >
+          <Check className="size-3.5 text-primary" />
+          Available — clear next step
+        </motion.div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Local market — pin drops on a soft map */
+export function LocalMarketVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <div className="relative flex size-[112px] items-center justify-center">
+        <motion.div
+          className="absolute size-20 rounded-full border border-border/60 bg-muted/30"
+          animate={{ scale: [1, 1.06, 1] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute size-12 rounded-full border border-primary/25 bg-primary/5"
+          animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          initial={{ y: -18, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ type: "spring", stiffness: 280, damping: 18 }}
+        >
+          <MapPin className="size-8 text-primary" fill="currentColor" fillOpacity={0.15} />
         </motion.div>
       </div>
-      <motion.div
-        className="mt-3 mx-auto w-fit rounded-full bg-green-500/10 border border-green-500/30 px-3 py-1 text-[10px] font-semibold text-green-600"
-        initial={{ opacity: 0, y: 8 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.6 }}
-      >
-        Zero downtime ✓
-      </motion.div>
-    </div>
+    </Frame>
   );
 }
 
-/* ─── Trust: Kenya counties lighting up + counter ─── */
-export function TrustVisual({ point, compact }: VisualProps) {
-  const stat = extractStat(point.title) ?? "100+";
-  const dots = Array.from({ length: 12 }, (_, i) => ({
-    x: 15 + (i % 4) * 22 + (Math.floor(i / 4) % 2) * 8,
-    y: 20 + Math.floor(i / 4) * 28,
-    delay: i * 0.07,
-  }));
-
+/** Strategy — research lines resolve into a mark */
+export function StrategyVisual(_props: VisualProps) {
   return (
-    <div className={`relative mx-auto ${compact ? "min-h-[160px] w-full max-w-[200px]" : "min-h-[200px] w-full"}`}>
-      <svg viewBox="0 0 100 90" className="mx-auto h-24 w-28 text-primary/15" aria-hidden>
-        <motion.path
-          d="M50 8 L78 22 L85 50 L72 78 L50 85 L28 78 L15 50 L22 22 Z"
-          fill="currentColor"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-        />
-      </svg>
-      {dots.map((d, i) => (
-        <motion.div
-          key={i}
-          className="absolute size-2 rounded-full bg-primary"
-          style={{ left: `${d.x}%`, top: `${d.y}%` }}
-          initial={{ scale: 0, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 + d.delay, type: "spring" }}
-        />
-      ))}
-      <motion.div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center"
-        initial={{ opacity: 0, y: 10 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.8 }}
-      >
-        <div className="text-2xl font-bold text-primary">{stat}</div>
-        <div className="text-[9px] text-muted-foreground">businesses growing with us</div>
-      </motion.div>
-    </div>
-  );
-}
-
-/* ─── Location: fast for visitors wherever they are ─── */
-export function LocationVisual({ compact }: VisualProps) {
-  return (
-    <div className={`relative mx-auto flex items-center justify-center ${compact ? "size-36" : "size-44"}`}>
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full border border-primary/30"
-          style={{ width: `${(i + 1) * 33}%`, height: `${(i + 1) * 33}%` }}
-          animate={{ scale: [0.8, 1.2], opacity: [0.6, 0] }}
-          transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.6 }}
-        />
-      ))}
-      <div className="relative z-10 flex flex-col items-center">
-        <MapPin className="size-8 text-primary mb-1" />
-        <motion.span
-          className="text-xs font-bold text-primary font-mono"
-          animate={{ opacity: [1, 0.5, 1] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        >
-          Fast where visitors are
-        </motion.span>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Pricing: KES receipt with checkmarks ─── */
-export function PricingVisual({ point, compact }: VisualProps) {
-  const items = ["Setup", "SSL", "Backups", "Support"];
-
-  return (
-    <div className={`mx-auto ${compact ? "w-48" : "w-56"}`}>
-      <motion.div
-        className="rounded-xl border border-border bg-card p-3 shadow-sm"
-        initial={{ rotate: -2, opacity: 0 }}
-        whileInView={{ rotate: 0, opacity: 1 }}
-        viewport={{ once: true }}
-      >
-        <div className="mb-2 flex items-center justify-between border-b border-dashed border-border pb-2">
-          <span className="text-[10px] font-bold text-primary">KES Receipt</span>
-          <span className="text-[9px] text-muted-foreground">No surprises</span>
-        </div>
-        {items.map((item, i) => (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.4 }} className="w-full space-y-2">
+        {["Audience", "Competitors", "Position"].map((label, i) => (
           <motion.div
-            key={item}
-            className="flex items-center justify-between py-1 text-[10px]"
+            key={label}
+            className="flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-xs"
             initial={{ opacity: 0, x: -8 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2 + i * 0.12 }}
+            transition={{ delay: i * 0.12 }}
           >
-            <span className="text-muted-foreground">{item}</span>
-            <motion.span
-              className="flex items-center gap-0.5 font-semibold text-green-600"
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
+            <motion.div
+              className="h-1 flex-1 overflow-hidden rounded-full bg-muted"
+              initial={{ opacity: 0.5 }}
+              whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.4 + i * 0.12, type: "spring" }}
             >
-              <Check className="size-3" />
-              FREE
+              <motion.div
+                className="h-full rounded-full bg-primary"
+                initial={{ width: "0%" }}
+                whileInView={{ width: `${55 + i * 15}%` }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.15 + i * 0.12, duration: 0.6 }}
+              />
+            </motion.div>
+            <span className="w-16 text-right text-[10px] text-muted-foreground">{label}</span>
+          </motion.div>
+        ))}
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Assets — files stack into a folder */
+export function AssetsVisual(_props: VisualProps) {
+  const files = ["Logo.svg", "Guide.pdf", "Social.zip"];
+  return (
+    <Frame>
+      <div className="relative w-full">
+        <motion.div
+          {...softIn}
+          className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground"
+        >
+          <FolderOpen className="size-3.5 text-primary" />
+          Brand kit
+        </motion.div>
+        <div className="space-y-1.5">
+          {files.map((file, i) => (
+            <motion.div
+              key={file}
+              className="flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-xs text-foreground"
+              initial={{ opacity: 0, y: 10, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.14, duration: 0.35 }}
+            >
+              <FileText className="size-3.5 text-primary" />
+              {file}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Craft — pen draws a mark */
+export function CraftVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <div className="relative size-[112px]">
+        <svg viewBox="0 0 96 96" className="size-full" aria-hidden>
+          <motion.path
+            d="M24 62 C36 28, 60 28, 72 62"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            className="text-primary"
+            initial={{ pathLength: 0, opacity: 0.4 }}
+            whileInView={{ pathLength: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
+          />
+          <motion.circle
+            cx="48"
+            cy="40"
+            r="4"
+            className="fill-primary"
+            initial={{ scale: 0, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.9, duration: 0.3 }}
+          />
+        </svg>
+        <motion.div
+          className="absolute right-3 top-4 text-primary"
+          initial={{ x: 8, y: -8, opacity: 0 }}
+          whileInView={{ x: 0, y: 0, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.35, duration: 0.4 }}
+        >
+          <PenTool className="size-4" />
+        </motion.div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Process — timeline steps light up */
+export function ProcessVisual({ point }: VisualProps) {
+  const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "7 days";
+  const steps = ["Brief", "Design", "Deliver"];
+  return (
+    <Frame>
+      <div className="w-full space-y-3">
+        <div className="flex items-center justify-between px-1">
+          {steps.map((step, i) => (
+            <div key={step} className="flex flex-1 items-center">
+              <motion.div
+                className="flex size-7 items-center justify-center rounded-full border border-border/70 bg-card text-[10px] font-medium text-foreground"
+                initial={{ scale: 0.8, opacity: 0.4 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+              >
+                {i + 1}
+              </motion.div>
+              {i < steps.length - 1 ? (
+                <motion.div
+                  className="mx-1 h-px flex-1 bg-primary/40"
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.15 + i * 0.2, duration: 0.35 }}
+                  style={{ transformOrigin: "left" }}
+                />
+              ) : null}
+            </div>
+          ))}
+        </div>
+        <div className="text-center text-[11px] text-muted-foreground">
+          Typical delivery · <span className="font-medium text-foreground">{stat}</span>
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Ownership — key unlocks transfer */
+export function OwnershipVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.4 }} className="flex flex-col items-center gap-3">
+        <motion.div
+          className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-card"
+          animate={{ rotate: [0, -8, 0] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.2 }}
+        >
+          <KeyRound className="size-6 text-primary" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.25 }}
+          className="flex items-center gap-1.5 text-xs font-medium text-foreground"
+        >
+          <Check className="size-3.5 text-primary" />
+          Full ownership transfer
+        </motion.div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Engagement — soft reaction pulses */
+export function EngagementVisual(_props: VisualProps) {
+  const reactions = [
+    { key: "chat", icon: MessageCircle },
+    { key: "spark", icon: Sparkles },
+    { key: "trend", icon: TrendingUp },
+  ] as const;
+
+  return (
+    <Frame>
+      <div className="flex items-end justify-center gap-3">
+        {reactions.map(({ key, icon: Icon }, i) => (
+          <motion.div
+            key={key}
+            className="flex size-11 items-center justify-center rounded-2xl border border-border/70 bg-card"
+            initial={{ y: 12, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.12 }}
+          >
+            <motion.span
+              animate={{ y: [0, -3, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.25, ease: "easeInOut" }}
+            >
+              <Icon className="size-4 text-primary" />
             </motion.span>
           </motion.div>
         ))}
-        <motion.div
-          className="mt-2 flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1 text-[9px] font-bold text-primary"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.9 }}
-        >
-          {extractStat(point.desc) ?? "KES"} · All inclusive
-        </motion.div>
-      </motion.div>
-    </div>
+      </div>
+    </Frame>
   );
 }
 
-/* ─── Growth: ranking climb animation ─── */
-export function GrowthVisual({ compact }: VisualProps) {
-  const ranks = [
-    { pos: 10, label: "Week 1", opacity: 0.4 },
-    { pos: 6, label: "Week 2", opacity: 0.6 },
-    { pos: 3, label: "Week 4", opacity: 0.85 },
-    { pos: 1, label: "Now", opacity: 1 },
-  ];
-
+/** Approval — stamp lands */
+export function ApprovalVisual(_props: VisualProps) {
   return (
-    <div className={`mx-auto ${compact ? "w-full max-w-xs" : "w-full"}`}>
-      <div className="space-y-2">
-        {ranks.map(({ pos, label, opacity }, i) => (
+    <Frame>
+      <div className="relative flex size-[112px] items-center justify-center">
+        <div className="rounded-xl border border-dashed border-border px-4 py-3 text-center">
+          <div className="text-[10px] text-muted-foreground">Draft post</div>
+          <div className="mt-1 h-1.5 w-16 rounded-full bg-muted" />
+          <div className="mt-1 h-1.5 w-12 rounded-full bg-muted" />
+        </div>
+        <motion.div
+          className="absolute -right-1 bottom-3 flex items-center gap-1 rounded-full border border-primary/30 bg-primary px-2.5 py-1 text-[10px] font-semibold text-primary-foreground shadow-sm"
+          initial={{ scale: 1.4, opacity: 0, rotate: -12 }}
+          whileInView={{ scale: 1, opacity: 1, rotate: -6 }}
+          viewport={{ once: true }}
+          transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.25 }}
+        >
+          <Check className="size-3" />
+          Approved
+        </motion.div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Targeting — focus ring tightens */
+export function TargetingVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <div className="relative flex size-[112px] items-center justify-center">
+        {[96, 68, 40].map((size, i) => (
           <motion.div
-            key={label}
-            className="flex items-center gap-2"
-            initial={{ opacity: 0, x: -16 }}
+            key={size}
+            className="absolute rounded-full border border-primary/25"
+            style={{ width: size, height: size }}
+            initial={{ scale: 1.15, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.12, duration: 0.4 }}
+          />
+        ))}
+        <Crosshair className="relative size-6 text-primary" />
+      </div>
+    </Frame>
+  );
+}
+
+/** Tracking — events tick in */
+export function TrackingVisual(_props: VisualProps) {
+  const events = ["Page view", "Add to cart", "Purchase"];
+  return (
+    <Frame>
+      <div className="w-full space-y-1.5">
+        {events.map((event, i) => (
+          <motion.div
+            key={event}
+            className="flex items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-xs"
+            initial={{ opacity: 0, x: -8 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: i * 0.15 }}
+            transition={{ delay: i * 0.18 }}
           >
-            <span className="w-12 text-[9px] font-mono text-muted-foreground">{label}</span>
-            <div className="flex-1 h-6 rounded-md bg-muted/50 overflow-hidden relative">
-              <motion.div
-                className="absolute inset-y-0 left-0 rounded-md bg-primary flex items-center px-2"
-                initial={{ width: "10%" }}
-                whileInView={{ width: `${100 - pos * 8}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 + i * 0.1 }}
-                style={{ opacity }}
-              >
-                {i === ranks.length - 1 && (
-                  <TrendingUp className="size-3 text-primary-foreground ml-auto" />
-                )}
-              </motion.div>
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-foreground">
-                #{pos}
-              </span>
-            </div>
+            <motion.span
+              className="size-1.5 rounded-full bg-primary"
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.2 }}
+            />
+            <span className="text-foreground">{event}</span>
+            <span className="ml-auto text-[10px] text-muted-foreground">tracked</span>
           </motion.div>
         ))}
       </div>
-    </div>
+    </Frame>
   );
 }
 
-/* ─── Support: live chat bubbles ─── */
-export function SupportVisual({ compact }: VisualProps) {
-  const messages = [
-    { from: "user", text: "Need help with DNS?" },
-    { from: "agent", text: "On it! Updating now ✓" },
-    { from: "agent", text: "All set — site is live" },
-  ];
+/** Creative — A/B flip */
+export function CreativeVisual(_props: VisualProps) {
+  const [variant, setVariant] = useState<"A" | "B">("A");
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVariant((v) => (v === "A" ? "B" : "A"));
+    }, 1800);
+    return () => clearInterval(id);
+  }, []);
 
   return (
-    <div className={`mx-auto space-y-2 ${compact ? "w-48 py-2" : "w-56 py-4"}`}>
-      {messages.map((msg, i) => (
-        <motion.div
-          key={i}
-          className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}
-          initial={{ opacity: 0, y: 8, scale: 0.95 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: i * 0.35 }}
-        >
-          <div
-            className={`max-w-[85%] rounded-2xl px-2.5 py-1.5 text-[10px] ${
-              msg.from === "user"
-                ? "bg-primary text-primary-foreground rounded-br-sm"
-                : "bg-muted border border-border rounded-bl-sm"
-            }`}
+    <Frame>
+      <div className="w-full">
+        <div className="mb-2 flex gap-1.5">
+          {(["A", "B"] as const).map((v) => (
+            <span
+              key={v}
+              className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                variant === v
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              Variant {v}
+            </span>
+          ))}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={variant}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+            className="rounded-xl border border-border/70 bg-card p-3"
           >
-            {msg.text}
-          </div>
-        </motion.div>
-      ))}
-      <motion.div
-        className="flex gap-1 pl-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 1, 0] }}
-        transition={{ duration: 1.2, repeat: Infinity, delay: 1.2 }}
-      >
-        {[0, 1, 2].map((i) => (
-          <span key={i} className="size-1 rounded-full bg-muted-foreground/50" />
-        ))}
-      </motion.div>
-    </div>
+            <div className="mb-2 h-8 rounded-md bg-muted/70" />
+            <div className="h-1.5 w-2/3 rounded-full bg-muted" />
+            <div className="mt-1.5 h-1.5 w-1/2 rounded-full bg-muted" />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </Frame>
   );
 }
 
-/* ─── Deploy: terminal deploy sequence ─── */
-export function DeployVisual({ compact }: VisualProps) {
-  const lines = ["Provisioning...", "NVMe ready", "Online ✓"];
-
+/** Mobile — phone frame tap */
+export function MobileVisual(_props: VisualProps) {
   return (
-    <div className={`mx-auto rounded-lg border border-border bg-[oklch(0.12_0.015_260)] font-mono text-[9px] text-green-400 ${compact ? "w-44 p-2" : "w-52 p-3"}`}>
-      <div className="flex gap-1 mb-2">
-        {["bg-red-500/80", "bg-yellow-500/80", "bg-green-500/80"].map((c) => (
-          <span key={c} className={`size-1.5 rounded-full ${c}`} />
+    <Frame>
+      <motion.div
+        {...softIn}
+        className="relative h-[108px] w-[64px] rounded-[1.1rem] border-2 border-border bg-card p-1.5 shadow-sm"
+      >
+        <div className="mx-auto mb-1.5 h-1 w-8 rounded-full bg-muted" />
+        <div className="space-y-1.5">
+          <div className="h-6 rounded-md bg-muted/80" />
+          <div className="h-1.5 w-full rounded-full bg-muted" />
+          <div className="h-1.5 w-3/4 rounded-full bg-muted" />
+          <motion.div
+            className="mt-2 rounded-md bg-primary py-1 text-center text-[8px] font-medium text-primary-foreground"
+            animate={{ scale: [1, 0.96, 1] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            Buy
+          </motion.div>
+        </div>
+        <Smartphone className="absolute -right-3 -bottom-1 size-4 text-muted-foreground/50" />
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Inventory — stock levels */
+export function InventoryVisual(_props: VisualProps) {
+  const rows = [
+    { name: "SKU-01", level: 82 },
+    { name: "SKU-02", level: 45 },
+    { name: "SKU-03", level: 18 },
+  ];
+  return (
+    <Frame>
+      <div className="w-full space-y-2">
+        {rows.map((row, i) => (
+          <div key={row.name} className="space-y-1">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-muted-foreground">{row.name}</span>
+              <span className="text-foreground">{row.level}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <motion.div
+                className="h-full rounded-full bg-primary"
+                initial={{ width: "0%" }}
+                whileInView={{ width: `${row.level}%` }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.12, duration: 0.55 }}
+              />
+            </div>
+          </div>
         ))}
       </div>
-      {lines.map((line, i) => (
-        <motion.div
-          key={line}
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: i * 0.4 }}
-        >
-          {i === 0 ? "> " : "✔ "}{line}
-        </motion.div>
-      ))}
-      <motion.span
-        className="inline-block w-1.5 h-3 bg-green-400 ml-0.5 align-middle"
-        animate={{ opacity: [1, 0, 1] }}
-        transition={{ duration: 0.8, repeat: Infinity }}
-      />
-    </div>
+    </Frame>
   );
 }
 
-/* ─── Default: orbiting stat with particles ─── */
-export function DefaultStatVisual({ point, compact }: VisualProps) {
-  const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "100%";
-  const orbit = compact ? 48 : 62;
+/** Payment — settle confirmation */
+export function PaymentVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <motion.div
+        {...softIn}
+        className="w-full rounded-xl border border-border/70 bg-card px-3 py-3 text-center"
+      >
+        <Package className="mx-auto mb-2 size-5 text-primary" />
+        <div className="text-xs font-medium text-foreground">Payment settled</div>
+        <motion.div
+          className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary"
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+        >
+          <Check className="size-3" />
+          To your account
+        </motion.div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Automation — nodes connect */
+export function AutomationVisual(_props: VisualProps) {
+  const nodes = ["Join", "Wait", "Send"];
+  return (
+    <Frame>
+      <div className="flex w-full items-center justify-between gap-1 px-1">
+        {nodes.map((node, i) => (
+          <div key={node} className="flex flex-1 items-center">
+            <motion.div
+              className="rounded-lg border border-border/70 bg-card px-2 py-1.5 text-[10px] font-medium text-foreground"
+              initial={{ opacity: 0, y: 6 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.18 }}
+            >
+              {node}
+            </motion.div>
+            {i < nodes.length - 1 ? (
+              <motion.div
+                className="mx-0.5 h-px flex-1 bg-primary"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 + i * 0.18, duration: 0.35 }}
+                style={{ transformOrigin: "left" }}
+              />
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+/** Segments — list splits */
+export function SegmentsVisual(_props: VisualProps) {
+  const chips = ["Buyers", "Local", "New"];
+  return (
+    <Frame>
+      <motion.div {...softIn} className="w-full space-y-2">
+        <div className="rounded-lg border border-border/70 bg-muted/40 px-2.5 py-1.5 text-[10px] text-muted-foreground">
+          Full list · 12,400
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {chips.map((chip, i) => (
+            <motion.span
+              key={chip}
+              className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[10px] font-medium text-foreground"
+              initial={{ opacity: 0, scale: 0.85 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15 + i * 0.12 }}
+            >
+              {chip}
+            </motion.span>
+          ))}
+        </div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Typing — subject line types out */
+export function TypingVisual(_props: VisualProps) {
+  const full = "Your offer is ready";
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    let i = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    let cancelled = false;
+
+    const tick = () => {
+      if (cancelled) return;
+      if (i <= full.length) {
+        setText(full.slice(0, i));
+        i += 1;
+        timer = setTimeout(tick, 70);
+      } else {
+        timer = setTimeout(() => {
+          i = 0;
+          setText("");
+          timer = setTimeout(tick, 400);
+        }, 1600);
+      }
+    };
+
+    timer = setTimeout(tick, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
   return (
-    <div className={`relative mx-auto flex items-center justify-center ${compact ? "size-32" : "size-40"}`}>
-      <motion.div
-        className="absolute inset-0"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-      >
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/70"
-            style={{
-              transform: `rotate(${i * 90}deg) translateY(-${orbit}px)`,
-            }}
+    <Frame>
+      <div className="w-full rounded-xl border border-border/70 bg-card px-3 py-2.5">
+        <div className="mb-1.5 text-[10px] text-muted-foreground">Subject</div>
+        <div className="min-h-[1.25rem] text-xs font-medium text-foreground">
+          {text}
+          <motion.span
+            className="ml-0.5 inline-block h-3 w-px bg-primary align-middle"
+            animate={{ opacity: [1, 0, 1] }}
+            transition={{ duration: 0.8, repeat: Infinity }}
           />
-        ))}
-      </motion.div>
-      <motion.div
-        className="relative z-10 flex flex-col items-center"
-        initial={{ scale: 0.8, opacity: 0 }}
-        whileInView={{ scale: 1, opacity: 1 }}
-        viewport={{ once: true }}
-      >
-        <Globe2 className="size-6 text-primary/50 mb-1" />
-        <span className="text-3xl font-bold text-primary">{stat}</span>
-      </motion.div>
-    </div>
+        </div>
+      </div>
+    </Frame>
   );
 }
 
-/* ─── Wide: SLA gauge for uptime/security themes ─── */
-export function WideMonitorVisual({ point, theme }: VisualProps & { theme: VisualTheme }) {
-  if (theme === "migration") return <MigrationVisual point={point} compact={false} />;
-  if (theme === "growth") return <GrowthVisual point={point} compact={false} />;
-  if (theme === "security") {
-    return (
-      <div className="rounded-tl-xl relative -mb-6 -mr-6 mt-2 border-l border-t border-border p-4 sm:p-6">
-        <div className="flex h-44 items-end gap-1.5 pt-4">
-          {[40, 65, 55, 80, 70, 92, 85, 98, 95, 100].map((h, i) => (
+/** Bot — AI reply card */
+export function BotVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <div className="w-full space-y-2">
+        <motion.div
+          {...softIn}
+          className="ml-auto max-w-[80%] rounded-2xl rounded-br-md bg-muted px-2.5 py-1.5 text-[11px] text-foreground"
+        >
+          Do you deliver to Westlands?
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: [0, 1, 1, 1, 0], y: [6, 0, 0, 0, -4] }}
+          transition={{ duration: 4.5, repeat: Infinity, times: [0, 0.15, 0.7, 0.85, 1] }}
+          className="mr-auto max-w-[90%] rounded-2xl rounded-bl-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-[11px] text-foreground"
+        >
+          Yes — same-day available. Book a slot?
+        </motion.div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Integrate — links connect */
+export function IntegrateVisual(_props: VisualProps) {
+  const tools = ["CRM", "Cal", "Pay"];
+  return (
+    <Frame>
+      <div className="flex w-full flex-col items-center gap-3">
+        <div className="flex gap-2">
+          {tools.map((tool, i) => (
             <motion.div
-              key={i}
-              className="flex-1 rounded-t bg-primary/20 overflow-hidden flex flex-col justify-end"
-              style={{ height: "100%" }}
+              key={tool}
+              className="rounded-lg border border-border/70 bg-card px-2.5 py-1.5 text-[10px] font-medium text-foreground"
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
             >
-              <motion.div
-                className="w-full rounded-t bg-primary"
-                initial={{ height: 0 }}
-                whileInView={{ height: `${h * 0.5}%` }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.06, duration: 0.5 }}
-              />
+              {tool}
             </motion.div>
           ))}
         </div>
         <motion.div
-          className="absolute top-8 right-6 rounded-xl border border-green-500/30 bg-green-500/10 px-3 py-2 text-center"
-          initial={{ scale: 0, opacity: 0 }}
-          whileInView={{ scale: 1, opacity: 1 }}
+          className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.8, type: "spring" }}
+          transition={{ delay: 0.35 }}
         >
-          <div className="text-lg font-bold text-green-600">{extractStat(point.title) ?? "99.99%"}</div>
-          <div className="text-[8px] text-green-600/80">SLA met</div>
+          <Link2 className="size-3.5 text-primary" />
+          Connected
         </motion.div>
       </div>
-    );
-  }
-
-  return <GrowthVisual point={point} compact={false} />;
+    </Frame>
+  );
 }
 
-/* ─── Router ─── */
+/** Code — lines build */
+export function CodeVisual(_props: VisualProps) {
+  const lines = ["w-3/4", "w-full", "w-2/3", "w-5/6"];
+  return (
+    <Frame>
+      <div className="w-full rounded-xl border border-border/70 bg-card p-3 font-mono">
+        <div className="mb-2 text-[10px] text-muted-foreground">custom.tsx</div>
+        <div className="space-y-1.5">
+          {lines.map((w, i) => (
+            <motion.div
+              key={i}
+              className={`h-1.5 ${w} rounded-full bg-primary/70`}
+              initial={{ scaleX: 0, opacity: 0 }}
+              whileInView={{ scaleX: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.12, duration: 0.35 }}
+              style={{ transformOrigin: "left" }}
+            />
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Funnel — stages narrow */
+export function FunnelVisual(_props: VisualProps) {
+  const stages = [
+    { label: "Visit", w: "w-full" },
+    { label: "Engage", w: "w-4/5" },
+    { label: "Convert", w: "w-3/5" },
+  ];
+  return (
+    <Frame>
+      <div className="flex w-full flex-col items-center gap-1.5">
+        {stages.map((stage, i) => (
+          <motion.div
+            key={stage.label}
+            className={`${stage.w} rounded-md bg-primary/15 px-2 py-1.5 text-center text-[10px] font-medium text-foreground`}
+            initial={{ opacity: 0, scaleX: 0.7 }}
+            whileInView={{ opacity: 1, scaleX: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.15 }}
+          >
+            <span className="inline-block rounded bg-primary/20 px-1.5 py-0.5">{stage.label}</span>
+          </motion.div>
+        ))}
+      </div>
+    </Frame>
+  );
+}
+
+/** Calendar — week fills in */
+export function CalendarVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <div className="w-full rounded-xl border border-border/70 bg-card p-2.5">
+        <div className="mb-2 text-[10px] text-muted-foreground">Content week</div>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="flex aspect-square items-center justify-center rounded-md bg-muted text-[9px] text-muted-foreground"
+              initial={{ opacity: 0.3 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+            >
+              {i < 5 ? (
+                <motion.span
+                  className="size-1.5 rounded-full bg-primary"
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.2 + i * 0.1 }}
+                />
+              ) : null}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Algorithm — reach wave */
+export function AlgorithmVisual(_props: VisualProps) {
+  const points = [20, 35, 28, 55, 48, 72, 88];
+  return (
+    <Frame>
+      <div className="w-full">
+        <div className="mb-2 text-[10px] text-muted-foreground">Reach trend</div>
+        <div className="flex h-16 items-end gap-1">
+          {points.map((h, i) => (
+            <motion.div
+              key={i}
+              className="flex-1 rounded-sm bg-primary/80"
+              initial={{ height: 4 }}
+              animate={{ height: [h * 0.45, h * 0.9, h * 0.7] }}
+              transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.08, ease: "easeInOut" }}
+            />
+          ))}
+        </div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Ethical — clean shield check */
+export function EthicalVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <motion.div {...softIn} className="flex flex-col items-center gap-2">
+        <div className="relative">
+          <ShieldCheck className="size-14 text-primary" strokeWidth={1.25} />
+        </div>
+        <div className="text-center text-[11px] text-muted-foreground">
+          White-hat only
+        </div>
+      </motion.div>
+    </Frame>
+  );
+}
+
+/** Maps — pin + search */
+export function MapsVisual(_props: VisualProps) {
+  return (
+    <Frame>
+      <div className="w-full space-y-2">
+        <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-card px-3 py-2 text-xs text-muted-foreground">
+          <Search className="size-3.5 text-primary" />
+          near me
+        </div>
+        <motion.div
+          className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-foreground"
+          initial={{ opacity: 0, y: 6 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+        >
+          <MapPin className="size-3.5 text-primary" />
+          Your business · Maps
+        </motion.div>
+      </div>
+    </Frame>
+  );
+}
+
+/** Default — quiet icon + optional stat */
+export function DefaultVisual({ point }: VisualProps) {
+  const stat = extractStat(point.title) ?? extractStat(point.desc);
+  return (
+    <Frame>
+      <motion.div {...softIn} transition={{ duration: 0.45 }} className="flex flex-col items-center gap-2.5">
+        <IconMark>
+          <FileText className="size-4" />
+        </IconMark>
+        {stat ? (
+          <div className="text-center">
+            <div className="text-xl font-semibold tracking-tight text-foreground">{stat}</div>
+            <div className="text-[11px] text-muted-foreground">built into the plan</div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <TrendingUp className="size-3.5 text-primary" />
+            Built for clarity
+          </div>
+        )}
+      </motion.div>
+    </Frame>
+  );
+}
+
 export function ContextualVisual({
   point,
   theme,
-  variant,
 }: {
   point: BuiltDifferentPoint;
   theme: VisualTheme;
-  variant: "stat" | "ring" | "chart" | "shield-wide" | "social-wide" | "banner";
 }) {
-  const compact = variant === "stat" || variant === "ring" || variant === "chart";
-
-  if (variant === "shield-wide") {
-    return <WideMonitorVisual point={point} theme={theme} />;
-  }
-
-  if (variant === "social-wide") {
-    if (theme === "trust" || theme === "location") return <TrustVisual point={point} compact={false} />;
-    if (theme === "support") return <SupportVisual point={point} compact={false} />;
-    return <TrustVisual point={point} compact={false} />;
-  }
-
-  if (variant === "banner") {
-    if (theme === "mpesa") return <MpesaVisual point={point} compact={false} />;
-    if (theme === "pricing") return <PricingVisual point={point} compact={false} />;
-    if (theme === "deploy") return <DeployVisual point={point} compact={false} />;
-    return <MigrationVisual point={point} compact={false} />;
-  }
-
-  // Compact cards — pick by theme
   switch (theme) {
     case "uptime":
-      return <UptimeVisual point={point} compact={compact} />;
+      return <UptimeVisual point={point} />;
     case "speed":
-      return <SpeedVisual point={point} compact={compact} />;
-    case "mpesa":
-      return <MpesaVisual point={point} compact={compact} />;
+      return <SpeedVisual point={point} />;
     case "security":
-      return <SecurityVisual point={point} compact={compact} />;
+      return <SecurityVisual point={point} />;
     case "migration":
-      return <MigrationVisual point={point} compact={compact} />;
+      return <MigrationVisual point={point} />;
     case "trust":
-      return <TrustVisual point={point} compact={compact} />;
-    case "location":
-      return <LocationVisual point={point} compact={compact} />;
+      return <TrustVisual point={point} />;
     case "pricing":
-      return <PricingVisual point={point} compact={compact} />;
+      return <PricingVisual point={point} />;
     case "growth":
-      return <GrowthVisual point={point} compact={compact} />;
+      return <GrowthVisual point={point} />;
     case "support":
-      return <SupportVisual point={point} compact={compact} />;
+      return <SupportVisual point={point} />;
     case "deploy":
-      return <DeployVisual point={point} compact={compact} />;
+      return <DeployVisual point={point} />;
+    case "reporting":
+      return <ReportingVisual point={point} />;
+    case "results":
+      return <ResultsVisual point={point} />;
+    case "brand":
+      return <BrandVisual point={point} />;
+    case "clarity":
+      return <ClarityVisual point={point} />;
+    case "inbox":
+      return <InboxVisual point={point} />;
+    case "localMarket":
+      return <LocalMarketVisual point={point} />;
+    case "strategy":
+      return <StrategyVisual point={point} />;
+    case "assets":
+      return <AssetsVisual point={point} />;
+    case "craft":
+      return <CraftVisual point={point} />;
+    case "process":
+      return <ProcessVisual point={point} />;
+    case "ownership":
+      return <OwnershipVisual point={point} />;
+    case "engagement":
+      return <EngagementVisual point={point} />;
+    case "approval":
+      return <ApprovalVisual point={point} />;
+    case "targeting":
+      return <TargetingVisual point={point} />;
+    case "tracking":
+      return <TrackingVisual point={point} />;
+    case "creative":
+      return <CreativeVisual point={point} />;
+    case "mobile":
+      return <MobileVisual point={point} />;
+    case "inventory":
+      return <InventoryVisual point={point} />;
+    case "payment":
+      return <PaymentVisual point={point} />;
+    case "automation":
+      return <AutomationVisual point={point} />;
+    case "segments":
+      return <SegmentsVisual point={point} />;
+    case "typing":
+      return <TypingVisual point={point} />;
+    case "bot":
+      return <BotVisual point={point} />;
+    case "integrate":
+      return <IntegrateVisual point={point} />;
+    case "code":
+      return <CodeVisual point={point} />;
+    case "funnel":
+      return <FunnelVisual point={point} />;
+    case "calendar":
+      return <CalendarVisual point={point} />;
+    case "algorithm":
+      return <AlgorithmVisual point={point} />;
+    case "ethical":
+      return <EthicalVisual point={point} />;
+    case "maps":
+      return <MapsVisual point={point} />;
     default:
-      return <DefaultStatVisual point={point} compact={compact} />;
+      return <DefaultVisual point={point} />;
   }
 }

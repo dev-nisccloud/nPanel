@@ -226,12 +226,12 @@ export default function WebsiteDesignPage() {
         { num: "04", title: "Launch & Handover", desc: "We deploy to your domain, submit to Google Search Console, and hand over training so you can manage your site confidently." },
       ]}
       whyPoints={[
-        { title: "Built for Real Connections", desc: "Sites tuned for everyday mobile use so customers can browse, read, and contact you without friction." },
-        { title: "No Page Builders", desc: "We do not use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for performance, flexibility, and longevity." },
-        { title: "SEO-Ready from Day One", desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage so you avoid months of retrofit work." },
-        { title: "Conversion Architecture", desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales." },
-        { title: "Transparent Fixed Pricing", desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know what you are getting and when." },
-        { title: "Post-Launch Support Included", desc: "Every plan includes post-launch support. We are available to fix bugs, make updates, and answer questions after your site goes live." },
+        { title: "Built for Real Connections", desc: "Sites tuned for everyday mobile use so customers can browse, read, and contact you without friction.", visual: "mobile" },
+        { title: "No Page Builders", desc: "We do not use Wix, Squarespace, or GoDaddy builders. Every site is professionally coded for performance, flexibility, and longevity.", visual: "code" },
+        { title: "SEO-Ready from Day One", desc: "Most agencies build the site first, then think about SEO. We bake it in from the wireframe stage so you avoid months of retrofit work.", visual: "growth" },
+        { title: "Conversion Architecture", desc: "We study your customer journey and design every page with one goal: turning more visitors into leads, calls, or sales.", visual: "funnel" },
+        { title: "Transparent Fixed Pricing", desc: "No hourly billing surprises. Fixed project price, fixed scope, fixed delivery date. You know what you are getting and when.", visual: "pricing" },
+        { title: "Post-Launch Support Included", desc: "Every plan includes post-launch support. We are available to fix bugs, make updates, and answer questions after your site goes live.", visual: "support" },
       ]}
       faqs={[
         { q: "How long does it take to build a website?", a: "Essential sites (up to 5 pages) are delivered in 10 days. Professional sites take 14 days. Enterprise projects take 21 days. These timelines assume you provide content and feedback promptly." },

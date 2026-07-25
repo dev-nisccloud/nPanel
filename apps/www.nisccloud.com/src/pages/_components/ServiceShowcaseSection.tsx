@@ -13,7 +13,8 @@ import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
 
 export type ShowcaseBlock = {
-  tag: string;
+  /** Optional section label — not rendered (kept for existing page data). */
+  tag?: string;
   headline: string;
   body: string;
   bullets: string[];
@@ -52,9 +53,6 @@ function Block({ block, index }: { block: ShowcaseBlock; index: number }) {
       transition={{ duration: 0.6 }}
       className="flex flex-col justify-center"
     >
-      <span className="inline-flex self-start items-center text-[11px] font-mono font-bold tracking-widest px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4">
-        {block.tag}
-      </span>
       <h3 className="text-2xl md:text-3xl font-bold leading-snug tracking-tight mb-4">
         {block.headline}
       </h3>
