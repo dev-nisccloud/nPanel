@@ -3,6 +3,7 @@ import { Check, Search, TrendingUp, Share2, Mail } from "lucide-react";
 import ServiceStatistics, {
   trustStatsToStatisticsItems,
 } from "@/components/shadcn-space/blocks/statistics-02/statistics.tsx";
+import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const features = [
   { icon: Search, title: "SEO & Content", desc: "Technical audits, keyword strategy, and content that help people find you on Google, Maps, and AI answers." },
@@ -37,9 +38,6 @@ export default function MarketDetail() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ backgroundColor: "oklch(0.70 0.22 240 / 0.1)", borderColor: "oklch(0.70 0.22 240 / 0.3)", color: "oklch(0.70 0.22 240)" }}>
-              03 - MARKET
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Full-Stack Growth.<br />
               <span style={{ color: "oklch(0.70 0.22 240)" }}>Clear Reporting.</span>
@@ -70,18 +68,8 @@ export default function MarketDetail() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="relative rounded-2xl overflow-hidden aspect-[4/3]"
           >
-            <img
-              src="https://images.unsplash.com/photo-1686061594225-3e92c0cd51b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900"
-              alt="Marketing analytics"
-              className="w-full h-full object-cover opacity-60"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tr from-background/80 via-transparent to-transparent" />
-            <div className="absolute bottom-6 right-6 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-5 py-3">
-              <div className="text-2xl font-bold" style={{ color: "oklch(0.70 0.22 240)" }}>30 days</div>
-              <div className="text-xs text-muted-foreground">Results promise on active work</div>
-            </div>
+            <ShowcaseVisualCard visual="reporting" headline="Clear growth reporting" />
           </motion.div>
         </div>
 

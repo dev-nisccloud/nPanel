@@ -1,6 +1,5 @@
 import ServicePageShell from "@/pages/_components/ServicePageShell.tsx";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
-import { Globe, Mail, HardDrive, Clock } from "lucide-react";
 import type { ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
 import { SharedPricingSection } from "./_components/SharedPricingSection.tsx";
 
@@ -17,43 +16,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "CDN integration available for global audiences",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl p-4 border border-border/40 shadow-md">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Site Performance</div>
-          <div className="flex items-center gap-4 mb-3">
-            <div className="relative w-16 h-16 shrink-0">
-              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="oklch(0.93 0.01 240)" strokeWidth="3"/>
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="oklch(0.60 0.22 235)" strokeWidth="3" strokeDasharray="98 100" strokeLinecap="round"/>
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-lg font-extrabold text-primary">98</span>
-            </div>
-            <div className="space-y-1.5 flex-1">
-              {[["TTFB","48ms"],["Load Time","1.1s"],["Uptime","99.99%"]].map(([k,v]) => (
-                <div key={k} className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">{k}</span>
-                  <span className="font-bold text-green-500">{v} ✓</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-2.5 text-xs text-green-600">
-            <span className="font-bold">✓</span> Fast response times for your visitors
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">100+</div>
-            <div className="text-[10px] text-muted-foreground">Clients hosted</div>
-          </div>
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">Setup help</div>
-            <div className="text-[10px] text-muted-foreground">We guide you live</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "speed",
   },
   {
     tag: "cPanel Management",
@@ -65,29 +28,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Daily automatic backups, restore any file in one click",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-primary px-5 py-2.5 text-white text-sm font-bold">cPanel Overview</div>
-          <div className="p-4 grid grid-cols-2 gap-2.5">
-            {[
-              { icon: Globe, label: "Websites", value: "5 active" },
-              { icon: Mail, label: "Email Accounts", value: "25 / 25" },
-              { icon: HardDrive, label: "Storage", value: "18 / 50 GB" },
-              { icon: Clock, label: "Last Backup", value: "2h ago ✓" },
-            ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="flex items-center gap-2 bg-muted/40 rounded-xl p-2.5 text-xs">
-                <Icon size={14} className="text-primary shrink-0" />
-                <div>
-                  <div className="font-semibold">{label}</div>
-                  <div className="text-muted-foreground">{value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "deploy",
   },
 ];
 

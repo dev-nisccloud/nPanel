@@ -120,6 +120,9 @@ export const kenicDomainListRouter = router({
 						autoRenewal: false,
 						nameservers: [] as string[],
 						source: "kenic" as const,
+						teamId: row.teamId ?? null,
+						userId: row.userId ?? null,
+						teamName: row.teamName ?? null,
 					};
 				});
 

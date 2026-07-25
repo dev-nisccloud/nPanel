@@ -21,7 +21,6 @@ export default function HostingPage() {
       <Navbar />
       <section className="pt-32 pb-16 px-4 text-center">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <span className="inline-block bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4">Cloud Hosting</span>
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Everything your website needs<br />to go live and stay fast</h1>
           <p className="text-muted-foreground max-w-xl mx-auto mb-8">Domains, hosting, email, and SSL, all managed in one place. Fast for your visitors, wherever they are, with 99.99% uptime and 24/7 support.</p>
         </motion.div>

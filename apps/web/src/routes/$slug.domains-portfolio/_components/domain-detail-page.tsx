@@ -27,7 +27,7 @@ import { DnsTab } from "./dns-tab";
 import { NameserversTab } from "./nameservers-tab";
 import { WebDesignContactDialog } from "./web-design-contact-dialog";
 import { CreateSubscriptionFromDomainDialog } from "./create-subscription-from-domain-dialog";
-import { DomainPortfolioContactInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
+import { DomainPortfolioContactInfo, type KenicRegistrantInfo } from "@/routes/agency.domains-portfolio/_components/domain-portfolio-contact-info";
 import { DomainTransferSecuritySection } from "@/components/domain-transfer-security-section";
 import type { DomainPortfolio } from "./domain-portfolio-card";
 
@@ -36,6 +36,30 @@ interface DomainDetailPageProps {
 }
 
 const isAgencyRoute = (pathname: string) => pathname.startsWith("/agency/");
+
+function isKenicPrimaryDomain(domainName: string | null | undefined): boolean {
+  if (!domainName) return false;
+  return domainName.trim().toLowerCase().replace(/\.$/, "").endsWith(".ke");
+}
+
+function subscriptionStatusToPortfolioStatus(
+  status: string,
+  expiryDate: Date | string | null | undefined,
+): DomainPortfolio["status"] {
+  const now = new Date();
+  const expiry = expiryDate ? new Date(expiryDate) : null;
+  if (expiry && !Number.isNaN(expiry.getTime()) && expiry < now) return "EXPIRED";
+  const statusMap: Record<string, DomainPortfolio["status"]> = {
+    ACTIVE: "ACTIVE",
+    SUSPENDED: "SUSPENDED",
+    CANCELLED: "EXPIRED",
+    PENDING: "PENDING",
+    PROCESSING: "PENDING",
+    EXPIRED: "EXPIRED",
+    TRANSFERRING: "TRANSFERRING",
+  };
+  return statusMap[status] ?? "ACTIVE";
+}
 
 export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const navigate = useNavigate();
@@ -52,18 +76,24 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const [createSubscriptionDialogOpen, setCreateSubscriptionDialogOpen] = React.useState(false);
 
   // Customer view: load subscription by id; teamSlug enforces access (subscription must belong to this team and user must be member)
-  const { data: subscriptionById, isLoading: isLoadingSub } = trpc.clientSubscriptions.getById.useQuery(
+  const {
+    data: subscriptionById,
+    isLoading: isLoadingSub,
+    error: subscriptionError,
+  } = trpc.clientSubscriptions.getById.useQuery(
     { id: domainId, teamSlug: !isAgency ? teamSlug : undefined },
     { enabled: !isAgency && !!teamSlug }
   );
 
   // Customer view with openProviderId: fetch that domain from OpenProvider to show full detail (DNS, nameservers, etc.)
   const domainNamePattern = React.useMemo(() => {
-    if (isAgency || !subscriptionById?.primaryDomain) return undefined;
+    if (isAgency || !subscriptionById?.primaryDomain || !subscriptionById.openProviderId) {
+      return undefined;
+    }
     const name = subscriptionById.primaryDomain;
     const parts = name.split(".");
     return parts.length > 1 ? parts[0] : name;
-  }, [isAgency, subscriptionById?.primaryDomain]);
+  }, [isAgency, subscriptionById?.primaryDomain, subscriptionById?.openProviderId]);
 
   const { data: customerDomainsData, isLoading: isLoadingCustomerDomain } = trpc.openProvider.domains.list.useQuery(
     {
@@ -78,8 +108,61 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const domainFromOpenProvider = React.useMemo(() => {
     if (isAgency || !subscriptionById?.openProviderId || !customerDomainsData?.data) return null;
     const idStr = String(subscriptionById.openProviderId);
-    return (customerDomainsData.data as DomainPortfolio[]).find((d) => d.id === idStr) ?? null;
+    const match = (customerDomainsData.data as DomainPortfolio[]).find((d) => d.id === idStr) ?? null;
+    return match ? { ...match, source: "openprovider" as const } : null;
   }, [isAgency, subscriptionById?.openProviderId, customerDomainsData?.data]);
+
+  // KENIC / non-OP: build portfolio row from the customer's Domains subscription
+  const domainFromSubscription = React.useMemo((): DomainPortfolio | null => {
+    if (isAgency || !subscriptionById?.primaryDomain || subscriptionById.openProviderId) {
+      return null;
+    }
+    const domainName = subscriptionById.primaryDomain;
+    const kenic = isKenicPrimaryDomain(domainName);
+    if (!kenic) return null;
+
+    const now = new Date();
+    const registrationDate = subscriptionById.subscriptionDate
+      ? new Date(subscriptionById.subscriptionDate)
+      : now;
+    const expiryDate = subscriptionById.expiryDate
+      ? new Date(subscriptionById.expiryDate)
+      : new Date(registrationDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+    const parts = domainName.split(".");
+    const tld =
+      parts.length >= 3
+        ? `.${parts.slice(-2).join(".")}`
+        : `.${parts[parts.length - 1] ?? "ke"}`;
+
+    return {
+      id: `kenic-${subscriptionById.id}`,
+      domain: domainName,
+      status: subscriptionStatusToPortfolioStatus(subscriptionById.status, expiryDate),
+      registrationDate,
+      expiryDate,
+      clientName: "",
+      tld,
+      autoRenewal: subscriptionById.autoRenew ?? false,
+      nameservers: [],
+      source: "kenic",
+      teamId: subscriptionById.teamId ?? null,
+    };
+  }, [isAgency, subscriptionById]);
+
+  const {
+    data: kenicLiveInfo,
+    isLoading: isLoadingKenicLive,
+    refetch: refetchKenicLiveInfo,
+  } = trpc.kenic.domainList.info.useQuery(
+    { domain: domainFromSubscription?.domain ?? "" },
+    {
+      enabled:
+        !isAgency &&
+        domainFromSubscription?.source === "kenic" &&
+        !!domainFromSubscription?.domain,
+      retry: false,
+    },
+  );
 
   // Agency view: fetch domains list from OpenProvider
   const { data: domainsData, isLoading: isLoadingDomains } = trpc.openProvider.domains.list.useQuery(
@@ -96,19 +179,61 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
       if (!domainsData?.data) return null;
       return (domainsData.data as DomainPortfolio[]).find((d) => d.id === domainId) ?? null;
     }
-    return domainFromOpenProvider;
-  }, [isAgency, domainsData?.data, domainId, domainFromOpenProvider]);
+    if (domainFromOpenProvider) return domainFromOpenProvider;
+    if (domainFromSubscription?.source === "kenic") {
+      if (kenicLiveInfo?.data) {
+        return {
+          ...domainFromSubscription,
+          nameservers: kenicLiveInfo.data.nameservers ?? domainFromSubscription.nameservers,
+          status:
+            (kenicLiveInfo.data.status as DomainPortfolio["status"]) ??
+            domainFromSubscription.status,
+          expiryDate: kenicLiveInfo.data.exDate || domainFromSubscription.expiryDate,
+          registrationDate: kenicLiveInfo.data.crDate || domainFromSubscription.registrationDate,
+          registrantInfo: kenicLiveInfo.data.registrantInfo,
+          isLocked: kenicLiveInfo.data.isTransferLocked ?? domainFromSubscription.isLocked,
+        } as DomainPortfolio & {
+          registrantInfo?: KenicRegistrantInfo;
+          source: "kenic";
+        };
+      }
+      return domainFromSubscription;
+    }
+    return null;
+  }, [
+    isAgency,
+    domainsData?.data,
+    domainId,
+    domainFromOpenProvider,
+    domainFromSubscription,
+    kenicLiveInfo,
+  ]);
 
-  const openProviderId = domain
-    ? typeof domain.id === "string"
-      ? Number.parseInt(domain.id, 10)
-      : domain.id
-    : null;
+  const isKenic = (domain as { source?: string } | null)?.source === "kenic";
+
+  const openProviderId =
+    domain && !isKenic
+      ? typeof domain.id === "string"
+        ? Number.parseInt(domain.id, 10)
+        : domain.id
+      : null;
   const { data: existingSubscription } = trpc.clientSubscriptions.getByOpenProviderId.useQuery(
     { openProviderId: openProviderId! },
     { enabled: isAgency && openProviderId != null && !Number.isNaN(openProviderId) }
   );
   const hasExistingSubscription = !!existingSubscription;
+
+  const kenicStatuses = kenicLiveInfo?.data?.allStatuses ?? [];
+  const kenicIsLocked =
+    kenicLiveInfo?.data?.isTransferLocked ??
+    kenicStatuses.some(
+      (s: { status?: string }) => s.status?.toLowerCase() === "clienttransferprohibited",
+    );
+  const kenicServerTransferLocked =
+    kenicLiveInfo?.data?.isServerTransferLocked ??
+    kenicStatuses.some(
+      (s: { status?: string }) => s.status?.toLowerCase() === "servertransferprohibited",
+    );
 
   const domainNameWithoutTld = React.useMemo(() => {
     if (!domain?.domain) return "";
@@ -144,14 +269,30 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
   const portfolioHref = isAgency ? "/agency/domains-portfolio" : `/${teamSlug}/domains-portfolio`;
   const domainsHref = isAgency ? "/agency/domains" : `/${teamSlug}/domains`;
 
-  // Customer view: either full page (when domain from OpenProvider is available) or not found/unavailable. No subscription card.
+  // Customer view: OpenProvider (via openProviderId) or KENIC (from subscription + optional EPP info)
   if (!isAgency) {
-    if (isLoadingSub) {
+    if (isLoadingSub || (isKenic && isLoadingKenicLive && !domainFromSubscription)) {
       return (
         <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
           <div className="w-full max-w-7xl mx-auto">
             <Skeleton className="h-10 w-64" />
             <Skeleton className="h-32" />
+          </div>
+        </div>
+      );
+    }
+    if (subscriptionError) {
+      return (
+        <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
+          <div className="w-full max-w-7xl mx-auto">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-destructive mb-4">
+                {subscriptionError.message || "Failed to load domain subscription"}
+              </p>
+              <Button asChild variant="outline">
+                <Link to={portfolioHref}>Back to My Domains</Link>
+              </Button>
+            </div>
           </div>
         </div>
       );
@@ -182,7 +323,7 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
         </div>
       );
     }
-    // No domain data: show unavailable (subscription exists but no OpenProvider link or domain not found)
+    // No domain data: show unavailable (subscription exists but no OpenProvider/KENIC domain payload)
     if (!domain) {
       return (
         <div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
@@ -404,11 +545,22 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
                     domain={domain}
                     getStatusBadge={getStatusBadge}
                     shouldShowRenew={shouldShowRenew}
+                    source={isKenic ? "kenic" : "openprovider"}
                     openProviderId={openProviderId}
+                    kenicIsLocked={kenicIsLocked}
+                    kenicServerTransferLocked={kenicServerTransferLocked}
+                    onKenicAuthCodeUpdated={() => void refetchKenicLiveInfo()}
+                    onKenicLockUpdated={() => void refetchKenicLiveInfo()}
                   />
 
                   {/* Contact Information Card */}
-                  <DomainPortfolioContactInfo domain={domain} source="openprovider" />
+                  <DomainPortfolioContactInfo
+                    domain={domain}
+                    source={isKenic ? "kenic" : "openprovider"}
+                    registrantInfo={
+                      (domain as { registrantInfo?: KenicRegistrantInfo }).registrantInfo
+                    }
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -423,7 +575,10 @@ export function DomainDetailPage({ domainId }: DomainDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="nameservers" className="mt-6">
-              <NameserversTab domain={domain} />
+              <NameserversTab
+                key={`${domain.id}-${domain.nameservers.join(",")}`}
+                domain={domain}
+              />
             </TabsContent>
 
             <TabsContent value="protect-brand" className="mt-6">
@@ -636,12 +791,22 @@ function DomainHeaderCard({
   domain,
   getStatusBadge,
   shouldShowRenew,
+  source,
   openProviderId,
+  kenicIsLocked,
+  kenicServerTransferLocked,
+  onKenicAuthCodeUpdated,
+  onKenicLockUpdated,
 }: {
   domain: DomainPortfolio;
   getStatusBadge: () => React.ReactNode;
   shouldShowRenew: boolean;
+  source: "openprovider" | "kenic";
   openProviderId: number | null;
+  kenicIsLocked?: boolean;
+  kenicServerTransferLocked?: boolean;
+  onKenicAuthCodeUpdated?: () => void;
+  onKenicLockUpdated?: () => void;
 }) {
   const expiryDate = new Date(domain.expiryDate);
   const now = new Date();
@@ -737,12 +902,15 @@ function DomainHeaderCard({
           </div>
 
           <DomainTransferSecuritySection
-            source="openprovider"
+            source={source}
             domainName={domain.domain}
             openProviderId={openProviderId}
-            isLocked={domain.isLocked}
-            isLockable={domain.isLockable}
+            isLocked={source === "kenic" ? kenicIsLocked : domain.isLocked}
+            isLockable={source === "kenic" ? !kenicServerTransferLocked : domain.isLockable}
             isPrivateWhois={domain.isPrivateWhois}
+            kenicServerTransferLocked={kenicServerTransferLocked}
+            onKenicAuthCodeUpdated={onKenicAuthCodeUpdated}
+            onKenicLockUpdated={onKenicLockUpdated}
           />
         </div>
       </CardContent>

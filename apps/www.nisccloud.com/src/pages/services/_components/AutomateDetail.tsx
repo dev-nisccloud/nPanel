@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { Check, Bot, Workflow, MessageSquare, BarChart3 } from "lucide-react";
+import { ShowcaseVisualCard } from "@/pages/_components/ServiceShowcaseSection.tsx";
 
 const features = [
   { icon: Workflow, title: "CRM Workflows", desc: "HubSpot, Salesforce, GoHighLevel: we build automations that move leads through your funnel without manual chasing." },
@@ -28,27 +29,9 @@ export default function AutomateDetail() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="relative rounded-2xl overflow-hidden aspect-[4/3] order-2 lg:order-1"
+            className="order-2 lg:order-1"
           >
-            <img
-              src="https://images.unsplash.com/photo-1694903089438-bf28d4697d9a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=900"
-              alt="Automation technology"
-              className="w-full h-full object-cover opacity-60"
-            />
-            <div className="absolute inset-0 bg-gradient-to-tl from-background/80 via-transparent to-transparent" />
-            <div className="absolute top-6 left-6 bg-card/90 backdrop-blur border border-border/60 rounded-xl px-5 py-3">
-              <div className="text-2xl font-bold" style={{ color: "oklch(0.78 0.16 150)" }}>24/7</div>
-              <div className="text-xs text-muted-foreground">Follow-up and support coverage</div>
-            </div>
-            {/* Workflow nodes visual */}
-            <div className="absolute bottom-6 right-6 flex flex-col gap-1.5">
-              {["Lead Capture", "Email Sent", "CRM Updated"].map((step) => (
-                <div key={step} className="flex items-center gap-2 bg-card/90 backdrop-blur border border-border/60 rounded-lg px-3 py-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                  <span className="text-[10px] text-muted-foreground font-mono">{step}</span>
-                </div>
-              ))}
-            </div>
+            <ShowcaseVisualCard visual="automation" headline="Working 24/7" />
           </motion.div>
 
           <motion.div
@@ -58,9 +41,6 @@ export default function AutomateDetail() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="order-1 lg:order-2"
           >
-            <div className="inline-flex items-center gap-2 border rounded-full px-4 py-1.5 text-xs font-mono mb-4" style={{ backgroundColor: "oklch(0.78 0.16 150 / 0.1)", borderColor: "oklch(0.78 0.16 150 / 0.3)", color: "oklch(0.78 0.16 150)" }}>
-              04 - AUTOMATE
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Your Business.<br />
               <span style={{ color: "oklch(0.78 0.16 150)" }}>Working 24/7.</span>

@@ -39,6 +39,7 @@ import HelpCentrePage from "./pages/help/page.tsx";
 import WhoisPage from "./pages/whois/page.tsx";
 import DomainTransferPage from "./pages/domain-transfer/page.tsx";
 import ScrollToTop from "./components/ScrollToTop.tsx";
+import FloatingActionButton from "./components/FloatingActionButton.tsx";
 
 // Legal pages
 import TermsOfServicePage from "./pages/legal/terms/page.tsx";
@@ -106,6 +107,7 @@ export default function App() {
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <FloatingActionButton />
       </BrowserRouter>
     </DefaultProviders>
   );

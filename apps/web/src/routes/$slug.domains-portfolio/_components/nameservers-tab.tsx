@@ -19,11 +19,24 @@ interface NameserversTabProps {
 type NameserverEntry = { name: string; ip?: string; ip6?: string; seqNr?: number };
 
 export function NameserversTab({ domain }: NameserversTabProps) {
+  const isKenic =
+    domain.source === "kenic" || domain.id.toString().startsWith("kenic-");
   const initial = (domain.nameServersFull ?? domain.nameservers.map((ns) => ({ name: ns }))) as NameserverEntry[];
   const [isEditingNameservers, setIsEditingNameservers] = React.useState(false);
   const [nameservers, setNameservers] = React.useState<NameserverEntry[]>(initial);
 
   const updateNameserversMutation = trpc.openProvider.domains.update.useMutation({
+    onSuccess: () => {
+      toast.success("Nameservers updated successfully");
+      setIsEditingNameservers(false);
+      window.location.reload();
+    },
+    onError: (error) => {
+      toast.error("Failed to update nameservers", { description: error.message });
+    },
+  });
+
+  const updateKenicNameserversMutation = trpc.kenic.domainList.updateNameservers.useMutation({
     onSuccess: () => {
       toast.success("Nameservers updated successfully");
       setIsEditingNameservers(false);
@@ -60,6 +73,17 @@ export function NameserversTab({ domain }: NameserversTabProps) {
       toast.error("All nameservers must have a hostname");
       return;
     }
+
+    const nsList = nameservers.map((ns) => ns.name.trim());
+
+    if (isKenic) {
+      updateKenicNameserversMutation.mutate({
+        domain: domain.domain,
+        nameservers: nsList,
+      });
+      return;
+    }
+
     const domainId = parseInt(domain.id, 10);
     if (Number.isNaN(domainId)) {
       toast.error("Invalid domain ID");
@@ -79,7 +103,8 @@ export function NameserversTab({ domain }: NameserversTabProps) {
     setIsEditingNameservers(false);
   };
 
-  const isPending = updateNameserversMutation.isPending;
+  const isPending =
+    updateNameserversMutation.isPending || updateKenicNameserversMutation.isPending;
   const canSave = nameservers.length >= 2 && nameservers.every((ns) => ns.name?.trim());
 
   return (

@@ -20,8 +20,7 @@ export function DomainExtensionsSection() {
   return (
     <section className="max-w-5xl mx-auto px-4 md:px-8 pb-20 pt-4">
       <div className="text-center mb-12">
-        <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">Domain Extensions</span>
-        <h2 className="text-3xl font-bold mt-2 mb-3">Every Extension Your Brand Needs</h2>
+        <h2 className="text-3xl font-bold mb-3">Every Extension Your Brand Needs</h2>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">Register local and global extensions to protect your brand. Search your name to see the live price.</p>
       </div>
       <div className="grid md:grid-cols-2 gap-6">

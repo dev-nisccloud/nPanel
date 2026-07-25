@@ -20,29 +20,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "99.99% network uptime SLA with credits if we miss it",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border/40 shadow-md overflow-hidden">
-          <div className="bg-[oklch(0.18_0.015_260)] px-5 py-2.5 text-white text-sm font-bold flex items-center justify-between">
-            <span>Dedicated Monitor</span>
-            <span className="text-green-400 text-xs font-semibold">● Online</span>
-          </div>
-          <div className="p-4 space-y-3">
-            {[["CPU Usage","12%","oklch(0.60 0.22 235)"],["RAM Usage","28%","oklch(0.55 0.18 195)"],["Disk I/O","8%","oklch(0.65 0.16 160)"],["Network","8 Gbps","oklch(0.58 0.22 300)"]].map(([label, value, color]) => (
-              <div key={String(label)}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="font-bold" style={{ color: String(color) }}>{value}</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: typeof value === "string" && value.includes("%") ? value : "80%", background: String(color) }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "reporting",
   },
   {
     tag: "Instant Deployment",
@@ -54,36 +32,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "RAID configuration included, hardware-level redundancy",
     ],
     mockupRight: false,
-    mockup: (
-      <div className="space-y-3">
-        <div className="bg-[oklch(0.12_0.015_260)] rounded-2xl border border-border/40 shadow-md overflow-hidden font-mono text-xs">
-          <div className="px-4 py-2.5 bg-[oklch(0.18_0.015_260)] flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-            <span className="text-white/50 ml-2">terminal</span>
-          </div>
-          <div className="p-4 space-y-1.5 text-green-400">
-            <div>$ ssh root@196.201.xxx.xxx</div>
-            <div className="text-white/60">Welcome to Ubuntu 24.04 LTS</div>
-            <div className="text-white/60">Intel Xeon 32C | 256GB RAM | RAID-10</div>
-            <div>$ <span className="text-white">docker swarm init</span></div>
-            <div className="text-white/60">Swarm initialized: manager node</div>
-            <div>$ <span className="animate-pulse">_</span></div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">100%</div>
-            <div className="text-[10px] text-muted-foreground">Dedicated hardware</div>
-          </div>
-          <div className="bg-white dark:bg-card rounded-xl border border-border/40 shadow p-3 text-center">
-            <div className="text-xl font-extrabold text-primary">IPMI</div>
-            <div className="text-[10px] text-muted-foreground">Out-of-band access</div>
-          </div>
-        </div>
-      </div>
-    ),
+    visual: "deploy",
   },
   {
     tag: "Popular Use Cases",
@@ -95,26 +44,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Machine learning and GPU compute workloads",
     ],
     mockupRight: true,
-    mockup: (
-      <div className="space-y-2.5">
-        {[
-          { icon: "🗄️", label: "Database Cluster", desc: "MySQL, PostgreSQL, MongoDB at scale" },
-          { icon: "🎮", label: "Game Server", desc: "Low latency, full hardware control" },
-          { icon: "🧠", label: "ML / AI Workloads", desc: "GPU compute, large model inference" },
-          { icon: "📦", label: "Kubernetes Cluster", desc: "Full bare-metal K8s deployment" },
-          { icon: "💰", label: "Fintech Backend", desc: "Isolated, compliant infrastructure" },
-          { icon: "📡", label: "CDN Edge Node", desc: "10 Gbps throughput, Tier 3 DC" },
-        ].map(({ icon, label, desc }) => (
-          <div key={label} className="flex items-center gap-3 bg-white dark:bg-card rounded-xl border border-border/40 shadow-sm p-2.5 text-xs">
-            <span className="text-lg">{icon}</span>
-            <div>
-              <div className="font-semibold">{label}</div>
-              <div className="text-muted-foreground">{desc}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
+    visual: "ownership",
   },
 ];
 
