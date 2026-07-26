@@ -17,7 +17,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "HTTP/2 multiplexing for parallel asset loading",
     ],
     mockupRight: true,
-    visual: "speed",
+    visual: "wpPerf",
   },
   {
     tag: "Staging and Safety",
@@ -29,7 +29,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "30-day backup retention, restore any version in one click",
     ],
     mockupRight: false,
-    visual: "deploy",
+    visual: "wpStaging",
   },
 ];
 

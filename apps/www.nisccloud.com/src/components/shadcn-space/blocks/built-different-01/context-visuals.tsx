@@ -68,8 +68,15 @@ const softIn = {
 };
 
 function Frame({ children }: { children: ReactNode }) {
+  const loop = useLoop();
   return (
-    <div className="mx-auto flex h-[132px] w-full max-w-[220px] items-center justify-center">
+    <div
+      className={
+        loop
+          ? "mx-auto flex h-[200px] w-full max-w-[300px] items-center justify-center md:h-[220px] md:max-w-[340px]"
+          : "mx-auto flex h-[132px] w-full max-w-[220px] items-center justify-center"
+      }
+    >
       {children}
     </div>
   );
@@ -347,15 +354,21 @@ export function PricingVisual(_props: VisualProps) {
 
 /** Growth — rank climbing bars */
 export function GrowthVisual(_props: VisualProps) {
-  const bars = [28, 48, 68, 92];
   const loop = useLoop();
+  const bars = loop ? [48, 78, 110, 150] : [28, 48, 68, 92];
   return (
     <Frame>
-      <div className="flex h-[96px] w-full items-end justify-center gap-2.5 px-4">
+      <div
+        className={
+          loop
+            ? "flex h-[160px] w-full items-end justify-center gap-3 px-2"
+            : "flex h-[96px] w-full items-end justify-center gap-2.5 px-4"
+        }
+      >
         {bars.map((h, i) => (
           <motion.div
             key={i}
-            className="w-7 rounded-t-md bg-primary/15"
+            className={loop ? "w-9 rounded-t-md bg-primary/15" : "w-7 rounded-t-md bg-primary/15"}
             initial={{ height: 8 }}
             animate={loop ? { height: [8, h, h, 8] } : undefined}
             whileInView={!loop ? { height: h } : undefined}
@@ -494,6 +507,7 @@ const DEPLOY_STEPS = [
 ] as const;
 
 export function DeployVisual(_props: VisualProps) {
+  const loop = useLoop();
   const [visible, setVisible] = useState(() => DEPLOY_STEPS.slice(0, 3));
   const [pointer, setPointer] = useState(2);
 
@@ -508,11 +522,11 @@ export function DeployVisual(_props: VisualProps) {
     return () => clearInterval(interval);
   }, [pointer]);
 
-  const rowH = 40;
+  const rowH = loop ? 52 : 40;
 
   return (
     <Frame>
-      <div className="relative h-[120px] w-full overflow-hidden">
+      <div className={loop ? "relative h-[168px] w-full overflow-hidden" : "relative h-[120px] w-full overflow-hidden"}>
         <AnimatePresence initial={false}>
           {visible.map((item, i) => (
             <motion.div
@@ -1721,6 +1735,26 @@ function VisualByTheme({ point, theme }: { point: BuiltDifferentPoint; theme: Vi
       return <EthicalVisual point={point} />;
     case "maps":
       return <MapsVisual point={point} />;
+    case "serverMonitor":
+      return <ReportingVisual point={point} />;
+    case "serverProvision":
+      return <DeployVisual point={point} />;
+    case "workloads":
+      return <DeployVisual point={point} />;
+    case "resourceIsolation":
+      return <OwnershipVisual point={point} />;
+    case "bareMetal":
+      return <DeployVisual point={point} />;
+    case "cpanel":
+      return <DeployVisual point={point} />;
+    case "wpPerf":
+      return <SpeedVisual point={point} />;
+    case "wpStaging":
+      return <ProcessVisual point={point} />;
+    case "deliverability":
+      return <InboxVisual point={point} />;
+    case "businessMail":
+      return <InboxVisual point={point} />;
     default:
       return <DefaultVisual point={point} />;
   }

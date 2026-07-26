@@ -1,13 +1,12 @@
 /**
- * Alternating content + visual card blocks under "What You Get".
- * Uses themed UI visuals (not stock photos / image mockups).
+ * Alternating content + Quiet Stage visual panels under "What You Get".
  */
 
 import { motion } from "motion/react";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils.ts";
-import { ContextualVisual } from "@/components/shadcn-space/blocks/built-different-01/context-visuals.tsx";
 import type { VisualTheme } from "@/components/shadcn-space/blocks/built-different-01/visual-context.ts";
+import { ShowcaseStage } from "./showcase-stages.tsx";
 
 export type ShowcaseBlock = {
   /** Optional section label — not rendered (kept for existing page data). */
@@ -15,7 +14,7 @@ export type ShowcaseBlock = {
   headline: string;
   body: string;
   bullets: string[];
-  /** Themed visual card shown opposite the copy */
+  /** Themed stage shown opposite the copy */
   visual: VisualTheme;
   /** When true the visual sits on the right */
   visualRight?: boolean;
@@ -38,36 +37,8 @@ export function ShowcaseVisualCard({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "relative flex min-h-[300px] items-center justify-center overflow-hidden rounded-3xl border border-border/60 bg-muted/25 p-8 md:min-h-[340px] md:p-10",
-        className,
-      )}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, oklch(0.5 0.03 240 / 0.22) 1px, transparent 1px)",
-          backgroundSize: "22px 22px",
-        }}
-      />
-      <motion.div
-        className="pointer-events-none absolute inset-6 rounded-2xl border border-primary/10"
-        animate={{ opacity: [0.2, 0.5, 0.2] }}
-        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="relative z-10 w-full max-w-[260px]"
-        animate={{ y: [0, -4, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <ContextualVisual
-          point={{ title: headline, desc: headline }}
-          theme={visual}
-          loop
-        />
-      </motion.div>
+    <div className={cn("w-full", className)}>
+      <ShowcaseStage theme={visual} label={headline} />
     </div>
   );
 }

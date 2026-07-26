@@ -17,7 +17,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Shared calendars and group inboxes for your whole team",
     ],
     mockupRight: true,
-    visual: "inbox",
+    visual: "businessMail",
   },
   {
     tag: "Deliverability",
@@ -29,7 +29,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "SpamExperts AI-powered inbound filtering with 99% spam caught",
     ],
     mockupRight: false,
-    visual: "security",
+    visual: "deliverability",
   },
 ];
 

@@ -121,31 +121,69 @@ function TerminalLine({ line }: { line: HostingHeroTerminalLine }) {
 
 export function HostingHeroIllustration({ config }: { config: HostingHeroConfig }) {
   return (
-    <div className="w-full min-w-0 overflow-hidden rounded-2xl border border-border/40 shadow-xl">
-      <div className="flex items-center gap-2 bg-[oklch(0.18_0.015_260)] px-4 py-3 sm:px-5 sm:py-3.5">
-        <div className="h-3 w-3 shrink-0 rounded-full bg-red-500/80" />
-        <div className="h-3 w-3 shrink-0 rounded-full bg-yellow-500/80" />
-        <div className="h-3 w-3 shrink-0 rounded-full bg-green-500/80" />
-        <span className="ml-2 min-w-0 truncate font-mono text-xs text-white/50 sm:text-sm">
-          {config.hostname}
-        </span>
-        <span className="ml-auto shrink-0 text-[10px] font-semibold text-green-400 sm:text-xs">
-          ● Connected
-        </span>
-      </div>
-      <Terminal
-        hideHeader
-        sequence
-        loop
-        startOnView={false}
-        loopDelay={2500}
-        scrollClassName="min-h-[360px] max-h-[min(65vh,460px)]"
-        className="max-w-none rounded-none border-0 bg-[oklch(0.12_0.015_260)] font-mono text-xs leading-relaxed sm:text-[13px] [&_code]:text-green-400"
+    <div className="w-full min-w-0">
+      {/* Rounded computer chassis — soft depth, not busy */}
+      <div
+        className="relative overflow-hidden rounded-[1.75rem] p-3 shadow-2xl sm:rounded-[2rem] sm:p-4"
+        style={{
+          background:
+            "linear-gradient(145deg, #3bb8e8 0%, #25A9DE 42%, #1a8fbf 100%)",
+        }}
       >
-        {config.terminalLines.map((line, index) => (
-          <TerminalLine key={index} line={line} />
-        ))}
-      </Terminal>
+        {/* Soft light wash */}
+        <div
+          className="pointer-events-none absolute -left-8 -top-10 h-40 w-40 rounded-full opacity-40 blur-2xl"
+          style={{ background: "radial-gradient(circle, #ffffff 0%, transparent 70%)" }}
+        />
+        {/* Quiet grid texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.55) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+            maskImage: "linear-gradient(to bottom, black 0%, transparent 85%)",
+          }}
+        />
+        {/* Edge rim */}
+        <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-inset ring-white/25" />
+
+        <div className="relative z-10">
+          {/* Screen inset */}
+          <div className="overflow-hidden rounded-2xl border border-black/10 bg-black/15 shadow-inner">
+            <div className="flex items-center gap-2 bg-[oklch(0.18_0.015_260)] px-4 py-3 sm:px-5 sm:py-3.5">
+              <div className="h-3 w-3 shrink-0 rounded-full bg-red-500/80" />
+              <div className="h-3 w-3 shrink-0 rounded-full bg-yellow-500/80" />
+              <div className="h-3 w-3 shrink-0 rounded-full bg-green-500/80" />
+              <span className="ml-2 min-w-0 truncate font-mono text-xs text-white/50 sm:text-sm">
+                {config.hostname}
+              </span>
+              <span className="ml-auto shrink-0 text-[10px] font-semibold text-green-400 sm:text-xs">
+                ● Connected
+              </span>
+            </div>
+            <Terminal
+              hideHeader
+              sequence
+              loop
+              startOnView={false}
+              loopDelay={2500}
+              scrollClassName="min-h-[360px] max-h-[min(65vh,460px)]"
+              className="max-w-none rounded-none border-0 bg-[oklch(0.12_0.015_260)] font-mono text-xs leading-relaxed sm:text-[13px] [&_code]:text-green-400"
+            >
+              {config.terminalLines.map((line, index) => (
+                <TerminalLine key={index} line={line} />
+              ))}
+            </Terminal>
+          </div>
+
+          {/* Chin / camera bar */}
+          <div className="mt-3 flex items-center justify-center gap-2 sm:mt-3.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-white/40 shadow-sm" />
+            <div className="h-1 w-14 rounded-full bg-white/30 sm:w-16" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -28,7 +28,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "Daily automatic backups, restore any file in one click",
     ],
     mockupRight: false,
-    visual: "deploy",
+    visual: "cpanel",
   },
 ];
 
