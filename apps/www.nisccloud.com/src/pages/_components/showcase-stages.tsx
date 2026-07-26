@@ -2278,6 +2278,544 @@ function DefaultStage() {
   return <CraftStage />;
 }
 
+/* ─── Hosting / infrastructure (context-specific) ───────────────────────── */
+
+function Gauge({
+  label,
+  value,
+  delay = 0,
+}: {
+  label: string;
+  value: number;
+  delay?: number;
+}) {
+  return (
+    <Glass className="flex flex-col justify-between p-2.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">{label}</span>
+        <motion.span
+          className="text-[11px] font-black text-white"
+          animate={{ opacity: [0.55, 1, 0.55] }}
+          transition={{ duration: 2.2, repeat: Infinity, delay }}
+        >
+          {value}%
+        </motion.span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/20">
+        <motion.div
+          className="h-full rounded-full bg-white"
+          animate={{ width: [`${Math.max(value - 18, 12)}%`, `${value}%`, `${Math.max(value - 10, 12)}%`] }}
+          transition={{ duration: 3.2, repeat: Infinity, delay, ease: "easeInOut" }}
+        />
+      </div>
+    </Glass>
+  );
+}
+
+/** Grafana-style server metrics — not marketing analytics */
+function ServerMonitorStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Server metrics" badge={<LiveBadge />}>
+          <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
+            <Gauge label="CPU" value={42} />
+            <Gauge label="RAM" value={61} delay={0.2} />
+            <Gauge label="Disk I/O" value={28} delay={0.4} />
+            <Gauge label="Network" value={54} delay={0.6} />
+            <Glass className="col-span-2 min-h-0 flex-1 p-2.5">
+              <div className="mb-1 flex items-center justify-between text-[9px] font-bold text-white/70">
+                <span>Throughput · last 15m</span>
+                <span className="text-white">Gbps in/out</span>
+              </div>
+              <BarChart values={[32, 48, 40, 62, 55, 78, 70, 88, 64, 92]} className="h-14" />
+            </Glass>
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Alert rule OK", body: "CPU under 80% threshold" },
+            { title: "WhatsApp alert", body: "Disk 72% · acknowledged" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.chart, I.bolt, I.shield, I.check]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** OS + SSH provision — not npm/CRM deploy */
+function ServerProvisionStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Provision" badge={<span className="text-[9px] font-bold text-white">&lt; 5 min</span>}>
+          <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
+            <Glass className="p-2.5">
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-white/65">Choose OS</div>
+              <div className="flex flex-wrap gap-1.5">
+                {["Ubuntu 24.04", "Debian 12", "AlmaLinux", "Docker"].map((os, i) => (
+                  <motion.span
+                    key={os}
+                    className={`rounded-lg border px-2 py-1 text-[9px] font-bold ${
+                      i === 0
+                        ? "border-white bg-white text-primary"
+                        : "border-white/35 bg-white/10 text-white"
+                    }`}
+                    animate={i === 0 ? { scale: [1, 1.04, 1] } : {}}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    {os}
+                  </motion.span>
+                ))}
+              </div>
+            </Glass>
+            <Glass className="p-2.5 font-mono">
+              <div className="mb-1 text-[9px] font-bold text-white/65">SSH public key</div>
+              <motion.div
+                className="truncate text-[10px] font-bold text-white"
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 2.4, repeat: Infinity }}
+              >
+                ssh-ed25519 AAAA…nPanel
+              </motion.div>
+            </Glass>
+            <div className="space-y-1.5">
+              {["Allocate vCPU + RAM", "Attach public IPv4", "Boot + SSH ready"].map((step, i) => (
+                <motion.div
+                  key={step}
+                  className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2 text-[10px] font-bold text-white"
+                  animate={{ opacity: [0.35, 1, 0.35] }}
+                  transition={{ duration: 3, repeat: Infinity, delay: i * 0.45 }}
+                >
+                  <span className="text-white">{I.check}</span>
+                  {step}
+                </motion.div>
+              ))}
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <motion.div
+                className="h-full rounded-full bg-white"
+                animate={{ width: ["8%", "100%", "100%", "8%"] }}
+                transition={{ duration: 4, repeat: Infinity, times: [0, 0.4, 0.75, 1] }}
+              />
+            </div>
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Server live", body: "SSH open · root@ready" },
+            { title: "Stack install", body: "LEMP one-click queued" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.bolt, I.lock, I.check, I.spark]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** Store / API / SaaS workloads — never CRM HubSpot */
+function WorkloadsStage() {
+  const apps = [
+    { name: "WooCommerce", meta: "Store · isolated RAM" },
+    { name: "Payment API", meta: "Node · sticky sessions" },
+    { name: "SaaS app", meta: "Docker · staging" },
+    { name: "Staging", meta: "Clone · safe tests" },
+  ];
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Workloads" badge={<span className="text-[9px] font-bold text-white">On VPS/VDS</span>}>
+          <div className="flex flex-1 flex-col gap-1.5 p-2 md:p-2.5">
+            {apps.map((app, i) => (
+              <motion.div
+                key={app.name}
+                className="flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2.5"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.22 }}
+              >
+                <span className="flex size-8 items-center justify-center rounded-lg bg-white text-[10px] font-black text-primary">
+                  {app.name.slice(0, 1)}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-white">{app.name}</div>
+                  <div className="text-[9px] text-white/60">{app.meta}</div>
+                </div>
+                <span className="ml-auto flex items-center gap-1 text-[9px] font-bold text-white">
+                  <motion.span
+                    className="size-1.5 rounded-full bg-white"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.15 }}
+                  />
+                  Live
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Store healthy", body: "Checkout p95 · 210ms" },
+            { title: "API scaled", body: "Workers · 4 replicas" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.bolt, I.node, I.chart, I.check]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** Dedicated cores/RAM — VDS isolation story */
+function ResourceIsolationStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Resource isolation" badge={<span className="text-[9px] font-bold text-white">Dedicated</span>}>
+          <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
+            <Glass className="p-3">
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-white/65">
+                Your slice · not shared
+              </div>
+              {[
+                { l: "vCPU", v: "4 cores · pinned" },
+                { l: "RAM", v: "8 GB · guaranteed" },
+                { l: "NVMe", v: "160 GB · yours only" },
+              ].map((row, i) => (
+                <motion.div
+                  key={row.l}
+                  className="flex items-center justify-between border-t border-white/15 py-2 first:border-0 first:pt-0"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.25 }}
+                >
+                  <span className="text-[11px] font-bold text-white">{row.l}</span>
+                  <span className="text-[10px] font-black text-white">{row.v}</span>
+                </motion.div>
+              ))}
+            </Glass>
+            <Glass className="flex flex-1 flex-col justify-center gap-2 p-3">
+              <div className="flex items-center justify-between text-[10px] font-bold text-white">
+                <span>Noisy neighbour</span>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-black text-primary">
+                  Blocked
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/20">
+                <motion.div
+                  className="h-full rounded-full bg-white"
+                  animate={{ width: ["100%", "100%"] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  style={{ width: "100%" }}
+                />
+              </div>
+              <div className="text-[9px] text-white/65">100% of allocated resources reserved for you</div>
+            </Glass>
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Isolation OK", body: "No shared CPU steal" },
+            { title: "SLA credit", body: "Network 99.99% tracked" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.shield, I.bolt, I.chart, I.check]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** Bare metal: DB / game / GPU — not brand IP ownership */
+function BareMetalStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Bare metal" badge={<span className="text-[9px] font-bold text-white">IPMI</span>}>
+          <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
+            <Glass className="grid grid-cols-3 gap-2 p-2.5">
+              {[
+                { l: "CPU", v: "EPYC" },
+                { l: "RAM", v: "128G" },
+                { l: "Disk", v: "RAID" },
+              ].map((s, i) => (
+                <div key={s.l} className="text-center">
+                  <motion.div
+                    className="text-sm font-black text-white"
+                    animate={{ opacity: [0.55, 1, 0.55] }}
+                    transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.2 }}
+                  >
+                    {s.v}
+                  </motion.div>
+                  <div className="text-[9px] font-bold text-white/65">{s.l}</div>
+                </div>
+              ))}
+            </Glass>
+            {[
+              { name: "Database cluster", meta: "High IOPS · dedicated NVMe" },
+              { name: "Game / realtime", meta: "Low latency · full NIC" },
+              { name: "ML / GPU jobs", meta: "Hardware owned · no noisy neighbours" },
+            ].map((w, i) => (
+              <motion.div
+                key={w.name}
+                className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.25 }}
+              >
+                <span className="flex size-7 items-center justify-center rounded-lg bg-white text-[9px] font-black text-primary">
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-white">{w.name}</div>
+                  <div className="text-[9px] text-white/60">{w.meta}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "IPMI online", body: "Out-of-band management ready" },
+            { title: "RAID rebuild", body: "Redundancy · healthy" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.bolt, I.shield, I.chart, I.lock]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** cPanel-style hosting control — shared hosting */
+function CpanelStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="cPanel" badge={<span className="text-[9px] font-bold text-white">Hosting</span>}>
+          <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
+            {[
+              { t: "Email", d: "you@brand.co.ke" },
+              { t: "Files", d: "File Manager" },
+              { t: "WordPress", d: "1-click install" },
+              { t: "Backups", d: "Restore anytime" },
+            ].map((tile, i) => (
+              <motion.div
+                key={tile.t}
+                className="flex flex-col justify-between rounded-xl border border-white/30 bg-white/10 p-2.5"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.2 }}
+              >
+                <span className="text-[11px] font-black text-white">{tile.t}</span>
+                <span className="text-[9px] text-white/65">{tile.d}</span>
+              </motion.div>
+            ))}
+            <Glass className="col-span-2 p-2.5">
+              <div className="mb-1 flex justify-between text-[9px] font-bold text-white/65">
+                <span>Resource usage</span>
+                <span className="text-white">Healthy</span>
+              </div>
+              <BarChart values={[30, 44, 38, 52, 48, 60]} className="h-10" />
+            </Glass>
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "WP installed", body: "Softaculous · 1 click" },
+            { title: "Backup done", body: "Daily · restore ready" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.bolt, I.mail, I.check, I.spark]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** WordPress stack performance */
+function WpPerfStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="WordPress stack" badge={<LiveBadge />}>
+          <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { l: "PHP", v: "8.3" },
+                { l: "Cache", v: "LiteSpeed" },
+                { l: "DB", v: "MariaDB" },
+                { l: "HTTP", v: "2 / 3" },
+              ].map((m, i) => (
+                <Glass key={m.l} className="p-2.5">
+                  <div className="text-[9px] font-bold text-white/65">{m.l}</div>
+                  <motion.div
+                    className="text-sm font-black text-white"
+                    animate={{ opacity: [0.55, 1, 0.55] }}
+                    transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.15 }}
+                  >
+                    {m.v}
+                  </motion.div>
+                </Glass>
+              ))}
+            </div>
+            <Glass className="flex-1 p-2.5">
+              <div className="mb-1 text-[9px] font-bold text-white/65">Page generate time</div>
+              <BarChart values={[70, 55, 40, 32, 28, 22, 18]} className="h-16" />
+              <div className="mt-1 text-[10px] font-bold text-white">Tuned for WP · OPcache on</div>
+            </Glass>
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Cache hit", body: "LiteSpeed · 94% hits" },
+            { title: "PHP worker", body: "OPcache warm" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.bolt, I.chart, I.check, I.spark]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** Staging → production for WordPress */
+function WpStagingStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Staging" badge={<span className="text-[9px] font-bold text-white">Safe</span>}>
+          <div className="flex flex-1 flex-col justify-center gap-3 p-3">
+            <div className="flex items-center gap-2">
+              <Glass className="flex-1 px-3 py-3 text-center">
+                <div className="text-[9px] font-bold text-white/65">Staging</div>
+                <div className="text-[12px] font-black text-white">Clone</div>
+              </Glass>
+              <div className="relative h-px w-8 overflow-hidden bg-white/30">
+                <motion.div
+                  className="absolute inset-y-0 w-6 bg-white"
+                  animate={{ x: ["-100%", "180%"] }}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                />
+              </div>
+              <Glass className="flex-1 border-white/60 bg-white/25 px-3 py-3 text-center">
+                <div className="text-[9px] font-bold text-white/80">Live</div>
+                <div className="text-[12px] font-black text-white">Prod</div>
+              </Glass>
+            </div>
+            {[
+              "Plugin update tested",
+              "Theme redesign preview",
+              "Push only when ready",
+            ].map((step, i) => (
+              <motion.div
+                key={step}
+                className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-[10px] font-bold text-white"
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.35 }}
+              >
+                {I.check} {step}
+              </motion.div>
+            ))}
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Staging ready", body: "Full clone · no risk" },
+            { title: "Push queued", body: "Prod update · confirmed" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.check, I.bolt, I.lock, I.spark]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** Branded mailbox — not marketing lead inbox */
+function BusinessMailStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Mail" badge={<span className="text-[9px] font-bold text-white">@domain</span>}>
+          <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
+            <Glass className="p-3">
+              <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">From</div>
+              <motion.div
+                className="mt-1 text-[13px] font-black text-white"
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 2.4, repeat: Infinity }}
+              >
+                you@yourbusiness.co.ke
+              </motion.div>
+              <div className="mt-1 text-[10px] text-white/65">Looks credible in every inbox</div>
+            </Glass>
+            {[
+              { t: "Outlook / Apple Mail", d: "IMAP ready" },
+              { t: "Shared calendar", d: "Team schedules" },
+              { t: "Group inbox", d: "info@ · sales@" },
+            ].map((row, i) => (
+              <motion.div
+                key={row.t}
+                className="flex items-center justify-between rounded-xl border border-white/30 bg-white/10 px-2.5 py-2"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.22 }}
+              >
+                <div>
+                  <div className="text-[11px] font-bold text-white">{row.t}</div>
+                  <div className="text-[9px] text-white/60">{row.d}</div>
+                </div>
+                <span className="text-white">{I.check}</span>
+              </motion.div>
+            ))}
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Mailbox live", body: "info@ set up in 30 min" },
+            { title: "Mobile sync", body: "Gmail app · connected" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.mail, I.users, I.check, I.spark]} active={0} />
+    </MockCanvas>
+  );
+}
+
+/** DKIM / SPF / DMARC — email deliverability, not generic SSL shield */
+function DeliverabilityStage() {
+  return (
+    <MockCanvas>
+      <div className="relative flex min-w-0 flex-1">
+        <Window title="Deliverability" badge={<span className="text-[9px] font-bold text-white">Inbox</span>}>
+          <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
+            {[
+              { t: "SPF", d: "Authorized senders", ok: true },
+              { t: "DKIM", d: "Message signed", ok: true },
+              { t: "DMARC", d: "Policy enforced", ok: true },
+              { t: "SpamExperts", d: "99% spam caught", ok: true },
+            ].map((row, i) => (
+              <motion.div
+                key={row.t}
+                className="flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2.5"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.22 }}
+              >
+                <span className="flex size-9 items-center justify-center rounded-lg bg-white text-[9px] font-black text-primary">
+                  {row.t.slice(0, 2)}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-white">{row.t}</div>
+                  <div className="text-[9px] text-white/60">{row.d}</div>
+                </div>
+                <span className="ml-auto text-white">{I.check}</span>
+              </motion.div>
+            ))}
+          </div>
+        </Window>
+        <ToastLoop
+          items={[
+            { title: "Landed in inbox", body: "Gmail · not spam" },
+            { title: "Auth pass", body: "SPF + DKIM + DMARC" },
+          ]}
+        />
+      </div>
+      <SideRail icons={[I.mail, I.shield, I.check, I.spark]} active={0} />
+    </MockCanvas>
+  );
+}
+
 const STAGE_MAP: Record<VisualTheme, (props: StageProps) => ReactNode> = {
   brand: () => <BrandStage />,
   clarity: () => <ClarityStage />,
@@ -2318,6 +2856,16 @@ const STAGE_MAP: Record<VisualTheme, (props: StageProps) => ReactNode> = {
   assets: () => <AssetsStage />,
   craft: () => <CraftStage />,
   ownership: () => <OwnershipStage />,
+  serverMonitor: () => <ServerMonitorStage />,
+  serverProvision: () => <ServerProvisionStage />,
+  workloads: () => <WorkloadsStage />,
+  resourceIsolation: () => <ResourceIsolationStage />,
+  bareMetal: () => <BareMetalStage />,
+  cpanel: () => <CpanelStage />,
+  wpPerf: () => <WpPerfStage />,
+  wpStaging: () => <WpStagingStage />,
+  deliverability: () => <DeliverabilityStage />,
+  businessMail: () => <BusinessMailStage />,
   default: () => <DefaultStage />,
 };
 

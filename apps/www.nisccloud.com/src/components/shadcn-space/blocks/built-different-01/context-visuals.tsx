@@ -1735,6 +1735,26 @@ function VisualByTheme({ point, theme }: { point: BuiltDifferentPoint; theme: Vi
       return <EthicalVisual point={point} />;
     case "maps":
       return <MapsVisual point={point} />;
+    case "serverMonitor":
+      return <ReportingVisual point={point} />;
+    case "serverProvision":
+      return <DeployVisual point={point} />;
+    case "workloads":
+      return <DeployVisual point={point} />;
+    case "resourceIsolation":
+      return <OwnershipVisual point={point} />;
+    case "bareMetal":
+      return <DeployVisual point={point} />;
+    case "cpanel":
+      return <DeployVisual point={point} />;
+    case "wpPerf":
+      return <SpeedVisual point={point} />;
+    case "wpStaging":
+      return <ProcessVisual point={point} />;
+    case "deliverability":
+      return <InboxVisual point={point} />;
+    case "businessMail":
+      return <InboxVisual point={point} />;
     default:
       return <DefaultVisual point={point} />;
   }
