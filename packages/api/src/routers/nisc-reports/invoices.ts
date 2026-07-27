@@ -58,6 +58,91 @@ export const niscInvoicesRouter = router({
       }));
     }),
 
+  // ─── I-01B Status Summary with KRA Sync Status ─────────────────────────────
+  statusSummaryWithKra: protectedProcedure
+    .input(reportFiltersSchema)
+    .output(z.object({
+      total: z.number(),
+      paid: z.number(),
+      unpaid: z.number(),
+      overdue: z.number(),
+      kraSynced: z.number(),
+      kraNotSynced: z.number(),
+      kraInFlight: z.number(),
+      kraFailed: z.number(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const { from, to, teamIds } = input;
+      const scope = await resolveReportReadScope({
+        userId: ctx.session.user.id,
+        role: ctx.session.user.role,
+        requestedTeamIds: teamIds,
+      });
+
+      const rows = await db
+        .select({
+          status: invoice.status,
+          kraStatus: invoice.kraStatus,
+          dueDate: invoice.dueDate,
+          paidAt: invoice.paidAt,
+        })
+        .from(invoice)
+        .where(and(
+          invoiceIssuedInPeriod(from, to),
+          buildReportEntityScope({
+            teamColumn: invoice.teamId,
+            teamIds: scope.teamIds,
+          }),
+        ));
+
+      const now = new Date();
+      let total = 0;
+      let paid = 0;
+      let unpaid = 0;
+      let overdue = 0;
+      let kraSynced = 0;
+      let kraNotSynced = 0;
+      let kraInFlight = 0;
+      let kraFailed = 0;
+
+      for (const r of rows) {
+        total += 1;
+        
+        // Status counts
+        if (r.status === "PAID" || r.paidAt) {
+          paid += 1;
+        } else {
+          unpaid += 1;
+          if (r.dueDate && r.dueDate < now) {
+            overdue += 1;
+          }
+        }
+
+        // KRA sync status
+        const kStatus = r.kraStatus || "";
+        if (kStatus === "SYNCED" || kStatus === "VERIFIED") {
+          kraSynced += 1;
+        } else if (kStatus === "PENDING" || kStatus === "SUBMITTING") {
+          kraInFlight += 1;
+        } else if (kStatus === "FAILED") {
+          kraFailed += 1;
+        } else if (kStatus === "NOT_APPLICABLE" || kStatus === "SKIPPED" || !kStatus) {
+          kraNotSynced += 1;
+        }
+      }
+
+      return {
+        total,
+        paid,
+        unpaid,
+        overdue,
+        kraSynced,
+        kraNotSynced,
+        kraInFlight,
+        kraFailed,
+      };
+    }),
+
   // ─── I-02 Invoice List ─────────────────────────────────────────────────────
   list: protectedProcedure
     .input(reportFiltersSchema)

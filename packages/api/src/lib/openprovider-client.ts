@@ -546,6 +546,28 @@ export class OpenProviderClient {
   }
 
   /**
+   * Get reseller information including balance
+   */
+  async getResellerInfo(params: { with_statistics?: boolean; with_settings?: boolean; with_contacts?: boolean } = {}): Promise<any> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.with_statistics) queryParams.append('with_statistics', 'true');
+      if (params.with_settings) queryParams.append('with_settings', 'true');
+      if (params.with_contacts) queryParams.append('with_contacts', 'true');
+
+      const endpoint = `/resellers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      return await this.makeRequest('GET', endpoint);
+    } catch (error) {
+      if (error instanceof OpenProviderApiError) {
+        throw error;
+      }
+      throw new OpenProviderApiError(0, 'Failed to get reseller information', error as Error);
+    }
+  }
+
+  /**
    * Delete a domain
    */
   async deleteDomain(id: number, params: { domain?: { name: string; extension: string } } = {}): Promise<{ code: number; desc: string }> {

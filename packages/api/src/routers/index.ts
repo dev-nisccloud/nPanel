@@ -100,6 +100,7 @@ import { subscriptionUsageRouter } from "./subscription-usage";
 import { niscServiceOrdersRouter } from "./nisc-service-orders";
 import { publicPricingRouter } from "./public-pricing";
 import { agencyRbacRouter } from "./agency-rbac";
+import { agencyDashboardRouter } from "./agency-dashboard";
 import { hivelocityRouter } from "./hivelocity";
 import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
@@ -311,6 +312,8 @@ export const appRouter = router({
 	publicPricing: publicPricingRouter,
 	// Agency RBAC – roles and menu access
 	agencyRbac: agencyRbacRouter,
+	// Agency Dashboard – dashboard metrics and summaries
+	agencyDashboard: agencyDashboardRouter,
 	// Hivelocity integration (dedicated servers / VPS / VDS reseller)
 	hivelocity: hivelocityRouter,
 	// Hivelocity pricing (currency + margin shown in UI)

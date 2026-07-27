@@ -725,6 +725,95 @@ export const quotationsRouter = router({
 				metadata: { toEmail: input.toEmail },
 			});
 
-			return { success: true };
-		}),
+		return { success: true };
+	}),
+
+	/**
+	 * Get quotations summary statistics
+	 */
+	getSummary: protectedProcedure.query(async ({ ctx }) => {
+		const actor = await getAuthenticatedUser(ctx);
+		const isAgency = isAgencyUser(actor.role);
+
+		try {
+			let whereConditions;
+			
+			if (!isAgency) {
+				// Regular users can only see their own quotations
+				whereConditions = eq(quotation.createdBy, actor.id);
+			}
+
+			// Get total count
+			const totalResult = await db
+				.select({ count: count() })
+				.from(quotation)
+				.where(whereConditions);
+			
+			const total = totalResult[0]?.count || 0;
+
+			// Get count by status
+			const draftCount = await db
+				.select({ count: count() })
+				.from(quotation)
+				.where(
+					whereConditions 
+						? and(whereConditions, eq(quotation.status, "DRAFT"))
+						: eq(quotation.status, "DRAFT")
+				);
+
+			const sentCount = await db
+				.select({ count: count() })
+				.from(quotation)
+				.where(
+					whereConditions 
+						? and(whereConditions, eq(quotation.status, "SENT"))
+						: eq(quotation.status, "SENT")
+				);
+
+			const acceptedCount = await db
+				.select({ count: count() })
+				.from(quotation)
+				.where(
+					whereConditions 
+						? and(whereConditions, eq(quotation.status, "ACCEPTED"))
+						: eq(quotation.status, "ACCEPTED")
+				);
+
+			const rejectedCount = await db
+				.select({ count: count() })
+				.from(quotation)
+				.where(
+					whereConditions 
+						? and(whereConditions, eq(quotation.status, "REJECTED"))
+						: eq(quotation.status, "REJECTED")
+				);
+
+			const expiredCount = await db
+				.select({ count: count() })
+				.from(quotation)
+				.where(
+					whereConditions 
+						? and(whereConditions, eq(quotation.status, "EXPIRED"))
+						: eq(quotation.status, "EXPIRED")
+				);
+
+			return {
+				total,
+				draft: draftCount[0]?.count || 0,
+				sent: sentCount[0]?.count || 0,
+				accepted: acceptedCount[0]?.count || 0,
+				rejected: rejectedCount[0]?.count || 0,
+				expired: expiredCount[0]?.count || 0,
+				// Computed aggregates
+				pending: (draftCount[0]?.count || 0) + (sentCount[0]?.count || 0),
+				closed: (acceptedCount[0]?.count || 0) + (rejectedCount[0]?.count || 0) + (expiredCount[0]?.count || 0),
+			};
+		} catch (error) {
+			console.error("Error getting quotations summary:", error);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to get quotations summary",
+			});
+		}
+	}),
 });
