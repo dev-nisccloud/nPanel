@@ -67,6 +67,8 @@ interface CustomerInfoStepProps {
   onSignedInSubmit?: (teamId: string) => void;
   onCompleteProfile?: (profile: StorefrontProfilePrefill) => Promise<void> | void;
   onCreateOrganization?: (name: string) => Promise<void> | void;
+  /** Flush cart draft to sessionStorage immediately before navigating to login. */
+  onBeforeSignIn?: () => void;
   identity?: CustomerInfoIdentity;
   prefillEmail?: string;
 }
@@ -123,12 +125,12 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-sm font-medium text-gray-700">
+      <Label className="text-sm font-medium text-foreground">
         {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {required && <span className="text-destructive ml-0.5">*</span>}
       </Label>
       {children}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }
@@ -170,6 +172,7 @@ export function CustomerInfoStep({
   onSignedInSubmit,
   onCompleteProfile,
   onCreateOrganization,
+  onBeforeSignIn,
   identity = { status: "guest" },
   prefillEmail,
 }: CustomerInfoStepProps) {
@@ -306,7 +309,7 @@ export function CustomerInfoStep({
 
   if (identity.status === "loading") {
     return (
-      <div className="bg-white border border-border rounded-2xl p-6 shadow-sm">
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <StepHeader
           onBack={onBack}
           title="Your account details"
@@ -326,7 +329,7 @@ export function CustomerInfoStep({
     const needsProfile = !identity.profileComplete;
 
     return (
-      <div className="bg-white border border-border rounded-2xl p-6 shadow-sm">
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
         <StepHeader
           onBack={onBack}
           title="Confirm your purchase"
@@ -379,7 +382,7 @@ export function CustomerInfoStep({
             </div>
             <Field label="Phone number" required error={profileErrors.phone}>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type="tel"
                   value={profile.phone}
@@ -493,7 +496,7 @@ export function CustomerInfoStep({
             </div>
             <Field label="Organization name" required error={orgError}>
               <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
                   value={orgName}
                   onChange={(e) => {
@@ -516,7 +519,7 @@ export function CustomerInfoStep({
   }
 
   return (
-    <div className="bg-white border border-border rounded-2xl p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
       <StepHeader
         onBack={onBack}
         title="Your account details"
@@ -526,6 +529,7 @@ export function CustomerInfoStep({
       {/* Already have an account  prominent card */}
       <a
         href={signInHref}
+        onClick={() => onBeforeSignIn?.()}
         className="flex items-center justify-between gap-3 p-4 rounded-xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/60 transition-all mb-6 group"
       >
         <div className="flex items-center gap-3">
@@ -547,7 +551,7 @@ export function CustomerInfoStep({
         <div className="grid grid-cols-2 gap-4">
           <Field label="First name" required error={errors.firstName}>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 value={info.firstName}
                 onChange={(e) => set("firstName", e.target.value)}
@@ -573,7 +577,7 @@ export function CustomerInfoStep({
         {/* Email */}
         <Field label="Email address" required error={errors.email}>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               type="email"
               value={info.email}
@@ -589,7 +593,7 @@ export function CustomerInfoStep({
         {/* Phone */}
         <Field label="Phone number" required error={errors.phone}>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               type="tel"
               value={info.phone}
@@ -605,7 +609,7 @@ export function CustomerInfoStep({
         {/* Company name */}
         <Field label="Company / business name" required error={errors.companyName}>
           <div className="relative">
-            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               value={info.companyName}
               onChange={(e) => set("companyName", e.target.value)}
@@ -615,7 +619,7 @@ export function CustomerInfoStep({
               autoComplete="organization"
             />
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Used as your workspace name in nPanel. Can be changed later.
           </p>
         </Field>
@@ -625,7 +629,7 @@ export function CustomerInfoStep({
         {/* Password */}
         <Field label="Create a password" required error={errors.password}>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               type={showPassword ? "text" : "password"}
               value={info.password}
@@ -637,7 +641,7 @@ export function CustomerInfoStep({
             />
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               onClick={() => setShowPassword((v) => !v)}
               tabIndex={-1}
             >
@@ -649,7 +653,7 @@ export function CustomerInfoStep({
         {/* Confirm password */}
         <Field label="Confirm password" required error={errors.confirmPassword}>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <Input
               type={showConfirm ? "text" : "password"}
               value={info.confirmPassword}
@@ -661,7 +665,7 @@ export function CustomerInfoStep({
             />
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               onClick={() => setShowConfirm((v) => !v)}
               tabIndex={-1}
             >
@@ -693,7 +697,7 @@ export function CustomerInfoStep({
             </label>
           </div>
           {errors.agreedToTerms && (
-            <p className="text-xs text-red-500 ml-6">{errors.agreedToTerms}</p>
+            <p className="text-xs text-destructive ml-6">{errors.agreedToTerms}</p>
           )}
         </div>
       </form>

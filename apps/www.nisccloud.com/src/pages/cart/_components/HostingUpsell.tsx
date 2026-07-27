@@ -37,6 +37,10 @@ interface HostingUpsellProps {
   /** Called when async plan fetch completes (loading → false). */
   onLoadingChange?: (loading: boolean) => void;
   domainName?: string;
+  /** Restored billing cycles after login redirect / refresh. */
+  initialCycles?: Partial<Record<HostingUpsellType, BillingCycle>>;
+  /** Restored plan ids after login redirect / refresh. */
+  initialSelectedPlanIds?: Partial<Record<HostingUpsellType, string>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -226,18 +230,30 @@ function fmt(amount: number, currency: string) {
 // Component
 // ---------------------------------------------------------------------------
 
-export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleChange, onLoadingChange, domainName }: HostingUpsellProps) {
+export function HostingUpsell({
+  selectedType,
+  onSelect,
+  onPlanLoaded,
+  onCycleChange,
+  onLoadingChange,
+  domainName,
+  initialCycles,
+  initialSelectedPlanIds,
+}: HostingUpsellProps) {
   const [plansCatalog, setPlansCatalog] = React.useState<
     Partial<Record<HostingUpsellType, LivePlan[]>>
   >({});
   const [selectedPlanId, setSelectedPlanId] = React.useState<
     Partial<Record<HostingUpsellType, string>>
-  >({});
+  >(() => initialSelectedPlanIds ?? {});
   const [showAllPlans, setShowAllPlans] = React.useState<
     Partial<Record<HostingUpsellType, boolean>>
   >({});
   const [loading, setLoading] = React.useState(true);
-  const [cycles, setCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>({});
+  const [cycles, setCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>(
+    () => initialCycles ?? {},
+  );
+  const initialSelectedPlanIdsRef = React.useRef(initialSelectedPlanIds);
   const notifyRef = React.useRef(onPlanLoaded);
   notifyRef.current = onPlanLoaded;
   const cycleNotifyRef = React.useRef(onCycleChange);
@@ -308,7 +324,11 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
           continue;
         }
         nextCatalog[id] = plans;
-        const best = plans.find((p) => p.isRecommended) ?? plans[0];
+        const restoredId = initialSelectedPlanIdsRef.current?.[id];
+        const restored = restoredId
+          ? plans.find((p) => p.planId === restoredId)
+          : undefined;
+        const best = restored ?? plans.find((p) => p.isRecommended) ?? plans[0];
         nextSelected[id] = best.planId;
         notifyRef.current?.(id, toUpsellPlanInfo(best));
       }
@@ -328,7 +348,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
   }, [loading, onLoadingChange]);
 
   return (
-    <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
+    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
       <h3 className="text-base font-bold text-foreground mb-1">
         Turn your domain into a website
       </h3>
@@ -378,7 +398,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                     ? "border-primary bg-primary/5"
                     : isRecommended
                       ? "border-primary/30 hover:border-primary/60 bg-primary/[0.02]"
-                      : "border-border hover:border-primary/40 bg-white",
+                      : "border-border hover:border-primary/40 bg-card",
                 )}
                 onClick={() => handleSelectType(slot.id, isSelected)}
               >
@@ -390,7 +410,7 @@ export function HostingUpsell({ selectedType, onSelect, onPlanLoaded, onCycleCha
                       isSelected ? "border-primary bg-primary" : "border-muted-foreground/40",
                     )}
                   >
-                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />}
                   </div>
 
                   {/* Icon */}

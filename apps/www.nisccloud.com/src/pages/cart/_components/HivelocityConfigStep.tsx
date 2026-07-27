@@ -280,7 +280,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
 
   if (loading) {
     return (
-      <div className="bg-white border border-border rounded-2xl p-8 flex flex-col items-center justify-center text-center">
+      <div className="bg-card border border-border rounded-2xl p-8 flex flex-col items-center justify-center text-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
         <p className="text-sm text-muted-foreground">Loading server configuration…</p>
       </div>
@@ -289,7 +289,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
 
   if (loadError) {
     return (
-      <div className="bg-white border border-destructive/30 rounded-2xl p-6 text-sm text-destructive">
+      <div className="bg-card border border-destructive/30 rounded-2xl p-6 text-sm text-destructive">
         {loadError}
       </div>
     );
@@ -297,7 +297,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
 
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-border rounded-2xl p-5 shadow-sm space-y-4">
+      <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
         <div>
           <h2 className="text-base font-bold text-foreground">Operating system</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -350,7 +350,7 @@ export function HivelocityConfigStep({ config, onChange, onPricingContext }: Hiv
       />
 
       {Object.keys(displayAddonGroups).length > 0 && (
-        <div className="bg-white border border-border rounded-2xl p-5 shadow-sm space-y-3">
+        <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-3">
           <div>
             <h2 className="text-base font-bold text-foreground">Add-ons</h2>
             <p className="text-sm text-muted-foreground mt-0.5">

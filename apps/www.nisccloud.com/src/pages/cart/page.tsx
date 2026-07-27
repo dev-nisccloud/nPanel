@@ -28,15 +28,19 @@ import type { CustomerInfo } from "./_components/CustomerInfoStep.tsx";
 import { computeHivelocitySummaryLines } from "@/lib/vps-plans-api.ts";
 import {
   checkStorefrontEmail,
+  clearStorefrontCartDraft,
   clearStorefrontCartResume,
   completeStorefrontProfile,
   createStorefrontOrderFromPayment,
   createStorefrontOrganization,
   fetchStorefrontCheckoutIdentity,
   issueStorefrontCheckoutToken,
+  loadStorefrontCartDraft,
   peekStorefrontCartResume,
+  persistStorefrontCartDraft,
   registerStorefrontCustomer,
   resolveStorefrontProductId,
+  type StorefrontCartDraft,
   type StorefrontCartQuoteRequest,
   type StorefrontProfilePrefill,
 } from "@/lib/storefront-checkout-api.ts";
@@ -54,6 +58,24 @@ const HOSTING_TYPES = new Set(["web_hosting", "wordpress_hosting", "email_hostin
 
 /** VPS / VDS / dedicated  require OS + hostname configuration */
 const HIVELOCITY_SERVICE_TYPES = new Set(["vps", "vds", "dedicated_servers"]);
+
+function readHandoffFromLocation(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("h")?.trim() ?? "";
+}
+
+/** One-shot draft load for initial state (survives login redirect / refresh). */
+let cachedDraftHandoff = "";
+let cachedDraft: StorefrontCartDraft | null | undefined;
+
+function getInitialCartDraft(handoff?: string): StorefrontCartDraft | null {
+  const key = (handoff ?? readHandoffFromLocation()).trim();
+  if (!key) return null;
+  if (cachedDraft !== undefined && cachedDraftHandoff === key) return cachedDraft;
+  cachedDraftHandoff = key;
+  cachedDraft = loadStorefrontCartDraft(key);
+  return cachedDraft;
+}
 
 // ---------------------------------------------------------------------------
 // Step indicator
@@ -136,16 +158,37 @@ export default function CartPage() {
     typeof window !== "undefined" && handoff ? peekStorefrontCartResume(handoff) : false;
   const shouldResumeCheckout = resumeFromQuery || resumeFromStorage;
 
-  // ---- State ----
-  const [billingCycle, setBillingCycle] = React.useState<BillingCycle | null>(null);
-  const billingCycleUserSetRef = React.useRef(false);
-  const [selectedDomain, setSelectedDomain] = React.useState<SelectedDomain | null>(null);
-  const [transferAuthCode, setTransferAuthCode] = React.useState("");
-  const [selectedHostingType, setSelectedHostingType] = React.useState<HostingUpsellType | null>(null);
-  const loadedHostingPlansRef = React.useRef<Partial<Record<HostingUpsellType, UpsellPlanInfo>>>({});
+  // ---- State (seeded from sessionStorage draft so login redirect never resets options) ----
+  const [billingCycle, setBillingCycle] = React.useState<BillingCycle | null>(() => {
+    return getInitialCartDraft()?.billingCycle ?? null;
+  });
+  const billingCycleUserSetRef = React.useRef(
+    Boolean(getInitialCartDraft()?.billingCycleUserSet),
+  );
+  const [selectedDomain, setSelectedDomain] = React.useState<SelectedDomain | null>(() => {
+    return getInitialCartDraft()?.selectedDomain ?? null;
+  });
+  const [transferAuthCode, setTransferAuthCode] = React.useState(() => {
+    return getInitialCartDraft()?.transferAuthCode ?? "";
+  });
+  const [selectedHostingType, setSelectedHostingType] = React.useState<HostingUpsellType | null>(
+    () => getInitialCartDraft()?.selectedHostingType ?? null,
+  );
+  const loadedHostingPlansRef = React.useRef<Partial<Record<HostingUpsellType, UpsellPlanInfo>>>(
+    (() => {
+      const draft = getInitialCartDraft();
+      return draft?.selectedHostingType && draft.selectedHostingPlanInfo
+        ? { [draft.selectedHostingType]: draft.selectedHostingPlanInfo }
+        : {};
+    })(),
+  );
   const [selectedHostingPlanInfo, setSelectedHostingPlanInfo] =
-    React.useState<UpsellPlanInfo | null>(null);
-  const [hostingCycles, setHostingCycles] = React.useState<Partial<Record<HostingUpsellType, BillingCycle>>>({});
+    React.useState<UpsellPlanInfo | null>(
+      () => getInitialCartDraft()?.selectedHostingPlanInfo ?? null,
+    );
+  const [hostingCycles, setHostingCycles] = React.useState<
+    Partial<Record<HostingUpsellType, BillingCycle>>
+  >(() => getInitialCartDraft()?.hostingCycles ?? {});
   const [step, setStep] = React.useState<1 | 2>(shouldResumeCheckout ? 2 : 1);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [checkoutIdentity, setCheckoutIdentity] = React.useState<CustomerInfoIdentity>({
@@ -158,12 +201,49 @@ export default function CartPage() {
     teamSlug: string;
     phone: string;
   } | null>(null);
-  const [hivelocityConfig, setHivelocityConfig] = React.useState<HivelocityCheckoutConfig | null>(null);
+  const [hivelocityConfig, setHivelocityConfig] = React.useState<HivelocityCheckoutConfig | null>(
+    () => getInitialCartDraft()?.hivelocityConfig ?? null,
+  );
   const [hivelocityPricing, setHivelocityPricing] = React.useState<HivelocityPricingContext | null>(
     null,
   );
   const [hostingUpsellLoading, setHostingUpsellLoading] = React.useState(true);
   const [hasRevealedPage, setHasRevealedPage] = React.useState(false);
+
+  const cartDraftSnapshot = React.useMemo(
+    (): StorefrontCartDraft => ({
+      billingCycle,
+      billingCycleUserSet: billingCycleUserSetRef.current,
+      selectedDomain,
+      transferAuthCode,
+      selectedHostingType,
+      selectedHostingPlanInfo,
+      hostingCycles,
+      hivelocityConfig,
+    }),
+    [
+      billingCycle,
+      selectedDomain,
+      transferAuthCode,
+      selectedHostingType,
+      selectedHostingPlanInfo,
+      hostingCycles,
+      hivelocityConfig,
+    ],
+  );
+  const cartDraftSnapshotRef = React.useRef(cartDraftSnapshot);
+  cartDraftSnapshotRef.current = cartDraftSnapshot;
+
+  // Persist cart options continuously so a full-page login round-trip can restore them.
+  React.useEffect(() => {
+    if (!handoff) return;
+    persistStorefrontCartDraft(handoff, cartDraftSnapshot);
+  }, [handoff, cartDraftSnapshot]);
+
+  const flushCartDraft = React.useCallback(() => {
+    if (!handoff) return;
+    persistStorefrontCartDraft(handoff, cartDraftSnapshotRef.current);
+  }, [handoff]);
 
   const handleHivelocityPricingContext = React.useCallback((ctx: HivelocityPricingContext) => {
     setHivelocityPricing(ctx);
@@ -244,20 +324,28 @@ export default function CartPage() {
   const isHivelocityPlan = HIVELOCITY_SERVICE_TYPES.has(serviceType) && Boolean(hivelocityProductType);
 
   React.useEffect(() => {
-    if (!quote || !isHivelocityPlan || !hivelocityProductType) {
+    // Wait for quote before clearing — otherwise a restored VPS/VDS draft is wiped while loading.
+    if (!quote) return;
+    if (!isHivelocityPlan || !hivelocityProductType) {
       setHivelocityConfig(null);
       return;
     }
     const productIdNum = Number(quote.planId);
     if (!Number.isFinite(productIdNum) || productIdNum <= 0) return;
-    setHivelocityConfig((prev) =>
-      prev ??
-      createInitialHivelocityConfig({
+    setHivelocityConfig((prev) => {
+      if (
+        prev &&
+        prev.hivelocityProductId === productIdNum &&
+        prev.productType === hivelocityProductType
+      ) {
+        return prev;
+      }
+      return createInitialHivelocityConfig({
         productType: hivelocityProductType,
         hivelocityProductId: productIdNum,
         locationName: quote.locationName || "MAIN",
-      }),
-    );
+      });
+    });
   }, [quote, isHivelocityPlan, hivelocityProductType]);
 
   const wantsDomainUpsell = HOSTING_TYPES.has(serviceType);
@@ -282,6 +370,8 @@ export default function CartPage() {
 
   const isPageReady = React.useMemo(() => {
     if (quoteInitialLoading || !quote) return false;
+    // Login resume opens step 2 — step-1 config/upsell UIs are unmounted, so don't wait on them.
+    if (step === 2) return true;
     if (isHivelocityPlan) {
       if (!hivelocityConfig) return false;
       if (!hivelocityPricing || hivelocityPricing.loading) return false;
@@ -296,6 +386,7 @@ export default function CartPage() {
   }, [
     quoteInitialLoading,
     quote,
+    step,
     isHivelocityPlan,
     hivelocityConfig,
     hivelocityPricing,
@@ -643,12 +734,14 @@ export default function CartPage() {
       cart: cartQuoteRequest ?? undefined,
     });
 
+    clearStorefrontCartDraft();
+    clearStorefrontCartResume();
     toast.success(`Order ${order.orderNumber} confirmed! Redirecting to your dashboard…`);
     window.location.href = `${NPANEL_URL}/${order.teamSlug}/dashboard`;
   };
 
   if (!handoff) return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <EmptyCart />
     </div>
@@ -656,7 +749,7 @@ export default function CartPage() {
 
   if (quoteError && !quote && !quoteInitialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background text-foreground">
         <Navbar />
         <main className="max-w-5xl mx-auto px-4 md:px-6 pt-24 md:pt-28 pb-8">
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -675,7 +768,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
       {showSkeleton && <CartPageSkeleton />}
@@ -755,6 +848,12 @@ export default function CartPage() {
                       onCycleChange={handleHostingCycleChange}
                       onLoadingChange={handleHostingUpsellLoadingChange}
                       domainName={planName}
+                      initialCycles={hostingCycles}
+                      initialSelectedPlanIds={
+                        selectedHostingType && selectedHostingPlanInfo
+                          ? { [selectedHostingType]: selectedHostingPlanInfo.planId }
+                          : undefined
+                      }
                     />
                   )}
 
@@ -780,6 +879,7 @@ export default function CartPage() {
                     onSignedInSubmit={handleSignedInSubmit}
                     onCompleteProfile={handleCompleteProfile}
                     onCreateOrganization={handleCreateOrganization}
+                    onBeforeSignIn={flushCartDraft}
                     identity={checkoutIdentity}
                   />
                 </motion.div>
@@ -821,7 +921,7 @@ export default function CartPage() {
         </div>
 
         {/* Mobile sticky total bar */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 flex items-center justify-between gap-4 z-30 shadow-lg">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 flex items-center justify-between gap-4 z-30 shadow-lg">
           <div>
             <p className="text-xs text-muted-foreground">Total (incl. VAT)</p>
             {quoteSummaryLoading ? (
