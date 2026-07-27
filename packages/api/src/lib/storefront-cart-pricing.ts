@@ -176,12 +176,12 @@ export function derivePlanPricingKes(
 
 	const cycle = (planBillingCycle ?? "MONTHLY").toUpperCase();
 	if (cycle === "MONTHLY") {
-		return { monthly: Math.round(price), yearly: Math.round(price * 12 * 0.8) };
+		return { monthly: Math.round(price), yearly: Math.round(price * 12) };
 	}
 	if (cycle === "YEARLY") {
 		return { monthly: Math.round(price / 12), yearly: Math.round(price) };
 	}
-	return { monthly: Math.round(price), yearly: Math.round(price * 12 * 0.8) };
+	return { monthly: Math.round(price), yearly: Math.round(price * 12) };
 }
 
 export function pickCheckoutPrice(
@@ -396,7 +396,7 @@ async function resolveHivelocityBasePricing(
 
 	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesRate);
 	const monthly = baseKes;
-	const yearly = Math.round(monthly * 12 * 0.8);
+	const yearly = Math.round(monthly * 12);
 
 	return { monthly, yearly };
 }
@@ -472,7 +472,7 @@ async function resolveHivelocityMainPricing(
 
 	const baseKes = usdLineToKes(baseMonthlyUsd, margins.base, kesRate);
 	const monthly = baseKes + extrasKes;
-	const yearly = Math.round(monthly * 12 * 0.8);
+	const yearly = Math.round(monthly * 12);
 
 	return { monthly, yearly };
 }

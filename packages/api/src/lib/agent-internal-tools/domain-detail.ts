@@ -1,9 +1,7 @@
 /**
  * Domain detail lookup for the Zeepo AI Agent.
  *
- * Given a FQDN, resolves full domain detail from the appropriate backend:
- *  - gTLDs   → OpenProvider REST API (searchDomains with pattern)
- *  - .ke TLDs → KENIC EPP (domain:info) for live data, DB fallback
+ * Given a FQDN, resolves full domain detail from NISC Cloud's registry infrastructure.
  *
  * Authorization:
  *  - Agency users can look up any domain that appears in their portfolio.
@@ -103,8 +101,8 @@ export interface DomainDetailResult {
 	_tool: "get_domain_detail";
 	domain: string;
 	found: boolean;
-	/** "openprovider" | "kenic" | "subscription" (customer DB only, no OP id) */
-	source?: "openprovider" | "kenic" | "subscription";
+	// Internal tracking only - not exposed to agent
+	// source?: "openprovider" | "kenic" | "subscription";
 
 	// ── Overview (always present when found) ──────────────────────────
 	status?: string;
@@ -557,6 +555,8 @@ export async function agentGetDomainDetail(params: {
 		}
 	}
 
+	// source is for internal tracking only - not included in response
+
 	if (!registryData.found) {
 		return {
 			_tool: "get_domain_detail",
@@ -594,7 +594,7 @@ export async function agentGetDomainDetail(params: {
 		_tool: "get_domain_detail",
 		domain: domainLower,
 		found: true,
-		source,
+		// source, // Hidden from agent - internal tracking only
 		status: registryData.status,
 		expiryDate: registryData.expiryDate ?? null,
 		registrationDate: registryData.registrationDate ?? null,

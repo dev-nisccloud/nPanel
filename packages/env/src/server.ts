@@ -31,6 +31,16 @@ export const env = createEnv({
     ZEEPO_AGENT_CHAT_MODEL_ID: z.string().min(1).optional(),
     /** Brave Search LLM Context API key - enables web_search tool in Zeepo Agent */
     BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
+    /**
+     * DataForSEO API Access credentials (Dashboard → API Access).
+     * Basic Auth: API login (email) + auto-generated API password — not a single API key.
+     * Optional at boot so containers build/start without SEO Suite configured.
+     */
+    DATAFORSEO_LOGIN: z.string().min(1).optional(),
+    DATAFORSEO_PASSWORD: z.string().min(1).optional(),
+    /** Public worker URLs for SEO Suite QStash jobs (optional; inline fallback when unset) */
+    QSTASH_SEO_SUITE_RANK_WORKER_ENDPOINT: z.string().url().optional(),
+    QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT: z.string().url().optional(),
     QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url().optional(),
     REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url().optional(),
     /** Nisc Email Builder (neb) - standalone AI HTML builder */

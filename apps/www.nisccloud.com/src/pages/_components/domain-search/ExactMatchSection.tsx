@@ -18,10 +18,8 @@ import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { TldLogo } from "./TldLogo.tsx";
 import { AddDomainToCartButtons } from "./AddDomainToCartButtons.tsx";
 
-const EXACT_MATCH_WHY_CHOOSE: [string, string] = [
-  "This is your exact domain search, secure it before someone else does.",
-  "One address, one identity. Lock in your brand with this extension.",
-];
+const EXACT_MATCH_WHY_CHOOSE =
+  "This is your exact domain search, secure it before someone else does.";
 
 export interface ExactMatchSectionProps {
   rawSearchQuery: string;
@@ -200,12 +198,10 @@ export function ExactMatchSection({
           <div>
             <div className="border-t border-border my-2" />
             <ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
-              {EXACT_MATCH_WHY_CHOOSE.map((line, i) => (
-                <li key={i} className="flex gap-1.5 items-start">
-                  <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
-                  <span className="line-clamp-2">{line}</span>
-                </li>
-              ))}
+              <li className="flex gap-1.5 items-start">
+                <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
+                <span className="line-clamp-2">{EXACT_MATCH_WHY_CHOOSE}</span>
+              </li>
             </ul>
           </div>
         ) : (
@@ -264,12 +260,10 @@ export function ExactMatchSection({
           <div>
             <div className="border-t border-border my-2" />
             <ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
-              {EXACT_MATCH_WHY_CHOOSE.map((line, i) => (
-                <li key={i} className="flex gap-1.5 items-start">
-                  <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
-                  <span className="line-clamp-2">{line}</span>
-                </li>
-              ))}
+              <li className="flex gap-1.5 items-start">
+                <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
+                <span className="line-clamp-2">{EXACT_MATCH_WHY_CHOOSE}</span>
+              </li>
             </ul>
           </div>
         ) : (

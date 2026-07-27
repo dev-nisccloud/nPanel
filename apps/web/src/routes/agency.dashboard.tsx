@@ -1,6 +1,5 @@
 import { MetricCards } from "./agency.dashboard/_components/metric-cards";
 import { DashboardCharts } from "./agency.dashboard/_components/dashboard-charts";
-import { DashboardTabs } from "./agency.dashboard/_components/dashboard-tabs";
 
 export default function DashboardPage() {
   return (
@@ -21,11 +20,6 @@ export default function DashboardPage() {
         {/* Charts */}
         <div className="mt-6">
           <DashboardCharts />
-        </div>
-
-        {/* Tabs */}
-        <div className="mt-6">
-          <DashboardTabs />
         </div>
       </div>
     </div>

@@ -68,6 +68,67 @@ final class Nisc_PG_Api_Client {
 	}
 
 	/**
+	 * Diagnostics: gateway auth + M-Pesa OAuth token (no STK).
+	 *
+	 * @return array{ok:bool,status:int,data?:array<string,mixed>,error?:array{code:string,message:string}}
+	 */
+	public function test_connection(): array {
+		return $this->request( 'GET', '/v1/connection' );
+	}
+
+	/**
+	 * Unauthenticated health ping (server reachable).
+	 *
+	 * @return array{ok:bool,status:int,data?:array<string,mixed>,error?:array{code:string,message:string}}
+	 */
+	public function health(): array {
+		$args = array(
+			'method'  => 'GET',
+			'timeout' => 15,
+			'headers' => array(
+				'Accept'     => 'application/json',
+				'User-Agent' => 'Nisc-Payment-Gateway-WP/' . NISC_PG_VERSION,
+			),
+		);
+
+		$response = wp_remote_request( $this->base_url . '/health', $args );
+
+		if ( is_wp_error( $response ) ) {
+			return array(
+				'ok'     => false,
+				'status' => 0,
+				'error'  => array(
+					'code'    => 'HTTP_ERROR',
+					'message' => $response->get_error_message(),
+				),
+			);
+		}
+
+		$status  = (int) wp_remote_retrieve_response_code( $response );
+		$raw     = (string) wp_remote_retrieve_body( $response );
+		$decoded = json_decode( $raw, true );
+		$data    = is_array( $decoded ) ? $decoded : array();
+
+		if ( $status >= 200 && $status < 300 ) {
+			return array(
+				'ok'     => true,
+				'status' => $status,
+				'data'   => $data,
+			);
+		}
+
+		return array(
+			'ok'     => false,
+			'status' => $status,
+			'error'  => array(
+				'code'    => 'API_ERROR',
+				'message' => __( 'Health check failed.', 'nisc-payment-gateway' ),
+			),
+			'data'   => $data,
+		);
+	}
+
+	/**
 	 * @param array<string,mixed>|null $body
 	 * @return array{ok:bool,status:int,data?:array<string,mixed>,error?:array{code:string,message:string}}
 	 */

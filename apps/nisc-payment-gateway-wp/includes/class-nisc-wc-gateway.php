@@ -207,13 +207,116 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 					</dl>
 					<div class="nisc-pg-connected__actions">
 						<button type="button" class="button" id="nisc-pg-refresh-btn">
-							<?php esc_html_e( 'Check connection', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Refresh webhook', 'nisc-payment-gateway' ); ?>
 						</button>
 						<button type="button" class="button nisc-pg-btn-danger" id="nisc-pg-disconnect-btn">
 							<?php esc_html_e( 'Disconnect', 'nisc-payment-gateway' ); ?>
 						</button>
 					</div>
 					<div class="nisc-pg-alert" id="nisc-pg-alert-connected" hidden role="status"></div>
+				</div>
+			</section>
+
+			<section class="nisc-pg-panel nisc-pg-panel--connection-test" id="nisc-pg-connection-test-panel">
+				<div class="nisc-pg-test__header">
+					<div>
+						<h3><?php esc_html_e( 'Connection test', 'nisc-payment-gateway' ); ?></h3>
+						<p class="nisc-pg-help">
+							<?php esc_html_e( 'Confirms this store can reach Nisc servers, your API key is valid, and M-Pesa OAuth token generation works. No STK push is sent.', 'nisc-payment-gateway' ); ?>
+						</p>
+					</div>
+					<button type="button" class="button button-primary nisc-pg-btn-primary" id="nisc-pg-connection-test-btn">
+						<?php esc_html_e( 'Connection test', 'nisc-payment-gateway' ); ?>
+					</button>
+				</div>
+
+				<div
+					class="nisc-pg-conn-card is-idle"
+					id="nisc-pg-conn-card"
+					role="status"
+					aria-live="polite"
+				>
+					<div class="nisc-pg-conn-card__icon" aria-hidden="true"></div>
+					<div class="nisc-pg-conn-card__body">
+						<strong id="nisc-pg-conn-card-title"><?php esc_html_e( 'Not tested yet', 'nisc-payment-gateway' ); ?></strong>
+						<p class="nisc-pg-help" id="nisc-pg-conn-card-summary">
+							<?php esc_html_e( 'Run Connection test before sending an STK. A green card means gateway + M-Pesa token are healthy.', 'nisc-payment-gateway' ); ?>
+						</p>
+						<ul class="nisc-pg-conn-checks" id="nisc-pg-conn-checks" hidden></ul>
+					</div>
+				</div>
+			</section>
+
+			<section class="nisc-pg-panel nisc-pg-panel--test" id="nisc-pg-test-panel" <?php echo $connected ? '' : 'hidden'; ?>>
+				<div class="nisc-pg-test__header">
+					<div>
+						<h3><?php esc_html_e( 'Test STK → webhook', 'nisc-payment-gateway' ); ?></h3>
+						<p class="nisc-pg-help">
+							<?php esc_html_e( 'Send yourself a real M-Pesa prompt, complete or cancel it, and preview the webhook this store receives. Test payments never update WooCommerce orders.', 'nisc-payment-gateway' ); ?>
+						</p>
+					</div>
+					<span class="nisc-pg-badge nisc-pg-badge--muted"><?php esc_html_e( 'Safe · no orders', 'nisc-payment-gateway' ); ?></span>
+				</div>
+
+				<div class="nisc-pg-test__form">
+					<div class="nisc-pg-test__fields">
+						<div class="nisc-pg-test__field">
+							<label class="nisc-pg-label" for="nisc-pg-test-phone"><?php esc_html_e( 'Your M-Pesa number', 'nisc-payment-gateway' ); ?></label>
+							<input
+								type="tel"
+								id="nisc-pg-test-phone"
+								class="nisc-pg-input"
+								placeholder="07XXXXXXXX"
+								autocomplete="tel"
+								inputmode="tel"
+							/>
+						</div>
+						<div class="nisc-pg-test__field nisc-pg-test__field--amount">
+							<label class="nisc-pg-label" for="nisc-pg-test-amount"><?php esc_html_e( 'Amount (KES)', 'nisc-payment-gateway' ); ?></label>
+							<input
+								type="number"
+								id="nisc-pg-test-amount"
+								class="nisc-pg-input"
+								min="1"
+								step="1"
+								value="1"
+							/>
+						</div>
+					</div>
+					<button type="button" class="button button-primary nisc-pg-btn-primary" id="nisc-pg-send-test-stk">
+						<?php esc_html_e( 'Send test STK', 'nisc-payment-gateway' ); ?>
+					</button>
+				</div>
+
+				<div class="nisc-pg-alert" id="nisc-pg-test-alert" hidden role="status"></div>
+
+				<div class="nisc-pg-test__status" id="nisc-pg-test-status" hidden>
+					<div class="nisc-pg-test__status-row">
+						<span class="nisc-pg-test__pulse" aria-hidden="true"></span>
+						<div>
+							<strong id="nisc-pg-test-status-title"><?php esc_html_e( 'Waiting…', 'nisc-payment-gateway' ); ?></strong>
+							<p class="nisc-pg-help" id="nisc-pg-test-status-meta"></p>
+						</div>
+						<span class="nisc-pg-test__pill" id="nisc-pg-test-status-pill">PENDING</span>
+					</div>
+					<ul class="nisc-pg-test__steps" id="nisc-pg-test-flow-steps" aria-label="<?php esc_attr_e( 'Test progress', 'nisc-payment-gateway' ); ?>">
+						<li data-step="stk" class="is-pending"><?php esc_html_e( '1. STK push', 'nisc-payment-gateway' ); ?></li>
+						<li data-step="pin" class="is-pending"><?php esc_html_e( '2. PIN / cancel', 'nisc-payment-gateway' ); ?></li>
+						<li data-step="webhook" class="is-pending"><?php esc_html_e( '3. Webhook here', 'nisc-payment-gateway' ); ?></li>
+					</ul>
+				</div>
+
+				<div class="nisc-pg-test__preview">
+					<div class="nisc-pg-test__preview-head">
+						<strong><?php esc_html_e( 'Incoming webhook preview', 'nisc-payment-gateway' ); ?></strong>
+						<button type="button" class="button button-link" id="nisc-pg-clear-test-webhooks">
+							<?php esc_html_e( 'Clear previews', 'nisc-payment-gateway' ); ?>
+						</button>
+					</div>
+					<p class="nisc-pg-help" id="nisc-pg-test-webhook-empty">
+						<?php esc_html_e( 'No test webhooks yet. Send an STK and complete (or cancel) the prompt.', 'nisc-payment-gateway' ); ?>
+					</p>
+					<div id="nisc-pg-test-webhook-list" class="nisc-pg-test__webhook-list" hidden></div>
 				</div>
 			</section>
 

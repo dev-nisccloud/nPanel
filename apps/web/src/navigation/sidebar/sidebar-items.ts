@@ -345,8 +345,8 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/seo",
         icon: (props: any) => React.createElement(Icons.Seo, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "SEO Reports", url: "/agency/seo-reports", },
-          // { title: "Google Analytics", url: "/agency/google-analytics", },
+          { title: "Analytics", url: "/agency/seo-reports", },
+          { title: "SEO Suite", url: "/agency/seo-suite", },
         ],
       },
       {

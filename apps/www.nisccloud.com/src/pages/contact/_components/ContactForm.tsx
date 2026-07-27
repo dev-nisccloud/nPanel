@@ -23,27 +23,33 @@ const schema = z.object({
   email: z.string().email("Please enter a valid email address"),
   company: z.string().optional(),
   service: z.string().min(1, "Please select a service"),
-  budget: z.string().min(1, "Please select a budget range"),
+  budget: z.string().optional(),
   message: z.string().min(20, "Please tell us a bit more (at least 20 characters)"),
 });
 
 type FormData = z.infer<typeof schema>;
 
 const services = [
-  { value: "create", label: "01 - Create (Brand & Web Design)" },
-  { value: "launch", label: "02 - Launch (Cloud Hosting)" },
-  { value: "market", label: "03 - Market (Digital Marketing)" },
-  { value: "automate", label: "04 - Automate (Marketing Automation)" },
-  { value: "full", label: "Full Growth Stack (All 4 Pillars)" },
-  { value: "custom", label: "Custom / Not Sure Yet" },
+  { value: "create", label: "Brand & Web Design" },
+  { value: "launch", label: "Cloud Hosting" },
+  { value: "market", label: "Digital Marketing" },
+  { value: "automate", label: "Marketing Automation" },
+  { value: "full", label: "Full Growth Stack" },
+  { value: "custom", label: "Custom / Not sure yet" },
 ];
 
 const budgets = [
-  { value: "under-1k", label: "Under $1,000" },
-  { value: "1k-5k", label: "$1,000 to $5,000" },
-  { value: "5k-15k", label: "$5,000 to $15,000" },
-  { value: "15k-50k", label: "$15,000 to $50,000" },
-  { value: "50k-plus", label: "$50,000+" },
+  { value: "under-50k", label: "Under KES 50,000" },
+  { value: "50k-150k", label: "KES 50,000 – 150,000" },
+  { value: "150k-500k", label: "KES 150,000 – 500,000" },
+  { value: "500k-plus", label: "KES 500,000+" },
+  { value: "not-sure", label: "Not sure yet" },
+];
+
+const nextSteps = [
+  { step: "1", label: "Send this form" },
+  { step: "2", label: "Free strategy call" },
+  { step: "3", label: "Clear proposal" },
 ];
 
 export default function ContactForm() {
@@ -81,7 +87,6 @@ export default function ContactForm() {
   const budgetValue = watch("budget");
 
   const onSubmit = async (_data: FormData) => {
-    // Simulate async submission
     await new Promise((r) => setTimeout(r, 1200));
     setSubmitted(true);
     toast.success("Message sent! We'll be in touch within 24 hours.");
@@ -90,174 +95,183 @@ export default function ContactForm() {
   if (submitted) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-card border border-border/60 rounded-2xl p-12 text-center"
+        className="rounded-2xl border border-border/60 bg-card px-8 py-12 text-center"
       >
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-          <CheckCircle size={32} className="text-primary" />
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+          <CheckCircle size={28} className="text-primary" />
         </div>
-        <h3 className="text-2xl font-bold mb-3">Message Received!</h3>
-        <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">
-          Thanks for reaching out. Someone on our team will review your message and follow up within 24 hours.
+        <h3 className="mb-2 text-xl font-bold tracking-tight">Message received</h3>
+        <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
+          Thanks for reaching out. Someone on our team will review your message and follow up within
+          24 hours.
         </p>
-        <div className="mt-8 inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono">
-          WE WILL BE IN TOUCH
-        </div>
       </motion.div>
     );
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-card border border-border/60 rounded-2xl p-8"
+      transition={{ duration: 0.45 }}
+      className="space-y-6"
     >
-      <h2 className="text-xl font-bold mb-1">Send Us a Message</h2>
-      <p className="text-sm text-muted-foreground mb-8">
-        Fill in the details below and we will get back to you with a clear plan.
-      </p>
+      <div className="rounded-2xl border border-border/60 bg-card p-6 md:p-8">
+        <h2 className="mb-1 text-lg font-bold tracking-tight md:text-xl">Send us a message</h2>
+        <p className="mb-6 text-sm text-muted-foreground">
+          A few details is enough — we&apos;ll get back with a clear plan.
+        </p>
 
-      {prefilledPlan && prefilledServiceName ? (
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3.5">
-          <Sparkles size={18} className="mt-0.5 shrink-0 text-primary" />
-          <div className="text-sm">
-            <p className="font-medium text-foreground">
-              Inquiring about: {prefilledServiceName}  {prefilledPlan}
-            </p>
-            {prefilledPlanPrice ? (
-              <p className="mt-0.5 text-muted-foreground">
-                KES {Number(prefilledPlanPrice).toLocaleString()}
-                {prefilledPlanPeriod ? `/${prefilledPlanPeriod.replace(/^mo$/i, "month")}` : ""}
+        {prefilledPlan && prefilledServiceName ? (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3.5">
+            <Sparkles size={18} className="mt-0.5 shrink-0 text-primary" />
+            <div className="text-sm">
+              <p className="font-medium text-foreground">
+                Inquiring about: {prefilledServiceName} · {prefilledPlan}
               </p>
+              {prefilledPlanPrice ? (
+                <p className="mt-0.5 text-muted-foreground">
+                  KES {Number(prefilledPlanPrice).toLocaleString()}
+                  {prefilledPlanPeriod
+                    ? `/${prefilledPlanPeriod.replace(/^mo$/i, "month").replace(/^yr$/i, "year")}`
+                    : ""}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="name">
+                Full name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="name"
+                placeholder="Jane Wanjiku"
+                {...register("name")}
+                className={errors.name ? "border-destructive" : ""}
+              />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">
+                Email <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@company.com"
+                {...register("email")}
+                className={errors.email ? "border-destructive" : ""}
+              />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="company">Company / brand</Label>
+            <Input id="company" placeholder="Optional" {...register("company")} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>
+                Service <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={serviceValue}
+                onValueChange={(v) => setValue("service", v, { shouldValidate: true })}
+              >
+                <SelectTrigger className={errors.service ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Select a service..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.service && (
+                <p className="text-xs text-destructive">{errors.service.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Budget range</Label>
+              <Select
+                value={budgetValue}
+                onValueChange={(v) => setValue("budget", v, { shouldValidate: true })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Optional" />
+                </SelectTrigger>
+                <SelectContent>
+                  {budgets.map((b) => (
+                    <SelectItem key={b.value} value={b.value}>
+                      {b.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="message">
+              How can we help? <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="message"
+              placeholder="Goals, timeline, or anything else we should know..."
+              rows={5}
+              {...register("message")}
+              className={errors.message ? "border-destructive" : ""}
+            />
+            {errors.message && (
+              <p className="text-xs text-destructive">{errors.message.message}</p>
+            )}
+          </div>
+
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isSubmitting}
+            className="w-full cursor-pointer gap-2 font-semibold"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Sending...
+              </>
+            ) : (
+              "Send message"
+            )}
+          </Button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            We typically respond within 24 hours. No spam, ever.
+          </p>
+        </form>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+        {nextSteps.map((s, i) => (
+          <div key={s.step} className="flex items-center gap-2.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+              {s.step}
+            </span>
+            <span className="text-sm text-muted-foreground">{s.label}</span>
+            {i < nextSteps.length - 1 ? (
+              <span className="ml-1 hidden h-px w-8 bg-border sm:inline-block" aria-hidden />
             ) : null}
           </div>
-        </div>
-      ) : null}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Name + Email */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="name">Full Name <span className="text-destructive">*</span></Label>
-            <Input
-              id="name"
-              placeholder="John Smith"
-              {...register("name")}
-              className={errors.name ? "border-destructive" : ""}
-            />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email Address <span className="text-destructive">*</span></Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              {...register("email")}
-              className={errors.email ? "border-destructive" : ""}
-            />
-            {errors.email && (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Company */}
-        <div className="space-y-1.5">
-          <Label htmlFor="company">Company / Brand Name</Label>
-          <Input
-            id="company"
-            placeholder="Acme Inc. (optional)"
-            {...register("company")}
-          />
-        </div>
-
-        {/* Service + Budget */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Service Interested In <span className="text-destructive">*</span></Label>
-            <Select
-              value={serviceValue}
-              onValueChange={(v) => setValue("service", v, { shouldValidate: true })}
-            >
-              <SelectTrigger className={errors.service ? "border-destructive" : ""}>
-                <SelectValue placeholder="Select a service..." />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.service && (
-              <p className="text-xs text-destructive">{errors.service.message}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Budget Range <span className="text-destructive">*</span></Label>
-            <Select
-              value={budgetValue}
-              onValueChange={(v) => setValue("budget", v, { shouldValidate: true })}
-            >
-              <SelectTrigger className={errors.budget ? "border-destructive" : ""}>
-                <SelectValue placeholder="Select budget..." />
-              </SelectTrigger>
-              <SelectContent>
-                {budgets.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>
-                    {b.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.budget && (
-              <p className="text-xs text-destructive">{errors.budget.message}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Message */}
-        <div className="space-y-1.5">
-          <Label htmlFor="message">Tell Us About Your Project <span className="text-destructive">*</span></Label>
-          <Textarea
-            id="message"
-            placeholder="Describe your brand, goals, timeline, and anything else we should know..."
-            rows={5}
-            {...register("message")}
-            className={errors.message ? "border-destructive" : ""}
-          />
-          {errors.message && (
-            <p className="text-xs text-destructive">{errors.message.message}</p>
-          )}
-        </div>
-
-        <Button
-          type="submit"
-          size="lg"
-          disabled={isSubmitting}
-          className="w-full bg-primary text-primary-foreground hover:opacity-90 cursor-pointer font-semibold gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Sending...
-            </>
-          ) : (
-            "Send Message"
-          )}
-        </Button>
-
-        <p className="text-xs text-muted-foreground text-center">
-          We typically respond within 24 hours. No spam, ever.
-        </p>
-      </form>
+        ))}
+      </div>
     </motion.div>
   );
 }

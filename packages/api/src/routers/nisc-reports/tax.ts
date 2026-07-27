@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { and, eq, gte, inArray, lte, notInArray } from "@npanel/db";
+import { and, eq, gte, inArray, isNotNull, lte, notInArray } from "@npanel/db";
 import { db } from "@npanel/db";
-import { invoice } from "@npanel/db/schema/invoicing";
+import { invoice, invoiceTransaction } from "@npanel/db/schema/invoicing";
 import { protectedProcedure, router } from "../../trpc";
 import { reportFiltersSchema, toNum } from "./filters";
 import { buildReportEntityScope, resolveReportReadScope } from "./access";
@@ -33,16 +33,21 @@ export const niscTaxRouter = router({
         requestedTeamIds: teamIds,
       });
 
+      // FIXED: Get invoices with PAID or PARTIALLY_PAID status and calculate proportional tax
       const paid = await db
         .select({
+          id:            invoice.id,
           subtotal:      invoice.subtotal,
+          amount:        invoice.amount,
           vat:           invoice.vat,
           tax:           invoice.tax,
           taxPercentage: invoice.taxPercentage,
+          status:        invoice.status,
         })
         .from(invoice)
         .where(and(
-          eq(invoice.status, "PAID"),
+          inArray(invoice.status, ["PAID", "PARTIALLY_PAID"]),
+          isNotNull(invoice.paidAt),
           gte(invoice.paidAt, from),
           lte(invoice.paidAt, to),
           buildReportEntityScope({
@@ -50,6 +55,30 @@ export const niscTaxRouter = router({
             teamIds: scope.teamIds,
           }),
         ));
+
+      // Get completed payments for proportional tax calculation
+      const invoiceIds = paid.map(p => p.id);
+      const paidAmounts = new Map<string, number>();
+      
+      if (invoiceIds.length > 0) {
+        const txRows = await db
+          .select({
+            invoiceId: invoiceTransaction.invoiceId,
+            amount: invoiceTransaction.amount,
+          })
+          .from(invoiceTransaction)
+          .where(
+            and(
+              inArray(invoiceTransaction.invoiceId, invoiceIds),
+              eq(invoiceTransaction.status, "COMPLETED"),
+            ),
+          );
+        
+        for (const tx of txRows) {
+          const amt = toNum(tx.amount);
+          paidAmounts.set(tx.invoiceId, (paidAmounts.get(tx.invoiceId) ?? 0) + amt);
+        }
+      }
 
       const pending = await db
         .select({ tax: invoice.tax, vat: invoice.vat })
@@ -67,14 +96,33 @@ export const niscTaxRouter = router({
       const byRateMap = new Map<number, { count: number; taxableAmount: number; taxAmount: number }>();
 
       for (const r of paid) {
-        taxableAmount += toNum(r.subtotal);
-        vatCollected  += toNum(r.vat);
-        taxCollected  += toNum(r.tax);
+        const invAmount = toNum(r.amount);
+        const invSubtotal = toNum(r.subtotal);
+        const invVat = toNum(r.vat);
+        const invTax = toNum(r.tax);
+        
+        // Calculate what's actually been paid
+        let actualPaid = paidAmounts.get(r.id) ?? 0;
+        if (r.status === "PAID" && actualPaid < invAmount) {
+          actualPaid = invAmount; // Impute if transactions are incomplete
+        }
+        
+        // Calculate proportional tax based on payment received
+        const paymentRatio = invAmount > 0 ? Math.min(1, actualPaid / invAmount) : 0;
+        
+        const proportionalSubtotal = invSubtotal * paymentRatio;
+        const proportionalVat = invVat * paymentRatio;
+        const proportionalTax = invTax * paymentRatio;
+        
+        taxableAmount += proportionalSubtotal;
+        vatCollected  += proportionalVat;
+        taxCollected  += proportionalTax;
+        
         const rate = r.taxPercentage ?? 0;
         const e = byRateMap.get(rate) ?? { count: 0, taxableAmount: 0, taxAmount: 0 };
         e.count += 1;
-        e.taxableAmount += toNum(r.subtotal);
-        e.taxAmount     += toNum(r.tax);
+        e.taxableAmount += proportionalSubtotal;
+        e.taxAmount     += proportionalTax;
         byRateMap.set(rate, e);
       }
 

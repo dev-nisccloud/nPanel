@@ -7,6 +7,7 @@ import { niscClientsRouter } from "./clients";
 import { niscProfitabilityRouter } from "./profitability";
 import { niscPaymentsRouter } from "./payments";
 import { niscTaxRouter } from "./tax";
+import { niscValidationRouter } from "./validation";
 
 export const niscReportsRouter = router({
   revenue:       niscRevenueRouter,
@@ -17,4 +18,5 @@ export const niscReportsRouter = router({
   profitability: niscProfitabilityRouter,
   payments:      niscPaymentsRouter,
   tax:           niscTaxRouter,
+  validation:    niscValidationRouter,
 });

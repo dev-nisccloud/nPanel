@@ -81,9 +81,20 @@ Set per GitHub environment (values differ between staging and production):
 | `QSTASH_ZEEPO_CANVAS_WORKER_ENDPOINT_PRODUCTION` | Production boot |
 | `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_STAGING` | Staging boot |
 | `QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT_PRODUCTION` | Production boot |
+| `QSTASH_SEO_SUITE_RANK_WORKER_ENDPOINT_STAGING` | Staging boot |
+| `QSTASH_SEO_SUITE_RANK_WORKER_ENDPOINT_PRODUCTION` | Production boot |
+| `QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT_STAGING` | Staging boot |
+| `QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT_PRODUCTION` | Production boot |
+| `DATAFORSEO_LOGIN` | SEO Suite (optional at boot; set on Cloud Run / secrets) |
+| `DATAFORSEO_PASSWORD` | SEO Suite (optional at boot; set on Cloud Run / secrets) |
 | `REPLICATE_API_TOKEN` | Boot |
 
-Add more secrets to `deploy.yml` as features need them (e.g. `QSTASH_TOKEN`, `AWS_SES_*`, `UPSTASH_REDIS_*`). `DIGITAX_API_KEY` is optional at boot.
+Add more secrets to `deploy.yml` as features need them (e.g. `QSTASH_TOKEN`, `AWS_SES_*`, `UPSTASH_REDIS_*`). `DIGITAX_API_KEY` is optional at boot. DataForSEO SEO Suite credentials (`DATAFORSEO_LOGIN`, `DATAFORSEO_PASSWORD`) are likewise optional at boot.
+
+SEO Suite worker URLs (same pattern as Meta Ads):
+
+- Staging: `https://npanel-workers-staging-….run.app/api/workers/seo-suite-rank` and `…/seo-suite-audit`
+- Production: `https://npanel-workers.nisccloud.com/api/workers/seo-suite-rank` and `…/seo-suite-audit`
 
 Deploy uses **`merge`**: CI updates the vars above; anything else already on Cloud Run is kept.
 

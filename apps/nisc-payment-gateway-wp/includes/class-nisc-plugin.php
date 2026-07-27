@@ -36,6 +36,11 @@ final class Nisc_PG_Plugin {
 		add_action( 'wp_ajax_nisc_pg_connect', array( $this, 'ajax_connect' ) );
 		add_action( 'wp_ajax_nisc_pg_disconnect', array( $this, 'ajax_disconnect' ) );
 		add_action( 'wp_ajax_nisc_pg_refresh_status', array( $this, 'ajax_refresh_status' ) );
+		add_action( 'wp_ajax_nisc_pg_connection_test', array( $this, 'ajax_connection_test' ) );
+		add_action( 'wp_ajax_nisc_pg_send_test_stk', array( $this, 'ajax_send_test_stk' ) );
+		add_action( 'wp_ajax_nisc_pg_poll_test', array( $this, 'ajax_poll_test' ) );
+		add_action( 'wp_ajax_nisc_pg_get_test_webhooks', array( $this, 'ajax_get_test_webhooks' ) );
+		add_action( 'wp_ajax_nisc_pg_clear_test_webhooks', array( $this, 'ajax_clear_test_webhooks' ) );
 	}
 
 	/**
@@ -86,12 +91,32 @@ final class Nisc_PG_Plugin {
 				'connected'    => $connected,
 				'webhookUrl'   => Nisc_PG_Webhook_Controller::get_webhook_url(),
 				'i18n'         => array(
-					'connecting'   => __( 'Connecting…', 'nisc-payment-gateway' ),
-					'disconnecting'=> __( 'Disconnecting…', 'nisc-payment-gateway' ),
-					'refreshing'   => __( 'Checking…', 'nisc-payment-gateway' ),
-					'connectOk'    => __( 'Connected. Webhook registered automatically.', 'nisc-payment-gateway' ),
-					'connectFail'  => __( 'Could not connect. Check your API key and try again.', 'nisc-payment-gateway' ),
-					'disconnected' => __( 'Disconnected.', 'nisc-payment-gateway' ),
+					'connecting'      => __( 'Connecting…', 'nisc-payment-gateway' ),
+					'disconnecting'   => __( 'Disconnecting…', 'nisc-payment-gateway' ),
+					'refreshing'      => __( 'Checking…', 'nisc-payment-gateway' ),
+					'connectOk'       => __( 'Connected. Webhook registered automatically.', 'nisc-payment-gateway' ),
+					'connectFail'     => __( 'Could not connect. Check your API key and try again.', 'nisc-payment-gateway' ),
+					'disconnected'    => __( 'Disconnected.', 'nisc-payment-gateway' ),
+					'sendingStk'      => __( 'Sending STK…', 'nisc-payment-gateway' ),
+					'sendTestStk'     => __( 'Send test STK', 'nisc-payment-gateway' ),
+					'stkSent'         => __( 'STK sent — enter your M-Pesa PIN on the phone.', 'nisc-payment-gateway' ),
+					'waitingPin'      => __( 'Waiting for PIN…', 'nisc-payment-gateway' ),
+					'testSuccess'     => __( 'Test payment confirmed. Webhook received — no order was updated.', 'nisc-payment-gateway' ),
+					'testCancelled'   => __( 'You cancelled the M-Pesa prompt. Webhook still received for preview.', 'nisc-payment-gateway' ),
+					'testFailed'      => __( 'Payment failed. Webhook still received for preview.', 'nisc-payment-gateway' ),
+					'testTimeout'     => __( 'Timed out waiting for a response. Check your phone or try again.', 'nisc-payment-gateway' ),
+					'phoneRequired'   => __( 'Enter the M-Pesa number that should receive the prompt.', 'nisc-payment-gateway' ),
+					'phoneInvalid'    => __( 'Enter a valid Kenyan number (e.g. 07XXXXXXXX).', 'nisc-payment-gateway' ),
+					'amountInvalid'   => __( 'Amount must be at least 1 KES.', 'nisc-payment-gateway' ),
+					'webhookWaiting'  => __( 'Waiting for webhook…', 'nisc-payment-gateway' ),
+					'webhookReceived' => __( 'Webhook received', 'nisc-payment-gateway' ),
+					'clearLog'          => __( 'Clear previews', 'nisc-payment-gateway' ),
+					'noWebhooksYet'     => __( 'No test webhooks yet. Send an STK and complete (or cancel) the prompt.', 'nisc-payment-gateway' ),
+					'connectionTesting' => __( 'Testing connection…', 'nisc-payment-gateway' ),
+					'connectionTest'    => __( 'Connection test', 'nisc-payment-gateway' ),
+					'connectionOk'      => __( 'Connection healthy', 'nisc-payment-gateway' ),
+					'connectionFail'    => __( 'Connection test failed', 'nisc-payment-gateway' ),
+					'connectFirst'      => __( 'Connect with an API key first, then run Connection test.', 'nisc-payment-gateway' ),
 				),
 			)
 		);
@@ -267,6 +292,273 @@ final class Nisc_PG_Plugin {
 				'registeredAt' => $data['registeredAt'] ?? null,
 			)
 		);
+	}
+
+	/**
+	 * Full connection diagnostics: gateway reachability + API key + M-Pesa OAuth token.
+	 */
+	public function ajax_connection_test(): void {
+		check_ajax_referer( 'nisc_pg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nisc-payment-gateway' ) ), 403 );
+		}
+
+		$settings  = get_option( 'woocommerce_nisc_payment_gateway_settings', array() );
+		$api_key   = is_array( $settings ) ? (string) ( $settings['api_key'] ?? '' ) : '';
+		$connected = is_array( $settings ) && 'yes' === ( $settings['connected'] ?? 'no' );
+
+		// Allow testing with a key typed in the connect field before Connect is clicked.
+		$posted_key = isset( $_POST['api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) : '';
+		if ( $posted_key ) {
+			$api_key = $posted_key;
+		}
+
+		$client = new Nisc_PG_Api_Client( $api_key );
+
+		if ( '' === $api_key ) {
+			$health = $client->health();
+			if ( $health['ok'] ) {
+				wp_send_json_success(
+					array(
+						'ok'      => false,
+						'summary' => __( 'Nisc servers are reachable, but no API key is connected yet. Paste your key and click Connect.', 'nisc-payment-gateway' ),
+						'checks'  => array(
+							array(
+								'id'      => 'gateway',
+								'label'   => __( 'Nisc gateway reachable', 'nisc-payment-gateway' ),
+								'status'  => 'pass',
+								'message' => __( 'Health endpoint responded OK', 'nisc-payment-gateway' ),
+							),
+							array(
+								'id'      => 'apiKey',
+								'label'   => __( 'API key', 'nisc-payment-gateway' ),
+								'status'  => 'fail',
+								'message' => __( 'Not connected', 'nisc-payment-gateway' ),
+							),
+							array(
+								'id'      => 'mpesaToken',
+								'label'   => __( 'M-Pesa OAuth token', 'nisc-payment-gateway' ),
+								'status'  => 'skip',
+								'message' => __( 'Skipped — connect an API key first', 'nisc-payment-gateway' ),
+							),
+						),
+					)
+				);
+			}
+
+			wp_send_json_error(
+				array(
+					'ok'      => false,
+					'message' => $health['error']['message'] ?? __( 'Could not reach Nisc Payment Gateway.', 'nisc-payment-gateway' ),
+					'summary' => __( 'Could not reach Nisc Payment Gateway from this store.', 'nisc-payment-gateway' ),
+					'checks'  => array(
+						array(
+							'id'      => 'gateway',
+							'label'   => __( 'Nisc gateway reachable', 'nisc-payment-gateway' ),
+							'status'  => 'fail',
+							'message' => $health['error']['message'] ?? __( 'Unreachable', 'nisc-payment-gateway' ),
+						),
+					),
+				)
+			);
+		}
+
+		$response = $client->test_connection();
+
+		if ( ! $response['ok'] ) {
+			wp_send_json_error(
+				array(
+					'ok'      => false,
+					'message' => $response['error']['message'] ?? __( 'Connection test failed.', 'nisc-payment-gateway' ),
+					'summary' => $response['error']['message'] ?? __( 'Connection test failed.', 'nisc-payment-gateway' ),
+					'checks'  => array(
+						array(
+							'id'      => 'gateway',
+							'label'   => __( 'Nisc gateway reachable', 'nisc-payment-gateway' ),
+							'status'  => 'fail',
+							'message' => $response['error']['message'] ?? __( 'Request failed', 'nisc-payment-gateway' ),
+						),
+					),
+					'connected' => $connected,
+				)
+			);
+		}
+
+		$data = $response['data'] ?? array();
+		wp_send_json_success(
+			array(
+				'ok'                    => ! empty( $data['ok'] ),
+				'summary'               => isset( $data['summary'] ) ? (string) $data['summary'] : '',
+				'checks'                => isset( $data['checks'] ) && is_array( $data['checks'] ) ? $data['checks'] : array(),
+				'merchantName'          => $data['merchantName'] ?? '',
+				'environment'           => $data['environment'] ?? '',
+				'credentialEnvironment' => $data['credentialEnvironment'] ?? '',
+				'durationMs'            => $data['durationMs'] ?? null,
+				'checkedAt'             => $data['checkedAt'] ?? gmdate( 'c' ),
+			)
+		);
+	}
+
+	/**
+	 * Send a real STK push for connection testing (no WooCommerce order).
+	 */
+	public function ajax_send_test_stk(): void {
+		check_ajax_referer( 'nisc_pg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nisc-payment-gateway' ) ), 403 );
+		}
+
+		$settings = get_option( 'woocommerce_nisc_payment_gateway_settings', array() );
+		$api_key  = is_array( $settings ) ? (string) ( $settings['api_key'] ?? '' ) : '';
+		$connected = is_array( $settings ) && 'yes' === ( $settings['connected'] ?? 'no' );
+
+		if ( ! $api_key || ! $connected ) {
+			wp_send_json_error( array( 'message' => __( 'Connect with an API key before running a test.', 'nisc-payment-gateway' ) ) );
+		}
+
+		$raw_phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
+		$phone     = Nisc_PG_Order_Service::normalize_phone( $raw_phone );
+		if ( ! $phone ) {
+			wp_send_json_error( array( 'message' => __( 'Enter a valid Kenyan M-Pesa number (e.g. 07XXXXXXXX).', 'nisc-payment-gateway' ) ) );
+		}
+
+		$amount = isset( $_POST['amount'] ) ? (float) wp_unslash( $_POST['amount'] ) : 1.0;
+		if ( $amount < 1 ) {
+			wp_send_json_error( array( 'message' => __( 'Amount must be at least 1 KES.', 'nisc-payment-gateway' ) ) );
+		}
+
+		$reference_id = 'wp-test-' . wp_generate_password( 10, false, false );
+		$client       = new Nisc_PG_Api_Client( $api_key );
+
+		$response = $client->create_payment(
+			array(
+				'amount'      => $amount,
+				'currency'    => 'KES',
+				'phoneNumber' => $phone,
+				'description' => __( 'WordPress plugin connection test', 'nisc-payment-gateway' ),
+				'referenceId' => $reference_id,
+				'metadata'    => array(
+					'test'         => true,
+					'wpPluginTest' => true,
+					'siteUrl'      => home_url( '/' ),
+					'source'       => 'wordpress-admin-test',
+				),
+			)
+		);
+
+		if ( ! $response['ok'] ) {
+			wp_send_json_error(
+				array(
+					'message' => $response['error']['message'] ?? __( 'Could not start test STK push.', 'nisc-payment-gateway' ),
+					'code'    => $response['error']['code'] ?? 'API_ERROR',
+				)
+			);
+		}
+
+		$data         = $response['data'] ?? array();
+		$payment_id   = isset( $data['id'] ) ? (string) $data['id'] : '';
+		$checkout_id  = isset( $data['checkoutRequestId'] ) ? (string) $data['checkoutRequestId'] : '';
+
+		if ( '' === $payment_id ) {
+			wp_send_json_error( array( 'message' => __( 'Gateway did not return a payment id.', 'nisc-payment-gateway' ) ) );
+		}
+
+		Nisc_PG_Test_Service::remember_pending_test(
+			array(
+				'transactionId'     => $payment_id,
+				'checkoutRequestId' => $checkout_id,
+				'phone'             => $phone,
+				'amount'            => $amount,
+				'referenceId'       => $reference_id,
+			)
+		);
+
+		wp_send_json_success(
+			array(
+				'message'           => __( 'STK push sent. Enter your PIN on the phone, then watch for the webhook below.', 'nisc-payment-gateway' ),
+				'transactionId'     => $payment_id,
+				'checkoutRequestId' => $checkout_id,
+				'referenceId'       => $reference_id,
+				'phone'             => $phone,
+				'amount'            => $amount,
+				'status'            => isset( $data['status'] ) ? (string) $data['status'] : 'PENDING',
+			)
+		);
+	}
+
+	/**
+	 * Poll payment status + any matching test webhook preview.
+	 */
+	public function ajax_poll_test(): void {
+		check_ajax_referer( 'nisc_pg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nisc-payment-gateway' ) ), 403 );
+		}
+
+		$transaction_id = isset( $_POST['transaction_id'] ) ? sanitize_text_field( wp_unslash( $_POST['transaction_id'] ) ) : '';
+		if ( '' === $transaction_id ) {
+			wp_send_json_error( array( 'message' => __( 'Missing transaction id.', 'nisc-payment-gateway' ) ) );
+		}
+
+		$settings = get_option( 'woocommerce_nisc_payment_gateway_settings', array() );
+		$api_key  = is_array( $settings ) ? (string) ( $settings['api_key'] ?? '' ) : '';
+		if ( ! $api_key ) {
+			wp_send_json_error( array( 'message' => __( 'Not connected.', 'nisc-payment-gateway' ) ) );
+		}
+
+		$client   = new Nisc_PG_Api_Client( $api_key );
+		$response = $client->get_payment( $transaction_id );
+
+		$payment_status = null;
+		$payment_data   = null;
+		if ( $response['ok'] ) {
+			$payment_data   = $response['data'] ?? array();
+			$payment_status = isset( $payment_data['status'] ) ? strtoupper( (string) $payment_data['status'] ) : null;
+		}
+
+		$webhook = Nisc_PG_Test_Service::find_webhook_for_transaction( $transaction_id );
+
+		wp_send_json_success(
+			array(
+				'transactionId' => $transaction_id,
+				'paymentStatus' => $payment_status,
+				'payment'       => $payment_data,
+				'webhook'       => $webhook,
+				'webhooks'      => Nisc_PG_Test_Service::get_webhook_log(),
+			)
+		);
+	}
+
+	public function ajax_get_test_webhooks(): void {
+		check_ajax_referer( 'nisc_pg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nisc-payment-gateway' ) ), 403 );
+		}
+
+		$transaction_id = isset( $_POST['transaction_id'] ) ? sanitize_text_field( wp_unslash( $_POST['transaction_id'] ) ) : '';
+		$match          = $transaction_id ? Nisc_PG_Test_Service::find_webhook_for_transaction( $transaction_id ) : null;
+
+		wp_send_json_success(
+			array(
+				'webhooks' => Nisc_PG_Test_Service::get_webhook_log(),
+				'webhook'  => $match,
+			)
+		);
+	}
+
+	public function ajax_clear_test_webhooks(): void {
+		check_ajax_referer( 'nisc_pg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nisc-payment-gateway' ) ), 403 );
+		}
+
+		Nisc_PG_Test_Service::clear_webhook_log();
+		wp_send_json_success( array( 'message' => __( 'Test webhook previews cleared.', 'nisc-payment-gateway' ) ) );
 	}
 
 	public function maybe_unregister_webhook_on_deactivate(): void {

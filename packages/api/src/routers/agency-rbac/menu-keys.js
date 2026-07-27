@@ -42,6 +42,7 @@ export const agencyMenuKeys = [
     "/agency/nisc-email-builder",
     "/agency/seo",
     "/agency/seo-reports",
+    "/agency/seo-suite",
     "/agency/creative-assets",
     // "/agency/gen-ai/image-gen-studio",
     "/agency/zeepo-canvas",

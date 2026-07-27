@@ -39,6 +39,27 @@ const messages: ChatMessage[] = [
   },
 ];
 
+function TypingDots({ reduceMotion }: { reduceMotion: boolean }) {
+  if (reduceMotion) return null;
+  return (
+    <span className="inline-flex items-center gap-1 px-1" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="size-1.5 rounded-full bg-current opacity-70"
+          animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+          transition={{
+            duration: 0.9,
+            repeat: Infinity,
+            delay: i * 0.15,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function ChatBubble({
   message,
   index,
@@ -49,17 +70,20 @@ function ChatBubble({
   reduceMotion: boolean;
 }) {
   const isUs = message.side === "us";
+  const delay = reduceMotion ? 0 : 0.2 + index * 0.55;
 
   return (
     <motion.div
       className={cn("flex w-full", isUs ? "justify-end" : "justify-start")}
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.45 }}
+      initial={reduceMotion ? false : { opacity: 0, x: isUs ? 36 : -36, y: 10, scale: 0.94 }}
+      whileInView={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.2 }}
       transition={{
-        duration: 0.45,
-        delay: reduceMotion ? 0 : Math.min(index * 0.08, 0.32),
-        ease: [0.22, 1, 0.36, 1],
+        type: "spring",
+        stiffness: 320,
+        damping: 26,
+        mass: 0.85,
+        delay,
       }}
     >
       <div
@@ -68,32 +92,82 @@ function ChatBubble({
           isUs ? "items-end" : "items-start",
         )}
       >
-        <span className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {isUs ? "Nisc Cloud" : "You"}
-        </span>
-        <div
-          className={cn(
-            "rounded-2xl px-4 py-3 text-sm leading-relaxed",
-            isUs
-              ? "rounded-br-md bg-primary text-primary-foreground"
-              : "rounded-bl-md border border-border bg-card text-foreground",
-          )}
+        <motion.span
+          className="px-1 text-[11px] font-medium tracking-wide text-muted-foreground"
+          initial={reduceMotion ? false : { opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.3, delay }}
         >
-          {message.text}
+          {isUs ? "Nisc Cloud" : "You"}
+        </motion.span>
+
+        <div className="relative">
+          {!reduceMotion && (
+            <motion.div
+              className={cn(
+                "absolute bottom-0 z-10 rounded-2xl px-3.5 py-2.5 text-muted-foreground",
+                isUs
+                  ? "right-0 rounded-br-md bg-primary/15"
+                  : "left-0 rounded-bl-md border border-border bg-card",
+              )}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: [0, 1, 1, 0], scale: [0.9, 1, 1, 0.96] }}
+              viewport={{ once: true }}
+              transition={{
+                duration: 0.8,
+                delay: Math.max(delay - 0.5, 0),
+                times: [0, 0.12, 0.72, 1],
+              }}
+              aria-hidden
+            >
+              <TypingDots reduceMotion={reduceMotion} />
+            </motion.div>
+          )}
+
+          <motion.div
+            className={cn(
+              "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+              isUs
+                ? "rounded-br-md bg-primary text-primary-foreground"
+                : "rounded-bl-md border border-border bg-card text-foreground",
+            )}
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{
+              type: "spring",
+              stiffness: 340,
+              damping: 24,
+              delay: reduceMotion ? 0 : delay,
+            }}
+          >
+            {message.text}
+          </motion.div>
         </div>
       </div>
     </motion.div>
   );
 }
 
-export default function ComparisonBlock() {
+type ComparisonBlockProps = {
+  /** On contact page: primary CTA scrolls to the form instead of linking to /contact */
+  onContactPage?: boolean;
+};
+
+export default function ComparisonBlock({ onContactPage = false }: ComparisonBlockProps) {
   const reduceMotion = useReducedMotion() ?? false;
 
   return (
-    <section className="w-full bg-background px-4 py-16 text-foreground md:px-8 md:py-20">
+    <section
+      className={cn(
+        "w-full bg-background px-4 text-foreground md:px-8",
+        onContactPage ? "border-t border-border/40 py-14 md:py-16" : "py-16 md:py-20",
+      )}
+    >
       <div className="mx-auto w-full max-w-2xl">
         <motion.div
-          className="mb-10 text-center"
+          className={cn("text-center", onContactPage ? "mb-8" : "mb-10")}
           initial={reduceMotion ? false : { opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.6 }}
@@ -111,11 +185,14 @@ export default function ComparisonBlock() {
           </p>
         </motion.div>
 
-        <div
+        <motion.div
           className="relative overflow-hidden rounded-3xl border border-border bg-muted/20 p-4 sm:p-6"
           aria-label="Conversation about switching to Nisc Cloud"
+          initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* Soft top bar — like a chat header */}
           <div className="mb-5 flex items-center gap-2 border-b border-border/70 pb-4">
             <span className="size-2 rounded-full bg-muted-foreground/40" aria-hidden />
             <span className="size-2 rounded-full bg-muted-foreground/40" aria-hidden />
@@ -123,7 +200,7 @@ export default function ComparisonBlock() {
             <span className="ml-2 text-xs text-muted-foreground">A familiar chat</span>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5">
             {messages.map((message, index) => (
               <ChatBubble
                 key={`${message.side}-${index}`}
@@ -133,7 +210,7 @@ export default function ComparisonBlock() {
               />
             ))}
           </div>
-        </div>
+        </motion.div>
 
         <motion.div
           className="mt-8 flex flex-col items-center gap-4"
@@ -142,16 +219,23 @@ export default function ComparisonBlock() {
           viewport={{ once: true, amount: 0.5 }}
           transition={{
             duration: 0.45,
-            delay: reduceMotion ? 0 : 0.15,
+            delay: reduceMotion ? 0 : 0.2,
             ease: [0.22, 1, 0.36, 1],
           }}
         >
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
             <Button asChild className="h-11 gap-2 rounded-xl px-6 font-semibold sm:min-w-48">
-              <Link to="/contact">
-                Talk to us. It is free.
-                <ArrowRight className="size-4" aria-hidden />
-              </Link>
+              {onContactPage ? (
+                <a href="#contact-form">
+                  Send us a message
+                  <ArrowRight className="size-4" aria-hidden />
+                </a>
+              ) : (
+                <Link to="/contact">
+                  Talk to us. It is free.
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              )}
             </Button>
             <Button
               asChild
@@ -165,8 +249,9 @@ export default function ComparisonBlock() {
             </Button>
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            No pressure. We will map a simple plan for your business in about 30
-            minutes.
+            {onContactPage
+              ? "No pressure. Tell us what you need and we’ll map a simple next step."
+              : "No pressure. We will map a simple plan for your business in about 30 minutes."}
           </p>
         </motion.div>
       </div>

@@ -19,23 +19,11 @@ import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { TldLogo } from "./TldLogo.tsx";
 import { AddDomainToCartButtons } from "./AddDomainToCartButtons.tsx";
 
-const TLD_WHY_CHOOSE: Record<string, [string, string]> = {
-  "co.ke": [
-    "Kenya's most trusted commercial extension, ideal for local businesses and brands.",
-    "Strong local SEO and instant recognition with Kenyan customers.",
-  ],
-  ke: [
-    "Short, memorable .ke for a bold Kenyan identity.",
-    "Perfect for startups and brands that want to stand out locally.",
-  ],
-  com: [
-    "The worlds most recognized TLD, builds trust and credibility everywhere.",
-    "Best for global reach and lasting memorability.",
-  ],
-  bundle: [
-    "Lock in .co.ke, .ke, .com & .net together and save.",
-    "One purchase, multiple identities best value for your brand.",
-  ],
+const TLD_WHY_CHOOSE: Record<string, string> = {
+  "co.ke": "Kenya's most trusted commercial extension, ideal for local businesses and brands.",
+  ke: "Short, memorable .ke for a bold Kenyan identity.",
+  com: "The worlds most recognized TLD, builds trust and credibility everywhere.",
+  bundle: "Lock in .co.ke, .ke, .com & .net together and save.",
 };
 
 const SUGGESTED_OPEN_TLDS = ["com"] as const;
@@ -401,12 +389,10 @@ function SingleTldCard({
         <div>
           <div className="border-t border-border my-2" />
           <ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
-            {TLD_WHY_CHOOSE[tld].map((line, i) => (
-              <li key={i} className="flex gap-1.5 items-start">
-                <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
-                <span className="line-clamp-2">{line}</span>
-              </li>
-            ))}
+            <li className="flex gap-1.5 items-start">
+              <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
+              <span className="line-clamp-2">{TLD_WHY_CHOOSE[tld]}</span>
+            </li>
           </ul>
         </div>
       ) : null}
@@ -545,12 +531,10 @@ function BundleCard({
         <div>
           <div className="border-t border-border my-2" />
           <ul className="space-y-1.5 mb-3 text-xs text-muted-foreground">
-            {TLD_WHY_CHOOSE.bundle.map((line, i) => (
-              <li key={i} className="flex gap-1.5 items-start">
-                <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
-                <span className="line-clamp-2">{line}</span>
-              </li>
-            ))}
+            <li className="flex gap-1.5 items-start">
+              <Check className="h-3.5 w-3.5 shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden />
+              <span className="line-clamp-2">{TLD_WHY_CHOOSE.bundle}</span>
+            </li>
           </ul>
         </div>
       ) : null}

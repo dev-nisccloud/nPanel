@@ -52,6 +52,7 @@ export const agencyMenuKeys = [
 
 	"/agency/seo",
 	"/agency/seo-reports",
+	"/agency/seo-suite",
 
 	"/agency/creative-assets",
 

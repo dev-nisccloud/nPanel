@@ -1310,4 +1310,111 @@ export const ticketsRouter = router({
         ticket: transformTicket(result.ticket),
       };
     }),
+
+  /**
+   * Get ticket summary statistics
+   */
+  getSummary: protectedProcedure.query(async ({ ctx }) => {
+    const sessionUser = ctx.session?.user;
+    if (!sessionUser?.id) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
+    }
+
+    const sessionRole = (sessionUser as { role?: string })?.role;
+    const isAgencyUser = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(sessionRole || "");
+
+    try {
+      let whereConditions;
+      
+      if (isAgencyUser) {
+        // Agency users can see all tickets
+        whereConditions = undefined;
+      } else {
+        // Regular users can only see their own tickets
+        whereConditions = eq(ticket.createdBy, sessionUser.id);
+      }
+
+      // Get total count
+      const totalResult = await db
+        .select({ count: count() })
+        .from(ticket)
+        .where(whereConditions);
+      
+      const total = totalResult[0]?.count || 0;
+
+      // Get count by status
+      const openCount = await db
+        .select({ count: count() })
+        .from(ticket)
+        .where(
+          whereConditions 
+            ? and(whereConditions, eq(ticket.status, "OPEN"))
+            : eq(ticket.status, "OPEN")
+        );
+
+      const inProgressCount = await db
+        .select({ count: count() })
+        .from(ticket)
+        .where(
+          whereConditions 
+            ? and(whereConditions, eq(ticket.status, "IN_PROGRESS"))
+            : eq(ticket.status, "IN_PROGRESS")
+        );
+
+      const waitingCount = await db
+        .select({ count: count() })
+        .from(ticket)
+        .where(
+          whereConditions 
+            ? and(whereConditions, eq(ticket.status, "WAITING"))
+            : eq(ticket.status, "WAITING")
+        );
+
+      const closedCount = await db
+        .select({ count: count() })
+        .from(ticket)
+        .where(
+          whereConditions 
+            ? and(whereConditions, eq(ticket.status, "CLOSED"))
+            : eq(ticket.status, "CLOSED")
+        );
+
+      const resolvedCount = await db
+        .select({ count: count() })
+        .from(ticket)
+        .where(
+          whereConditions 
+            ? and(whereConditions, eq(ticket.status, "RESOLVED"))
+            : eq(ticket.status, "RESOLVED")
+        );
+
+      const cancelledCount = await db
+        .select({ count: count() })
+        .from(ticket)
+        .where(
+          whereConditions 
+            ? and(whereConditions, eq(ticket.status, "CANCELLED"))
+            : eq(ticket.status, "CANCELLED")
+        );
+
+      return {
+        total,
+        open: openCount[0]?.count || 0,
+        inProgress: inProgressCount[0]?.count || 0,
+        waiting: waitingCount[0]?.count || 0,
+        closed: closedCount[0]?.count || 0,
+        resolved: resolvedCount[0]?.count || 0,
+        cancelled: cancelledCount[0]?.count || 0,
+        // Computed aggregates
+        openTotal: (openCount[0]?.count || 0) + (inProgressCount[0]?.count || 0) + (waitingCount[0]?.count || 0),
+        closedTotal: (closedCount[0]?.count || 0) + (resolvedCount[0]?.count || 0) + (cancelledCount[0]?.count || 0),
+      };
+    } catch (error) {
+      console.error("Error getting ticket summary:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get ticket summary",
+      });
+    }
+  }),
 });
