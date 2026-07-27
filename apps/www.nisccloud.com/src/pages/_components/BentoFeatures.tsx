@@ -1,5 +1,4 @@
 import { motion } from "motion/react";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Unlock, CalendarCheck, CheckCircle2, Globe2, CreditCard, Code2, Receipt, BadgeCheck, RefreshCw } from "lucide-react";
 import BentoServiceCarousel from "./BentoServiceCarousel.tsx";
 import BentoOrbitingIcons from "./BentoOrbitingIcons.tsx";
@@ -128,8 +127,8 @@ const ResultsVisual = () => {
 
 export default function BentoFeatures() {
   return (
-    <section className="relative bg-muted/30 py-20 sm:py-32 overflow-hidden">
-      <div className="max-w-7xl xl:px-16 lg:px-8 px-4 mx-auto flex flex-col gap-12">
+    <section className="relative overflow-hidden bg-muted/30 py-12 md:py-16">
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 lg:px-8 xl:px-16">
 
         {/* Section header */}
         <motion.div
@@ -137,15 +136,12 @@ export default function BentoFeatures() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col gap-4 items-center justify-center max-w-3xl mx-auto text-center"
+          className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-3 text-center"
         >
-          <Badge variant="outline" className="px-3 py-1 h-auto text-xs font-mono font-bold uppercase tracking-widest">
+          <h2 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">
             Why Choose Us
-          </Badge>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-balance">
-            Clear help for every step online
           </h2>
-          <p className="text-muted-foreground text-base max-w-2xl">
+          <p className="max-w-2xl text-base text-muted-foreground">
             From brand and website to hosting, marketing, and smart tools.
             One team that helps you get online, stay online, and grow.
           </p>

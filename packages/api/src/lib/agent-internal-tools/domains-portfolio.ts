@@ -1,8 +1,8 @@
 /**
  * Domains portfolio for the Zeepo AI Agent.
  *
- * Agency view  – merges live OpenProvider gTLD data with KENIC .ke subscriptions
- *                from the DB, matching what the agency/domains-portfolio page shows.
+ * Agency view  – merges live registry data with .ke subscriptions from the DB,
+ *                matching what the agency/domains-portfolio page shows.
  *
  * Customer view – reads nisc_client_subscription rows scoped to the session team
  *                 (same source as the /$slug/domains-portfolio page).
@@ -32,9 +32,9 @@ export interface PortfolioDomainEntry {
 	expiryDate: string | null;
 	registrationDate: string | null;
 	autoRenewal: boolean;
-	/** "openprovider" for gTLDs via OP, "kenic" for .ke from DB, "subscription" for customer DB subs */
-	source: "openprovider" | "kenic" | "subscription";
-	/** Agency only – registrant/team name from OP or subscription record */
+	// Internal tracking only - not exposed to agent
+	// source: "openprovider" | "kenic" | "subscription";
+	/** Agency only – registrant/team name from registry or subscription record */
 	clientName?: string;
 }
 
@@ -208,7 +208,7 @@ async function fetchOpenProviderDomains(): Promise<{
 				expiryDate: d.expiration_date ?? null,
 				registrationDate: d.creation_date ?? null,
 				autoRenewal: d.autorenew === "on",
-				source: "openprovider",
+				// source: "openprovider", // Hidden from agent
 				clientName: ownerName || undefined,
 			});
 		}
@@ -263,7 +263,7 @@ async function fetchKenicDomains(): Promise<PortfolioDomainEntry[]> {
 				expiryDate: expiry.toISOString(),
 				registrationDate: row.subscriptionDate?.toISOString() ?? null,
 				autoRenewal: false,
-				source: "kenic" as const,
+				// source: "kenic" as const, // Hidden from agent
 				clientName: row.teamName ?? row.userName ?? undefined,
 			};
 		});
@@ -319,7 +319,7 @@ async function fetchCustomerPortfolio(
 					expiryDate: expiry?.toISOString() ?? null,
 					registrationDate: sub.subscriptionDate?.toISOString() ?? null,
 					autoRenewal: sub.autoRenew ?? false,
-					source: "subscription",
+					// source: "subscription", // Hidden from agent
 				});
 			}
 		}

@@ -82,6 +82,7 @@ import { paymentGatewayRouter } from "./payment-gateway";
 import { paymentTransactionsRouter } from "./payment-transactions";
 import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
+import { seoSuiteRouter } from "./seo-suite";
 import { emailMarketingRouter } from "./email-marketing";
 import { niscEmailMarketingRouter } from "./nisc-email-marketing";
 import { niscEmailBuilderRouter } from "./nisc-email-builder";
@@ -274,6 +275,8 @@ export const appRouter = router({
 	pagespeedInsights: pagespeedInsightsRouter,
 	// SEO Reports
 	seoReports: seoReportsRouter,
+	// SEO Suite (DataForSEO)
+	seoSuite: seoSuiteRouter,
 	// Email Marketing (Resend Integration)
 	emailMarketing: emailMarketingRouter,
 	// nisc Email Marketing (SES Integration - new, parallel)

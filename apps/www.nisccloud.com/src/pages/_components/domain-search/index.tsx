@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -14,38 +15,71 @@ import {
 import { DomainSearchResults } from "./DomainSearchResults.tsx";
 import { TldPricingCards } from "./TldPricingCards.tsx";
 
-function DomainSearchContent() {
+type DomainSearchProps = {
+  /** Homepage preview: top promo cards + CTA; full categories live on /hosting/domains */
+  compact?: boolean;
+  /** When true, skip wrapping PricingProvider (parent already provides it) */
+  embedded?: boolean;
+};
+
+function DomainSearchContent({ compact = false }: DomainSearchProps) {
   const cart = useDomainCart();
+  const [searchParams] = useSearchParams();
   const [domainName, setDomainName] = React.useState("");
   const [searchQueryName, setSearchQueryName] = React.useState("");
   const [rawSearchQueryForResults, setRawSearchQueryForResults] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [isSearching, setIsSearching] = React.useState(false);
+  const appliedUrlSearchRef = React.useRef<string | null>(null);
+
+  const applySearch = React.useCallback(
+    (rawInput: string): { started: boolean; changed: boolean } => {
+      const raw = rawInput.trim();
+      if (!raw) return { started: false, changed: false };
+      setError(null);
+      const sanitized = sanitizeDomainName(raw);
+      if (!isValidSearchQuery(sanitized)) {
+        setError("Enter a valid search query to find your domain.");
+        return { started: false, changed: false };
+      }
+      const nextSearchQuery = toSingleLabelName(sanitized);
+      const isSameQuery = nextSearchQuery === searchQueryName && raw === rawSearchQueryForResults;
+      if (isSameQuery) return { started: true, changed: false };
+      setDomainName(raw);
+      setSearchQueryName(nextSearchQuery);
+      setRawSearchQueryForResults(raw);
+      return { started: true, changed: true };
+    },
+    [searchQueryName, rawSearchQueryForResults],
+  );
 
   const triggerSearch = React.useCallback((): { started: boolean; changed: boolean } => {
-    const raw = domainName.trim();
-    if (!raw) return { started: false, changed: false };
-    setError(null);
-    const sanitized = sanitizeDomainName(raw);
-    if (!isValidSearchQuery(sanitized)) {
-      setError("Enter a valid search query to find your domain.");
-      return { started: false, changed: false };
-    }
-    const nextSearchQuery = toSingleLabelName(sanitized);
-    const isSameQuery = nextSearchQuery === searchQueryName && raw === rawSearchQueryForResults;
-    if (isSameQuery) return { started: true, changed: false };
-    setSearchQueryName(nextSearchQuery);
-    setRawSearchQueryForResults(raw);
-    return { started: true, changed: true };
-  }, [domainName, searchQueryName, rawSearchQueryForResults]);
+    return applySearch(domainName);
+  }, [applySearch, domainName]);
 
   const handleSearch = () => {
     const result = triggerSearch();
     if (result.started && result.changed) setIsSearching(true);
   };
 
+  // Prefill + run search from ?search= (e.g. homepage “View more” or transfer CTA)
+  React.useEffect(() => {
+    if (compact) return;
+    const q = searchParams.get("search")?.trim() ?? "";
+    if (!q || appliedUrlSearchRef.current === q) return;
+    appliedUrlSearchRef.current = q;
+    const result = applySearch(q);
+    if (result.started && result.changed) setIsSearching(true);
+
+    const scroll = () => {
+      document.getElementById("domain-search")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    const t = window.setTimeout(scroll, 80);
+    return () => window.clearTimeout(t);
+  }, [applySearch, compact, searchParams]);
+
   return (
-    <section className="py-4 md:py-6 relative overflow-hidden">
+    <section id="domain-search" className="py-4 md:py-6 relative overflow-hidden scroll-mt-24">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -115,6 +149,7 @@ function DomainSearchContent() {
             searchQuery={searchQueryName}
             rawSearchQuery={rawSearchQueryForResults}
             error={error}
+            compact={compact}
             onLoadingChange={setIsSearching}
             isDomainInCart={cart.isDomainInCart}
             onAddToCart={cart.handleAddToCart}
@@ -129,10 +164,8 @@ function DomainSearchContent() {
   );
 }
 
-export default function DomainSearch() {
-  return (
-    <PricingProvider>
-      <DomainSearchContent />
-    </PricingProvider>
-  );
+export default function DomainSearch({ compact = false, embedded = false }: DomainSearchProps) {
+  const content = <DomainSearchContent compact={compact} />;
+  if (embedded) return content;
+  return <PricingProvider>{content}</PricingProvider>;
 }

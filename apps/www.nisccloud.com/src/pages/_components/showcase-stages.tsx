@@ -1,6 +1,6 @@
 /**
- * Glass Mock Stages — context-specific product UI on a primary canvas.
- * Bold white chrome. Notifications, graphs, and tools only where they belong.
+ * Glass Mock Stages — context-specific product UI on a soft sky canvas (#d9eeff).
+ * Primary chrome. Notifications, graphs, and tools only where they belong.
  */
 
 import type { ReactNode } from "react";
@@ -15,16 +15,16 @@ type StageProps = { label: string };
 function MockCanvas({ children }: { children: ReactNode }) {
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] md:aspect-[5/4] md:rounded-[2rem]">
-      <div className="absolute inset-0 bg-primary" />
+      <div className="absolute inset-0 bg-[#d9eeff]" />
       <div
         className="absolute inset-0 opacity-45"
         style={{
           background:
-            "radial-gradient(75% 55% at 18% 12%, rgb(255 255 255 / 0.22), transparent 55%), radial-gradient(60% 45% at 92% 88%, rgb(0 0 0 / 0.14), transparent 50%)",
+            "radial-gradient(75% 55% at 18% 12%, rgb(255 255 255 / 0.65), transparent 55%), radial-gradient(60% 45% at 92% 88%, rgb(56 182 255 / 0.18), transparent 50%)",
         }}
       />
-      <div className="absolute left-[12%] top-0 h-3 w-16 rounded-b-xl bg-white/15" />
-      <div className="absolute bottom-[16%] right-0 h-14 w-3 rounded-l-xl bg-white/15" />
+      <div className="absolute left-[12%] top-0 h-3 w-16 rounded-b-xl bg-primary/20" />
+      <div className="absolute bottom-[16%] right-0 h-14 w-3 rounded-l-xl bg-primary/20" />
       <div className="relative z-10 flex size-full items-stretch gap-2.5 p-3.5 md:gap-3 md:p-5">
         {children}
       </div>
@@ -41,7 +41,7 @@ function Glass({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-white/35 bg-white/[0.14] shadow-[inset_0_1px_0_rgb(255_255_255/0.22)] ${className ?? ""}`}
+      className={`rounded-2xl border border-primary/15 bg-white/85 shadow-[0_10px_30px_-16px_rgb(56_182_255/0.45)] backdrop-blur-sm ${className ?? ""}`}
     >
       {children}
     </div>
@@ -61,13 +61,13 @@ function Window({
 }) {
   return (
     <Glass className={`flex min-w-0 flex-1 flex-col overflow-hidden ${className ?? ""}`}>
-      <div className="flex items-center justify-between border-b border-white/25 px-3 py-2.5">
+      <div className="flex items-center justify-between border-b border-primary/10 px-3 py-2.5">
         <div className="flex gap-1">
-          <span className="size-1.5 rounded-full bg-white/70" />
-          <span className="size-1.5 rounded-full bg-white/50" />
-          <span className="size-1.5 rounded-full bg-white/35" />
+          <span className="size-1.5 rounded-full bg-primary/40" />
+          <span className="size-1.5 rounded-full bg-primary/30" />
+          <span className="size-1.5 rounded-full bg-primary/20" />
         </div>
-        <span className="text-[10px] font-semibold tracking-wide text-white">{title}</span>
+        <span className="text-[10px] font-semibold tracking-wide text-primary">{title}</span>
         <div className="min-w-[2rem] text-right">{badge}</div>
       </div>
       {children}
@@ -81,14 +81,14 @@ function SideRail({ icons, active = 0 }: { icons: ReactNode[]; active?: number }
       {icons.map((icon, i) => (
         <motion.div
           key={i}
-          className={i === active ? "text-white" : "text-white/55"}
+          className={i === active ? "text-primary" : "text-primary/45"}
           animate={i === active ? { scale: [1, 1.12, 1] } : { opacity: [0.45, 0.75, 0.45] }}
           transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.15 }}
         >
           {icon}
         </motion.div>
       ))}
-      <div className="mt-auto flex size-7 items-center justify-center rounded-full border border-white/40 bg-white/25 text-[10px] font-bold text-white">
+      <div className="mt-auto flex size-7 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-[10px] font-bold text-primary">
         N
       </div>
     </Glass>
@@ -119,7 +119,7 @@ function ToastLoop({
           animate={{ opacity: 1, x: 0, y: 0 }}
           exit={{ opacity: 0, x: 16, y: -4 }}
           transition={{ duration: 0.35 }}
-          className="rounded-xl border border-white/50 bg-white px-2.5 py-2 shadow-[0_10px_30px_-8px_rgb(0_0_0/0.35)]"
+          className="rounded-xl border border-primary/15 bg-white px-2.5 py-2 shadow-[0_10px_30px_-8px_rgb(56_182_255/0.35)]"
         >
           <div className="flex items-start gap-2">
             <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
@@ -149,7 +149,7 @@ function BarChart({
       {values.map((h, i) => (
         <motion.div
           key={i}
-          className="flex-1 rounded-t-sm bg-white"
+          className="flex-1 rounded-t-sm bg-primary"
           animate={{ height: [`${h * 0.4}%`, `${h}%`, `${h * 0.55}%`, `${h}%`] }}
           transition={{ duration: 3.4, repeat: Infinity, delay: i * 0.08, ease: "easeInOut" }}
         />
@@ -165,7 +165,7 @@ function Sparkline({ className }: { className?: string }) {
       <motion.path
         d="M2 44 C18 42, 28 30, 42 28 C56 26, 64 36, 78 24 C92 12, 104 18, 118 14 C132 10, 144 8, 158 6"
         fill="none"
-        stroke="white"
+        stroke="var(--primary)"
         strokeWidth="2.25"
         strokeLinecap="round"
         animate={{ pathLength: [0, 1, 1, 0] }}
@@ -173,7 +173,7 @@ function Sparkline({ className }: { className?: string }) {
       />
       <motion.circle
         r="3.5"
-        fill="white"
+        fill="var(--primary)"
         animate={{
           cx: [2, 42, 78, 118, 158, 158, 2],
           cy: [44, 28, 24, 14, 6, 6, 44],
@@ -187,7 +187,7 @@ function Sparkline({ className }: { className?: string }) {
 
 function LiveBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/20 px-1.5 py-0.5 text-[9px] font-bold text-white">
+    <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
       <motion.span
         className="size-1.5 rounded-full bg-white"
         animate={{ opacity: [1, 0.25, 1] }}
@@ -281,7 +281,7 @@ const I = {
     </svg>
   ),
   mountain: (
-    <svg viewBox="0 0 24 24" className="size-8 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg viewBox="0 0 24 24" className="size-8 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M3 17l6-8 4 5 3-4 5 7H3z" strokeLinejoin="round" />
     </svg>
   ),
@@ -293,7 +293,7 @@ function BrandStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Brand kit" badge={<span className="text-[9px] font-bold text-white">v2</span>}>
+        <Window title="Brand kit" badge={<span className="text-[9px] font-bold text-slate-700">v2</span>}>
           <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-2 p-2.5 md:p-3">
             <Glass className="relative flex items-center justify-center overflow-hidden">
               <motion.div
@@ -306,7 +306,7 @@ function BrandStage() {
               {/* Pen tool drawing around mark */}
               <motion.svg
                 viewBox="0 0 80 80"
-                className="absolute inset-2 text-white"
+                className="absolute inset-2 text-slate-700"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
@@ -319,19 +319,19 @@ function BrandStage() {
                 />
                 <motion.circle
                   r="2.5"
-                  fill="white"
+                  fill="var(--primary)"
                   animate={{ cx: [18, 40, 62, 62, 18], cy: [52, 30, 34, 34, 52], opacity: [0, 1, 1, 0, 0] }}
                   transition={{ duration: 3.8, repeat: Infinity }}
                 />
               </motion.svg>
             </Glass>
             <Glass className="flex flex-col justify-center gap-2 px-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">Palette</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">Palette</span>
               <div className="flex gap-1.5">
-                {["bg-white", "bg-white/70", "bg-white/45", "bg-white/25"].map((c, i) => (
+                {["bg-white", "bg-primary/40", "bg-primary/25", "bg-primary/15"].map((c, i) => (
                   <motion.span
                     key={c}
-                    className={`size-5 rounded-full border border-white/40 ${c}`}
+                    className={`size-5 rounded-full border border-primary/25 ${c}`}
                     animate={{ scale: [1, 1.15, 1] }}
                     transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.2 }}
                   />
@@ -339,18 +339,18 @@ function BrandStage() {
               </div>
             </Glass>
             <Glass className="flex flex-col justify-center gap-1 px-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">Type</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">Type</span>
               <motion.span
-                className="text-2xl font-black leading-none text-white"
+                className="text-2xl font-black leading-none text-slate-700"
                 animate={{ opacity: [0.55, 1, 0.55] }}
                 transition={{ duration: 2.6, repeat: Infinity }}
               >
                 Aa
               </motion.span>
-              <span className="text-[9px] text-white/65">Display · Body</span>
+              <span className="text-[9px] text-slate-700/65">Display · Body</span>
             </Glass>
             <Glass className="flex flex-col justify-center gap-1.5 px-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">Guide</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">Guide</span>
               {[0.95, 0.75, 0.55].map((w, i) => (
                 <motion.div
                   key={i}
@@ -362,10 +362,10 @@ function BrandStage() {
               ))}
             </Glass>
           </div>
-          <div className="border-t border-white/25 p-2.5">
+          <div className="border-t border-primary/15 p-2.5">
             <Glass className="flex items-center gap-2 px-3 py-2">
               <motion.span
-                className="text-[10px] font-medium text-white/80"
+                className="text-[10px] font-medium text-slate-700/80"
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
@@ -398,7 +398,7 @@ function ClarityStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Guidelines" badge={<span className="text-[9px] font-bold text-white">PDF</span>}>
+        <Window title="Guidelines" badge={<span className="text-[9px] font-bold text-slate-700">PDF</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             {[
               { t: "Logo clear space", d: "Minimum margin = x-height" },
@@ -408,7 +408,7 @@ function ClarityStage() {
             ].map((row, i) => (
               <motion.div
                 key={row.t}
-                className="flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2"
+                className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2"
                 initial={false}
                 animate={{ opacity: [0.5, 1, 0.5], x: [0, 2, 0] }}
                 transition={{ duration: 3.2, repeat: Infinity, delay: i * 0.35 }}
@@ -417,10 +417,10 @@ function ClarityStage() {
                   {i + 1}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-white">{row.t}</div>
-                  <div className="text-[9px] text-white/65">{row.d}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{row.t}</div>
+                  <div className="text-[9px] text-slate-700/65">{row.d}</div>
                 </div>
-                <span className="ml-auto text-white">{I.check}</span>
+                <span className="ml-auto text-slate-700">{I.check}</span>
               </motion.div>
             ))}
           </div>
@@ -444,20 +444,20 @@ function TrustStage() {
         <Window title="Clients" badge={<LiveBadge />}>
           <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
             <Glass className="flex flex-col justify-between p-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">Trusted by</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">Trusted by</span>
               <motion.span
-                className="text-3xl font-black text-white"
+                className="text-3xl font-black text-slate-700"
                 animate={{ scale: [1, 1.04, 1] }}
                 transition={{ duration: 2.4, repeat: Infinity }}
               >
                 100+
               </motion.span>
-              <span className="text-[10px] text-white/65">businesses growing</span>
+              <span className="text-[10px] text-slate-700/65">businesses growing</span>
             </Glass>
             <Glass className="flex flex-col justify-between p-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">NPS</span>
-              <span className="text-3xl font-black text-white">72</span>
-              <motion.div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">NPS</span>
+              <span className="text-3xl font-black text-slate-700">72</span>
+              <motion.div className="h-1.5 overflow-hidden rounded-full bg-primary/10">
                 <motion.div
                   className="h-full rounded-full bg-white"
                   animate={{ width: ["40%", "72%", "72%", "40%"] }}
@@ -479,9 +479,9 @@ function TrustStage() {
                 ))}
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold text-white">Recent wins</div>
+                <div className="text-[11px] font-bold text-slate-700">Recent wins</div>
                 <motion.div
-                  className="text-[10px] text-white/70"
+                  className="text-[10px] text-primary/70"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2.8, repeat: Infinity }}
                 >
@@ -515,9 +515,9 @@ function ReportingStage() {
               { l: "Conv.", v: "4.2%" },
             ].map((m, i) => (
               <Glass key={m.l} className="flex flex-1 flex-col justify-between p-2.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-white/65">{m.l}</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-700/65">{m.l}</span>
                 <motion.span
-                  className="text-lg font-black text-white"
+                  className="text-lg font-black text-slate-700"
                   animate={{ opacity: [0.65, 1, 0.65] }}
                   transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.25 }}
                 >
@@ -526,10 +526,10 @@ function ReportingStage() {
               </Glass>
             ))}
           </div>
-          <div className="mx-2.5 mb-2.5 flex min-h-0 flex-1 flex-col rounded-xl border border-white/30 bg-white/10 p-2.5 md:mx-3 md:mb-3">
-            <div className="mb-1 flex items-center justify-between text-[9px] font-bold text-white/70">
+          <div className="mx-2.5 mb-2.5 flex min-h-0 flex-1 flex-col rounded-xl border border-primary/15 bg-primary/5 p-2.5 md:mx-3 md:mb-3">
+            <div className="mb-1 flex items-center justify-between text-[9px] font-bold text-primary/70">
               <span>Organic · 30 days</span>
-              <span className="text-white">↑ trending</span>
+              <span className="text-slate-700">↑ trending</span>
             </div>
             <div className="min-h-0 flex-1">
               <Sparkline />
@@ -556,18 +556,18 @@ function GrowthStage() {
         <Window title="Growth" badge={<LiveBadge />}>
           <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
             <Glass className="col-span-2 flex min-h-0 flex-col p-2.5">
-              <div className="mb-1 flex justify-between text-[9px] font-bold text-white/70">
+              <div className="mb-1 flex justify-between text-[9px] font-bold text-primary/70">
                 <span>Visitors</span>
-                <span className="text-white">12.4k</span>
+                <span className="text-slate-700">12.4k</span>
               </div>
               <div className="min-h-[72px] flex-1">
                 <Sparkline />
               </div>
             </Glass>
             <Glass className="p-2.5">
-              <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">Rank</div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-slate-700/65">Rank</div>
               <motion.div
-                className="mt-1 text-2xl font-black text-white"
+                className="mt-1 text-2xl font-black text-slate-700"
                 animate={{ y: [2, 0, 2] }}
                 transition={{ duration: 2.2, repeat: Infinity }}
               >
@@ -575,8 +575,8 @@ function GrowthStage() {
               </motion.div>
             </Glass>
             <Glass className="p-2.5">
-              <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">Pages</div>
-              <div className="mt-1 text-2xl font-black text-white">64</div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-slate-700/65">Pages</div>
+              <div className="mt-1 text-2xl font-black text-slate-700">64</div>
             </Glass>
           </div>
         </Window>
@@ -596,17 +596,17 @@ function ResultsStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Results" badge={<span className="text-[9px] font-bold text-white">Day 30</span>}>
+        <Window title="Results" badge={<span className="text-[9px] font-bold text-slate-700">Day 30</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="p-3">
               <div className="mb-2 flex items-end justify-between">
                 <div>
-                  <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">KPI progress</div>
-                  <div className="text-xl font-black text-white">On track</div>
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-slate-700/65">KPI progress</div>
+                  <div className="text-xl font-black text-slate-700">On track</div>
                 </div>
-                <div className="text-right text-[11px] font-bold text-white">78%</div>
+                <div className="text-right text-[11px] font-bold text-slate-700">78%</div>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <div className="h-2 overflow-hidden rounded-full bg-primary/10">
                 <motion.div
                   className="h-full rounded-full bg-white"
                   animate={{ width: ["18%", "78%", "78%", "18%"] }}
@@ -616,16 +616,16 @@ function ResultsStage() {
             </Glass>
             <div className="grid min-h-0 flex-1 grid-cols-2 gap-2">
               <Glass className="flex flex-col p-2.5">
-                <span className="text-[9px] font-bold text-white/65">ROAS</span>
-                <span className="text-2xl font-black text-white">3.4x</span>
+                <span className="text-[9px] font-bold text-slate-700/65">ROAS</span>
+                <span className="text-2xl font-black text-slate-700">3.4x</span>
                 <BarChart values={[30, 45, 40, 60, 55, 75, 80]} className="mt-auto h-12" />
               </Glass>
               <Glass className="flex flex-col p-2.5">
-                <span className="text-[9px] font-bold text-white/65">CPL</span>
-                <span className="text-2xl font-black text-white">180</span>
-                <span className="mt-1 text-[10px] text-white/65">KES · target met</span>
+                <span className="text-[9px] font-bold text-slate-700/65">CPL</span>
+                <span className="text-2xl font-black text-slate-700">180</span>
+                <span className="mt-1 text-[10px] text-slate-700/65">KES · target met</span>
                 <motion.div
-                  className="mt-auto flex items-center gap-1 text-[10px] font-bold text-white"
+                  className="mt-auto flex items-center gap-1 text-[10px] font-bold text-slate-700"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
@@ -655,13 +655,13 @@ function SpeedStage() {
           <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
             <Glass className="relative flex flex-col items-center justify-center p-3">
               <svg viewBox="0 0 100 100" className="size-[88px] -rotate-90" aria-hidden>
-                <circle cx="50" cy="50" r="38" fill="none" stroke="rgb(255 255 255 / 0.2)" strokeWidth="8" />
+                <circle cx="50" cy="50" r="38" fill="none" stroke="rgb(56 182 255 / 0.2)" strokeWidth="8" />
                 <motion.circle
                   cx="50"
                   cy="50"
                   r="38"
                   fill="none"
-                  stroke="white"
+                  stroke="var(--primary)"
                   strokeWidth="8"
                   strokeLinecap="round"
                   strokeDasharray={239}
@@ -670,8 +670,8 @@ function SpeedStage() {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-black text-white">1.1s</span>
-                <span className="text-[9px] font-bold uppercase tracking-wider text-white/65">load</span>
+                <span className="text-2xl font-black text-slate-700">1.1s</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-700/65">load</span>
               </div>
             </Glass>
             <div className="flex flex-col gap-2">
@@ -681,9 +681,9 @@ function SpeedStage() {
                 { l: "Score", v: "98" },
               ].map((row, i) => (
                 <Glass key={row.l} className="flex items-center justify-between px-2.5 py-2">
-                  <span className="text-[10px] font-bold text-white/70">{row.l}</span>
+                  <span className="text-[10px] font-bold text-primary/70">{row.l}</span>
                   <motion.span
-                    className="text-[12px] font-black text-white"
+                    className="text-[12px] font-black text-slate-700"
                     animate={{ opacity: [0.55, 1, 0.55] }}
                     transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.2 }}
                   >
@@ -693,7 +693,7 @@ function SpeedStage() {
               ))}
             </div>
             <Glass className="col-span-2 p-2.5">
-              <div className="mb-1 text-[9px] font-bold text-white/65">Request timeline</div>
+              <div className="mb-1 text-[9px] font-bold text-slate-700/65">Request timeline</div>
               <BarChart values={[20, 35, 28, 55, 40, 70, 48, 85, 60, 90]} className="h-12" />
             </Glass>
           </div>
@@ -736,19 +736,19 @@ function InboxStage() {
             {rows.map((row, i) => (
               <motion.div
                 key={row.from}
-                className="flex items-start gap-2 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2"
+                className="flex items-start gap-2 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2"
                 animate={{
                   opacity: row.unread ? [0.7, 1, 0.7] : 0.75,
                   borderColor: row.unread
-                    ? ["rgb(255 255 255 / 0.3)", "rgb(255 255 255 / 0.7)", "rgb(255 255 255 / 0.3)"]
-                    : "rgb(255 255 255 / 0.3)",
+                    ? ["rgb(56 182 255 / 0.3)", "rgb(56 182 255 / 0.7)", "rgb(56 182 255 / 0.3)"]
+                    : "rgb(56 182 255 / 0.3)",
                 }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.2 }}
               >
-                <span className={`mt-1 size-2 shrink-0 rounded-full ${row.unread ? "bg-white" : "bg-white/35"}`} />
+                <span className={`mt-1 size-2 shrink-0 rounded-full ${row.unread ? "bg-primary" : "bg-primary/35"}`} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[11px] font-bold text-white">{row.from}</div>
-                  <div className="truncate text-[10px] text-white/65">{row.preview}</div>
+                  <div className="truncate text-[11px] font-bold text-slate-700">{row.from}</div>
+                  <div className="truncate text-[10px] text-slate-700/65">{row.preview}</div>
                 </div>
               </motion.div>
             ))}
@@ -780,7 +780,7 @@ function SupportStage() {
               Site feels slow on mobile —
             </motion.div>
             <motion.div
-              className="mr-auto max-w-[88%] rounded-2xl rounded-bl-md border border-white/40 bg-white/15 px-3 py-2 text-[11px] font-medium text-white"
+              className="mr-auto max-w-[88%] rounded-2xl rounded-bl-md border border-primary/25 bg-primary/10 px-3 py-2 text-[11px] font-medium text-slate-700"
               animate={{ opacity: [0, 0, 1, 1, 0], y: [8, 8, 0, 0, -4] }}
               transition={{ duration: 4.6, repeat: Infinity, times: [0, 0.25, 0.4, 0.75, 1] }}
             >
@@ -795,12 +795,12 @@ function SupportStage() {
                   transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
                 />
               ))}
-              <span className="ml-1 text-[9px] font-bold text-white/70">Agent typing</span>
+              <span className="ml-1 text-[9px] font-bold text-primary/70">Agent typing</span>
             </div>
           </div>
-          <div className="border-t border-white/25 p-2.5">
+          <div className="border-t border-primary/15 p-2.5">
             <Glass className="flex items-center px-3 py-2">
-              <span className="text-[10px] text-white/60">Message…</span>
+              <span className="text-[10px] text-slate-700/60">Message…</span>
               <div className="ml-auto flex size-6 items-center justify-center rounded-full bg-white text-primary">
                 {I.spark}
               </div>
@@ -843,12 +843,12 @@ function BotStage() {
                 </div>
               </motion.div>
               <div>
-                <div className="text-[11px] font-bold text-white">Zeepo</div>
-                <div className="text-[9px] text-white/65">Qualifying · booking · handoff</div>
+                <div className="text-[11px] font-bold text-slate-700">Zeepo</div>
+                <div className="text-[9px] text-slate-700/65">Qualifying · booking · handoff</div>
               </div>
             </Glass>
             <motion.div
-              className="rounded-xl border border-white/35 bg-white/10 px-3 py-2 text-[11px] text-white"
+              className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] text-slate-700"
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 3, repeat: Infinity }}
             >
@@ -858,11 +858,11 @@ function BotStage() {
               {["Lead scored · Hot", "Calendar slot held", "Handoff to sales"].map((step, i) => (
                 <motion.div
                   key={step}
-                  className="flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1.5 text-[10px] font-bold text-white"
+                  className="flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-bold text-slate-700"
                   animate={{ opacity: [0.35, 1, 0.35], x: [-2, 0, -2] }}
                   transition={{ duration: 3, repeat: Infinity, delay: i * 0.4 }}
                 >
-                  <span className="text-white">{I.check}</span>
+                  <span className="text-slate-700">{I.check}</span>
                   {step}
                 </motion.div>
               ))}
@@ -891,12 +891,12 @@ function DeployStage() {
               {["Build", "Test", "Ship"].map((step, i) => (
                 <div key={step} className="flex flex-1 items-center">
                   <motion.div
-                    className="w-full rounded-xl border border-white/40 bg-white/15 px-2 py-2 text-center text-[10px] font-bold text-white"
+                    className="w-full rounded-xl border border-primary/25 bg-primary/10 px-2 py-2 text-center text-[10px] font-bold text-slate-700"
                     animate={{
                       backgroundColor: [
-                        "rgb(255 255 255 / 0.15)",
-                        "rgb(255 255 255 / 0.4)",
-                        "rgb(255 255 255 / 0.15)",
+                        "rgb(56 182 255 / 0.15)",
+                        "rgb(56 182 255 / 0.4)",
+                        "rgb(56 182 255 / 0.15)",
                       ],
                     }}
                     transition={{ duration: 3.2, repeat: Infinity, delay: i * 0.7 }}
@@ -904,7 +904,7 @@ function DeployStage() {
                     {step}
                   </motion.div>
                   {i < 2 ? (
-                    <div className="relative mx-1 h-px w-3 overflow-hidden bg-white/30 md:w-4">
+                    <div className="relative mx-1 h-px w-3 overflow-hidden bg-primary/15 md:w-4">
                       <motion.div
                         className="absolute inset-y-0 w-4 bg-white"
                         animate={{ x: ["-100%", "180%"] }}
@@ -924,7 +924,7 @@ function DeployStage() {
               ].map((line, i) => (
                 <motion.div
                   key={line}
-                  className="text-[10px] font-medium text-white"
+                  className="text-[10px] font-medium text-slate-700"
                   animate={{ opacity: [0.25, 1, 1, 0.25] }}
                   transition={{ duration: 4, repeat: Infinity, delay: i * 0.45, times: [0, 0.2, 0.75, 1] }}
                 >
@@ -932,7 +932,7 @@ function DeployStage() {
                 </motion.div>
               ))}
             </Glass>
-            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+            <div className="h-2 overflow-hidden rounded-full bg-primary/10">
               <motion.div
                 className="h-full rounded-full bg-white"
                 animate={{ width: ["12%", "100%", "100%", "12%"] }}
@@ -961,11 +961,11 @@ function UptimeStage() {
           <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
             <Glass className="col-span-2 flex items-center justify-between p-3">
               <div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">Uptime</div>
-                <div className="text-3xl font-black text-white">99.99%</div>
+                <div className="text-[9px] font-bold uppercase tracking-wider text-slate-700/65">Uptime</div>
+                <div className="text-3xl font-black text-slate-700">99.99%</div>
               </div>
               <motion.div
-                className="flex size-12 items-center justify-center rounded-full border-2 border-white bg-white/20"
+                className="flex size-12 items-center justify-center rounded-full border-2 border-primary bg-primary/10"
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
@@ -984,8 +984,8 @@ function UptimeStage() {
                   animate={{ opacity: [1, 0.3, 1] }}
                   transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.2 }}
                 />
-                <span className="text-[10px] font-bold text-white">{s.l}</span>
-                <span className="ml-auto text-[9px] text-white/65">{s.v}</span>
+                <span className="text-[10px] font-bold text-slate-700">{s.l}</span>
+                <span className="ml-auto text-[9px] text-slate-700/65">{s.v}</span>
               </Glass>
             ))}
           </div>
@@ -1006,7 +1006,7 @@ function SecurityStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Protection" badge={<span className="text-[9px] font-bold text-white">SSL</span>}>
+        <Window title="Protection" badge={<span className="text-[9px] font-bold text-slate-700">SSL</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="flex items-center gap-3 p-3">
               <motion.div
@@ -1026,8 +1026,8 @@ function SecurityStage() {
                 </svg>
               </motion.div>
               <div>
-                <div className="text-sm font-black text-white">Encrypted</div>
-                <div className="text-[10px] text-white/65">HTTPS · padlock active</div>
+                <div className="text-sm font-black text-slate-700">Encrypted</div>
+                <div className="text-[10px] text-slate-700/65">HTTPS · padlock active</div>
               </div>
               <span className="ml-auto rounded-lg bg-white px-2 py-1 text-[11px] font-black text-primary">A+</span>
             </Glass>
@@ -1038,15 +1038,15 @@ function SecurityStage() {
             ].map((row, i) => (
               <motion.div
                 key={row.t}
-                className="flex items-center justify-between rounded-xl border border-white/30 bg-white/10 px-3 py-2"
+                className="flex items-center justify-between rounded-xl border border-primary/15 bg-primary/5 px-3 py-2"
                 animate={{ opacity: [0.55, 1, 0.55] }}
                 transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.25 }}
               >
                 <div>
-                  <div className="text-[11px] font-bold text-white">{row.t}</div>
-                  <div className="text-[9px] text-white/60">{row.d}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{row.t}</div>
+                  <div className="text-[9px] text-slate-700/60">{row.d}</div>
                 </div>
-                <span className="text-white">{I.check}</span>
+                <span className="text-slate-700">{I.check}</span>
               </motion.div>
             ))}
           </div>
@@ -1069,12 +1069,12 @@ function MapsStage() {
       <div className="relative flex min-w-0 flex-1">
         <Window title="Local search" badge={<LiveBadge />}>
           <div className="relative min-h-0 flex-1 p-2.5 md:p-3">
-            <div className="absolute inset-2.5 overflow-hidden rounded-xl border border-white/30 bg-white/10 md:inset-3">
+            <div className="absolute inset-2.5 overflow-hidden rounded-xl border border-primary/15 bg-primary/5 md:inset-3">
               <div
                 className="absolute inset-0 opacity-50"
                 style={{
                   backgroundImage:
-                    "linear-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / 0.18) 1px, transparent 1px)",
+                    "linear-gradient(rgb(56 182 255 / 0.18) 1px, transparent 1px), linear-gradient(90deg, rgb(56 182 255 / 0.18) 1px, transparent 1px)",
                   backgroundSize: "20px 20px",
                 }}
               />
@@ -1091,7 +1091,7 @@ function MapsStage() {
                   transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.4 }}
                 >
                   <motion.span
-                    className="absolute -inset-4 rounded-full border border-white/50"
+                    className="absolute -inset-4 rounded-full border border-primary/30"
                     animate={{ scale: [0.6, 1.4], opacity: [0.6, 0] }}
                     transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.4 }}
                   />
@@ -1100,14 +1100,14 @@ function MapsStage() {
               ))}
             </div>
           </div>
-          <div className="flex gap-2 border-t border-white/25 p-2.5">
+          <div className="flex gap-2 border-t border-primary/15 p-2.5">
             <Glass className="flex flex-1 flex-col p-2">
-              <span className="text-[9px] font-bold text-white/65">Pack</span>
-              <span className="text-lg font-black text-white">Top 3</span>
+              <span className="text-[9px] font-bold text-slate-700/65">Pack</span>
+              <span className="text-lg font-black text-slate-700">Top 3</span>
             </Glass>
             <Glass className="flex flex-1 flex-col p-2">
-              <span className="text-[9px] font-bold text-white/65">Areas</span>
-              <span className="text-lg font-black text-white">24</span>
+              <span className="text-[9px] font-bold text-slate-700/65">Areas</span>
+              <span className="text-lg font-black text-slate-700">24</span>
             </Glass>
           </div>
         </Window>
@@ -1133,7 +1133,7 @@ function TargetingStage() {
               {[96, 64, 34].map((size, i) => (
                 <motion.div
                   key={size}
-                  className="absolute rounded-full border-2 border-white/50"
+                  className="absolute rounded-full border-2 border-primary/30"
                   style={{ width: size, height: size }}
                   animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.9, 0.35] }}
                   transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.2 }}
@@ -1153,9 +1153,9 @@ function TargetingStage() {
                 { l: "Intent", v: "High" },
               ].map((m, i) => (
                 <Glass key={m.l} className="p-2">
-                  <div className="text-[9px] font-bold text-white/65">{m.l}</div>
+                  <div className="text-[9px] font-bold text-slate-700/65">{m.l}</div>
                   <motion.div
-                    className="text-[11px] font-black text-white"
+                    className="text-[11px] font-black text-slate-700"
                     animate={{ opacity: [0.55, 1, 0.55] }}
                     transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.15 }}
                   >
@@ -1192,16 +1192,16 @@ function TrackingStage() {
             ].map((row, i) => (
               <motion.div
                 key={row.step}
-                className="rounded-xl border border-white/30 bg-white/10 px-2.5 py-2"
+                className="rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.35 }}
               >
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[11px] font-black text-white">{row.step}</span>
-                  <span className="text-[9px] font-bold text-white/70">{row.pct}%</span>
+                  <span className="text-[11px] font-black text-slate-700">{row.step}</span>
+                  <span className="text-[9px] font-bold text-primary/70">{row.pct}%</span>
                 </div>
-                <div className="mb-1 text-[9px] text-white/55">{row.meta}</div>
-                <div className="h-1 overflow-hidden rounded-full bg-white/20">
+                <div className="mb-1 text-[9px] text-primary/50">{row.meta}</div>
+                <div className="h-1 overflow-hidden rounded-full bg-primary/10">
                   <motion.div
                     className="h-full rounded-full bg-white"
                     animate={{ width: ["10%", `${row.pct}%`, "10%"] }}
@@ -1228,27 +1228,27 @@ function CreativeStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="A/B creative" badge={<span className="text-[9px] font-bold text-white">Test</span>}>
+        <Window title="A/B creative" badge={<span className="text-[9px] font-bold text-slate-700">Test</span>}>
           <div className="relative flex flex-1 items-center justify-center p-3">
             <motion.div
-              className="absolute left-3 top-4 w-[46%] rounded-xl border border-white/35 bg-white/10 p-2.5"
+              className="absolute left-3 top-4 w-[46%] rounded-xl border border-primary/20 bg-primary/5 p-2.5"
               animate={{ x: [0, 4, 0], rotate: [-2, -2, -2] }}
               transition={{ duration: 3.4, repeat: Infinity }}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-black text-white">A</span>
-                <span className="text-[9px] text-white/60">2.1% CTR</span>
+                <span className="text-[10px] font-black text-slate-700">A</span>
+                <span className="text-[9px] text-slate-700/60">2.1% CTR</span>
               </div>
-              <div className="mb-2 flex h-12 items-center justify-center rounded-lg bg-white/15">{I.mountain}</div>
-              <div className="h-1.5 w-4/5 rounded-full bg-white/40" />
+              <div className="mb-2 flex h-12 items-center justify-center rounded-lg bg-primary/10">{I.mountain}</div>
+              <div className="h-1.5 w-4/5 rounded-full bg-primary/20" />
             </motion.div>
             <motion.div
-              className="absolute right-3 top-8 w-[46%] rounded-xl border-2 border-white bg-white/20 p-2.5 shadow-[0_0_24px_rgb(255_255_255/0.25)]"
+              className="absolute right-3 top-8 w-[46%] rounded-xl border-2 border-primary bg-primary/10 p-2.5 shadow-[0_0_24px_rgb(255_255_255/0.25)]"
               animate={{ x: [0, -4, 0], y: [0, -3, 0] }}
               transition={{ duration: 3.4, repeat: Infinity }}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] font-black text-white">B</span>
+                <span className="text-[10px] font-black text-slate-700">B</span>
                 <motion.span
                   className="rounded bg-white px-1.5 py-0.5 text-[9px] font-black text-primary"
                   animate={{ scale: [1, 1.08, 1] }}
@@ -1257,7 +1257,7 @@ function CreativeStage() {
                   Winner
                 </motion.span>
               </div>
-              <div className="mb-2 flex h-12 items-center justify-center rounded-lg bg-white/25">{I.mountain}</div>
+              <div className="mb-2 flex h-12 items-center justify-center rounded-lg bg-primary/15">{I.mountain}</div>
               <div className="h-1.5 w-4/5 rounded-full bg-white" />
             </motion.div>
           </div>
@@ -1278,7 +1278,7 @@ function FunnelStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Conversion" badge={<span className="text-[9px] font-bold text-white">Journey</span>}>
+        <Window title="Conversion" badge={<span className="text-[9px] font-bold text-slate-700">Journey</span>}>
           <div className="flex flex-1 flex-col items-center justify-center gap-2 p-3">
             {[
               { label: "Visit", pct: 100, w: "w-[94%]" },
@@ -1288,12 +1288,12 @@ function FunnelStage() {
             ].map((row, i) => (
               <motion.div
                 key={row.label}
-                className={`${row.w} flex items-center justify-between rounded-xl border border-white/35 bg-white/15 px-3 py-2.5`}
+                className={`${row.w} flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5`}
                 animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.98, 1, 0.98] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.28 }}
               >
-                <span className="text-[11px] font-black text-white">{row.label}</span>
-                <span className="text-[10px] font-bold text-white/70">{row.pct}%</span>
+                <span className="text-[11px] font-black text-slate-700">{row.label}</span>
+                <span className="text-[10px] font-bold text-primary/70">{row.pct}%</span>
               </motion.div>
             ))}
           </div>
@@ -1314,20 +1314,20 @@ function AutomationStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Flows" badge={<span className="text-[9px] font-bold text-white">24/7</span>}>
+        <Window title="Flows" badge={<span className="text-[9px] font-bold text-slate-700">24/7</span>}>
           <div className="flex flex-1 flex-col justify-center gap-3 p-3">
             <div className="flex items-center gap-1.5">
               {["Join", "Wait", "Email", "Tag"].map((node, i) => (
                 <div key={node} className="flex flex-1 items-center">
                   <motion.div
-                    className="w-full rounded-xl border border-white/40 bg-white/15 px-1.5 py-2 text-center text-[9px] font-black text-white"
+                    className="w-full rounded-xl border border-primary/25 bg-primary/10 px-1.5 py-2 text-center text-[9px] font-black text-slate-700"
                     animate={{ opacity: [0.45, 1, 0.45] }}
                     transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.35 }}
                   >
                     {node}
                   </motion.div>
                   {i < 3 ? (
-                    <div className="relative mx-0.5 h-px w-2.5 bg-white/35 md:w-3.5">
+                    <div className="relative mx-0.5 h-px w-2.5 bg-primary/20 md:w-3.5">
                       <motion.span
                         className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-white"
                         animate={{ left: ["0%", "100%"], opacity: [0, 1, 0] }}
@@ -1339,7 +1339,7 @@ function AutomationStage() {
               ))}
             </div>
             <Glass className="p-3">
-              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-white/65">
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-slate-700/65">
                 Running now
               </div>
               {[
@@ -1348,12 +1348,12 @@ function AutomationStage() {
               ].map((f, i) => (
                 <motion.div
                   key={f.t}
-                  className="flex items-center justify-between border-t border-white/20 py-2 first:border-0 first:pt-0"
+                  className="flex items-center justify-between border-t border-primary/ py-2 first:border-0 first:pt-0"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.3 }}
                 >
-                  <span className="text-[11px] font-bold text-white">{f.t}</span>
-                  <span className="text-[10px] text-white/65">{f.n}</span>
+                  <span className="text-[11px] font-bold text-slate-700">{f.t}</span>
+                  <span className="text-[10px] text-slate-700/65">{f.n}</span>
                 </motion.div>
               ))}
             </Glass>
@@ -1375,22 +1375,22 @@ function PaymentStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Checkout" badge={<span className="text-[9px] font-bold text-white">Secure</span>}>
+        <Window title="Checkout" badge={<span className="text-[9px] font-bold text-slate-700">Secure</span>}>
           <div className="grid flex-1 grid-cols-[1.1fr_0.9fr] gap-2 p-2.5 md:p-3">
             <Glass className="flex flex-col gap-2 p-2.5">
-              <div className="flex flex-1 items-center justify-center rounded-xl bg-white/15">{I.mountain}</div>
-              <div className="h-1.5 w-4/5 rounded-full bg-white/50" />
-              <div className="h-1.5 w-1/2 rounded-full bg-white/30" />
-              <div className="text-[12px] font-black text-white">KES 4,200</div>
+              <div className="flex flex-1 items-center justify-center rounded-xl bg-primary/10">{I.mountain}</div>
+              <div className="h-1.5 w-4/5 rounded-full bg-primary/30" />
+              <div className="h-1.5 w-1/2 rounded-full bg-primary/15" />
+              <div className="text-[12px] font-black text-slate-700">KES 4,200</div>
             </Glass>
             <div className="flex flex-col gap-2">
               <Glass className="flex-1 p-2.5">
-                <div className="text-[9px] font-bold text-white/65">Pay with</div>
+                <div className="text-[9px] font-bold text-slate-700/65">Pay with</div>
                 <div className="mt-2 space-y-1.5">
                   {["M-Pesa STK", "Card"].map((m, i) => (
                     <motion.div
                       key={m}
-                      className="rounded-lg border border-white/35 bg-white/10 px-2 py-1.5 text-[10px] font-bold text-white"
+                      className="rounded-lg border border-primary/20 bg-primary/5 px-2 py-1.5 text-[10px] font-bold text-slate-700"
                       animate={{ opacity: [0.5, 1, 0.5] }}
                       transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.35 }}
                     >
@@ -1408,12 +1408,12 @@ function PaymentStage() {
               </motion.div>
             </div>
           </div>
-          <div className="border-t border-white/25 px-3 py-2">
-            <div className="mb-1 flex justify-between text-[9px] font-bold text-white/65">
+          <div className="border-t border-primary/15 px-3 py-2">
+            <div className="mb-1 flex justify-between text-[9px] font-bold text-slate-700/65">
               <span>Settling to bank</span>
-              <span className="text-white">KES →</span>
+              <span className="text-slate-700">KES →</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+            <div className="h-1.5 overflow-hidden rounded-full bg-primary/10">
               <motion.div
                 className="h-full rounded-full bg-white"
                 animate={{ width: ["0%", "100%", "100%", "0%"] }}
@@ -1446,18 +1446,18 @@ function InventoryStage() {
               { name: "Gift card", stock: 120, warn: false },
               { name: "Starter kit", stock: 6, warn: true },
             ].map((item, i) => (
-              <div key={item.name} className="rounded-xl border border-white/30 bg-white/10 px-2.5 py-2">
+              <div key={item.name} className="rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-white">{item.name}</span>
+                  <span className="text-[11px] font-bold text-slate-700">{item.name}</span>
                   <motion.span
-                    className="text-[10px] font-black text-white"
+                    className="text-[10px] font-black text-slate-700"
                     animate={item.warn ? { opacity: [0.4, 1, 0.4] } : {}}
                     transition={{ duration: 1.4, repeat: Infinity }}
                   >
                     {item.stock} left
                   </motion.span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+                <div className="h-1.5 overflow-hidden rounded-full bg-primary/10">
                   <motion.div
                     className="h-full rounded-full bg-white"
                     animate={{ width: [`${Math.max(item.stock, 8)}%`, `${item.stock}%`] }}
@@ -1485,16 +1485,16 @@ function MobileStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1 items-stretch gap-2.5">
-        <Glass className="flex w-[42%] max-w-[130px] flex-col overflow-hidden rounded-[1.35rem] border-white/40">
-          <div className="mx-auto mt-2 h-1 w-8 rounded-full bg-white/50" />
+        <Glass className="flex w-[42%] max-w-[130px] flex-col overflow-hidden rounded-[1.35rem] border-primary/25">
+          <div className="mx-auto mt-2 h-1 w-8 rounded-full bg-primary/30" />
           <div className="flex flex-1 flex-col gap-2 p-2.5">
             <motion.div
-              className="h-[36%] rounded-xl bg-white/25"
+              className="h-[36%] rounded-xl bg-primary/15"
               animate={{ opacity: [0.55, 1, 0.55] }}
               transition={{ duration: 2.4, repeat: Infinity }}
             />
-            <div className="h-1.5 w-[85%] rounded-full bg-white/70" />
-            <div className="h-1.5 w-[55%] rounded-full bg-white/40" />
+            <div className="h-1.5 w-[85%] rounded-full bg-primary/40" />
+            <div className="h-1.5 w-[55%] rounded-full bg-primary/20" />
             <motion.div
               className="mt-auto rounded-lg bg-white py-2 text-center text-[10px] font-black text-primary"
               animate={{ scale: [1, 0.96, 1] }}
@@ -1512,9 +1512,9 @@ function MobileStage() {
               { l: "Checkout", v: "3 taps" },
             ].map((r, i) => (
               <Glass key={r.l} className="flex items-center justify-between px-2.5 py-2">
-                <span className="text-[10px] font-bold text-white/70">{r.l}</span>
+                <span className="text-[10px] font-bold text-primary/70">{r.l}</span>
                 <motion.span
-                  className="text-[12px] font-black text-white"
+                  className="text-[12px] font-black text-slate-700"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.2 }}
                 >
@@ -1542,14 +1542,14 @@ function CalendarStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Content calendar" badge={<span className="text-[9px] font-bold text-white">Week</span>}>
+        <Window title="Content calendar" badge={<span className="text-[9px] font-bold text-slate-700">Week</span>}>
           <div className="grid flex-1 grid-cols-7 gap-1 p-2.5 md:gap-1.5 md:p-3">
             {Array.from({ length: 14 }).map((_, i) => {
               const hasPost = i % 3 !== 2 && i < 12;
               return (
                 <motion.div
                   key={i}
-                  className="flex flex-col items-center justify-center gap-1 rounded-lg border border-white/30 bg-white/10"
+                  className="flex flex-col items-center justify-center gap-1 rounded-lg border border-primary/15 bg-primary/5"
                   animate={{ opacity: hasPost ? [0.55, 1, 0.55] : 0.4 }}
                   transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.05 }}
                 >
@@ -1558,9 +1558,9 @@ function CalendarStage() {
               );
             })}
           </div>
-          <div className="flex gap-2 border-t border-white/25 p-2.5">
+          <div className="flex gap-2 border-t border-primary/15 p-2.5">
             <Glass className="flex flex-1 items-center gap-2 px-2.5 py-2">
-              <span className="text-[10px] font-bold text-white">12 queued</span>
+              <span className="text-[10px] font-bold text-slate-700">12 queued</span>
             </Glass>
             <motion.div
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white px-2 py-2 text-[10px] font-black text-primary"
@@ -1587,12 +1587,12 @@ function ApprovalStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Review" badge={<span className="text-[9px] font-bold text-white">Pending</span>}>
+        <Window title="Review" badge={<span className="text-[9px] font-bold text-slate-700">Pending</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="relative flex-1 p-3">
-              <div className="mb-2 h-2 w-20 rounded-full bg-white/40" />
-              <div className="mb-1 h-2 w-32 rounded-full bg-white/25" />
-              <div className="mt-3 flex h-16 items-center justify-center rounded-xl bg-white/15">{I.mountain}</div>
+              <div className="mb-2 h-2 w-20 rounded-full bg-primary/20" />
+              <div className="mb-1 h-2 w-32 rounded-full bg-primary/15" />
+              <div className="mt-3 flex h-16 items-center justify-center rounded-xl bg-primary/10">{I.mountain}</div>
               <motion.div
                 className="absolute -bottom-1 -right-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-primary shadow-md"
                 animate={{ scale: [1.15, 1, 1, 1.15], opacity: [0, 1, 1, 0] }}
@@ -1602,7 +1602,7 @@ function ApprovalStage() {
               </motion.div>
             </Glass>
             <div className="grid grid-cols-2 gap-2">
-              <motion.div className="rounded-xl border border-white/35 bg-white/10 py-2 text-center text-[10px] font-bold text-white/70">
+              <motion.div className="rounded-xl border border-primary/20 bg-primary/5 py-2 text-center text-[10px] font-bold text-primary/70">
                 Request changes
               </motion.div>
               <motion.div
@@ -1641,22 +1641,22 @@ function EngagementStage() {
               ].map((m, i) => (
                 <Glass key={m.l} className="p-2 text-center">
                   <motion.div
-                    className="text-lg font-black text-white"
+                    className="text-lg font-black text-slate-700"
                     animate={{ y: [0, -3, 0] }}
                     transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.2 }}
                   >
                     {m.v}
                   </motion.div>
-                  <div className="text-[9px] font-bold text-white/65">{m.l}</div>
+                  <div className="text-[9px] font-bold text-slate-700/65">{m.l}</div>
                 </Glass>
               ))}
             </div>
             <Glass className="min-h-0 flex-1 p-2.5">
-              <div className="mb-1 text-[9px] font-bold text-white/65">Quality over vanity</div>
+              <div className="mb-1 text-[9px] font-bold text-slate-700/65">Quality over vanity</div>
               <BarChart values={[28, 44, 36, 62, 55, 78, 70, 88]} className="h-full min-h-[64px]" />
             </Glass>
             <motion.div
-              className="rounded-xl border border-white/35 bg-white/10 px-3 py-2 text-[11px] font-medium text-white"
+              className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-[11px] font-medium text-slate-700"
               animate={{ opacity: [0.45, 1, 0.45] }}
               transition={{ duration: 3, repeat: Infinity }}
             >
@@ -1688,11 +1688,11 @@ function TypingStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Copywriter" badge={<span className="text-[9px] font-bold text-white">Draft</span>}>
+        <Window title="Copywriter" badge={<span className="text-[9px] font-bold text-slate-700">Draft</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="p-3">
-              <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-white/65">Subject</div>
-              <div className="min-h-[1.25rem] text-[12px] font-bold text-white">
+              <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-slate-700/65">Subject</div>
+              <div className="min-h-[1.25rem] text-[12px] font-bold text-slate-700">
                 {full.slice(0, n)}
                 <motion.span
                   className="ml-0.5 inline-block h-3.5 w-0.5 bg-white align-middle"
@@ -1702,7 +1702,7 @@ function TypingStage() {
               </div>
             </Glass>
             <Glass className="flex flex-1 flex-col gap-2 p-3">
-              <div className="text-[9px] font-bold text-white/65">Body</div>
+              <div className="text-[9px] font-bold text-slate-700/65">Body</div>
               {[0.95, 0.8, 0.65, 0.5].map((w, i) => (
                 <motion.div
                   key={i}
@@ -1735,19 +1735,19 @@ function SegmentsStage() {
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             {[
               { name: "Buyers", n: "1,240", color: "bg-white" },
-              { name: "Local Nairobi", n: "860", color: "bg-white/70" },
-              { name: "New subs", n: "312", color: "bg-white/45" },
-              { name: "Inactive 90d", n: "188", color: "bg-white/25" },
+              { name: "Local Nairobi", n: "860", color: "bg-primary/40" },
+              { name: "New subs", n: "312", color: "bg-primary/25" },
+              { name: "Inactive 90d", n: "188", color: "bg-primary/15" },
             ].map((s, i) => (
               <motion.div
                 key={s.name}
-                className="flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2.5"
+                className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2.5"
                 animate={{ opacity: [0.5, 1, 0.5], x: [-2, 0, -2] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.25 }}
               >
                 <span className={`size-2.5 rounded-full ${s.color}`} />
-                <span className="text-[11px] font-bold text-white">{s.name}</span>
-                <span className="ml-auto text-[11px] font-black text-white">{s.n}</span>
+                <span className="text-[11px] font-bold text-slate-700">{s.name}</span>
+                <span className="ml-auto text-[11px] font-black text-slate-700">{s.n}</span>
               </motion.div>
             ))}
           </div>
@@ -1768,13 +1768,13 @@ function IntegrateStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Integrations" badge={<span className="text-[9px] font-bold text-white">Connected</span>}>
+        <Window title="Integrations" badge={<span className="text-[9px] font-bold text-slate-700">Connected</span>}>
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-3">
             <div className="flex flex-wrap justify-center gap-2">
               {["CRM", "Calendar", "Pay", "Sheets", "Zapier"].map((t, i) => (
                 <motion.span
                   key={t}
-                  className="rounded-xl border border-white/40 bg-white/15 px-3 py-2 text-[11px] font-black text-white"
+                  className="rounded-xl border border-primary/25 bg-primary/10 px-3 py-2 text-[11px] font-black text-slate-700"
                   animate={{ y: [4, 0, 4], opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.15 }}
                 >
@@ -1790,12 +1790,12 @@ function IntegrateStage() {
               ].map((row, i) => (
                 <motion.div
                   key={row.a}
-                  className="flex items-center justify-between border-b border-white/15 py-2 last:border-0"
+                  className="flex items-center justify-between border-b border-primary/ py-2 last:border-0"
                   animate={{ opacity: [0.45, 1, 0.45] }}
                   transition={{ duration: 2.4, repeat: Infinity, delay: i * 0.25 }}
                 >
-                  <span className="text-[11px] font-bold text-white">{row.a}</span>
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-white">
+                  <span className="text-[11px] font-bold text-slate-700">{row.a}</span>
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-slate-700">
                     {I.check} {row.s}
                   </span>
                 </motion.div>
@@ -1819,7 +1819,7 @@ function CodeStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="site.tsx" badge={<span className="font-mono text-[9px] font-bold text-white">build</span>}>
+        <Window title="site.tsx" badge={<span className="font-mono text-[9px] font-bold text-slate-700">build</span>}>
           <div className="flex flex-1 flex-col gap-2 p-3 font-mono md:p-4">
             {[
               { c: "const page = () => (", w: "w-[85%]" },
@@ -1834,11 +1834,11 @@ function CodeStage() {
                 animate={{ opacity: [0.35, 1, 0.35] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.18 }}
               >
-                <span className="w-3 text-[9px] text-white/40">{i + 1}</span>
+                <span className="w-3 text-[9px] text-primary/40">{i + 1}</span>
                 <div className={`h-2 ${row.w} rounded-full bg-white`} />
               </motion.div>
             ))}
-            <div className="mt-auto rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-[10px] font-bold text-white">
+            <div className="mt-auto rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-[10px] font-bold text-slate-700">
               No page builders · Hand-coded
             </div>
           </div>
@@ -1863,16 +1863,16 @@ function AlgorithmStage() {
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <div className="grid grid-cols-2 gap-2">
               <Glass className="p-2.5">
-                <div className="text-[9px] font-bold text-white/65">Impressions</div>
-                <div className="text-xl font-black text-white">84k</div>
+                <div className="text-[9px] font-bold text-slate-700/65">Impressions</div>
+                <div className="text-xl font-black text-slate-700">84k</div>
               </Glass>
               <Glass className="p-2.5">
-                <div className="text-[9px] font-bold text-white/65">Eng. rate</div>
-                <div className="text-xl font-black text-white">6.2%</div>
+                <div className="text-[9px] font-bold text-slate-700/65">Eng. rate</div>
+                <div className="text-xl font-black text-slate-700">6.2%</div>
               </Glass>
             </div>
             <Glass className="min-h-0 flex-1 p-2.5">
-              <div className="mb-1 text-[9px] font-bold text-white/65">Algorithm fit · 7 days</div>
+              <div className="mb-1 text-[9px] font-bold text-slate-700/65">Algorithm fit · 7 days</div>
               <BarChart values={[28, 46, 38, 66, 58, 80, 72, 90]} className="h-full min-h-[70px]" />
             </Glass>
           </div>
@@ -1893,15 +1893,15 @@ function EthicalStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="SEO health" badge={<span className="text-[9px] font-bold text-white">Clean</span>}>
+        <Window title="SEO health" badge={<span className="text-[9px] font-bold text-slate-700">Clean</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="flex items-center gap-3 p-3">
-              <div className="flex size-11 items-center justify-center rounded-full border-2 border-white bg-white/20 text-white">
+              <div className="flex size-11 items-center justify-center rounded-full border-2 border-primary bg-primary/10 text-slate-700">
                 {I.shield}
               </div>
               <div>
-                <div className="text-sm font-black text-white">White-hat only</div>
-                <div className="text-[10px] text-white/65">No spam links · no stuffing</div>
+                <div className="text-sm font-black text-slate-700">White-hat only</div>
+                <div className="text-[10px] text-slate-700/65">No spam links · no stuffing</div>
               </div>
             </Glass>
             {[
@@ -1911,15 +1911,15 @@ function EthicalStage() {
             ].map((row, i) => (
               <motion.div
                 key={row.t}
-                className="flex items-center justify-between rounded-xl border border-white/30 bg-white/10 px-3 py-2"
+                className="flex items-center justify-between rounded-xl border border-primary/15 bg-primary/5 px-3 py-2"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.25 }}
               >
                 <div>
-                  <div className="text-[11px] font-bold text-white">{row.t}</div>
-                  <div className="text-[9px] text-white/60">{row.d}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{row.t}</div>
+                  <div className="text-[9px] text-slate-700/60">{row.d}</div>
                 </div>
-                <span className="text-white">{I.check}</span>
+                <span className="text-slate-700">{I.check}</span>
               </motion.div>
             ))}
           </div>
@@ -1943,15 +1943,15 @@ function MigrationStage() {
         <Window title="Migration" badge={<LiveBadge />}>
           <div className="flex flex-1 flex-col justify-center gap-4 p-4">
             <div className="flex items-center gap-2">
-              <Glass className="px-3 py-2 text-[11px] font-bold text-white/70">Old host</Glass>
-              <div className="relative h-px flex-1 overflow-hidden bg-white/30">
+              <Glass className="px-3 py-2 text-[11px] font-bold text-primary/70">Old host</Glass>
+              <div className="relative h-px flex-1 overflow-hidden bg-primary/15">
                 <motion.div
                   className="absolute inset-y-0 w-10 bg-white"
                   animate={{ x: ["-100%", "220%"] }}
                   transition={{ duration: 1.8, repeat: Infinity }}
                 />
               </div>
-              <Glass className="border-white/60 bg-white/25 px-3 py-2 text-[11px] font-black text-white">
+              <Glass className="border-primary/ bg-primary/15 px-3 py-2 text-[11px] font-black text-slate-700">
                 Nisc
               </Glass>
             </div>
@@ -1964,7 +1964,7 @@ function MigrationStage() {
               ].map((line, i) => (
                 <motion.div
                   key={line}
-                  className="text-[10px] font-bold text-white"
+                  className="text-[10px] font-bold text-slate-700"
                   animate={{ opacity: [0.3, 1, 1, 0.3] }}
                   transition={{ duration: 3.8, repeat: Infinity, delay: i * 0.4, times: [0, 0.2, 0.75, 1] }}
                 >
@@ -1990,24 +1990,24 @@ function PricingStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Pricing" badge={<span className="text-[9px] font-bold text-white">Clear</span>}>
+        <Window title="Pricing" badge={<span className="text-[9px] font-bold text-slate-700">Clear</span>}>
           <div className="flex flex-1 flex-col p-2.5 md:p-3">
             {["Setup", "SSL", "Support", "Migration"].map((item, i) => (
               <motion.div
                 key={item}
-                className="flex items-center justify-between border-b border-white/20 px-2 py-3 last:border-0"
+                className="flex items-center justify-between border-b border-primary/ px-2 py-3 last:border-0"
                 animate={{ opacity: [0.45, 1, 0.45] }}
                 transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.2 }}
               >
-                <span className="text-[12px] font-bold text-white">{item}</span>
+                <span className="text-[12px] font-bold text-slate-700">{item}</span>
                 <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-primary">
                   Included
                 </span>
               </motion.div>
             ))}
             <Glass className="mt-auto p-3 text-center">
-              <div className="text-[9px] font-bold text-white/65">Fixed project price</div>
-              <div className="text-xl font-black text-white">No surprises</div>
+              <div className="text-[9px] font-bold text-slate-700/65">Fixed project price</div>
+              <div className="text-xl font-black text-slate-700">No surprises</div>
             </Glass>
           </div>
         </Window>
@@ -2027,30 +2027,30 @@ function ProcessStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Delivery" badge={<span className="text-[9px] font-bold text-white">On track</span>}>
+        <Window title="Delivery" badge={<span className="text-[9px] font-bold text-slate-700">On track</span>}>
           <div className="flex flex-1 flex-col justify-center gap-4 p-4">
             <div className="flex items-center justify-between">
               {["Brief", "Craft", "Ship"].map((step, i) => (
                 <div key={step} className="flex flex-1 flex-col items-center gap-2">
                   <motion.div
-                    className="flex size-10 items-center justify-center rounded-full border-2 border-white bg-white/15 text-sm font-black text-white"
+                    className="flex size-10 items-center justify-center rounded-full border-2 border-primary bg-primary/10 text-sm font-black text-slate-700"
                     animate={{
                       backgroundColor: [
-                        "rgb(255 255 255 / 0.15)",
-                        "rgb(255 255 255 / 0.95)",
-                        "rgb(255 255 255 / 0.15)",
+                        "rgb(56 182 255 / 0.15)",
+                        "rgb(56 182 255 / 0.95)",
+                        "rgb(56 182 255 / 0.15)",
                       ],
-                      color: ["#fff", "var(--primary)", "#fff"],
+                      color: ["var(--primary)", "#0f172a", "var(--primary)"],
                     }}
                     transition={{ duration: 3.4, repeat: Infinity, delay: i * 0.7 }}
                   >
                     {i + 1}
                   </motion.div>
-                  <span className="text-[10px] font-bold text-white">{step}</span>
+                  <span className="text-[10px] font-bold text-slate-700">{step}</span>
                 </div>
               ))}
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+            <div className="h-2 overflow-hidden rounded-full bg-primary/10">
               <motion.div
                 className="h-full rounded-full bg-white"
                 animate={{ width: ["15%", "85%", "85%", "15%"] }}
@@ -2059,7 +2059,7 @@ function ProcessStage() {
             </div>
             <div className="grid grid-cols-3 gap-2">
               {["Day 1", "Day 4", "Day 7"].map((d) => (
-                <Glass key={d} className="py-2 text-center text-[10px] font-bold text-white">
+                <Glass key={d} className="py-2 text-center text-[10px] font-bold text-slate-700">
                   {d}
                 </Glass>
               ))}
@@ -2082,15 +2082,15 @@ function StrategyStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Strategy" badge={<span className="text-[9px] font-bold text-white">Research</span>}>
+        <Window title="Strategy" badge={<span className="text-[9px] font-bold text-slate-700">Research</span>}>
           <div className="flex flex-1 flex-col justify-center gap-3 p-3 md:p-4">
             {["Audience", "Offer", "Position"].map((label, i) => (
               <div key={label} className="space-y-1.5">
-                <div className="flex justify-between text-[10px] font-bold text-white">
+                <div className="flex justify-between text-[10px] font-bold text-slate-700">
                   <span>{label}</span>
-                  <span className="text-white/70">{55 + i * 15}%</span>
+                  <span className="text-primary/70">{55 + i * 15}%</span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-white/20">
+                <div className="h-2 overflow-hidden rounded-full bg-primary/10">
                   <motion.div
                     className="h-full rounded-full bg-white"
                     animate={{ width: ["18%", `${55 + i * 15}%`, "18%"] }}
@@ -2099,7 +2099,7 @@ function StrategyStage() {
                 </div>
               </div>
             ))}
-            <Glass className="mt-1 p-2.5 text-[10px] font-bold text-white/80">
+            <Glass className="mt-1 p-2.5 text-[10px] font-bold text-slate-700/80">
               Decisions rooted in research — not taste
             </Glass>
           </div>
@@ -2126,12 +2126,12 @@ function AssetsStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Assets" badge={<span className="text-[9px] font-bold text-white">Ready</span>}>
+        <Window title="Assets" badge={<span className="text-[9px] font-bold text-slate-700">Ready</span>}>
           <div className="flex flex-1 flex-col gap-1.5 p-2 md:p-2.5">
             {files.map((f, i) => (
               <motion.div
                 key={f.name}
-                className="flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2.5"
+                className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2.5"
                 animate={{ opacity: [0.5, 1, 0.5], y: [2, 0, 2] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.22 }}
               >
@@ -2139,10 +2139,10 @@ function AssetsStage() {
                   {I.pen}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-white">{f.name}</div>
-                  <div className="text-[9px] text-white/60">{f.meta}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{f.name}</div>
+                  <div className="text-[9px] text-slate-700/60">{f.meta}</div>
                 </div>
-                <span className="ml-auto text-white">{I.check}</span>
+                <span className="ml-auto text-slate-700">{I.check}</span>
               </motion.div>
             ))}
           </div>
@@ -2163,12 +2163,12 @@ function CraftStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Craft" badge={<span className="text-[9px] font-bold text-white">Studio</span>}>
+        <Window title="Craft" badge={<span className="text-[9px] font-bold text-slate-700">Studio</span>}>
           <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-2 p-2.5 md:p-3">
             <Glass className="relative flex items-center justify-center overflow-hidden">
               <motion.svg
                 viewBox="0 0 80 80"
-                className="size-16 text-white"
+                className="size-16 text-slate-700"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.8"
@@ -2181,7 +2181,7 @@ function CraftStage() {
                 />
                 <motion.circle
                   r="3"
-                  fill="white"
+                  fill="var(--primary)"
                   animate={{
                     cx: [16, 40, 66, 66, 16],
                     cy: [54, 28, 40, 40, 54],
@@ -2205,9 +2205,9 @@ function CraftStage() {
               ))}
             </Glass>
           </div>
-          <div className="border-t border-white/25 p-2.5">
+          <div className="border-t border-primary/15 p-2.5">
             <Glass className="flex items-center px-3 py-2">
-              <span className="text-[10px] font-bold text-white/80">Designer on canvas…</span>
+              <span className="text-[10px] font-bold text-slate-700/80">Designer on canvas…</span>
               <motion.div
                 className="ml-auto flex size-6 items-center justify-center rounded-full bg-white text-primary"
                 animate={{ scale: [1, 1.1, 1] }}
@@ -2234,7 +2234,7 @@ function OwnershipStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Ownership" badge={<span className="text-[9px] font-bold text-white">Yours</span>}>
+        <Window title="Ownership" badge={<span className="text-[9px] font-bold text-slate-700">Yours</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="flex items-center gap-3 p-3">
               <motion.div
@@ -2245,19 +2245,19 @@ function OwnershipStage() {
                 {I.lock}
               </motion.div>
               <div>
-                <div className="text-sm font-black text-white">Full IP transfer</div>
-                <div className="text-[10px] text-white/65">Source files · forever yours</div>
+                <div className="text-sm font-black text-slate-700">Full IP transfer</div>
+                <div className="text-[10px] text-slate-700/65">Source files · forever yours</div>
               </div>
             </Glass>
             {["Working files", "Licenses", "Brand rights"].map((t, i) => (
               <motion.div
                 key={t}
-                className="flex items-center justify-between rounded-xl border border-white/30 bg-white/10 px-3 py-2.5"
+                className="flex items-center justify-between rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.25 }}
               >
-                <span className="text-[11px] font-bold text-white">{t}</span>
-                <span className="text-white">{I.check}</span>
+                <span className="text-[11px] font-bold text-slate-700">{t}</span>
+                <span className="text-slate-700">{I.check}</span>
               </motion.div>
             ))}
           </div>
@@ -2292,16 +2292,16 @@ function Gauge({
   return (
     <Glass className="flex flex-col justify-between p-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">{label}</span>
+        <span className="text-[9px] font-bold uppercase tracking-wider text-primary/70">{label}</span>
         <motion.span
-          className="text-[11px] font-black text-white"
+          className="text-[11px] font-black text-slate-700"
           animate={{ opacity: [0.55, 1, 0.55] }}
           transition={{ duration: 2.2, repeat: Infinity, delay }}
         >
           {value}%
         </motion.span>
       </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/20">
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-primary/10">
         <motion.div
           className="h-full rounded-full bg-white"
           animate={{ width: [`${Math.max(value - 18, 12)}%`, `${value}%`, `${Math.max(value - 10, 12)}%`] }}
@@ -2324,9 +2324,9 @@ function ServerMonitorStage() {
             <Gauge label="Disk I/O" value={28} delay={0.4} />
             <Gauge label="Network" value={54} delay={0.6} />
             <Glass className="col-span-2 min-h-0 flex-1 p-2.5">
-              <div className="mb-1 flex items-center justify-between text-[9px] font-bold text-white/70">
+              <div className="mb-1 flex items-center justify-between text-[9px] font-bold text-primary/70">
                 <span>Throughput · last 15m</span>
-                <span className="text-white">Gbps in/out</span>
+                <span className="text-slate-700">Gbps in/out</span>
               </div>
               <BarChart values={[32, 48, 40, 62, 55, 78, 70, 88, 64, 92]} className="h-14" />
             </Glass>
@@ -2349,18 +2349,18 @@ function ServerProvisionStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Provision" badge={<span className="text-[9px] font-bold text-white">&lt; 5 min</span>}>
+        <Window title="Provision" badge={<span className="text-[9px] font-bold text-slate-700">&lt; 5 min</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="p-2.5">
-              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-white/65">Choose OS</div>
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-slate-700/65">Choose OS</div>
               <div className="flex flex-wrap gap-1.5">
                 {["Ubuntu 24.04", "Debian 12", "AlmaLinux", "Docker"].map((os, i) => (
                   <motion.span
                     key={os}
                     className={`rounded-lg border px-2 py-1 text-[9px] font-bold ${
                       i === 0
-                        ? "border-white bg-white text-primary"
-                        : "border-white/35 bg-white/10 text-white"
+                        ? "border-primary bg-white text-primary"
+                        : "border-primary/25 bg-primary/5 text-slate-700"
                     }`}
                     animate={i === 0 ? { scale: [1, 1.04, 1] } : {}}
                     transition={{ duration: 2, repeat: Infinity }}
@@ -2371,9 +2371,9 @@ function ServerProvisionStage() {
               </div>
             </Glass>
             <Glass className="p-2.5 font-mono">
-              <div className="mb-1 text-[9px] font-bold text-white/65">SSH public key</div>
+              <div className="mb-1 text-[9px] font-bold text-slate-700/65">SSH public key</div>
               <motion.div
-                className="truncate text-[10px] font-bold text-white"
+                className="truncate text-[10px] font-bold text-slate-700"
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 2.4, repeat: Infinity }}
               >
@@ -2384,16 +2384,16 @@ function ServerProvisionStage() {
               {["Allocate vCPU + RAM", "Attach public IPv4", "Boot + SSH ready"].map((step, i) => (
                 <motion.div
                   key={step}
-                  className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2 text-[10px] font-bold text-white"
+                  className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2 text-[10px] font-bold text-slate-700"
                   animate={{ opacity: [0.35, 1, 0.35] }}
                   transition={{ duration: 3, repeat: Infinity, delay: i * 0.45 }}
                 >
-                  <span className="text-white">{I.check}</span>
+                  <span className="text-slate-700">{I.check}</span>
                   {step}
                 </motion.div>
               ))}
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+            <div className="h-2 overflow-hidden rounded-full bg-primary/10">
               <motion.div
                 className="h-full rounded-full bg-white"
                 animate={{ width: ["8%", "100%", "100%", "8%"] }}
@@ -2425,12 +2425,12 @@ function WorkloadsStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Workloads" badge={<span className="text-[9px] font-bold text-white">On VPS/VDS</span>}>
+        <Window title="Workloads" badge={<span className="text-[9px] font-bold text-slate-700">On VPS/VDS</span>}>
           <div className="flex flex-1 flex-col gap-1.5 p-2 md:p-2.5">
             {apps.map((app, i) => (
               <motion.div
                 key={app.name}
-                className="flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2.5"
+                className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2.5"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.22 }}
               >
@@ -2438,10 +2438,10 @@ function WorkloadsStage() {
                   {app.name.slice(0, 1)}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-white">{app.name}</div>
-                  <div className="text-[9px] text-white/60">{app.meta}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{app.name}</div>
+                  <div className="text-[9px] text-slate-700/60">{app.meta}</div>
                 </div>
-                <span className="ml-auto flex items-center gap-1 text-[9px] font-bold text-white">
+                <span className="ml-auto flex items-center gap-1 text-[9px] font-bold text-slate-700">
                   <motion.span
                     className="size-1.5 rounded-full bg-white"
                     animate={{ opacity: [1, 0.3, 1] }}
@@ -2470,10 +2470,10 @@ function ResourceIsolationStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Resource isolation" badge={<span className="text-[9px] font-bold text-white">Dedicated</span>}>
+        <Window title="Resource isolation" badge={<span className="text-[9px] font-bold text-slate-700">Dedicated</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="p-3">
-              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-white/65">
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-wider text-slate-700/65">
                 Your slice · not shared
               </div>
               {[
@@ -2483,23 +2483,23 @@ function ResourceIsolationStage() {
               ].map((row, i) => (
                 <motion.div
                   key={row.l}
-                  className="flex items-center justify-between border-t border-white/15 py-2 first:border-0 first:pt-0"
+                  className="flex items-center justify-between border-t border-primary/ py-2 first:border-0 first:pt-0"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.25 }}
                 >
-                  <span className="text-[11px] font-bold text-white">{row.l}</span>
-                  <span className="text-[10px] font-black text-white">{row.v}</span>
+                  <span className="text-[11px] font-bold text-slate-700">{row.l}</span>
+                  <span className="text-[10px] font-black text-slate-700">{row.v}</span>
                 </motion.div>
               ))}
             </Glass>
             <Glass className="flex flex-1 flex-col justify-center gap-2 p-3">
-              <div className="flex items-center justify-between text-[10px] font-bold text-white">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-700">
                 <span>Noisy neighbour</span>
                 <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-black text-primary">
                   Blocked
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <div className="h-2 overflow-hidden rounded-full bg-primary/10">
                 <motion.div
                   className="h-full rounded-full bg-white"
                   animate={{ width: ["100%", "100%"] }}
@@ -2507,7 +2507,7 @@ function ResourceIsolationStage() {
                   style={{ width: "100%" }}
                 />
               </div>
-              <div className="text-[9px] text-white/65">100% of allocated resources reserved for you</div>
+              <div className="text-[9px] text-slate-700/65">100% of allocated resources reserved for you</div>
             </Glass>
           </div>
         </Window>
@@ -2528,7 +2528,7 @@ function BareMetalStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Bare metal" badge={<span className="text-[9px] font-bold text-white">IPMI</span>}>
+        <Window title="Bare metal" badge={<span className="text-[9px] font-bold text-slate-700">IPMI</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="grid grid-cols-3 gap-2 p-2.5">
               {[
@@ -2538,13 +2538,13 @@ function BareMetalStage() {
               ].map((s, i) => (
                 <div key={s.l} className="text-center">
                   <motion.div
-                    className="text-sm font-black text-white"
+                    className="text-sm font-black text-slate-700"
                     animate={{ opacity: [0.55, 1, 0.55] }}
                     transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.2 }}
                   >
                     {s.v}
                   </motion.div>
-                  <div className="text-[9px] font-bold text-white/65">{s.l}</div>
+                  <div className="text-[9px] font-bold text-slate-700/65">{s.l}</div>
                 </div>
               ))}
             </Glass>
@@ -2555,7 +2555,7 @@ function BareMetalStage() {
             ].map((w, i) => (
               <motion.div
                 key={w.name}
-                className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2"
+                className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.25 }}
               >
@@ -2563,8 +2563,8 @@ function BareMetalStage() {
                   {i + 1}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-white">{w.name}</div>
-                  <div className="text-[9px] text-white/60">{w.meta}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{w.name}</div>
+                  <div className="text-[9px] text-slate-700/60">{w.meta}</div>
                 </div>
               </motion.div>
             ))}
@@ -2587,7 +2587,7 @@ function CpanelStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="cPanel" badge={<span className="text-[9px] font-bold text-white">Hosting</span>}>
+        <Window title="cPanel" badge={<span className="text-[9px] font-bold text-slate-700">Hosting</span>}>
           <div className="grid flex-1 grid-cols-2 gap-2 p-2.5 md:p-3">
             {[
               { t: "Email", d: "you@brand.co.ke" },
@@ -2597,18 +2597,18 @@ function CpanelStage() {
             ].map((tile, i) => (
               <motion.div
                 key={tile.t}
-                className="flex flex-col justify-between rounded-xl border border-white/30 bg-white/10 p-2.5"
+                className="flex flex-col justify-between rounded-xl border border-primary/15 bg-primary/5 p-2.5"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.2 }}
               >
-                <span className="text-[11px] font-black text-white">{tile.t}</span>
-                <span className="text-[9px] text-white/65">{tile.d}</span>
+                <span className="text-[11px] font-black text-slate-700">{tile.t}</span>
+                <span className="text-[9px] text-slate-700/65">{tile.d}</span>
               </motion.div>
             ))}
             <Glass className="col-span-2 p-2.5">
-              <div className="mb-1 flex justify-between text-[9px] font-bold text-white/65">
+              <div className="mb-1 flex justify-between text-[9px] font-bold text-slate-700/65">
                 <span>Resource usage</span>
-                <span className="text-white">Healthy</span>
+                <span className="text-slate-700">Healthy</span>
               </div>
               <BarChart values={[30, 44, 38, 52, 48, 60]} className="h-10" />
             </Glass>
@@ -2641,9 +2641,9 @@ function WpPerfStage() {
                 { l: "HTTP", v: "2 / 3" },
               ].map((m, i) => (
                 <Glass key={m.l} className="p-2.5">
-                  <div className="text-[9px] font-bold text-white/65">{m.l}</div>
+                  <div className="text-[9px] font-bold text-slate-700/65">{m.l}</div>
                   <motion.div
-                    className="text-sm font-black text-white"
+                    className="text-sm font-black text-slate-700"
                     animate={{ opacity: [0.55, 1, 0.55] }}
                     transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.15 }}
                   >
@@ -2653,9 +2653,9 @@ function WpPerfStage() {
               ))}
             </div>
             <Glass className="flex-1 p-2.5">
-              <div className="mb-1 text-[9px] font-bold text-white/65">Page generate time</div>
+              <div className="mb-1 text-[9px] font-bold text-slate-700/65">Page generate time</div>
               <BarChart values={[70, 55, 40, 32, 28, 22, 18]} className="h-16" />
-              <div className="mt-1 text-[10px] font-bold text-white">Tuned for WP · OPcache on</div>
+              <div className="mt-1 text-[10px] font-bold text-slate-700">Tuned for WP · OPcache on</div>
             </Glass>
           </div>
         </Window>
@@ -2676,23 +2676,23 @@ function WpStagingStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Staging" badge={<span className="text-[9px] font-bold text-white">Safe</span>}>
+        <Window title="Staging" badge={<span className="text-[9px] font-bold text-slate-700">Safe</span>}>
           <div className="flex flex-1 flex-col justify-center gap-3 p-3">
             <div className="flex items-center gap-2">
               <Glass className="flex-1 px-3 py-3 text-center">
-                <div className="text-[9px] font-bold text-white/65">Staging</div>
-                <div className="text-[12px] font-black text-white">Clone</div>
+                <div className="text-[9px] font-bold text-slate-700/65">Staging</div>
+                <div className="text-[12px] font-black text-slate-700">Clone</div>
               </Glass>
-              <div className="relative h-px w-8 overflow-hidden bg-white/30">
+              <div className="relative h-px w-8 overflow-hidden bg-primary/15">
                 <motion.div
                   className="absolute inset-y-0 w-6 bg-white"
                   animate={{ x: ["-100%", "180%"] }}
                   transition={{ duration: 1.6, repeat: Infinity }}
                 />
               </div>
-              <Glass className="flex-1 border-white/60 bg-white/25 px-3 py-3 text-center">
-                <div className="text-[9px] font-bold text-white/80">Live</div>
-                <div className="text-[12px] font-black text-white">Prod</div>
+              <Glass className="flex-1 border-primary/ bg-primary/15 px-3 py-3 text-center">
+                <div className="text-[9px] font-bold text-slate-700/80">Live</div>
+                <div className="text-[12px] font-black text-slate-700">Prod</div>
               </Glass>
             </div>
             {[
@@ -2702,7 +2702,7 @@ function WpStagingStage() {
             ].map((step, i) => (
               <motion.div
                 key={step}
-                className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-[10px] font-bold text-white"
+                className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-[10px] font-bold text-slate-700"
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ duration: 2.8, repeat: Infinity, delay: i * 0.35 }}
               >
@@ -2728,18 +2728,18 @@ function BusinessMailStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Mail" badge={<span className="text-[9px] font-bold text-white">@domain</span>}>
+        <Window title="Mail" badge={<span className="text-[9px] font-bold text-slate-700">@domain</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             <Glass className="p-3">
-              <div className="text-[9px] font-bold uppercase tracking-wider text-white/65">From</div>
+              <div className="text-[9px] font-bold uppercase tracking-wider text-slate-700/65">From</div>
               <motion.div
-                className="mt-1 text-[13px] font-black text-white"
+                className="mt-1 text-[13px] font-black text-slate-700"
                 animate={{ opacity: [0.6, 1, 0.6] }}
                 transition={{ duration: 2.4, repeat: Infinity }}
               >
                 you@yourbusiness.co.ke
               </motion.div>
-              <div className="mt-1 text-[10px] text-white/65">Looks credible in every inbox</div>
+              <div className="mt-1 text-[10px] text-slate-700/65">Looks credible in every inbox</div>
             </Glass>
             {[
               { t: "Outlook / Apple Mail", d: "IMAP ready" },
@@ -2748,15 +2748,15 @@ function BusinessMailStage() {
             ].map((row, i) => (
               <motion.div
                 key={row.t}
-                className="flex items-center justify-between rounded-xl border border-white/30 bg-white/10 px-2.5 py-2"
+                className="flex items-center justify-between rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.22 }}
               >
                 <div>
-                  <div className="text-[11px] font-bold text-white">{row.t}</div>
-                  <div className="text-[9px] text-white/60">{row.d}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{row.t}</div>
+                  <div className="text-[9px] text-slate-700/60">{row.d}</div>
                 </div>
-                <span className="text-white">{I.check}</span>
+                <span className="text-slate-700">{I.check}</span>
               </motion.div>
             ))}
           </div>
@@ -2778,7 +2778,7 @@ function DeliverabilityStage() {
   return (
     <MockCanvas>
       <div className="relative flex min-w-0 flex-1">
-        <Window title="Deliverability" badge={<span className="text-[9px] font-bold text-white">Inbox</span>}>
+        <Window title="Deliverability" badge={<span className="text-[9px] font-bold text-slate-700">Inbox</span>}>
           <div className="flex flex-1 flex-col gap-2 p-2.5 md:p-3">
             {[
               { t: "SPF", d: "Authorized senders", ok: true },
@@ -2788,7 +2788,7 @@ function DeliverabilityStage() {
             ].map((row, i) => (
               <motion.div
                 key={row.t}
-                className="flex items-center gap-2.5 rounded-xl border border-white/30 bg-white/10 px-2.5 py-2.5"
+                className="flex items-center gap-2.5 rounded-xl border border-primary/15 bg-primary/5 px-2.5 py-2.5"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 2.6, repeat: Infinity, delay: i * 0.22 }}
               >
@@ -2796,10 +2796,10 @@ function DeliverabilityStage() {
                   {row.t.slice(0, 2)}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-white">{row.t}</div>
-                  <div className="text-[9px] text-white/60">{row.d}</div>
+                  <div className="text-[11px] font-bold text-slate-700">{row.t}</div>
+                  <div className="text-[9px] text-slate-700/60">{row.d}</div>
                 </div>
-                <span className="ml-auto text-white">{I.check}</span>
+                <span className="ml-auto text-slate-700">{I.check}</span>
               </motion.div>
             ))}
           </div>

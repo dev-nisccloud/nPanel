@@ -110,9 +110,6 @@ export default function AtomApproach() {
           transition={{ duration: 0.5 }}
           className="text-center mb-14"
         >
-          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-4 tracking-wider">
-            YOUR GROWTH PATH
-          </div>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
             Create. Host. Market. Automate.
           </h2>
