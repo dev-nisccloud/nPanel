@@ -387,7 +387,7 @@ function DomainUpsellInner({
   const searchedName = searchTrigger?.name ?? "";
 
   return (
-    <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
+    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
       <div className="flex items-center gap-2 mb-1">
         <Search className="w-5 h-5 text-muted-foreground" />
         <h3 className="text-base font-bold text-foreground">
@@ -491,7 +491,7 @@ function DomainUpsellInner({
                         available
                           ? isSelected
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40 bg-white"
+                            : "border-border hover:border-primary/40 bg-card"
                           : "border-border bg-muted/30 opacity-60",
                       )}
                     >
@@ -510,7 +510,7 @@ function DomainUpsellInner({
                           {r.domain}
                         </span>
                         {available && (
-                          <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200 hidden sm:inline-flex shrink-0">
+                          <Badge className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hidden sm:inline-flex shrink-0">
                             Available
                           </Badge>
                         )}
@@ -658,7 +658,7 @@ function DomainUpsellInner({
                   "flex items-center justify-between gap-3 p-3 rounded-xl border transition-all",
                   selectedDomain?.domain === transferResult.domain
                     ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/40 bg-white",
+                    : "border-border hover:border-primary/40 bg-card",
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -766,7 +766,7 @@ function DomainUpsellInner({
             "mt-4 rounded-xl border p-4",
             selectedDomain.isTransfer
               ? "border-primary/30 bg-primary/5"
-              : "border-emerald-200 bg-emerald-50",
+              : "border-emerald-500/20 bg-emerald-500/10",
           )}
         >
           <div className="flex items-start gap-3">
@@ -775,7 +775,7 @@ function DomainUpsellInner({
                 <ArrowLeftRight className="h-4 w-4" />
               </div>
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-1" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-3">
@@ -786,7 +786,9 @@ function DomainUpsellInner({
                   <p
                     className={cn(
                       "text-xs mt-0.5",
-                      selectedDomain.isTransfer ? "text-muted-foreground" : "text-emerald-700",
+                      selectedDomain.isTransfer
+                        ? "text-muted-foreground"
+                        : "text-emerald-700 dark:text-emerald-400",
                     )}
                   >
                     {selectedDomain.isExisting
@@ -806,7 +808,9 @@ function DomainUpsellInner({
                   type="button"
                   className={cn(
                     "text-xs underline hover:no-underline shrink-0",
-                    selectedDomain.isTransfer ? "text-primary" : "text-emerald-600",
+                    selectedDomain.isTransfer
+                      ? "text-primary"
+                      : "text-emerald-600 dark:text-emerald-400",
                   )}
                   onClick={() => {
                     onDomainSelect(null);
@@ -819,7 +823,7 @@ function DomainUpsellInner({
               </div>
 
               {selectedDomain.isTransfer && onTransferAuthCodeChange && (
-                <div className="mt-4 rounded-xl border border-border bg-white p-4 shadow-sm">
+                <div className="mt-4 rounded-xl border border-border bg-card p-4 shadow-sm">
                   <div className="mb-3 flex items-start gap-2">
                     <Key className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                     <div>

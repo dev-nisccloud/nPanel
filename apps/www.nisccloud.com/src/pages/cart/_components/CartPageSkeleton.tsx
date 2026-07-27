@@ -19,7 +19,7 @@ export function CartPageSkeleton() {
         {/* Left column */}
         <div className="space-y-4">
           {/* Cart item card */}
-          <div className="bg-white border border-border rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 flex-1 min-w-0">
                 <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
@@ -34,7 +34,7 @@ export function CartPageSkeleton() {
           </div>
 
           {/* Upsell / config block */}
-          <div className="bg-white border border-border rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
             <Skeleton className="h-5 w-56" />
             <Skeleton className="h-4 w-full max-w-md" />
             <div className="space-y-3 pt-1">
@@ -46,7 +46,7 @@ export function CartPageSkeleton() {
 
         {/* Order summary */}
         <div className="lg:sticky lg:top-24">
-          <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
             <div className="px-5 pt-5 pb-4 border-b border-border">
               <Skeleton className="h-5 w-32" />
             </div>
@@ -76,7 +76,7 @@ export function CartPageSkeleton() {
       </div>
 
       {/* Mobile sticky bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-3 flex items-center justify-between gap-4 z-30 shadow-lg">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 flex items-center justify-between gap-4 z-30 shadow-lg">
         <div className="space-y-1.5">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-5 w-28" />

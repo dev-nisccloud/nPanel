@@ -279,6 +279,7 @@ const checkoutIdentityOutputSchema = z.discriminatedUnion("authenticated", [
     user: z.object({
       id: z.string(),
       name: z.string(),
+      email: z.string(),
     }),
     profile: z.object({
       complete: z.boolean(),
@@ -352,6 +353,9 @@ export const storefrontAuthRouter = router({
       const displayName =
         (typeof sessionUser.name === "string" && sessionUser.name.trim()) ||
         "nPanel user";
+      const email =
+        (typeof sessionUser.email === "string" && sessionUser.email.trim()) ||
+        "";
       const profileState = evaluateProfileCompleteness(profile);
 
       return {
@@ -359,6 +363,7 @@ export const storefrontAuthRouter = router({
         user: {
           id: sessionUser.id,
           name: displayName,
+          email,
         },
         profile: {
           complete: profileState.complete,

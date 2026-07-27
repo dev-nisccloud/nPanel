@@ -3,12 +3,17 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Menu, X, ChevronDown, Globe, Server, Mail, Cpu, Megaphone,
   ShoppingCart, PenTool, BarChart2, Zap,
-  LogIn, TrendingUp, HardDrive, MonitorSmartphone,
+  TrendingUp, HardDrive, MonitorSmartphone,
   Target, AtSign, ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { FlowButton } from "@/components/ui/flow-button.tsx";
 import { useNavigate, useLocation } from "react-router-dom";
+import {
+  NavbarAuthDesktop,
+  NavbarAuthMobile,
+  useNavbarAuth,
+} from "./NavbarAuth.tsx";
 // import { useTheme } from "next-themes";
 
 function resolvePublicUrl(configured: unknown, fallback: string) {
@@ -134,6 +139,7 @@ export default function Navbar() {
   const location = useLocation();
   const navRef = useRef<HTMLDivElement>(null);
   const closeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const auth = useNavbarAuth();
   // const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -237,12 +243,7 @@ export default function Navbar() {
 
         {/* CTA */}
         <div className="hidden md:flex items-center gap-2 shrink-0">
-          {/* <FlowButton
-            text="Login"
-            size="sm"
-            icon={LogIn}
-            onClick={() => navigate("/pricing")}
-          /> */}
+          <NavbarAuthDesktop auth={auth} />
           <FlowButton
             text="Get Started"
             size="sm"
@@ -323,13 +324,7 @@ export default function Navbar() {
                 );
               })}
               <div className="pt-2 border-t border-border mt-1 flex flex-col gap-2">
-                {/* <FlowButton
-                  text="Login to nPanel"
-                  size="sm"
-                  icon={LogIn}
-                  onClick={() => { window.location.href = NPANEL_URL; setOpen(false); }}
-                  className="w-full justify-center"
-                /> */}
+                <NavbarAuthMobile auth={auth} onNavigate={() => setOpen(false)} />
                 <FlowButton
                   text="Get Started"
                   size="sm"

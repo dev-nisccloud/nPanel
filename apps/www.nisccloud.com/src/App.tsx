@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { DefaultProviders } from "./components/providers/default.tsx";
 import Index from "./pages/Index.tsx";
 import ServicesPage from "./pages/services/page.tsx";
@@ -46,68 +46,79 @@ import TermsOfServicePage from "./pages/legal/terms/page.tsx";
 import PrivacyPolicyPage from "./pages/legal/privacy/page.tsx";
 import CookiePolicyPage from "./pages/legal/cookies/page.tsx";
 
+function AppRoutes() {
+  const { pathname } = useLocation();
+  const hideFab = pathname === "/cart";
+
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/services/marketing" element={<ServicesPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/work" element={<WorkPage />} />
+        <Route path="/work/:slug" element={<CaseStudyDetailPage />} />
+        {/* Hosting routes */}
+        <Route path="/hosting" element={<HostingPage />} />
+        <Route path="/hosting/shared" element={<SharedHostingPage />} />
+        <Route path="/hosting/wordpress" element={<WordPressHostingPage />} />
+        <Route path="/hosting/vps" element={<VpsHostingPage />} />
+        <Route path="/hosting/vds" element={<VdsHostingPage />} />
+        <Route path="/hosting/dedicated-servers" element={<DedicatedServersHostingPage />} />
+        <Route path="/hosting/domains" element={<DomainsPage />} />
+        <Route path="/hosting/email" element={<BusinessEmailPage />} />
+        <Route path="/hosting/ssl" element={<SslPage />} />
+
+        {/* Marketing and Branding routes */}
+        <Route path="/services/brand-identity" element={<BrandIdentityPage />} />
+        <Route path="/services/website-design" element={<WebsiteDesignPage />} />
+        <Route path="/services/ecommerce" element={<EcommercePage />} />
+        <Route path="/services/seo" element={<SeoPage />} />
+        <Route path="/services/paid-ads" element={<PaidAdsPage />} />
+        <Route path="/services/social-media" element={<SocialMediaPage />} />
+        <Route path="/services/zeepo-ai" element={<ZeepoAiPage />} />
+        <Route path="/services/email-marketing" element={<EmailMarketingPage />} />
+
+        {/* Help Centre */}
+        <Route path="/help" element={<HelpCentrePage />} />
+
+        {/* WHOIS Checker */}
+        <Route path="/whois" element={<WhoisPage />} />
+
+        {/* Domain Transfer */}
+        <Route path="/domain-transfer" element={<DomainTransferPage />} />
+
+        {/* Security */}
+        <Route path="/security" element={<SecurityPage />} />
+
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
+
+        {/* Shared cart / checkout page */}
+        <Route path="/cart" element={<CartPage />} />
+
+        {/* Legal pages */}
+        <Route path="/terms" element={<TermsOfServicePage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/cookies" element={<CookiePolicyPage />} />
+
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      {!hideFab && <FloatingActionButton />}
+    </>
+  );
+}
+
 export default function App() {
   return (
     <DefaultProviders>
       <BrowserRouter>
-        <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/services/marketing" element={<ServicesPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/work" element={<WorkPage />} />
-          <Route path="/work/:slug" element={<CaseStudyDetailPage />} />
-          {/* Hosting routes */}
-          <Route path="/hosting" element={<HostingPage />} />
-          <Route path="/hosting/shared" element={<SharedHostingPage />} />
-          <Route path="/hosting/wordpress" element={<WordPressHostingPage />} />
-          <Route path="/hosting/vps" element={<VpsHostingPage />} />
-          <Route path="/hosting/vds" element={<VdsHostingPage />} />
-          <Route path="/hosting/dedicated-servers" element={<DedicatedServersHostingPage />} />
-          <Route path="/hosting/domains" element={<DomainsPage />} />
-          <Route path="/hosting/email" element={<BusinessEmailPage />} />
-          <Route path="/hosting/ssl" element={<SslPage />} />
-
-          {/* Marketing and Branding routes */}
-          <Route path="/services/brand-identity" element={<BrandIdentityPage />} />
-          <Route path="/services/website-design" element={<WebsiteDesignPage />} />
-          <Route path="/services/ecommerce" element={<EcommercePage />} />
-          <Route path="/services/seo" element={<SeoPage />} />
-          <Route path="/services/paid-ads" element={<PaidAdsPage />} />
-          <Route path="/services/social-media" element={<SocialMediaPage />} />
-          <Route path="/services/zeepo-ai" element={<ZeepoAiPage />} />
-          <Route path="/services/email-marketing" element={<EmailMarketingPage />} />
-
-          {/* Help Centre */}
-          <Route path="/help" element={<HelpCentrePage />} />
-
-          {/* WHOIS Checker */}
-          <Route path="/whois" element={<WhoisPage />} />
-
-          {/* Domain Transfer */}
-          <Route path="/domain-transfer" element={<DomainTransferPage />} />
-
-          {/* Security */}
-          <Route path="/security" element={<SecurityPage />} />
-
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/blog/:slug" element={<BlogPostPage />} />
-
-          {/* Shared cart / checkout page */}
-          <Route path="/cart" element={<CartPage />} />
-
-          {/* Legal pages */}
-          <Route path="/terms" element={<TermsOfServicePage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
-          <Route path="/cookies" element={<CookiePolicyPage />} />
-
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <FloatingActionButton />
+        <AppRoutes />
       </BrowserRouter>
     </DefaultProviders>
   );

@@ -90,8 +90,8 @@ const SERVICE_META: Record<
   },
   domain_registration: {
     icon: <Globe className="w-6 h-6" />,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-500/10",
     includedItems: [
       "WHOIS privacy protection",
       "Free DNS management",
@@ -101,8 +101,8 @@ const SERVICE_META: Record<
   },
   domain_transfer: {
     icon: <Globe className="w-6 h-6" />,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-500/10",
     includedItems: [
       "Includes 1 year renewal after transfer",
       "Free DNS management",
@@ -220,7 +220,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
       : null;
 
   return (
-    <div className="bg-white border border-border rounded-2xl p-5 shadow-sm">
+    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
       {/* Header row */}
       <div className="flex items-start gap-4">
         <div className={cn("p-3 rounded-xl shrink-0", meta.bgColor)}>
@@ -275,7 +275,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
                         <SelectItem key={opt.value} value={opt.value}>
                           {opt.label}
                           {opt.value === "YEARLY" && saving && !isDomainRegistration && (
-                            <span className="ml-2 text-xs text-emerald-600 font-semibold">
+                            <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                               Save {saving.pct}%
                             </span>
                           )}
@@ -301,7 +301,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
                 /{billingCycleShortSuffix(cycle)}
               </span>
               {saving && (
-                <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs font-semibold">
+                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-semibold">
                   Save {saving.pct}%
                 </Badge>
               )}
