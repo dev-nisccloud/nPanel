@@ -4,7 +4,7 @@ Tags: woocommerce, mpesa, payments, kenya, nisc
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,8 @@ Nisc Payment Gateway for WooCommerce lets merchants accept M-Pesa STK Push payme
 1. Get an API key from nPanel (agency creates the merchant).
 2. Paste the key in WooCommerce → Settings → Payments → Nisc Payment Gateway.
 3. Click Connect — the plugin registers your webhook automatically.
-4. Enable the method and take orders.
+4. Use **Connection test** (green/red card) to confirm gateway + M-Pesa token, then optionally **Test STK → webhook**.
+5. Enable the method and take orders.
 
 Sandbox vs production is controlled by the API key issued in nPanel. There is no environment toggle in WordPress.
 
@@ -28,7 +29,8 @@ Sandbox vs production is controlled by the API key issued in nPanel. There is no
 3. Activate the plugin (WooCommerce must already be active).
 4. Go to WooCommerce → Settings → Payments → Nisc Payment Gateway.
 5. Paste your `npg_…` API key and click Connect.
-6. Enable the payment method and save checkout labels.
+6. Optionally send a test STK to yourself and confirm the webhook preview appears.
+7. Enable the payment method and save checkout labels.
 
 == Frequently Asked Questions ==
 
@@ -40,11 +42,20 @@ No. Clicking Connect registers `https://your-site/wp-json/nisc-gateway/v1/webhoo
 
 From your Nisc Cloud / nPanel merchant account under Payment Gateway → API keys.
 
+= Can I test without creating a real order? =
+
+Yes. After connecting, use **Test STK → webhook** on the settings page. Enter your phone, send a test prompt, complete or cancel it, and preview the webhook JSON. Test payments never update WooCommerce orders.
+
 = Does the plugin support cards or Stripe? =
 
 Not in v1. M-Pesa STK Push only.
 
 == Changelog ==
+
+= 0.1.2 =
+* Admin: Connection test button (always on settings) — green/red card for gateway reachability, API key, and M-Pesa OAuth token.
+* Admin: Test STK → webhook flow on the same settings page (send yourself a prompt, preview incoming webhook JSON).
+* Test webhooks are accepted and logged for preview without updating any WooCommerce order.
 
 = 0.1.1 =
 * Admin UI: white/cyan branding, fixed step number alignment, clearer copy.

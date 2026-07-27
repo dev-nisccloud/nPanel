@@ -30,7 +30,7 @@ import {
 } from "@npanel/api/lib/nisc-payment-gateway-encryption";
 import { incrementAccessLog } from "@npanel/api/lib/nisc-payment-gateway-access-log";
 import { handleNiscGatewayMpesaWebhook } from "./webhooks/mpesa";
-import { initiateGatewayMpesaStkPush } from "@npanel/api/lib/nisc-payment-gateway-mpesa";
+import { initiateGatewayMpesaStkPush, getGatewayMpesaAccessToken } from "@npanel/api/lib/nisc-payment-gateway-mpesa";
 
 // =============================================================================
 // TYPES
@@ -264,6 +264,152 @@ export function createNiscPaymentGatewayRoutes() {
 
   // All other routes require auth
   app.use("/v1/*", authMiddleware);
+
+  /**
+   * Connection / diagnostics test for WordPress plugin & merchants.
+   * Confirms: API auth + merchant M-Pesa credentials + Safaricom OAuth token.
+   * Does not initiate an STK push.
+   */
+  app.get("/v1/connection", async (c) => {
+    const gateway = c.get("gateway") as GatewayContext;
+    const startedAt = Date.now();
+
+    type CheckStatus = "pass" | "fail" | "skip";
+    const checks: Array<{
+      id: string;
+      label: string;
+      status: CheckStatus;
+      message: string;
+    }> = [];
+
+    checks.push({
+      id: "gateway",
+      label: "Nisc gateway reachable",
+      status: "pass",
+      message: "Authenticated against Nisc Payment Gateway",
+    });
+
+    checks.push({
+      id: "apiKey",
+      label: "API key",
+      status: "pass",
+      message: `${gateway.keyName} · ${gateway.environment}`,
+    });
+
+    const isProduction =
+      gateway.environment === "PRODUCTION" || gateway.environment === "live";
+    const credentialEnvironment = isProduction ? "PRODUCTION" : "SANDBOX";
+
+    const credentials = await db
+      .select()
+      .from(niscPaymentGatewayMerchantCredentials)
+      .where(
+        and(
+          eq(niscPaymentGatewayMerchantCredentials.merchantId, gateway.merchantId),
+          eq(niscPaymentGatewayMerchantCredentials.provider, "MPESA"),
+          eq(niscPaymentGatewayMerchantCredentials.isActive, true)
+        )
+      );
+
+    const matchedCredentials = credentials.filter(
+      (row) => row.environment === credentialEnvironment
+    );
+
+    if (matchedCredentials.length === 0) {
+      checks.push({
+        id: "credentials",
+        label: "M-Pesa credentials",
+        status: "fail",
+        message: `No active M-Pesa credentials for ${credentialEnvironment}`,
+      });
+      checks.push({
+        id: "mpesaToken",
+        label: "M-Pesa OAuth token",
+        status: "skip",
+        message: "Skipped — credentials missing",
+      });
+
+      return c.json(
+        {
+          ok: false,
+          checkedAt: new Date().toISOString(),
+          durationMs: Date.now() - startedAt,
+          merchantId: gateway.merchantId,
+          merchantName: gateway.merchantName,
+          environment: gateway.environment,
+          credentialEnvironment,
+          checks,
+          summary: "API key works, but M-Pesa credentials are not configured.",
+        },
+        200
+      );
+    }
+
+    checks.push({
+      id: "credentials",
+      label: "M-Pesa credentials",
+      status: "pass",
+      message: `Active ${credentialEnvironment} credentials found`,
+    });
+
+    try {
+      const mpesaCredentials = decryptCredentials<MpesaCredentials>(
+        matchedCredentials[0].credentialsEncrypted,
+        matchedCredentials[0].encryptionVersion
+      );
+
+      const token = await getGatewayMpesaAccessToken(
+        mpesaCredentials,
+        credentialEnvironment
+      );
+
+      checks.push({
+        id: "mpesaToken",
+        label: "M-Pesa OAuth token",
+        status: "pass",
+        message: token.expiresIn
+          ? `Token issued successfully (expires in ${token.expiresIn}s)`
+          : "Token issued successfully",
+      });
+
+      return c.json({
+        ok: true,
+        checkedAt: new Date().toISOString(),
+        durationMs: Date.now() - startedAt,
+        merchantId: gateway.merchantId,
+        merchantName: gateway.merchantName,
+        environment: gateway.environment,
+        credentialEnvironment,
+        checks,
+        summary: "Connection healthy — gateway reachable and M-Pesa token OK.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "M-Pesa token request failed";
+
+      checks.push({
+        id: "mpesaToken",
+        label: "M-Pesa OAuth token",
+        status: "fail",
+        message,
+      });
+
+      return c.json(
+        {
+          ok: false,
+          checkedAt: new Date().toISOString(),
+          durationMs: Date.now() - startedAt,
+          merchantId: gateway.merchantId,
+          merchantName: gateway.merchantName,
+          environment: gateway.environment,
+          credentialEnvironment,
+          checks,
+          summary: "Could not obtain an M-Pesa OAuth token. Check consumer key/secret.",
+        },
+        200
+      );
+    }
+  });
 
   // CREATE PAYMENT
   app.post("/v1/payments", async (c) => {

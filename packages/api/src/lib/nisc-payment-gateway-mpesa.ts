@@ -39,6 +39,48 @@ function getMpesaUrls(environment: "SANDBOX" | "PRODUCTION") {
 }
 
 /**
+ * Request a Safaricom OAuth access token using merchant M-Pesa credentials.
+ * Used by STK push and the WordPress / nPanel connection test.
+ */
+export async function getGatewayMpesaAccessToken(
+  credentials: MpesaCredentials,
+  environment: "SANDBOX" | "PRODUCTION"
+): Promise<{ accessToken: string; expiresIn?: number }> {
+  const mpesaUrls = getMpesaUrls(environment);
+  const auth = Buffer.from(
+    `${credentials.consumerKey}:${credentials.consumerSecret}`
+  ).toString("base64");
+
+  const tokenResponse = await fetch(mpesaUrls.tokenUrl, {
+    headers: {
+      Authorization: `Basic ${auth}`,
+    },
+  });
+
+  if (!tokenResponse.ok) {
+    const body = await tokenResponse.text().catch(() => "");
+    throw new Error(
+      `M-Pesa token request failed (${tokenResponse.status}${body ? `: ${body.slice(0, 160)}` : ""})`
+    );
+  }
+
+  const data = (await tokenResponse.json()) as {
+    access_token?: string;
+    expires_in?: string | number;
+  };
+
+  if (!data.access_token) {
+    throw new Error("Failed to get M-Pesa access token");
+  }
+
+  return {
+    accessToken: data.access_token,
+    expiresIn:
+      data.expires_in !== undefined ? Number(data.expires_in) : undefined,
+  };
+}
+
+/**
  * Get M-Pesa callback URL for gateway merchant
  * 
  * Dynamically built based on server URL + merchantId
@@ -77,27 +119,10 @@ export async function initiateGatewayMpesaStkPush(
   // Get URLs based on merchant's chosen environment
   const mpesaUrls = getMpesaUrls(environment);
   const callbackUrl = getGatewayMpesaCallbackUrl(merchantId);
-  
-  // Generate access token
-  const auth = Buffer.from(
-    `${credentials.consumerKey}:${credentials.consumerSecret}`
-  ).toString("base64");
-  
-  const tokenResponse = await fetch(mpesaUrls.tokenUrl, {
-    headers: {
-      Authorization: `Basic ${auth}`,
-    },
-  });
-  
-  if (!tokenResponse.ok) {
-    throw new Error(`M-Pesa token request failed: ${tokenResponse.statusText}`);
-  }
-  
-  const { access_token } = await tokenResponse.json();
-  
-  if (!access_token) {
-    throw new Error("Failed to get M-Pesa access token");
-  }
+  const { accessToken } = await getGatewayMpesaAccessToken(
+    credentials,
+    environment
+  );
   
   // Generate password for STK push
   const timestamp = new Date()
@@ -113,7 +138,7 @@ export async function initiateGatewayMpesaStkPush(
   const stkResponse = await fetch(mpesaUrls.stkUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${access_token}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({

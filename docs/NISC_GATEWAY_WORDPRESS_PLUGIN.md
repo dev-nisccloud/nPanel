@@ -25,14 +25,41 @@
 ### WordPress plugin (`apps/nisc-payment-gateway-wp`)
 
 - Guided admin UI: 3-step setup, Connect with API key, auto webhook registration
+- **Connection test** (always on settings): green/red card — gateway reachability, API key, M-Pesa OAuth token (`GET /v1/connection`)
+- **Test STK → webhook** panel: send yourself a real STK, preview incoming webhook JSON; test payloads never update WooCommerce orders
 - WooCommerce payment method (M-Pesa STK)
-- REST webhook `POST /wp-json/nisc-gateway/v1/webhook` with HMAC verify
-- Current version: **0.1.1** (keep `package.json`, plugin header, `NISC_PG_VERSION`, and `readme.txt` Stable tag in sync)
+- REST webhook `POST /wp-json/nisc-gateway/v1/webhook` with HMAC verify (test metadata → preview only)
+- Current version: **0.1.2** (keep `package.json`, plugin header, `NISC_PG_VERSION`, and `readme.txt` Stable tag in sync)
 - **ZIP builds only via GitHub Actions** (Ubuntu) — no local zip script (Windows `Compress-Archive` broke activation with backslash paths)
 - CI release: `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml` — **manual only**
 
 Default API base: `https://npanel-server.nisccloud.com/api/nisc-gateway`  
 Override: WordPress filter `nisc_pg_api_base_url`.
+
+---
+
+## Connection test (admin)
+
+Always-visible **Connection test** on the settings page (no STK):
+
+1. Hits `GET /api/nisc-gateway/v1/connection` with the store API key
+2. Confirms gateway auth + active M-Pesa credentials for the key environment
+3. Requests a Safaricom OAuth token (same path STK uses)
+4. Shows a green or red info card with per-check results
+
+If no API key is connected yet, the plugin still pings `GET /health` and reports that the key step is missing.
+
+### STK → webhook test (admin)
+
+After Connect, merchants can verify the full payment path without placing an order:
+
+1. Enter their M-Pesa number + amount (default 1 KES)
+2. **Send test STK** → `POST /v1/payments` with `metadata.test` / `wpPluginTest` and `referenceId` like `wp-test-…`
+3. Complete or cancel the phone prompt
+4. Gateway delivers the usual signed webhook to WP
+5. Plugin detects the test payload, stores it for preview, returns `200` with `orderUpdated: false` — **no** `payment_complete()` / status changes
+
+The settings page polls payment status and shows the webhook JSON under **Incoming webhook preview**.
 
 ---
 
