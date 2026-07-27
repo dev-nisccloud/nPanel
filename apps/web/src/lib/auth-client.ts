@@ -1,4 +1,9 @@
 import { createAuthClient } from "better-auth/react";
+import { adminClient } from "better-auth/client/plugins";
+import {
+  adminAccessRoles,
+  adminAcController,
+} from "@npanel/auth/admin-access";
 
 function normalizeOrigin(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -27,4 +32,10 @@ export const authClient = createAuthClient({
       console.error("Auth client error:", e);
     },
   },
+  plugins: [
+    adminClient({
+      ac: adminAcController,
+      roles: adminAccessRoles,
+    }),
+  ],
 });

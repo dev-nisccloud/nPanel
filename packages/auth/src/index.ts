@@ -48,7 +48,15 @@ import {
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError, createAuthMiddleware } from "better-auth/api";
+import { admin } from "better-auth/plugins";
 import { eq } from "@npanel/db";
+import {
+  adminAccessRoles,
+  adminAcController,
+  agencyAdminRoles,
+  IMPERSONATION_SESSION_DURATION_SEC,
+} from "./admin-access";
+import { isImpersonatedSession } from "./impersonation";
 
 function resolveRequestIp(headers: Headers | null | undefined): string | null {
   if (!headers) return null;
@@ -183,6 +191,67 @@ export const auth = betterAuth<BetterAuthOptions>({
     updateAge: SESSION_TOUCH_THROTTLE_MS / 1000,
     disableSessionRefresh: false,
   },
+  databaseHooks: {
+    session: {
+      create: {
+        async before(session, ctx) {
+          // Harden Better Auth impersonation: only AGENCY_SUPER_ADMIN → ACTIVE CUSTOMER.
+          if (!isImpersonatedSession(session)) return;
+
+          const current = ctx?.context?.session?.session as
+            | { impersonatedBy?: string | null }
+            | undefined;
+          if (isImpersonatedSession(current)) {
+            throw new APIError("FORBIDDEN", {
+              message: "Stop the current login-as-customer session before starting another",
+            });
+          }
+
+          const actorId = session.impersonatedBy!;
+          const targetId = session.userId;
+
+          const [actor] = await db
+            .select({ id: user.id, role: user.role, status: user.status })
+            .from(user)
+            .where(eq(user.id, actorId))
+            .limit(1);
+
+          if (!actor || actor.role !== "AGENCY_SUPER_ADMIN" || actor.status !== "ACTIVE") {
+            throw new APIError("FORBIDDEN", {
+              message: "Only an active agency super admin can impersonate customers",
+            });
+          }
+
+          const [target] = await db
+            .select({ id: user.id, role: user.role, status: user.status })
+            .from(user)
+            .where(eq(user.id, targetId))
+            .limit(1);
+
+          if (!target || target.role !== "CUSTOMER") {
+            throw new APIError("FORBIDDEN", {
+              message: "You can only login as customer accounts",
+            });
+          }
+
+          if (target.status !== "ACTIVE") {
+            throw new APIError("FORBIDDEN", {
+              message: `Cannot login as a ${target.status.toLowerCase()} customer account`,
+            });
+          }
+        },
+      },
+    },
+  },
+  plugins: [
+    admin({
+      defaultRole: "CUSTOMER",
+      adminRoles: [...agencyAdminRoles],
+      ac: adminAcController,
+      roles: adminAccessRoles,
+      impersonationSessionDuration: IMPERSONATION_SESSION_DURATION_SEC,
+    }),
+  ],
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       const isForgetPassword =
@@ -264,11 +333,81 @@ export const auth = betterAuth<BetterAuthOptions>({
       }
 
       const newSessionToken = ctx.context.newSession?.session?.token;
-      if (typeof newSessionToken === "string" && newSessionToken.length > 0) {
+      const newSessionIsImpersonation = isImpersonatedSession(
+        ctx.context.newSession?.session as { impersonatedBy?: string | null } | undefined,
+      );
+      // Impersonation keeps Better Auth's absolute duration; do not overwrite with idle TTL.
+      if (
+        typeof newSessionToken === "string" &&
+        newSessionToken.length > 0 &&
+        !newSessionIsImpersonation
+      ) {
         try {
           await applyStandardSessionExpiryByToken(newSessionToken);
         } catch (error) {
           console.error("Failed to apply standard session expiry:", error);
+        }
+      }
+
+      const isImpersonatePath =
+        ctx.path === "/admin/impersonate-user" ||
+        ctx.path.endsWith("/admin/impersonate-user");
+      if (isImpersonatePath && newSessionIsImpersonation && ctx.context.newSession) {
+        const impersonatedSession = ctx.context.newSession.session as {
+          id?: string;
+          userId?: string;
+          impersonatedBy?: string;
+        };
+        const actorId = impersonatedSession.impersonatedBy;
+        const targetUserId = impersonatedSession.userId;
+        if (actorId && targetUserId) {
+          void db
+            .insert(userActivityLog)
+            .values({
+              id: crypto.randomUUID(),
+              userId: actorId,
+              action: "IMPERSONATION_STARTED",
+              description: "Agency super admin started login-as-customer session",
+              metadata: {
+                targetUserId,
+                impersonationSessionId: impersonatedSession.id ?? null,
+              },
+              ipAddress: resolveRequestIp(ctx.headers) || "unknown",
+              userAgent: ctx.headers?.get("user-agent") || "unknown",
+              createdAt: new Date(),
+            })
+            .catch((error) =>
+              console.error("Failed to log impersonation start:", error),
+            );
+        }
+      }
+
+      const isStopImpersonatePath =
+        ctx.path === "/admin/stop-impersonating" ||
+        ctx.path.endsWith("/admin/stop-impersonating");
+      if (isStopImpersonatePath) {
+        const prior = ctx.context.session?.session as
+          | { impersonatedBy?: string; userId?: string; id?: string }
+          | undefined;
+        if (isImpersonatedSession(prior) && prior?.impersonatedBy) {
+          void db
+            .insert(userActivityLog)
+            .values({
+              id: crypto.randomUUID(),
+              userId: prior.impersonatedBy,
+              action: "IMPERSONATION_STOPPED",
+              description: "Agency super admin stopped login-as-customer session",
+              metadata: {
+                targetUserId: prior.userId ?? null,
+                impersonationSessionId: prior.id ?? null,
+              },
+              ipAddress: resolveRequestIp(ctx.headers) || "unknown",
+              userAgent: ctx.headers?.get("user-agent") || "unknown",
+              createdAt: new Date(),
+            })
+            .catch((error) =>
+              console.error("Failed to log impersonation stop:", error),
+            );
         }
       }
 

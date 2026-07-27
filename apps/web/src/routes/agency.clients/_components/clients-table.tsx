@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, EllipsisVertical, Ban, Lock, Unlock, ShieldCheck, ShieldX, BadgeCheck, Eye } from "lucide-react";
+import { User, EllipsisVertical, Ban, Lock, Unlock, ShieldCheck, ShieldX, Eye, LogIn } from "lucide-react";
 import {
 	Table,
 	TableBody,
@@ -64,7 +64,9 @@ export function ClientsTableSkeleton() {
 
 export interface ClientsTableProps {
 	data: ClientRow[];
+	canLoginAsCustomer?: boolean;
 	onView?: (id: string) => void;
+	onLoginAsCustomer?: (id: string) => void;
 	onDeactivate?: (id: string) => void;
 	onReactivate?: (id: string) => void;
 	onBan?: (id: string) => void;
@@ -75,7 +77,9 @@ export interface ClientsTableProps {
 
 export function ClientsTable({
 	data,
+	canLoginAsCustomer = false,
 	onView,
+	onLoginAsCustomer,
 	onDeactivate,
 	onReactivate,
 	onBan,
@@ -102,6 +106,11 @@ export function ClientsTable({
 						const isDeactivated = client.status === "DEACTIVATED";
 						const isBanned = client.status === "BANNED";
 						const isSuspended = client.status === "SUSPENDED";
+						const showLoginAs =
+							canLoginAsCustomer &&
+							isActive &&
+							client.role === "CUSTOMER" &&
+							Boolean(onLoginAsCustomer);
 
 						const handleDeactivate = () => {
 							if (isDeactivated && onReactivate) onReactivate(client.id);
@@ -170,11 +179,19 @@ export function ClientsTable({
 															<span className="sr-only">Actions</span>
 														</Button>
 													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end" className="w-48">
+													<DropdownMenuContent align="end" className="w-52">
 														<DropdownMenuItem onSelect={() => onView?.(client.id)}>
 															<Eye className="mr-2 h-4 w-4" />
 															View details
 														</DropdownMenuItem>
+														{showLoginAs ? (
+															<DropdownMenuItem
+																onSelect={() => onLoginAsCustomer?.(client.id)}
+															>
+																<LogIn className="mr-2 h-4 w-4" />
+																Login as customer
+															</DropdownMenuItem>
+														) : null}
 														<DropdownMenuSeparator />
 														{isDeactivated ? (
 															<DropdownMenuItem onSelect={handleDeactivate}>

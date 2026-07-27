@@ -122,6 +122,7 @@ export async function validateAndRefreshIdleSessionById(
       userAgent: session.userAgent,
       ipAddress: session.ipAddress,
       userId: session.userId,
+      impersonatedBy: session.impersonatedBy,
     })
     .from(session)
     .where(eq(session.id, sessionId))
@@ -131,6 +132,9 @@ export async function validateAndRefreshIdleSessionById(
   if (!row) {
     return fail("missing");
   }
+
+  const isImpersonation =
+    typeof row.impersonatedBy === "string" && row.impersonatedBy.length > 0;
 
   const now = new Date();
   if (isSessionLifetimeExpired(row.expiresAt, now)) {
@@ -189,7 +193,10 @@ export async function validateAndRefreshIdleSessionById(
   }
 
   const boundIp = normalizeIpAddress(row.ipAddress);
-  const ipAnomaly = Boolean(boundIp && requestIp && boundIp !== requestIp);
+  // Impersonation must not trigger customer IP step-up / security emails.
+  const ipAnomaly = isImpersonation
+    ? false
+    : Boolean(boundIp && requestIp && boundIp !== requestIp);
 
   let effectiveBoundIp = boundIp;
   if (!boundIp && requestIp) {
@@ -198,6 +205,23 @@ export async function validateAndRefreshIdleSessionById(
       .set({ ipAddress: requestIp, updatedAt: now })
       .where(eq(session.id, sessionId));
     effectiveBoundIp = requestIp;
+  }
+
+  // Impersonation uses Better Auth's absolute expiry; do not idle-extend it.
+  if (isImpersonation) {
+    const valid: IdleSessionValidation = {
+      status: "valid",
+      expiresAt: row.expiresAt,
+      extended: false,
+      ipAnomaly: false,
+      userId: row.userId,
+    };
+    await writeCachedSessionValidation(sessionId, valid, {
+      boundUserAgent: effectiveBoundUa,
+      boundIpAddress: effectiveBoundIp,
+      userId: row.userId,
+    });
+    return valid;
   }
 
   const sinceLastTouchMs = now.getTime() - row.updatedAt.getTime();
