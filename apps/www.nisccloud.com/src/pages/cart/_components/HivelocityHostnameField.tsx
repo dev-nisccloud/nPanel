@@ -30,7 +30,7 @@ export function HivelocityHostnameField({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4 space-y-3">
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <Label htmlFor="hivelocity-hostname" className="text-sm font-semibold text-foreground">

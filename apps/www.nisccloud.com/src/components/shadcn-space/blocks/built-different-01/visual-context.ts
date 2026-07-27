@@ -46,6 +46,17 @@ export type VisualTheme =
   | "algorithm"
   | "ethical"
   | "maps"
+  /** Hosting / infrastructure — never reuse marketing CRM mocks */
+  | "serverMonitor"
+  | "serverProvision"
+  | "workloads"
+  | "resourceIsolation"
+  | "bareMetal"
+  | "cpanel"
+  | "wpPerf"
+  | "wpStaging"
+  | "deliverability"
+  | "businessMail"
   | "default";
 
 const FALLBACK_ORDER: VisualTheme[] = [
@@ -88,6 +99,16 @@ const FALLBACK_ORDER: VisualTheme[] = [
   "migration",
   "uptime",
   "trust",
+  "serverMonitor",
+  "serverProvision",
+  "workloads",
+  "resourceIsolation",
+  "bareMetal",
+  "cpanel",
+  "wpPerf",
+  "wpStaging",
+  "deliverability",
+  "businessMail",
   "default",
 ];
 
@@ -157,6 +178,26 @@ export function detectVisualTheme(point: BuiltDifferentPoint): VisualTheme {
     )
   ) {
     return "pricing";
+  }
+
+  if (/cpu|ram|disk i\/o|grafana|server monitoring|network traffic/.test(text)) {
+    return "serverMonitor";
+  }
+  if (/ssh key|provision|under 5 minutes|one-click lamp|ipmi|bare metal/.test(text)) {
+    if (/ipmi|bare metal|dedicated server|gpu/.test(text)) return "bareMetal";
+    return "serverProvision";
+  }
+  if (/woocommerce|payment apis|saas platforms|game servers|noisy neighbour|resource isolation|dedicated vcpu/.test(text)) {
+    if (/isolation|noisy|dedicated resources|guaranteed isolated/.test(text)) return "resourceIsolation";
+    if (/game server|gpu|data warehouse|bare metal/.test(text)) return "bareMetal";
+    return "workloads";
+  }
+  if (/cpanel|one-click wordpress|manage your hosting/.test(text)) return "cpanel";
+  if (/litespeed cache|php 8|wordpress performance|opcache/.test(text)) return "wpPerf";
+  if (/staging|push to production|clone of your live/.test(text)) return "wpStaging";
+  if (/dkim|spf|dmarc|spamexperts|land in inboxes/.test(text)) return "deliverability";
+  if (/info@|yourbusiness\.co\.ke|professional email|branded email/.test(text)) {
+    return "businessMail";
   }
 
   if (/99\.?9|uptime|sla|always online|systems operational/.test(text)) return "uptime";

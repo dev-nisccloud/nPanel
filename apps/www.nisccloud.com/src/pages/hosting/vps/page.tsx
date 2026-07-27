@@ -20,7 +20,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "99.99% network uptime SLA with credits if we miss it",
     ],
     mockupRight: true,
-    visual: "reporting",
+    visual: "serverMonitor",
   },
   {
     tag: "Instant Deployment",
@@ -32,7 +32,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "One-click LAMP, LEMP, Docker, and Node.js stacks",
     ],
     mockupRight: false,
-    visual: "deploy",
+    visual: "serverProvision",
   },
   {
     tag: "Popular Use Cases",
@@ -44,7 +44,7 @@ const showcaseBlocks: ShowcaseBlock[] = [
       "SaaS platforms, CRMs, and custom business apps",
     ],
     mockupRight: true,
-    visual: "integrate",
+    visual: "workloads",
   },
 ];
 

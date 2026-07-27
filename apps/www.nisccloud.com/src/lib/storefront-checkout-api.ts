@@ -143,7 +143,7 @@ export type StorefrontCheckoutIdentity =
   | { authenticated: false }
   | {
       authenticated: true;
-      user: { id: string; name: string };
+      user: { id: string; name: string; email: string };
       profile: {
         complete: boolean;
         missing: Array<
@@ -210,6 +210,50 @@ export function buildStorefrontSignInUrl(returnTo?: string): string {
 }
 
 const STOREFRONT_CART_RESUME_KEY = "npanel_storefront_cart_resume";
+const STOREFRONT_CART_DRAFT_KEY = "npanel_storefront_cart_draft";
+const STOREFRONT_CART_DRAFT_TTL_MS = 2 * 60 * 60 * 1000;
+
+/** Client-only cart options that must survive a full-page login redirect. */
+export type StorefrontCartDraft = {
+  billingCycle?: StorefrontBillingCycle | null;
+  billingCycleUserSet?: boolean;
+  selectedDomain?: {
+    domain: string;
+    priceKes: number;
+    isExisting?: boolean;
+    isTransfer?: boolean;
+    provider?: "kenic" | "openprovider";
+  } | null;
+  transferAuthCode?: string;
+  selectedHostingType?: "web_hosting" | "wordpress_hosting" | "email_hosting" | null;
+  selectedHostingPlanInfo?: {
+    planId: string;
+    name: string;
+    monthlyPrice: number;
+    yearlyPrice: number;
+    currency: string;
+  } | null;
+  hostingCycles?: Partial<
+    Record<"web_hosting" | "wordpress_hosting" | "email_hosting", StorefrontBillingCycle>
+  >;
+  hivelocityConfig?: {
+    hostname: string;
+    selectedOsId: string;
+    selectedOsName: string;
+    hivelocityOsOptionId: number | null;
+    selectedOptionIds: number[];
+    hivelocityPeriod: "monthly";
+    locationName: string;
+    hivelocityProductId: number;
+    productType: "vps" | "vds" | "dedicated";
+  } | null;
+};
+
+type StorefrontCartDraftRecord = {
+  handoff: string;
+  at: number;
+  draft: StorefrontCartDraft;
+};
 
 export function persistStorefrontCartResume(handoff: string): void {
   if (typeof window === "undefined") return;
@@ -235,7 +279,7 @@ export function peekStorefrontCartResume(handoff: string): boolean {
     const parsed = JSON.parse(raw) as { handoff?: string; at?: number };
     if (parsed.handoff !== expected) return false;
     // Expire after 2 hours so stale carts don't auto-jump forever.
-    if (typeof parsed.at === "number" && Date.now() - parsed.at > 2 * 60 * 60 * 1000) {
+    if (typeof parsed.at === "number" && Date.now() - parsed.at > STOREFRONT_CART_DRAFT_TTL_MS) {
       sessionStorage.removeItem(STOREFRONT_CART_RESUME_KEY);
       return false;
     }
@@ -249,6 +293,55 @@ export function clearStorefrontCartResume(): void {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(STOREFRONT_CART_RESUME_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function persistStorefrontCartDraft(
+  handoff: string,
+  draft: StorefrontCartDraft,
+): void {
+  if (typeof window === "undefined") return;
+  const value = handoff.trim();
+  if (!value) return;
+  try {
+    const record: StorefrontCartDraftRecord = {
+      handoff: value,
+      at: Date.now(),
+      draft,
+    };
+    sessionStorage.setItem(STOREFRONT_CART_DRAFT_KEY, JSON.stringify(record));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadStorefrontCartDraft(handoff: string): StorefrontCartDraft | null {
+  if (typeof window === "undefined") return null;
+  const expected = handoff.trim();
+  if (!expected) return null;
+  try {
+    const raw = sessionStorage.getItem(STOREFRONT_CART_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StorefrontCartDraftRecord;
+    if (parsed.handoff !== expected || !parsed.draft || typeof parsed.draft !== "object") {
+      return null;
+    }
+    if (typeof parsed.at === "number" && Date.now() - parsed.at > STOREFRONT_CART_DRAFT_TTL_MS) {
+      sessionStorage.removeItem(STOREFRONT_CART_DRAFT_KEY);
+      return null;
+    }
+    return parsed.draft;
+  } catch {
+    return null;
+  }
+}
+
+export function clearStorefrontCartDraft(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(STOREFRONT_CART_DRAFT_KEY);
   } catch {
     // ignore
   }

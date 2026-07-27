@@ -127,7 +127,7 @@ export function OrderSummary({
   const summaryBusy = quoteSummaryLoading || (quoteInitialLoading && !authoritativeTotals);
 
   return (
-    <div className="bg-white border border-border rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
       <div className="px-5 pt-5 pb-4 border-b border-border">
         <h2 className="text-base font-bold text-foreground">Order summary</h2>
       </div>
@@ -253,12 +253,12 @@ export function OrderSummary({
         )}
       </div>
 
-      {/* CTA */}
+      {/* CTA — desktop only; mobile uses the fixed bottom action bar */}
       <div className="px-5 pb-5 pt-2">
         <Button
           type={step === 2 && customerFormId ? "submit" : "button"}
           form={step === 2 ? customerFormId : undefined}
-          className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-sm transition-all"
+          className="hidden lg:inline-flex w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-sm transition-all"
           onClick={step === 1 ? onContinue : undefined}
           disabled={isContinueLoading || summaryBusy || continueDisabled}
         >

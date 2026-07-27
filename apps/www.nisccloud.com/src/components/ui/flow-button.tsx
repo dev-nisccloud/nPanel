@@ -11,7 +11,8 @@ interface FlowButtonProps {
    * "outline"  transparent resting, primary circle on hover              (Login)
    */
   variant?: "filled" | "outline";
-  icon?: LucideIcon;
+  /** Pass `null` to hide icons entirely. Defaults to ArrowRight. */
+  icon?: LucideIcon | null;
 }
 
 export function FlowButton({
@@ -20,9 +21,11 @@ export function FlowButton({
   className,
   size = "md",
   variant = "outline",
-  icon: Icon = ArrowRight,
+  icon = ArrowRight,
 }: FlowButtonProps) {
   const isFilled = variant === "filled";
+  const Icon = icon ?? null;
+  const showIcon = Icon != null;
 
   return (
     <button
@@ -39,16 +42,22 @@ export function FlowButton({
       )}
     >
       {/* Leading icon  slides in from off-screen left */}
-      <Icon
-        className="absolute w-4 h-4 left-[-25%] z-[9] stroke-current
-          group-hover:left-5
-          transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-      />
+      {showIcon && (
+        <Icon
+          className="absolute w-4 h-4 left-[-25%] z-[9] stroke-current
+            group-hover:left-5
+            transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+        />
+      )}
 
       {/* Text */}
       <span
-        className="relative z-[1] -translate-x-2 group-hover:translate-x-4
-          transition-all duration-[800ms] ease-out"
+        className={cn(
+          "relative z-[1] transition-all duration-[800ms] ease-out",
+          showIcon
+            ? "-translate-x-2 group-hover:translate-x-4"
+            : "translate-x-0",
+        )}
       >
         {text}
       </span>
@@ -65,11 +74,13 @@ export function FlowButton({
       />
 
       {/* Trailing icon  slides out off-screen right */}
-      <Icon
-        className="absolute w-4 h-4 right-5 z-[9] stroke-current
-          group-hover:right-[-25%]
-          transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-      />
+      {showIcon && (
+        <Icon
+          className="absolute w-4 h-4 right-5 z-[9] stroke-current
+            group-hover:right-[-25%]
+            transition-all duration-[800ms] ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+        />
+      )}
     </button>
   );
 }
