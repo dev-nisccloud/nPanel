@@ -9,6 +9,7 @@ import {
   isSessionReauthRequired,
 } from "@npanel/auth/session-cache";
 import { handleIpAnomaly } from "@npanel/auth/session-security";
+import { isImpersonatedSession } from "@npanel/auth/impersonation";
 import { getRootRedirectTargetFromHeaders } from "@npanel/auth/root-redirect-target";
 import { and, db, desc, eq, gt, isNull } from "@npanel/db";
 import {
@@ -300,7 +301,13 @@ export function registerAuthCustomRoutes(app: Hono) {
         throw err;
       });
       let redirect = typeof target === "string" && target ? target : FALLBACK_REDIRECT;
-      if (sessionRecord?.id && sessionRecord.userId) {
+      if (
+        sessionRecord?.id &&
+        sessionRecord.userId &&
+        !isImpersonatedSession(
+          sessionRecord as { impersonatedBy?: string | null },
+        )
+      ) {
         const mfaState = await getMfaStateForUser(sessionRecord.userId);
         if (mfaState.enabled) {
           const verified = await isSessionMfaVerified(sessionRecord.id, true);

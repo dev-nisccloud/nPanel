@@ -21,6 +21,7 @@ import { CART_RESCUE_SCRIPT } from "@npanel/cart-store";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
 import { SessionLifetimeGuard } from "@/components/session-lifetime-guard";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
@@ -99,6 +100,7 @@ export default function App() {
         >
           <PreferencesStoreProvider themeMode={DEFAULT_THEME_MODE} themePreset={DEFAULT_THEME_PRESET}>
             <CartStorageSync />
+            <ImpersonationBanner />
             <Suspense fallback={<RootLoading />}>
               <Outlet />
             </Suspense>

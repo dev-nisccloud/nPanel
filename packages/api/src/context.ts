@@ -4,6 +4,7 @@ import {
   handleIpAnomaly,
   resolveReauthRequired,
 } from "@npanel/auth/session-security";
+import { isImpersonatedSession } from "@npanel/auth/impersonation";
 import {
   getRequestBrowserOrigin,
   isAllowedStorefrontBrowserRequest,
@@ -216,11 +217,16 @@ export async function createContext({
   let reauthRequired = false;
   const sessionUserId = session?.user?.id;
   const activeSessionId = session?.session?.id;
+  const impersonating = isImpersonatedSession(
+    session?.session as { impersonatedBy?: string | null } | undefined,
+  );
   if (
     typeof sessionUserId === "string" &&
     sessionUserId.length > 0 &&
     typeof activeSessionId === "string" &&
-    activeSessionId.length > 0
+    activeSessionId.length > 0 &&
+    // Impersonation must not require the customer's MFA / password re-auth.
+    !impersonating
   ) {
     const mfaState = await resolveMfaContextState(sessionUserId, activeSessionId);
     mfaRequired = mfaState.mfaRequired;

@@ -22,6 +22,9 @@ import { trpc } from "@/utils/trpc";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { z } from "zod";
 import { clientSchema } from "./agency.clients/_components/schema";
+import { authClient } from "@/lib/auth-client";
+import { redirectToTarget } from "@/lib/auth-redirect";
+import { useQueryClient } from "@tanstack/react-query";
 
 const EmptyState = ({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) => (
   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -33,8 +36,22 @@ const EmptyState = ({ title, description, action }: { title: string; description
 
 export default function ClientsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: session } = authClient.useSession();
+  const isSuperAdmin =
+    (session?.user as { role?: string } | undefined)?.role === "AGENCY_SUPER_ADMIN";
   const [isCreateSheetOpen, setIsCreateSheetOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [loginAsPending, setLoginAsPending] = React.useState(false);
+  const [loginAsDialog, setLoginAsDialog] = React.useState<{
+    open: boolean;
+    clientId: string | null;
+    clientLabel: string;
+  }>({
+    open: false,
+    clientId: null,
+    clientLabel: "",
+  });
   const [statusChangeDialog, setStatusChangeDialog] = React.useState<{
     open: boolean;
     clientId: string | null;
@@ -108,6 +125,41 @@ export default function ClientsPage() {
     if (statusChangeDialog.clientId && statusChangeDialog.status) {
       changeStatusMutation.mutate({ userId: statusChangeDialog.clientId, status: statusChangeDialog.status });
       setStatusChangeDialog({ open: false, clientId: null, status: null, action: "" });
+    }
+  };
+
+  const handleLoginAsCustomer = (id: string) => {
+    if (!isSuperAdmin) {
+      toast.error("Only agency super admins can login as a customer");
+      return;
+    }
+    const client = clients?.find((c) => c.id === id);
+    setLoginAsDialog({
+      open: true,
+      clientId: id,
+      clientLabel: client?.email || client?.name || "this customer",
+    });
+  };
+
+  const confirmLoginAsCustomer = async () => {
+    if (!loginAsDialog.clientId || loginAsPending) return;
+    setLoginAsPending(true);
+    try {
+      const result = await authClient.admin.impersonateUser({
+        userId: loginAsDialog.clientId,
+      });
+      if (result.error) {
+        throw new Error(result.error.message || "Failed to login as customer");
+      }
+      // Full page reload to avoid race conditions with React state/layout redirects.
+      // The root route will see the impersonated session and send user to customer dashboard.
+      window.location.href = "/";
+    } catch (error: unknown) {
+      console.error("Login as customer failed:", error);
+      setLoginAsPending(false);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to login as customer",
+      );
     }
   };
 
@@ -191,7 +243,9 @@ export default function ClientsPage() {
           ) : (
             <ClientsTable
               data={transformedClients}
+              canLoginAsCustomer={isSuperAdmin}
               onView={handleView}
+              onLoginAsCustomer={handleLoginAsCustomer}
               onDeactivate={(id) => handleStatusChange(id, "DEACTIVATED", "deactivate")}
               onReactivate={(id) => handleStatusChange(id, "ACTIVE", "reactivate")}
               onBan={(id) => handleStatusChange(id, "BANNED", "ban")}
@@ -208,6 +262,45 @@ export default function ClientsPage() {
         onOpenChange={setIsCreateSheetOpen}
         onSuccess={handleSuccess}
       />
+
+      <AlertDialog
+        open={loginAsDialog.open}
+        onOpenChange={(open) => {
+          if (loginAsPending) return;
+          setLoginAsDialog({ open, clientId: null, clientLabel: "" });
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Login as customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will open the customer dashboard as{" "}
+              <span className="font-medium text-foreground">{loginAsDialog.clientLabel}</span>.
+              Their security alerts and MFA will not be triggered. Your agency session is
+              restored when you choose Return to agency.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loginAsPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmLoginAsCustomer();
+              }}
+              disabled={loginAsPending}
+            >
+              {loginAsPending ? (
+                <>
+                  <Spinner variant="ellipsis" className="size-4 mr-2" />
+                  Logging in…
+                </>
+              ) : (
+                "Login as customer"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={statusChangeDialog.open}
