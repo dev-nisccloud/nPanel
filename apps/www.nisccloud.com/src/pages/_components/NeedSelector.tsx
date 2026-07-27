@@ -58,7 +58,7 @@ const tabs: Tab[] = [
     highlight: "more doors.",
     subtext:
       "We shape your look, message, and website so people understand you fast and trust you enough to buy.",
-    image: niscWebsiteImage("website design.png"),
+    image: niscWebsiteImage("website_design.png"),
     primaryCta: { label: "Start my brand project", href: "/contact" },
     features: [
       { icon: Target, label: "Brand Strategy & Positioning", desc: "From KES 15,000", href: "/services/brand-identity" },
@@ -161,7 +161,7 @@ function TabVisual({ tabs, activeTab }: { tabs: Tab[]; activeTab: number }) {
   }, []);
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] sm:aspect-[5/4] lg:aspect-auto lg:min-h-full">
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.75rem] bg-muted/20">
       {tabs.map((t, i) =>
         loadedTabs.has(i) ? (
           <img
@@ -174,7 +174,7 @@ function TabVisual({ tabs, activeTab }: { tabs: Tab[]; activeTab: number }) {
             loading={i === 0 ? "eager" : "lazy"}
             fetchPriority={i === 0 ? "high" : "low"}
             className={cn(
-              "absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ease-out",
+              "absolute inset-0 h-full w-full object-contain object-center transition-opacity duration-300 ease-out",
               i === activeTab ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           />
@@ -334,7 +334,7 @@ export default function NeedSelector() {
             </button>
           </div>
 
-          <div className="order-2 lg:order-2">
+          <div className="order-2 flex items-center lg:order-2">
             <TabVisual tabs={tabs} activeTab={activeTab} />
           </div>
         </div>
