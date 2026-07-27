@@ -171,7 +171,7 @@ function buildLivePlan(
   const monthlyPrice = parseFloat(pick.niscPrice ?? "0") || 0;
   const yearlyPrice = yearlyPick
     ? parseFloat(yearlyPick.niscPrice ?? "0") || 0
-    : Math.round(monthlyPrice * 12 * 0.8);
+    : Math.round(monthlyPrice * 12);
 
   const feats: FeatureRow[] =
     data.productFeatures.length && pick.featureValues.length

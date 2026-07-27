@@ -17,7 +17,7 @@ export default function Index() {
       <Hero />
       <NeedSelector />
       {/* <Stats /> */}
-      <DomainSearch />
+      <DomainSearch compact />
       <PainAgitation />
       <AtomApproach />
       <BentoFeatures />

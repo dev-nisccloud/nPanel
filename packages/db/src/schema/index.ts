@@ -21,6 +21,7 @@ export * from "./payment-transactions";
 export * from "./quotations";
 export * from "./reporting";
 export * from "./seo-reports";
+export * from "./seo-suite";
 export * from "./service-subscriptions";
 export * from "./social-media-marketing";
 export * from "./domain-transfer-requests";

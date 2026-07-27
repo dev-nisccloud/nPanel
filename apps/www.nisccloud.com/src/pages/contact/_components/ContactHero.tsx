@@ -2,48 +2,43 @@ import { motion } from "motion/react";
 
 export default function ContactHero() {
   return (
-    <section className="relative pt-32 pb-12 overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            "linear-gradient(oklch(0.72 0.2 210) 1px, transparent 1px), linear-gradient(90deg, oklch(0.72 0.2 210) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 0%, oklch(0.18 0.06 230 / 0.5) 0%, transparent 70%)",
-        }}
-      />
-      <div className="max-w-4xl mx-auto px-4 md:px-8 text-center relative">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
+    <section className="relative overflow-hidden pt-28 pb-10 md:pt-32 md:pb-12">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 0%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 70%)",
+          }}
+        />
+      </div>
+
+      <div className="relative mx-auto max-w-3xl px-4 text-center md:px-8">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-1.5 text-xs text-primary font-mono mb-6"
+          transition={{ duration: 0.4 }}
+          className="mb-3 text-sm font-semibold tracking-wide text-primary"
         >
-          GET IN TOUCH
-        </motion.div>
+          Contact
+        </motion.p>
         <motion.h1
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-5xl md:text-6xl font-bold tracking-tight mb-4 text-balance"
+          transition={{ duration: 0.45, delay: 0.05 }}
+          className="mb-3 text-balance text-3xl font-bold tracking-tight md:text-4xl"
         >
-          Tell Us What You Need.
-          <br />
-          <span className="text-primary">We Will Help You Grow.</span>
+          Tell us what you need.
+          <span className="text-primary"> We&apos;ll help you grow.</span>
         </motion.h1>
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-lg text-muted-foreground max-w-xl mx-auto"
+          transition={{ duration: 0.45, delay: 0.1 }}
+          className="mx-auto max-w-xl text-base text-muted-foreground"
         >
-          Share your goals and which services you need. We will follow up within 24 hours with a clear next step.
+          Share your goals and we&apos;ll follow up within 24 hours with a clear next step.
         </motion.p>
       </div>
     </section>

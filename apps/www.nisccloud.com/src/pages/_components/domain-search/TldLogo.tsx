@@ -8,7 +8,7 @@ const TLD_LOGO_IMAGES: Record<string, string> = {
   ".info": "/dot_info_logo.png",
 };
 
-const LOGO_SIZE = 56;
+const DEFAULT_LOGO_SIZE = 56;
 
 export type TldLogoVariant = "kenyan" | "openprovider";
 
@@ -16,23 +16,24 @@ interface TldLogoProps {
   tld: string;
   variant: TldLogoVariant;
   className?: string;
+  size?: number;
 }
 
-export function TldLogo({ tld, variant, className }: TldLogoProps) {
+export function TldLogo({ tld, variant, className, size = DEFAULT_LOGO_SIZE }: TldLogoProps) {
   const normalized = tld.startsWith(".") ? tld : `.${tld}`;
   const logoSrc = TLD_LOGO_IMAGES[normalized];
 
   if (logoSrc) {
     return (
       <div
-        className={`flex-shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center ${className ?? ""}`}
-        style={{ width: LOGO_SIZE, height: LOGO_SIZE }}
+        className={`flex-shrink-0 rounded-lg overflow-hidden flex items-center justify-center ${className ?? ""}`}
+        style={{ width: size, height: size }}
       >
         <img
           src={logoSrc}
           alt={normalized}
-          width={LOGO_SIZE}
-          height={LOGO_SIZE}
+          width={size}
+          height={size}
           className="h-full w-full object-contain"
         />
       </div>
@@ -48,8 +49,8 @@ export function TldLogo({ tld, variant, className }: TldLogoProps) {
       <div
         className={`flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner ${className ?? ""}`}
         style={{
-          width: LOGO_SIZE,
-          height: LOGO_SIZE,
+          width: size,
+          height: size,
           background: "linear-gradient(to bottom right, #006600, #BB0000, #000000)",
         }}
         title={normalized}
@@ -63,7 +64,7 @@ export function TldLogo({ tld, variant, className }: TldLogoProps) {
   return (
     <div
       className={`flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner bg-gradient-to-b from-blue-200 via-blue-100 to-blue-50 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-blue-900/30 ${className ?? ""}`}
-      style={{ width: LOGO_SIZE, height: LOGO_SIZE }}
+      style={{ width: size, height: size }}
       title={normalized}
       aria-hidden
     >

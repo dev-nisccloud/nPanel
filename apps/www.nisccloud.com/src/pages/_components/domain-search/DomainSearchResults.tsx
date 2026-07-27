@@ -1,6 +1,8 @@
 import * as React from "react";
-import { AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx";
 import {
   Tooltip,
@@ -22,6 +24,8 @@ export interface DomainSearchResultsProps {
   searchQuery: string;
   rawSearchQuery: string;
   error: string | null;
+  /** Homepage: promo cards only + CTA to full domains search */
+  compact?: boolean;
   onLoadingChange?: (loading: boolean) => void;
   isDomainInCart: (domain: string) => boolean;
   onAddToCart: (result: DomainSearchResult) => void;
@@ -40,6 +44,7 @@ export function DomainSearchResults({
   searchQuery,
   rawSearchQuery,
   error,
+  compact = false,
   onLoadingChange,
   isDomainInCart,
   onAddToCart,
@@ -149,7 +154,20 @@ export function DomainSearchResults({
         </section>
       )}
 
-      {searchQuery && searchQuery.trim().length > 0 && (
+      {compact && searchQuery.trim().length > 0 && (
+        <div className="flex justify-center pt-2 pb-4">
+          <Button asChild size="lg" className="rounded-xl cursor-pointer">
+            <Link
+              to={`/hosting/domains?search=${encodeURIComponent(rawSearchQuery.trim() || searchQuery.trim())}#domain-search`}
+            >
+              View more domains
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {!compact && searchQuery && searchQuery.trim().length > 0 && (
         <section className="mb-8">
           <h3 className="text-base font-semibold tracking-tight text-card-foreground mb-3">
             More options

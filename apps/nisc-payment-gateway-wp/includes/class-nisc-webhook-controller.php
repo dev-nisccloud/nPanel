@@ -66,6 +66,28 @@ final class Nisc_PG_Webhook_Controller {
 			);
 		}
 
+		// Connection tests / simulator payments: accept + preview, never touch orders.
+		if ( Nisc_PG_Test_Service::is_test_payload( $payload ) ) {
+			$entry = Nisc_PG_Test_Service::record_incoming_webhook(
+				$payload,
+				array(
+					'x-nisc-gateway-event'    => (string) $request->get_header( 'x-nisc-gateway-event' ),
+					'x-nisc-gateway-merchant' => (string) $request->get_header( 'x-nisc-gateway-merchant' ),
+					'x-nisc-gateway-signature'=> $signature ? 'present' : '',
+				)
+			);
+
+			return new WP_REST_Response(
+				array(
+					'received'     => true,
+					'test'         => true,
+					'orderUpdated' => false,
+					'previewId'    => $entry['id'],
+				),
+				200
+			);
+		}
+
 		$order = Nisc_PG_Order_Service::find_order_for_webhook( $payload );
 		if ( ! $order ) {
 			return new WP_Error(
@@ -79,8 +101,8 @@ final class Nisc_PG_Webhook_Controller {
 
 		return new WP_REST_Response(
 			array(
-				'received'  => true,
-				'orderId'   => $order->get_id(),
+				'received'    => true,
+				'orderId'     => $order->get_id(),
 				'orderStatus' => $order->get_status(),
 			),
 			200

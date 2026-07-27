@@ -8,16 +8,18 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { AlertCircle, ArrowUpRight } from "lucide-react";
+import { AlertCircle, ArrowUpRight, Circle, CheckCircle2, TrendingUp, TrendingDown, Wifi, WifiOff } from "lucide-react";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardMetricStats } from "@/components/dashboard-metric-stats";
 import { trpc } from "@/utils/trpc";
+import { cn } from "@/lib/utils";
 
 const REALTIME_QUERY_OPTIONS = {
 	placeholderData: (prev: unknown) => prev,
@@ -32,12 +34,40 @@ const ALL_TIME_REPORT_FILTERS = {
 
 const METRIC_CARD_LINKS = [
 	{ label: "Domains", href: "/agency/domains-portfolio" },
-	{ label: "Orders", href: "/agency/nisc-service-orders" },
+	{ label: "Tickets", href: "#", openFloatingActionMenu: true },
+	{ label: "Products", href: "/agency/products" },
 	{ label: "Invoices", href: "/agency/invoices" },
-	{ label: "Subscriptions", href: "/agency/subscriptions" },
+	{ label: "Quotations", href: "/agency/quotations" },
+	{ label: "Orders", href: "/agency/nisc-service-orders" },
+	{ label: "Transactions", href: "/agency/payment-transactions" },
+	{ label: "Media Buying", href: "/agency/ad-campaigns" },
+	{ label: "Hosting", href: "/agency/hosting" },
+	{ label: "Balance", href: "#" },
 ] as const;
 
-function MetricCardLink({ href, label }: { href: string; label: string }) {
+interface MetricCardLinkProps {
+	href: string;
+	label: string;
+	openFloatingActionMenu?: boolean;
+}
+
+function MetricCardLink({ href, label, openFloatingActionMenu }: MetricCardLinkProps) {
+	if (openFloatingActionMenu) {
+		return (
+			<button
+				onClick={() => {
+					// This will open the floating action menu to the tickets tab
+					const fab = document.querySelector('[aria-label="Open support"]') as HTMLButtonElement;
+					if (fab) fab.click();
+				}}
+				className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+			>
+				{label}
+				<ArrowUpRight className="h-3.5 w-3.5" />
+			</button>
+		);
+	}
+
 	return (
 		<Link
 			to={href}
@@ -51,8 +81,8 @@ function MetricCardLink({ href, label }: { href: string; label: string }) {
 
 function MetricCardsSkeleton() {
 	return (
-		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-			{[1, 2, 3, 4].map((i) => (
+		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @3xl/main:grid-cols-3 @6xl/main:grid-cols-4">
+			{[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
 				<Card key={i} className="@container/card">
 					<CardHeader>
 						<Skeleton className="h-4 w-24" />
@@ -69,6 +99,7 @@ function MetricCardsSkeleton() {
 }
 
 export function MetricCards() {
+	// Domains
 	const {
 		data: openProviderDomains,
 		isLoading: isOpenProviderLoading,
@@ -93,27 +124,60 @@ export function MetricCards() {
 		},
 	);
 
+	// Tickets
+	const { data: ticketsSummary, isLoading: isTicketsLoading, isError: isTicketsError } =
+		trpc.tickets.getSummary.useQuery(undefined, REALTIME_QUERY_OPTIONS);
+
+	// Products & Services
+	const { data: productsSummary, isLoading: isProductsLoading, isError: isProductsError } =
+		trpc.products.getSummary.useQuery(undefined, REALTIME_QUERY_OPTIONS);
+
+	// Invoices with KRA sync
+	const { data: invoicesSummary, isLoading: isInvoicesLoading, isError: isInvoicesError } =
+		trpc.niscReports.invoices.statusSummaryWithKra.useQuery(
+			ALL_TIME_REPORT_FILTERS,
+			REALTIME_QUERY_OPTIONS,
+		);
+
+	// Quotations
+	const { data: quotationsSummary, isLoading: isQuotationsLoading, isError: isQuotationsError } =
+		trpc.quotations.getSummary.useQuery(undefined, REALTIME_QUERY_OPTIONS);
+
+	// OpenProvider Balance
+	const { data: openProviderBalance, isLoading: isBalanceLoading, isError: isBalanceError } =
+		trpc.openProvider.reseller.getBalance.useQuery(undefined, {
+			...REALTIME_QUERY_OPTIONS,
+			retry: false,
+		});
+
+	// Media Buying Platforms
+	const { data: mediaBuyingPlatforms, isLoading: isMediaBuyingLoading, isError: isMediaBuyingError } =
+		trpc.agencyDashboard.getMediaBuyingPlatforms.useQuery(undefined, REALTIME_QUERY_OPTIONS);
+
+	// Hosting Subscriptions
+	const { data: hostingSubscriptions, isLoading: isHostingLoading, isError: isHostingError } =
+		trpc.agencyDashboard.getHostingSubscriptions.useQuery(undefined, REALTIME_QUERY_OPTIONS);
+
+	// Transactions
+	const { data: transactionsSummary, isLoading: isTransactionsLoading, isError: isTransactionsError } =
+		trpc.paymentTransactions.getSummary.useQuery(undefined, REALTIME_QUERY_OPTIONS);
+
+	// Orders
 	const { data: ordersSummary, isLoading: isOrdersLoading, isError: isOrdersError } =
 		trpc.niscServiceOrders.getSummary.useQuery(undefined, REALTIME_QUERY_OPTIONS);
-
-	const { data: invoiceStatuses, isLoading: isInvoicesLoading, isError: isInvoicesError } =
-		trpc.niscReports.invoices.statusSummary.useQuery(
-			ALL_TIME_REPORT_FILTERS,
-			REALTIME_QUERY_OPTIONS,
-		);
-
-	const { data: subscriptionStatuses, isLoading: isSubsLoading, isError: isSubsError } =
-		trpc.niscReports.subscriptions.statusSummary.useQuery(
-			ALL_TIME_REPORT_FILTERS,
-			REALTIME_QUERY_OPTIONS,
-		);
 
 	const isLoading =
 		isOpenProviderLoading ||
 		isKenicLoading ||
-		isOrdersLoading ||
+		isTicketsLoading ||
+		isProductsLoading ||
 		isInvoicesLoading ||
-		isSubsLoading;
+		isQuotationsLoading ||
+		isBalanceLoading ||
+		isMediaBuyingLoading ||
+		isHostingLoading ||
+		isTransactionsLoading ||
+		isOrdersLoading;
 
 	if (isLoading) {
 		return <MetricCardsSkeleton />;
@@ -149,33 +213,46 @@ export function MetricCards() {
 			? "N/A"
 			: Number(domainsTotal) - Number(domainsExpired);
 
-	// Orders: Nisc service orders summary
+	// Tickets
+	const ticketsTotal = isTicketsError ? "N/A" : (ticketsSummary?.total ?? 0);
+	const ticketsOpen = isTicketsError ? "N/A" : (ticketsSummary?.openTotal ?? 0);
+	const ticketsClosed = isTicketsError ? "N/A" : (ticketsSummary?.closedTotal ?? 0);
+
+	// Products
+	const productsTotal = isProductsError ? "N/A" : (productsSummary?.total ?? 0);
+	const productsKraSynced = isProductsError ? "N/A" : (productsSummary?.kraSynced ?? 0);
+	const productsNoKraSync = isProductsError ? "N/A" : (productsSummary?.noKraSync ?? 0);
+
+	// Invoices
+	const invoicesTotal = isInvoicesError ? "N/A" : (invoicesSummary?.total ?? 0);
+	const invoicesKraSynced = isInvoicesError ? "N/A" : (invoicesSummary?.kraSynced ?? 0);
+	const invoicesNotSynced = isInvoicesError ? "N/A" : (invoicesSummary?.kraNotSynced ?? 0);
+
+	// Quotations
+	const quotationsTotal = isQuotationsError ? "N/A" : (quotationsSummary?.total ?? 0);
+	const quotationsPending = isQuotationsError ? "N/A" : (quotationsSummary?.pending ?? 0);
+	const quotationsClosed = isQuotationsError ? "N/A" : (quotationsSummary?.closed ?? 0);
+
+	// OpenProvider Balance
+	const balance = isBalanceError ? "N/A" : `$${(openProviderBalance?.balance ?? 0).toFixed(2)}`;
+
+	// Hosting
+	const hostingTotal = isHostingError ? "N/A" : (hostingSubscriptions?.total ?? 0);
+	const hostingActive = isHostingError ? "N/A" : (hostingSubscriptions?.active ?? 0);
+	const hostingSuspended = isHostingError ? "N/A" : (hostingSubscriptions?.suspended ?? 0);
+
+	// Orders
 	const ordersTotal = isOrdersError ? "N/A" : (ordersSummary?.total ?? 0);
 	const ordersCompleted = isOrdersError ? "N/A" : (ordersSummary?.completed ?? 0);
 	const ordersFailed = isOrdersError ? "N/A" : (ordersSummary?.failed ?? 0);
 
-	// Invoices: Nisc invoice table
-	const invoicesTotal = isInvoicesError
-		? "N/A"
-		: (invoiceStatuses?.reduce((sum, row) => sum + row.count, 0) ?? 0);
-	const invoicesPaid = isInvoicesError
-		? "N/A"
-		: (invoiceStatuses?.find((row) => row.status === "PAID")?.count ?? 0);
-	const invoicesUnpaid = isInvoicesError
-		? "N/A"
-		: Number(invoicesTotal) - Number(invoicesPaid);
-
-	// Subscriptions: Nisc client subscriptions table
-	const subsTotal = isSubsError
-		? "N/A"
-		: (subscriptionStatuses?.reduce((sum, row) => sum + row.count, 0) ?? 0);
-	const subsActive = isSubsError
-		? "N/A"
-		: (subscriptionStatuses?.find((row) => row.status === "ACTIVE")?.count ?? 0);
-	const subsOther = isSubsError ? "N/A" : Number(subsTotal) - Number(subsActive);
+	// Transactions
+	const transactionsTotal = isTransactionsError ? "N/A" : (transactionsSummary?.total ?? 0);
+	const transactionsSuccess = isTransactionsError ? "N/A" : (transactionsSummary?.success ?? 0);
+	const transactionsFailed = isTransactionsError ? "N/A" : (transactionsSummary?.failed ?? 0);
 
 	return (
-		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @3xl/main:grid-cols-3 @6xl/main:grid-cols-4">
 			{/* 1. Domains */}
 			<Card className="@container/card relative">
 				{(isOpenProviderError || isKenicError) && (
@@ -227,7 +304,179 @@ export function MetricCards() {
 				</CardFooter>
 			</Card>
 
-			{/* 2. Orders */}
+			{/* 2. Tickets */}
+			<Card className="@container/card relative">
+				{isTicketsError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load tickets summary.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Tickets</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{ticketsTotal}
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<DashboardMetricStats
+						items={[
+							{
+								label: "Open",
+								value: ticketsOpen,
+								variant: isTicketsError ? "muted" : "negative",
+							},
+							{
+								label: "Closed",
+								value: ticketsClosed,
+								variant: isTicketsError ? "muted" : "positive",
+							},
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...METRIC_CARD_LINKS[1]} />
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 3. Products & Services */}
+			<Card className="@container/card relative">
+				{isProductsError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load products summary.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Products & Services</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{productsTotal}
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<DashboardMetricStats
+						items={[
+							{
+								label: "KRA Synced",
+								value: productsKraSynced,
+								variant: isProductsError ? "muted" : "positive",
+							},
+							{
+								label: "No KRA Sync",
+								value: productsNoKraSync,
+								variant: isProductsError ? "muted" : "muted",
+							},
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...METRIC_CARD_LINKS[2]} />
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 4. Invoices */}
+			<Card className="@container/card relative">
+				{isInvoicesError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load invoices.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Invoices</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{invoicesTotal}
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<DashboardMetricStats
+						items={[
+							{
+								label: "KRA Synced",
+								value: invoicesKraSynced,
+								variant: isInvoicesError ? "muted" : "positive",
+							},
+							{
+								label: "Not Synced",
+								value: invoicesNotSynced,
+								variant: isInvoicesError ? "muted" : "negative",
+							},
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...METRIC_CARD_LINKS[3]} />
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 5. Quotations */}
+			<Card className="@container/card relative">
+				{isQuotationsError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load quotations.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Quotations</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{quotationsTotal}
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<DashboardMetricStats
+						items={[
+							{
+								label: "Pending",
+								value: quotationsPending,
+								variant: isQuotationsError ? "muted" : "muted",
+							},
+							{
+								label: "Closed",
+								value: quotationsClosed,
+								variant: isQuotationsError ? "muted" : "positive",
+							},
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...METRIC_CARD_LINKS[4]} />
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 6. Orders */}
 			<Card className="@container/card relative">
 				{isOrdersError && (
 					<div className="absolute top-2 right-2">
@@ -265,14 +514,14 @@ export function MetricCards() {
 						]}
 					/>
 					<div className="text-muted-foreground">
-						<MetricCardLink {...METRIC_CARD_LINKS[1]} />
+						<MetricCardLink {...METRIC_CARD_LINKS[5]} />
 					</div>
 				</CardFooter>
 			</Card>
 
-			{/* 3. Invoices */}
+			{/* 7. Transactions */}
 			<Card className="@container/card relative">
-				{isInvoicesError && (
+				{isTransactionsError && (
 					<div className="absolute top-2 right-2">
 						<TooltipProvider>
 							<Tooltip>
@@ -280,42 +529,42 @@ export function MetricCards() {
 									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
 								</TooltipTrigger>
 								<TooltipContent>
-									<p>Failed to load Nisc invoices.</p>
+									<p>Failed to load payment transactions summary.</p>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
 					</div>
 				)}
 				<CardHeader>
-					<CardDescription>Invoices</CardDescription>
+					<CardDescription>Transactions</CardDescription>
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{invoicesTotal}
+						{transactionsTotal}
 					</CardTitle>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<DashboardMetricStats
 						items={[
 							{
-								label: "Paid",
-								value: invoicesPaid,
-								variant: isInvoicesError ? "muted" : "positive",
+								label: "Success",
+								value: transactionsSuccess,
+								variant: isTransactionsError ? "muted" : "positive",
 							},
 							{
-								label: "Unpaid",
-								value: invoicesUnpaid,
-								variant: isInvoicesError ? "muted" : "negative",
+								label: "Failed",
+								value: transactionsFailed,
+								variant: isTransactionsError ? "muted" : "negative",
 							},
 						]}
 					/>
 					<div className="text-muted-foreground">
-						<MetricCardLink {...METRIC_CARD_LINKS[2]} />
+						<MetricCardLink {...METRIC_CARD_LINKS[6]} />
 					</div>
 				</CardFooter>
 			</Card>
 
-			{/* 4. Subscriptions */}
+			{/* 8. OpenProvider Balance */}
 			<Card className="@container/card relative">
-				{isSubsError && (
+				{isBalanceError && (
 					<div className="absolute top-2 right-2">
 						<TooltipProvider>
 							<Tooltip>
@@ -323,16 +572,96 @@ export function MetricCards() {
 									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
 								</TooltipTrigger>
 								<TooltipContent>
-									<p>Failed to load Nisc subscriptions.</p>
+									<p>Failed to load OpenProvider balance.</p>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
 					</div>
 				)}
 				<CardHeader>
-					<CardDescription>Subscriptions</CardDescription>
+					<CardDescription>OpenProvider Balance</CardDescription>
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{subsTotal}
+						{balance}
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<div className="text-xs text-muted-foreground">
+						Reseller account balance
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 9. Media Buying */}
+			<Card className="@container/card relative">
+				{isMediaBuyingError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load media buying platforms.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Media Buying</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{isMediaBuyingError ? "N/A" : mediaBuyingPlatforms?.totalConnected ?? 0}
+						<span className="text-sm font-normal text-muted-foreground ml-2">
+							/ {isMediaBuyingError ? "N/A" : mediaBuyingPlatforms?.platforms.length ?? 0}
+						</span>
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-2 text-sm">
+					<div className="flex flex-wrap gap-1.5">
+						{!isMediaBuyingError && mediaBuyingPlatforms?.platforms.map((platform) => (
+							<Badge
+								key={platform.key}
+								variant={platform.connected ? "default" : "secondary"}
+								className={cn(
+									"flex items-center gap-1 text-xs",
+									platform.connected && "bg-emerald-600 hover:bg-emerald-700",
+								)}
+							>
+								{platform.connected ? (
+									<Wifi className="h-3 w-3" />
+								) : (
+									<WifiOff className="h-3 w-3" />
+								)}
+								{platform.name}
+							</Badge>
+						))}
+					</div>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...METRIC_CARD_LINKS[7]} />
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 10. Hosting Subscriptions */}
+			<Card className="@container/card relative">
+				{isHostingError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load hosting subscriptions.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Hosting Subscriptions</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{hostingTotal}
 					</CardTitle>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
@@ -340,18 +669,18 @@ export function MetricCards() {
 						items={[
 							{
 								label: "Active",
-								value: subsActive,
-								variant: isSubsError ? "muted" : "positive",
+								value: hostingActive,
+								variant: isHostingError ? "muted" : "positive",
 							},
 							{
-								label: "Pending/Expired",
-								value: subsOther,
-								variant: isSubsError ? "muted" : "negative",
+								label: "Suspended",
+								value: hostingSuspended,
+								variant: isHostingError ? "muted" : "negative",
 							},
 						]}
 					/>
 					<div className="text-muted-foreground">
-						<MetricCardLink {...METRIC_CARD_LINKS[3]} />
+						<MetricCardLink {...METRIC_CARD_LINKS[8]} />
 					</div>
 				</CardFooter>
 			</Card>

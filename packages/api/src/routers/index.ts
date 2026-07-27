@@ -82,6 +82,7 @@ import { paymentGatewayRouter } from "./payment-gateway";
 import { paymentTransactionsRouter } from "./payment-transactions";
 import { pagespeedInsightsRouter } from "./pagespeed-insights";
 import { seoReportsRouter } from "./seo-reports";
+import { seoSuiteRouter } from "./seo-suite";
 import { emailMarketingRouter } from "./email-marketing";
 import { niscEmailMarketingRouter } from "./nisc-email-marketing";
 import { niscEmailBuilderRouter } from "./nisc-email-builder";
@@ -99,6 +100,7 @@ import { subscriptionUsageRouter } from "./subscription-usage";
 import { niscServiceOrdersRouter } from "./nisc-service-orders";
 import { publicPricingRouter } from "./public-pricing";
 import { agencyRbacRouter } from "./agency-rbac";
+import { agencyDashboardRouter } from "./agency-dashboard";
 import { hivelocityRouter } from "./hivelocity";
 import { hivelocityPricingSettingsRouter } from "./hivelocity-pricing-settings";
 import { cronWorkflowRunRouter } from "./cron-workflow-run";
@@ -274,6 +276,8 @@ export const appRouter = router({
 	pagespeedInsights: pagespeedInsightsRouter,
 	// SEO Reports
 	seoReports: seoReportsRouter,
+	// SEO Suite (DataForSEO)
+	seoSuite: seoSuiteRouter,
 	// Email Marketing (Resend Integration)
 	emailMarketing: emailMarketingRouter,
 	// nisc Email Marketing (SES Integration - new, parallel)
@@ -308,6 +312,8 @@ export const appRouter = router({
 	publicPricing: publicPricingRouter,
 	// Agency RBAC – roles and menu access
 	agencyRbac: agencyRbacRouter,
+	// Agency Dashboard – dashboard metrics and summaries
+	agencyDashboard: agencyDashboardRouter,
 	// Hivelocity integration (dedicated servers / VPS / VDS reseller)
 	hivelocity: hivelocityRouter,
 	// Hivelocity pricing (currency + margin shown in UI)

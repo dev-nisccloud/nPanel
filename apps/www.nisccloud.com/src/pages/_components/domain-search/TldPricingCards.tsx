@@ -1,17 +1,25 @@
-/** Extension showcase cards. Prices appear only after a domain search. */
+import { TldLogo } from "./TldLogo.tsx";
+
+/** Extension showcase row — TLD logos under the search bar. */
 export function TldPricingCards() {
-  const tlds = [".com", ".net", ".io", ".org", ".online", ".shop"];
+  const tlds: { tld: string; variant: "kenyan" | "openprovider" }[] = [
+    { tld: "co.ke", variant: "kenyan" },
+    { tld: "ke", variant: "kenyan" },
+    { tld: "com", variant: "openprovider" },
+    { tld: "net", variant: "openprovider" },
+    { tld: "org", variant: "openprovider" },
+    { tld: "io", variant: "openprovider" },
+  ];
 
   return (
     <div className="w-full mt-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {tlds.map((tld) => (
+        {tlds.map(({ tld, variant }) => (
           <div
             key={tld}
-            className="bg-card border border-border rounded-lg p-4 flex flex-col items-center justify-center text-center space-y-2"
+            className="border border-border rounded-lg p-4 flex items-center justify-center"
           >
-            <div className="font-bold text-lg text-foreground">{tld}</div>
-            <div className="text-xs text-muted-foreground">Search to see price</div>
+            <TldLogo tld={tld} variant={variant} size={72} />
           </div>
         ))}
       </div>
