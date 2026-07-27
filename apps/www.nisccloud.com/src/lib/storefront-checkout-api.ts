@@ -245,7 +245,7 @@ export type StorefrontCartDraft = {
     hivelocityPeriod: "monthly";
     locationName: string;
     hivelocityProductId: number;
-    productType: "vps" | "vds" | "dedicated";
+    productType: "DEDICATED_SERVERS" | "VPS" | "VDS";
   } | null;
 };
 
@@ -317,6 +317,15 @@ export function persistStorefrontCartDraft(
   }
 }
 
+const HIVELOCITY_DRAFT_PRODUCT_TYPES = new Set(["DEDICATED_SERVERS", "VPS", "VDS"]);
+
+function sanitizeStorefrontCartDraft(draft: StorefrontCartDraft): StorefrontCartDraft {
+  const config = draft.hivelocityConfig;
+  if (!config) return draft;
+  if (HIVELOCITY_DRAFT_PRODUCT_TYPES.has(config.productType)) return draft;
+  return { ...draft, hivelocityConfig: null };
+}
+
 export function loadStorefrontCartDraft(handoff: string): StorefrontCartDraft | null {
   if (typeof window === "undefined") return null;
   const expected = handoff.trim();
@@ -332,7 +341,7 @@ export function loadStorefrontCartDraft(handoff: string): StorefrontCartDraft | 
       sessionStorage.removeItem(STOREFRONT_CART_DRAFT_KEY);
       return null;
     }
-    return parsed.draft;
+    return sanitizeStorefrontCartDraft(parsed.draft);
   } catch {
     return null;
   }
