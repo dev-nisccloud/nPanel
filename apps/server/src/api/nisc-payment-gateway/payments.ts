@@ -94,34 +94,75 @@ paymentsRouter.post(
         credentials[0].encryptionVersion
       );
 
-      // TODO: Initiate M-Pesa STK push using mpesaCredentials
-      // For now, create a pending transaction
+      // Dynamically import the M-Pesa integration
+      const { initiateGatewayMpesaStkPush } = await import("@npanel/api/lib/nisc-payment-gateway-mpesa");
 
       const gatewayTransactionId = `gtx_${nanoid()}`;
-      const paymentTransactionId = `ptx_${nanoid()}`; // Would link to actual payment_transaction
 
-      const transaction = await db.insert(niscPaymentGatewayTransaction).values({
-        id: gatewayTransactionId,
-        merchantId: merchant.merchantId,
-        apiKeyId: apiKey.apiKeyId,
-        paymentTransactionId,
-        clientReferenceId: input.referenceId || null,
-        clientMetadata: input.metadata || null,
-        provider: "MPESA",
-        status: "PENDING",
-        webhookDeliveryStatus: "PENDING",
-        webhookDeliveryAttempts: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }).returning();
+      try {
+        // Initiate M-Pesa STK push
+        const stkResponse = await initiateGatewayMpesaStkPush(
+          mpesaCredentials,
+          apiKey.environment === "live" ? "PRODUCTION" : "SANDBOX",
+          merchant.merchantId,
+          {
+            amount: input.amount,
+            phoneNumber: input.phoneNumber,
+            accountReference: input.referenceId || gatewayTransactionId.slice(0, 12),
+            transactionDesc: input.description?.slice(0, 13) || "Payment",
+          }
+        );
 
-      res.status(201).json({
-        id: transaction[0].id,
-        status: transaction[0].status,
-        provider: transaction[0].provider,
-        referenceId: transaction[0].clientReferenceId,
-        createdAt: transaction[0].createdAt,
-      });
+        // Store transaction with M-Pesa checkout request ID
+        const transaction = await db.insert(niscPaymentGatewayTransaction).values({
+          id: gatewayTransactionId,
+          merchantId: merchant.merchantId,
+          apiKeyId: apiKey.apiKeyId,
+          paymentTransactionId: stkResponse.CheckoutRequestID,
+          clientReferenceId: input.referenceId || null,
+          clientMetadata: input.metadata || null,
+          provider: "MPESA",
+          status: "PROCESSING",
+          webhookDeliveryStatus: "PENDING",
+          webhookDeliveryAttempts: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).returning();
+
+        res.status(201).json({
+          id: transaction[0].id,
+          checkoutRequestId: stkResponse.CheckoutRequestID,
+          merchantRequestId: stkResponse.MerchantRequestID,
+          status: transaction[0].status,
+          provider: transaction[0].provider,
+          referenceId: transaction[0].clientReferenceId,
+          message: stkResponse.CustomerMessage || "STK push sent successfully",
+          createdAt: transaction[0].createdAt,
+        });
+      } catch (stkError: any) {
+        // Create a failed transaction record for tracking
+        await db.insert(niscPaymentGatewayTransaction).values({
+          id: gatewayTransactionId,
+          merchantId: merchant.merchantId,
+          apiKeyId: apiKey.apiKeyId,
+          paymentTransactionId: null,
+          clientReferenceId: input.referenceId || null,
+          clientMetadata: input.metadata || null,
+          provider: "MPESA",
+          status: "FAILED",
+          webhookDeliveryStatus: "NOT_CONFIGURED",
+          webhookDeliveryAttempts: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        res.status(400).json({
+          error: {
+            code: "STK_PUSH_FAILED",
+            message: stkError.message || "Failed to initiate M-Pesa STK push",
+          },
+        });
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({

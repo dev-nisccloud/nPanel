@@ -393,6 +393,88 @@ export default function MerchantDetailsPage() {
             </Card>
           </div>
 
+          {/* Webhook Configuration */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold">Webhook Configuration</CardTitle>
+                  <CardDescription className="text-xs">
+                    Endpoint for receiving payment notifications
+                  </CardDescription>
+                </div>
+                {(merchant.merchant.settings as any)?.webhookUrl && (
+                  <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-200 dark:border-green-800">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Configured
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {(merchant.merchant.settings as any)?.webhookUrl ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Webhook URL</p>
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                      <code className="text-xs flex-1 break-all font-mono">
+                        {(merchant.merchant.settings as any).webhookUrl}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => copyToClipboard((merchant.merchant.settings as any).webhookUrl, 'Webhook URL')}
+                      >
+                        {copiedField === 'Webhook URL' ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Registered At</p>
+                      <p className="font-medium">
+                        {(merchant.merchant.settings as any).webhookRegisteredAt
+                          ? format(
+                              new Date((merchant.merchant.settings as any).webhookRegisteredAt),
+                              "MMM d, yyyy HH:mm"
+                            )
+                          : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">M-Pesa Callback</p>
+                      <p className="font-medium font-mono text-xs">
+                        /api/nisc-gateway/webhooks/mpesa/{merchantId}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      <strong>Flow:</strong> M-Pesa → nPanel server (callback) → This webhook URL
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="rounded-full bg-muted p-3 mb-3">
+                    <Activity className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium">No webhook configured</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                    Merchant needs to register a webhook URL via API or WordPress plugin
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Stats */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card>
