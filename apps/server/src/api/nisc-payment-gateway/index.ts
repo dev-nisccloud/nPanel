@@ -516,11 +516,11 @@ export function createNiscPaymentGatewayRoutes() {
         id: gatewayTransactionId,
         merchantId: gateway.merchantId,
         apiKeyId: gateway.apiKeyId,
-        paymentTransactionId: internalTransactionId, // Link to internal payment transaction
+        paymentTransactionId: stkResponse.CheckoutRequestID, // CRITICAL: Must match M-Pesa CheckoutRequestID for webhook lookup
         clientReferenceId: input.referenceId || null,
         clientMetadata: input.metadata || null,
         provider: "MPESA",
-        status: "PENDING",
+        status: "PROCESSING", // Changed from PENDING to PROCESSING since STK was sent
         webhookDeliveryStatus: "PENDING",
         webhookDeliveryAttempts: 0,
         createdAt: now,

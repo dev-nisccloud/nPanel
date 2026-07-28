@@ -21,10 +21,41 @@ final class Nisc_PG_Webhook_Controller {
 			self::ROUTE_NAMESPACE,
 			self::ROUTE,
 			array(
-				'methods'             => 'POST',
-				'callback'            => array( self::class, 'handle' ),
-				'permission_callback' => '__return_true',
+				array(
+					'methods'             => 'POST',
+					'callback'            => array( self::class, 'handle' ),
+					'permission_callback' => '__return_true',
+				),
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( self::class, 'handle_get' ),
+					'permission_callback' => '__return_true',
+				),
 			)
+		);
+	}
+
+	/**
+	 * Handle GET requests to webhook endpoint (for testing/verification).
+	 *
+	 * @return WP_REST_Response
+	 */
+	public static function handle_get(): WP_REST_Response {
+		$secret = (string) get_option( 'nisc_pg_webhook_secret', '' );
+		$configured = '' !== $secret;
+
+		return new WP_REST_Response(
+			array(
+				'service'     => 'Nisc Payment Gateway Webhook',
+				'status'      => 'online',
+				'configured'  => $configured,
+				'message'     => $configured 
+					? 'Webhook endpoint is active and configured. Ready to receive POST callbacks.'
+					: 'Webhook endpoint is online but not configured. Connect your API key in WooCommerce settings.',
+				'timestamp'   => gmdate( 'c' ),
+				'version'     => NISC_PG_VERSION,
+			),
+			200
 		);
 	}
 
@@ -41,7 +72,19 @@ final class Nisc_PG_Webhook_Controller {
 		$signature = (string) $request->get_header( 'x-nisc-gateway-signature' );
 		$secret    = (string) get_option( 'nisc_pg_webhook_secret', '' );
 
+		self::log_webhook_attempt( 'incoming', array(
+			'has_body'      => ! empty( $raw ),
+			'body_length'   => strlen( $raw ),
+			'has_signature' => ! empty( $signature ),
+			'has_secret'    => ! empty( $secret ),
+			'headers'       => array(
+				'event'    => (string) $request->get_header( 'x-nisc-gateway-event' ),
+				'merchant' => (string) $request->get_header( 'x-nisc-gateway-merchant' ),
+			),
+		) );
+
 		if ( '' === $secret ) {
+			self::log_webhook_attempt( 'error', array( 'reason' => 'no_secret' ) );
 			return new WP_Error(
 				'nisc_pg_not_configured',
 				__( 'Webhook secret is not configured. Reconnect the gateway in settings.', 'nisc-payment-gateway' ),
@@ -50,6 +93,10 @@ final class Nisc_PG_Webhook_Controller {
 		}
 
 		if ( '' === $signature || ! self::verify_signature( $raw, $signature, $secret ) ) {
+			self::log_webhook_attempt( 'error', array(
+				'reason'         => 'invalid_signature',
+				'signature_sent' => ! empty( $signature ),
+			) );
 			return new WP_Error(
 				'nisc_pg_invalid_signature',
 				__( 'Invalid webhook signature.', 'nisc-payment-gateway' ),
@@ -59,6 +106,7 @@ final class Nisc_PG_Webhook_Controller {
 
 		$payload = json_decode( $raw, true );
 		if ( ! is_array( $payload ) ) {
+			self::log_webhook_attempt( 'error', array( 'reason' => 'invalid_json' ) );
 			return new WP_Error(
 				'nisc_pg_invalid_payload',
 				__( 'Invalid JSON payload.', 'nisc-payment-gateway' ),
@@ -77,6 +125,11 @@ final class Nisc_PG_Webhook_Controller {
 				)
 			);
 
+			self::log_webhook_attempt( 'success', array(
+				'type'      => 'test',
+				'previewId' => $entry['id'],
+			) );
+
 			return new WP_REST_Response(
 				array(
 					'received'     => true,
@@ -90,6 +143,10 @@ final class Nisc_PG_Webhook_Controller {
 
 		$order = Nisc_PG_Order_Service::find_order_for_webhook( $payload );
 		if ( ! $order ) {
+			self::log_webhook_attempt( 'error', array(
+				'reason'  => 'order_not_found',
+				'payload' => wp_json_encode( $payload ),
+			) );
 			return new WP_Error(
 				'nisc_pg_order_not_found',
 				__( 'Order not found for this payment.', 'nisc-payment-gateway' ),
@@ -99,6 +156,12 @@ final class Nisc_PG_Webhook_Controller {
 
 		Nisc_PG_Order_Service::apply_webhook_payload( $order, $payload );
 
+		self::log_webhook_attempt( 'success', array(
+			'type'        => 'order',
+			'orderId'     => $order->get_id(),
+			'orderStatus' => $order->get_status(),
+		) );
+
 		return new WP_REST_Response(
 			array(
 				'received'    => true,
@@ -107,6 +170,33 @@ final class Nisc_PG_Webhook_Controller {
 			),
 			200
 		);
+	}
+
+	/**
+	 * Log webhook attempts for debugging.
+	 *
+	 * @param string              $type Type of log entry.
+	 * @param array<string,mixed> $data Additional data.
+	 */
+	private static function log_webhook_attempt( string $type, array $data ): void {
+		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			return;
+		}
+
+		$log = get_option( 'nisc_pg_webhook_log', array() );
+		if ( ! is_array( $log ) ) {
+			$log = array();
+		}
+
+		$log[] = array(
+			'timestamp' => gmdate( 'c' ),
+			'type'      => $type,
+			'data'      => $data,
+		);
+
+		$log = array_slice( $log, -50 );
+
+		update_option( 'nisc_pg_webhook_log', $log, false );
 	}
 
 	private static function verify_signature( string $raw_body, string $signature, string $secret ): bool {
