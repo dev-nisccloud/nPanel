@@ -4,7 +4,7 @@ Tags: woocommerce, mpesa, payments, kenya, nisc
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,11 +46,34 @@ From your Nisc Cloud / nPanel merchant account under Payment Gateway → API key
 
 Yes. After connecting, use **Test STK → webhook** on the settings page. Enter your phone, send a test prompt, complete or cancel it, and preview the webhook JSON. Test payments never update WooCommerce orders.
 
+= Does the plugin work with Dokan multi-vendor marketplace? =
+
+Yes! Once enabled in WooCommerce → Settings → Payments, M-Pesa automatically appears at checkout for all vendor stores. No additional configuration needed. Customers can pay with M-Pesa when buying from any vendor.
+
+Note: This is for customer payments only. Vendors should use other methods for withdrawals/payouts.
+
+= Why don't I see the payment method at checkout? =
+
+If you see "There are no payment methods available" at checkout, you're likely using WooCommerce Checkout Blocks (default since WooCommerce 8.3). Update to version 0.1.4+ which adds full Checkout Blocks support.
+
+Alternatively, switch to Classic Checkout: go to Pages → Checkout, select the "Payment Options" block, and click "Switch to classic checkout" in the sidebar.
+
 = Does the plugin support cards or Stripe? =
 
 Not in v1. M-Pesa STK Push only.
 
 == Changelog ==
+
+= 0.1.4 =
+* Added WooCommerce Checkout Blocks support — payment gateway now works with both Classic Checkout and Checkout Blocks.
+* Fixed: Payment method now appears at checkout on stores using the new block-based checkout (WooCommerce 8.3+).
+* Improved documentation for Dokan integration and checkout troubleshooting.
+
+= 0.1.3 =
+* Added Dokan multi-vendor marketplace support — M-Pesa now available at checkout for all vendor stores.
+* Added GET endpoint for webhook testing and verification.
+* Enhanced webhook debugging with request logging (when WP_DEBUG is enabled).
+* Improved webhook reliability and error handling.
 
 = 0.1.2 =
 * Admin: Connection test button (always on settings) — green/red card for gateway reachability, API key, and M-Pesa OAuth token.
