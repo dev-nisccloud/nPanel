@@ -41,7 +41,8 @@ import { trpc } from "@/utils/trpc";
 
 const formSchema = z.object({
   name: z.string().min(1, "Key name is required"),
-  environment: z.enum(["SANDBOX", "PRODUCTION"]),
+  // Must match apiKeys.create: "test" | "live" (key format npg_test_ / npg_live_)
+  environment: z.enum(["test", "live"]),
   permissions: z.array(z.string()).min(1, "Select at least one permission"),
   rateLimit: z.number().min(10).max(1000).default(100),
 });
@@ -75,7 +76,7 @@ export function GenerateApiKeySheet({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      environment: "SANDBOX",
+      environment: "test",
       permissions: ["PAYMENT_CREATE", "PAYMENT_READ", "PAYMENT_LIST"],
       rateLimit: 100,
     },
@@ -167,8 +168,8 @@ export function GenerateApiKeySheet({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="SANDBOX">Test (Sandbox)</SelectItem>
-                          <SelectItem value="PRODUCTION">Live (Production)</SelectItem>
+                          <SelectItem value="test">Test (Sandbox)</SelectItem>
+                          <SelectItem value="live">Live (Production)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormDescription>

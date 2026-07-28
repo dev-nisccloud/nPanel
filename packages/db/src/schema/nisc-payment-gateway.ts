@@ -178,7 +178,7 @@ export const niscPaymentGatewayApiKey = pgTable(
     
     // Permissions (scoped to what this key can do)
     permissions: jsonb("permissions").$type<string[]>().notNull().default([]), // ['PAYMENT_CREATE', 'PAYMENT_READ', 'REFUND_CREATE']
-    environment: text("environment").notNull(), // SANDBOX, PRODUCTION
+    environment: text("environment").notNull(), // test | live (npg_test_ / npg_live_)
     
     // Rate Limiting (per key)
     rateLimit: integer("rate_limit").notNull().default(100), // requests per minute
