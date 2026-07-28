@@ -228,8 +228,23 @@ export const niscPaymentGatewayTransaction = pgTable(
     merchantId: text("merchant_id").notNull().references(() => niscPaymentGatewayMerchant.id, { onDelete: "restrict" }),
     apiKeyId: text("api_key_id").notNull().references(() => niscPaymentGatewayApiKey.id, { onDelete: "restrict" }),
     
-    // Link to internal payment transaction
-    paymentTransactionId: text("payment_transaction_id").notNull(), // References payment_transaction.id
+    // M-Pesa Transaction IDs (CheckoutRequestID used for webhook lookup)
+    paymentTransactionId: text("payment_transaction_id").notNull(), // M-Pesa CheckoutRequestID
+    merchantRequestId: text("merchant_request_id"), // M-Pesa MerchantRequestID
+    
+    // Transaction Details
+    amount: integer("amount"), // Amount in minor units (cents/kobo)
+    currency: text("currency").default("KES"), // ISO 4217 currency code
+    phoneNumber: text("phone_number"), // Customer phone number (masked in logs)
+    accountReference: text("account_reference"), // Account reference sent to M-Pesa
+    transactionDescription: text("transaction_description"), // Transaction description
+    
+    // M-Pesa Response Details
+    mpesaResponseCode: text("mpesa_response_code"), // M-Pesa response code
+    mpesaResponseDescription: text("mpesa_response_description"), // M-Pesa response message
+    mpesaCustomerMessage: text("mpesa_customer_message"), // Message shown to customer
+    mpesaReceiptNumber: text("mpesa_receipt_number"), // M-Pesa receipt number (from callback)
+    mpesaTransactionDate: text("mpesa_transaction_date"), // Transaction date from M-Pesa
     
     // Client Information
     clientReferenceId: text("client_reference_id"), // Merchant's reference ID
@@ -237,6 +252,7 @@ export const niscPaymentGatewayTransaction = pgTable(
     
     // Provider Information
     provider: text("provider").notNull(), // MPESA, STRIPE, etc.
+    providerEnvironment: text("provider_environment"), // SANDBOX, PRODUCTION
     
     // Webhook Information
     webhookDeliveryStatus: text("webhook_delivery_status").notNull().default("PENDING"), // PENDING, DELIVERED, FAILED, NOT_CONFIGURED
@@ -244,7 +260,7 @@ export const niscPaymentGatewayTransaction = pgTable(
     lastWebhookAttemptAt: timestamp("last_webhook_attempt_at"),
     webhookDeliveredAt: timestamp("webhook_delivered_at"),
     
-    // Status (mirrors payment_transaction.status)
+    // Status
     status: text("status").notNull().default("PENDING"), // PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED
     
     // Timestamps
