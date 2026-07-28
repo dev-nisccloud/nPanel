@@ -18,7 +18,6 @@ import {
   niscPaymentGatewayMerchant,
   niscPaymentGatewayRequestLog,
 } from "@npanel/db/schema/nisc-payment-gateway";
-import { paymentTransaction } from "@npanel/db/schema/payment-transactions";
 import {
   validateApiKeyFormat,
   verifyApiKey,
@@ -485,41 +484,27 @@ export function createNiscPaymentGatewayRoutes() {
         }, 400);
       }
 
-      // Create internal payment transaction record (like nPanel's own transactions)
+      // Create gateway transaction (DO NOT use paymentTransaction table - that's for nPanel's internal transactions)
       const now = new Date();
-      const internalTransactionId = crypto.randomUUID();
-      
-      await db.insert(paymentTransaction).values({
-        id: internalTransactionId,
-        userId: gateway.merchantId, // Use merchantId as userId for gateway transactions
-        teamId: null, // Gateway transactions don't belong to teams
-        gateway: "MPESA",
-        gatewayStatus: stkResponse.ResponseCode,
-        gatewayMessage: stkResponse.ResponseDescription,
-        merchantRequestId: stkResponse.MerchantRequestID,
-        checkoutRequestId: stkResponse.CheckoutRequestID,
-        amount: input.amount.toString(),
-        currency: "KES",
-        accountReference: accountRef,
-        transactionDesc: input.description || "Payment",
-        phoneNumber: input.phoneNumber,
-        status: stkResponse.ResponseCode === "0" ? "PROCESSING" : "PENDING",
-        rawResponse: JSON.parse(JSON.stringify(stkResponse)),
-        initiatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      // Create gateway transaction linking to internal transaction
       const gatewayTransactionId = `gtx_${nanoid()}`;
       const transaction = await db.insert(niscPaymentGatewayTransaction).values({
         id: gatewayTransactionId,
         merchantId: gateway.merchantId,
         apiKeyId: gateway.apiKeyId,
         paymentTransactionId: stkResponse.CheckoutRequestID, // CRITICAL: Must match M-Pesa CheckoutRequestID for webhook lookup
+        merchantRequestId: stkResponse.MerchantRequestID,
+        amount: input.amount,
+        currency: input.currency,
+        phoneNumber: input.phoneNumber,
+        accountReference: accountRef,
+        transactionDescription: input.description || "Payment",
+        mpesaResponseCode: stkResponse.ResponseCode,
+        mpesaResponseDescription: stkResponse.ResponseDescription,
+        mpesaCustomerMessage: stkResponse.CustomerMessage,
         clientReferenceId: input.referenceId || null,
         clientMetadata: input.metadata || null,
         provider: "MPESA",
+        providerEnvironment: credentialRecord.environment,
         status: "PROCESSING", // Changed from PENDING to PROCESSING since STK was sent
         webhookDeliveryStatus: "PENDING",
         webhookDeliveryAttempts: 0,
