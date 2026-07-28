@@ -634,8 +634,16 @@ export default function MerchantDetailsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={key.environment === "PRODUCTION" ? "default" : "secondary"}>
-                            {key.environment === "PRODUCTION" ? "Production" : "Sandbox"}
+                          <Badge
+                            variant={
+                              key.environment === "live" || key.environment === "PRODUCTION"
+                                ? "default"
+                                : "secondary"
+                            }
+                          >
+                            {key.environment === "live" || key.environment === "PRODUCTION"
+                              ? "Live"
+                              : "Test"}
                           </Badge>
                         </TableCell>
                         <TableCell>
