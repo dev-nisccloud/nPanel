@@ -123,6 +123,8 @@ export async function handleNiscGatewayMpesaWebhook(c: Context) {
         .update(niscPaymentGatewayTransaction)
         .set({
           status: "SUCCESS",
+          mpesaReceiptNumber: paymentStatus.metadata?.mpesaReceiptNumber || null,
+          mpesaTransactionDate: paymentStatus.metadata?.transactionDate || null,
           webhookDeliveryStatus: "PENDING",
           updatedAt: now,
         })
