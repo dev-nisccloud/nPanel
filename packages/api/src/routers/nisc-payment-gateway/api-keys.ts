@@ -30,10 +30,17 @@ import {
 // SCHEMAS
 // =============================================================================
 
+/** Normalize UI aliases (SANDBOX/PRODUCTION) to stored key env (test/live). */
+const apiKeyEnvironmentSchema = z
+  .enum(["test", "live", "SANDBOX", "PRODUCTION"])
+  .transform((value): "test" | "live" =>
+    value === "test" || value === "SANDBOX" ? "test" : "live"
+  );
+
 const createApiKeySchema = z.object({
   merchantId: z.string(),
   name: z.string().min(1, "Key name is required"),
-  environment: z.enum(["test", "live"]),
+  environment: apiKeyEnvironmentSchema,
   permissions: z.array(z.enum(ALL_PERMISSIONS as any)).default(DEFAULT_PERMISSIONS as any),
   rateLimit: z.number().min(10).max(1000).default(100),
   allowedIps: z.array(z.string()).optional(),
@@ -42,7 +49,7 @@ const createApiKeySchema = z.object({
 
 const listApiKeysSchema = z.object({
   merchantId: z.string(),
-  environment: z.enum(["test", "live"]).optional(),
+  environment: apiKeyEnvironmentSchema.optional(),
   isActive: z.boolean().optional(),
 });
 
