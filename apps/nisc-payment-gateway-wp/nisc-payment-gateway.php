@@ -3,7 +3,7 @@
  * Plugin Name:       Nisc Payment Gateway for WooCommerce
  * Plugin URI:        https://nisccloud.com
  * Description:       Accept payments through Nisc Cloud Payment Gateway. Paste your API key; webhooks register automatically.
- * Version:           0.1.2
+ * Version:           0.1.3
  * Requires at least: 6.4
  * Tested up to:      7.0
  * Requires PHP:      8.0
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NISC_PG_VERSION', '0.1.2' );
+define( 'NISC_PG_VERSION', '0.1.3' );
 define( 'NISC_PG_FILE', __FILE__ );
 define( 'NISC_PG_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NISC_PG_URL', plugin_dir_url( __FILE__ ) );
@@ -39,6 +39,7 @@ require_once NISC_PG_PATH . 'includes/class-nisc-api-client.php';
 require_once NISC_PG_PATH . 'includes/class-nisc-order-service.php';
 require_once NISC_PG_PATH . 'includes/class-nisc-test-service.php';
 require_once NISC_PG_PATH . 'includes/class-nisc-webhook-controller.php';
+require_once NISC_PG_PATH . 'includes/class-nisc-dokan-integration.php';
 require_once NISC_PG_PATH . 'includes/class-nisc-plugin.php';
 
 /**

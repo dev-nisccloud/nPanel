@@ -41,6 +41,10 @@ final class Nisc_PG_Plugin {
 		add_action( 'wp_ajax_nisc_pg_poll_test', array( $this, 'ajax_poll_test' ) );
 		add_action( 'wp_ajax_nisc_pg_get_test_webhooks', array( $this, 'ajax_get_test_webhooks' ) );
 		add_action( 'wp_ajax_nisc_pg_clear_test_webhooks', array( $this, 'ajax_clear_test_webhooks' ) );
+		add_action( 'wp_ajax_nisc_pg_get_webhook_log', array( $this, 'ajax_get_webhook_log' ) );
+		add_action( 'wp_ajax_nisc_pg_clear_webhook_log', array( $this, 'ajax_clear_webhook_log' ) );
+
+		Nisc_PG_Dokan_Integration::init();
 	}
 
 	/**
@@ -559,6 +563,39 @@ final class Nisc_PG_Plugin {
 
 		Nisc_PG_Test_Service::clear_webhook_log();
 		wp_send_json_success( array( 'message' => __( 'Test webhook previews cleared.', 'nisc-payment-gateway' ) ) );
+	}
+
+	public function ajax_get_webhook_log(): void {
+		check_ajax_referer( 'nisc_pg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nisc-payment-gateway' ) ), 403 );
+		}
+
+		$log = get_option( 'nisc_pg_webhook_log', array() );
+		if ( ! is_array( $log ) ) {
+			$log = array();
+		}
+
+		$log = array_reverse( $log );
+
+		wp_send_json_success(
+			array(
+				'log'   => $log,
+				'count' => count( $log ),
+			)
+		);
+	}
+
+	public function ajax_clear_webhook_log(): void {
+		check_ajax_referer( 'nisc_pg_admin', 'nonce' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'nisc-payment-gateway' ) ), 403 );
+		}
+
+		delete_option( 'nisc_pg_webhook_log' );
+		wp_send_json_success( array( 'message' => __( 'Webhook debug log cleared.', 'nisc-payment-gateway' ) ) );
 	}
 
 	public function maybe_unregister_webhook_on_deactivate(): void {
