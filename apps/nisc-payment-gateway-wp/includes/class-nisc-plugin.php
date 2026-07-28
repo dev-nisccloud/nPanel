@@ -43,6 +43,7 @@ final class Nisc_PG_Plugin {
 		add_action( 'wp_ajax_nisc_pg_clear_test_webhooks', array( $this, 'ajax_clear_test_webhooks' ) );
 		add_action( 'wp_ajax_nisc_pg_get_webhook_log', array( $this, 'ajax_get_webhook_log' ) );
 		add_action( 'wp_ajax_nisc_pg_clear_webhook_log', array( $this, 'ajax_clear_webhook_log' ) );
+		add_action( 'woocommerce_blocks_loaded', array( $this, 'register_blocks_support' ) );
 
 		Nisc_PG_Dokan_Integration::init();
 	}
@@ -596,6 +597,24 @@ final class Nisc_PG_Plugin {
 
 		delete_option( 'nisc_pg_webhook_log' );
 		wp_send_json_success( array( 'message' => __( 'Webhook debug log cleared.', 'nisc-payment-gateway' ) ) );
+	}
+
+	/**
+	 * Register WooCommerce Checkout Blocks support.
+	 */
+	public function register_blocks_support(): void {
+		if ( ! class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
+			return;
+		}
+
+		require_once NISC_PG_PATH . 'includes/class-nisc-blocks-support.php';
+
+		add_action(
+			'woocommerce_blocks_payment_method_type_registration',
+			function( $payment_method_registry ) {
+				$payment_method_registry->register( new Nisc_PG_Blocks_Support() );
+			}
+		);
 	}
 
 	public function maybe_unregister_webhook_on_deactivate(): void {
