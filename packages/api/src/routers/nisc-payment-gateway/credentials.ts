@@ -10,7 +10,6 @@ import { eq, and } from "@npanel/db";
 
 import { protectedProcedure, router } from "../..";
 import { db } from "@npanel/db";
-import { env } from "@npanel/env/server";
 import {
   niscPaymentGatewayMerchantCredentials,
   niscPaymentGatewayMerchant,
@@ -19,7 +18,9 @@ import {
   encryptCredentials,
   decryptCredentials,
   validateCredentials,
+  type MpesaCredentials,
 } from "../../lib/nisc-payment-gateway-encryption";
+import { getGatewayMpesaAccessToken } from "../../lib/nisc-payment-gateway-mpesa";
 import {
   assertGatewayMutationAccess,
   assertGatewayReadAccess,
@@ -62,26 +63,14 @@ const testCredentialsSchema = z.object({
 // =============================================================================
 
 /**
- * Test M-Pesa credentials by attempting to get an access token
+ * Test M-Pesa credentials by attempting to get an access token.
+ * Uses the same URL resolution as live STK (process.env + Safaricom defaults).
  */
 async function testMpesaCredentials(
   credentials: any,
   environment: "SANDBOX" | "PRODUCTION"
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // Get M-Pesa URLs based on environment
-    const tokenUrl =
-      environment === "PRODUCTION"
-        ? env.NISC_GATEWAY_MPESA_PRODUCTION_TOKEN_URL
-        : env.NISC_GATEWAY_MPESA_SANDBOX_TOKEN_URL;
-
-    if (!tokenUrl) {
-      return {
-        success: false,
-        message: "M-Pesa API URL not configured on server",
-      };
-    }
-
     // Validate required fields
     if (!credentials.consumerKey || !credentials.consumerSecret) {
       return {
@@ -104,43 +93,26 @@ async function testMpesaCredentials(
       };
     }
 
-    // Attempt to get access token
-    const auth = Buffer.from(
-      `${credentials.consumerKey}:${credentials.consumerSecret}`
-    ).toString("base64");
+    await getGatewayMpesaAccessToken(
+      credentials as MpesaCredentials,
+      environment
+    );
 
-    const tokenResponse = await fetch(tokenUrl, {
-      headers: {
-        Authorization: `Basic ${auth}`,
-      },
-    });
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      return {
-        success: false,
-        message: `Authentication failed: Invalid Consumer Key or Consumer Secret. ${errorText}`,
-      };
-    }
-
-    const tokenData = await tokenResponse.json();
-
-    if (!tokenData.access_token) {
-      return {
-        success: false,
-        message: "Failed to retrieve access token from M-Pesa",
-      };
-    }
-
-    // If we got here, credentials are valid
     return {
       success: true,
       message: `Credentials verified successfully! Connected to M-Pesa ${environment.toLowerCase()} environment.`,
     };
   } catch (error: any) {
+    const msg = error.message || "Unable to reach M-Pesa API";
+    if (typeof msg === "string" && msg.includes("token request failed")) {
+      return {
+        success: false,
+        message: `Authentication failed: Invalid Consumer Key or Consumer Secret. ${msg}`,
+      };
+    }
     return {
       success: false,
-      message: `Connection error: ${error.message || "Unable to reach M-Pesa API"}`,
+      message: `Connection error: ${msg}`,
     };
   }
 }
