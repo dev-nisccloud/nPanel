@@ -27,7 +27,7 @@ interface AddMemberDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	teamId: string;
-	/** User IDs already on the team — excluded from the picker. */
+	/** User IDs already on the team  excluded from the picker. */
 	existingMemberUserIds?: string[];
 	onSuccess?: () => void;
 }

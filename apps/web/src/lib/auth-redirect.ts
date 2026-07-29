@@ -29,7 +29,7 @@ function writeSessionStorage(key: string, value: string): void {
   try {
     sessionStorage.setItem(key, value);
   } catch {
-    // Private mode / quota — URL query remains the primary signal.
+    // Private mode / quota  URL query remains the primary signal.
   }
 }
 
@@ -196,7 +196,7 @@ export function goToRedirectTarget(
 ): boolean {
   if (shouldStayOnCurrentPage(target)) return false;
 
-  // Destination accepted — drop the backup so a later login doesn't reuse it.
+  // Destination accepted  drop the backup so a later login doesn't reuse it.
   if (target !== FALLBACK_REDIRECT && !isMfaRedirectTarget(target) && !isReauthRedirectTarget(target)) {
     clearPendingAuthRedirect();
   }

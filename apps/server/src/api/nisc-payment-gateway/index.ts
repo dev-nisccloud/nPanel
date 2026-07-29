@@ -325,7 +325,7 @@ export function createNiscPaymentGatewayRoutes() {
         id: "mpesaToken",
         label: "M-Pesa OAuth token",
         status: "skip",
-        message: "Skipped — credentials missing",
+        message: "Skipped  credentials missing",
       });
 
       return c.json(
@@ -380,7 +380,7 @@ export function createNiscPaymentGatewayRoutes() {
         environment: gateway.environment,
         credentialEnvironment,
         checks,
-        summary: "Connection healthy — gateway reachable and M-Pesa token OK.",
+        summary: "Connection healthy  gateway reachable and M-Pesa token OK.",
       });
     } catch (error) {
       const message =

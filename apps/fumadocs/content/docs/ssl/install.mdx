@@ -68,7 +68,7 @@ If you bought SSL from Nisc Cloud:
 3. Upload files to server (e.g. `/etc/ssl/yourdomain/`).
 4. Configure web server:
 
-**Nginx** — edit site config:
+**Nginx**  edit site config:
 
 ```nginx
 ssl_certificate /etc/ssl/yourdomain/certificate.crt;
@@ -78,14 +78,14 @@ ssl_trusted_certificate /etc/ssl/yourdomain/ca-bundle.crt;
 
 5. Reload Nginx: `nginx -t && systemctl reload nginx`.
 
-**Apache** — use `SSLEngine on`, `SSLCertificateFile`, `SSLCertificateKeyFile`, `SSLCertificateChainFile` in virtual host.
+**Apache**  use `SSLEngine on`, `SSLCertificateFile`, `SSLCertificateKeyFile`, `SSLCertificateChainFile` in virtual host.
 
 ---
 
 ## Verify installation
 
 1. Visit `https://yourdomain.com`.
-2. Check padlock — no certificate warnings.
+2. Check padlock  no certificate warnings.
 3. Use SSL Labs test online for grade (optional).
 
 ---

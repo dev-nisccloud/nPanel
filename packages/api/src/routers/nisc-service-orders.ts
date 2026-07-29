@@ -400,7 +400,7 @@ export const niscServiceOrdersRouter = router({
 				if (isHostingServiceType(product.serviceType)) {
 					const domainSubId = item.domainSubscriptionId?.trim() || null;
 					const primaryDomain = item.primaryDomain?.trim() || null;
-					// Hosting needs a FQDN for Plesk / primaryDomain — not a separate Domains subscription.
+					// Hosting needs a FQDN for Plesk / primaryDomain  not a separate Domains subscription.
 					if (!domainSubId && !primaryDomain) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",

@@ -91,7 +91,7 @@ export function ContentMentionsTab({ projectId, project }: ContentMentionsTabPro
             value={String(
               getNested(summaryRec, "sentiment_connotations.positive") != null
                 ? `+${formatNumber(getNested(summaryRec, "sentiment_connotations.positive"))}`
-                : "—",
+                : "",
             )}
           />
         </div>
@@ -119,14 +119,14 @@ export function ContentMentionsTab({ projectId, project }: ContentMentionsTabPro
                 return (
                   <TableRow key={i}>
                     <TableCell className="pl-6 font-medium max-w-md truncate">
-                      {String(r.url ?? getNested(r, "page_content.url") ?? "—")}
+                      {String(r.url ?? getNested(r, "page_content.url") ?? "")}
                     </TableCell>
-                    <TableCell>{String(r.domain ?? "—")}</TableCell>
+                    <TableCell>{String(r.domain ?? "")}</TableCell>
                     <TableCell>
                       {String(
                         getNested(r, "sentiment_connotations") != null
                           ? JSON.stringify(getNested(r, "sentiment_connotations"))
-                          : (r.sentiment_connotation ?? "—"),
+                          : (r.sentiment_connotation ?? ""),
                       )}
                     </TableCell>
                   </TableRow>

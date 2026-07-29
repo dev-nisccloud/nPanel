@@ -142,7 +142,7 @@ export function CompetitorsTab({ projectId, project }: CompetitorsTabProps) {
                 return (
                   <TableRow key={i}>
                     <TableCell className="pl-6 font-medium">
-                      {String(r.domain ?? r.target ?? "—")}
+                      {String(r.domain ?? r.target ?? "")}
                     </TableCell>
                     <TableCell>{formatNumber(r.intersections ?? r.keywords_count)}</TableCell>
                     <TableCell>{formatNumber(r.avg_position)}</TableCell>
@@ -177,7 +177,7 @@ export function CompetitorsTab({ projectId, project }: CompetitorsTabProps) {
                   <TableRow key={i}>
                     <TableCell className="pl-6 font-medium">
                       {keywordFromItem(item) ||
-                        String(getNested(r, "keyword_data.keyword") ?? "—")}
+                        String(getNested(r, "keyword_data.keyword") ?? "")}
                     </TableCell>
                     <TableCell>{formatNumber(searchVolumeFromItem(item))}</TableCell>
                     <TableCell>
@@ -218,7 +218,7 @@ export function CompetitorsTab({ projectId, project }: CompetitorsTabProps) {
                 return (
                   <TableRow key={i}>
                     <TableCell className="pl-6 font-medium max-w-md truncate">
-                      {String(r.domain ?? r.url ?? r.target ?? "—")}
+                      {String(r.domain ?? r.url ?? r.target ?? "")}
                     </TableCell>
                     <TableCell>{formatNumber(r.rank ?? r.domain_rank)}</TableCell>
                     <TableCell>{formatNumber(r.backlinks ?? r.referring_domains)}</TableCell>

@@ -130,7 +130,7 @@ export type EtimsRawResponse = {
     kraPath: string;
     url: string;
     statusCode: number;
-    /** Exact response body text from KRA — unaltered */
+    /** Exact response body text from KRA  unaltered */
     bodyText: string;
     /** Parsed JSON if body is valid JSON; otherwise null. Shape is unaltered (no responseBody unwrap). */
     bodyJson: unknown | null;
@@ -266,7 +266,7 @@ export class EtimsOscuClient {
 
     /**
      * Build request headers.
-     * Legacy host: Authorization + tin/bhfId(/cmcKey) — apigee optional.
+     * Legacy host: Authorization + tin/bhfId(/cmcKey)  apigee optional.
      * Developer Platform: also sends apigee_app_id (required for saveItem / session scoring).
      */
     private async buildHeaders(
@@ -489,7 +489,7 @@ export class EtimsOscuClient {
     }
 
     async selectTaxPayerInfo(oscu: EtimsOscuHeaders, lastReqDt: string) {
-        // Classic OSCU has no /selectTaxPayerInfo — look up own PIN via /selectCustomer.
+        // Classic OSCU has no /selectTaxPayerInfo  look up own PIN via /selectCustomer.
         // Developer Platform keeps /selectTaxpayerInfo + lastReqDt.
         if (isDeveloperPlatformHost(this.config.baseUrl)) {
             return this.post('selectTaxPayerInfo', this.lastReqBody(oscu, lastReqDt), oscu);

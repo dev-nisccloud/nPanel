@@ -221,7 +221,7 @@ export function AdvancedKeywordsTab({ projectId }: AdvancedKeywordsTabProps) {
                         <TableCell>
                           {item.intent_probability
                             ? `${(item.intent_probability * 100).toFixed(1)}%`
-                            : "—"}
+                            : ""}
                         </TableCell>
                       </TableRow>
                     ),

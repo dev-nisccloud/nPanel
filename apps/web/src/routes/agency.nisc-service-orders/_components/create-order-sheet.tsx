@@ -393,7 +393,7 @@ function OrderItemRow({
 						render={({ field }) => (
 							<FormItem className="w-full">
 								<FormLabel className="text-xs">
-									Domain name (for Plesk — not a Domains subscription)
+									Domain name (for Plesk  not a Domains subscription)
 								</FormLabel>
 								<FormControl>
 									<Input
@@ -436,7 +436,7 @@ function OrderItemRow({
 					)}
 					{!loadingDomainSubs && domainSubs.length === 0 && hasOwner && (
 						<p className="text-[11px] text-muted-foreground">
-							No existing Domains subscriptions for this owner — enter a FQDN above.{" "}
+							No existing Domains subscriptions for this owner  enter a FQDN above.{" "}
 							<Link to="/agency/domains-portfolio" className="text-primary underline">
 								Domains portfolio
 							</Link>

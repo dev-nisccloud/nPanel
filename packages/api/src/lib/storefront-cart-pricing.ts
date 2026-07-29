@@ -38,7 +38,7 @@ export const STOREFRONT_SERVICE_BILLING_CYCLES = [
 	"QUADRENNIALLY",
 ] as const satisfies readonly StorefrontBillingCycle[];
 
-/** Domain registration terms (years only — never monthly). */
+/** Domain registration terms (years only  never monthly). */
 export const STOREFRONT_DOMAIN_BILLING_CYCLES = [
 	"YEARLY",
 	"BIENNIALLY",

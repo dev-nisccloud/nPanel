@@ -279,7 +279,7 @@ async function fetchCustomerPortfolio(
 	teamName: string | null,
 ): Promise<DomainsPortfolioResult> {
 	try {
-		// Resolve domain product IDs (Domains product only — never hosting with a .ke primaryDomain).
+		// Resolve domain product IDs (Domains product only  never hosting with a .ke primaryDomain).
 		const domainProducts = await db
 			.select({ id: niscProduct.id })
 			.from(niscProduct)

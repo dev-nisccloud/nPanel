@@ -1,6 +1,6 @@
 name: WordPress Plugin Check (Nisc Payment Gateway)
 
-# Manual only — not linked to deploy.yml / system-deploy.yml / release ZIP workflow
+# Manual only  not linked to deploy.yml / system-deploy.yml / release ZIP workflow
 on:
   workflow_dispatch:
 

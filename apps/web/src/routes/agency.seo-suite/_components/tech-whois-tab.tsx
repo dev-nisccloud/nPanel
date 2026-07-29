@@ -107,7 +107,7 @@ export function TechWhoisTab({ projectId, project }: TechWhoisTabProps) {
                 return (
                   <li key={i} className="border-b border-border/50 py-1.5 last:border-0">
                     <span className="font-medium">
-                      {String(r.name ?? r.technology ?? r.category ?? "—")}
+                      {String(r.name ?? r.technology ?? r.category ?? "")}
                     </span>
                     {r.category != null && r.name != null && (
                       <span className="text-xs text-muted-foreground ml-2">
@@ -151,7 +151,7 @@ export function TechWhoisTab({ projectId, project }: TechWhoisTabProps) {
                 value={String(
                   whoisInner.registrar ??
                     getNested(whoisInner, "registrar.name") ??
-                    "—",
+                    "",
                 )}
               />
               <Row
@@ -159,7 +159,7 @@ export function TechWhoisTab({ projectId, project }: TechWhoisTabProps) {
                 value={
                   Array.isArray(whoisInner.nameservers)
                     ? whoisInner.nameservers.join(", ")
-                    : String(whoisInner.nameservers ?? "—")
+                    : String(whoisInner.nameservers ?? "")
                 }
               />
             </dl>

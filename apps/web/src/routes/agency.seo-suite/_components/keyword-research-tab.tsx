@@ -187,7 +187,7 @@ export function KeywordResearchTab({ projectId, project }: KeywordResearchTabPro
                         disabled={!keywordFromItem(item)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{keywordFromItem(item) || "—"}</TableCell>
+                    <TableCell className="font-medium">{keywordFromItem(item) || ""}</TableCell>
                     <TableCell>{formatNumber(searchVolumeFromItem(item))}</TableCell>
                     <TableCell>{formatNumber(competitionFromItem(item))}</TableCell>
                     <TableCell>{formatNumber(cpcFromItem(item))}</TableCell>

@@ -337,7 +337,7 @@ export function CustomerInfoStep({
             needsProfile
               ? "Complete your profile so we can provision domains and other regulated services."
               : hasOrgs
-                ? "You're signed in — choose which organization this service belongs to."
+                ? "You're signed in  choose which organization this service belongs to."
                 : "Create an organization to purchase and manage this service under."
           }
         />

@@ -199,14 +199,14 @@ export function DomainOverviewTab({ projectId, project }: DomainOverviewTabProps
               {rankedKeywords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                    No ranked keywords yet — refresh domain overview
+                    No ranked keywords yet  refresh domain overview
                   </TableCell>
                 </TableRow>
               ) : (
                 rankedKeywords.slice(0, 50).map((keyword, i) => (
                   <TableRow key={i}>
                     <TableCell className="pl-6 font-medium">
-                      {keyword.keyword || "—"}
+                      {keyword.keyword || ""}
                     </TableCell>
                     <TableCell>{formatNumber(keyword.searchVolume)}</TableCell>
                     <TableCell>{formatNumber(keyword.position)}</TableCell>
@@ -233,14 +233,14 @@ export function DomainOverviewTab({ projectId, project }: DomainOverviewTabProps
               {pages.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                    No pages yet — refresh domain overview
+                    No pages yet  refresh domain overview
                   </TableCell>
                 </TableRow>
               ) : (
                 pages.slice(0, 30).map((page, i) => (
                   <TableRow key={i}>
                     <TableCell className="pl-6 font-medium max-w-md truncate">
-                      {page.pageAddress || "—"}
+                      {page.pageAddress || ""}
                     </TableCell>
                     <TableCell>{formatNumber(page.keywordCount)}</TableCell>
                     <TableCell>{formatNumber(page.traffic)}</TableCell>

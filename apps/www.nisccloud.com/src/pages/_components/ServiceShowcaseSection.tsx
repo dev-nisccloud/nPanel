@@ -9,7 +9,7 @@ import type { VisualTheme } from "@/components/shadcn-space/blocks/built-differe
 import { ShowcaseStage } from "./showcase-stages.tsx";
 
 export type ShowcaseBlock = {
-  /** Optional section label — not rendered (kept for existing page data). */
+  /** Optional section label  not rendered (kept for existing page data). */
   tag?: string;
   headline: string;
   body: string;

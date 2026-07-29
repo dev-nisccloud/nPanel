@@ -123,12 +123,12 @@ export function SerpLabTab({ projectId, project }: SerpLabTabProps) {
                       {formatNumber(r.rank_absolute ?? r.rank_group ?? i + 1)}
                     </TableCell>
                     <TableCell className="font-medium max-w-xs">
-                      {String(r.title ?? "—")}
+                      {String(r.title ?? "")}
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">
-                      {String(r.url ?? "—")}
+                      {String(r.url ?? "")}
                     </TableCell>
-                    <TableCell>{String(r.domain ?? "—")}</TableCell>
+                    <TableCell>{String(r.domain ?? "")}</TableCell>
                   </TableRow>
                 );
               })

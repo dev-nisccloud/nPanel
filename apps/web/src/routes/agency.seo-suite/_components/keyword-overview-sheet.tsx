@@ -91,7 +91,7 @@ export function KeywordOverviewSheet({
                 <Metric label="Competition" value={formatNumber(info.competition)} />
                 <Metric
                   label="Competition level"
-                  value={String(info.competition_level ?? "—")}
+                  value={String(info.competition_level ?? "")}
                 />
               </div>
               {info.monthly_searches != null && (

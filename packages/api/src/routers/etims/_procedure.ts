@@ -1,7 +1,7 @@
 import { publicProcedure, protectedProcedure } from "../../trpc";
 
 /**
- * TEMPORARY — KRA Developer Platform automated certification testing.
+ * TEMPORARY  KRA Developer Platform automated certification testing.
  * Set ETIMS_CERTIFICATION_PUBLIC=1 in apps/server/.env to allow unauthenticated
  * calls to eTIMS routers. Remove / set to 0 after certification is complete.
  */

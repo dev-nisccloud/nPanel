@@ -12,7 +12,7 @@ Email depends on correct **DNS records** on your domain. Without them, messages 
 1. Sign in at [npanel.nisccloud.com](https://npanel.nisccloud.com).
 2. Click **Domains → My Domains → [your domain] → DNS**.
 
-If email uses hosting DNS zone instead, edit **Hosting → [site] → DNS** — use one authoritative place, not conflicting duplicates.
+If email uses hosting DNS zone instead, edit **Hosting → [site] → DNS**  use one authoritative place, not conflicting duplicates.
 
 ---
 
@@ -49,7 +49,7 @@ SPF authorizes which servers may send mail for your domain.
 3. Value: paste SPF string from **Emails** plan (starts with `v=spf1`).
 4. Save.
 
-Only one SPF TXT record per domain — merge includes if migrating.
+Only one SPF TXT record per domain  merge includes if migrating.
 
 ---
 
@@ -79,7 +79,7 @@ Start with `p=none` to monitor; tighten policy later with help from support.
 ## Verify and wait
 
 1. Use dashboard **Verify DNS** button if available on email plan.
-2. Send test from webmail to Gmail — check headers for SPF/DKIM pass.
+2. Send test from webmail to Gmail  check headers for SPF/DKIM pass.
 3. Allow **24–48 hours** for global DNS propagation.
 
 ---

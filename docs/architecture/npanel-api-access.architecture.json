@@ -2,8 +2,8 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "API Access Control — Public vs Protected",
-    "subtitle": "What every /api/trpc call must pass — then which routers are open, mixed, or login-only",
+    "title": "API Access Control  Public vs Protected",
+    "subtitle": "What every /api/trpc call must pass  then which routers are open, mixed, or login-only",
     "output": "npanel-api-access.html",
     "viewBox": [1100, 820]
   },
@@ -125,7 +125,7 @@
     },
     {
       "kind": "region",
-      "label": "3 · After auth — router business checks",
+      "label": "3 · After auth  router business checks",
       "wraps": ["session", "biz", "lockbox"]
     }
   ],
@@ -233,20 +233,20 @@
       "dot": "emerald",
       "title": "PUBLIC_ONLY routers (3)",
       "items": [
-        "storefront — Landing Page cart, auth helpers, M-Pesa STK, order create-from-payment",
-        "whois — lookup, bulkLookup",
-        "publicPricing — margins, FX rates, convertPricesPublic"
+        "storefront  Landing Page cart, auth helpers, M-Pesa STK, order create-from-payment",
+        "whois  lookup, bulkLookup",
+        "publicPricing  margins, FX rates, convertPricesPublic"
       ]
     },
     {
       "dot": "amber",
       "title": "MIXED routers (8)",
       "items": [
-        "products — many get*ForPricing public; catalog CRUD protected",
-        "openProvider / kenic / domainTransfer — some public domain checks; mutations protected",
-        "plesk — healthCheck public; all hosting ops protected",
-        "hivelocity + hivelocityPricingSettings — public plan catalogs; manage/deploy protected",
-        "teams — getInviteByCode public; everything else protected"
+        "products  many get*ForPricing public; catalog CRUD protected",
+        "openProvider / kenic / domainTransfer  some public domain checks; mutations protected",
+        "plesk  healthCheck public; all hosting ops protected",
+        "hivelocity + hivelocityPricingSettings  public plan catalogs; manage/deploy protected",
+        "teams  getInviteByCode public; everything else protected"
       ]
     },
     {
@@ -273,7 +273,7 @@
       "title": "PROTECTED_ONLY (57 routers)",
       "items": [
         "Dashboard domains: hosting, jetbackup, invoicing, ads, email marketing, creatives/AI, digitax, reports, tickets, apiKeys, agencyRbac, …",
-        "No anonymous access — Landing Page must not call these without a session",
+        "No anonymous access  Landing Page must not call these without a session",
         "Full name lists: docs/architecture/API-ACCESS-MAP.md"
       ]
     }

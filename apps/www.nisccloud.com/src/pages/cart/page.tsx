@@ -324,7 +324,7 @@ export default function CartPage() {
   const isHivelocityPlan = HIVELOCITY_SERVICE_TYPES.has(serviceType) && Boolean(hivelocityProductType);
 
   React.useEffect(() => {
-    // Wait for quote before clearing — otherwise a restored VPS/VDS draft is wiped while loading.
+    // Wait for quote before clearing  otherwise a restored VPS/VDS draft is wiped while loading.
     if (!quote) return;
     if (!isHivelocityPlan || !hivelocityProductType) {
       setHivelocityConfig(null);
@@ -370,7 +370,7 @@ export default function CartPage() {
 
   const isPageReady = React.useMemo(() => {
     if (quoteInitialLoading || !quote) return false;
-    // Login resume opens step 2 — step-1 config/upsell UIs are unmounted, so don't wait on them.
+    // Login resume opens step 2  step-1 config/upsell UIs are unmounted, so don't wait on them.
     if (step === 2) return true;
     if (isHivelocityPlan) {
       if (!hivelocityConfig) return false;
@@ -491,7 +491,7 @@ export default function CartPage() {
         if (identity.authenticated) {
           toast.success(`Signed in as ${identity.user.name}`);
         } else {
-          toast.message("You're back — sign in again if checkout still shows the guest form.");
+          toast.message("You're back  sign in again if checkout still shows the guest form.");
         }
       })
       .catch(() => {
