@@ -17,6 +17,7 @@ import {
 	X,
 	LayoutTemplate,
 	Loader2,
+	AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import confetti from "canvas-confetti";
@@ -46,9 +47,10 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ChevronDownIcon } from "lucide-react";
-import type { UseFormReturn } from "react-hook-form";
+import type { FieldErrors, UseFormReturn } from "react-hook-form";
 import { useGetEmailBuilderDesigns } from "@/routes/agency.email-marketing/email-builder/_api/use-get-email-builder-designs";
 import { renderToHtml } from "@/routes/agency.email-marketing/email-builder/_components/email-builder/utils";
 import {
@@ -153,6 +155,20 @@ interface CreateCampaignSheetProps {
 	onSuccess?: () => void;
 }
 
+const BASIC_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidRecipientEmail(value: string): boolean {
+	return BASIC_EMAIL_REGEX.test(value.trim());
+}
+
+type RecipientIssue = {
+	title: string;
+	description: string;
+	samples?: string[];
+	invalidCount?: number;
+	blocksNext: boolean;
+};
+
 // Helper function to parse emails from text
 function parseEmailsFromText(text: string): string[] {
 	// Remove empty lines and split by comma, newline, or semicolon
@@ -163,18 +179,13 @@ function parseEmailsFromText(text: string): string[] {
 
 	// Validate emails and filter out invalid ones
 	const validEmails: string[] = [];
-	const invalidEmails: string[] = [];
 
 	emails.forEach((email) => {
-		// Basic email validation regex
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-		if (emailRegex.test(email)) {
+		if (isValidRecipientEmail(email)) {
 			// Remove duplicates
 			if (!validEmails.includes(email.toLowerCase())) {
 				validEmails.push(email.toLowerCase());
 			}
-		} else {
-			invalidEmails.push(email);
 		}
 	});
 
@@ -362,6 +373,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 
 	const [selectedAudienceId, setSelectedAudienceId] = React.useState<string | null>(null);
 	const [isLoadingAudienceRecipients, setIsLoadingAudienceRecipients] = React.useState(false);
+	const [recipientIssue, setRecipientIssue] = React.useState<RecipientIssue | null>(null);
 
 	const { data: audiencesData, isLoading: audiencesLoading } =
 		trpc.niscEmailMarketing.audiences.list.useQuery(
@@ -447,10 +459,12 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 	const loadAudienceRecipients = React.useCallback(
 		async (audienceId: string) => {
 			setIsLoadingAudienceRecipients(true);
+			setRecipientIssue(null);
 			try {
 				const limit = 500;
 				let offset = 0;
 				const emailsSet = new Set<string>();
+				const invalidValues: string[] = [];
 
 				// Batch through all contacts for this audience (no pagination for campaigns)
 				// Only include subscribed contacts with a valid email address.
@@ -464,9 +478,13 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 					});
 
 					for (const contact of res.contacts) {
-						const email = contact.emailAddress?.toLowerCase();
-						if (email) {
+						const raw = contact.emailAddress?.trim() ?? "";
+						if (!raw) continue;
+						const email = raw.toLowerCase();
+						if (isValidRecipientEmail(email)) {
 							emailsSet.add(email);
+						} else {
+							invalidValues.push(raw);
 						}
 					}
 
@@ -477,16 +495,48 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				}
 
 				const emails = Array.from(emailsSet);
+				const uniqueInvalid = Array.from(new Set(invalidValues));
 				setParsedEmails(emails);
 				setEmailInputText(emails.join("\n"));
 				form.setValue("recipientEmails", emails, { shouldValidate: false });
 
-				if (emails.length === 0) {
-					toast.error("No usable contacts", {
+				if (emails.length === 0 && uniqueInvalid.length > 0) {
+					const issue: RecipientIssue = {
+						title: "No valid recipient emails",
+						description: `This audience has ${uniqueInvalid.length} subscribed contact${
+							uniqueInvalid.length === 1 ? "" : "s"
+						} with invalid email values. Fix them in Audiences before continuing.`,
+						samples: uniqueInvalid.slice(0, 5),
+						invalidCount: uniqueInvalid.length,
+						blocksNext: true,
+					};
+					setRecipientIssue(issue);
+					toast.error(issue.title, { description: issue.description });
+				} else if (emails.length === 0) {
+					const issue: RecipientIssue = {
+						title: "No usable contacts",
 						description:
 							"This audience has no subscribed contacts with an email address.",
-					});
+						blocksNext: true,
+					};
+					setRecipientIssue(issue);
+					toast.error(issue.title, { description: issue.description });
+				} else if (uniqueInvalid.length > 0) {
+					const issue: RecipientIssue = {
+						title: "Some contacts were skipped",
+						description: `${uniqueInvalid.length} subscribed contact${
+							uniqueInvalid.length === 1 ? "" : "s"
+						} had invalid email values and were excluded. ${emails.length} valid recipient${
+							emails.length === 1 ? "" : "s"
+						} loaded.`,
+						samples: uniqueInvalid.slice(0, 5),
+						invalidCount: uniqueInvalid.length,
+						blocksNext: false,
+					};
+					setRecipientIssue(issue);
+					toast.warning(issue.title, { description: issue.description });
 				} else {
+					setRecipientIssue(null);
 					toast.success("Audience contacts loaded", {
 						description: `Loaded ${emails.length} recipient email${
 							emails.length === 1 ? "" : "s"
@@ -494,10 +544,14 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 					});
 				}
 			} catch (error) {
-				toast.error("Failed to load audience contacts", {
+				const issue: RecipientIssue = {
+					title: "Failed to load audience contacts",
 					description:
 						error instanceof Error ? error.message : "An unexpected error occurred.",
-				});
+					blocksNext: true,
+				};
+				setRecipientIssue(issue);
+				toast.error(issue.title, { description: issue.description });
 			} finally {
 				setIsLoadingAudienceRecipients(false);
 			}
@@ -622,6 +676,8 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 			setHtmlContent("");
 			setEmailInputText("");
 			setParsedEmails([]);
+			setSelectedAudienceId(null);
+			setRecipientIssue(null);
 			setIsSending(false);
 			setCreatedCampaignId(null);
 		}
@@ -688,6 +744,28 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 		toast.success("CSV template downloaded");
 	};
 
+	const onInvalid = (errors: FieldErrors<FormData>) => {
+		const firstMessage =
+			errors.recipientEmails?.message ??
+			errors.fromEmail?.message ??
+			errors.subject?.message ??
+			errors.emailDomainId?.message ??
+			errors.scheduledAt?.message ??
+			errors.name?.message ??
+			"Please fix the highlighted fields and try again.";
+
+		if (step === 3) {
+			const issue: RecipientIssue = {
+				title: "Cannot continue",
+				description: String(firstMessage),
+				blocksNext: true,
+			};
+			setRecipientIssue(issue);
+		}
+
+		toast.error("Validation failed", { description: String(firstMessage) });
+	};
+
 	const onSubmit = async (data: FormData) => {
 		if (step <= 5) {
 			let isValid = true;
@@ -711,11 +789,26 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 				isValid = await form.trigger("recipientEmails", { shouldFocus: true });
 				if (!isValid || parsedEmails.length === 0) {
 					if (parsedEmails.length === 0) {
-						toast.error("No valid emails found", { description: "Please add at least one valid email address." });
+						const issue: RecipientIssue = {
+							title: "No valid emails found",
+							description:
+								"Please select an audience with at least one valid subscribed email address.",
+							blocksNext: true,
+						};
+						setRecipientIssue(issue);
+						toast.error(issue.title, { description: issue.description });
 					} else {
 						await new Promise((resolve) => setTimeout(resolve, 10));
-						errorMessage = form.formState.errors.recipientEmails?.message ?? "Please add at least one valid recipient email.";
-						toast.error("Validation failed", { description: errorMessage });
+						errorMessage =
+							form.formState.errors.recipientEmails?.message ??
+							"Please add at least one valid recipient email.";
+						const issue: RecipientIssue = {
+							title: "Validation failed",
+							description: errorMessage,
+							blocksNext: true,
+						};
+						setRecipientIssue(issue);
+						toast.error(issue.title, { description: issue.description });
 					}
 					return;
 				}
@@ -901,7 +994,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 
 				<ScrollArea className="flex-1 min-h-0 px-6 pr-4">
 					<Form {...form}>
-						<form id="create-campaign-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-6">
+						<form id="create-campaign-form" onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 pb-6">
 							{/* Step 1: Campaign Name, Domain, From Email, From Name, Subject */}
 							{step === 1 && (
 								<div className="space-y-4">
@@ -1218,6 +1311,7 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 															setSelectedAudienceId(value || null);
 															setParsedEmails([]);
 															setEmailInputText("");
+															setRecipientIssue(null);
 															form.setValue("recipientEmails", [], {
 																shouldValidate: false,
 															});
@@ -1248,6 +1342,46 @@ export function CreateCampaignSheet({ open, onOpenChange, onSuccess }: CreateCam
 														use their email addresses as recipients.
 													</p>
 												</div>
+
+												{recipientIssue && (
+													<Alert
+														className={
+															recipientIssue.blocksNext
+																? "border-destructive/30 bg-destructive/10 text-destructive [&>svg]:text-destructive"
+																: "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100 [&>svg]:text-amber-600"
+														}
+													>
+														<AlertCircle />
+														<AlertTitle>{recipientIssue.title}</AlertTitle>
+														<AlertDescription
+															className={
+																recipientIssue.blocksNext
+																	? "text-destructive/90"
+																	: "text-amber-800/90 dark:text-amber-100/90"
+															}
+														>
+															<p>{recipientIssue.description}</p>
+															{recipientIssue.samples && recipientIssue.samples.length > 0 && (
+																<ul className="mt-2 list-disc space-y-1 pl-4 font-mono text-xs">
+																	{recipientIssue.samples.map((sample) => (
+																		<li key={sample} className="break-all">
+																			{sample}
+																		</li>
+																	))}
+																	{(recipientIssue.invalidCount ?? 0) >
+																		recipientIssue.samples.length && (
+																		<li className="list-none font-sans italic opacity-80">
+																			+
+																			{(recipientIssue.invalidCount ?? 0) -
+																				recipientIssue.samples.length}{" "}
+																			more
+																		</li>
+																	)}
+																</ul>
+															)}
+														</AlertDescription>
+													</Alert>
+												)}
 
 												<div className="rounded-lg border bg-card p-4 space-y-2">
 													<div className="flex items-center justify-between mb-1">
