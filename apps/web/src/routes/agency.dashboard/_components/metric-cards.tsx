@@ -34,7 +34,7 @@ const ALL_TIME_REPORT_FILTERS = {
 
 const METRIC_CARD_LINKS = [
 	{ label: "Domains", href: "/agency/domains-portfolio" },
-	{ label: "Tickets", href: "#", openFloatingActionMenu: true },
+	{ label: "Tickets", href: "/agency/support" },
 	{ label: "Products", href: "/agency/products" },
 	{ label: "Invoices", href: "/agency/invoices" },
 	{ label: "Quotations", href: "/agency/quotations" },
@@ -48,26 +48,9 @@ const METRIC_CARD_LINKS = [
 interface MetricCardLinkProps {
 	href: string;
 	label: string;
-	openFloatingActionMenu?: boolean;
 }
 
-function MetricCardLink({ href, label, openFloatingActionMenu }: MetricCardLinkProps) {
-	if (openFloatingActionMenu) {
-		return (
-			<button
-				onClick={() => {
-					// This will open the floating action menu to the tickets tab
-					const fab = document.querySelector('[aria-label="Open support"]') as HTMLButtonElement;
-					if (fab) fab.click();
-				}}
-				className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-			>
-				{label}
-				<ArrowUpRight className="h-3.5 w-3.5" />
-			</button>
-		);
-	}
-
+function MetricCardLink({ href, label }: MetricCardLinkProps) {
 	return (
 		<Link
 			to={href}

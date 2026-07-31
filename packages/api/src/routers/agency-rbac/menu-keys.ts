@@ -106,6 +106,8 @@ export const agencyMenuKeys = [
 	"/agency/nisc-reports/tax",
 
 	"/agency/cronjobs",
+
+	"/agency/support",
 ] as const;
 
 export const agencyMenuKeySchema = z.enum(agencyMenuKeys);

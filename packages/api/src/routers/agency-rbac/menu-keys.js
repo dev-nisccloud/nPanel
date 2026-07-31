@@ -84,6 +84,7 @@ export const agencyMenuKeys = [
     "/agency/nisc-reports/payments",
     "/agency/nisc-reports/tax",
     "/agency/cronjobs",
+    "/agency/support",
 ];
 export const agencyMenuKeySchema = z.enum(agencyMenuKeys);
 /** Legacy menu paths remapped after product rename to Nisc Backup. */
