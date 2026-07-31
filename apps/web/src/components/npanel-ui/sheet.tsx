@@ -43,6 +43,9 @@ const sheetVariants = cva(
       size: {
         default: "",
         wide: "sm:!max-w-4xl",
+        // Code / file editor: scales with viewport, leaves backdrop visible on large screens
+        editor:
+          "!w-full sm:!max-w-[min(92vw,48rem)] md:!max-w-[min(90vw,56rem)] lg:!max-w-[min(88vw,68rem)] xl:!max-w-[min(85vw,76rem)]",
       },
     },
     defaultVariants: {

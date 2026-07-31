@@ -46,7 +46,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Icons } from "@/components/icons";
+import { FileManagerTypeIcon } from "@/components/hosting/file-manager-icon";
 import { type FileManagerData, type FileManagerItem, sortFileManagerItems } from "./file-manager-schema";
 import { useFtpFileManager } from "@/components/hosting/use-ftp-file-manager";
 import { hostingDetailSchema } from "./hosting-detail-schema";
@@ -457,11 +457,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
 
               {/* Icon - Centered and bigger */}
               <div className="flex justify-center mb-2">
-                {item.type === "folder" ? (
-                  <Icons.Folder className="h-24 w-24 text-muted-foreground" />
-                ) : (
-                  <Icons.Document className="h-24 w-24 text-muted-foreground" />
-                )}
+                <FileManagerTypeIcon item={item} className="h-24 w-24" size={96} />
               </div>
 
               {/* File/Folder name - Left aligned */}
@@ -530,11 +526,7 @@ export function FileManager({ hostingData }: FileManagerProps) {
               </TableCell>
               <TableCell className="pl-6">
                 <div className="flex items-center space-x-2">
-                  {item.type === "folder" ? (
-                    <Icons.Folder className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <Icons.Document className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <FileManagerTypeIcon item={item} className="h-4 w-4" size={16} />
                   <span className="font-medium">{item.name}</span>
                   {item.type === "file" && item.extension && (
                     <Badge variant="outline" className="text-xs">

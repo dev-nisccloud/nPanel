@@ -79,6 +79,20 @@ function MetricCardLink({ href, label, openFloatingActionMenu }: MetricCardLinkP
 	);
 }
 
+function MetricCardExternalLink({ href, label }: { href: string; label: string }) {
+	return (
+		<a
+			href={href}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+		>
+			{label}
+			<ArrowUpRight className="h-3.5 w-3.5" />
+		</a>
+	);
+}
+
 function MetricCardsSkeleton() {
 	return (
 		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @3xl/main:grid-cols-3 @6xl/main:grid-cols-4">
@@ -608,6 +622,12 @@ export function MetricCards() {
 						<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
 							{balance}
 						</CardTitle>
+						<div className="pt-0.5">
+							<MetricCardExternalLink
+								href="https://cp.openprovider.eu/"
+								label="Open OP dashboard"
+							/>
+						</div>
 					</div>
 					<div className="space-y-1.5">
 						<CardDescription>KC Balance</CardDescription>
@@ -620,6 +640,12 @@ export function MetricCards() {
 						>
 							{kcBalanceDisplay}
 						</p>
+						<div className="pt-0.5">
+							<MetricCardExternalLink
+								href="https://registry.kenic.or.ke/"
+								label="Open KC dashboard"
+							/>
+						</div>
 					</div>
 				</CardHeader>
 			</Card>
