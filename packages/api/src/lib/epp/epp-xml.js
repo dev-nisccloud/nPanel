@@ -361,3 +361,19 @@ export function buildHostCreateXml(host, ips) {
   </command>
 </epp>`;
 }
+/**
+ * Build CoCCA finance:info command (non-RFC extension).
+ * KENIC advertises https://finance.coccaregistry.org in its EPP greeting.
+ * @see https://faq.cocca.org.nz/ — response entries are TLD|CURRENCY|BALANCE
+ */
+export function buildFinanceInfoXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<epp xmlns="urn:ietf:params:xml:ns:epp-1.0">
+  <command>
+    <info>
+      <finance:info xmlns:finance="https://finance.coccaregistry.org"/>
+    </info>
+    <clTRID>${escapeXml(clTrId())}</clTRID>
+  </command>
+</epp>`;
+}

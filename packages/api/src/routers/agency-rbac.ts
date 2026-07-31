@@ -11,7 +11,11 @@ import {
 	agencyRolePermission,
 } from "@npanel/db/schema/agency-rbac";
 import { protectedProcedure, router } from "../trpc";
-import { agencyMenuKeySchema, agencyMenuKeys } from "./agency-rbac/menu-keys";
+import {
+	agencyMenuKeySchema,
+	agencyMenuKeys,
+	remapAgencyMenuKeys,
+} from "./agency-rbac/menu-keys";
 
 // ============================================================================
 // ZOD SCHEMAS – independent from database schema (including enums)
@@ -117,7 +121,7 @@ export const agencyRbacRouter = router({
 			id: r.id,
 			name: r.name,
 			description: r.description ?? null,
-			menus: r.menus as string[],
+			menus: remapAgencyMenuKeys((r.menus as string[]) ?? []),
 			isSystem: r.isSystem,
 			createdAt: r.createdAt,
 			updatedAt: r.updatedAt,
@@ -147,10 +151,11 @@ export const agencyRbacRouter = router({
 				throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
 			}
 
-			const dbMenus = (role.menus as string[]) ?? [];
+			const dbMenus = remapAgencyMenuKeys((role.menus as string[]) ?? []);
 			const permissionKeys =
 				role.permissions
 					.map((rp) => rp.permission.key)
+					.map((key) => remapAgencyMenuKeys([key])[0] ?? key)
 					.filter((key): key is z.infer<typeof agencyMenuKeySchema> => agencyMenuKeySchema.safeParse(key).success) ?? [];
 
 			return {
@@ -192,7 +197,7 @@ export const agencyRbacRouter = router({
 				id: role.id,
 				name: role.name,
 				description: role.description ?? null,
-				menus: role.menus as string[],
+				menus: remapAgencyMenuKeys((role.menus as string[]) ?? []),
 				isSystem: role.isSystem,
 				createdAt: role.createdAt,
 				updatedAt: role.updatedAt,
@@ -231,7 +236,7 @@ export const agencyRbacRouter = router({
 				id: updated.id,
 				name: updated.name,
 				description: updated.description ?? null,
-				menus: updated.menus as string[],
+				menus: remapAgencyMenuKeys((updated.menus as string[]) ?? []),
 				isSystem: updated.isSystem,
 				createdAt: updated.createdAt,
 				updatedAt: updated.updatedAt,
@@ -449,10 +454,11 @@ export const agencyRbacRouter = router({
 			};
 		}
 
-		const dbMenus = (userRes.agencyRole?.menus as string[]) ?? [];
+		const dbMenus = remapAgencyMenuKeys((userRes.agencyRole?.menus as string[]) ?? []);
 		const permissionKeys =
 			userRes.agencyRole?.permissions
 				.map((p) => p.permission.key)
+				.map((k) => remapAgencyMenuKeys([k])[0] ?? k)
 				.filter((k): k is z.infer<typeof agencyMenuKeySchema> => agencyMenuKeySchema.safeParse(k).success) ?? [];
 
 		return {

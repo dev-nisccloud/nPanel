@@ -245,7 +245,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 | Email | `niscEmailMarketing` | 40 |
 | Hosting | `hosting` | 6 |
 | Hosting | `hostingPlans` | 5 |
-| Hosting | `jetbackup` | 129 |
+| Hosting | `niscBackup` | 129 |
 | Hosting | `wordpressSubscriptions` | 5 |
 | Other | `agency-rbac` | 0 |
 | Other | `nisc-service-orders-schemas` | 0 |
@@ -964,137 +964,137 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>jetbackup</code>  129 procedures (Hosting)</summary>
+<summary><code>niscBackup</code>  129 procedures (Hosting)</summary>
 
-- `trpc.jetbackup.accountFilters.delete`
-- `trpc.jetbackup.accountFilters.get`
-- `trpc.jetbackup.accountFilters.getGroup`
-- `trpc.jetbackup.accountFilters.list`
-- `trpc.jetbackup.accountFilters.listGroups`
-- `trpc.jetbackup.accountFilters.manage`
-- `trpc.jetbackup.accounts.createOnDemand`
-- `trpc.jetbackup.accounts.deleteSnapshots`
-- `trpc.jetbackup.accounts.get`
-- `trpc.jetbackup.accounts.getExcludeList`
-- `trpc.jetbackup.accounts.list`
-- `trpc.jetbackup.accounts.listAssignable`
-- `trpc.jetbackup.accounts.listPackages`
-- `trpc.jetbackup.accounts.listTags`
-- `trpc.jetbackup.accounts.manage`
-- `trpc.jetbackup.accounts.manageExcludeList`
-- `trpc.jetbackup.accounts.manageTag`
-- `trpc.jetbackup.accounts.reassign`
-- `trpc.jetbackup.accounts.reassignMulti`
-- `trpc.jetbackup.alerts.clear`
-- `trpc.jetbackup.alerts.get`
-- `trpc.jetbackup.alerts.list`
-- `trpc.jetbackup.backups.addQueueItems`
-- `trpc.jetbackup.backups.getItem`
-- `trpc.jetbackup.backups.getItems`
-- `trpc.jetbackup.backups.list`
-- `trpc.jetbackup.backups.listAccountsByFilters`
-- `trpc.jetbackup.backups.listForAccount`
-- `trpc.jetbackup.backups.listForType`
-- `trpc.jetbackup.backups.listForTypeName`
-- `trpc.jetbackup.backups.listLatestForAccounts`
-- `trpc.jetbackup.backups.manageLock`
-- `trpc.jetbackup.dashboard.getDetails`
-- `trpc.jetbackup.dashboard.getInfo`
-- `trpc.jetbackup.dashboard.getStatistics`
-- `trpc.jetbackup.dashboard.listShowcase`
-- `trpc.jetbackup.dashboard.testConnection`
-- `trpc.jetbackup.destinations.delete`
-- `trpc.jetbackup.destinations.get`
-- `trpc.jetbackup.destinations.list`
-- `trpc.jetbackup.destinations.listTypes`
-- `trpc.jetbackup.destinations.manage`
-- `trpc.jetbackup.destinations.reindex`
-- `trpc.jetbackup.destinations.runIntegrityCheck`
-- `trpc.jetbackup.destinations.validate`
-- `trpc.jetbackup.downloads.get`
-- `trpc.jetbackup.downloads.list`
-- `trpc.jetbackup.downloads.manageNotes`
-- `trpc.jetbackup.downloads.queueSnapshot`
-- `trpc.jetbackup.filePermissions.delete`
-- `trpc.jetbackup.filePermissions.get`
-- `trpc.jetbackup.filePermissions.list`
-- `trpc.jetbackup.jobs.deleteBackup`
-- `trpc.jetbackup.jobs.deleteClone`
-- `trpc.jetbackup.jobs.duplicateBackup`
-- `trpc.jetbackup.jobs.duplicateClone`
-- `trpc.jetbackup.jobs.getBackup`
-- `trpc.jetbackup.jobs.getClone`
-- `trpc.jetbackup.jobs.listBackup`
-- `trpc.jetbackup.jobs.listClone`
-- `trpc.jetbackup.jobs.manageBackup`
-- `trpc.jetbackup.jobs.manageClone`
-- `trpc.jetbackup.jobs.runBackupManually`
-- `trpc.jetbackup.jobs.runCloneManually`
-- `trpc.jetbackup.logs.delete`
-- `trpc.jetbackup.logs.get`
-- `trpc.jetbackup.logs.getItem`
-- `trpc.jetbackup.logs.list`
-- `trpc.jetbackup.logs.listItems`
-- `trpc.jetbackup.permissions.list`
-- `trpc.jetbackup.plugins.deleteRepository`
-- `trpc.jetbackup.plugins.get`
-- `trpc.jetbackup.plugins.install`
-- `trpc.jetbackup.plugins.list`
-- `trpc.jetbackup.plugins.listFiles`
-- `trpc.jetbackup.plugins.listPackages`
-- `trpc.jetbackup.plugins.listRepositories`
-- `trpc.jetbackup.plugins.manage`
-- `trpc.jetbackup.plugins.manageRepository`
-- `trpc.jetbackup.plugins.manageSecurity`
-- `trpc.jetbackup.plugins.uninstall`
-- `trpc.jetbackup.plugins.update`
-- `trpc.jetbackup.queues.addItems`
-- `trpc.jetbackup.queues.addMultiAccountItems`
-- `trpc.jetbackup.queues.clear`
-- `trpc.jetbackup.queues.deletePriority`
-- `trpc.jetbackup.queues.getGroup`
-- `trpc.jetbackup.queues.getItem`
-- `trpc.jetbackup.queues.getPriority`
-- `trpc.jetbackup.queues.listGroups`
-- `trpc.jetbackup.queues.listItems`
-- `trpc.jetbackup.queues.listPriorities`
-- `trpc.jetbackup.queues.managePriority`
-- `trpc.jetbackup.queues.queueSnapshot`
-- `trpc.jetbackup.queues.rerunFailed`
-- `trpc.jetbackup.queues.stopAll`
-- `trpc.jetbackup.queues.stopGroup`
-- `trpc.jetbackup.restoreConditions.delete`
-- `trpc.jetbackup.restoreConditions.get`
-- `trpc.jetbackup.restoreConditions.list`
-- `trpc.jetbackup.restoreConditions.manage`
-- `trpc.jetbackup.schedules.delete`
-- `trpc.jetbackup.schedules.get`
-- `trpc.jetbackup.schedules.list`
-- `trpc.jetbackup.schedules.manage`
-- `trpc.jetbackup.settings.deleteEnabledNotificationIntegration`
-- `trpc.jetbackup.settings.getBinary`
-- `trpc.jetbackup.settings.getEnabledNotificationIntegration`
-- `trpc.jetbackup.settings.getPanel`
-- `trpc.jetbackup.settings.getPrivacy`
-- `trpc.jetbackup.settings.getResource`
-- `trpc.jetbackup.settings.getRestore`
-- `trpc.jetbackup.settings.getSecurity`
-- `trpc.jetbackup.settings.getSnapshots`
-- `trpc.jetbackup.settings.listEnabledNotificationIntegrations`
-- `trpc.jetbackup.settings.listNotificationIntegrationTypes`
-- `trpc.jetbackup.settings.manageBinary`
-- `trpc.jetbackup.settings.managePanel`
-- `trpc.jetbackup.settings.managePrivacy`
-- `trpc.jetbackup.settings.manageResource`
-- `trpc.jetbackup.settings.manageRestore`
-- `trpc.jetbackup.settings.manageSecurity`
-- `trpc.jetbackup.settings.manageSnapshots`
-- `trpc.jetbackup.system.approveAgreement`
-- `trpc.jetbackup.system.approveShowcase`
-- `trpc.jetbackup.system.exitDisasterRecovery`
-- `trpc.jetbackup.system.factoryReset`
-- `trpc.jetbackup.system.getMasterEncryptionKey`
-- `trpc.jetbackup.system.listShowcase`
+- `trpc.niscBackup.accountFilters.delete`
+- `trpc.niscBackup.accountFilters.get`
+- `trpc.niscBackup.accountFilters.getGroup`
+- `trpc.niscBackup.accountFilters.list`
+- `trpc.niscBackup.accountFilters.listGroups`
+- `trpc.niscBackup.accountFilters.manage`
+- `trpc.niscBackup.accounts.createOnDemand`
+- `trpc.niscBackup.accounts.deleteSnapshots`
+- `trpc.niscBackup.accounts.get`
+- `trpc.niscBackup.accounts.getExcludeList`
+- `trpc.niscBackup.accounts.list`
+- `trpc.niscBackup.accounts.listAssignable`
+- `trpc.niscBackup.accounts.listPackages`
+- `trpc.niscBackup.accounts.listTags`
+- `trpc.niscBackup.accounts.manage`
+- `trpc.niscBackup.accounts.manageExcludeList`
+- `trpc.niscBackup.accounts.manageTag`
+- `trpc.niscBackup.accounts.reassign`
+- `trpc.niscBackup.accounts.reassignMulti`
+- `trpc.niscBackup.alerts.clear`
+- `trpc.niscBackup.alerts.get`
+- `trpc.niscBackup.alerts.list`
+- `trpc.niscBackup.backups.addQueueItems`
+- `trpc.niscBackup.backups.getItem`
+- `trpc.niscBackup.backups.getItems`
+- `trpc.niscBackup.backups.list`
+- `trpc.niscBackup.backups.listAccountsByFilters`
+- `trpc.niscBackup.backups.listForAccount`
+- `trpc.niscBackup.backups.listForType`
+- `trpc.niscBackup.backups.listForTypeName`
+- `trpc.niscBackup.backups.listLatestForAccounts`
+- `trpc.niscBackup.backups.manageLock`
+- `trpc.niscBackup.dashboard.getDetails`
+- `trpc.niscBackup.dashboard.getInfo`
+- `trpc.niscBackup.dashboard.getStatistics`
+- `trpc.niscBackup.dashboard.listShowcase`
+- `trpc.niscBackup.dashboard.testConnection`
+- `trpc.niscBackup.destinations.delete`
+- `trpc.niscBackup.destinations.get`
+- `trpc.niscBackup.destinations.list`
+- `trpc.niscBackup.destinations.listTypes`
+- `trpc.niscBackup.destinations.manage`
+- `trpc.niscBackup.destinations.reindex`
+- `trpc.niscBackup.destinations.runIntegrityCheck`
+- `trpc.niscBackup.destinations.validate`
+- `trpc.niscBackup.downloads.get`
+- `trpc.niscBackup.downloads.list`
+- `trpc.niscBackup.downloads.manageNotes`
+- `trpc.niscBackup.downloads.queueSnapshot`
+- `trpc.niscBackup.filePermissions.delete`
+- `trpc.niscBackup.filePermissions.get`
+- `trpc.niscBackup.filePermissions.list`
+- `trpc.niscBackup.jobs.deleteBackup`
+- `trpc.niscBackup.jobs.deleteClone`
+- `trpc.niscBackup.jobs.duplicateBackup`
+- `trpc.niscBackup.jobs.duplicateClone`
+- `trpc.niscBackup.jobs.getBackup`
+- `trpc.niscBackup.jobs.getClone`
+- `trpc.niscBackup.jobs.listBackup`
+- `trpc.niscBackup.jobs.listClone`
+- `trpc.niscBackup.jobs.manageBackup`
+- `trpc.niscBackup.jobs.manageClone`
+- `trpc.niscBackup.jobs.runBackupManually`
+- `trpc.niscBackup.jobs.runCloneManually`
+- `trpc.niscBackup.logs.delete`
+- `trpc.niscBackup.logs.get`
+- `trpc.niscBackup.logs.getItem`
+- `trpc.niscBackup.logs.list`
+- `trpc.niscBackup.logs.listItems`
+- `trpc.niscBackup.permissions.list`
+- `trpc.niscBackup.plugins.deleteRepository`
+- `trpc.niscBackup.plugins.get`
+- `trpc.niscBackup.plugins.install`
+- `trpc.niscBackup.plugins.list`
+- `trpc.niscBackup.plugins.listFiles`
+- `trpc.niscBackup.plugins.listPackages`
+- `trpc.niscBackup.plugins.listRepositories`
+- `trpc.niscBackup.plugins.manage`
+- `trpc.niscBackup.plugins.manageRepository`
+- `trpc.niscBackup.plugins.manageSecurity`
+- `trpc.niscBackup.plugins.uninstall`
+- `trpc.niscBackup.plugins.update`
+- `trpc.niscBackup.queues.addItems`
+- `trpc.niscBackup.queues.addMultiAccountItems`
+- `trpc.niscBackup.queues.clear`
+- `trpc.niscBackup.queues.deletePriority`
+- `trpc.niscBackup.queues.getGroup`
+- `trpc.niscBackup.queues.getItem`
+- `trpc.niscBackup.queues.getPriority`
+- `trpc.niscBackup.queues.listGroups`
+- `trpc.niscBackup.queues.listItems`
+- `trpc.niscBackup.queues.listPriorities`
+- `trpc.niscBackup.queues.managePriority`
+- `trpc.niscBackup.queues.queueSnapshot`
+- `trpc.niscBackup.queues.rerunFailed`
+- `trpc.niscBackup.queues.stopAll`
+- `trpc.niscBackup.queues.stopGroup`
+- `trpc.niscBackup.restoreConditions.delete`
+- `trpc.niscBackup.restoreConditions.get`
+- `trpc.niscBackup.restoreConditions.list`
+- `trpc.niscBackup.restoreConditions.manage`
+- `trpc.niscBackup.schedules.delete`
+- `trpc.niscBackup.schedules.get`
+- `trpc.niscBackup.schedules.list`
+- `trpc.niscBackup.schedules.manage`
+- `trpc.niscBackup.settings.deleteEnabledNotificationIntegration`
+- `trpc.niscBackup.settings.getBinary`
+- `trpc.niscBackup.settings.getEnabledNotificationIntegration`
+- `trpc.niscBackup.settings.getPanel`
+- `trpc.niscBackup.settings.getPrivacy`
+- `trpc.niscBackup.settings.getResource`
+- `trpc.niscBackup.settings.getRestore`
+- `trpc.niscBackup.settings.getSecurity`
+- `trpc.niscBackup.settings.getSnapshots`
+- `trpc.niscBackup.settings.listEnabledNotificationIntegrations`
+- `trpc.niscBackup.settings.listNotificationIntegrationTypes`
+- `trpc.niscBackup.settings.manageBinary`
+- `trpc.niscBackup.settings.managePanel`
+- `trpc.niscBackup.settings.managePrivacy`
+- `trpc.niscBackup.settings.manageResource`
+- `trpc.niscBackup.settings.manageRestore`
+- `trpc.niscBackup.settings.manageSecurity`
+- `trpc.niscBackup.settings.manageSnapshots`
+- `trpc.niscBackup.system.approveAgreement`
+- `trpc.niscBackup.system.approveShowcase`
+- `trpc.niscBackup.system.exitDisasterRecovery`
+- `trpc.niscBackup.system.factoryReset`
+- `trpc.niscBackup.system.getMasterEncryptionKey`
+- `trpc.niscBackup.system.listShowcase`
 
 </details>
 
@@ -1458,7 +1458,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 | `hivelocityPricingSettings` | MIXED | 1 | 3 | 0 |
 | `hosting` | PROTECTED_ONLY | 0 | 6 | 0 |
 | `hostingPlans` | PROTECTED_ONLY | 0 | 5 | 0 |
-| `jetbackup` | PROTECTED_ONLY | 0 | 129 | 0 |
+| `niscBackup` | PROTECTED_ONLY | 0 | 129 | 0 |
 | `plesk` | MIXED | 3 | 120 | 0 |
 | `wordpressSubscriptions` | PROTECTED_ONLY | 0 | 5 | 0 |
 

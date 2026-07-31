@@ -34,7 +34,7 @@ const ALL_TIME_REPORT_FILTERS = {
 
 const METRIC_CARD_LINKS = [
 	{ label: "Domains", href: "/agency/domains-portfolio" },
-	{ label: "Tickets", href: "#", openFloatingActionMenu: true },
+	{ label: "Tickets", href: "/agency/support" },
 	{ label: "Products", href: "/agency/products" },
 	{ label: "Invoices", href: "/agency/invoices" },
 	{ label: "Quotations", href: "/agency/quotations" },
@@ -48,26 +48,9 @@ const METRIC_CARD_LINKS = [
 interface MetricCardLinkProps {
 	href: string;
 	label: string;
-	openFloatingActionMenu?: boolean;
 }
 
-function MetricCardLink({ href, label, openFloatingActionMenu }: MetricCardLinkProps) {
-	if (openFloatingActionMenu) {
-		return (
-			<button
-				onClick={() => {
-					// This will open the floating action menu to the tickets tab
-					const fab = document.querySelector('[aria-label="Open support"]') as HTMLButtonElement;
-					if (fab) fab.click();
-				}}
-				className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
-			>
-				{label}
-				<ArrowUpRight className="h-3.5 w-3.5" />
-			</button>
-		);
-	}
-
+function MetricCardLink({ href, label }: MetricCardLinkProps) {
 	return (
 		<Link
 			to={href}
@@ -76,6 +59,20 @@ function MetricCardLink({ href, label, openFloatingActionMenu }: MetricCardLinkP
 			{label}
 			<ArrowUpRight className="h-3.5 w-3.5" />
 		</Link>
+	);
+}
+
+function MetricCardExternalLink({ href, label }: { href: string; label: string }) {
+	return (
+		<a
+			href={href}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+		>
+			{label}
+			<ArrowUpRight className="h-3.5 w-3.5" />
+		</a>
 	);
 }
 
@@ -149,6 +146,16 @@ export function MetricCards() {
 			...REALTIME_QUERY_OPTIONS,
 			retry: false,
 		});
+
+	// KENIC (KC) Balance — EPP can be slow; do not block the dashboard skeleton
+	const {
+		data: kenicBalance,
+		isLoading: isKenicBalanceLoading,
+		isError: isKenicBalanceError,
+	} = trpc.kenic.balance.getBalance.useQuery(undefined, {
+		...REALTIME_QUERY_OPTIONS,
+		retry: false,
+	});
 
 	// Media Buying Platforms
 	const { data: mediaBuyingPlatforms, isLoading: isMediaBuyingLoading, isError: isMediaBuyingError } =
@@ -235,6 +242,20 @@ export function MetricCards() {
 
 	// OpenProvider Balance
 	const balance = isBalanceError ? "N/A" : `$${(openProviderBalance?.balance ?? 0).toFixed(2)}`;
+
+	const formatKenicBalance = () => {
+		if (isKenicBalanceLoading) return "…";
+		if (isKenicBalanceError || !kenicBalance) return "Coming soon";
+		const amount = kenicBalance.balance ?? 0;
+		const currency = kenicBalance.currency ?? "KES";
+		if (currency === "KES") {
+			return `KES ${amount.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+		}
+		return `${currency} ${amount.toFixed(2)}`;
+	};
+	const kcBalanceDisplay = formatKenicBalance();
+	const kcBalanceUnavailable =
+		!isKenicBalanceLoading && (isKenicBalanceError || !kenicBalance);
 
 	// Hosting
 	const hostingTotal = isHostingError ? "N/A" : (hostingSubscriptions?.total ?? 0);
@@ -562,7 +583,7 @@ export function MetricCards() {
 				</CardFooter>
 			</Card>
 
-			{/* 8. OpenProvider Balance */}
+			{/* 8. OP Balance + KC Balance */}
 			<Card className="@container/card relative">
 				{isBalanceError && (
 					<div className="absolute top-2 right-2">
@@ -572,23 +593,44 @@ export function MetricCards() {
 									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
 								</TooltipTrigger>
 								<TooltipContent>
-									<p>Failed to load OpenProvider balance.</p>
+									<p>Failed to load OP balance.</p>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
 					</div>
 				)}
-				<CardHeader>
-					<CardDescription>OpenProvider Balance</CardDescription>
-					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{balance}
-					</CardTitle>
-				</CardHeader>
-				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<div className="text-xs text-muted-foreground">
-						Reseller account balance
+				<CardHeader className="gap-4">
+					<div className="space-y-1.5">
+						<CardDescription>OP Balance</CardDescription>
+						<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+							{balance}
+						</CardTitle>
+						<div className="pt-0.5">
+							<MetricCardExternalLink
+								href="https://cp.openprovider.eu/"
+								label="Open OP dashboard"
+							/>
+						</div>
 					</div>
-				</CardFooter>
+					<div className="space-y-1.5">
+						<CardDescription>KC Balance</CardDescription>
+						<p
+							className={cn(
+								"text-2xl font-semibold tabular-nums @[250px]/card:text-3xl",
+								(isKenicBalanceLoading || kcBalanceUnavailable) &&
+									"text-muted-foreground",
+							)}
+						>
+							{kcBalanceDisplay}
+						</p>
+						<div className="pt-0.5">
+							<MetricCardExternalLink
+								href="https://registry.kenic.or.ke/"
+								label="Open KC dashboard"
+							/>
+						</div>
+					</div>
+				</CardHeader>
 			</Card>
 
 			{/* 9. Media Buying */}

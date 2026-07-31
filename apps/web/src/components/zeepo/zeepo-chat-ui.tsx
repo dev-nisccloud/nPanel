@@ -35,7 +35,7 @@ export const ZEEPO_AGENCY_LANDING_PAGE =
 export const ZEEPO_AGENCY_LANDING_SCROLL =
   "zeepo-landing-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain";
 export const ZEEPO_AGENCY_LANDING_CONTENT =
-  "relative mx-auto flex w-full max-w-3xl flex-col px-4 py-6 pb-10 sm:px-5 md:py-8 md:px-6";
+  "relative mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-5 sm:px-5 md:px-6 zeepo-landing-enter";
 
 /** Elapsed seconds while `active` is true (resets when inactive). */
 export function useElapsedSeconds(active: boolean) {
@@ -603,15 +603,22 @@ export function ZeepoFloatingDock({
   activity,
   composer,
   className,
+  isLanding,
 }: {
   activity?: React.ReactNode;
   composer: React.ReactNode;
   className?: string;
+  /** When true, applies the animated rainbow-glow border for the landing page. */
+  isLanding?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "zeepo-composer-glow overflow-hidden rounded-2xl bg-transparent",
+        "zeepo-composer-shell overflow-hidden rounded-2xl border border-border/70 bg-card",
+        "zeepo-floating-dock-shadow transition-[border-color,box-shadow] duration-300",
+        "focus-within:border-foreground/20 focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.08)]",
+        "dark:focus-within:shadow-[0_4px_28px_rgba(0,0,0,0.45)]",
+        isLanding && "zeepo-composer-glow",
         className,
       )}
     >
