@@ -4,22 +4,21 @@ import * as React from "react";
 import { authClient } from "@/lib/auth-client";
 import { Link, Navigate, useNavigate } from "react-router";
 import { trpc } from "@/utils/trpc";
-import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
-import { ArrowUpRight, Plus, ChevronRight, X, Clock, Trash2 } from "lucide-react";
+import { ChevronRight, Clock, History, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import { mapStorageResultToAttachment, uploadErrorMessage } from "@/lib/app-file-upload";
-import { RotatingText } from "@/components/rotating-text";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import {
+  ZEEPO_SAMPLE_PROMPTS,
   ZEEPO_PROMPT_CATEGORY_META,
   ZEEPO_PROMPT_CATEGORY_ORDER,
-  ZEEPO_SAMPLE_PROMPTS,
   type ZeepoPromptCategory,
 } from "@/components/zeepo/zeepo-sample-prompts";
 import {
@@ -44,6 +43,63 @@ import { ZeepoTokenWallet } from "@/components/zeepo/zeepo-token-wallet";
 
 type Attachment = { url: string; name: string; mimeType: string };
 
+const TYPEWRITER_PHRASES = [
+  "write strategies, plans, and proposals",
+  "check domain availability and buy instantly",
+  "generate images, video, and audio",
+  "research anything with live web search",
+  "build brand assets and creative copy",
+  "run marketing campaigns end to end",
+  "handle operational planning and briefs",
+];
+
+function useTypewriter(phrases: string[], typingMs = 42, erasingMs = 22, pauseMs = 2200) {
+  const [displayed, setDisplayed] = React.useState("");
+  const [phraseIdx, setPhraseIdx] = React.useState(0);
+  const [charIdx, setCharIdx] = React.useState(0);
+  const [erasing, setErasing] = React.useState(false);
+
+  React.useEffect(() => {
+    const phrase = phrases[phraseIdx] ?? "";
+    if (!erasing) {
+      if (charIdx < phrase.length) {
+        const t = setTimeout(() => setCharIdx((c) => c + 1), typingMs);
+        return () => clearTimeout(t);
+      } else {
+        const t = setTimeout(() => setErasing(true), pauseMs);
+        return () => clearTimeout(t);
+      }
+    } else {
+      if (charIdx > 0) {
+        const t = setTimeout(() => setCharIdx((c) => c - 1), erasingMs);
+        return () => clearTimeout(t);
+      } else {
+        setErasing(false);
+        setPhraseIdx((i) => (i + 1) % phrases.length);
+      }
+    }
+  }, [charIdx, erasing, phraseIdx, phrases, typingMs, erasingMs, pauseMs]);
+
+  React.useEffect(() => {
+    const phrase = phrases[phraseIdx] ?? "";
+    setDisplayed(phrase.slice(0, charIdx));
+  }, [charIdx, phraseIdx, phrases]);
+
+  return displayed;
+}
+
+function TypewriterLine() {
+  const text = useTypewriter(TYPEWRITER_PHRASES);
+  return (
+    <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto leading-relaxed min-h-[1.5em]">
+      I can{" "}
+      <span className="font-medium text-foreground">
+        {text}
+        <span className="inline-block w-[2px] h-[1em] bg-foreground align-middle ml-[1px] animate-[zeepo-cursor-blink_0.8s_step-end_infinite]" aria-hidden />
+      </span>
+    </p>
+  );
+}
 
 export default function ZeepoAiAgentIndexPage() {
   const { data: session, isPending: authPending } = authClient.useSession();
@@ -160,7 +216,7 @@ export default function ZeepoAiAgentIndexPage() {
     await finishHandoff(presetAttachments);
   };
 
-  /** Stage locally â€” upload runs on Send (same as session chat). */
+  /** Stage locally — upload runs on Send. */
   const handleFileSelect = (files: FileList | null) => {
     if (!files?.length) return;
     const room = 4 - pendingFiles.length;
@@ -174,7 +230,6 @@ export default function ZeepoAiAgentIndexPage() {
     }));
     setPendingFiles((prev) => [...prev, ...staged]);
   };
-
 
   if (authPending) {
     return (
@@ -198,7 +253,9 @@ export default function ZeepoAiAgentIndexPage() {
     <div className={ZEEPO_AGENCY_LANDING_PAGE}>
       <div className={ZEEPO_AGENCY_LANDING_SCROLL}>
         <div className={ZEEPO_AGENCY_LANDING_CONTENT}>
-          <div className="mb-4 flex items-center justify-between gap-3">
+
+          {/* Top bar: wallet + history */}
+          <div className="mb-6 flex items-center justify-between gap-3">
             {isCustomer ? <ZeepoTokenWallet /> : <span />}
             <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
               <PopoverTrigger asChild>
@@ -209,18 +266,21 @@ export default function ZeepoAiAgentIndexPage() {
                   aria-label="Recent chats"
                 >
                   <Clock className="size-4" />
-                  <span className="hidden sm:inline text-sm">Recent chats</span>
+                  <span className="hidden sm:inline text-sm">History</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent
-                className="w-[min(calc(100vw-2rem),20rem)] p-0"
+                className="w-[min(calc(100vw-2rem),22rem)] p-0"
                 align="end"
                 side="bottom"
                 sideOffset={8}
                 collisionPadding={16}
               >
                 <div className="flex items-center justify-between border-b px-4 py-3">
-                  <h2 className="text-sm font-semibold">Recent chats</h2>
+                  <div className="flex items-center gap-2">
+                    <History className="size-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold">Recent chats</h2>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -231,15 +291,17 @@ export default function ZeepoAiAgentIndexPage() {
                     <X className="size-3.5" />
                   </Button>
                 </div>
-                <div className="max-h-72 overflow-y-auto p-2">
+                <div className="max-h-80 overflow-y-auto p-2">
                   {listQuery.isPending ? (
-                    <div className="flex justify-center py-6">
+                    <div className="flex justify-center py-8">
                       <Spinner size={20} className="text-muted-foreground" />
                     </div>
                   ) : rows.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-muted-foreground">
-                      No chats yet
-                    </p>
+                    <div className="flex flex-col items-center gap-2 py-8 text-center">
+                      <History className="size-8 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">No chats yet</p>
+                      <p className="text-xs text-muted-foreground/60">Start a conversation below</p>
+                    </div>
                   ) : (
                     rows.map((s) => (
                       <div
@@ -295,170 +357,151 @@ export default function ZeepoAiAgentIndexPage() {
             </Popover>
           </div>
 
+          {/* Main content — fades out on handoff */}
           <div
             className={cn(
-              "flex w-full flex-col items-center gap-8 transition-all duration-300 ease-out",
-              isHandingOff && "pointer-events-none opacity-0 -translate-y-3 scale-[0.99]",
+              "zeepo-landing-main flex w-full flex-col items-center gap-8 transition-all duration-300 ease-out",
+              isHandingOff && "pointer-events-none opacity-0 -translate-y-4 scale-[0.98]",
             )}
           >
-        {/* Heading */}
-        <div className="zeepo-hero-surface flex w-full flex-col items-center gap-3">
-          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
-            <ZeepoMascot />
-            <h1
-              className="text-[2rem] sm:text-[2.75rem] font-serif tracking-tight text-foreground text-center leading-tight"
-              style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
-            >
-              What can I do for you?
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
-            I can{" "}
-            <RotatingText
-              texts={[
-                "write strategies, plans, and proposals",
-                "check domain availability and buy instantly",
-                "generate images, video, and audio",
-                "research anything with live web search",
-                "build brand assets and creative copy",
-                "run marketing campaigns end to end",
-                "handle operational planning and briefs",
-              ]}
-              className="font-medium text-foreground"
-            />
-          </p>
-        </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            void handleFileSelect(e.target.files);
-            e.target.value = "";
-          }}
-        />
-
-        <div className="zeepo-compose-surface w-full">
-          <ZeepoFloatingDock
-            composer={
-              <ZeepoComposer
-                value={draft}
-                onChange={setDraft}
-                onSubmit={() => void handleSubmit()}
-                placeholder="Assign a task or ask anything"
-                disabled={createSession.isPending}
-                isSending={createSession.isPending || isUploading}
-                canSend={canSend}
-                onAttach={() => fileInputRef.current?.click()}
-                attachDisabled={createSession.isPending || pendingFiles.length >= 4}
-                isUploading={isUploading}
-                uploadProgressPercent={uploadProgressPercent}
-                pendingPreviews={pendingFiles.map((f, i) => ({
-                  previewUrl: f.previewUrl,
-                  name: f.name,
-                  onRemove: () => {
-                    URL.revokeObjectURL(f.previewUrl);
-                    setPendingFiles((p) => p.filter((_, idx) => idx !== i));
-                  },
-                }))}
-                promptCategory={
-                  selectedPromptCategory
-                    ? {
-                        label: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].label,
-                        className: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].pillClass,
-                        icon: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].icon,
-                      }
-                    : null
-                }
-                onClearPromptCategory={() => {
-                  setSelectedPromptCategory(null);
-                  setSelectedPromptTitle(null);
-                  setDraft("");
-                }}
-                textareaRef={textareaRef}
-              />
-            }
-          />
-        </div>
-
-        {/* Sample prompts - category pill tabs (like domain TLD categories) */}
-        <div className="zeepo-hero-surface w-full space-y-3">
-          <p className="text-xs font-medium text-muted-foreground">Sample prompts</p>
-          <ScrollArea className="w-full">
-            <div className="flex gap-2 flex-nowrap w-max pb-1 pr-2">
-              {ZEEPO_PROMPT_CATEGORY_ORDER.map((category) => {
-                const isActive = activePromptTab === category;
-                const meta = ZEEPO_PROMPT_CATEGORY_META[category];
-                const TabIcon = meta.icon;
-                return (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => setActivePromptTab(category)}
-                    className={cn(
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border bg-background text-foreground hover:bg-muted/50",
-                    )}
-                  >
-                    <TabIcon className="size-3.5 shrink-0" aria-hidden />
-                    {meta.label}
-                  </button>
-                );
-              })}
+            {/* Hero */}
+            <div className="zeepo-hero-surface flex w-full flex-col items-center gap-4 pt-6 pb-2 text-center">
+              <ZeepoMascot className="h-16 w-16 sm:h-20 sm:w-20" />
+              <div className="space-y-2">
+                <h1 className="text-[2rem] sm:text-[2.6rem] font-bold tracking-tight text-foreground leading-[1.15]">
+                  How can I help you?
+                </h1>
+                <TypewriterLine />
+              </div>
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {ZEEPO_SAMPLE_PROMPTS.filter((p) => p.category === activePromptTab).map((item) => {
-              const Icon = item.icon;
-              const isSelected = selectedPromptTitle === item.title;
-              return (
-                <button
-                  key={item.title}
-                  type="button"
-                  disabled={createSession.isPending}
-                  onClick={() => {
-                    setDraft(item.prompt);
-                    setActivePromptTab(item.category);
-                    setSelectedPromptCategory(item.category);
-                    setSelectedPromptTitle(item.title);
-                    setTimeout(() => textareaRef.current?.focus(), 50);
-                  }}
-                  className={cn(
-                    "group relative flex flex-col items-start gap-2.5 rounded-2xl border bg-card p-3.5 text-left shadow-sm",
-                    "transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    "disabled:pointer-events-none disabled:opacity-50",
-                    isSelected
-                      ? "border-primary ring-1 ring-primary/25"
-                      : "border-border hover:border-border/80",
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-lg",
-                      item.bg,
-                    )}
-                  >
-                    <Icon className={cn("size-4", item.color)} strokeWidth={1.75} />
-                  </div>
-                  <p className="text-xs font-semibold text-foreground leading-snug pr-4">
-                    {item.title}
-                  </p>
-                  <p className="line-clamp-2 text-[10px] text-muted-foreground leading-relaxed pr-2">
-                    {item.prompt.slice(0, 88).trimEnd()}…
-                  </p>
-                  <ArrowUpRight className="absolute bottom-3 right-3 size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                </button>
-              );
-            })}
-          </div>
-        </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void handleFileSelect(e.target.files);
+                e.target.value = "";
+              }}
+            />
+
+            {/* Composer */}
+            <div className="zeepo-compose-surface w-full">
+              <ZeepoFloatingDock
+                isLanding
+                composer={
+                  <ZeepoComposer
+                    value={draft}
+                    onChange={setDraft}
+                    onSubmit={() => void handleSubmit()}
+                    placeholder="Assign a task or ask anything…"
+                    disabled={createSession.isPending}
+                    isSending={createSession.isPending || isUploading}
+                    canSend={canSend}
+                    onAttach={() => fileInputRef.current?.click()}
+                    attachDisabled={createSession.isPending || pendingFiles.length >= 4}
+                    isUploading={isUploading}
+                    uploadProgressPercent={uploadProgressPercent}
+                    pendingPreviews={pendingFiles.map((f, i) => ({
+                      previewUrl: f.previewUrl,
+                      name: f.name,
+                      onRemove: () => {
+                        URL.revokeObjectURL(f.previewUrl);
+                        setPendingFiles((p) => p.filter((_, idx) => idx !== i));
+                      },
+                    }))}
+                    promptCategory={
+                      selectedPromptCategory
+                        ? {
+                            label: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].label,
+                            className: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].pillClass,
+                            icon: ZEEPO_PROMPT_CATEGORY_META[selectedPromptCategory].icon,
+                          }
+                        : null
+                    }
+                    onClearPromptCategory={() => {
+                      setSelectedPromptCategory(null);
+                      setSelectedPromptTitle(null);
+                      setDraft("");
+                    }}
+                    textareaRef={textareaRef}
+                  />
+                }
+              />
+            </div>
+
+            {/* Sample prompts — category tabs + chips */}
+            <div className="zeepo-hero-surface w-full space-y-3 mt-2">
+              {/* Category tab pills */}
+              <ScrollArea className="w-full">
+                <div className="flex gap-2 flex-nowrap w-max pb-1 pr-2">
+                  {ZEEPO_PROMPT_CATEGORY_ORDER.map((category) => {
+                    const isActive = activePromptTab === category;
+                    const meta = ZEEPO_PROMPT_CATEGORY_META[category];
+                    const TabIcon = meta.icon;
+                    return (
+                      <button
+                        key={category}
+                        type="button"
+                        onClick={() => setActivePromptTab(category)}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border bg-background text-foreground hover:bg-muted/50",
+                        )}
+                      >
+                        <TabIcon className="size-3.5 shrink-0" aria-hidden />
+                        {meta.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+
+              {/* Prompt chips for active category */}
+              <div className="flex flex-wrap gap-2">
+                {ZEEPO_SAMPLE_PROMPTS.filter((p) => p.category === activePromptTab).map((item) => {
+                  const Icon = item.icon;
+                  const isSelected = selectedPromptTitle === item.title;
+                  const meta = ZEEPO_PROMPT_CATEGORY_META[item.category];
+                  return (
+                    <button
+                      key={item.title}
+                      type="button"
+                      disabled={createSession.isPending}
+                      onClick={() => {
+                        setDraft(item.prompt);
+                        setActivePromptTab(item.category);
+                        setSelectedPromptCategory(item.category);
+                        setSelectedPromptTitle(item.title);
+                        setTimeout(() => textareaRef.current?.focus(), 50);
+                      }}
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium",
+                        "border transition-all duration-150",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "disabled:pointer-events-none disabled:opacity-50",
+                        "hover:-translate-y-px hover:shadow-sm",
+                        isSelected
+                          ? cn("border-transparent shadow-sm", meta.pillClass)
+                          : "border-border bg-card text-foreground hover:bg-muted/60",
+                      )}
+                    >
+                      <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
+                      {item.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
