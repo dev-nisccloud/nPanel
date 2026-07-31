@@ -15,7 +15,7 @@ description: Add and edit A, CNAME, MX, and TXT DNS records for your domain in t
 4. Click the **DNS** tab.
 5. You see a list of existing records and buttons to **Add record** or **Edit**.
 
-If the DNS tab is read-only, your domain may use **external nameservers** — change nameservers first or edit DNS at the other provider. See [Nameservers](/docs/domains/nameservers).
+If the DNS tab is read-only, your domain may use **external nameservers**  change nameservers first or edit DNS at the other provider. See [Nameservers](/docs/domains/nameservers).
 
 ---
 
@@ -56,7 +56,7 @@ Use when a hostname should **alias** another name (common for `www` or SaaS tool
 3. **Value:** target hostname (e.g. `yourdomain.com` or `shops.myplatform.com`).
 4. Save.
 
-Do not use CNAME on `@` root if your DNS system blocks it — use A record on root instead.
+Do not use CNAME on `@` root if your DNS system blocks it  use A record on root instead.
 
 ---
 
@@ -83,9 +83,9 @@ TXT records prove domain ownership or authorize email senders.
 
 **Examples:**
 
-- **SPF** — `v=spf1 include:... ~all`
-- **DKIM** — long key from email provider
-- **Domain verification** — code from Google, Microsoft, or marketing tools
+- **SPF**  `v=spf1 include:... ~all`
+- **DKIM**  long key from email provider
+- **Domain verification**  code from Google, Microsoft, or marketing tools
 
 1. Add record → **TXT**.
 2. Enter **Name** (`@` or `_dmarc`, etc.) exactly as instructed by the tool.
@@ -97,7 +97,7 @@ TXT records prove domain ownership or authorize email senders.
 ## Edit or delete a record
 
 1. On the **DNS** tab, find the row.
-2. Click **Edit**, change fields, and save — or click **Delete** / trash icon.
+2. Click **Edit**, change fields, and save  or click **Delete** / trash icon.
 3. Confirm deletion if prompted.
 
 Wrong DNS can take your site or email offline. Change one record at a time when troubleshooting.
@@ -106,7 +106,7 @@ Wrong DNS can take your site or email offline. Change one record at a time when 
 
 ## DNS on hosting vs domain portfolio
 
-If your domain uses **Nisc Cloud nameservers** and you have **shared hosting**, you may also edit DNS under **Hosting → [your site] → DNS**. Keep domain portfolio and hosting DNS in sync — avoid duplicate conflicting records in two places unless support directs you.
+If your domain uses **Nisc Cloud nameservers** and you have **shared hosting**, you may also edit DNS under **Hosting → [your site] → DNS**. Keep domain portfolio and hosting DNS in sync  avoid duplicate conflicting records in two places unless support directs you.
 
 See [Manage hosting](/docs/hosting/manage-hosting).
 

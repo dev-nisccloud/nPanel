@@ -253,7 +253,7 @@ export function OrderSummary({
         )}
       </div>
 
-      {/* CTA — desktop only; mobile uses the fixed bottom action bar */}
+      {/* CTA  desktop only; mobile uses the fixed bottom action bar */}
       <div className="px-5 pb-5 pt-2">
         <Button
           type={step === 2 && customerFormId ? "submit" : "button"}

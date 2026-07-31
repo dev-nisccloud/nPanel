@@ -44,7 +44,7 @@ export default function SecurityMacbookSection() {
             transition={{ duration: 0.45, delay: 0.1 }}
             className="mx-auto max-w-lg text-base leading-relaxed text-muted-foreground"
           >
-            Firewall, malware scans, SSL, backups, and DDoS defence — monitored in one place so you always know your site is safe.
+            Firewall, malware scans, SSL, backups, and DDoS defence  monitored in one place so you always know your site is safe.
           </motion.p>
         </div>
 
@@ -54,7 +54,7 @@ export default function SecurityMacbookSection() {
             content={<SecurityDashboardScreen />}
             title={
               <span className="sr-only">
-                Nisc Cloud Security Dashboard — real-time threat monitoring
+                Nisc Cloud Security Dashboard  real-time threat monitoring
               </span>
             }
           />

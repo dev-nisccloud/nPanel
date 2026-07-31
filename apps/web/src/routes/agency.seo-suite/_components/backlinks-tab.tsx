@@ -185,7 +185,7 @@ export function BacklinksTab({ projectId, project }: BacklinksTabProps) {
                       return (
                         <TableRow key={i}>
                           <TableCell className="pl-6 font-medium">
-                            {String(r.anchor ?? "—")}
+                            {String(r.anchor ?? "")}
                           </TableCell>
                           <TableCell>{formatNumber(r.backlinks)}</TableCell>
                           <TableCell>{formatNumber(r.referring_domains)}</TableCell>
@@ -196,7 +196,7 @@ export function BacklinksTab({ projectId, project }: BacklinksTabProps) {
                       return (
                         <TableRow key={i}>
                           <TableCell className="pl-6 font-medium">
-                            {String(r.domain ?? r.target ?? "—")}
+                            {String(r.domain ?? r.target ?? "")}
                           </TableCell>
                           <TableCell>{formatNumber(r.rank)}</TableCell>
                           <TableCell>{formatNumber(r.backlinks)}</TableCell>
@@ -206,10 +206,10 @@ export function BacklinksTab({ projectId, project }: BacklinksTabProps) {
                     return (
                       <TableRow key={i}>
                         <TableCell className="pl-6 font-medium max-w-[240px] truncate">
-                          {String(r.url_from ?? "—")}
+                          {String(r.url_from ?? "")}
                         </TableCell>
                         <TableCell className="max-w-[240px] truncate">
-                          {String(r.url_to ?? "—")}
+                          {String(r.url_to ?? "")}
                         </TableCell>
                         <TableCell>{formatNumber(r.rank)}</TableCell>
                       </TableRow>

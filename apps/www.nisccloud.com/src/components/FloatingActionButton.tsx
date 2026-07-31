@@ -1,5 +1,5 @@
 /**
- * Marketing-site support FAB — UI mirrored from the nPanel dashboard widget.
+ * Marketing-site support FAB  UI mirrored from the nPanel dashboard widget.
  * Interactive logic (tickets, AI chat, etc.) will be wired later.
  */
 

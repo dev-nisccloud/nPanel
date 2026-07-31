@@ -3,7 +3,7 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "nPanel System Architecture",
-    "subtitle": "Beginner guide — how the landing page, dashboard, API, data stores, and background jobs fit together",
+    "subtitle": "Beginner guide  how the landing page, dashboard, API, data stores, and background jobs fit together",
     "output": "npanel-runtime.html",
     "viewBox": [1120, 780]
   },
@@ -265,11 +265,11 @@
   "cards": [
     {
       "dot": "cyan",
-      "title": "Start here — the three websites",
+      "title": "Start here  the three websites",
       "items": [
         "Landing Page (apps/www.nisccloud.com): public site for marketing, pricing, domain search, cart, and checkout",
         "nPanel Dashboard (apps/web): the signed-in control panel for agencies and customers (hosting, billing, creatives, ads…)",
-        "Docs Site (apps/fumadocs): help articles only — it does not call the API",
+        "Docs Site (apps/fumadocs): help articles only  it does not call the API",
         "Both the Landing Page and Dashboard talk to the API through a same-origin /api proxy so login cookies stay safe"
       ]
     },
@@ -287,10 +287,10 @@
       "dot": "rose",
       "title": "Login wall (who is allowed in)",
       "items": [
-        "People never talk to the database directly — only through the API after login checks",
+        "People never talk to the database directly  only through the API after login checks",
         "Dashboard users: Better Auth cookie sessions stored in PostgreSQL, cached in Redis, with MFA email OTP when needed",
         "Machines/integrations: API keys that start with npanel_sk_* (stored hashed)",
-        "Background workers ignore user cookies — they only accept cryptographically signed QStash requests"
+        "Background workers ignore user cookies  they only accept cryptographically signed QStash requests"
       ]
     },
     {
@@ -298,7 +298,7 @@
       "title": "Where data lives",
       "items": [
         "PostgreSQL (+ PgBouncer): the real source of truth for users, orders, hosting, invoices, and more (Drizzle ORM in packages/db)",
-        "Redis (Upstash): optional fast cache for sessions, rate limits, and short-lived tokens — if Redis is down, the app falls back to Postgres",
+        "Redis (Upstash): optional fast cache for sessions, rate limits, and short-lived tokens  if Redis is down, the app falls back to Postgres",
         "File Storage (MinIO/S3 + UploadThing): images, uploads, and generated creative assets",
         "Job Queue (QStash): holds slow work (send campaigns, provision orders, run AI jobs) until workers finish it"
       ]
@@ -310,7 +310,7 @@
         "Payments: M-Pesa STK Push  ·  Hosting: Plesk, Hivelocity, JetBackup  ·  Domains: OpenProvider, KENIC (.ke)",
         "Email: AWS SES (and some legacy Resend)  ·  AI: Replicate, Stability AI  ·  Ads: Meta, Instagram, LinkedIn, Google Ads",
         "Tax: KRA eTIMS / DigiTax  ·  SEO: Google PageSpeed",
-        "Partners call back through signed webhooks (M-Pesa, Replicate, SES/SNS) — never trusted blindly"
+        "Partners call back through signed webhooks (M-Pesa, Replicate, SES/SNS)  never trusted blindly"
       ]
     },
     {

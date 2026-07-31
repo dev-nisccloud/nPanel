@@ -122,7 +122,7 @@ function TerminalLine({ line }: { line: HostingHeroTerminalLine }) {
 export function HostingHeroIllustration({ config }: { config: HostingHeroConfig }) {
   return (
     <div className="w-full min-w-0">
-      {/* Rounded computer chassis — soft depth, not busy */}
+      {/* Rounded computer chassis  soft depth, not busy */}
       <div
         className="relative overflow-hidden rounded-[1.75rem] p-3 shadow-2xl sm:rounded-[2rem] sm:p-4"
         style={{

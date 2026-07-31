@@ -157,7 +157,7 @@ export function CompetitorIntelligenceTab({ projectId, project }: CompetitorInte
                             {item.keyword || item.keyword_data?.keyword}
                           </TableCell>
                           <TableCell>
-                            {item.ranked_serp_element?.serp_item?.rank_absolute || "—"}
+                            {item.ranked_serp_element?.serp_item?.rank_absolute || ""}
                           </TableCell>
                           <TableCell>
                             {formatNumber(

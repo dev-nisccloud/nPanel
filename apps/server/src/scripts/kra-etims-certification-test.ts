@@ -1,5 +1,5 @@
 /**
- * KRA eTIMS Developer Platform — Automated App Test runner
+ * KRA eTIMS Developer Platform  Automated App Test runner
  *
  * Calls every certification test-case endpoint step-by-step via our EtimsOscuClient,
  * logs the EXACT unaltered KRA response, and writes results to JSON.
@@ -89,7 +89,7 @@ type RunContext = {
     kraItems: KraItem[];
     /** Classification codes from selectItemClsList (required for SAVE ITEM) */
     itemClsOptions: Array<{ itemClsCd: string; itemClsNm: string; taxTyCd: string }>;
-    /** @deprecated kept for logs — prefer sessionGoods */
+    /** @deprecated kept for logs  prefer sessionGoods */
     serviceTemplate: KraItem | null;
     /** ItemCd created in this certification session (official KRA format, no X) */
     newItemCd: string;
@@ -100,7 +100,7 @@ type RunContext = {
     /** In-session goods for composition (child) */
     goodsItem2: KraItem | null;
     invcNo: number;
-    /** Session stock I/O counter — certification expects starting at 1 */
+    /** Session stock I/O counter  certification expects starting at 1 */
     sarNo: number;
     results: Record<string, EtimsRawResponse>;
 };
@@ -110,7 +110,7 @@ function pad2(n: number) {
 }
 
 function nowParts() {
-    // KRA rejects cfmDt slightly ahead of their server clock — bias a few minutes back.
+    // KRA rejects cfmDt slightly ahead of their server clock  bias a few minutes back.
     const d = new Date(Date.now() - 5 * 60 * 1000);
     const y = d.getFullYear();
     const m = pad2(d.getMonth() + 1);
@@ -194,7 +194,7 @@ function parseItemList(bodyJson: unknown): KraItem[] {
  *   [Country(2)][Type(1)][PkgUnit][QtyUnit][Seq(7)]
  * Example: KE2NTBA0000012
  *
- * Do NOT insert an "X" between pkg and qty — Apigee parses that as qtyUnitCd "XU"
+ * Do NOT insert an "X" between pkg and qty  Apigee parses that as qtyUnitCd "XU"
  * and returns "Incorrect QtyUnitCd Prefix".
  */
 function generateNextItemCd(
@@ -495,7 +495,7 @@ function taxBuckets(taxTyCd: string, taxbl: number) {
 function requireTxnItem(ctx: RunContext): KraItem {
     if (!ctx.txnItem) {
         throw new Error(
-            "No active KRA products found — register at least one item in Agency → KRA eTIMS → Products first.",
+            "No active KRA products found  register at least one item in Agency → KRA eTIMS → Products first.",
         );
     }
     return ctx.txnItem;
@@ -653,7 +653,7 @@ const STEPS: Step[] = [
     },
     {
         // Stock I/O must precede stock-master (KRA: "Stock IO is empty…").
-        // Composition also requires the child in stock master — seed both items here.
+        // Composition also requires the child in stock master  seed both items here.
         testCase: "SAVE STOCK IN/OUT",
         kraLabel: "/insertStockIO",
         endpointKey: "insertStockIO",
@@ -1064,7 +1064,7 @@ async function main() {
     };
 
     if (!ctx.cmcKey && skipInit) {
-        throw new Error("No cmcKey in DB/cert-env and SKIP_INIT=1 — cannot continue.");
+        throw new Error("No cmcKey in DB/cert-env and SKIP_INIT=1  cannot continue.");
     }
 
     console.log(`config source: ${cfg.source}`);
@@ -1102,7 +1102,7 @@ async function main() {
 
         const needsKey = step.needsCmcKey !== false;
         if (needsKey && !ctx.cmcKey) {
-            console.error(`✗  [${index + 1}] ${step.testCase}: missing cmcKey — run init first`);
+            console.error(`✗  [${index + 1}] ${step.testCase}: missing cmcKey  run init first`);
             summary.push({
                 testCase: step.testCase,
                 kraLabel: step.kraLabel,
@@ -1209,7 +1209,7 @@ async function main() {
                         },
                     };
                 } else if (cd === "924" || isInvcNoHistoryCollision(raw)) {
-                    // Historical invcNo collision — advance past max used on this device.
+                    // Historical invcNo collision  advance past max used on this device.
                     let next = ctx.invcNo + 1;
                     try {
                         const hist = await client.requestRaw(
@@ -1249,7 +1249,7 @@ async function main() {
                 ctx.cmcKey = key;
                 console.log(`   cmcKey captured (${key.slice(0, 8)}…)`);
             } else if (!ctx.cmcKey) {
-                console.warn("   WARN: init did not return cmcKey — later steps may fail");
+                console.warn("   WARN: init did not return cmcKey  later steps may fail");
             }
         }
 
@@ -1287,7 +1287,7 @@ async function main() {
             isNoPurchaseQueueError(raw)
         ) {
             console.log(
-                "   No purchase queue from KRA (selectTrnsPurchaseSalesList empty) — treating as OK for certification.",
+                "   No purchase queue from KRA (selectTrnsPurchaseSalesList empty)  treating as OK for certification.",
             );
         }
 
@@ -1297,7 +1297,7 @@ async function main() {
             isInvcNoHistoryCollision(raw)
         ) {
             console.log(
-                "   Could not allocate a free invcNo after retries — check sales history on this device.",
+                "   Could not allocate a free invcNo after retries  check sales history on this device.",
             );
         }
 
@@ -1331,7 +1331,7 @@ async function main() {
                 }
                 const childOk = isStepOk(childRaw);
                 console.log(
-                    `   Child HTTP ${childRaw.statusCode} resultCd=${resultCdOf(childRaw) ?? "—"}` +
+                    `   Child HTTP ${childRaw.statusCode} resultCd=${resultCdOf(childRaw) ?? ""}` +
                         (childOk ? " ✓" : " ✗"),
                 );
                 if (!childOk) {
@@ -1369,7 +1369,7 @@ async function main() {
                     );
                     const childOk = isStepOk(childRaw);
                     console.log(
-                        `   Child stock master HTTP ${childRaw.statusCode} resultCd=${resultCdOf(childRaw) ?? "—"}` +
+                        `   Child stock master HTTP ${childRaw.statusCode} resultCd=${resultCdOf(childRaw) ?? ""}` +
                             (childOk ? " ✓" : " ✗"),
                     );
                     if (!childOk) {
@@ -1386,7 +1386,7 @@ async function main() {
 
         const resultCd = resultCdOf(raw);
         console.log(
-            `   HTTP ${raw.statusCode}  resultCd=${resultCd ?? "—"}  path=${raw.kraPath}`,
+            `   HTTP ${raw.statusCode}  resultCd=${resultCd ?? ""}  path=${raw.kraPath}`,
         );
         console.log("   ── RAW KRA RESPONSE (unaltered) ──");
         console.log(raw.bodyText);
@@ -1430,7 +1430,7 @@ async function main() {
     console.log("═══ SUMMARY ═══");
     for (const row of summary) {
         console.log(
-            `${row.ok ? "✓" : "✗"}  HTTP ${row.statusCode || "—"}  resultCd=${row.resultCd ?? "—"}  ${row.testCase}  (${row.kraLabel})`,
+            `${row.ok ? "✓" : "✗"}  HTTP ${row.statusCode || ""}  resultCd=${row.resultCd ?? ""}  ${row.testCase}  (${row.kraLabel})`,
         );
     }
     console.log(`\nFull raw responses written to:\n  ${outFile}`);

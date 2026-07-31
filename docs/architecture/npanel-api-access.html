@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="generator" content="archify 2.11.0">
-  <title>API Access Control — Public vs Protected Diagram</title>
+  <title>API Access Control  Public vs Protected Diagram</title>
   <script>
     // Resolve the theme before first paint so light-preference users don't
     // see a dark flash. The toolbar script below re-applies with UI state.
@@ -35,7 +35,7 @@
   </noscript>
   <style>
     /* ==========================================================
-       THEME VARIABLES — switch by toggling [data-theme] on <html>
+       THEME VARIABLES  switch by toggling [data-theme] on <html>
        ========================================================== */
     :root,
     [data-theme="dark"] {
@@ -235,7 +235,7 @@
     }
 
     /* ==========================================================
-       Print stylesheet — hide interactive controls, force light,
+       Print stylesheet  hide interactive controls, force light,
        drop the grid so the diagram doesn't waste ink, use landscape
        so wide diagrams fit, pack summary cards into 2 columns to
        avoid an orphan card on a trailing page.
@@ -243,8 +243,8 @@
     @page { size: landscape; margin: 1.5cm; }
 
     @media print {
-      /* Force the FULL light palette — including component fills/strokes and
-         lane/arrow colors — so printing from dark theme doesn't put neon
+      /* Force the FULL light palette  including component fills/strokes and
+         lane/arrow colors  so printing from dark theme doesn't put neon
          strokes and translucent dark fills on white paper. */
       :root, [data-theme="dark"], [data-theme="light"] {
         --bg: #ffffff;
@@ -358,7 +358,7 @@
       opacity: 0.5;
     }
 
-    /* Toast — brief feedback for actions like "copied" */
+    /* Toast  brief feedback for actions like "copied" */
     .archify-toast {
       position: fixed;
       top: 1rem;
@@ -414,7 +414,7 @@
     }
 
     /* ==========================================================
-       SVG SEMANTIC CLASSES — use these instead of inline fill/stroke
+       SVG SEMANTIC CLASSES  use these instead of inline fill/stroke
        ========================================================== */
     .c-grid       { stroke: var(--grid); fill: none; }
     .c-mask       { fill: var(--mask); stroke: none; }
@@ -525,14 +525,14 @@
     <div class="header">
       <div class="header-row">
         <div class="pulse-dot"></div>
-        <h1>API Access Control — Public vs Protected</h1>
+        <h1>API Access Control  Public vs Protected</h1>
       </div>
-      <p class="subtitle">What every /api/trpc call must pass — then which routers are open, mixed, or login-only</p>
+      <p class="subtitle">What every /api/trpc call must pass  then which routers are open, mixed, or login-only</p>
     </div>
 
     <!-- Main Diagram -->
     <div class="diagram-container">
-      <svg viewBox="0 0 1100 820" role="img" aria-label="API Access Control — Public vs Protected — What every /api/trpc call must pass — then which routers are open, mixed, or login-only (architecture diagram)">
+      <svg viewBox="0 0 1100 820" role="img" aria-label="API Access Control  Public vs Protected  What every /api/trpc call must pass  then which routers are open, mixed, or login-only (architecture diagram)">
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -563,7 +563,7 @@
         <text x="438" y="148" class="t-security" font-size="9" font-weight="600">2 · Procedure class (public / protected / etims)</text>
 
         <rect x="650" y="270" width="430" height="274" rx="12" class="c-region" stroke-width="1"/>
-        <text x="658" y="288" class="t-cloud" font-size="9" font-weight="600">3 · After auth — router business checks</text>
+        <text x="658" y="288" class="t-cloud" font-size="9" font-weight="600">3 · After auth  router business checks</text>
 
         <!-- Connection paths (before components for correct z-order) -->
         <path d="M 190 334 L 240 334" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
@@ -692,9 +692,9 @@
           <h3>PUBLIC_ONLY routers (3)</h3>
         </div>
         <ul>
-          <li>&bull; storefront — Landing Page cart, auth helpers, M-Pesa STK, order create-from-payment</li>
-          <li>&bull; whois — lookup, bulkLookup</li>
-          <li>&bull; publicPricing — margins, FX rates, convertPricesPublic</li>
+          <li>&bull; storefront  Landing Page cart, auth helpers, M-Pesa STK, order create-from-payment</li>
+          <li>&bull; whois  lookup, bulkLookup</li>
+          <li>&bull; publicPricing  margins, FX rates, convertPricesPublic</li>
         </ul>
       </div>
 
@@ -704,11 +704,11 @@
           <h3>MIXED routers (8)</h3>
         </div>
         <ul>
-          <li>&bull; products — many get*ForPricing public; catalog CRUD protected</li>
-          <li>&bull; openProvider / kenic / domainTransfer — some public domain checks; mutations protected</li>
-          <li>&bull; plesk — healthCheck public; all hosting ops protected</li>
-          <li>&bull; hivelocity + hivelocityPricingSettings — public plan catalogs; manage/deploy protected</li>
-          <li>&bull; teams — getInviteByCode public; everything else protected</li>
+          <li>&bull; products  many get*ForPricing public; catalog CRUD protected</li>
+          <li>&bull; openProvider / kenic / domainTransfer  some public domain checks; mutations protected</li>
+          <li>&bull; plesk  healthCheck public; all hosting ops protected</li>
+          <li>&bull; hivelocity + hivelocityPricingSettings  public plan catalogs; manage/deploy protected</li>
+          <li>&bull; teams  getInviteByCode public; everything else protected</li>
         </ul>
       </div>
 
@@ -744,7 +744,7 @@
         </div>
         <ul>
           <li>&bull; Dashboard domains: hosting, jetbackup, invoicing, ads, email marketing, creatives/AI, digitax, reports, tickets, apiKeys, agencyRbac, …</li>
-          <li>&bull; No anonymous access — Landing Page must not call these without a session</li>
+          <li>&bull; No anonymous access  Landing Page must not call these without a session</li>
           <li>&bull; Full name lists: docs/architecture/API-ACCESS-MAP.md</li>
         </ul>
       </div>
@@ -758,7 +758,7 @@
 
   <script>
     /* ============================================================
-       Theme toggle — persists to localStorage, respects system pref
+       Theme toggle  persists to localStorage, respects system pref
        ============================================================ */
     var Archify = {};
 
@@ -826,7 +826,7 @@
     })();
 
     /* ============================================================
-       Export — PNG / JPEG / WebP / SVG (download) and Copy PNG (clipboard)
+       Export  PNG / JPEG / WebP / SVG (download) and Copy PNG (clipboard)
 
        Raster exports are always rendered at 4x source resolution for
        maximum sharpness. The trick: we set the serialized SVG's
@@ -858,12 +858,12 @@
        * Serialize the main SVG into a standalone document.
        *
        * Two modes:
-       * - Default (opts.autoTheme=false) — locks the serialized SVG to the
+       * - Default (opts.autoTheme=false)  locks the serialized SVG to the
        *   viewer's current theme. Used by the raster pipeline
        *   (PNG/JPEG/WebP/clipboard) because canvas rasterization needs
        *   deterministic colors; a raster cannot react to
        *   prefers-color-scheme after encoding.
-       * - autoTheme=true — emits BOTH dark and light variable sets plus a
+       * - autoTheme=true  emits BOTH dark and light variable sets plus a
        *   `@media (prefers-color-scheme)` rule so the resulting SVG
        *   self-themes when embedded in GitHub READMEs or other hosts that
        *   expose a color scheme. Used for "Download SVG".
@@ -881,7 +881,7 @@
         var vb = svg.viewBox.baseVal;
         // Scale width/height so the browser rasterizes the vectors at target
         // resolution directly. viewBox stays unchanged so coordinates don't
-        // shift. This is the key to sharp rasters — do NOT scale later via
+        // shift. This is the key to sharp rasters  do NOT scale later via
         // canvas upscaling.
         clone.setAttribute('width', vb.width * scale);
         clone.setAttribute('height', vb.height * scale);
@@ -1036,7 +1036,7 @@
         // Serialize at a safe scale (RASTER_SCALE=4 by default, reduced if the
         // resulting canvas would exceed MAX_CANVAS_PIXELS). The SVG itself is
         // rasterized at target resolution natively; drawImage draws at natural
-        // size — no upsampling blur.
+        // size  no upsampling blur.
         var svg = document.querySelector('.diagram-container svg');
         var vb = svg.viewBox.baseVal;
         var scale = pickSafeScale(vb.width, vb.height);
@@ -1055,7 +1055,7 @@
               ctx.fillStyle = currentBg();
               ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
-            // Draw at natural size — SVG was already rasterized at target res.
+            // Draw at natural size  SVG was already rasterized at target res.
             ctx.drawImage(img, 0, 0);
             URL.revokeObjectURL(svgUrl);
             var mime = format === 'jpeg' ? 'image/jpeg' :
@@ -1215,7 +1215,7 @@
           return;
         }
         // WebKit requires ClipboardItem to be constructed synchronously inside
-        // the user gesture — pass the pending Promise<Blob> as the item value.
+        // the user gesture  pass the pending Promise<Blob> as the item value.
         // Browsers that reject promise values throw synchronously; fall back
         // to awaiting the blob first (works in Chromium/Firefox).
         var blobPromise = rasterize('png');

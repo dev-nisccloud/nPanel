@@ -1,6 +1,6 @@
 import { TldLogo } from "./TldLogo.tsx";
 
-/** Extension showcase row — TLD logos under the search bar. */
+/** Extension showcase row  TLD logos under the search bar. */
 export function TldPricingCards() {
   const tlds: { tld: string; variant: "kenyan" | "openprovider" }[] = [
     { tld: "co.ke", variant: "kenyan" },

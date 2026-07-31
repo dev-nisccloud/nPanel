@@ -52,7 +52,7 @@ export const etimsInitializationRouter = router({
                 result = await client.selectInitOsdcInfo({ tin, bhfId, dvcSrlNo }) as Record<string, unknown>;
             } catch (error: unknown) {
                 // resultCd 902 = "device already installed"
-                // In sandbox this is expected when re-initializing — KRA still returns a cmcKey.
+                // In sandbox this is expected when re-initializing  KRA still returns a cmcKey.
                 // In production this is a hard error.
                 if (error instanceof EtimsApiError && error.resultCd === "902") {
                     if (!input.isSandbox) {
@@ -85,7 +85,7 @@ export const etimsInitializationRouter = router({
                 .from(eTimsConfiguration)
                 .limit(1);
 
-            // Sandbox re-init may return 902 without a fresh cmcKey — reuse the stored one.
+            // Sandbox re-init may return 902 without a fresh cmcKey  reuse the stored one.
             let cmcKey = info?.cmcKey ?? null;
             if (!cmcKey && input.isSandbox && existing?.cmcKey) {
                 cmcKey = existing.cmcKey;

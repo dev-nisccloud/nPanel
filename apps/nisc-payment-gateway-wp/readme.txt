@@ -8,7 +8,7 @@ Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Accept M-Pesa payments through Nisc Cloud Payment Gateway. Paste your API key — webhooks register automatically.
+Accept M-Pesa payments through Nisc Cloud Payment Gateway. Paste your API key  webhooks register automatically.
 
 == Description ==
 
@@ -16,7 +16,7 @@ Nisc Payment Gateway for WooCommerce lets merchants accept M-Pesa STK Push payme
 
 1. Get an API key from nPanel (agency creates the merchant).
 2. Paste the key in WooCommerce → Settings → Payments → Nisc Payment Gateway.
-3. Click Connect — the plugin registers your webhook automatically.
+3. Click Connect  the plugin registers your webhook automatically.
 4. Use **Connection test** (green/red card) to confirm gateway + M-Pesa token, then optionally **Test STK → webhook**.
 5. Enable the method and take orders.
 
@@ -65,18 +65,18 @@ Not in v1. M-Pesa STK Push only.
 == Changelog ==
 
 = 0.1.4 =
-* Added WooCommerce Checkout Blocks support — payment gateway now works with both Classic Checkout and Checkout Blocks.
+* Added WooCommerce Checkout Blocks support  payment gateway now works with both Classic Checkout and Checkout Blocks.
 * Fixed: Payment method now appears at checkout on stores using the new block-based checkout (WooCommerce 8.3+).
 * Improved documentation for Dokan integration and checkout troubleshooting.
 
 = 0.1.3 =
-* Added Dokan multi-vendor marketplace support — M-Pesa now available at checkout for all vendor stores.
+* Added Dokan multi-vendor marketplace support  M-Pesa now available at checkout for all vendor stores.
 * Added GET endpoint for webhook testing and verification.
 * Enhanced webhook debugging with request logging (when WP_DEBUG is enabled).
 * Improved webhook reliability and error handling.
 
 = 0.1.2 =
-* Admin: Connection test button (always on settings) — green/red card for gateway reachability, API key, and M-Pesa OAuth token.
+* Admin: Connection test button (always on settings)  green/red card for gateway reachability, API key, and M-Pesa OAuth token.
 * Admin: Test STK → webhook flow on the same settings page (send yourself a prompt, preview incoming webhook JSON).
 * Test webhooks are accepted and logged for preview without updating any WooCommerce order.
 

@@ -219,7 +219,7 @@ export function SiteAuditTab({ projectId, project }: SiteAuditTabProps) {
                       <TableCell className="font-medium">{issue.title}</TableCell>
                       <TableCell>{issue.category}</TableCell>
                       <TableCell className="max-w-xs truncate text-muted-foreground">
-                        {issue.url ?? "—"}
+                        {issue.url ?? ""}
                       </TableCell>
                     </TableRow>
                   ))

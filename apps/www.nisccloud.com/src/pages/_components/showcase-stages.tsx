@@ -1,5 +1,5 @@
 /**
- * Glass Mock Stages — context-specific product UI on a soft sky canvas (#d9eeff).
+ * Glass Mock Stages  context-specific product UI on a soft sky canvas (#d9eeff).
  * Primary chrome. Notifications, graphs, and tools only where they belong.
  */
 
@@ -95,7 +95,7 @@ function SideRail({ icons, active = 0 }: { icons: ReactNode[]; active?: number }
   );
 }
 
-/** Sliding toast notification — bold white */
+/** Sliding toast notification  bold white */
 function ToastLoop({
   items,
   interval = 3200,
@@ -136,7 +136,7 @@ function ToastLoop({
   );
 }
 
-/** Animated bar chart — white bars */
+/** Animated bar chart  white bars */
 function BarChart({
   values,
   className,
@@ -198,7 +198,7 @@ function LiveBadge() {
   );
 }
 
-/* Icons — bold white strokes */
+/* Icons  bold white strokes */
 const I = {
   chart: (
     <svg viewBox="0 0 16 16" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -713,7 +713,7 @@ function SpeedStage() {
 function InboxStage() {
   const rows = [
     { from: "Lead · Westlands", preview: "Can we book a demo tomorrow?", unread: true },
-    { from: "Campaign reply", preview: "Yes — send the proposal", unread: true },
+    { from: "Campaign reply", preview: "Yes  send the proposal", unread: true },
     { from: "Deliverability", preview: "Spam rate 0.1% · healthy", unread: false },
     { from: "List hygiene", preview: "42 inactive removed", unread: false },
   ];
@@ -777,14 +777,14 @@ function SupportStage() {
               animate={{ opacity: [0, 1, 1, 0], y: [8, 0, 0, -4] }}
               transition={{ duration: 4.6, repeat: Infinity, times: [0, 0.15, 0.7, 1] }}
             >
-              Site feels slow on mobile —
+              Site feels slow on mobile 
             </motion.div>
             <motion.div
               className="mr-auto max-w-[88%] rounded-2xl rounded-bl-md border border-primary/25 bg-primary/10 px-3 py-2 text-[11px] font-medium text-slate-700"
               animate={{ opacity: [0, 0, 1, 1, 0], y: [8, 8, 0, 0, -4] }}
               transition={{ duration: 4.6, repeat: Infinity, times: [0, 0.25, 0.4, 0.75, 1] }}
             >
-              On it — checking LCP + cache now.
+              On it  checking LCP + cache now.
             </motion.div>
             <div className="flex items-center gap-1.5 pl-1">
               {[0, 1, 2].map((i) => (
@@ -1660,7 +1660,7 @@ function EngagementStage() {
               animate={{ opacity: [0.45, 1, 0.45] }}
               transition={{ duration: 3, repeat: Infinity }}
             >
-              “Love this — how do we order?”
+              “Love this  how do we order?”
             </motion.div>
           </div>
         </Window>
@@ -2100,7 +2100,7 @@ function StrategyStage() {
               </div>
             ))}
             <Glass className="mt-1 p-2.5 text-[10px] font-bold text-slate-700/80">
-              Decisions rooted in research — not taste
+              Decisions rooted in research  not taste
             </Glass>
           </div>
         </Window>
@@ -2312,7 +2312,7 @@ function Gauge({
   );
 }
 
-/** Grafana-style server metrics — not marketing analytics */
+/** Grafana-style server metrics  not marketing analytics */
 function ServerMonitorStage() {
   return (
     <MockCanvas>
@@ -2344,7 +2344,7 @@ function ServerMonitorStage() {
   );
 }
 
-/** OS + SSH provision — not npm/CRM deploy */
+/** OS + SSH provision  not npm/CRM deploy */
 function ServerProvisionStage() {
   return (
     <MockCanvas>
@@ -2414,7 +2414,7 @@ function ServerProvisionStage() {
   );
 }
 
-/** Store / API / SaaS workloads — never CRM HubSpot */
+/** Store / API / SaaS workloads  never CRM HubSpot */
 function WorkloadsStage() {
   const apps = [
     { name: "WooCommerce", meta: "Store · isolated RAM" },
@@ -2465,7 +2465,7 @@ function WorkloadsStage() {
   );
 }
 
-/** Dedicated cores/RAM — VDS isolation story */
+/** Dedicated cores/RAM  VDS isolation story */
 function ResourceIsolationStage() {
   return (
     <MockCanvas>
@@ -2523,7 +2523,7 @@ function ResourceIsolationStage() {
   );
 }
 
-/** Bare metal: DB / game / GPU — not brand IP ownership */
+/** Bare metal: DB / game / GPU  not brand IP ownership */
 function BareMetalStage() {
   return (
     <MockCanvas>
@@ -2582,7 +2582,7 @@ function BareMetalStage() {
   );
 }
 
-/** cPanel-style hosting control — shared hosting */
+/** cPanel-style hosting control  shared hosting */
 function CpanelStage() {
   return (
     <MockCanvas>
@@ -2723,7 +2723,7 @@ function WpStagingStage() {
   );
 }
 
-/** Branded mailbox — not marketing lead inbox */
+/** Branded mailbox  not marketing lead inbox */
 function BusinessMailStage() {
   return (
     <MockCanvas>
@@ -2773,7 +2773,7 @@ function BusinessMailStage() {
   );
 }
 
-/** DKIM / SPF / DMARC — email deliverability, not generic SSL shield */
+/** DKIM / SPF / DMARC  email deliverability, not generic SSL shield */
 function DeliverabilityStage() {
   return (
     <MockCanvas>

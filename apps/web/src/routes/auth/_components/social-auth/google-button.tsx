@@ -82,7 +82,7 @@ export function GoogleButton({
 
     setIsLoading(true);
     sessionStorage.setItem(GOOGLE_OAUTH_REDIRECT_KEY, "1");
-    // OAuth returns to `/` without `?redirect=` — keep the cart/invite destination here.
+    // OAuth returns to `/` without `?redirect=`  keep the cart/invite destination here.
     const pendingRedirect = getRequestedRedirectFromSearch(window.location.search);
     if (pendingRedirect) {
       persistPendingAuthRedirect(pendingRedirect);

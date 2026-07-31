@@ -213,7 +213,10 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
   const cycle = isDomainTransfer ? "YEARLY" : item.billingCycle;
   const displayPrice = periodPrice(item.monthlyPrice, item.yearlyPrice, cycle);
   const saving = !isDomain ? multiYearSaving(item.monthlyPrice, item.yearlyPrice, cycle) : null;
-  const renewalPrice = isDomain || cycle !== "MONTHLY" ? item.yearlyPrice : item.monthlyPrice;
+  // Domains renew at the annual rate; services renew at the selected term price.
+  const renewalPrice = isDomain
+    ? item.yearlyPrice
+    : periodPrice(item.monthlyPrice, item.yearlyPrice, cycle);
   const strikeThrough =
     !isDomain && cycle !== "MONTHLY"
       ? item.monthlyPrice * billingCycleToMonths(cycle)
@@ -311,7 +314,7 @@ export function CartItem({ item, onBillingCycleChange, onRemove }: CartItemProps
           <p className="text-xs text-muted-foreground mt-1.5">
             {isDomain
               ? `Renews at ${formatPrice(renewalPrice, item.currency)}/yr. Standard renewal applies.`
-              : `Billed for ${billingCyclePeriodLabel(cycle)}. Renews at ${formatPrice(renewalPrice, item.currency)}/${billingCycleShortSuffix(cycle === "MONTHLY" ? "MONTHLY" : "YEARLY")}. Cancel anytime.`}
+              : `Billed for ${billingCyclePeriodLabel(cycle)}. Renews at ${formatPrice(renewalPrice, item.currency)}/${billingCycleShortSuffix(cycle)}. Cancel anytime.`}
           </p>
         </div>
       </div>

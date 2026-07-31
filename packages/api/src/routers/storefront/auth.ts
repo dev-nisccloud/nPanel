@@ -381,7 +381,7 @@ export const storefrontAuthRouter = router({
 
   /**
    * Complete the caller's own profile for storefront purchases (domains, etc.).
-   * userId is taken only from the session — never from input.
+   * userId is taken only from the session  never from input.
    */
   completeProfile: publicProcedure
     .input(completeProfileInputSchema)

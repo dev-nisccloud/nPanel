@@ -39,7 +39,7 @@ export function isLocalDevOrigin(origin: string): boolean {
 
 /**
  * Configured landing-page origins from env (plus a Vercel default when unset).
- * Does not include local-dev wildcards — use {@link isLandingPageOrigin} for that.
+ * Does not include local-dev wildcards  use {@link isLandingPageOrigin} for that.
  */
 export function resolveLandingPageOrigins(): string[] {
   const fromEnv = parseCommaOrigins(process.env.LANDING_PAGE_ORIGINS);

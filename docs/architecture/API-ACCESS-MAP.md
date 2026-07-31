@@ -1,4 +1,4 @@
-# nPanel API — Public vs Protected Procedure Map
+# nPanel API  Public vs Protected Procedure Map
 
 Generated from `packages/api` source. Counts are unique procedure **names** bound to `publicProcedure` / `protectedProcedure` / `etimsProcedure`.
 
@@ -6,16 +6,16 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 ### Layer checklist (every request)
 
-1. **Reach the API** — From Landing Page or nPanel Dashboard via same-origin `/api/trpc/<router>.<procedure>` (or Bearer `npanel_sk_*` API key).
-2. **Rate limit** — Redis-backed; anonymous / API-key / user buckets (`packages/api/src/trpc.ts`). Fail-open if Redis is down.
-3. **API key scope (if using a key)** — Key must include `*` or the exact procedure path; revoked/expired/inactive keys fail.
+1. **Reach the API**  From Landing Page or nPanel Dashboard via same-origin `/api/trpc/<router>.<procedure>` (or Bearer `npanel_sk_*` API key).
+2. **Rate limit**  Redis-backed; anonymous / API-key / user buckets (`packages/api/src/trpc.ts`). Fail-open if Redis is down.
+3. **API key scope (if using a key)**  Key must include `*` or the exact procedure path; revoked/expired/inactive keys fail.
 4. **Procedure type**
-   - **publicProcedure** — no login required (still rate-limited; API key scopes still apply if a key is sent).
-   - **protectedProcedure** — requires Better Auth session cookie with `user.id`, plus:
+   - **publicProcedure**  no login required (still rate-limited; API key scopes still apply if a key is sent).
+   - **protectedProcedure**  requires Better Auth session cookie with `user.id`, plus:
      - not `MFA_SETUP_REQUIRED`
      - if MFA required → must be MFA-verified
      - if IP anomaly → must complete `REAUTH_REQUIRED`
-5. **Router-level business rules** — many protected routers also require team membership, agency RBAC menu access, or vendor OAuth tokens (checked inside the procedure).
+5. **Router-level business rules**  many protected routers also require team membership, agency RBAC menu access, or vendor OAuth tokens (checked inside the procedure).
 
 ### Auth identity options
 
@@ -27,9 +27,9 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 ### Special cases
 
-- **storefront.*** — designed for Landing Page checkout; public, but individual procedures may require cart handoff tokens / payment state.
-- **etims.*** — uses `etimsProcedure` which is `publicProcedure` only when `ETIMS_CERTIFICATION_PUBLIC=1` (temporary KRA cert mode); otherwise protected.
-- **healthCheck** / **privateData** on appRouter root — public health ping vs protected smoke test.
+- **storefront.***  designed for Landing Page checkout; public, but individual procedures may require cart handoff tokens / payment state.
+- **etims.***  uses `etimsProcedure` which is `publicProcedure` only when `ETIMS_CERTIFICATION_PUBLIC=1` (temporary KRA cert mode); otherwise protected.
+- **healthCheck** / **privateData** on appRouter root  public health ping vs protected smoke test.
 
 ---
 
@@ -46,7 +46,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 ## Public & mixed routers (full public procedure lists)
 
-### `domainTransfer` — MIXED (Domains)
+### `domainTransfer`  MIXED (Domains)
 
 **Public:**
 - `trpc.domainTransfer.checkTransfer`
@@ -55,7 +55,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `etims` — ETIMS_TOGGLE (Tax & Reports)
+### `etims`  ETIMS_TOGGLE (Tax & Reports)
 
 **eTIMS-gated (public only when ETIMS_CERTIFICATION_PUBLIC=1):**
 - `trpc.etims.auth.getConfiguration`
@@ -92,7 +92,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** normally protected; set ETIMS_CERTIFICATION_PUBLIC=1 only for KRA certification testing.
 
-### `hivelocity` — MIXED (Hosting)
+### `hivelocity`  MIXED (Hosting)
 
 **Public:**
 - `trpc.hivelocity.publicGetDedicatedServerPlans`
@@ -106,7 +106,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `hivelocityPricingSettings` — MIXED (Hosting)
+### `hivelocityPricingSettings`  MIXED (Hosting)
 
 **Public:**
 - `trpc.hivelocityPricingSettings.get`
@@ -115,7 +115,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `kenic` — MIXED (Domains)
+### `kenic`  MIXED (Domains)
 
 **Public:**
 - `trpc.kenic.domainCheck.check`
@@ -124,7 +124,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `openProvider` — MIXED (Domains)
+### `openProvider`  MIXED (Domains)
 
 **Public:**
 - `trpc.openProvider.customers.completeContactEmailVerification`
@@ -136,7 +136,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `plesk` — MIXED (Hosting)
+### `plesk`  MIXED (Hosting)
 
 **Public:**
 - `trpc.plesk.healthCheck.testAll`
@@ -147,7 +147,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `products` — MIXED (Billing)
+### `products`  MIXED (Billing)
 
 **Public:**
 - `trpc.products.getAll`
@@ -165,7 +165,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `publicPricing` — PUBLIC_ONLY (Billing)
+### `publicPricing`  PUBLIC_ONLY (Billing)
 
 **Public:**
 - `trpc.publicPricing.convertPricesPublic`
@@ -174,7 +174,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** no login; stay under rate limits; Landing Page may still send cart/payment tokens where required.
 
-### `storefront` — PUBLIC_ONLY (Public Storefront)
+### `storefront`  PUBLIC_ONLY (Public Storefront)
 
 **Public:**
 - `trpc.storefront.auth.checkEmail`
@@ -188,7 +188,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** no login; stay under rate limits; Landing Page may still send cart/payment tokens where required.
 
-### `teams` — MIXED (Teams & Access)
+### `teams`  MIXED (Teams & Access)
 
 **Public:**
 - `trpc.teams.getInviteByCode`
@@ -197,7 +197,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 
 **To succeed:** public procedures: no login. Protected procedures: valid session (+ MFA/reauth if flagged) and any team/RBAC checks inside the handler.
 
-### `whois` — PUBLIC_ONLY (Domains)
+### `whois`  PUBLIC_ONLY (Domains)
 
 **Public:**
 - `trpc.whois.bulkLookup`
@@ -270,7 +270,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 ### Full protected procedure names by router
 
 <details>
-<summary><code>googleAds</code> — 18 procedures (Ads & Social)</summary>
+<summary><code>googleAds</code>  18 procedures (Ads & Social)</summary>
 
 - `trpc.googleAds.accounts.getAccountDetails`
 - `trpc.googleAds.accounts.listAccessibleAccounts`
@@ -294,7 +294,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>instagramAds</code> — 14 procedures (Ads & Social)</summary>
+<summary><code>instagramAds</code>  14 procedures (Ads & Social)</summary>
 
 - `trpc.instagramAds.accounts.getAccountDetails`
 - `trpc.instagramAds.accounts.getConnectedInstagramAccounts`
@@ -314,7 +314,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>linkedInAds</code> — 28 procedures (Ads & Social)</summary>
+<summary><code>linkedInAds</code>  28 procedures (Ads & Social)</summary>
 
 - `trpc.linkedInAds.accounts.getAccountDetails`
 - `trpc.linkedInAds.accounts.listAdAccounts`
@@ -348,7 +348,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>metaAds</code> — 19 procedures (Ads & Social)</summary>
+<summary><code>metaAds</code>  19 procedures (Ads & Social)</summary>
 
 - `trpc.metaAds.accounts.getAccountDetails`
 - `trpc.metaAds.accounts.getConnectedInstagramAccounts`
@@ -373,7 +373,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>socialMediaMarketing</code> — 45 procedures (Ads & Social)</summary>
+<summary><code>socialMediaMarketing</code>  45 procedures (Ads & Social)</summary>
 
 - `trpc.socialMediaMarketing.instagram.auth.disconnect`
 - `trpc.socialMediaMarketing.instagram.auth.generateAuthUrl`
@@ -424,7 +424,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>clientSubscriptions</code> — 40 procedures (Billing)</summary>
+<summary><code>clientSubscriptions</code>  40 procedures (Billing)</summary>
 
 - `trpc.clientSubscriptions.cancel`
 - `trpc.clientSubscriptions.create`
@@ -470,7 +470,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>currency</code> — 7 procedures (Billing)</summary>
+<summary><code>currency</code>  7 procedures (Billing)</summary>
 
 - `trpc.currency.convertPrices`
 - `trpc.currency.getApiConfigStatus`
@@ -483,7 +483,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>invoicing</code> — 21 procedures (Billing)</summary>
+<summary><code>invoicing</code>  21 procedures (Billing)</summary>
 
 - `trpc.invoicing.bulkDeleteInvoices`
 - `trpc.invoicing.create`
@@ -510,7 +510,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>niscServiceOrders</code> — 6 procedures (Billing)</summary>
+<summary><code>niscServiceOrders</code>  6 procedures (Billing)</summary>
 
 - `trpc.niscServiceOrders.create`
 - `trpc.niscServiceOrders.createFromPayment`
@@ -522,7 +522,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>orders</code> — 9 procedures (Billing)</summary>
+<summary><code>orders</code>  9 procedures (Billing)</summary>
 
 - `trpc.orders.checkTeamBillingSettings`
 - `trpc.orders.createHostingOrder`
@@ -537,7 +537,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>paymentGateway</code> — 3 procedures (Billing)</summary>
+<summary><code>paymentGateway</code>  3 procedures (Billing)</summary>
 
 - `trpc.paymentGateway.mpesa.getPaymentStatusByCheckoutId`
 - `trpc.paymentGateway.mpesa.initiateStkPush`
@@ -546,7 +546,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>paymentTransactions</code> — 3 procedures (Billing)</summary>
+<summary><code>paymentTransactions</code>  3 procedures (Billing)</summary>
 
 - `trpc.paymentTransactions.getById`
 - `trpc.paymentTransactions.list`
@@ -555,7 +555,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>quotations</code> — 8 procedures (Billing)</summary>
+<summary><code>quotations</code>  8 procedures (Billing)</summary>
 
 - `trpc.quotations.create`
 - `trpc.quotations.deleteQuotation`
@@ -569,7 +569,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>serviceSubscriptions</code> — 3 procedures (Billing)</summary>
+<summary><code>serviceSubscriptions</code>  3 procedures (Billing)</summary>
 
 - `trpc.serviceSubscriptions.getAll`
 - `trpc.serviceSubscriptions.getByHostingSubscriptionId`
@@ -578,7 +578,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>subscriptionUsage</code> — 6 procedures (Billing)</summary>
+<summary><code>subscriptionUsage</code>  6 procedures (Billing)</summary>
 
 - `trpc.subscriptionUsage.addCredits`
 - `trpc.subscriptionUsage.getOrCreateUsage`
@@ -590,7 +590,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>teamBilling</code> — 5 procedures (Billing)</summary>
+<summary><code>teamBilling</code>  5 procedures (Billing)</summary>
 
 - `trpc.teamBilling.delete`
 - `trpc.teamBilling.getActivityLog`
@@ -601,7 +601,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>ai</code> — 6 procedures (Creatives & AI)</summary>
+<summary><code>ai</code>  6 procedures (Creatives & AI)</summary>
 
 - `trpc.ai.chat.delete`
 - `trpc.ai.chat.escalate`
@@ -613,7 +613,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>backgroundRemover</code> — 5 procedures (Creatives & AI)</summary>
+<summary><code>backgroundRemover</code>  5 procedures (Creatives & AI)</summary>
 
 - `trpc.backgroundRemover.deleteGeneration`
 - `trpc.backgroundRemover.getGenerations`
@@ -624,7 +624,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>creativeAssets</code> — 22 procedures (Creatives & AI)</summary>
+<summary><code>creativeAssets</code>  22 procedures (Creatives & AI)</summary>
 
 - `trpc.creativeAssets.addComment`
 - `trpc.creativeAssets.approveVersionInternally`
@@ -652,7 +652,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>creativeBriefs</code> — 7 procedures (Creatives & AI)</summary>
+<summary><code>creativeBriefs</code>  7 procedures (Creatives & AI)</summary>
 
 - `trpc.creativeBriefs.create`
 - `trpc.creativeBriefs.delete`
@@ -665,7 +665,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>imageGenerator</code> — 6 procedures (Creatives & AI)</summary>
+<summary><code>imageGenerator</code>  6 procedures (Creatives & AI)</summary>
 
 - `trpc.imageGenerator.deleteGeneration`
 - `trpc.imageGenerator.generateImage`
@@ -677,7 +677,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>imageGenStudio</code> — 20 procedures (Creatives & AI)</summary>
+<summary><code>imageGenStudio</code>  20 procedures (Creatives & AI)</summary>
 
 - `trpc.imageGenStudio.ai.generateImage`
 - `trpc.imageGenStudio.ai.removeBg`
@@ -703,7 +703,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>stabilityAi</code> — 2 procedures (Creatives & AI)</summary>
+<summary><code>stabilityAi</code>  2 procedures (Creatives & AI)</summary>
 
 - `trpc.stabilityAi.generate`
 - `trpc.stabilityAi.removeBackground`
@@ -711,7 +711,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>zeepoAgent</code> — 22 procedures (Creatives & AI)</summary>
+<summary><code>zeepoAgent</code>  22 procedures (Creatives & AI)</summary>
 
 - `trpc.zeepoAgent.billing.getTokenBalance`
 - `trpc.zeepoAgent.billing.listPurchasePlans`
@@ -739,7 +739,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>zeepoCanvas</code> — 10 procedures (Creatives & AI)</summary>
+<summary><code>zeepoCanvas</code>  10 procedures (Creatives & AI)</summary>
 
 - `trpc.zeepoCanvas.generate.getGeneration`
 - `trpc.zeepoCanvas.generate.getGenerationsByNode`
@@ -755,14 +755,14 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>aiDomainSearch</code> — 1 procedures (Domains)</summary>
+<summary><code>aiDomainSearch</code>  1 procedures (Domains)</summary>
 
 - `trpc.aiDomainSearch.generateNameIdeas`
 
 </details>
 
 <details>
-<summary><code>domains</code> — 8 procedures (Domains)</summary>
+<summary><code>domains</code>  8 procedures (Domains)</summary>
 
 - `trpc.domains.getByDomainName`
 - `trpc.domains.getById`
@@ -776,7 +776,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>nameserverGroups</code> — 7 procedures (Domains)</summary>
+<summary><code>nameserverGroups</code>  7 procedures (Domains)</summary>
 
 - `trpc.nameserverGroups.create`
 - `trpc.nameserverGroups.delete`
@@ -789,7 +789,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>tldSettings</code> — 9 procedures (Domains)</summary>
+<summary><code>tldSettings</code>  9 procedures (Domains)</summary>
 
 - `trpc.tldSettings.bulkDelete`
 - `trpc.tldSettings.create`
@@ -804,7 +804,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>emailBuilder</code> — 8 procedures (Email)</summary>
+<summary><code>emailBuilder</code>  8 procedures (Email)</summary>
 
 - `trpc.emailBuilder.create`
 - `trpc.emailBuilder.delete`
@@ -818,7 +818,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>emailBuilderLibrary</code> — 3 procedures (Email)</summary>
+<summary><code>emailBuilderLibrary</code>  3 procedures (Email)</summary>
 
 - `trpc.emailBuilderLibrary.createFromUpload`
 - `trpc.emailBuilderLibrary.delete`
@@ -827,7 +827,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>emailMarketing</code> — 31 procedures (Email)</summary>
+<summary><code>emailMarketing</code>  31 procedures (Email)</summary>
 
 - `trpc.emailMarketing.audiences.addContact`
 - `trpc.emailMarketing.audiences.addContactsBulk`
@@ -864,7 +864,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>niscEmailBuilder</code> — 25 procedures (Email)</summary>
+<summary><code>niscEmailBuilder</code>  25 procedures (Email)</summary>
 
 - `trpc.niscEmailBuilder.brand.previewFromWebsite`
 - `trpc.niscEmailBuilder.brandKit.create`
@@ -895,7 +895,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>niscEmailMarketing</code> — 40 procedures (Email)</summary>
+<summary><code>niscEmailMarketing</code>  40 procedures (Email)</summary>
 
 - `trpc.niscEmailMarketing.audiences.addContactsBulk`
 - `trpc.niscEmailMarketing.audiences.create`
@@ -941,7 +941,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>hosting</code> — 6 procedures (Hosting)</summary>
+<summary><code>hosting</code>  6 procedures (Hosting)</summary>
 
 - `trpc.hosting.getByPleskFilterId`
 - `trpc.hosting.getDetailWithSubscription`
@@ -953,7 +953,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>hostingPlans</code> — 5 procedures (Hosting)</summary>
+<summary><code>hostingPlans</code>  5 procedures (Hosting)</summary>
 
 - `trpc.hostingPlans.create`
 - `trpc.hostingPlans.delete`
@@ -964,7 +964,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>jetbackup</code> — 129 procedures (Hosting)</summary>
+<summary><code>jetbackup</code>  129 procedures (Hosting)</summary>
 
 - `trpc.jetbackup.accountFilters.delete`
 - `trpc.jetbackup.accountFilters.get`
@@ -1099,7 +1099,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>wordpressSubscriptions</code> — 5 procedures (Hosting)</summary>
+<summary><code>wordpressSubscriptions</code>  5 procedures (Hosting)</summary>
 
 - `trpc.wordpressSubscriptions.getByInstallationId`
 - `trpc.wordpressSubscriptions.getDetailWithSubscription`
@@ -1110,19 +1110,19 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>agency-rbac</code> — 0 procedures (Other)</summary>
+<summary><code>agency-rbac</code>  0 procedures (Other)</summary>
 
 
 </details>
 
 <details>
-<summary><code>nisc-service-orders-schemas</code> — 0 procedures (Other)</summary>
+<summary><code>nisc-service-orders-schemas</code>  0 procedures (Other)</summary>
 
 
 </details>
 
 <details>
-<summary><code>cronWorkflowRun</code> — 7 procedures (Support & Utils)</summary>
+<summary><code>cronWorkflowRun</code>  7 procedures (Support & Utils)</summary>
 
 - `trpc.cronWorkflowRun.create`
 - `trpc.cronWorkflowRun.getById`
@@ -1135,14 +1135,14 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>ipRecords</code> — 1 procedures (Support & Utils)</summary>
+<summary><code>ipRecords</code>  1 procedures (Support & Utils)</summary>
 
 - `trpc.ipRecords.list`
 
 </details>
 
 <details>
-<summary><code>notifications</code> — 9 procedures (Support & Utils)</summary>
+<summary><code>notifications</code>  9 procedures (Support & Utils)</summary>
 
 - `trpc.notifications.create`
 - `trpc.notifications.delete`
@@ -1157,7 +1157,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>objectStorage</code> — 4 procedures (Support & Utils)</summary>
+<summary><code>objectStorage</code>  4 procedures (Support & Utils)</summary>
 
 - `trpc.objectStorage.createUploadUrl`
 - `trpc.objectStorage.deleteObject`
@@ -1167,14 +1167,14 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>pagespeedInsights</code> — 1 procedures (Support & Utils)</summary>
+<summary><code>pagespeedInsights</code>  1 procedures (Support & Utils)</summary>
 
 - `trpc.pagespeedInsights.getPageSpeed`
 
 </details>
 
 <details>
-<summary><code>seoReports</code> — 7 procedures (Support & Utils)</summary>
+<summary><code>seoReports</code>  7 procedures (Support & Utils)</summary>
 
 - `trpc.seoReports.create`
 - `trpc.seoReports.getAutomatedReport`
@@ -1187,7 +1187,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>tickets</code> — 11 procedures (Support & Utils)</summary>
+<summary><code>tickets</code>  11 procedures (Support & Utils)</summary>
 
 - `trpc.tickets.archive`
 - `trpc.tickets.assign`
@@ -1204,7 +1204,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>webDesignQuotes</code> — 2 procedures (Support & Utils)</summary>
+<summary><code>webDesignQuotes</code>  2 procedures (Support & Utils)</summary>
 
 - `trpc.webDesignQuotes.create`
 - `trpc.webDesignQuotes.list`
@@ -1212,7 +1212,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>digitax</code> — 25 procedures (Tax & Reports)</summary>
+<summary><code>digitax</code>  25 procedures (Tax & Reports)</summary>
 
 - `trpc.digitax.branches.getBranches`
 - `trpc.digitax.branches.getETimsInfo`
@@ -1243,7 +1243,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>niscReports</code> — 31 procedures (Tax & Reports)</summary>
+<summary><code>niscReports</code>  31 procedures (Tax & Reports)</summary>
 
 - `trpc.niscReports.clients.cohortRetention`
 - `trpc.niscReports.clients.newVsReturning`
@@ -1280,7 +1280,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>reports</code> — 7 procedures (Tax & Reports)</summary>
+<summary><code>reports</code>  7 procedures (Tax & Reports)</summary>
 
 - `trpc.reports.creative.getProductionStats`
 - `trpc.reports.creative.sync`
@@ -1293,7 +1293,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>agencyRbac</code> — 11 procedures (Teams & Access)</summary>
+<summary><code>agencyRbac</code>  11 procedures (Teams & Access)</summary>
 
 - `trpc.agencyRbac.myMenuAccess`
 - `trpc.agencyRbac.permissionCatalog`
@@ -1310,7 +1310,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>apiKeys</code> — 5 procedures (Teams & Access)</summary>
+<summary><code>apiKeys</code>  5 procedures (Teams & Access)</summary>
 
 - `trpc.apiKeys.create`
 - `trpc.apiKeys.delete`
@@ -1321,7 +1321,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>clients</code> — 18 procedures (Teams & Access)</summary>
+<summary><code>clients</code>  18 procedures (Teams & Access)</summary>
 
 - `trpc.clients.changeStatus`
 - `trpc.clients.checkEmailVerification`
@@ -1345,7 +1345,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>manageUsers</code> — 9 procedures (Teams & Access)</summary>
+<summary><code>manageUsers</code>  9 procedures (Teams & Access)</summary>
 
 - `trpc.manageUsers.changeStatus`
 - `trpc.manageUsers.create`
@@ -1360,7 +1360,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>user</code> — 4 procedures (Teams & Access)</summary>
+<summary><code>user</code>  4 procedures (Teams & Access)</summary>
 
 - `trpc.user.getEmailPreferences`
 - `trpc.user.getNotificationPreferences`
@@ -1370,7 +1370,7 @@ Generated from `packages/api` source. Counts are unique procedure **names** boun
 </details>
 
 <details>
-<summary><code>userProfile</code> — 8 procedures (Teams & Access)</summary>
+<summary><code>userProfile</code>  8 procedures (Teams & Access)</summary>
 
 - `trpc.userProfile.getSessions`
 - `trpc.userProfile.getUserById`

@@ -8,6 +8,10 @@ This folder contains payment gateway integrations for the npanel application.
 
 M-Pesa STK Push integration for processing mobile money payments in Kenya.
 
+### Jenga Payment Gateway (Card Payments)
+
+Jenga Payment Gateway integration for secure card payment processing. Supports Visa, Mastercard, AMEX, Union Pay, JCB, and Diners Club cards with 3D Secure authentication. [See full documentation →](./JENGA-CARDS.md)
+
 ## Setup
 
 ### Environment Variables
@@ -300,10 +304,13 @@ The webhook handler:
 
 ## Future Enhancements
 
+- [x] Jenga Payment Gateway for card payments (Visa, Mastercard, AMEX, etc.)
+- [ ] Jenga Mobile Money integration (M-Pesa via Jenga)
+- [ ] Jenga Bank Account payments
 - [ ] Add support for other payment gateways (Stripe, PayPal, Flutterwave)
 - [ ] Implement payment retry logic
 - [ ] Add payment reconciliation
 - [ ] Implement refund functionality
 - [ ] Add payment analytics and reporting
 - [ ] Support for recurring payments
-- [ ] Multi-currency support
+- [ ] Enhanced multi-currency support

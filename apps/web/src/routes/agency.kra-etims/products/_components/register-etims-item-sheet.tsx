@@ -36,7 +36,7 @@ const formSchema = z.object({
   dftPrc: z.coerce.number().min(0, "Price must be >= 0").default(0),
 
   // Official KRA itemCd (OSCU §4.19): {orgnNatCd}{itemTyCd}{pkgUnitCd}{qtyUnitCd}{seq7}
-  // Example: KE2NTBA0000012 — do NOT insert X between pkg and qty (Apigee rejects "XU").
+  // Example: KE2NTBA0000012  do NOT insert X between pkg and qty (Apigee rejects "XU").
   itemCd: z.string()
     .min(1, "Item code is required")
     .regex(

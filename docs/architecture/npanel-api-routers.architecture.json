@@ -3,7 +3,7 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "nPanel API Router Map",
-    "subtitle": "How tRPC appRouter is grouped — Landing Page & Dashboard call these domains via /api/trpc",
+    "subtitle": "How tRPC appRouter is grouped  Landing Page & Dashboard call these domains via /api/trpc",
     "output": "npanel-api-routers.html",
     "viewBox": [1180, 880]
   },
@@ -140,7 +140,7 @@
     },
     {
       "kind": "security-group",
-      "label": "API entry — Better Auth cookies or npanel_sk_* keys",
+      "label": "API entry  Better Auth cookies or npanel_sk_* keys",
       "wraps": ["hub", "authwall"]
     },
     {
@@ -260,18 +260,18 @@
       "dot": "emerald",
       "title": "Hosting routers",
       "items": [
-        "plesk.* — customers, domains, DNS, email, DBs, FTP, subscriptions, WordPress toolkit",
-        "hosting, hostingPlans, wordpressSubscriptions — Nisc hosting catalog & subscriptions",
-        "hivelocity, hivelocityPricingSettings — VPS / dedicated servers",
-        "jetbackup.* — dashboard, accounts, jobs, schedules, backups, restores, settings"
+        "plesk.*  customers, domains, DNS, email, DBs, FTP, subscriptions, WordPress toolkit",
+        "hosting, hostingPlans, wordpressSubscriptions  Nisc hosting catalog & subscriptions",
+        "hivelocity, hivelocityPricingSettings  VPS / dedicated servers",
+        "jetbackup.*  dashboard, accounts, jobs, schedules, backups, restores, settings"
       ]
     },
     {
       "dot": "violet",
       "title": "Domains routers",
       "items": [
-        "openProvider — global domain registrar API",
-        "kenic — .ke EPP registry",
+        "openProvider  global domain registrar API",
+        "kenic  .ke EPP registry",
         "domains, domainTransfer, nameserverGroups, tldSettings, aiDomainSearch, whois"
       ]
     },
@@ -280,9 +280,9 @@
       "title": "Billing & commerce routers",
       "items": [
         "orders, invoicing, quotations, teamBilling, products",
-        "paymentGateway, paymentTransactions — M-Pesa and payment records",
+        "paymentGateway, paymentTransactions  M-Pesa and payment records",
         "clientSubscriptions, subscriptionUsage, serviceSubscriptions, niscServiceOrders",
-        "currency, publicPricing — FX and public price helpers"
+        "currency, publicPricing  FX and public price helpers"
       ]
     },
     {
@@ -290,7 +290,7 @@
       "title": "Teams, access & public doors",
       "items": [
         "teams, clients, manageUsers, user, userProfile, agencyRbac, apiKeys",
-        "storefront — Landing Page cart/checkout (isolated from dashboard routers)",
+        "storefront  Landing Page cart/checkout (isolated from dashboard routers)",
         "Auth gates: publicProcedure (open) vs protectedProcedure (must be logged in)",
         "Nested giants: plesk.* and jetbackup.* are routers-inside-routers"
       ]

@@ -121,7 +121,7 @@ export default function ContactForm() {
       <div className="rounded-2xl border border-border/60 bg-card p-6 md:p-8">
         <h2 className="mb-1 text-lg font-bold tracking-tight md:text-xl">Send us a message</h2>
         <p className="mb-6 text-sm text-muted-foreground">
-          A few details is enough — we&apos;ll get back with a clear plan.
+          A few details is enough  we&apos;ll get back with a clear plan.
         </p>
 
         {prefilledPlan && prefilledServiceName ? (

@@ -1,6 +1,6 @@
 name: WordPress Plugin (Nisc Payment Gateway)
 
-# Manual only — not tied to deploy.yml / system-deploy.yml
+# Manual only  not tied to deploy.yml / system-deploy.yml
 # ZIP is built only here (ubuntu) so paths use forward slashes WordPress expects.
 on:
   workflow_dispatch:

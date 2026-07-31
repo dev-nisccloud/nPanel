@@ -32,11 +32,11 @@ const withPoints = [
   "One team, one invoice, one strategy",
   "Consistent brand voice everywhere",
   "One account manager who owns outcomes",
-  "Results in 30 days — or we keep working",
+  "Results in 30 days  or we keep working",
   "AI automation runs the repetitive work",
 ];
 
-/** Home “Sound familiar?” — chaos of vendors vs Nisc Cloud. */
+/** Home “Sound familiar?”  chaos of vendors vs Nisc Cloud. */
 export default function PainAgitation() {
   const reduceMotion = useReducedMotion() ?? false;
 
@@ -65,7 +65,7 @@ export default function PainAgitation() {
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground md:text-base">
             Most growing businesses end up with a patchwork of vendors. Here is
-            what that usually looks like — and what changes with Nisc Cloud.
+            what that usually looks like  and what changes with Nisc Cloud.
           </p>
         </motion.div>
 
@@ -78,7 +78,7 @@ export default function PainAgitation() {
           transition={{ duration: 0.45, delay: 0.05 }}
         >
           <p className="mb-5 text-center text-xs font-bold uppercase tracking-[0.2em] text-rose-600 dark:text-rose-400">
-            The old way — chaos
+            The old way  chaos
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
