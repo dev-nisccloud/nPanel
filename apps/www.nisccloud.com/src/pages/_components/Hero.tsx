@@ -254,7 +254,7 @@ export default function Hero() {
           </div>
           */}
           <NiscWebsiteHeroImage
-            src={niscWebsiteImage("everything you need online (2).png")}
+            src={niscWebsiteImage("everything you need online 3.png")}
             alt="Everything you need online"
             standalone
             className="max-h-none w-[118%] max-w-none"
