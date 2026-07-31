@@ -24,8 +24,8 @@ import { InstallWordPressSheet } from "./install-wordpress-sheet";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useHostingDetailBatched } from "./use-hosting-detail-batched";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
-import { HostingBackupRestoreTab } from "@/components/jetbackup/hosting-backup-restore-tab";
-import { resolveHostingJetBackupUsername } from "@/components/jetbackup/resolve-hosting-jetbackup-username";
+import { HostingBackupRestoreTab } from "@/components/nisc-backup/hosting-backup-restore-tab";
+import { resolveHostingNiscBackupUsername } from "@/components/nisc-backup/resolve-hosting-nisc-backup-username";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -135,8 +135,8 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
     return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
   }, [hostingData?.limits?.limit]);
-  const jetbackupUsername = React.useMemo(
-    () => resolveHostingJetBackupUsername(hostingData),
+  const niscBackupUsername = React.useMemo(
+    () => resolveHostingNiscBackupUsername(hostingData),
     [hostingData],
   );
 
@@ -191,7 +191,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
+              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
                 <TabsTrigger
                   value="overview"
                   className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
@@ -293,11 +293,11 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   </div>
                   <div className="flex flex-col items-start gap-1 w-full">
                     <span className="text-sm font-semibold tracking-tight">Backup & Restore</span>
-                    <span className="text-xs text-muted-foreground">JetBackup</span>
+                    <span className="text-xs text-muted-foreground">Nisc Backup</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
-              <ScrollBar orientation="horizontal" className="flex" />
+              <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
 
             <TabsContent value="overview" className="mt-10">
@@ -340,7 +340,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               {activeTab === "backup-restore" ? (
                 <HostingBackupRestoreTab
                   domainName={hostingData.gen_info?.name}
-                  username={jetbackupUsername}
+                  username={niscBackupUsername}
                   enabled
                 />
               ) : null}

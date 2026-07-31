@@ -66,6 +66,19 @@ export const ZEEPO_PROMPT_CATEGORY_ORDER: ZeepoPromptCategory[] = [
   "strategy",
 ];
 
+/** Short landing chips — titles must match entries in ZEEPO_SAMPLE_PROMPTS. */
+export const ZEEPO_LANDING_SUGGESTIONS: Array<{
+  title: string;
+  label: string;
+}> = [
+  { title: "Premium logo design", label: "Design a logo" },
+  { title: "Series A investor pitch", label: "Build a pitch deck" },
+  { title: "Competitor analysis report", label: "Research competitors" },
+  { title: "Digital marketing strategy doc", label: "Draft a marketing plan" },
+  { title: "Legal tech brand & domains", label: "Find a brand & domains" },
+  { title: "Brand mockup suite", label: "Create brand mockups" },
+];
+
 export const ZEEPO_SAMPLE_PROMPTS: ZeepoSamplePrompt[] = [
   {
     icon: Layers,

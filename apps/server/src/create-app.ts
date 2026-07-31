@@ -35,8 +35,8 @@ import { handleSeoSuiteAudit } from "./api/workers/seo-suite-audit";
 import { handleHealth } from "./api/health";
 import { handleManifest } from "./api/manifest";
 import { handlePleskHealthCheck } from "./api/plesk-health-check";
-import { handleJetBackupHealthCheck } from "./api/jetbackup-health-check";
-import { handleJetBackupDownloadFile } from "./api/jetbackup-download-file";
+import { handleNiscBackupHealthCheck } from "./api/nisc-backup-health-check";
+import { handleNiscBackupDownloadFile } from "./api/nisc-backup-download-file";
 import { handleTestPleskConnection } from "./api/test-plesk-connection";
 import { handleTestKenicConnection } from "./api/test-kenic-connection";
 import { handleMpesaWebhook } from "./api/webhooks/mpesa";
@@ -146,8 +146,8 @@ export function createApp(options: CreateAppOptions = {}) {
     app.get("/api/manifest.json", handleManifest);
     app.get("/api/plesk/health-check", handlePleskHealthCheck);
     app.get("/api/plesk/test-connection", handleTestPleskConnection);
-    app.get("/api/jetbackup/health-check", handleJetBackupHealthCheck);
-    app.get("/api/jetbackup/downloads/:id/file", handleJetBackupDownloadFile);
+    app.get("/api/nisc-backup/health-check", handleNiscBackupHealthCheck);
+    app.get("/api/nisc-backup/downloads/:id/file", handleNiscBackupDownloadFile);
     app.get("/api/kenic/test-connection", handleTestKenicConnection);
     app.get("/api/my-ip", handleMyIp);
 

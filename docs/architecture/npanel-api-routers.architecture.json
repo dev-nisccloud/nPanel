@@ -51,7 +51,7 @@
       "sublabel": "Plesk · VPS · backups",
       "pos": [520, 40],
       "size": [150, 64],
-      "tag": "plesk.* jetbackup.*"
+      "tag": "plesk.* niscBackup.*"
     },
     {
       "id": "domains",
@@ -263,7 +263,7 @@
         "plesk.*  customers, domains, DNS, email, DBs, FTP, subscriptions, WordPress toolkit",
         "hosting, hostingPlans, wordpressSubscriptions  Nisc hosting catalog & subscriptions",
         "hivelocity, hivelocityPricingSettings  VPS / dedicated servers",
-        "jetbackup.*  dashboard, accounts, jobs, schedules, backups, restores, settings"
+        "niscBackup.*  dashboard, accounts, jobs, schedules, backups, restores, settings"
       ]
     },
     {
@@ -292,7 +292,7 @@
         "teams, clients, manageUsers, user, userProfile, agencyRbac, apiKeys",
         "storefront  Landing Page cart/checkout (isolated from dashboard routers)",
         "Auth gates: publicProcedure (open) vs protectedProcedure (must be logged in)",
-        "Nested giants: plesk.* and jetbackup.* are routers-inside-routers"
+        "Nested giants: plesk.* and niscBackup.* are routers-inside-routers"
       ]
     },
     {

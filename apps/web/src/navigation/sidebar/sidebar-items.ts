@@ -276,7 +276,7 @@ export const agencysidebarItems: NavGroup[] = [
         url: "/agency/backup-restore",
         icon: (props: any) => React.createElement(Icons.BACKUP, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
         subItems: [
-          { title: "JetBackup 5", url: "/agency/backup-restore/jetbackup5" },
+          { title: "Nisc Backup", url: "/agency/backup-restore/nisc-backup" },
         ],
       },
     ],
@@ -394,6 +394,17 @@ export const agencysidebarItems: NavGroup[] = [
   },
   {
     id: 4,
+    label: "Support",
+    items: [
+      {
+        title: "Support & Help",
+        url: "/agency/support",
+        icon: (props: any) => React.createElement(Icons.LiveChat, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
+      },
+    ],
+  },
+  {
+    id: 5,
     label: "Management",
     items: [
       {
@@ -499,16 +510,6 @@ export const agencysidebarItems: NavGroup[] = [
       //   title: "Invoicing",
       //   url: "/agency/invoicing",
       //   icon: (props: any) => React.createElement(Icons.Invoices, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      // },
-      // {
-      //   title: "Support",
-      //   url: "/agency/support",
-      //   icon: (props: any) => React.createElement(Icons.Help, { ...props, className: "!size-[20px] !mt-1 !-mr1.5" }),
-      //   subItems: [
-      //     { title: "Tickets", url: "/agency/support", },
-      //     { title: "Knowledge Base", url: "/agency/support", },
-      //     { title: "AI Assistant", url: "/agency/support", },
-      //   ],
       // },
       // {
       //   title: "Reports",

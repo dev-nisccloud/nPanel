@@ -330,7 +330,7 @@ export function VpsDetailPage({
         <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
+              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
                 {tabTriggers.map((tab) => (
                   <TabsTrigger
                     key={tab.value}
@@ -348,7 +348,7 @@ export function VpsDetailPage({
                   </TabsTrigger>
                 ))}
               </TabsList>
-              <ScrollBar orientation="horizontal" className="flex" />
+              <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
 
             <div className="mt-10">
