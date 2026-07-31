@@ -58,7 +58,7 @@ export function CategoryTabs({ value, onValueChange, className }: CategoryTabsPr
       <div className="relative w-full">
         {/* ScrollArea with visible horizontal scrollbar on all screen sizes */}
         <ScrollArea className="w-full -mx-4 px-4 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex h-auto w-max min-w-full sm:min-w-0 gap-2 sm:gap-2.5 md:gap-3 p-2 sm:p-2.5 bg-muted/50 rounded-lg border border-border/50">
+          <TabsList className="inline-flex h-auto w-max min-w-full sm:min-w-0 gap-2 sm:gap-2.5 md:gap-3 p-2 sm:p-2.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
             {categories.map((category) => {
               const Icon = category.icon;
               return (
@@ -84,7 +84,7 @@ export function CategoryTabs({ value, onValueChange, className }: CategoryTabsPr
               );
             })}
           </TabsList>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="mt-0.5" />
         </ScrollArea>
       </div>
     </Tabs>

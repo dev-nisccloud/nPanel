@@ -229,7 +229,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
         <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
+              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
                 <TabsTrigger
                   value="overview"
                   className="group flex flex-col items-start gap-2 p-4 h-auto min-h-[100px] border rounded-lg bg-background hover:bg-muted/50 transition-all data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-sm flex-shrink-0 min-w-[140px] @lg/main:min-w-[160px]"
@@ -335,7 +335,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   </div>
                 </TabsTrigger>
               </TabsList>
-              <ScrollBar orientation="horizontal" className="flex" />
+              <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
 
             <TabsContent value="overview" className="mt-10">

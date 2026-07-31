@@ -88,7 +88,7 @@ export function NiscBackupMainPage({ basePath }: NiscBackupMainPageProps) {
                   subtitle="Activity"
                 />
               </TabsList>
-              <ScrollBar orientation="horizontal" className="flex" />
+              <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
 
             <TabsContent value="overview" className={DETAIL_TAB_CONTENT_CLASS + " mt-10"}>

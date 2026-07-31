@@ -185,7 +185,7 @@ export function SeoSuiteDetailPage({ projectId }: SeoSuiteDetailPageProps) {
         <div className="mt-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <ScrollArea className="w-full -mx-4 px-4 md:mx-0 md:px-0 scrollbar-default">
-              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 bg-muted/50 rounded-lg border border-border/50">
+              <TabsList className="inline-flex h-auto w-max min-w-full gap-2 p-1.5 pb-2.5 mb-1.5 bg-muted/50 rounded-lg border border-border/50">
                 {TABS.map((tab) => {
                   const Icon = tab.icon;
                   return (
@@ -202,7 +202,7 @@ export function SeoSuiteDetailPage({ projectId }: SeoSuiteDetailPageProps) {
                   );
                 })}
               </TabsList>
-              <ScrollBar orientation="horizontal" className="flex" />
+              <ScrollBar orientation="horizontal" className="flex mt-0.5" />
             </ScrollArea>
 
             <TabsContent value="overview" className="mt-10">
