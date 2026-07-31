@@ -22,7 +22,7 @@ export const agencyMenuKeys = [
 	"/agency/vds",
 	"/agency/wordpress",
 	"/agency/backup-restore",
-	"/agency/backup-restore/jetbackup5",
+	"/agency/backup-restore/nisc-backup",
 
 	"/agency/social-media-marketing",
 	"/agency/social-media-marketing/facebook",
@@ -110,4 +110,23 @@ export const agencyMenuKeys = [
 
 export const agencyMenuKeySchema = z.enum(agencyMenuKeys);
 export type AgencyMenuKey = z.infer<typeof agencyMenuKeySchema>;
+
+/** Legacy menu paths remapped after product rename to Nisc Backup. */
+const LEGACY_MENU_KEY_REMAP: Record<string, AgencyMenuKey> = {
+	// Keep literal legacy path for DB rows written before the rename.
+	"/agency/backup-restore/jetbackup5": "/agency/backup-restore/nisc-backup",
+};
+
+/** Normalize persisted role menu keys (legacy paths → current catalog keys). */
+export function remapAgencyMenuKeys(menus: string[]): string[] {
+	const out: string[] = [];
+	const seen = new Set<string>();
+	for (const key of menus) {
+		const mapped = LEGACY_MENU_KEY_REMAP[key] ?? key;
+		if (seen.has(mapped)) continue;
+		seen.add(mapped);
+		out.push(mapped);
+	}
+	return out;
+}
 

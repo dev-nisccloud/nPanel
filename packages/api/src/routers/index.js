@@ -107,23 +107,23 @@ import { digitaxRouter } from "./digitax";
 import { ipRecordsRouter } from "./ip-records";
 import { zeepoCanvasRouter } from "./zeepo-canvas";
 import { zeepoAgentRouter } from "./zeepo-agent";
-import { jetbackupDashboardRouter } from "./jetbackup/dashboard";
-import { jetbackupSystemRouter } from "./jetbackup/system";
-import { jetbackupAccountsRouter } from "./jetbackup/accounts";
-import { jetbackupJobsRouter } from "./jetbackup/jobs";
-import { jetbackupSchedulesRouter } from "./jetbackup/schedules";
-import { jetbackupAccountFiltersRouter } from "./jetbackup/account-filters";
-import { jetbackupDestinationsRouter } from "./jetbackup/destinations";
-import { jetbackupQueuesRouter } from "./jetbackup/queues";
-import { jetbackupBackupsRouter } from "./jetbackup/backups";
-import { jetbackupDownloadsRouter } from "./jetbackup/downloads";
-import { jetbackupAlertsRouter } from "./jetbackup/alerts";
-import { jetbackupLogsRouter } from "./jetbackup/logs";
-import { jetbackupSettingsRouter } from "./jetbackup/settings";
-import { jetbackupPermissionsRouter } from "./jetbackup/permissions";
-import { jetbackupRestoreConditionsRouter } from "./jetbackup/restore-conditions";
-import { jetbackupFilePermissionsRouter } from "./jetbackup/file-permissions";
-import { jetbackupPluginsRouter } from "./jetbackup/plugins";
+import { niscBackupDashboardRouter } from "./nisc-backup/dashboard";
+import { niscBackupSystemRouter } from "./nisc-backup/system";
+import { niscBackupAccountsRouter } from "./nisc-backup/accounts";
+import { niscBackupJobsRouter } from "./nisc-backup/jobs";
+import { niscBackupSchedulesRouter } from "./nisc-backup/schedules";
+import { niscBackupAccountFiltersRouter } from "./nisc-backup/account-filters";
+import { niscBackupDestinationsRouter } from "./nisc-backup/destinations";
+import { niscBackupQueuesRouter } from "./nisc-backup/queues";
+import { niscBackupBackupsRouter } from "./nisc-backup/backups";
+import { niscBackupDownloadsRouter } from "./nisc-backup/downloads";
+import { niscBackupAlertsRouter } from "./nisc-backup/alerts";
+import { niscBackupLogsRouter } from "./nisc-backup/logs";
+import { niscBackupSettingsRouter } from "./nisc-backup/settings";
+import { niscBackupPermissionsRouter } from "./nisc-backup/permissions";
+import { niscBackupRestoreConditionsRouter } from "./nisc-backup/restore-conditions";
+import { niscBackupFilePermissionsRouter } from "./nisc-backup/file-permissions";
+import { niscBackupPluginsRouter } from "./nisc-backup/plugins";
 import { storefrontRouter } from "./storefront";
 export const appRouter = router({
     healthCheck: publicProcedure.query(() => {
@@ -321,24 +321,24 @@ export const appRouter = router({
     zeepoAgent: zeepoAgentRouter,
     // Public landing-page storefront checkout (isolated from dashboard routers)
     storefront: storefrontRouter,
-    // JetBackup 5 Integration
-    jetbackup: router({
-        dashboard: jetbackupDashboardRouter,
-        system: jetbackupSystemRouter,
-        accounts: jetbackupAccountsRouter,
-        jobs: jetbackupJobsRouter,
-        schedules: jetbackupSchedulesRouter,
-        accountFilters: jetbackupAccountFiltersRouter,
-        destinations: jetbackupDestinationsRouter,
-        queues: jetbackupQueuesRouter,
-        backups: jetbackupBackupsRouter,
-        downloads: jetbackupDownloadsRouter,
-        alerts: jetbackupAlertsRouter,
-        logs: jetbackupLogsRouter,
-        settings: jetbackupSettingsRouter,
-        permissions: jetbackupPermissionsRouter,
-        restoreConditions: jetbackupRestoreConditionsRouter,
-        filePermissions: jetbackupFilePermissionsRouter,
-        plugins: jetbackupPluginsRouter,
+    // Nisc Backup Integration
+    niscBackup: router({
+        dashboard: niscBackupDashboardRouter,
+        system: niscBackupSystemRouter,
+        accounts: niscBackupAccountsRouter,
+        jobs: niscBackupJobsRouter,
+        schedules: niscBackupSchedulesRouter,
+        accountFilters: niscBackupAccountFiltersRouter,
+        destinations: niscBackupDestinationsRouter,
+        queues: niscBackupQueuesRouter,
+        backups: niscBackupBackupsRouter,
+        downloads: niscBackupDownloadsRouter,
+        alerts: niscBackupAlertsRouter,
+        logs: niscBackupLogsRouter,
+        settings: niscBackupSettingsRouter,
+        permissions: niscBackupPermissionsRouter,
+        restoreConditions: niscBackupRestoreConditionsRouter,
+        filePermissions: niscBackupFilePermissionsRouter,
+        plugins: niscBackupPluginsRouter,
     }),
 });

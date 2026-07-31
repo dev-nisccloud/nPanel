@@ -307,7 +307,7 @@
       "dot": "violet",
       "title": "Partner services (outside our cloud)",
       "items": [
-        "Payments: M-Pesa STK Push  ·  Hosting: Plesk, Hivelocity, JetBackup  ·  Domains: OpenProvider, KENIC (.ke)",
+        "Payments: M-Pesa STK Push  ·  Hosting: Plesk, Hivelocity, NiscBackup  ·  Domains: OpenProvider, KENIC (.ke)",
         "Email: AWS SES (and some legacy Resend)  ·  AI: Replicate, Stability AI  ·  Ads: Meta, Instagram, LinkedIn, Google Ads",
         "Tax: KRA eTIMS / DigiTax  ·  SEO: Google PageSpeed",
         "Partners call back through signed webhooks (M-Pesa, Replicate, SES/SNS)  never trusted blindly"

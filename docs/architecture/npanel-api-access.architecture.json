@@ -272,7 +272,7 @@
       "dot": "slate",
       "title": "PROTECTED_ONLY (57 routers)",
       "items": [
-        "Dashboard domains: hosting, jetbackup, invoicing, ads, email marketing, creatives/AI, digitax, reports, tickets, apiKeys, agencyRbac, …",
+        "Dashboard domains: hosting, niscBackup, invoicing, ads, email marketing, creatives/AI, digitax, reports, tickets, apiKeys, agencyRbac, …",
         "No anonymous access  Landing Page must not call these without a session",
         "Full name lists: docs/architecture/API-ACCESS-MAP.md"
       ]

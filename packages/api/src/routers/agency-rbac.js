@@ -6,7 +6,7 @@ import { db } from "@npanel/db";
 import { user as userTable } from "@npanel/db/schema/auth";
 import { agencyPermission, agencyRole, agencyRolePermission, } from "@npanel/db/schema/agency-rbac";
 import { protectedProcedure, router } from "../trpc";
-import { agencyMenuKeySchema, agencyMenuKeys } from "./agency-rbac/menu-keys";
+import { agencyMenuKeySchema, agencyMenuKeys, remapAgencyMenuKeys } from "./agency-rbac/menu-keys";
 // ============================================================================
 // ZOD SCHEMAS – independent from database schema (including enums)
 // ============================================================================
@@ -92,7 +92,7 @@ export const agencyRbacRouter = router({
             id: r.id,
             name: r.name,
             description: r.description ?? null,
-            menus: r.menus,
+            menus: remapAgencyMenuKeys(r.menus ?? []),
             isSystem: r.isSystem,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt,
@@ -118,7 +118,7 @@ export const agencyRbacRouter = router({
         if (!role) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Role not found" });
         }
-        const dbMenus = role.menus ?? [];
+        const dbMenus = remapAgencyMenuKeys(role.menus ?? []);
         const permissionKeys = role.permissions
             .map((rp) => rp.permission.key)
             .filter((key) => agencyMenuKeySchema.safeParse(key).success) ?? [];
@@ -157,7 +157,7 @@ export const agencyRbacRouter = router({
             id: role.id,
             name: role.name,
             description: role.description ?? null,
-            menus: role.menus,
+            menus: remapAgencyMenuKeys(role.menus ?? []),
             isSystem: role.isSystem,
             createdAt: role.createdAt,
             updatedAt: role.updatedAt,
@@ -191,7 +191,7 @@ export const agencyRbacRouter = router({
             id: updated.id,
             name: updated.name,
             description: updated.description ?? null,
-            menus: updated.menus,
+            menus: remapAgencyMenuKeys(updated.menus ?? []),
             isSystem: updated.isSystem,
             createdAt: updated.createdAt,
             updatedAt: updated.updatedAt,
@@ -377,7 +377,7 @@ export const agencyRbacRouter = router({
                 allowedKeys: Array.from(agencyMenuKeys),
             };
         }
-        const dbMenus = userRes.agencyRole?.menus ?? [];
+        const dbMenus = remapAgencyMenuKeys(userRes.agencyRole?.menus ?? []);
         const permissionKeys = userRes.agencyRole?.permissions
             .map((p) => p.permission.key)
             .filter((k) => agencyMenuKeySchema.safeParse(k).success) ?? [];

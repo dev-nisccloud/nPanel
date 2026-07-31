@@ -28,8 +28,8 @@ import { HostingSubscriptionActionMenu } from "./hosting-subscription-action-men
 import { HostingSubscriptionSuspendDialog } from "./hosting-subscription-suspend-dialog";
 import { useHostingSubscriptionSuspend } from "./use-hosting-subscription-suspend";
 import { trpc } from "@/utils/trpc";
-import { HostingBackupRestoreTab } from "@/components/jetbackup/hosting-backup-restore-tab";
-import { resolveHostingJetBackupUsername } from "@/components/jetbackup/resolve-hosting-jetbackup-username";
+import { HostingBackupRestoreTab } from "@/components/nisc-backup/hosting-backup-restore-tab";
+import { resolveHostingNiscBackupUsername } from "@/components/nisc-backup/resolve-hosting-nisc-backup-username";
 
 interface HostingDetailPageProps {
   subscriptionId: string;
@@ -142,8 +142,8 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
     const mailboxQuota = limits.find((limit) => limit?.name === "mbox_quota")?.value;
     return typeof mailboxQuota === "number" && mailboxQuota > 0 ? mailboxQuota : undefined;
   }, [hostingData?.limits?.limit]);
-  const jetbackupUsername = React.useMemo(
-    () => resolveHostingJetBackupUsername(hostingData),
+  const niscBackupUsername = React.useMemo(
+    () => resolveHostingNiscBackupUsername(hostingData),
     [hostingData],
   );
 
@@ -331,7 +331,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
                   </div>
                   <div className="flex flex-col items-start gap-1 w-full">
                     <span className="text-sm font-semibold tracking-tight">Backup & Restore</span>
-                    <span className="text-xs text-muted-foreground">JetBackup</span>
+                    <span className="text-xs text-muted-foreground">Nisc Backup</span>
                   </div>
                 </TabsTrigger>
               </TabsList>
@@ -378,7 +378,7 @@ export function HostingDetailPage({ subscriptionId }: HostingDetailPageProps) {
               {activeTab === "backup-restore" ? (
                 <HostingBackupRestoreTab
                   domainName={hostingData.gen_info?.name}
-                  username={jetbackupUsername}
+                  username={niscBackupUsername}
                   enabled
                 />
               ) : null}
