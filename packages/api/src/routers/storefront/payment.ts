@@ -101,7 +101,7 @@ export const storefrontPaymentRouter = router({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            "Add a domain before payment — register, transfer, or connect one you already own.",
+            "Add a domain before payment  register, transfer, or connect one you already own.",
         });
       }
 

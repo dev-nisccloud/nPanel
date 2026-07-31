@@ -119,16 +119,16 @@ export function LocalReviewsTab({ projectId, project }: LocalReviewsTabProps) {
                     onClick={() => pid && setPlaceId(pid)}
                   >
                     <TableCell className="pl-6 font-medium">
-                      {String(r.title ?? r.name ?? "—")}
+                      {String(r.title ?? r.name ?? "")}
                     </TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">
-                      {String(r.address ?? getNested(r, "address_info.address") ?? "—")}
+                      {String(r.address ?? getNested(r, "address_info.address") ?? "")}
                     </TableCell>
                     <TableCell>
                       {formatNumber(getNested(r, "rating.value") ?? r.rating)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground truncate max-w-[140px]">
-                      {pid || "—"}
+                      {pid || ""}
                     </TableCell>
                   </TableRow>
                 );

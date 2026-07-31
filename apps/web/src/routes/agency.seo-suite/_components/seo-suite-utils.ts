@@ -16,21 +16,21 @@ export type SeoProject = {
   updatedAt: Date | string;
 };
 
-export function formatNumber(value: unknown, fallback = "—"): string {
+export function formatNumber(value: unknown, fallback = ""): string {
   if (value === null || value === undefined || value === "") return fallback;
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return fallback;
   return new Intl.NumberFormat("en-US").format(n);
 }
 
-export function formatPercent(value: unknown, fallback = "—"): string {
+export function formatPercent(value: unknown, fallback = ""): string {
   if (value === null || value === undefined || value === "") return fallback;
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return fallback;
   return `${n.toFixed(1)}%`;
 }
 
-export function formatDate(value: unknown, fallback = "—"): string {
+export function formatDate(value: unknown, fallback = ""): string {
   if (!value) return fallback;
   const d = value instanceof Date ? value : new Date(String(value));
   if (Number.isNaN(d.getTime())) return fallback;

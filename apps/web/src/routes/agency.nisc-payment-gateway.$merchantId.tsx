@@ -341,7 +341,7 @@ export default function MerchantDetailsPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Phone</p>
-                    <p className="font-medium">{merchant.merchant.merchantPhone || "—"}</p>
+                    <p className="font-medium">{merchant.merchant.merchantPhone || ""}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-muted-foreground">Website</p>
@@ -356,7 +356,7 @@ export default function MerchantDetailsPage() {
                         <ExternalLink className="ml-1 h-3 w-3" />
                       </a>
                     ) : (
-                      <p className="font-medium">—</p>
+                      <p className="font-medium"></p>
                     )}
                   </div>
                 </div>
@@ -372,11 +372,11 @@ export default function MerchantDetailsPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="col-span-2">
                     <p className="text-muted-foreground">Business Name</p>
-                    <p className="font-medium">{merchant.merchant.businessName || "—"}</p>
+                    <p className="font-medium">{merchant.merchant.businessName || ""}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-muted-foreground">Registration Number</p>
-                    <p className="font-medium">{merchant.merchant.businessRegistration || "—"}</p>
+                    <p className="font-medium">{merchant.merchant.businessRegistration || ""}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Created</p>
@@ -444,7 +444,7 @@ export default function MerchantDetailsPage() {
                               new Date((merchant.merchant.settings as any).webhookRegisteredAt),
                               "MMM d, yyyy HH:mm"
                             )
-                          : "—"}
+                          : ""}
                       </p>
                     </div>
                     <div>
@@ -526,7 +526,7 @@ export default function MerchantDetailsPage() {
                           transactions.transactions.length) *
                           100
                       )}%`
-                    : "—"}
+                    : ""}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {transactions && transactions.transactions.length > 0

@@ -108,7 +108,7 @@ export async function buildStorefrontCartOrderLines(input: {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message:
-				"A domain is required for this hosting plan — register, transfer, or connect one you already own.",
+				"A domain is required for this hosting plan  register, transfer, or connect one you already own.",
 		});
 	}
 

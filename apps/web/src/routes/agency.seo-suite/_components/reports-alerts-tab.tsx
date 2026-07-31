@@ -209,7 +209,7 @@ export function ReportsAlertsTab({ projectId }: ReportsAlertsTabProps) {
                   <TableRow key={ev.id}>
                     <TableCell className="pl-6 font-medium">{ev.title}</TableCell>
                     <TableCell className="max-w-md truncate">
-                      {ev.message ?? "—"}
+                      {ev.message ?? ""}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(ev.createdAt)}

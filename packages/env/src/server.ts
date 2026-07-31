@@ -33,7 +33,7 @@ export const env = createEnv({
     BRAVE_SEARCH_API_KEY: z.string().min(1).optional(),
     /**
      * DataForSEO API Access credentials (Dashboard → API Access).
-     * Basic Auth: API login (email) + auto-generated API password — not a single API key.
+     * Basic Auth: API login (email) + auto-generated API password  not a single API key.
      * Optional at boot so containers build/start without SEO Suite configured.
      */
     DATAFORSEO_LOGIN: z.string().min(1).optional(),

@@ -60,7 +60,7 @@ function useSoftIn(delay = 0) {
   };
 }
 
-/** @deprecated Prefer useSoftIn — kept for spreads that still work when not looping */
+/** @deprecated Prefer useSoftIn  kept for spreads that still work when not looping */
 const softIn = {
   initial: { opacity: 0, y: 8 },
   whileInView: { opacity: 1, y: 0 },
@@ -90,7 +90,7 @@ function IconMark({ children }: { children: ReactNode }) {
   );
 }
 
-/** Uptime — calm status pulse */
+/** Uptime  calm status pulse */
 export function UptimeVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "99.99%";
   const soft = useSoftIn();
@@ -120,7 +120,7 @@ export function UptimeVisual({ point }: VisualProps) {
   );
 }
 
-/** Speed — progress ring filling once */
+/** Speed  progress ring filling once */
 export function SpeedVisual({ point }: VisualProps) {
   const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "Fast";
   const loop = useLoop();
@@ -159,7 +159,7 @@ export function SpeedVisual({ point }: VisualProps) {
   );
 }
 
-/** Security — lock settles in */
+/** Security  lock settles in */
 export function SecurityVisual(_props: VisualProps) {
   const soft = useSoftIn();
   const loop = useLoop();
@@ -188,7 +188,7 @@ export function SecurityVisual(_props: VisualProps) {
   );
 }
 
-/** Migration — simple A → B handoff */
+/** Migration  simple A → B handoff */
 export function MigrationVisual(_props: VisualProps) {
   const softLeft = useSoftIn();
   const softRight = useSoftIn(0.1);
@@ -230,7 +230,7 @@ const TRUST_CLIENT_LOGOS = [
   { name: "Ashut", logo: "/clients/ashut-logo.png" },
 ] as const;
 
-/** Trust — client logos + count */
+/** Trust  client logos + count */
 export function TrustVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "100+";
   const soft = useSoftIn();
@@ -274,7 +274,7 @@ export function TrustVisual({ point }: VisualProps) {
   );
 }
 
-/** Inbox — deliverability / spam filter */
+/** Inbox  deliverability / spam filter */
 export function InboxVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc);
   const soft = useSoftIn();
@@ -315,7 +315,7 @@ export function InboxVisual({ point }: VisualProps) {
   );
 }
 
-/** Pricing — included checklist */
+/** Pricing  included checklist */
 export function PricingVisual(_props: VisualProps) {
   const items = ["Setup", "SSL", "Support"];
   const soft = useSoftIn();
@@ -352,7 +352,7 @@ export function PricingVisual(_props: VisualProps) {
   );
 }
 
-/** Growth — rank climbing bars */
+/** Growth  rank climbing bars */
 export function GrowthVisual(_props: VisualProps) {
   const loop = useLoop();
   const bars = loop ? [48, 78, 110, 150] : [28, 48, 68, 92];
@@ -392,7 +392,7 @@ export function GrowthVisual(_props: VisualProps) {
 
 type SupportPhase = "idle" | "user" | "typing" | "reply";
 
-/** Support — looping chat exchange */
+/** Support  looping chat exchange */
 export function SupportVisual(_props: VisualProps) {
   const [phase, setPhase] = useState<SupportPhase>("idle");
 
@@ -497,7 +497,7 @@ export function SupportVisual(_props: VisualProps) {
   );
 }
 
-/** Deploy — stacked step carousel (same motion pattern as home “full journey” bento) */
+/** Deploy  stacked step carousel (same motion pattern as home “full journey” bento) */
 const DEPLOY_STEPS = [
   { id: "provision", title: "Provision server", icon: Server },
   { id: "configure", title: "Configure stack", icon: Settings2 },
@@ -554,7 +554,7 @@ export function DeployVisual(_props: VisualProps) {
   );
 }
 
-/** Reporting — simple chart card */
+/** Reporting  simple chart card */
 export function ReportingVisual(_props: VisualProps) {
   const bars = [40, 62, 48, 78, 66, 88];
   const soft = useSoftIn();
@@ -588,7 +588,7 @@ export function ReportingVisual(_props: VisualProps) {
   );
 }
 
-/** Results — target progress */
+/** Results  target progress */
 export function ResultsVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc) ?? "30 days";
   const soft = useSoftIn();
@@ -624,7 +624,7 @@ export function ResultsVisual({ point }: VisualProps) {
   );
 }
 
-/** Brand — palette swatches */
+/** Brand  palette swatches */
 export function BrandVisual(_props: VisualProps) {
   const soft = useSoftIn();
   const loop = useLoop();
@@ -659,7 +659,7 @@ export function BrandVisual(_props: VisualProps) {
   );
 }
 
-/** Clarity — search → clear result */
+/** Clarity  search → clear result */
 export function ClarityVisual(_props: VisualProps) {
   const soft = useSoftIn();
   const loop = useLoop();
@@ -683,14 +683,14 @@ export function ClarityVisual(_props: VisualProps) {
           className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-foreground"
         >
           <Check className="size-3.5 text-primary" />
-          Available — clear next step
+          Available  clear next step
         </motion.div>
       </motion.div>
     </Frame>
   );
 }
 
-/** Local market — pin drops on a soft map */
+/** Local market  pin drops on a soft map */
 export function LocalMarketVisual(_props: VisualProps) {
   const loop = useLoop();
   return (
@@ -724,7 +724,7 @@ export function LocalMarketVisual(_props: VisualProps) {
   );
 }
 
-/** Strategy — research lines resolve into a mark */
+/** Strategy  research lines resolve into a mark */
 export function StrategyVisual(_props: VisualProps) {
   const soft = useSoftIn();
   const loop = useLoop();
@@ -771,7 +771,7 @@ export function StrategyVisual(_props: VisualProps) {
   );
 }
 
-/** Assets — files stack into a folder */
+/** Assets  files stack into a folder */
 export function AssetsVisual(_props: VisualProps) {
   const files = ["Logo.svg", "Guide.pdf", "Social.zip"];
   const soft = useSoftIn();
@@ -810,7 +810,7 @@ export function AssetsVisual(_props: VisualProps) {
   );
 }
 
-/** Craft — pen draws a mark */
+/** Craft  pen draws a mark */
 export function CraftVisual(_props: VisualProps) {
   const loop = useLoop();
   return (
@@ -869,7 +869,7 @@ export function CraftVisual(_props: VisualProps) {
   );
 }
 
-/** Process — timeline steps light up */
+/** Process  timeline steps light up */
 export function ProcessVisual({ point }: VisualProps) {
   const stat = extractStat(point.desc) ?? extractStat(point.title) ?? "7 days";
   const steps = ["Brief", "Design", "Deliver"];
@@ -920,7 +920,7 @@ export function ProcessVisual({ point }: VisualProps) {
   );
 }
 
-/** Ownership — key unlocks transfer */
+/** Ownership  key unlocks transfer */
 export function OwnershipVisual(_props: VisualProps) {
   const soft = useSoftIn();
   return (
@@ -948,7 +948,7 @@ export function OwnershipVisual(_props: VisualProps) {
   );
 }
 
-/** Engagement — soft reaction pulses */
+/** Engagement  soft reaction pulses */
 export function EngagementVisual(_props: VisualProps) {
   const reactions = [
     { key: "chat", icon: MessageCircle },
@@ -981,7 +981,7 @@ export function EngagementVisual(_props: VisualProps) {
   );
 }
 
-/** Approval — stamp lands */
+/** Approval  stamp lands */
 export function ApprovalVisual(_props: VisualProps) {
   const loop = useLoop();
   return (
@@ -1016,7 +1016,7 @@ export function ApprovalVisual(_props: VisualProps) {
   );
 }
 
-/** Targeting — focus ring tightens */
+/** Targeting  focus ring tightens */
 export function TargetingVisual(_props: VisualProps) {
   const loop = useLoop();
   return (
@@ -1051,7 +1051,7 @@ export function TargetingVisual(_props: VisualProps) {
   );
 }
 
-/** Tracking — events tick in */
+/** Tracking  events tick in */
 export function TrackingVisual(_props: VisualProps) {
   const events = ["Page view", "Add to cart", "Purchase"];
   return (
@@ -1080,7 +1080,7 @@ export function TrackingVisual(_props: VisualProps) {
   );
 }
 
-/** Creative — A/B flip */
+/** Creative  A/B flip */
 export function CreativeVisual(_props: VisualProps) {
   const [variant, setVariant] = useState<"A" | "B">("A");
 
@@ -1127,7 +1127,7 @@ export function CreativeVisual(_props: VisualProps) {
   );
 }
 
-/** Mobile — phone frame tap */
+/** Mobile  phone frame tap */
 export function MobileVisual(_props: VisualProps) {
   const soft = useSoftIn();
   return (
@@ -1155,7 +1155,7 @@ export function MobileVisual(_props: VisualProps) {
   );
 }
 
-/** Inventory — stock levels */
+/** Inventory  stock levels */
 export function InventoryVisual(_props: VisualProps) {
   const rows = [
     { name: "SKU-01", level: 82 },
@@ -1197,7 +1197,7 @@ export function InventoryVisual(_props: VisualProps) {
   );
 }
 
-/** Payment — settle confirmation */
+/** Payment  settle confirmation */
 export function PaymentVisual(_props: VisualProps) {
   const soft = useSoftIn();
   const loop = useLoop();
@@ -1226,7 +1226,7 @@ export function PaymentVisual(_props: VisualProps) {
   );
 }
 
-/** Automation — nodes connect */
+/** Automation  nodes connect */
 export function AutomationVisual(_props: VisualProps) {
   const nodes = ["Join", "Wait", "Send"];
   const loop = useLoop();
@@ -1271,7 +1271,7 @@ export function AutomationVisual(_props: VisualProps) {
   );
 }
 
-/** Segments — list splits */
+/** Segments  list splits */
 export function SegmentsVisual(_props: VisualProps) {
   const chips = ["Buyers", "Local", "New"];
   const soft = useSoftIn();
@@ -1309,7 +1309,7 @@ export function SegmentsVisual(_props: VisualProps) {
   );
 }
 
-/** Typing — subject line types out */
+/** Typing  subject line types out */
 export function TypingVisual(_props: VisualProps) {
   const full = "Your offer is ready";
   const [text, setText] = useState("");
@@ -1358,7 +1358,7 @@ export function TypingVisual(_props: VisualProps) {
   );
 }
 
-/** Bot — AI reply card */
+/** Bot  AI reply card */
 export function BotVisual(_props: VisualProps) {
   const soft = useSoftIn();
   return (
@@ -1376,14 +1376,14 @@ export function BotVisual(_props: VisualProps) {
           transition={{ duration: 4.5, repeat: Infinity, times: [0, 0.15, 0.7, 0.85, 1] }}
           className="mr-auto max-w-[90%] rounded-2xl rounded-bl-md border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-[11px] text-foreground"
         >
-          Yes — same-day available. Book a slot?
+          Yes  same-day available. Book a slot?
         </motion.div>
       </div>
     </Frame>
   );
 }
 
-/** Integrate — links connect */
+/** Integrate  links connect */
 export function IntegrateVisual(_props: VisualProps) {
   const tools = ["CRM", "Cal", "Pay"];
   const loop = useLoop();
@@ -1429,7 +1429,7 @@ export function IntegrateVisual(_props: VisualProps) {
   );
 }
 
-/** Code — lines build */
+/** Code  lines build */
 export function CodeVisual(_props: VisualProps) {
   const lines = ["w-3/4", "w-full", "w-2/3", "w-5/6"];
   const loop = useLoop();
@@ -1460,7 +1460,7 @@ export function CodeVisual(_props: VisualProps) {
   );
 }
 
-/** Funnel — stages narrow */
+/** Funnel  stages narrow */
 export function FunnelVisual(_props: VisualProps) {
   const stages = [
     { label: "Visit", w: "w-full" },
@@ -1493,7 +1493,7 @@ export function FunnelVisual(_props: VisualProps) {
   );
 }
 
-/** Calendar — week fills in */
+/** Calendar  week fills in */
 export function CalendarVisual(_props: VisualProps) {
   const loop = useLoop();
   return (
@@ -1537,7 +1537,7 @@ export function CalendarVisual(_props: VisualProps) {
   );
 }
 
-/** Algorithm — reach wave */
+/** Algorithm  reach wave */
 export function AlgorithmVisual(_props: VisualProps) {
   const points = [20, 35, 28, 55, 48, 72, 88];
   return (
@@ -1560,7 +1560,7 @@ export function AlgorithmVisual(_props: VisualProps) {
   );
 }
 
-/** Ethical — clean shield check */
+/** Ethical  clean shield check */
 export function EthicalVisual(_props: VisualProps) {
   const soft = useSoftIn();
   const loop = useLoop();
@@ -1582,7 +1582,7 @@ export function EthicalVisual(_props: VisualProps) {
   );
 }
 
-/** Maps — pin + search */
+/** Maps  pin + search */
 export function MapsVisual(_props: VisualProps) {
   const loop = useLoop();
   return (
@@ -1612,7 +1612,7 @@ export function MapsVisual(_props: VisualProps) {
   );
 }
 
-/** Default — quiet icon + optional stat */
+/** Default  quiet icon + optional stat */
 export function DefaultVisual({ point }: VisualProps) {
   const stat = extractStat(point.title) ?? extractStat(point.desc);
   const soft = useSoftIn();

@@ -31,9 +31,9 @@ export type ServiceStatisticsItem = {
 export type ServiceStatisticsProps = {
   items: ServiceStatisticsItem[];
   className?: string;
-  /** Reduced vertical padding — used under service/hosting heroes. */
+  /** Reduced vertical padding  used under service/hosting heroes. */
   compact?: boolean;
-  /** Drop outer section spacing — for use inside another column/section. */
+  /** Drop outer section spacing  for use inside another column/section. */
   embedded?: boolean;
 };
 

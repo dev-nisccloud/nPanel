@@ -56,7 +56,7 @@ export async function trpcMutation<T>(procedure: string, input: unknown): Promis
 /**
  * Credentialed tRPC against the nPanel *app* origin (not the raw API host, not the
  * landing origin). Session cookies are set on the nPanel SPA host via its `/api`
- * proxy — calling that host is the only reliable way to send them from www.
+ * proxy  calling that host is the only reliable way to send them from www.
  */
 function credentialedTrpcBase(): string {
   return `${NPANEL_APP.replace(/\/+$/, "")}/api/trpc`;

@@ -1,4 +1,4 @@
-# Agency SEO Suite — Product & Feature Spec (DataForSEO-backed)
+# Agency SEO Suite  Product & Feature Spec (DataForSEO-backed)
 
 **Status:** Design / planning only (no implementation in this doc)  
 **Date:** 2026-07-27  
@@ -9,13 +9,13 @@
 
 ## 1. Purpose
 
-Today the agency SEO experience is an **analytics viewer** over Google Search Console and organic GA4. That stays. This document defines a second product surface — a full **SEO Suite** powered primarily by DataForSEO — so nPanel can move from “view what Google already measured” to “research, audit, track, compete, and optimize with actionable SEO data.”
+Today the agency SEO experience is an **analytics viewer** over Google Search Console and organic GA4. That stays. This document defines a second product surface  a full **SEO Suite** powered primarily by DataForSEO  so nPanel can move from “view what Google already measured” to “research, audit, track, compete, and optimize with actionable SEO data.”
 
 **Non-goals for this doc**
 
 - No UI code, API code, or schema migrations
 - No change to existing GSC/GA4 report logic
-- No replacing Google Analytics / Search Console — Analytics tab keeps them
+- No replacing Google Analytics / Search Console  Analytics tab keeps them
 
 **Goals**
 
@@ -51,8 +51,8 @@ Top-level page: **SEO Reports**
 
 Two inner tabs (unchanged in behavior today):
 
-1. **Search Console** — property picker, date range, refresh, create SEO subscription  
-2. **Google Analytics 4** — property picker, date range, organic-channel metrics only  
+1. **Search Console**  property picker, date range, refresh, create SEO subscription  
+2. **Google Analytics 4**  property picker, date range, organic-channel metrics only  
 
 ### 2.3 What Analytics already delivers (must remain)
 
@@ -170,7 +170,7 @@ Analytics stays measurement of **owned** traffic. SEO Suite adds **market**, **c
 
 ---
 
-## 4. DataForSEO — full capability inventory
+## 4. DataForSEO  full capability inventory
 
 DataForSEO is a pay-as-you-go SEO/SEM/AI data API stack ([homepage](https://dataforseo.com/), [APIs](https://dataforseo.com/apis), [SEO solutions](https://dataforseo.com/solutions/seo), [pricing](https://dataforseo.com/pricing-list)). One account unlocks all APIs; you pay per call/row. Live endpoints typically return in ~2s where applicable; task/queue modes exist for heavier jobs.
 
@@ -305,7 +305,7 @@ nPanel differentiator = **agency operating system + first-party Analytics + Data
 4. **Cost-aware defaults** (Labs first, live SERP on demand, LLM Responses behind explicit “Run paid check”)  
 5. **Evidence-backed recommendations** that cite the exact SERP feature, backlink, audit issue, or LLM citation  
 6. **White-label client reports** that merge Google truth (Analytics) with market truth (DataForSEO)  
-7. **GEO + SEO together** — classic ranks and AI answer visibility in one place (rare in agency tooling)
+7. **GEO + SEO together**  classic ranks and AI answer visibility in one place (rare in agency tooling)
 
 ---
 
@@ -366,7 +366,7 @@ Each module below includes: purpose, user flow, UI sections, DataForSEO endpoint
 
 ### 6.2 Domain Overview
 
-**Purpose:** Estimate organic (and paid) visibility for any domain — yours or a competitor’s — without needing GSC access.
+**Purpose:** Estimate organic (and paid) visibility for any domain  yours or a competitor’s  without needing GSC access.
 
 #### User flow
 
@@ -474,7 +474,7 @@ Each module below includes: purpose, user flow, UI sections, DataForSEO endpoint
 #### Agency extras
 
 - Outreach list export (domain, contact page guess, anchor opportunity)  
-- Toxic link shortlist for disavow consideration (spam score + network concentration heuristics — label as heuristic, not Google policy)  
+- Toxic link shortlist for disavow consideration (spam score + network concentration heuristics  label as heuristic, not Google policy)  
 - Combine with Content Analysis for “mention without link” opportunities  
 
 ---
@@ -630,7 +630,7 @@ nPanel must store:
 
 ### 6.9 Saved Keywords
 
-**Purpose:** Organize keyword ideas for content and tracking — the hub between Research, Rank Tracking, AI, and content.
+**Purpose:** Organize keyword ideas for content and tracking  the hub between Research, Rank Tracking, AI, and content.
 
 #### User flow
 
@@ -651,7 +651,7 @@ nPanel must store:
 
 ---
 
-### 6.10 SERP Lab (extension — highly recommended)
+### 6.10 SERP Lab (extension  highly recommended)
 
 **Purpose:** Inspect a live (or historical) SERP like an SEO would: features, AI Overview, PAA, local pack, sitelinks, who owns the page-1 estate.
 
@@ -676,7 +676,7 @@ Keyword tables alone don’t explain CTR. Agencies win when they show *why* a qu
 
 ### 6.11 Content & Mentions (extension)
 
-**Purpose:** Brand/topic mentions across the web with sentiment — beyond backlinks.
+**Purpose:** Brand/topic mentions across the web with sentiment  beyond backlinks.
 
 #### DataForSEO mapping
 
@@ -730,7 +730,7 @@ Keyword tables alone don’t explain CTR. Agencies win when they show *why* a qu
 
 ### 6.14 Reports & Alerts (cross-cutting)
 
-**Purpose:** Turn data into client-ready delivery — the agency moat.
+**Purpose:** Turn data into client-ready delivery  the agency moat.
 
 #### Report types
 
@@ -738,7 +738,7 @@ Keyword tables alone don’t explain CTR. Agencies win when they show *why* a qu
 2. Technical Audit Executive Summary  
 3. Backlink Growth / Risk  
 4. AI Visibility / GEO report  
-5. Combined Analytics + SEO (GSC/GA4 + DataForSEO) — flagship  
+5. Combined Analytics + SEO (GSC/GA4 + DataForSEO)  flagship  
 
 #### Alerts
 
@@ -866,7 +866,7 @@ Register in [`packages/env/src/server.ts`](../packages/env/src/server.ts) as **o
 | `QSTASH_SEO_SUITE_RANK_WORKER_ENDPOINT` | No | Public URL for rank worker; if unset, rank checks run inline |
 | `QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT` | No | Public URL for audit worker; if unset, audits run inline |
 
-Missing DataForSEO credentials surface as `PRECONDITION_FAILED` / UI banner — they never fail env validation at process start.
+Missing DataForSEO credentials surface as `PRECONDITION_FAILED` / UI banner  they never fail env validation at process start.
 
 ### 9.2 High-level
 
@@ -877,7 +877,7 @@ Missing DataForSEO credentials surface as `PRECONDITION_FAILED` / UI banner — 
                             │ tRPC
 ┌───────────────────────────▼─────────────────────────────────┐
 │ packages/api                                                │
-│  ├── seoAnalytics (existing seoReports — unchanged)         │
+│  ├── seoAnalytics (existing seoReports  unchanged)         │
 │  └── seoSuite (new)                                         │
 │       ├── projects, keywords, trackers, audits, alerts      │
 │       └── dataforseo/ client + job orchestrator             │
@@ -1003,12 +1003,12 @@ Destructive/expensive actions behind:
 
 ## 13. Phased delivery plan
 
-### Phase 0 — Foundations
+### Phase 0  Foundations
 
 - Project model, credentials, DataForSEO client, usage ledger, caching, job runner  
 - IA: Analytics label + empty SEO Suite shell  
 
-### Phase 1 — Research core (fastest wow)
+### Phase 1  Research core (fastest wow)
 
 - Keyword Research  
 - Keyword Overview  
@@ -1016,24 +1016,24 @@ Destructive/expensive actions behind:
 - Domain Overview  
 - SERP Lab (live on demand)  
 
-### Phase 2 — Competitive + links
+### Phase 2  Competitive + links
 
 - Competitors / Keyword Gap  
 - Backlinks summary + lists + anchors  
 - Link Gap  
 
-### Phase 3 — Tracking + audit
+### Phase 3  Tracking + audit
 
 - Rank Tracking schedules + history charts + alerts  
 - Site Audit crawl + Instant Pages + issue UX  
 
-### Phase 4 — GEO / AI
+### Phase 4  GEO / AI
 
 - AI Visibility (Mentions + AI Keyword Data)  
 - Prompt Explorer (Responses + Scraper)  
 - AI Overview columns in Rank Tracking / SERP Lab  
 
-### Phase 5 — Agency delivery layer
+### Phase 5  Agency delivery layer
 
 - Reports (incl. Analytics merge)  
 - Alerts digests  
@@ -1042,7 +1042,7 @@ Destructive/expensive actions behind:
 - Tech & WHOIS enrichment  
 - Prospecting bulk tools  
 
-### Phase 6 — Optional verticals
+### Phase 6  Optional verticals
 
 - YouTube  
 - Merchant / Shopping  
@@ -1131,6 +1131,6 @@ Analytics (GSC/GA4) remains as-is under **Analytics**.
 | Data vendor | **DataForSEO** (full stack over time) |
 | Core modules | Research, Domain Overview, Competitors, Backlinks, Rank Tracking, Site Audit, AI Visibility, Prompt Explorer, Saved Keywords |
 | Differentiator modules | SERP Lab, Mentions/PR, Local/Reviews, Tech/WHOIS, merged Analytics+SEO reports, onboarding golden path, cost governors |
-| Implementation | **Not in this change** — this document is the blueprint |
+| Implementation | **Not in this change**  this document is the blueprint |
 
 This is the complete product/flow blueprint for extending nPanel SEO from analytics viewing into a DataForSEO-powered agency SEO + GEO suite without leaving module, vendor, or workflow gaps.

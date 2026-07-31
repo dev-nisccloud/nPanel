@@ -1,4 +1,4 @@
-# Nisc Payment Gateway — WordPress / WooCommerce Plugin
+# Nisc Payment Gateway  WordPress / WooCommerce Plugin
 
 ## Locked decisions
 
@@ -9,7 +9,7 @@
 | Repo location | **`apps/nisc-payment-gateway-wp/`** in this monorepo |
 | Merchant config in WP | **API key only** (no Sandbox/Production toggle) |
 | Webhook setup | **Self-registered** by the plugin when the API key is saved |
-| Environment | Already set on the **API key / credentials in nPanel** — plugin does not choose it |
+| Environment | Already set on the **API key / credentials in nPanel**  plugin does not choose it |
 | Branding | Official logo `assets/images/nisc-payment-gateway-logo.png` (cyan `#00ADEF` on black) |
 
 ---
@@ -18,20 +18,20 @@
 
 ### Gateway API
 
-- `GET /api/nisc-gateway/v1/webhook` — connection status (no secret)
-- `PUT /api/nisc-gateway/v1/webhook` — register URL, rotate + return `webhookSecret`
-- `DELETE /api/nisc-gateway/v1/webhook` — clear registration
+- `GET /api/nisc-gateway/v1/webhook`  connection status (no secret)
+- `PUT /api/nisc-gateway/v1/webhook`  register URL, rotate + return `webhookSecret`
+- `DELETE /api/nisc-gateway/v1/webhook`  clear registration
 
 ### WordPress plugin (`apps/nisc-payment-gateway-wp`)
 
 - Guided admin UI: 3-step setup, Connect with API key, auto webhook registration
-- **Connection test** (always on settings): green/red card — gateway reachability, API key, M-Pesa OAuth token (`GET /v1/connection`)
+- **Connection test** (always on settings): green/red card  gateway reachability, API key, M-Pesa OAuth token (`GET /v1/connection`)
 - **Test STK → webhook** panel: send yourself a real STK, preview incoming webhook JSON; test payloads never update WooCommerce orders
 - WooCommerce payment method (M-Pesa STK)
 - REST webhook `POST /wp-json/nisc-gateway/v1/webhook` with HMAC verify (test metadata → preview only)
 - Current version: **0.1.2** (keep `package.json`, plugin header, `NISC_PG_VERSION`, and `readme.txt` Stable tag in sync)
-- **ZIP builds only via GitHub Actions** (Ubuntu) — no local zip script (Windows `Compress-Archive` broke activation with backslash paths)
-- CI release: `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml` — **manual only**
+- **ZIP builds only via GitHub Actions** (Ubuntu)  no local zip script (Windows `Compress-Archive` broke activation with backslash paths)
+- CI release: `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml`  **manual only**
 
 Default API base: `https://npanel-server.nisccloud.com/api/nisc-gateway`  
 Override: WordPress filter `nisc_pg_api_base_url`.
@@ -57,7 +57,7 @@ After Connect, merchants can verify the full payment path without placing an ord
 2. **Send test STK** → `POST /v1/payments` with `metadata.test` / `wpPluginTest` and `referenceId` like `wp-test-…`
 3. Complete or cancel the phone prompt
 4. Gateway delivers the usual signed webhook to WP
-5. Plugin detects the test payload, stores it for preview, returns `200` with `orderUpdated: false` — **no** `payment_complete()` / status changes
+5. Plugin detects the test payload, stores it for preview, returns `200` with `orderUpdated: false`  **no** `payment_complete()` / status changes
 
 The settings page polls payment status and shows the webhook JSON under **Incoming webhook preview**.
 
@@ -105,7 +105,7 @@ This workflow is intentionally **not** linked to `deploy.yml` / `system-deploy.y
 
 Workflow: `.github/workflows/wordpress-plugin-check.yml`
 
-- **Manual only** (`workflow_dispatch`) — Actions → **WordPress Plugin Check (Nisc Payment Gateway)** → Run workflow
+- **Manual only** (`workflow_dispatch`)  Actions → **WordPress Plugin Check (Nisc Payment Gateway)** → Run workflow
 - Does **not** run on push/PR
 - **Not** linked to deploy or the ZIP release workflow
 - Copies a clean plugin tree (excludes `dist/`, `scripts/`, `package.json`) then runs [`wordpress/plugin-check-action`](https://github.com/WordPress/plugin-check-action)
@@ -114,14 +114,14 @@ Results show up as **GitHub annotations** on the failing lines.
 
 If a check is a known false positive, add its error code under `ignore-codes:` in that workflow (don’t blanket `ignore-errors`).
 
-### Local — Option 1: WP Admin (easiest)
+### Local  Option 1: WP Admin (easiest)
 
 1. Spin up any local WordPress + WooCommerce (Local WP, Laravel Herd, Docker, etc.).
 2. Install & activate **[Plugin Check](https://wordpress.org/plugins/plugin-check/)** from wordpress.org.
 3. Upload/symlink this plugin into `wp-content/plugins/nisc-payment-gateway/`.
 4. Go to **Tools → Plugin Check**, select **Nisc Payment Gateway for WooCommerce**, run checks.
 
-### Local — Option 2: WP-CLI
+### Local  Option 2: WP-CLI
 
 With WordPress + Plugin Check installed:
 
@@ -148,7 +148,7 @@ Prioritize **errors** in `plugin_repo`, `security`, and `general` (escaping, non
 
 Merchants will not happily re-upload ZIPs forever. Choose one path:
 
-### Option A — WordPress.org (best “Update now” UX)
+### Option A  WordPress.org (best “Update now” UX)
 
 Users see the normal WP admin update. Zero custom update code.
 
@@ -157,9 +157,9 @@ Users see the normal WP admin update. Zero custom update code.
 | Requirement | Details |
 |-------------|---------|
 | wordpress.org account | Create at [wordpress.org](https://wordpress.org) |
-| Plugin review submission | [Submit plugin](https://wordpress.org/plugins/developers/add/) — review often takes **days–weeks** |
+| Plugin review submission | [Submit plugin](https://wordpress.org/plugins/developers/add/)  review often takes **days–weeks** |
 | **GPL-compatible license** | Required (we set `GPLv2 or later` in `readme.txt` for this path) |
-| Unique slug | e.g. `nisc-payment-gateway` — must not conflict |
+| Unique slug | e.g. `nisc-payment-gateway`  must not conflict |
 | Clean `readme.txt` | Headers, FAQ, changelog, screenshots (optional but expected) |
 | SVN access | After approval you get an SVN repo; releases are tagged in SVN (`tags/0.1.0`) |
 | Trademark / branding | Avoid implying endorsement by WordPress/WooCommerce; “Nisc” trademark is yours to defend |
@@ -176,7 +176,7 @@ Users see the normal WP admin update. Zero custom update code.
 
 You can still keep the GitHub Actions ZIP as an internal/backup channel.
 
-### Option B — Stay private + custom updater (no .org)
+### Option B  Stay private + custom updater (no .org)
 
 If you do not want GPL public listing:
 
@@ -237,7 +237,7 @@ apps/nisc-payment-gateway-wp/
 ├── assets/
 ├── languages/
 ├── readme.txt
-└── package.json          # version only — ZIP built in GitHub Actions
+└── package.json          # version only  ZIP built in GitHub Actions
 ```
 
 ZIP artifact is produced only by `.github/workflows/wordpress-plugin-nisc-payment-gateway.yml`.
@@ -246,14 +246,14 @@ ZIP artifact is produced only by `.github/workflows/wordpress-plugin-nisc-paymen
 
 ## Implementation phases
 
-### Phase A — Gateway (blocker for self-register)
+### Phase A  Gateway (blocker for self-register)
 
 - [x] `PUT/GET/DELETE /api/nisc-gateway/v1/webhook`
 - [x] Persist + rotate `settings.webhookUrl` / `settings.webhookSecret`
 - [x] Outbound webhook forwarder uses those settings + HMAC
 - [x] Documented in this file / webhook docs
 
-### Phase B — Plugin MVP
+### Phase B  Plugin MVP
 
 - [x] Scaffold `apps/nisc-payment-gateway-wp`
 - [x] WC payment method + API key setting
@@ -262,14 +262,14 @@ ZIP artifact is produced only by `.github/workflows/wordpress-plugin-nisc-paymen
 - [x] REST webhook controller → order status
 - [x] Private ZIP via GitHub Actions only (no local zip script)
 
-### Phase C — Hardening
+### Phase C  Hardening
 
 - [ ] Idempotent webhooks, order notes, masked logs
 - [x] Disconnect on deactivate (`DELETE` webhook)
 - [ ] Install / config guide for merchants
 - [ ] Sandbox E2E on a real WP + Woo site
 
-### Phase D — Later
+### Phase D  Later
 
 - [ ] Refunds UI, more providers
 - [ ] WordPress.org submission **or** private Plugin Update Checker

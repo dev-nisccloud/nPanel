@@ -308,7 +308,7 @@ export default function DomainsPortfolioPage() {
                                 </TooltipContent>
                               </Tooltip>
                             )}
-                            {/* KENIC domains already have a subscription — link missing teamId */}
+                            {/* KENIC domains already have a subscription  link missing teamId */}
                             {domain.source === "kenic" && !domain.teamId && (
                               <DropdownMenuItem onClick={() => setLinkToTeamDomain(domain)}>
                                 <Link2 className="mr-2 h-4 w-4" />

@@ -29,7 +29,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 		$this->has_fields         = true;
 		$this->supports           = array( 'products' );
 /**
- * Don't set a giant logo as the WC method icon — brand appears on thank-you + settings.
+ * Don't set a giant logo as the WC method icon  brand appears on thank-you + settings.
  * Checkout stays clean with title/description only.
  */
 		$this->icon = '';
@@ -80,7 +80,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Custom settings screen — guided connect flow.
+	 * Custom settings screen  guided connect flow.
 	 */
 	public function admin_options(): void {
 		$connected     = 'yes' === $this->get_option( 'connected', 'no' );

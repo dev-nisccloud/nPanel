@@ -159,7 +159,7 @@ function normalizeDomainInput(value: string): string {
 	if (q !== -1) d = d.slice(0, q);
 	const hash = d.indexOf("#");
 	if (hash !== -1) d = d.slice(0, hash);
-	// Strip port (example.com:443) but not IPv6 — we reject IPs separately.
+	// Strip port (example.com:443) but not IPv6  we reject IPs separately.
 	if (/^\[[^\]]+\]:\d+$/.test(d)) {
 		d = d.replace(/:\d+$/, "");
 	} else if (!d.includes("]") && /:\d+$/.test(d)) {
@@ -703,7 +703,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 				teamId: data.teamId,
 				...(provisionUserId ? { billedForUserId: provisionUserId } : {}),
 				currency,
-				/** Agency manual provision — no invoice or customer order emails. */
+				/** Agency manual provision  no invoice or customer order emails. */
 				skipInvoice: true,
 				items: [
 					{
@@ -762,7 +762,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 					<SheetTitle>Create subscription</SheetTitle>
 					<SheetDescription>
 						Provision a service on behalf of a customer team. Payment is recorded for your
-						records only — no invoice or customer order emails are sent.
+						records only  no invoice or customer order emails are sent.
 					</SheetDescription>
 				</SheetHeader>
 
@@ -1014,7 +1014,7 @@ export function CreateSubscriptionSheet({ open, onOpenChange }: CreateSubscripti
 													</FormControl>
 													<FormDescription>
 														Valid FQDN only (e.g. example.com). Used as the Plesk webspace
-														name — not a Domains subscription. No http://, paths, or IPs.
+														name  not a Domains subscription. No http://, paths, or IPs.
 													</FormDescription>
 													<FormMessage />
 												</FormItem>

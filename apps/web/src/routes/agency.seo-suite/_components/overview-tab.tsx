@@ -118,7 +118,7 @@ export function OverviewTab({ projectId, project, onNavigateTab }: OverviewTabPr
               ? String(latestAudit.score)
               : latestAudit
                 ? latestAudit.status
-                : "—"
+                : ""
           }
         />
       </div>

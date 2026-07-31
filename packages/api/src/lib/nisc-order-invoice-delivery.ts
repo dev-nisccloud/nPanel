@@ -345,7 +345,7 @@ export async function runPreProvisioningInvoiceForOrder(niscOrderId: string): Pr
 		await niscLog("invoice_not_created", {
 			niscOrderId,
 			reason: "agency_manual_create_skip_invoice",
-			reasonMessage: "Agency manual subscription create — invoice and customer billing email skipped.",
+			reasonMessage: "Agency manual subscription create  invoice and customer billing email skipped.",
 		});
 		return;
 	}

@@ -201,7 +201,7 @@ export function RankTrackingTab({ projectId }: RankTrackingTabProps) {
                     <TableCell className="pl-6 font-medium">{kw.keyword}</TableCell>
                     <TableCell>{formatNumber(result?.rankAbsolute)}</TableCell>
                     <TableCell className="max-w-xs truncate text-muted-foreground">
-                      {result?.url ?? "—"}
+                      {result?.url ?? ""}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDate(result?.checkedAt)}

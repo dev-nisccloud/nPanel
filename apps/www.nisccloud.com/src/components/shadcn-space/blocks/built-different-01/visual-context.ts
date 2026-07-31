@@ -46,7 +46,7 @@ export type VisualTheme =
   | "algorithm"
   | "ethical"
   | "maps"
-  /** Hosting / infrastructure — never reuse marketing CRM mocks */
+  /** Hosting / infrastructure  never reuse marketing CRM mocks */
   | "serverMonitor"
   | "serverProvision"
   | "workloads"

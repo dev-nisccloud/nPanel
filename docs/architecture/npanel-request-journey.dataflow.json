@@ -3,7 +3,7 @@
   "diagram_type": "dataflow",
   "meta": {
     "title": "How a Request Travels Through nPanel",
-    "subtitle": "Beginner path — from Landing Page / Dashboard into the API, data stores, and background jobs",
+    "subtitle": "Beginner path  from Landing Page / Dashboard into the API, data stores, and background jobs",
     "output": "npanel-request-journey.html",
     "viewBox": [1080, 720]
   },
@@ -256,7 +256,7 @@
       "items": [
         "Login Check asks: cookie session, MFA, or npanel_sk_* API key?",
         "Redis answers fast; if missing, PostgreSQL is the authority",
-        "Workers never trust browser cookies — only QStash signatures"
+        "Workers never trust browser cookies  only QStash signatures"
       ]
     },
     {

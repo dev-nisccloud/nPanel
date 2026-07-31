@@ -71,7 +71,7 @@ function summarize(status: number, text: string) {
     const debug = String(
         hdr?.debugMessage ?? body?.resultMsg ?? text.slice(0, 120),
     ).replace(/\s+/g, " ");
-    const resultCd = String(body?.resultCd ?? "—");
+    const resultCd = String(body?.resultCd ?? "");
     const ok =
         status === 200 &&
         (resultCd === "000" || resultCd === "001" || resultCd === "902");

@@ -1,0 +1,1235 @@
+# Jenga Payment Gateway - Card Payments Integration
+
+This document covers the integration of Jenga Payment Gateway for secure card payment processing.
+
+## Overview
+
+Jenga Payment Gateway is a cloud-hosted payment solution that aggregates multiple digital payment channels. This integration focuses on **Card Payments**, supporting major card schemes with 3D Secure authentication for enhanced security.
+
+### Supported Card Schemes
+
+- **Visa**
+- **Mastercard**
+- **American Express (AMEX)**
+- **Union Pay**
+- **JCB**
+- **Diners Club**
+
+### Key Features
+
+- 3D Secure authentication for card payments
+- Multi-currency support (KES, TZS, UGX, USD, EUR, GBP)
+- Instant Payment Notifications (IPN)
+- Secure token-based authentication
+- Message signatures for transaction security
+
+---
+
+## Prerequisites
+
+### 1. Jenga Account Setup
+
+1. Sign up at [JengaHQ Portal](https://jengahq.io)
+2. You will receive three API keys:
+   - **Merchant Code**: Primary identifier for your Jenga account
+   - **Consumer Secret**: Secondary identifier for encryption/decryption
+   - **API Key**: Required for authentication only
+
+### 2. Test vs Live Mode
+
+Jenga provides two environments:
+
+- **Test Mode**: Simulated processes, no real money involved
+- **Live Mode**: Real transactions with actual money
+
+Switch between modes in the JengaHQ Dashboard. Use different passwords for each mode for security.
+
+### 3. Retrieve Your API Keys
+
+1. Log into [JengaHQ Portal](https://jengahq.io)
+2. Navigate to **Settings**
+3. Select **API Keys**
+4. Click **View Keys**
+5. Copy and store credentials securely
+
+> **Note**: If you lose your API Key, you can regenerate it using "Generate New Key" button.
+
+---
+
+## Authentication
+
+### 1. Generate Bearer Token
+
+All Jenga APIs require a Bearer token for authentication.
+
+#### Test URL
+```
+https://uat.finserve.africa/authentication/api/v3/authenticate/merchant
+```
+
+#### Live URL
+```
+https://api.finserve.africa/authentication/api/v3/authenticate/merchant
+```
+
+#### Request Headers
+```http
+Content-Type: application/json
+Api-Key: YOUR_API_KEY_FROM_JENGA_PORTAL
+```
+
+#### Request Body
+```json
+{
+  "merchantCode": "0582910862",
+  "consumerSecret": "ce0NHpa7ZaxmOFkbEbULABpu412fS4NQa"
+}
+```
+
+#### Sample Code (Node.js/TypeScript)
+
+```typescript
+async function getJengaAccessToken(
+  apiKey: string,
+  merchantCode: string,
+  consumerSecret: string,
+  environment: 'test' | 'live' = 'test'
+): Promise<string> {
+  const baseUrl = environment === 'live'
+    ? 'https://api.finserve.africa'
+    : 'https://uat.finserve.africa';
+
+  const response = await fetch(
+    `${baseUrl}/authentication/api/v3/authenticate/merchant`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Api-Key': apiKey,
+      },
+      body: JSON.stringify({
+        merchantCode,
+        consumerSecret,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Authentication failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.accessToken;
+}
+```
+
+#### Response
+```json
+{
+  "accessToken": "eyJhbGciOiJSUzUxMiJ9.eyJ0b2tlblR5cGUiOiJNRVJDSEFOVCIsImVudiI...",
+  "refreshToken": "ctmB6GJq9Tqbf+Z5neWs/7WGA3S6nHs+VToc0J9eXdLTSVD63BrhDRSCIXu...",
+  "expiresIn": "2023-07-13T07:03:02Z",
+  "issuedAt": "2023-07-13T06:48:02Z",
+  "tokenType": "Bearer"
+}
+```
+
+**Important**: Cache the access token and reuse it until expiration. Do not request a new token for every transaction.
+
+---
+
+## Security: Message Signatures
+
+Jenga requires message signatures for all payment requests to ensure transactions can only be initiated by you.
+
+### Why Signatures?
+
+Signatures provide cryptographic proof that the request originated from you and hasn't been tampered with.
+
+### How It Works
+
+1. Generate a private/public key pair
+2. Share the public key with Jenga via JengaHQ portal
+3. Use the private key to sign your payment requests
+4. Include the signature in the request header
+
+### Step 1: Generate Key Pair
+
+#### Generate Private Key
+```bash
+openssl genrsa -out privatekey.pem 2048
+```
+
+#### Generate Public Key
+```bash
+openssl rsa -in privatekey.pem -outform PEM -pubout -out publickey.pem
+```
+
+#### Example Private Key (privatekey.pem)
+```
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA1BvVbYnuhGGmmIwUdUkFP+WG+tkXyf+o7DopD2MgDh+jwyvA
+jwDbSENHOwRuIzYEPBePk1lcchTDraz6VbWbwnDWJNn6cQkDCozRvuN1JnYa88Yy
+...
+-----END RSA PRIVATE KEY-----
+```
+
+#### Example Public Key (publickey.pem)
+```
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1BvVbYnuhGGmmIwUdUkF
+P+WG+tkXyf+o7DopD2MgDh+jwyvAjwDbSENHOwRuIzYEPBePk1lcchTDraz6VbWb
+...
+-----END PUBLIC KEY-----
+```
+
+### Step 2: Upload Public Key to Jenga
+
+1. Log into JengaHQ Portal
+2. Navigate to Settings → API Keys
+3. Copy **only the contents** of the key block (not the BEGIN/END lines)
+4. Paste into the Public Key field
+
+### Step 3: Generate Signature
+
+The signature is generated by:
+1. Concatenating specific fields from the payment request
+2. Creating a SHA-256 hash
+3. Signing with your private key
+4. Base64 encoding the result
+
+#### For Checkout Payments
+
+The signature formula is:
+```
+merchantCode + orderReference + currency + orderAmount + callbackUrl
+```
+
+#### Node.js/TypeScript Implementation
+
+```typescript
+import crypto from 'crypto';
+import fs from 'fs';
+
+function generateJengaSignature(
+  privateKeyPath: string,
+  data: {
+    merchantCode: string;
+    orderReference: string;
+    currency: string;
+    orderAmount: number;
+    callbackUrl: string;
+  }
+): string {
+  // Concatenate the fields
+  const plainText = 
+    data.merchantCode + 
+    data.orderReference + 
+    data.currency + 
+    data.orderAmount.toString() + 
+    data.callbackUrl;
+
+  // Read private key
+  const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+
+  // Create signature
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(plainText);
+  sign.end();
+
+  // Sign and encode
+  const signature = sign.sign(privateKey, 'base64');
+  
+  return signature;
+}
+```
+
+#### Python Implementation
+
+```python
+from base64 import b64encode
+from Crypto.Hash import SHA256
+from Crypto.Signature import PKCS1_v1_5
+from Crypto.PublicKey import RSA
+
+def generate_jenga_signature(
+    private_key_path: str,
+    merchant_code: str,
+    order_reference: str,
+    currency: str,
+    order_amount: float,
+    callback_url: str
+) -> str:
+    # Concatenate the fields
+    message = f"{merchant_code}{order_reference}{currency}{order_amount}{callback_url}"
+    message_bytes = message.encode('utf-8')
+    
+    # Create hash
+    digest = SHA256.new()
+    digest.update(message_bytes)
+    
+    # Load private key
+    with open(private_key_path, "r") as key_file:
+        private_key = RSA.importKey(key_file.read())
+    
+    # Sign
+    signer = PKCS1_v1_5.new(private_key)
+    sig_bytes = signer.sign(digest)
+    
+    # Base64 encode
+    signature = b64encode(sig_bytes).decode('utf-8')
+    
+    return signature
+```
+
+---
+
+## Card Payment Integration
+
+### Payment Flow
+
+1. User initiates checkout on your website/app
+2. Your backend generates authentication token
+3. Your backend creates and submits payment form to Jenga
+4. User is redirected to Jenga Payment Gateway
+5. User enters card details on secure Jenga page
+6. Jenga processes payment (with 3D Secure if applicable)
+7. User is redirected back to your callback URL
+8. You receive IPN notification on your webhook
+
+### Payment Parameters
+
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| `token` | string | Yes | Bearer token from authentication | `xccuUjuysdsnvtloPWqiT` |
+| `merchantCode` | string | Yes | Your merchant code | `9837446275` |
+| `currency` | string | Yes | Transaction currency | `KES`, `USD`, `EUR`, `GBP`, `TZS`, `UGX` |
+| `orderAmount` | decimal | Yes | Transaction amount | `10.05` |
+| `orderReference` | string | Yes | Unique order reference (min 8 chars, alphanumeric) | `4yTr67jab5HjFr` |
+| `productType` | string | Yes | Product category | `Product` or `Service` |
+| `productDescription` | string | Yes | Product/service description (max 200 chars) | `Deluxe Room Booking at Kempinski Hotel` |
+| `paymentTimeLimit` | string | Yes | Payment validity duration | `15mins` |
+| `customerFirstName` | string | Yes | Customer's first name | `James` |
+| `customerLastName` | string | Yes | Customer's last name | `Bond` |
+| `customerPostalCodeZip` | string | Yes | Customer's postal code | `00100` |
+| `customerAddress` | string | Yes | Customer's address | `123 Tom Mboya Street, Nairobi` |
+| `customerEmail` | string | Yes | Customer's email address | `james.bond@organisation.co.ke` |
+| `customerPhone` | string | Yes | Customer's phone number | `254797838201` |
+| `countryCode` | string | Yes | Country code (Alpha-2) | `KE`, `TZ`, `UG` |
+| `callbackUrl` | string | No | Your callback URL for redirect | `https://yourdomain.com/payment/callback` |
+| `extraData` | string | No | Additional metadata (echoed back) | `{"orderId": "12345"}` |
+| `secondaryReference` | string | No | Secondary reference | `ADM1234` |
+| `signature` | string | No* | Security signature | Base64 encoded signature |
+
+**\*Note**: Signature is required when Jenga Payment Gateway is in secure mode.
+
+### Integration Code
+
+#### HTML Form
+
+```html
+<form
+  id="jengaCheckoutForm"
+  action="https://v3-uat.jengapgw.io/processPayment"
+  method="POST"
+>
+  <!-- Authentication -->
+  <input type="hidden" id="token" name="token" />
+  <input type="hidden" id="merchantCode" name="merchantCode" />
+  
+  <!-- Transaction Details -->
+  <input type="hidden" id="currency" name="currency" />
+  <input type="hidden" id="orderAmount" name="orderAmount" />
+  <input type="hidden" id="orderReference" name="orderReference" />
+  <input type="hidden" id="productType" name="productType" />
+  <input type="hidden" id="productDescription" name="productDescription" />
+  <input type="hidden" id="paymentTimeLimit" name="paymentTimeLimit" />
+  
+  <!-- Customer Details -->
+  <input type="hidden" id="customerFirstName" name="customerFirstName" />
+  <input type="hidden" id="customerLastName" name="customerLastName" />
+  <input type="hidden" id="customerPostalCodeZip" name="customerPostalCodeZip" />
+  <input type="hidden" id="customerAddress" name="customerAddress" />
+  <input type="hidden" id="customerEmail" name="customerEmail" />
+  <input type="hidden" id="customerPhone" name="customerPhone" />
+  
+  <!-- Additional Details -->
+  <input type="hidden" id="extraData" name="extraData" />
+  <input type="hidden" id="callbackUrl" name="callbackUrl" />
+  <input type="hidden" id="countryCode" name="countryCode" />
+  <input type="hidden" id="secondaryReference" name="secondaryReference" />
+  <input type="hidden" id="signature" name="signature" />
+</form>
+```
+
+#### Backend Implementation (Node.js/TypeScript)
+
+```typescript
+import crypto from 'crypto';
+import fs from 'fs';
+
+interface JengaPaymentRequest {
+  // Transaction details
+  orderAmount: number;
+  orderReference: string;
+  currency: string;
+  productType: 'Product' | 'Service';
+  productDescription: string;
+  paymentTimeLimit: string;
+  
+  // Customer details
+  customerFirstName: string;
+  customerLastName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerPostalCodeZip: string;
+  countryCode: string;
+  
+  // Optional
+  callbackUrl?: string;
+  extraData?: string;
+  secondaryReference?: string;
+}
+
+interface JengaConfig {
+  apiKey: string;
+  merchantCode: string;
+  consumerSecret: string;
+  privateKeyPath: string;
+  environment: 'test' | 'live';
+  defaultCallbackUrl: string;
+}
+
+class JengaCardPaymentService {
+  private config: JengaConfig;
+  private accessToken: string | null = null;
+  private tokenExpiry: Date | null = null;
+
+  constructor(config: JengaConfig) {
+    this.config = config;
+  }
+
+  private getBaseUrl(): string {
+    return this.config.environment === 'live'
+      ? 'https://api.finserve.africa'
+      : 'https://uat.finserve.africa';
+  }
+
+  private getCheckoutUrl(): string {
+    return this.config.environment === 'live'
+      ? 'https://v3.jengapgw.io/processPayment'
+      : 'https://v3-uat.jengapgw.io/processPayment';
+  }
+
+  async authenticate(): Promise<string> {
+    // Return cached token if still valid
+    if (this.accessToken && this.tokenExpiry && this.tokenExpiry > new Date()) {
+      return this.accessToken;
+    }
+
+    const response = await fetch(
+      `${this.getBaseUrl()}/authentication/api/v3/authenticate/merchant`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Api-Key': this.config.apiKey,
+        },
+        body: JSON.stringify({
+          merchantCode: this.config.merchantCode,
+          consumerSecret: this.config.consumerSecret,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Authentication failed: ${JSON.stringify(error)}`);
+    }
+
+    const data = await response.json();
+    this.accessToken = data.accessToken;
+    this.tokenExpiry = new Date(data.expiresIn);
+
+    return this.accessToken;
+  }
+
+  private generateSignature(
+    orderReference: string,
+    currency: string,
+    orderAmount: number,
+    callbackUrl: string
+  ): string {
+    const plainText = 
+      this.config.merchantCode +
+      orderReference +
+      currency +
+      orderAmount.toString() +
+      callbackUrl;
+
+    const privateKey = fs.readFileSync(this.config.privateKeyPath, 'utf8');
+    const sign = crypto.createSign('RSA-SHA256');
+    sign.update(plainText);
+    sign.end();
+
+    return sign.sign(privateKey, 'base64');
+  }
+
+  async initiateCardPayment(request: JengaPaymentRequest): Promise<{
+    checkoutUrl: string;
+    paymentData: Record<string, string>;
+  }> {
+    // Get access token
+    const token = await this.authenticate();
+
+    // Use default callback if not provided
+    const callbackUrl = request.callbackUrl || this.config.defaultCallbackUrl;
+
+    // Generate signature
+    const signature = this.generateSignature(
+      request.orderReference,
+      request.currency,
+      request.orderAmount,
+      callbackUrl
+    );
+
+    // Prepare payment data
+    const paymentData = {
+      token,
+      merchantCode: this.config.merchantCode,
+      currency: request.currency,
+      orderAmount: request.orderAmount.toFixed(2),
+      orderReference: request.orderReference,
+      productType: request.productType,
+      productDescription: request.productDescription,
+      paymentTimeLimit: request.paymentTimeLimit,
+      customerFirstName: request.customerFirstName,
+      customerLastName: request.customerLastName,
+      customerPostalCodeZip: request.customerPostalCodeZip,
+      customerAddress: request.customerAddress,
+      customerEmail: request.customerEmail,
+      customerPhone: request.customerPhone,
+      callbackUrl,
+      countryCode: request.countryCode,
+      signature,
+      ...(request.extraData && { extraData: request.extraData }),
+      ...(request.secondaryReference && { secondaryReference: request.secondaryReference }),
+    };
+
+    return {
+      checkoutUrl: this.getCheckoutUrl(),
+      paymentData,
+    };
+  }
+}
+
+// Usage Example
+const jengaService = new JengaCardPaymentService({
+  apiKey: process.env.JENGA_API_KEY!,
+  merchantCode: process.env.JENGA_MERCHANT_CODE!,
+  consumerSecret: process.env.JENGA_CONSUMER_SECRET!,
+  privateKeyPath: './keys/jenga-private-key.pem',
+  environment: process.env.NODE_ENV === 'production' ? 'live' : 'test',
+  defaultCallbackUrl: process.env.JENGA_CALLBACK_URL!,
+});
+
+// In your payment endpoint
+app.post('/api/payment/initiate', async (req, res) => {
+  try {
+    const { checkoutUrl, paymentData } = await jengaService.initiateCardPayment({
+      orderAmount: 1500.00,
+      orderReference: 'ORD' + Date.now(),
+      currency: 'KES',
+      productType: 'Product',
+      productDescription: 'Premium Subscription - 1 Year',
+      paymentTimeLimit: '15mins',
+      customerFirstName: req.body.firstName,
+      customerLastName: req.body.lastName,
+      customerEmail: req.body.email,
+      customerPhone: req.body.phone,
+      customerAddress: req.body.address,
+      customerPostalCodeZip: req.body.postalCode,
+      countryCode: 'KE',
+      extraData: JSON.stringify({ userId: req.user.id }),
+    });
+
+    // Render HTML form that auto-submits
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Redirecting to Payment Gateway...</title>
+      </head>
+      <body>
+        <p>Redirecting to secure payment gateway...</p>
+        <form id="checkoutForm" action="${checkoutUrl}" method="POST">
+          ${Object.entries(paymentData)
+            .map(([key, value]) => 
+              `<input type="hidden" name="${key}" value="${value}" />`
+            )
+            .join('\n')}
+        </form>
+        <script>
+          document.getElementById('checkoutForm').submit();
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Payment initiation error:', error);
+    res.status(500).json({ error: 'Failed to initiate payment' });
+  }
+});
+```
+
+---
+
+## Payment Response / Callback
+
+After payment completion, Jenga redirects the user to your `callbackUrl` with these parameters (using GET):
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `transactionId` | string | Jenga transaction ID |
+| `status` | string | Transaction status: `paid` (success) |
+| `date` | string | Transaction date in `yyyy-MM-dd'T'HH:mm:ss.SSSz` format |
+| `desc` | string | Payment channel: `CARD`, `EQUITEL`, `MPESA`, `AIRTEL` |
+| `amount` | string | Transaction amount |
+| `orderReference` | string | Your original order reference |
+| `hash` | string | Security hash |
+| `extraData` | string | Metadata from your request (if provided) |
+
+### Example Callback URL
+
+```
+https://yourdomain.com/payment/callback?transactionId=ABC123&status=paid&date=2024-01-15T10:30:00.000Z&desc=CARD&amount=1500.00&orderReference=ORD1234567890&hash=xyz789&extraData={"userId":"user123"}
+```
+
+### Callback Handler Implementation
+
+```typescript
+import crypto from 'crypto';
+
+app.get('/api/payment/callback', async (req, res) => {
+  try {
+    const {
+      transactionId,
+      status,
+      date,
+      desc: paymentChannel,
+      amount,
+      orderReference,
+      hash,
+      extraData,
+    } = req.query;
+
+    // Parse extra data if provided
+    let metadata = {};
+    if (extraData) {
+      try {
+        metadata = JSON.parse(extraData as string);
+      } catch (e) {
+        console.error('Failed to parse extraData:', e);
+      }
+    }
+
+    // Verify hash (optional but recommended)
+    // Hash algorithm should be documented by Jenga
+    // const expectedHash = generateCallbackHash(transactionId, orderReference, amount);
+    // if (hash !== expectedHash) {
+    //   throw new Error('Invalid callback hash');
+    // }
+
+    if (status === 'paid') {
+      // Payment successful
+      await updateOrderStatus(orderReference as string, {
+        status: 'paid',
+        transactionId: transactionId as string,
+        paymentChannel: paymentChannel as string,
+        amount: parseFloat(amount as string),
+        paymentDate: new Date(date as string),
+      });
+
+      // Redirect to success page
+      res.redirect(`/payment/success?ref=${orderReference}`);
+    } else {
+      // Payment failed or pending
+      await updateOrderStatus(orderReference as string, {
+        status: 'failed',
+        transactionId: transactionId as string,
+      });
+
+      // Redirect to failure page
+      res.redirect(`/payment/failed?ref=${orderReference}`);
+    }
+  } catch (error) {
+    console.error('Callback processing error:', error);
+    res.redirect('/payment/error');
+  }
+});
+```
+
+---
+
+## Instant Payment Notifications (IPN)
+
+IPN allows you to receive real-time webhook notifications for all payment events.
+
+### Setup IPN
+
+1. Log into JengaHQ Portal
+2. Navigate to **Settings** → **IPN**
+3. Click **New IPN**
+4. Configure:
+   - **Callback URL**: Your webhook endpoint
+   - **Username**: Basic auth username
+   - **Password**: Basic auth password
+5. Choose notification type:
+   - All transactions (success + failed)
+   - Successful transactions only
+
+### IPN Request Format
+
+Jenga sends POST requests to your webhook with Basic Auth:
+
+```http
+POST /webhooks/jenga-ipn HTTP/1.1
+Host: yourdomain.com
+Content-Type: application/json
+Authorization: Basic <base64_encoded_credentials>
+
+{
+  "callbackType": "IPN",
+  "customer": {
+    "name": "John Doe",
+    "mobileNumber": "254712345678",
+    "reference": "071648816466242"
+  },
+  "transaction": {
+    "date": "2023-10-11 14:15:20",
+    "reference": "328411183176",
+    "paymentMode": "CARD",
+    "amount": 150,
+    "currency": "KES",
+    "billNumber": "INVZCF",
+    "servedBy": "EQ",
+    "additionalInfo": "CARD",
+    "orderAmount": 150,
+    "serviceCharge": 5.25,
+    "orderCurrency": "KES",
+    "status": "SUCCESS",
+    "remarks": "00:Approved"
+  },
+  "bank": {
+    "reference": "328411183176",
+    "transactionType": "C",
+    "account": null
+  }
+}
+```
+
+### IPN Payload Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `callbackType` | string | Yes | Always "IPN" |
+| `customer.name` | string | Yes | Customer name |
+| `customer.mobileNumber` | string | Yes | Customer phone |
+| `customer.reference` | string | Yes | Customer reference |
+| `transaction.date` | string | Yes | Transaction date |
+| `transaction.reference` | string | Yes | Transaction reference |
+| `transaction.paymentMode` | string | Yes | `CARD`, `MPESA`, `PWE`, `EQUITEL`, `PAYPAL` |
+| `transaction.amount` | number | Yes | Transaction amount |
+| `transaction.currency` | string | Yes | Currency (e.g., KES) |
+| `transaction.orderCurrency` | string | Yes | Original order currency |
+| `transaction.billNumber` | string | Yes | Bill/account number |
+| `transaction.orderAmount` | number | Yes | Original order amount |
+| `transaction.serviceCharge` | number | Yes | Service charge |
+| `transaction.status` | string | Yes | `SUCCESS` or `FAILED` |
+| `transaction.remarks` | string | No | Additional remarks |
+| `transaction.servedBy` | string | No | Serving entity |
+| `transaction.additionalInfo` | string | No | Additional info |
+| `bank.reference` | string | Yes | Bank system reference |
+| `bank.transactionType` | string | Yes | Transaction type |
+| `bank.account` | string | Yes | Account number |
+
+### IPN Handler Implementation
+
+```typescript
+import express from 'express';
+import basicAuth from 'express-basic-auth';
+
+// Setup basic auth middleware
+const ipnAuth = basicAuth({
+  users: {
+    [process.env.JENGA_IPN_USERNAME!]: process.env.JENGA_IPN_PASSWORD!,
+  },
+  challenge: true,
+});
+
+app.post('/webhooks/jenga-ipn', ipnAuth, async (req, res) => {
+  try {
+    const ipnData = req.body;
+
+    // Validate payload structure
+    if (!ipnData.callbackType || ipnData.callbackType !== 'IPN') {
+      return res.status(400).json({ error: 'Invalid callback type' });
+    }
+
+    // Extract transaction details
+    const {
+      customer,
+      transaction,
+      bank,
+    } = ipnData;
+
+    // Log IPN received
+    console.log('Jenga IPN received:', {
+      reference: transaction.reference,
+      status: transaction.status,
+      amount: transaction.amount,
+      paymentMode: transaction.paymentMode,
+    });
+
+    // Process based on status
+    if (transaction.status === 'SUCCESS') {
+      // Update order/transaction in database
+      await processSuccessfulPayment({
+        transactionReference: transaction.reference,
+        bankReference: bank.reference,
+        customerName: customer.name,
+        customerPhone: customer.mobileNumber,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        serviceCharge: transaction.serviceCharge,
+        paymentMode: transaction.paymentMode,
+        billNumber: transaction.billNumber,
+        date: new Date(transaction.date),
+      });
+
+      // Send confirmation email/SMS
+      await sendPaymentConfirmation({
+        email: customer.email, // Note: email not in standard IPN, use from DB
+        amount: transaction.amount,
+        reference: transaction.reference,
+      });
+    } else {
+      // Handle failed payment
+      await processFailedPayment({
+        transactionReference: transaction.reference,
+        remarks: transaction.remarks,
+      });
+    }
+
+    // Always respond with success to prevent retries
+    res.status(200).json({ received: true });
+  } catch (error) {
+    console.error('IPN processing error:', error);
+    // Still return 200 to prevent Jenga from retrying
+    res.status(200).json({ received: true, error: 'Processing failed' });
+  }
+});
+```
+
+---
+
+## Environment Variables
+
+Add these to your `.env` file:
+
+```env
+# Jenga Payment Gateway - Card Payments
+JENGA_ENVIRONMENT=test  # or "live" for production
+JENGA_API_KEY=your_api_key_from_jenga_portal
+JENGA_MERCHANT_CODE=your_merchant_code
+JENGA_CONSUMER_SECRET=your_consumer_secret
+JENGA_PRIVATE_KEY_PATH=./keys/jenga-private-key.pem
+JENGA_PUBLIC_KEY_PATH=./keys/jenga-public-key.pem
+
+# Jenga Callback URLs
+JENGA_CALLBACK_URL=https://yourdomain.com/api/payment/callback
+JENGA_IPN_URL=https://yourdomain.com/webhooks/jenga-ipn
+
+# Jenga IPN Authentication (Basic Auth)
+JENGA_IPN_USERNAME=your_ipn_username
+JENGA_IPN_PASSWORD=your_ipn_password
+
+# Optional: Test Cards (provided by Jenga in test mode)
+# Check Jenga documentation for test card numbers
+```
+
+---
+
+## Error Handling
+
+### Error Response Format
+
+All Jenga API errors follow this structure:
+
+```json
+{
+  "status": false,
+  "code": 900100,
+  "message": "Signature required to complete this request"
+}
+```
+
+### Common Error Codes
+
+#### Authentication Errors
+
+| Code | Message | Solution |
+|------|---------|----------|
+| 401 | No matching credentials found! | Verify merchant code is correct |
+| 401 | Invalid Credentials Entered! | Check consumer secret or API key |
+| 401101 | Not Authorized to access the API | Contact Jenga support to activate API access |
+| 401201 | Account not configured | Follow up with Jenga for account configuration |
+| 401202 | Merchant account used cannot be found/is inactive | Verify account is active |
+
+#### Signature Errors
+
+| Code | Message | Solution |
+|------|---------|----------|
+| 900100 | Signature required to complete this request | Generate and include signature |
+| 900101 | Invalid signature | Verify signature generation logic |
+| 900102 | Invalid signature keys mapping! | Re-upload public key to Jenga portal |
+
+#### Processing Errors
+
+| Code | Message | Solution |
+|------|---------|----------|
+| 500100 | General Processing Error | Retry request, contact support if persists |
+| 500200 | Downstream system processing error | Wait and retry, may be temporary |
+| 500401 | Internal Authentication System Errors | Wait and retry |
+| 400400 | Request contains errors, could not be parsed | Validate request payload |
+| 400101 | Duplicate Transaction/Payment Reference | Use unique order reference |
+
+#### Charge Configuration Errors
+
+| Code | Message | Solution |
+|------|---------|----------|
+| 104104 | Charge not configured | Contact Jenga to configure charges |
+| 104105 | Charge processing Errors | Contact Jenga support |
+
+### Error Handling Implementation
+
+```typescript
+class JengaError extends Error {
+  constructor(
+    public code: number,
+    public message: string,
+    public status: boolean = false
+  ) {
+    super(message);
+    this.name = 'JengaError';
+  }
+}
+
+async function handleJengaRequest<T>(
+  requestFn: () => Promise<Response>
+): Promise<T> {
+  try {
+    const response = await requestFn();
+    const data = await response.json();
+
+    if (!response.ok || data.status === false) {
+      throw new JengaError(
+        data.code || response.status,
+        data.message || response.statusText,
+        data.status
+      );
+    }
+
+    return data as T;
+  } catch (error) {
+    if (error instanceof JengaError) {
+      // Log specific Jenga error
+      console.error('Jenga API Error:', {
+        code: error.code,
+        message: error.message,
+      });
+
+      // Handle specific error codes
+      switch (error.code) {
+        case 401:
+        case 401101:
+        case 401201:
+        case 401202:
+          throw new Error('Authentication failed. Please contact support.');
+        
+        case 900100:
+        case 900101:
+        case 900102:
+          throw new Error('Payment verification failed. Please try again.');
+        
+        case 400101:
+          throw new Error('This order has already been processed.');
+        
+        case 104104:
+        case 104105:
+          throw new Error('Payment configuration error. Please contact support.');
+        
+        default:
+          throw new Error('Payment processing failed. Please try again.');
+      }
+    }
+
+    // Network or other errors
+    console.error('Request error:', error);
+    throw new Error('Network error. Please check your connection and try again.');
+  }
+}
+```
+
+---
+
+## Security Best Practices
+
+### 1. Credential Management
+
+- **Never commit** API keys, secrets, or private keys to version control
+- Store credentials in environment variables
+- Use different credentials for test and live environments
+- Rotate credentials periodically
+- Use different passwords for test and live JengaHQ accounts
+
+### 2. Private Key Security
+
+- Store private keys outside web root
+- Set restrictive file permissions (600 or 400)
+- Never expose private keys in client-side code
+- Consider using key management services (AWS KMS, Azure Key Vault)
+- Back up private keys securely
+
+```bash
+# Set proper permissions
+chmod 400 /path/to/privatekey.pem
+```
+
+### 3. Signature Validation
+
+- Always generate and include signatures in secure mode
+- Verify callback hashes to confirm authenticity
+- Use strong SHA-256 algorithm
+- Keep signature generation logic server-side only
+
+### 4. HTTPS Only
+
+- Use HTTPS for all callback URLs in production
+- Jenga requires HTTPS for live environment
+- Validate SSL certificates
+
+### 5. Input Validation
+
+- Validate all user inputs before processing
+- Sanitize email addresses, phone numbers
+- Validate order amounts (positive, reasonable limits)
+- Ensure order references are unique and alphanumeric
+
+### 6. IPN Security
+
+- Use Basic Auth for webhook endpoints
+- Use strong, unique credentials for IPN
+- Validate IPN payload structure
+- Log all IPN requests for audit trail
+- Always return 200 OK to prevent retries (process errors async)
+
+### 7. Rate Limiting
+
+- Implement rate limiting on payment endpoints
+- Prevent brute force attacks
+- Limit failed attempts per user/IP
+
+### 8. Monitoring & Logging
+
+- Log all payment requests and responses
+- Monitor for failed payments
+- Set up alerts for suspicious activity
+- Keep audit trail of all transactions
+- Never log sensitive card data (PCI DSS compliance)
+
+### 9. Error Messages
+
+- Don't expose internal errors to users
+- Show generic error messages to users
+- Log detailed errors server-side
+- Never expose API keys or secrets in errors
+
+### 10. PCI DSS Compliance
+
+- Never store card numbers, CVV, or PINs
+- Card data is handled entirely by Jenga (hosted checkout)
+- Your application never touches card data
+- Maintain PCI SAQ-A compliance level
+
+---
+
+## Testing
+
+### Test Environment
+
+- **Authentication URL**: `https://uat.finserve.africa/authentication/api/v3/authenticate/merchant`
+- **Checkout URL**: `https://v3-uat.jengapgw.io/processPayment`
+
+### Test Cards
+
+Jenga provides test cards for sandbox testing. Check the [Jenga Documentation](https://developer.jengaapi.io/docs/test-cards) for current test card numbers.
+
+**Common Test Cards:**
+
+| Card Type | Card Number | CVV | Expiry | Expected Result |
+|-----------|-------------|-----|--------|-----------------|
+| Visa | Check Jenga Docs | Any | Future | Success |
+| Mastercard | Check Jenga Docs | Any | Future | Success |
+| AMEX | Check Jenga Docs | Any | Future | Success |
+
+### Testing Checklist
+
+- [ ] Authentication works with test credentials
+- [ ] Signature generation is correct
+- [ ] Payment form redirects to Jenga checkout
+- [ ] Test successful card payment
+- [ ] Test failed card payment
+- [ ] Callback URL receives parameters correctly
+- [ ] IPN webhook receives notifications
+- [ ] IPN Basic Auth works
+- [ ] Error handling works for invalid inputs
+- [ ] Multi-currency payments work (if applicable)
+- [ ] ExtraData is preserved through payment flow
+- [ ] Payment time limits are respected
+
+### Testing Script
+
+```typescript
+// test-jenga-payment.ts
+import { JengaCardPaymentService } from './jenga-service';
+
+async function testJengaPayment() {
+  const service = new JengaCardPaymentService({
+    apiKey: process.env.JENGA_API_KEY!,
+    merchantCode: process.env.JENGA_MERCHANT_CODE!,
+    consumerSecret: process.env.JENGA_CONSUMER_SECRET!,
+    privateKeyPath: './keys/jenga-private-key.pem',
+    environment: 'test',
+    defaultCallbackUrl: 'http://localhost:3000/payment/callback',
+  });
+
+  try {
+    console.log('Testing authentication...');
+    const token = await service.authenticate();
+    console.log('✓ Authentication successful');
+    console.log('Token:', token.substring(0, 20) + '...');
+
+    console.log('\nTesting payment initiation...');
+    const { checkoutUrl, paymentData } = await service.initiateCardPayment({
+      orderAmount: 100.00,
+      orderReference: 'TEST' + Date.now(),
+      currency: 'KES',
+      productType: 'Product',
+      productDescription: 'Test Product',
+      paymentTimeLimit: '15mins',
+      customerFirstName: 'John',
+      customerLastName: 'Doe',
+      customerEmail: 'john.doe@example.com',
+      customerPhone: '254712345678',
+      customerAddress: '123 Test Street',
+      customerPostalCodeZip: '00100',
+      countryCode: 'KE',
+      extraData: JSON.stringify({ testId: '123' }),
+    });
+
+    console.log('✓ Payment initiated successfully');
+    console.log('Checkout URL:', checkoutUrl);
+    console.log('Order Reference:', paymentData.orderReference);
+    console.log('\nPayment Data:', JSON.stringify(paymentData, null, 2));
+  } catch (error) {
+    console.error('✗ Test failed:', error);
+  }
+}
+
+testJengaPayment();
+```
+
+---
+
+## Production Deployment
+
+### Pre-Launch Checklist
+
+- [ ] Generate production API keys from Jenga
+- [ ] Generate new key pair for production
+- [ ] Upload production public key to JengaHQ
+- [ ] Configure production environment variables
+- [ ] Set up production callback URLs (HTTPS)
+- [ ] Configure IPN with production credentials
+- [ ] Test with small real transactions
+- [ ] Set up monitoring and alerting
+- [ ] Configure proper logging
+- [ ] Implement rate limiting
+- [ ] Set up SSL certificate
+- [ ] Configure firewall rules
+- [ ] Document payment flow for support team
+- [ ] Create runbooks for common issues
+
+### Going Live
+
+1. **Switch to Live Mode** in JengaHQ Dashboard
+2. Update environment variables to use live credentials
+3. Change `JENGA_ENVIRONMENT` to `live`
+4. Deploy with HTTPS enabled
+5. Test with small real transaction
+6. Monitor logs closely for first 24 hours
+7. Set up 24/7 monitoring
+
+---
+
+## Support
+
+### Jenga Support
+
+- **Email**: support@finserve.africa
+- **Chat**: Available on JengaHQ Portal
+- **Documentation**: https://developer.jengaapi.io
+- **Portal**: https://jengahq.io
+
+### Common Issues
+
+#### "Invalid signature" error
+- Verify signature concatenation order is correct
+- Ensure you're using the correct private key
+- Check that public key is properly uploaded to Jenga
+- Verify amount formatting (use `.toFixed(2)`)
+
+#### "Authentication failed"
+- Check API Key is correct
+- Verify Merchant Code matches
+- Ensure Consumer Secret is correct
+- Confirm you're using credentials from correct environment (test vs live)
+
+#### "Callback not received"
+- Verify callback URL is accessible (HTTPS in production)
+- Check firewall rules
+- Ensure callback URL is properly URL-encoded
+- Test callback URL manually
+
+#### "IPN not working"
+- Verify Basic Auth credentials are correct
+- Check IPN endpoint is accessible
+- Ensure IPN is configured in JengaHQ Portal
+- Test Basic Auth with curl/Postman
+
+---
+
+## Additional Resources
+
+- [Jenga API Documentation](https://developer.jengaapi.io)
+- [JengaHQ Portal](https://jengahq.io)
+- [Jenga Test Cards](https://developer.jengaapi.io/docs/test-cards)
+- [OpenSSL Documentation](https://www.openssl.org/docs/)
+
+---
+
+## License
+
+This documentation is for internal use only. Jenga API is a product of Finserve Africa Limited.
