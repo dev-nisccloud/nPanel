@@ -10,7 +10,7 @@ import Navbar from "@/pages/_components/Navbar.tsx";
 import Footer from "@/pages/_components/Footer.tsx";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 import ServiceShowcaseSection, { type ShowcaseBlock } from "@/pages/_components/ServiceShowcaseSection.tsx";
-import { ProcessFeatureBlock } from "@/components/shadcn-space/blocks/feature-01/process-feature.tsx";
+// import { ProcessFeatureBlock } from "@/components/shadcn-space/blocks/feature-01/process-feature.tsx";
 import { ServiceMockPricingSection } from "@/components/shadcn-space/blocks/pricing-01/service-mock-pricing.tsx";
 import FaqBlock from "@/components/shadcn-space/blocks/faq-01/faq.tsx";
 import { NiscWebsiteHeroImage } from "@/components/NiscWebsiteHeroImage.tsx";
@@ -458,7 +458,7 @@ export default function ServicePageShell({
   plans,
   addons = [],
   features = [],
-  process,
+  process: _process, // re-enable with ProcessFeatureBlock below
   whyPoints,
   faqs,
   ctaHeadline = "Ready to Get Started?",
@@ -574,7 +574,7 @@ export default function ServicePageShell({
 
       {!plansUnderHero && <div id="pricing">{renderPricingSection()}</div>}
 
-      {process && <ProcessFeatureBlock steps={process} />}
+      {/* {process && <ProcessFeatureBlock steps={process} />} */}
 
       {whyPoints && (
         <BuiltDifferentBento

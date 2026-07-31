@@ -51,7 +51,7 @@ export default function WebsiteDesignPage() {
       serviceType="marketing"
       checkoutServiceType="website_design"
       checkoutProductName="Website Design"
-      heroImage={niscWebsiteImage("web design & development.png")}
+      heroImage={niscWebsiteImage("website_design_development.png")}
       heroImageStandalone
       trustStats={[
         { value: "100+", label: "Clients We Have Helped" },

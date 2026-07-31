@@ -59,7 +59,15 @@ export function periodPrice(
 }
 
 export function billingCycleShortSuffix(cycle: BillingCycle): string {
-  return cycle === "MONTHLY" ? "mo" : "yr";
+  switch (cycle) {
+    case "MONTHLY":
+      return "mo";
+    case "YEARLY":
+      return "yr";
+    default:
+      // Multi-year terms are priced for the full period, not per year.
+      return "term";
+  }
 }
 
 export function billingCyclePeriodLabel(cycle: BillingCycle): string {
