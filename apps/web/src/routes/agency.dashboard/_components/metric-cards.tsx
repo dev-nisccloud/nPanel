@@ -150,6 +150,16 @@ export function MetricCards() {
 			retry: false,
 		});
 
+	// KENIC (KC) Balance — EPP can be slow; do not block the dashboard skeleton
+	const {
+		data: kenicBalance,
+		isLoading: isKenicBalanceLoading,
+		isError: isKenicBalanceError,
+	} = trpc.kenic.balance.getBalance.useQuery(undefined, {
+		...REALTIME_QUERY_OPTIONS,
+		retry: false,
+	});
+
 	// Media Buying Platforms
 	const { data: mediaBuyingPlatforms, isLoading: isMediaBuyingLoading, isError: isMediaBuyingError } =
 		trpc.agencyDashboard.getMediaBuyingPlatforms.useQuery(undefined, REALTIME_QUERY_OPTIONS);
@@ -235,6 +245,20 @@ export function MetricCards() {
 
 	// OpenProvider Balance
 	const balance = isBalanceError ? "N/A" : `$${(openProviderBalance?.balance ?? 0).toFixed(2)}`;
+
+	const formatKenicBalance = () => {
+		if (isKenicBalanceLoading) return "…";
+		if (isKenicBalanceError || !kenicBalance) return "Coming soon";
+		const amount = kenicBalance.balance ?? 0;
+		const currency = kenicBalance.currency ?? "KES";
+		if (currency === "KES") {
+			return `KES ${amount.toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+		}
+		return `${currency} ${amount.toFixed(2)}`;
+	};
+	const kcBalanceDisplay = formatKenicBalance();
+	const kcBalanceUnavailable =
+		!isKenicBalanceLoading && (isKenicBalanceError || !kenicBalance);
 
 	// Hosting
 	const hostingTotal = isHostingError ? "N/A" : (hostingSubscriptions?.total ?? 0);
@@ -562,7 +586,7 @@ export function MetricCards() {
 				</CardFooter>
 			</Card>
 
-			{/* 8. OpenProvider Balance */}
+			{/* 8. OP Balance + KC Balance */}
 			<Card className="@container/card relative">
 				{isBalanceError && (
 					<div className="absolute top-2 right-2">
@@ -572,23 +596,32 @@ export function MetricCards() {
 									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
 								</TooltipTrigger>
 								<TooltipContent>
-									<p>Failed to load OpenProvider balance.</p>
+									<p>Failed to load OP balance.</p>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
 					</div>
 				)}
-				<CardHeader>
-					<CardDescription>OpenProvider Balance</CardDescription>
-					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{balance}
-					</CardTitle>
-				</CardHeader>
-				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<div className="text-xs text-muted-foreground">
-						Reseller account balance
+				<CardHeader className="gap-4">
+					<div className="space-y-1.5">
+						<CardDescription>OP Balance</CardDescription>
+						<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+							{balance}
+						</CardTitle>
 					</div>
-				</CardFooter>
+					<div className="space-y-1.5">
+						<CardDescription>KC Balance</CardDescription>
+						<p
+							className={cn(
+								"text-2xl font-semibold tabular-nums @[250px]/card:text-3xl",
+								(isKenicBalanceLoading || kcBalanceUnavailable) &&
+									"text-muted-foreground",
+							)}
+						>
+							{kcBalanceDisplay}
+						</p>
+					</div>
+				</CardHeader>
 			</Card>
 
 			{/* 9. Media Buying */}

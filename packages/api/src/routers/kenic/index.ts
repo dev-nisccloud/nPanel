@@ -8,6 +8,7 @@ import { kenicDomainCreateRouter } from "./domain-create";
 import { kenicDomainTransferRouter } from "./domain-transfer";
 import { kenicConfigStatusRouter } from "./config-status";
 import { kenicDomainListRouter } from "./domain-list";
+import { kenicBalanceRouter } from "./balance";
 
 /**
  * KENIC EPP integration (.ke and other KENIC TLDs).
@@ -25,4 +26,6 @@ export const kenicRouter = router({
 	configStatus: kenicConfigStatusRouter,
 	/** Agency domains portfolio: list all .ke domains registered through this agency. */
 	domainList: kenicDomainListRouter,
+	/** Registrar account credit balance (CoCCA finance:info). */
+	balance: kenicBalanceRouter,
 });
