@@ -66,7 +66,7 @@ export const ZEEPO_PROMPT_CATEGORY_ORDER: ZeepoPromptCategory[] = [
   "strategy",
 ];
 
-/** Short landing chips — titles must match entries in ZEEPO_SAMPLE_PROMPTS. */
+/** Short landing chips  titles must match entries in ZEEPO_SAMPLE_PROMPTS. */
 export const ZEEPO_LANDING_SUGGESTIONS: Array<{
   title: string;
   label: string;

@@ -216,7 +216,7 @@ export default function ZeepoAiAgentIndexPage() {
     await finishHandoff(presetAttachments);
   };
 
-  /** Stage locally — upload runs on Send. */
+  /** Stage locally  upload runs on Send. */
   const handleFileSelect = (files: FileList | null) => {
     if (!files?.length) return;
     const room = 4 - pendingFiles.length;
@@ -357,7 +357,7 @@ export default function ZeepoAiAgentIndexPage() {
             </Popover>
           </div>
 
-          {/* Main content — fades out on handoff */}
+          {/* Main content  fades out on handoff */}
           <div
             className={cn(
               "zeepo-landing-main flex w-full flex-col items-center gap-8 transition-all duration-300 ease-out",
@@ -434,7 +434,7 @@ export default function ZeepoAiAgentIndexPage() {
               />
             </div>
 
-            {/* Sample prompts — category tabs + chips */}
+            {/* Sample prompts  category tabs + chips */}
             <div className="zeepo-hero-surface w-full space-y-3 mt-2">
               {/* Category tab pills */}
               <ScrollArea className="w-full">

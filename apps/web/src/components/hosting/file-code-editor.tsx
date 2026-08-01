@@ -12,7 +12,7 @@ const LazyFileCodeEditor = React.lazy(
   () => import("./file-code-editor.inner"),
 );
 
-/** Monaco editor for hosting file manager — lazy-loaded to keep SSR/bundles clean. */
+/** Monaco editor for hosting file manager  lazy-loaded to keep SSR/bundles clean. */
 export function FileCodeEditor(props: FileCodeEditorProps) {
   return (
     <React.Suspense

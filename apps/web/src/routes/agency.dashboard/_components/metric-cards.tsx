@@ -147,7 +147,7 @@ export function MetricCards() {
 			retry: false,
 		});
 
-	// KENIC (KC) Balance — EPP can be slow; do not block the dashboard skeleton
+	// KENIC (KC) Balance  EPP can be slow; do not block the dashboard skeleton
 	const {
 		data: kenicBalance,
 		isLoading: isKenicBalanceLoading,
