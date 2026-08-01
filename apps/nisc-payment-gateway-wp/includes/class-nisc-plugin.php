@@ -429,7 +429,7 @@ final class Nisc_PG_Plugin {
 			wp_send_json_error( array( 'message' => __( 'Enter a valid Kenyan M-Pesa number (e.g. 07XXXXXXXX).', 'nisc-payment-gateway-for-woocommerce' ) ) );
 		}
 
-		$amount = isset( $_POST['amount'] ) ? (float) wp_unslash( $_POST['amount'] ) : 1.0;
+		$amount = isset( $_POST['amount'] ) ? (float) sanitize_text_field( wp_unslash( $_POST['amount'] ) ) : 1.0;
 		if ( $amount < 1 ) {
 			wp_send_json_error( array( 'message' => __( 'Amount must be at least 1 KES.', 'nisc-payment-gateway-for-woocommerce' ) ) );
 		}

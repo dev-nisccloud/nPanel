@@ -4,7 +4,7 @@ Tags: woocommerce, mpesa, payments, kenya, nisc
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,6 +113,10 @@ Not in v1. M-Pesa STK Push only.
 5. WooCommerce payment settings showing Nisc Payment Gateway configuration
 
 == Changelog ==
+
+= 0.1.8 =
+* Fixed WordPress.org plugin checker warnings: created languages folder and sanitized POST input.
+* Added sanitize_text_field() to amount parameter in test STK endpoint.
 
 = 0.1.7 =
 * Fixed WordPress.org automated checks: removed hidden .gitkeep file and updated text domain to match plugin slug.
