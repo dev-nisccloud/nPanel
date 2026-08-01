@@ -25,7 +25,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 	public function __construct() {
 		$this->id                 = 'nisc_payment_gateway';
 		$this->method_title       = __( 'Nisc Payment Gateway', 'nisc-payment-gateway' );
-		$this->method_description = __( 'Accept payments via Nisc Cloud. Paste your API key; everything else is automatic.', 'nisc-payment-gateway' );
+		$this->method_description = __( 'Nisc Cloud Payment Gateway — M-Pesa STK Push for WooCommerce. Need access? Call +254748777666 or email support@nisccloud.com.', 'nisc-payment-gateway' );
 		$this->has_fields         = true;
 		$this->supports           = array( 'products' );
 /**

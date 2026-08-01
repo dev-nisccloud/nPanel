@@ -4,27 +4,35 @@ Tags: woocommerce, mpesa, payments, kenya, nisc
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.4
+Stable tag: 0.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Accept M-Pesa payments through Nisc Cloud Payment Gateway. Paste your API key  webhooks register automatically.
+Nisc Cloud Payment Gateway: seamless M-Pesa STK Push for WooCommerce. Get access: +254748777666 or support@nisccloud.com.
 
 == Description ==
 
-Nisc Payment Gateway for WooCommerce lets merchants accept M-Pesa STK Push payments without storing Safaricom credentials in WordPress.
+**Nisc Cloud Payment Gateway** turns your WooCommerce store into an M-Pesa-ready checkout — fast STK Push payments, automatic webhooks, and no Safaricom credentials stored in WordPress.
 
-1. Get an API key from nPanel (agency creates the merchant).
-2. Paste the key in WooCommerce → Settings → Payments → Nisc Payment Gateway.
-3. Click Connect  the plugin registers your webhook automatically.
-4. Use **Connection test** (green/red card) to confirm gateway + M-Pesa token, then optionally **Test STK → webhook**.
-5. Enable the method and take orders.
+Merchants paste one API key, click Connect, and start taking payments. Sandbox vs production is controlled by the key we issue — no environment toggle in WordPress.
 
-Sandbox vs production is controlled by the API key issued in nPanel. There is no environment toggle in WordPress.
+= How to get access =
+
+Contact Nisc Cloud to get set up and receive your API key:
+
+* Phone: **+254748777666**
+* Email: **support@nisccloud.com**
+
+= After you have access =
+
+1. Paste your API key in WooCommerce → Settings → Payments → Nisc Payment Gateway.
+2. Click Connect — the plugin registers your webhook automatically.
+3. Use **Connection test** (green/red card) to confirm gateway + M-Pesa token, then optionally **Test STK → webhook**.
+4. Enable the method and take orders.
 
 == Installation ==
 
-1. Download the private ZIP from Nisc Cloud / your agency contact.
+1. Contact Nisc Cloud for access (+254748777666 or support@nisccloud.com), then install the plugin ZIP we provide.
 2. In WordPress: Plugins → Add New → Upload Plugin → install the ZIP.
 3. Activate the plugin (WooCommerce must already be active).
 4. Go to WooCommerce → Settings → Payments → Nisc Payment Gateway.
@@ -40,7 +48,7 @@ No. Clicking Connect registers `https://your-site/wp-json/nisc-gateway/v1/webhoo
 
 = Where do I get the API key? =
 
-From your Nisc Cloud / nPanel merchant account under Payment Gateway → API keys.
+Contact Nisc Cloud to get access: call **+254748777666** or email **support@nisccloud.com**. Once your merchant is set up, you will receive an API key to paste into the plugin settings.
 
 = Can I test without creating a real order? =
 
@@ -63,6 +71,11 @@ Alternatively, switch to Classic Checkout: go to Pages → Checkout, select the 
 Not in v1. M-Pesa STK Push only.
 
 == Changelog ==
+
+= 0.1.5 =
+* Fixed WordPress.org submission: Plugin URI and Author URI must differ (removed duplicate Plugin URI).
+* Updated plugin description and access instructions (contact +254748777666 or support@nisccloud.com).
+* Version bump for clean reinstall / review resubmission.
 
 = 0.1.4 =
 * Added WooCommerce Checkout Blocks support  payment gateway now works with both Classic Checkout and Checkout Blocks.
