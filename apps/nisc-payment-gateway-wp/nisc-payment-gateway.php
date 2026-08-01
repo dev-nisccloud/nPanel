@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Nisc Payment Gateway for WooCommerce
  * Description:       Accept M-Pesa without managing a payment gateway yourself. Setup in minutes. We handle compliance, security, everything. Contact: +254748777666 or support@nisccloud.com.
- * Version:           0.1.6
+ * Version:           0.1.7
  * Requires at least: 6.4
  * Tested up to:      7.0
  * Requires PHP:      8.0
@@ -10,7 +10,7 @@
  * Author URI:        https://nisccloud.com
  * License:           GPLv2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:        nisc-payment-gateway
+ * Text Domain:        nisc-payment-gateway-for-woocommerce
  * Domain Path:       /languages
  * Requires Plugins:  woocommerce
  * WC requires at least: 8.0
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NISC_PG_VERSION', '0.1.6' );
+define( 'NISC_PG_VERSION', '0.1.7' );
 define( 'NISC_PG_FILE', __FILE__ );
 define( 'NISC_PG_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NISC_PG_URL', plugin_dir_url( __FILE__ ) );
@@ -58,8 +58,8 @@ register_activation_hook(
 		if ( ! class_exists( 'WooCommerce' ) ) {
 			deactivate_plugins( NISC_PG_BASENAME );
 			wp_die(
-				esc_html__( 'Nisc Payment Gateway requires WooCommerce to be installed and active.', 'nisc-payment-gateway' ),
-				esc_html__( 'Plugin dependency missing', 'nisc-payment-gateway' ),
+				esc_html__( 'Nisc Payment Gateway requires WooCommerce to be installed and active.', 'nisc-payment-gateway-for-woocommerce' ),
+				esc_html__( 'Plugin dependency missing', 'nisc-payment-gateway-for-woocommerce' ),
 				array( 'back_link' => true )
 			);
 		}

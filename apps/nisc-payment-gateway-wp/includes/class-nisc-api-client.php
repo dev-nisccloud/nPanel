@@ -122,7 +122,7 @@ final class Nisc_PG_Api_Client {
 			'status' => $status,
 			'error'  => array(
 				'code'    => 'API_ERROR',
-				'message' => __( 'Health check failed.', 'nisc-payment-gateway' ),
+				'message' => __( 'Health check failed.', 'nisc-payment-gateway-for-woocommerce' ),
 			),
 			'data'   => $data,
 		);
@@ -139,7 +139,7 @@ final class Nisc_PG_Api_Client {
 				'status' => 0,
 				'error'  => array(
 					'code'    => 'MISSING_API_KEY',
-					'message' => __( 'API key is missing.', 'nisc-payment-gateway' ),
+					'message' => __( 'API key is missing.', 'nisc-payment-gateway-for-woocommerce' ),
 				),
 			);
 		}
@@ -187,7 +187,7 @@ final class Nisc_PG_Api_Client {
 
 		$error = array(
 			'code'    => isset( $data['error']['code'] ) ? (string) $data['error']['code'] : 'API_ERROR',
-			'message' => isset( $data['error']['message'] ) ? (string) $data['error']['message'] : __( 'Request failed.', 'nisc-payment-gateway' ),
+			'message' => isset( $data['error']['message'] ) ? (string) $data['error']['message'] : __( 'Request failed.', 'nisc-payment-gateway-for-woocommerce' ),
 		);
 
 		return array(
