@@ -1,6 +1,6 @@
 /**
  * KENIC registrar account balance via CoCCA finance EPP extension.
- * @see https://faq.cocca.org.nz/ (EPP Balance — finance:info)
+ * @see https://faq.cocca.org.nz/ (EPP Balance  finance:info)
  */
 
 import { XMLParser } from "fast-xml-parser";
