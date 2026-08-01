@@ -12,9 +12,9 @@ Nisc Cloud Payment Gateway: seamless M-Pesa STK Push for WooCommerce. Get access
 
 == Description ==
 
-**Nisc Cloud Payment Gateway** turns your WooCommerce store into an M-Pesa-ready checkout — fast STK Push payments, automatic webhooks, and no Safaricom credentials stored in WordPress.
+**Nisc Cloud Payment Gateway** turns your WooCommerce store into an M-Pesa-ready checkout fast STK Push payments, automatic webhooks, and no Safaricom credentials stored in WordPress.
 
-Merchants paste one API key, click Connect, and start taking payments. Sandbox vs production is controlled by the key we issue — no environment toggle in WordPress.
+Merchants paste one API key, click Connect, and start taking payments. Sandbox vs production is controlled by the key we issue  no environment toggle in WordPress.
 
 = How to get access =
 
@@ -26,7 +26,7 @@ Contact Nisc Cloud to get set up and receive your API key:
 = After you have access =
 
 1. Paste your API key in WooCommerce → Settings → Payments → Nisc Payment Gateway.
-2. Click Connect — the plugin registers your webhook automatically.
+2. Click Connect the plugin registers your webhook automatically.
 3. Use **Connection test** (green/red card) to confirm gateway + M-Pesa token, then optionally **Test STK → webhook**.
 4. Enable the method and take orders.
 

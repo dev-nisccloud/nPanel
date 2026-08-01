@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Nisc Payment Gateway for WooCommerce
- * Description:       Nisc Cloud Payment Gateway — accept M-Pesa STK Push on WooCommerce without storing Safaricom credentials. Get access: call +254748777666 or email support@nisccloud.com.
+ * Description:       Nisc Cloud Payment Gateway accept M-Pesa STK Push on WooCommerce without storing Safaricom credentials. Get access: call +254748777666 or email support@nisccloud.com.
  * Version:           0.1.5
  * Requires at least: 6.4
  * Tested up to:      7.0
