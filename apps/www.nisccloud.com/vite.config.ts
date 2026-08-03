@@ -27,6 +27,20 @@ export default defineConfig(({ mode }) => {
           changeOrigin: false,
           timeout: 120_000,
           proxyTimeout: 120_000,
+          configure: (proxy) => {
+            proxy.on("proxyReq", (proxyReq, req) => {
+              const host = req.headers.host;
+              if (host) proxyReq.setHeader("x-forwarded-host", host);
+              // Browser-facing scheme (local Vite is HTTP). Do not inherit
+              // upstream HTTPS or Secure cookies get dropped on localhost.
+              const local =
+                typeof host === "string" &&
+                (host.startsWith("localhost") ||
+                  host.startsWith("127.0.0.1") ||
+                  host.startsWith("[::1]"));
+              proxyReq.setHeader("x-forwarded-proto", local ? "http" : "https");
+            });
+          },
         },
       },
     },

@@ -38,7 +38,7 @@ export default function NiscEmailMarketingHubPage() {
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
-			<div className="w-full max-w-7xl mx-auto">
+			<div className="w-full max-w-7xl mx-auto space-y-6">
 				<div className="flex flex-col gap-2">
 					<div className="flex items-center gap-2 text-muted-foreground">
 						<Mail className="h-4 w-4" />
@@ -50,7 +50,7 @@ export default function NiscEmailMarketingHubPage() {
 					</p>
 				</div>
 
-				<div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					{cards.map(({ title, description, href, icon: Icon }) => (
 						<Link key={href} to={href}>
 							<div className="rounded-lg border bg-card p-4 shadow-sm transition-colors hover:bg-accent/50 h-full">

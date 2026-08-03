@@ -4,6 +4,7 @@ export * from "./agency-rbac";
 export * from "./ai";
 export * from "./invoicing";
 export * from "./tickets";
+export * from "./support-guest-sessions";
 export * from "./web-design-quotes";
 export * from "./products";
 export * from "./auth-extras";

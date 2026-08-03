@@ -750,9 +750,9 @@ function ToolsSection({
             <div className="flex items-center gap-3 flex-1">
               <Code2 className="h-5 w-5 text-muted-foreground shrink-0" />
               <div>
-                <h3 className="font-medium">Get professional web design and development</h3>
+                <h3 className="font-medium">Get a website built</h3>
                 <p className="text-sm text-muted-foreground">
-                  Transform your domain into a powerful online presence. Our expert team delivers custom websites, modern designs, and seamless user experiences that drive results.
+                  Ask for a quote. We design and build websites for your domain.
                 </p>
               </div>
             </div>
@@ -761,7 +761,7 @@ function ToolsSection({
               size="sm"
               onClick={onWebDesignClick}
             >
-              Learn More
+              Get quote
             </Button>
           </div>
 

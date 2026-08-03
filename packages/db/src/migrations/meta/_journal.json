@@ -330,6 +330,13 @@
       "when": 1785233082329,
       "tag": "0046_outstanding_gwen_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1785739540479,
+      "tag": "0047_nifty_may_parker",
+      "breakpoints": true
     }
   ]
 }

@@ -93,6 +93,7 @@ export function CustomerHostingPricing({
 					onOpenChange={setBuyNowOpen}
 					plan={selectedPlan}
 					requireDomainStep={requireDomainStep}
+					teamSlug={slug || undefined}
 					teamId={teamData?.id}
 					buyDomainHref={slug ? `/${slug}/domains` : undefined}
 				/>

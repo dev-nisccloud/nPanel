@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 /** TLDs that have a hosted logo image (same as Kenyan cards + top-level suggested). */
 const TLD_LOGO_IMAGES: Record<string, string> = {
@@ -37,7 +38,10 @@ export function TldLogo({ tld, variant, className }: TldLogoProps) {
 	if (logoSrc) {
 		return (
 			<div
-				className={`flex-shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center ${className ?? ""}`}
+				className={cn(
+					"flex-shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center",
+					className,
+				)}
 				style={{ width: LOGO_SIZE, height: LOGO_SIZE }}
 			>
 				<img
@@ -58,7 +62,10 @@ export function TldLogo({ tld, variant, className }: TldLogoProps) {
 	if (variant === "kenyan") {
 		return (
 			<div
-				className={`flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner ${className ?? ""}`}
+				className={cn(
+					"flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner",
+					className,
+				)}
 				style={{
 					width: LOGO_SIZE,
 					height: LOGO_SIZE,
@@ -75,7 +82,10 @@ export function TldLogo({ tld, variant, className }: TldLogoProps) {
 	// OpenProvider: FAB tickets screen–like gradient (blue)
 	return (
 		<div
-			className={`flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner bg-gradient-to-b from-blue-200 via-blue-100 to-blue-50 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-blue-900/30 ${className ?? ""}`}
+			className={cn(
+				"flex-shrink-0 rounded-lg flex items-center justify-center shadow-inner bg-gradient-to-b from-blue-200 via-blue-100 to-blue-50 dark:from-blue-900/50 dark:via-blue-800/40 dark:to-blue-900/30",
+				className,
+			)}
 			style={{ width: LOGO_SIZE, height: LOGO_SIZE }}
 			title={normalized}
 			aria-hidden

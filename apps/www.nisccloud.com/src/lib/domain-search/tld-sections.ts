@@ -104,15 +104,88 @@ export function getTldExtensionsByCategory() {
   return CATEGORIES;
 }
 
-/** OpenProvider popular tab curated list (matches dashboard). */
-const POPULAR_SECTION_EXTENSIONS = [
-  "com", "app", "ai", "net", "org", "io", "online", "shop", "store",
-  "space", "site", "studio", "live", "cloud", "me", "agency", "capital",
+/** Kenyan TLDs always recommended first (via KENIC). */
+export const RECOMMENDED_KENIC_TLDS = ["co.ke", "ke"] as const;
+
+/**
+ * Top OpenProvider TLDs we recommend after Kenyan ones.
+ * Order is intentional and must be preserved in UI.
+ */
+export const RECOMMENDED_OPEN_TLDS = [
+  "com",
+  "net",
+  "store",
+  "app",
+  "online",
+  "site",
+  "io",
+] as const;
+
+/** Extra popular OpenProvider TLDs loaded via "List more". */
+export const MORE_POPULAR_OPEN_TLDS = [
+  "org",
+  "shop",
+  "ai",
+  "space",
+  "studio",
+  "live",
+  "cloud",
+  "me",
+  "agency",
+  "capital",
+  "dev",
+  "tech",
+  "info",
+  "biz",
+  "xyz",
+  "pro",
+  "co",
+  "africa",
+] as const;
+
+/** Full popular OpenProvider list (recommended + more), curated order. */
+export const POPULAR_SECTION_EXTENSIONS = [
+  ...RECOMMENDED_OPEN_TLDS,
+  ...MORE_POPULAR_OPEN_TLDS.filter(
+    (ext) => !(RECOMMENDED_OPEN_TLDS as readonly string[]).includes(ext),
+  ),
 ];
+
+const MORE_BATCH_SIZE = 8;
+
+export type RecommendedBatch = {
+  kenic: string[];
+  open: string[];
+  /** True when another List more batch exists after this one. */
+  hasMore: boolean;
+};
+
+/**
+ * Progressive batches for recommended domain search.
+ * batch 0 = Kenic + top recommended OP TLDs
+ * batch 1+ = next MORE_BATCH_SIZE from MORE_POPULAR_OPEN_TLDS
+ */
+export function getRecommendedBatch(batchIndex: number): RecommendedBatch {
+  if (batchIndex <= 0) {
+    return {
+      kenic: [...RECOMMENDED_KENIC_TLDS],
+      open: [...RECOMMENDED_OPEN_TLDS],
+      hasMore: MORE_POPULAR_OPEN_TLDS.length > 0,
+    };
+  }
+
+  const start = (batchIndex - 1) * MORE_BATCH_SIZE;
+  const open = MORE_POPULAR_OPEN_TLDS.slice(start, start + MORE_BATCH_SIZE);
+  return {
+    kenic: [],
+    open: [...open],
+    hasMore: start + MORE_BATCH_SIZE < MORE_POPULAR_OPEN_TLDS.length,
+  };
+}
 
 export function getExtensionsForSection(sectionId: string): string[] {
   if (sectionId === "popular") {
-    return POPULAR_SECTION_EXTENSIONS;
+    return [...POPULAR_SECTION_EXTENSIONS];
   }
 
   if (sectionId === "all") {

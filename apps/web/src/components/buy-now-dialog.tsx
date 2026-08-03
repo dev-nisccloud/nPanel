@@ -195,9 +195,9 @@ interface BuyNowDialogProps {
   plan: ServicePlanDetails | null;
   /** When true, show "Connect your domain" step before review (e.g. when opened from hosting/emails) */
   requireDomainStep?: boolean;
-  /** Team route slug (customer portal) - used to load domain subscriptions for hostname. */
+  /** Team route slug (customer portal) - used to load domain subscriptions for hostname + domain picker. */
   teamSlug?: string;
-  /** Team ID used to load domains for the dropdown (required when requireDomainStep is true) */
+  /** Team ID fallback for domain subscriptions when teamSlug is unavailable. */
   teamId?: string;
   /** When set, show a "Need a domain? Buy one" CTA in the domain step (e.g. `/${teamSlug}/domains`) */
   buyDomainHref?: string;
@@ -339,6 +339,10 @@ export function BuyNowDialog({
   const showDomainStep = showDomainConfirmOnly || showDomainPicker;
 
   const location = useLocation();
+  const resolvedTeamSlug = React.useMemo(
+    () => teamSlug ?? getCustomerTeamSlugFromPathname(location.pathname),
+    [teamSlug, location.pathname],
+  );
   const { data: session } = authClient.useSession();
   const isAgencyUser = React.useMemo(() => {
     const user = session?.user as { role?: string; agencyRoleId?: string | null } | undefined;
@@ -387,10 +391,43 @@ export function BuyNowDialog({
   const [manualDomain, setManualDomain] = React.useState("");
   const [selectedDomainId, setSelectedDomainId] = React.useState<string | null>(null);
 
-  const { data: teamDomains = [] } = trpc.domains.getByTeam.useQuery(
-    { teamId: teamId ?? "" },
-    { enabled: !!teamId && showDomainPicker && open },
+  // Same source as customer domains portfolio / Hivelocity hostname picker:
+  // niscClientSubscription domain products — not the legacy `domain` table.
+  const teamDomainsBySlugQuery = trpc.clientSubscriptions.listForTeamDomains.useQuery(
+    { teamSlug: resolvedTeamSlug ?? "" },
+    {
+      enabled: !!resolvedTeamSlug && showDomainPicker && open,
+      staleTime: 60_000,
+    },
   );
+  const teamDomainsByIdQuery = trpc.clientSubscriptions.getDomainSubscriptions.useQuery(
+    { teamId: teamId! },
+    {
+      enabled: !resolvedTeamSlug && !!teamId && showDomainPicker && open,
+      staleTime: 60_000,
+    },
+  );
+  const teamDomains = React.useMemo(() => {
+    if (resolvedTeamSlug) {
+      return (teamDomainsBySlugQuery.data ?? [])
+        .filter(
+          (s) =>
+            s.primaryDomain?.trim() &&
+            s.status !== "CANCELLED" &&
+            s.status !== "EXPIRED",
+        )
+        .map((s) => ({
+          id: s.id,
+          domainName: s.primaryDomain!.trim(),
+        }));
+    }
+    return (teamDomainsByIdQuery.data ?? [])
+      .filter((s) => s.primaryDomain?.trim())
+      .map((s) => ({
+        id: s.id,
+        domainName: s.primaryDomain!.trim(),
+      }));
+  }, [resolvedTeamSlug, teamDomainsBySlugQuery.data, teamDomainsByIdQuery.data]);
 
   const manualDomainValid = manualDomain.trim() ? isValidDomain(manualDomain) : false;
   const selectedDomain = selectedDomainId
@@ -438,10 +475,6 @@ export function BuyNowDialog({
   );
   const selectedAgencyUserItem = agencyUserItems.find((u) => u.id === selectedAgencyUserId);
 
-  const resolvedTeamSlug = React.useMemo(
-    () => teamSlug ?? getCustomerTeamSlugFromPathname(location.pathname),
-    [teamSlug, location.pathname],
-  );
   const { data: checkoutTeamBySlug } = trpc.teams.getTeamIdBySlug.useQuery(
     { slug: resolvedTeamSlug ?? "" },
     {
@@ -1949,7 +1982,7 @@ export function BuyNowDialog({
             </div>
 
             <div className="space-y-4">
-              {!!teamId && (
+              {!!(resolvedTeamSlug || teamId) && (
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="domain-select">Domains owned by your team</Label>
@@ -1971,7 +2004,7 @@ export function BuyNowDialog({
                         ))}
                         {teamDomains.length === 0 ? (
                           <SelectItem value="__none__" disabled>
-                            No domains linked to this team
+                            No domains in your portfolio
                           </SelectItem>
                         ) : null}
                       </SelectContent>
