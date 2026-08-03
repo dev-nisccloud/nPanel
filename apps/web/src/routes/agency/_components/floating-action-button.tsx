@@ -14,10 +14,8 @@ import {
   Sparkles,
   Trash2,
   ChevronRight,
-  Search,
   MessageSquare,
   ExternalLink,
-  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,7 +54,6 @@ import { useNewMessageDetector } from "@/hooks/use-new-message-detector";
 import { useGlobalNotificationDetector } from "@/hooks/use-global-notification-detector";
 import { useAiHistory, useAiChat, useAiMutations } from "@/hooks/use-ai";
 import { AiMarkdownRenderer } from "@/components/ai/ai-markdown-renderer";
-import { helpCollections, type HelpCollection, type HelpArticle } from "@/lib/help-docs";
 
 interface FloatingActionButtonProps {
   className?: string;
@@ -228,9 +225,8 @@ const initialGreetingMessage: ChatMessage = {
   timestamp: new Date(),
 };
 
-type ActiveTab = "home" | "messages" | "help";
+type ActiveTab = "home" | "messages";
 type MessagesSubView = "list" | "chat" | "zepo-history" | "zepo";
-type HelpSubView = "collections" | "collection-detail" | "article-detail";
 
 export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const navigate = useNavigate();
@@ -240,7 +236,6 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<ActiveTab>("home");
   const [messagesSubView, setMessagesSubView] = React.useState<MessagesSubView>("list");
-  const [helpSubView, setHelpSubView] = React.useState<HelpSubView>("collections");
 
   // Messages state
   const [messageInput, setMessageInput] = React.useState("");
@@ -254,11 +249,6 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
   const [optimisticAiMessages, setOptimisticAiMessages] = React.useState<ChatMessage[]>([]);
   const [thinkingMessageIndex, setThinkingMessageIndex] = React.useState(0);
   const [locallyReadIds, setLocallyReadIds] = React.useState<Set<string>>(new Set());
-
-  // Help state
-  const [helpSearch, setHelpSearch] = React.useState("");
-  const [selectedCollection, setSelectedCollection] = React.useState<HelpCollection | null>(null);
-  const [selectedArticle, setSelectedArticle] = React.useState<HelpArticle | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const aiMessagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -435,15 +425,11 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     if (!isOpen) {
       setActiveTab("home");
       setMessagesSubView("list");
-      setHelpSubView("collections");
       setMessageInput("");
       setSelectedFiles([]);
       setSelectedChatId(null);
       setSelectedAiChatId(null);
       setIsNewTicket(false);
-      setSelectedCollection(null);
-      setSelectedArticle(null);
-      setHelpSearch("");
     }
   }, [isOpen]);
 
@@ -673,23 +659,6 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
     return acc + effective;
   }, 0);
 
-  // Help docs filtering
-  const filteredCollections = React.useMemo(() => {
-    if (!helpSearch.trim()) return helpCollections;
-    const q = helpSearch.toLowerCase();
-    return helpCollections
-      .map((col) => ({
-        ...col,
-        articles: col.articles.filter(
-          (a) =>
-            a.title.toLowerCase().includes(q) ||
-            a.summary.toLowerCase().includes(q) ||
-            a.tags?.some((t) => t.includes(q)),
-        ),
-      }))
-      .filter((col) => col.articles.length > 0 || col.title.toLowerCase().includes(q));
-  }, [helpSearch]);
-
   // Sub-view in messages requiring full height (no show tabs change layout)
   const isInSubView =
     activeTab === "messages" && messagesSubView !== "list";
@@ -858,9 +827,9 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                   </div>
 
                   {/* External links */}
-                  <div className="bg-white dark:bg-card rounded-2xl overflow-hidden shadow-md border border-border/60 divide-y divide-border/60">
+                  <div className="bg-white dark:bg-card rounded-2xl overflow-hidden shadow-md border border-border/60">
                     <a
-                      href="https://docs.nisccloud.com"
+                      href="https://docs.nisccloud.com/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors"
@@ -868,23 +837,7 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
                       <span className="text-sm font-medium text-foreground">Nisc Cloud Docs</span>
                       <ExternalLink className="h-3.5 w-3.5 text-primary" />
                     </a>
-                    <button
-                      className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors"
-                      onClick={() => setActiveTab("help")}
-                    >
-                      <span className="text-sm font-medium text-foreground">Support Centre</span>
-                      <ExternalLink className="h-3.5 w-3.5 text-primary" />
-                    </button>
                   </div>
-
-                  {/* Search for help */}
-                  <button
-                    className="w-full flex items-center justify-between px-4 py-3.5 bg-white dark:bg-card rounded-2xl shadow-md border border-border/60 hover:bg-muted/40 transition-colors"
-                    onClick={() => setActiveTab("help")}
-                  >
-                    <span className="text-sm font-medium text-foreground">Search for help</span>
-                    <Search className="h-4 w-4 text-primary" />
-                  </button>
 
                 </div>
               </div>
@@ -1697,231 +1650,15 @@ export function FloatingActionButton({ className }: FloatingActionButtonProps) {
             </div>
           )}
 
-          {/* ═══════════════════════════════════════
-              HELP TAB
-          ═══════════════════════════════════════ */}
-          {activeTab === "help" && (
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b flex-shrink-0">
-                <div className="flex items-center gap-2">
-                  {(helpSubView === "collection-detail" || helpSubView === "article-detail") && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full hover:bg-accent"
-                      onClick={() => {
-                        if (helpSubView === "article-detail") {
-                          setHelpSubView("collection-detail");
-                          setSelectedArticle(null);
-                        } else {
-                          setHelpSubView("collections");
-                          setSelectedCollection(null);
-                        }
-                      }}
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <h2 className="text-base font-semibold text-foreground">
-                    {helpSubView === "collections" && "Help"}
-                    {helpSubView === "collection-detail" && (selectedCollection?.title ?? "Articles")}
-                    {helpSubView === "article-detail" && (selectedArticle?.title ?? "Article")}
-                  </h2>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-accent"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Collections list */}
-              {helpSubView === "collections" && (
-                <>
-                  {/* Search */}
-                  <div className="px-4 py-3 border-b flex-shrink-0">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <input
-                        type="text"
-                        placeholder="Search for help"
-                        value={helpSearch}
-                        onChange={(e) => setHelpSearch(e.target.value)}
-                        className="w-full bg-muted/50 rounded-lg pl-9 pr-3 py-2 text-sm border-0 focus:outline-none focus:ring-1 focus:ring-primary/30"
-                      />
-                      {helpSearch && (
-                        <button
-                          onClick={() => setHelpSearch("")}
-                          className="absolute right-3 top-1/2 -translate-y-1/2"
-                        >
-                          <X className="h-3.5 w-3.5 text-muted-foreground" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <ScrollArea className="flex-1 min-h-0">
-                    <div className="px-4 py-3">
-                      {helpSearch && (
-                        <p className="text-xs text-muted-foreground mb-3">
-                          {filteredCollections.reduce((acc, c) => acc + c.articles.length, 0)}{" "}
-                          result{filteredCollections.reduce((acc, c) => acc + c.articles.length, 0) !== 1 ? "s" : ""} found
-                        </p>
-                      )}
-                      {!helpSearch && (
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                          {helpCollections.length} collections
-                        </p>
-                      )}
-
-                      <div className="space-y-2">
-                        {filteredCollections.map((collection) => (
-                          <button
-                            key={collection.id}
-                            className="w-full flex items-center gap-3 px-4 py-3.5 bg-card border border-border rounded-xl hover:bg-muted/50 transition-colors text-left"
-                            onClick={() => {
-                              setSelectedCollection(collection);
-                              setHelpSubView("collection-detail");
-                            }}
-                          >
-                            <span className="text-xl flex-shrink-0">{collection.icon}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-foreground">
-                                {collection.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                {collection.description}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {collection.articles.length} article
-                                {collection.articles.length !== 1 ? "s" : ""}
-                              </p>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          </button>
-                        ))}
-                      </div>
-
-                      {filteredCollections.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <BookOpen className="h-10 w-10 text-muted-foreground mb-3" />
-                          <p className="text-sm font-medium text-foreground mb-1">No results found</p>
-                          <p className="text-xs text-muted-foreground">
-                            Try different keywords or browse all collections.
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="mt-3 text-primary"
-                            onClick={() => setHelpSearch("")}
-                          >
-                            Clear search
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </>
-              )}
-
-              {/* Collection detail  articles list */}
-              {helpSubView === "collection-detail" && selectedCollection && (
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="px-4 py-4 space-y-2">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      {selectedCollection.description}
-                    </p>
-                    {(helpSearch
-                      ? selectedCollection.articles.filter(
-                          (a) =>
-                            a.title.toLowerCase().includes(helpSearch.toLowerCase()) ||
-                            a.summary.toLowerCase().includes(helpSearch.toLowerCase()),
-                        )
-                      : selectedCollection.articles
-                    ).map((article) => (
-                      <button
-                        key={article.id}
-                        className="w-full flex items-start gap-3 px-4 py-3 bg-card border border-border rounded-xl hover:bg-muted/50 transition-colors text-left"
-                        onClick={() => {
-                          setSelectedArticle(article);
-                          setHelpSubView("article-detail");
-                        }}
-                      >
-                        <BookOpen className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">{article.title}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                            {article.summary}
-                          </p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-
-              {/* Article detail */}
-              {helpSubView === "article-detail" && selectedArticle && (
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="px-4 py-4">
-                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                      {selectedArticle.summary}
-                    </p>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
-                        {selectedArticle.content}
-                      </p>
-                    </div>
-                    {selectedArticle.tags && selectedArticle.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-5">
-                        {selectedArticle.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-[10px] font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="mt-6 pt-4 border-t">
-                      <p className="text-xs text-muted-foreground mb-2 text-center">
-                        Didn't find what you were looking for?
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full rounded-full"
-                        onClick={() => {
-                          setActiveTab("messages");
-                          setMessagesSubView("list");
-                          handleChatWithHuman("new");
-                        }}
-                      >
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        Contact Support
-                      </Button>
-                    </div>
-                  </div>
-                </ScrollArea>
-              )}
-            </div>
-          )}
         </div>
 
         {/* ── Tab Bar ── */}
         <div className="flex-shrink-0 border-t bg-background">
           <div className="flex">
-            {          (
+            {(
               [
                 { id: "home", label: "Home", Icon: Icons.Home },
                 { id: "messages", label: "Messages", Icon: Icons.LiveChat },
-                { id: "help", label: "Help", Icon: Icons.Help },
               ] as { id: ActiveTab; label: string; Icon: React.ComponentType<{ className?: string; size?: number }> }[]
             ).map(({ id, label, Icon }) => {
               const isActive = activeTab === id;

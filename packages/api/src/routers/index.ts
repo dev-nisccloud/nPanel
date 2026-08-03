@@ -57,6 +57,7 @@ import { creativeAssetsRouter } from "./creative-assets";
 import { creativeBriefsRouter } from "./creative-briefs";
 import { notificationsRouter } from "./notifications";
 import { ticketsRouter } from "./tickets";
+import { supportGuestRouter } from "./support-guest";
 import { hostingRouter } from "./hosting";
 import { hostingPlansRouter } from "./hosting-plans";
 import { wordpressSubscriptionsRouter } from "./wordpress-subscriptions";
@@ -226,6 +227,9 @@ export const appRouter = router({
 	notifications: notificationsRouter,
 	// Tickets/Support System Management
 	tickets: ticketsRouter,
+	support: router({
+		guest: supportGuestRouter,
+	}),
 	// Hosting Management
 	hosting: hostingRouter,
 	// Hosting Plans Management

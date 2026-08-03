@@ -158,6 +158,11 @@ function TicketRow({
           >
             {ticket.customerName || ticket.subject || "Support ticket"}
           </p>
+          {ticket.isGuest ? (
+            <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px] font-normal">
+              Guest
+            </Badge>
+          ) : null}
           <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
             {ticket.ticketNumber}
           </span>
