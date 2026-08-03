@@ -6,6 +6,7 @@ import { trpcMutation, trpcQuery } from "@/lib/domain-search/api.ts";
 import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-search-result.ts";
 import {
   isKenicTld,
+  isUnavailableKenicTld,
   normalizedItemToKenicCard,
   parseFullDomain,
   type KenicCardItem,
@@ -48,6 +49,7 @@ export function ExactMatchSection({
 
   const parsed = React.useMemo(() => parseFullDomain(normalizedRaw), [normalizedRaw]);
   const fullDomain = parsed ? `${parsed.name}.${parsed.tld}`.toLowerCase() : "";
+  const isUnavailable = parsed ? isUnavailableKenicTld(parsed.tld) : false;
   const isKenic = parsed ? isKenicTld(parsed.tld) : false;
 
   const [kenicCard, setKenicCard] = React.useState<KenicCardItem | null>(null);
@@ -96,7 +98,7 @@ export function ExactMatchSection({
   }, [fullDomain, isKenic, parsed?.name, parsed?.tld]);
 
   React.useEffect(() => {
-    if (!parsed || isKenic || !parsed.name.trim()) {
+    if (!parsed || isKenic || isUnavailable || !parsed.name.trim()) {
       setOpenProviderResult(null);
       return;
     }
@@ -147,6 +149,9 @@ export function ExactMatchSection({
   }, [anyLoading]);
 
   if (!parsed || !rawSearchQuery.trim()) return null;
+
+  // .go.ke and other non-purchasable KENIC SLDs: never show as a buyable result
+  if (isUnavailable) return null;
 
   if (anyLoading && !kenicCard && !openProviderResult) {
     return (

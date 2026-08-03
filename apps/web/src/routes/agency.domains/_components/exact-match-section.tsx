@@ -7,7 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TldLogo } from "./tld-logo";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
-import { parseFullDomain, isKenicTld, normalizedItemToKenicCard } from "./kenic-card-schema";
+import {
+	parseFullDomain,
+	isKenicTld,
+	isUnavailableKenicTld,
+	normalizedItemToKenicCard,
+} from "./kenic-card-schema";
 import { nameForOpenProvider } from "./use-section-domain-check";
 import type { KenicCardItem } from "./kenic-card-schema";
 import { trpc } from "@/utils/trpc";
@@ -85,6 +90,7 @@ export function ExactMatchSection({
 	}, [rawSearchQuery]);
 	const parsed = React.useMemo(() => parseFullDomain(normalizedRaw), [normalizedRaw]);
 	const fullDomain = parsed ? `${parsed.name}.${parsed.tld}`.toLowerCase() : "";
+	const isUnavailable = parsed ? isUnavailableKenicTld(parsed.tld) : false;
 	const isKenic = parsed ? isKenicTld(parsed.tld) : false;
 
 	// KENIC path: single domain check
@@ -95,11 +101,11 @@ export function ExactMatchSection({
 	const openProviderQuery = trpc.openProvider.domains.checkAvailability.useQuery(
 		{
 			name: nameForOpenProvider(parsed?.name ?? ""),
-			extensions: parsed && !isKenic ? [parsed.tld] : [],
+			extensions: parsed && !isKenic && !isUnavailable ? [parsed.tld] : [],
 			with_price: true,
 			with_whois: false,
 		},
-		{ enabled: !!parsed && !isKenic && !!parsed.name.trim() }
+		{ enabled: !!parsed && !isKenic && !isUnavailable && !!parsed.name.trim() }
 	);
 
 	const pricingHook = useDomainPricing(currencyContext);
@@ -188,6 +194,11 @@ export function ExactMatchSection({
 	}, [anyLoading]);
 
 	if (!parsed || !rawSearchQuery.trim()) return null;
+
+	// .go.ke and other non-purchasable KENIC SLDs: never show as a buyable result
+	if (isUnavailable) {
+		return null;
+	}
 
 	const isLoading = anyLoading;
 	const isKenicPath = isKenic;

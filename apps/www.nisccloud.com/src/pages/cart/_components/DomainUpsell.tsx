@@ -18,11 +18,14 @@ import {
   sanitizeDomainName,
   isValidSearchQuery,
   toSingleLabelName,
+  nameForOpenProvider,
 } from "@/lib/domain-search/search-utils.ts";
 import {
-  buildKenicDomainsFromQuery,
+  isUnavailableKenicTld,
   normalizeToKenicCards,
+  parseFullDomain,
 } from "@/lib/domain-search/kenic-schema.ts";
+import { getRecommendedBatch } from "@/lib/domain-search/tld-sections.ts";
 import { PricingProvider, usePricing } from "@/lib/domain-search/pricing-context.tsx";
 import { kenicItemToDomainSearchResult } from "@/lib/domain-search/to-domain-search-result.ts";
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
@@ -50,27 +53,27 @@ interface DomainUpsellProps {
   required?: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// Provider split config
-// ---------------------------------------------------------------------------
+function getExtKey(domain: string): string {
+  const d = domain.toLowerCase();
+  if (d.endsWith(".co.ke")) return "co.ke";
+  const parts = d.split(".");
+  return parts.length >= 2 ? parts.slice(1).join(".") : d;
+}
 
-/** TLDs routed to OpenProvider (gTLD) */
-const OP_TLDS = ["com", "net", "org", "africa"];
-
-/** KENIC TLD FQDNs to always check (name is filled in at runtime) */
-const KENIC_TLDS_TO_CHECK = ["co.ke", "ke"];
-
-/**
- * Display order for combined results  put .co.ke and .com first
- * (anything not listed falls to the end in arrival order).
- */
-const TLD_SORT_ORDER = ["co.ke", "com", "ke", "net", "org", "africa"];
-
-function tldSortIndex(domain: string): number {
-  for (let i = 0; i < TLD_SORT_ORDER.length; i++) {
-    if (domain.endsWith(`.${TLD_SORT_ORDER[i]}`)) return i;
-  }
-  return TLD_SORT_ORDER.length;
+function sortDomainResults(
+  results: DomainSearchResult[],
+  order: string[],
+  exactDomain?: string | null,
+): DomainSearchResult[] {
+  const rank = new Map(order.map((ext, i) => [ext.toLowerCase(), i]));
+  return [...results].sort((a, b) => {
+    if (exactDomain) {
+      const aExact = a.domain.toLowerCase() === exactDomain;
+      const bExact = b.domain.toLowerCase() === exactDomain;
+      if (aExact !== bExact) return aExact ? -1 : 1;
+    }
+    return (rank.get(getExtKey(a.domain)) ?? 999) - (rank.get(getExtKey(b.domain)) ?? 999);
+  });
 }
 
 // Validate a full domain the user already owns
@@ -103,9 +106,17 @@ function DomainUpsellInner({
   // ---- Search state ----
   const [input, setInput] = React.useState("");
   const [validationError, setValidationError] = React.useState<string | null>(null);
-  const [searchTrigger, setSearchTrigger] = React.useState<{ name: string; id: number } | null>(null);
+  const [searchTrigger, setSearchTrigger] = React.useState<{
+    name: string;
+    raw: string;
+    exactDomain: string | null;
+    id: number;
+  } | null>(null);
   const [results, setResults] = React.useState<DomainSearchResult[]>([]);
+  const [batchIndex, setBatchIndex] = React.useState(0);
+  const [hasMore, setHasMore] = React.useState(true);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
   const [isError, setIsError] = React.useState(false);
 
   // ---- Own-domain state ----
@@ -145,8 +156,172 @@ function DomainUpsellInner({
     setSearchTrigger(null);
   };
 
+  const fetchRecommendedBatch = React.useCallback(
+    async (name: string, batchIdx: number, exactDomain: string | null) => {
+      const batch = getRecommendedBatch(batchIdx);
+      const order = [...batch.kenic, ...batch.open];
+      const out: DomainSearchResult[] = [];
+
+      // If user typed a full domain with a TLD not in this batch, check it first on batch 0.
+      if (batchIdx === 0 && exactDomain) {
+        const parsed = parseFullDomain(exactDomain);
+        if (parsed) {
+          const alreadyCovered =
+            batch.kenic.includes(parsed.tld) || batch.open.includes(parsed.tld);
+          if (!alreadyCovered) {
+            try {
+              if (parsed.tld === "co.ke" || parsed.tld === "ke" || parsed.tld.endsWith(".ke")) {
+                const data = await trpcMutation<{
+                  normalized?: Array<{
+                    domain: string;
+                    available: boolean;
+                    reason?: string;
+                    currency?: string;
+                    createFee?: { amount: number; currency: string };
+                  }>;
+                }>("kenic.domainCheck.check", {
+                  domains: [exactDomain],
+                  withFee: true,
+                  currency: "KES",
+                  periodYears: 1,
+                });
+                const cards = normalizeToKenicCards(parsed.name, data?.normalized ?? []);
+                for (const item of cards) {
+                  const createCalc = getPricingInfo(
+                    item.domain,
+                    item.createPrice ?? 0,
+                    item.currency ?? "KES",
+                  );
+                  out.push(
+                    kenicItemToDomainSearchResult(item, {
+                      createFinal: createCalc.finalPrice,
+                      createCalc,
+                    }),
+                  );
+                }
+              } else {
+                const res = await trpcQuery<{
+                  success: boolean;
+                  data?: {
+                    results: Array<{
+                      domain: string;
+                      status: string;
+                      reason?: string;
+                      price?: DomainSearchResult["price"];
+                    }>;
+                  };
+                }>("openProvider.domains.checkAvailability", {
+                  name: nameForOpenProvider(parsed.name),
+                  extensions: [parsed.tld],
+                  with_price: true,
+                  with_whois: false,
+                });
+                if (res?.success && res.data?.results) {
+                  const raw: DomainSearchResult[] = res.data.results.map((r) => ({
+                    domain: r.domain ?? "",
+                    status: r.status ?? "unknown",
+                    reason: r.reason,
+                    price: r.price,
+                  }));
+                  out.push(...(await calculatePricesBatch(raw).catch(() => raw)));
+                }
+              }
+            } catch {
+              // ignore exact-only failure
+            }
+          }
+        }
+      }
+
+      if (batch.kenic.length > 0) {
+        try {
+          const kenicDomains = batch.kenic.map((tld) => `${name}.${tld}`);
+          const data = await trpcMutation<{
+            normalized?: Array<{
+              domain: string;
+              available: boolean;
+              reason?: string;
+              currency?: string;
+              createFee?: { amount: number; currency: string };
+            }>;
+          }>("kenic.domainCheck.check", {
+            domains: kenicDomains,
+            withFee: true,
+            currency: "KES",
+            periodYears: 1,
+          });
+          const cards = normalizeToKenicCards(name, data?.normalized ?? []);
+          for (const item of cards) {
+            const createCalc = getPricingInfo(
+              item.domain,
+              item.createPrice ?? 0,
+              item.currency ?? "KES",
+            );
+            out.push(
+              kenicItemToDomainSearchResult(item, {
+                createFinal: createCalc.finalPrice,
+                createCalc,
+              }),
+            );
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (batch.open.length > 0) {
+        try {
+          const res = await trpcQuery<{
+            success: boolean;
+            data?: {
+              results: Array<{
+                domain: string;
+                status: string;
+                reason?: string;
+                price?: DomainSearchResult["price"];
+              }>;
+            };
+          }>("openProvider.domains.checkAvailability", {
+            name: nameForOpenProvider(name),
+            extensions: batch.open,
+            with_price: true,
+            with_whois: false,
+          });
+          if (res?.success && res.data?.results) {
+            const raw: DomainSearchResult[] = res.data.results.map((r) => ({
+              domain: r.domain ?? "",
+              status: r.status ?? "unknown",
+              reason: r.reason,
+              price: r.price,
+            }));
+            out.push(...(await calculatePricesBatch(raw).catch(() => raw)));
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Dedupe by domain; never surface non-purchasable KENIC SLDs (e.g. .go.ke)
+      const seen = new Set<string>();
+      const unique = out.filter((r) => {
+        const key = r.domain.toLowerCase();
+        if (isUnavailableKenicTld(key)) return false;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      return {
+        results: sortDomainResults(unique, order, exactDomain),
+        hasMore: batch.hasMore,
+      };
+    },
+    [calculatePricesBatch, getPricingInfo],
+  );
+
   // ---- Trigger search ----
   const handleSearch = () => {
+    const raw = input.trim();
     const sanitized = sanitizeDomainName(input);
     if (!sanitized) {
       setValidationError("Please enter a domain name to search.");
@@ -158,8 +333,23 @@ function DomainUpsellInner({
     }
     setValidationError(null);
     const name = toSingleLabelName(sanitized);
-    // Always increment id so the effect re-fires even for the same name
-    setSearchTrigger((prev) => ({ name, id: (prev?.id ?? 0) + 1 }));
+    const cleanedRaw = raw
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./i, "")
+      .split("/")[0]
+      ?.trim() ?? "";
+    const parsed = cleanedRaw.includes(".") ? parseFullDomain(cleanedRaw) : null;
+    const exactDomain =
+      parsed && !isUnavailableKenicTld(parsed.tld)
+        ? `${parsed.name}.${parsed.tld}`.toLowerCase()
+        : null;
+    setSearchTrigger((prev) => ({
+      name,
+      raw: cleanedRaw,
+      exactDomain,
+      id: (prev?.id ?? 0) + 1,
+    }));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,93 +358,64 @@ function DomainUpsellInner({
     if (results.length) {
       setResults([]);
       setSearchTrigger(null);
+      setBatchIndex(0);
+      setHasMore(true);
     }
   };
 
-  // ---- Fetch: fires every time searchTrigger.id changes ----
+  // ---- Fetch batch 0 when searchTrigger.id changes ----
   React.useEffect(() => {
     if (!searchTrigger) return;
-    const { name } = searchTrigger;
+    const { name, exactDomain } = searchTrigger;
 
     let cancelled = false;
     setIsLoading(true);
     setIsError(false);
     setResults([]);
+    setBatchIndex(0);
+    setHasMore(true);
 
-    // ---- OpenProvider (gTLDs) ----
-    const opPromise = trpcQuery<{
-      success: boolean;
-      data?: {
-        results: Array<{
-          domain: string;
-          status: string;
-          reason?: string;
-          price?: DomainSearchResult["price"];
-        }>;
-      };
-    }>("openProvider.domains.checkAvailability", {
-      name,
-      extensions: OP_TLDS,
-      with_price: true,
-      with_whois: false,
-    }).then(async (res) => {
-      if (!res?.success || !res.data?.results) return [] as DomainSearchResult[];
-      const raw: DomainSearchResult[] = res.data.results.map((r) => ({
-        domain: r.domain ?? "",
-        status: r.status ?? "unknown",
-        reason: r.reason,
-        price: r.price,
-      }));
-      return calculatePricesBatch(raw).catch(() => raw);
-    }).catch(() => [] as DomainSearchResult[]);
-
-    // ---- KENIC (.co.ke, .ke) ----
-    const kenicDomains = KENIC_TLDS_TO_CHECK.map((tld) => `${name}.${tld}`);
-    const kenicPromise = trpcMutation<{
-      normalized?: Array<{
-        domain: string;
-        available: boolean;
-        reason?: string;
-        currency?: string;
-        createFee?: { amount: number; currency: string };
-        renewFee?: { amount: number; currency: string };
-        transferFee?: { amount: number; currency: string };
-      }>;
-    }>("kenic.domainCheck.check", {
-      domains: kenicDomains,
-      withFee: true,
-      currency: "KES",
-      periodYears: 1,
-    }).then((data) => {
-      const normalized = data?.normalized;
-      if (!normalized) return [] as DomainSearchResult[];
-      const cards = normalizeToKenicCards(name, normalized);
-      return cards.map((item) => {
-        const createCalc = getPricingInfo(item.domain, item.createPrice ?? 0, item.currency ?? "KES");
-        return kenicItemToDomainSearchResult(item, {
-          createFinal: createCalc.finalPrice,
-          createCalc,
-        });
-      });
-    }).catch(() => [] as DomainSearchResult[]);
-
-    Promise.all([opPromise, kenicPromise]).then(([opResults, kenicResults]) => {
-      if (cancelled) return;
-      const combined = [...opResults, ...kenicResults].sort(
-        (a, b) => tldSortIndex(a.domain) - tldSortIndex(b.domain),
-      );
-      setResults(combined);
-      setIsLoading(false);
-    }).catch(() => {
-      if (!cancelled) {
-        setIsError(true);
+    fetchRecommendedBatch(name, 0, exactDomain)
+      .then(({ results: next, hasMore: more }) => {
+        if (cancelled) return;
+        setResults(next);
+        setHasMore(more);
         setIsLoading(false);
-      }
-    });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIsError(true);
+          setIsLoading(false);
+        }
+      });
 
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTrigger?.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [searchTrigger?.id, fetchRecommendedBatch]);
+
+  const handleListMore = async () => {
+    if (!searchTrigger || isLoadingMore || !hasMore) return;
+    const nextIndex = batchIndex + 1;
+    setIsLoadingMore(true);
+    try {
+      const { results: next, hasMore: more } = await fetchRecommendedBatch(
+        searchTrigger.name,
+        nextIndex,
+        null,
+      );
+      setResults((prev) => {
+        const seen = new Set(prev.map((r) => r.domain.toLowerCase()));
+        return [...prev, ...next.filter((r) => !seen.has(r.domain.toLowerCase()))];
+      });
+      setBatchIndex(nextIndex);
+      setHasMore(more);
+    } catch {
+      // keep current results
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const applyTransferCheckResult = React.useCallback((result: CheckTransferResult) => {
     setTransferResult(result);
@@ -437,7 +598,7 @@ function DomainUpsellInner({
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-                placeholder="e.g. mybusiness (without extension)"
+                placeholder="e.g. mybusiness or mybusiness.co.ke"
                 className={cn(
                   "h-11 rounded-xl text-sm",
                   validationError && "border-destructive focus-visible:ring-destructive",
@@ -482,6 +643,9 @@ function DomainUpsellInner({
                   const available = isAvailable(r);
                   const price = getDomainPrice(r);
                   const isSelected = selectedDomain?.domain === r.domain;
+                  const isExact =
+                    !!searchTrigger?.exactDomain &&
+                    r.domain.toLowerCase() === searchTrigger.exactDomain;
 
                   return (
                     <div
@@ -491,7 +655,9 @@ function DomainUpsellInner({
                         available
                           ? isSelected
                             ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/40 bg-card"
+                            : isExact
+                              ? "border-primary/50 bg-primary/5"
+                              : "border-border hover:border-primary/40 bg-card"
                           : "border-border bg-muted/30 opacity-60",
                       )}
                     >
@@ -509,6 +675,11 @@ function DomainUpsellInner({
                         >
                           {r.domain}
                         </span>
+                        {isExact && (
+                          <Badge className="text-xs bg-primary/10 text-primary border-primary/20 shrink-0">
+                            Exact match
+                          </Badge>
+                        )}
                         {available && (
                           <Badge className="text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hidden sm:inline-flex shrink-0">
                             Available
@@ -519,7 +690,8 @@ function DomainUpsellInner({
                       <div className="flex items-center gap-3 shrink-0">
                         {available && price > 0 && (
                           <span className="text-sm font-bold text-foreground whitespace-nowrap">
-                            KES {price.toLocaleString()}/yr
+                            KES {price.toLocaleString()}
+                            <sup className="ml-0.5 text-[9px] font-normal text-muted-foreground">/yr</sup>
                           </span>
                         )}
                         {!available && (
@@ -547,12 +719,35 @@ function DomainUpsellInner({
                     </div>
                   );
                 })}
+
+              {/* Bottom-only skeleton while appending List more results */}
+              {isLoadingMore && (
+                <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground border-t border-border">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading more extensions…
+                </div>
+              )}
+
+              {hasMore && !isLoading && results.length > 0 && (
+                <div className="pt-2 flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={isLoadingMore}
+                    onClick={() => void handleListMore()}
+                  >
+                    {isLoadingMore ? "Loading…" : "List more"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
           {!searchedName && !isLoading && (
             <p className="text-xs text-muted-foreground mt-3 text-center">
-              Type a name above and press Search to check .co.ke, .com, .ke, .net, .org &amp; .africa.
+              Search a name or full domain. We check .co.ke, .ke, .com, .net, .store, .app and more.
             </p>
           )}
         </>

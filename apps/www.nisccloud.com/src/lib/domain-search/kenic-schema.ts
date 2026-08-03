@@ -1,3 +1,4 @@
+/** All KENIC TLDs we can parse / exact-match (includes specialty SLDs). */
 export const KENIC_SUPPORTED_TLDS = [
   "ke",
   "co.ke",
@@ -10,7 +11,20 @@ export const KENIC_SUPPORTED_TLDS = [
   "ac.ke",
 ] as const;
 
+/**
+ * Kenyan TLDs shown in domain search lists.
+ * Specialty SLDs (or.ke, ac.ke, etc.) are only shown via exact-match search.
+ */
+export const KENIC_SEARCH_TLDS = ["ke", "co.ke"] as const;
+
+/**
+ * Recognized KENIC SLDs that cannot be purchased through nPanel.
+ * Never show these in search results or offer add-to-cart.
+ */
+export const KENIC_UNAVAILABLE_TLDS = ["go.ke"] as const;
+
 export type KenicTldSlug = (typeof KENIC_SUPPORTED_TLDS)[number];
+export type KenicSearchTldSlug = (typeof KENIC_SEARCH_TLDS)[number];
 
 export interface KenicCardItem {
   domain: string;
@@ -26,10 +40,11 @@ export interface KenicCardItem {
 export function buildKenicDomainsFromQuery(searchQuery: string): string[] {
   const name = searchQuery.trim().toLowerCase().replace(/\s+/g, "");
   if (!name) return [];
-  return KENIC_SUPPORTED_TLDS.map((tld) => `${name}.${tld}`);
+  return KENIC_SEARCH_TLDS.map((tld) => `${name}.${tld}`);
 }
 
 const KENIC_TLD_SET = new Set(KENIC_SUPPORTED_TLDS);
+const KENIC_UNAVAILABLE_SET = new Set<string>(KENIC_UNAVAILABLE_TLDS);
 
 export function parseFullDomain(input: string): { name: string; tld: string } | null {
   const s = input.trim().toLowerCase().replace(/\s+/g, "");
@@ -42,7 +57,10 @@ export function parseFullDomain(input: string): { name: string; tld: string } | 
   const secondLast = parts.at(-2) ?? "";
   if (last === "ke" && secondLast) {
     const twoPartTld = `${secondLast}.${last}`;
-    if (KENIC_TLD_SET.has(twoPartTld as KenicTldSlug)) {
+    if (
+      KENIC_TLD_SET.has(twoPartTld as KenicTldSlug) ||
+      KENIC_UNAVAILABLE_SET.has(twoPartTld)
+    ) {
       return { name: parts.slice(0, -2).join("."), tld: twoPartTld };
     }
   }
@@ -52,13 +70,28 @@ export function parseFullDomain(input: string): { name: string; tld: string } | 
   return { name: parts.slice(0, -1).join("."), tld: last };
 }
 
+/** True if TLD is managed by KENIC and purchasable through nPanel. */
 export function isKenicTld(tld: string): boolean {
-  return KENIC_TLD_SET.has(tld.toLowerCase() as KenicTldSlug);
+  const lower = tld.toLowerCase();
+  if (KENIC_UNAVAILABLE_SET.has(lower)) return false;
+  return KENIC_TLD_SET.has(lower as KenicTldSlug);
+}
+
+/** True if this TLD/domain cannot be purchased (e.g. .go.ke). */
+export function isUnavailableKenicTld(tldOrDomain: string): boolean {
+  const lower = tldOrDomain.toLowerCase().replace(/^\./, "");
+  if (KENIC_UNAVAILABLE_SET.has(lower)) return true;
+  for (const blocked of KENIC_UNAVAILABLE_TLDS) {
+    if (lower === blocked || lower.endsWith(`.${blocked}`)) return true;
+  }
+  return false;
 }
 
 export function stripKenyanTldFromQuery(query: string): string {
   const lower = query.trim().toLowerCase();
-  const sorted = [...KENIC_SUPPORTED_TLDS].sort((a, b) => b.length - a.length);
+  const sorted = [...KENIC_SUPPORTED_TLDS, ...KENIC_UNAVAILABLE_TLDS].sort(
+    (a, b) => b.length - a.length,
+  );
   for (const tld of sorted) {
     if (lower.endsWith("." + tld)) return lower.slice(0, -(tld.length + 1));
   }
@@ -125,7 +158,7 @@ export function normalizeToKenicCards(
     ]),
   );
 
-  return KENIC_SUPPORTED_TLDS.map((tldSlug) => {
+  return KENIC_SEARCH_TLDS.map((tldSlug) => {
     const domain = `${name}.${tldSlug}`;
     const tldDisplay = tldSlug === "ke" ? ".ke" : `.${tldSlug}`;
     const data = byDomain.get(domain);

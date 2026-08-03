@@ -65,12 +65,20 @@ export function useSectionDomainCheck(
           setIsLoading(false);
           return;
         }
-        const rawResults: DomainSearchResult[] = response.data.results.map((r) => ({
-          domain: r.domain ?? "",
-          status: r.status ?? "unknown",
-          reason: r.reason,
-          price: r.price,
-        }));
+        // Restore curated extension order (API cache key must not reorder request).
+        const order = new Map(extensions.map((ext, i) => [ext.toLowerCase(), i]));
+        const getExt = (domain: string) => {
+          const parts = domain.toLowerCase().split(".");
+          return parts.length >= 2 ? parts.slice(1).join(".") : domain;
+        };
+        const rawResults: DomainSearchResult[] = [...response.data.results]
+          .map((r) => ({
+            domain: r.domain ?? "",
+            status: r.status ?? "unknown",
+            reason: r.reason,
+            price: r.price,
+          }))
+          .sort((a, b) => (order.get(getExt(a.domain)) ?? 999) - (order.get(getExt(b.domain)) ?? 999));
         setRawData(rawResults);
         setIsLoading(false);
       })

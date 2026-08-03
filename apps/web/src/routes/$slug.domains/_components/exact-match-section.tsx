@@ -7,14 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TldLogo } from "./tld-logo";
 import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
-import { parseFullDomain, isKenicTld, normalizedItemToKenicCard } from "./kenic-card-schema";
+import {
+	parseFullDomain,
+	isKenicTld,
+	isUnavailableKenicTld,
+	normalizedItemToKenicCard,
+} from "./kenic-card-schema";
 import { nameForOpenProvider } from "./use-section-domain-check";
 import type { KenicCardItem } from "./kenic-card-schema";
 import { trpc } from "@/utils/trpc";
 import { useCurrency } from "./currency-context";
 import { useDomainPricing } from "@/hooks/use-domain-pricing";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
-import { getCustomerRetailDisplayPrice } from "./customer-domain-display-price";
 import { Check } from "lucide-react";
 
 const formatPrice = (price?: number, currency?: string) => {
@@ -77,8 +81,7 @@ export function ExactMatchSection({
 	onLoadingChange,
 }: ExactMatchSectionProps) {
 	const currencyContext = useCurrency();
-	const { getPricingInfo, hasDefaultSetting, isLoadingTldSettings } = useDomainPricing(currencyContext);
-	const retailPricingReady = !isLoadingTldSettings && hasDefaultSetting;
+	const { getPricingInfo } = useDomainPricing(currencyContext);
 
 	const normalizedRaw = React.useMemo(() => {
 		let s = rawSearchQuery.trim().toLowerCase();
@@ -87,6 +90,7 @@ export function ExactMatchSection({
 	}, [rawSearchQuery]);
 	const parsed = React.useMemo(() => parseFullDomain(normalizedRaw), [normalizedRaw]);
 	const fullDomain = parsed ? `${parsed.name}.${parsed.tld}`.toLowerCase() : "";
+	const isUnavailable = parsed ? isUnavailableKenicTld(parsed.tld) : false;
 	const isKenic = parsed ? isKenicTld(parsed.tld) : false;
 
 	// KENIC path: single domain check
@@ -97,15 +101,14 @@ export function ExactMatchSection({
 	const openProviderQuery = trpc.openProvider.domains.checkAvailability.useQuery(
 		{
 			name: nameForOpenProvider(parsed?.name ?? ""),
-			extensions: parsed && !isKenic ? [parsed.tld] : [],
+			extensions: parsed && !isKenic && !isUnavailable ? [parsed.tld] : [],
 			with_price: true,
 			with_whois: false,
 		},
-		{ enabled: !!parsed && !isKenic && !!parsed.name.trim() }
+		{ enabled: !!parsed && !isKenic && !isUnavailable && !!parsed.name.trim() }
 	);
 
 	const pricingHook = useDomainPricing(currencyContext);
-	const { calculatePricesBatch } = pricingHook;
 	const [openProviderResult, setOpenProviderResult] = React.useState<DomainSearchResult | null>(null);
 	const openForProduct = useGlobalBuyNowStore((s) => s.openForProduct);
 	const { data: domainsProductId } = trpc.clientSubscriptions.getDomainsProductId.useQuery(undefined, { enabled: true });
@@ -149,8 +152,9 @@ export function ExactMatchSection({
 		);
 	}, [fullDomain, isKenic, parsed?.name, parsed?.tld]);
 
-	// OpenProvider: clear when domain changes; start pricing batch when raw data exists (after paint).
-	// Use stable `calculatePricesBatch` in deps - the full `pricingHook` object is a new reference every render.
+	const { calculatePricesBatch } = pricingHook;
+
+	// OpenProvider: clear when domain changes; start pricing batch when raw data exists (after paint)
 	React.useEffect(() => {
 		if (!openProviderRaw || !calculatePricesBatch) {
 			setOpenProviderResult(null);
@@ -191,6 +195,11 @@ export function ExactMatchSection({
 
 	if (!parsed || !rawSearchQuery.trim()) return null;
 
+	// .go.ke and other non-purchasable KENIC SLDs: never show as a buyable result
+	if (isUnavailable) {
+		return null;
+	}
+
 	const isLoading = anyLoading;
 	const isKenicPath = isKenic;
 
@@ -218,6 +227,12 @@ export function ExactMatchSection({
 			marginValue: createCalc.marginValue,
 			currency: createCalc.currency,
 		});
+		const marginLabel =
+			createCalc.marginType && createCalc.marginAmount > 0
+				? createCalc.marginType === "PERCENTAGE"
+					? `+${createCalc.marginValue}% (+${formatPrice(createCalc.marginAmount, createCalc.currency)})`
+					: `+${formatPrice(parseFloat(String(createCalc.marginValue ?? 0)), createCalc.currency)}`
+				: null;
 		const isInCart = isDomainInCart(kenicCard.domain);
 
 		return (
@@ -238,8 +253,14 @@ export function ExactMatchSection({
 					<div className="font-bold text-base text-primary mb-1 truncate" title={kenicCard.domain}>
 						{kenicCard.domain}
 					</div>
-					{kenicCard.available && retailPricingReady && (
+					{kenicCard.available && (
 						<div className="space-y-0.5 mb-2">
+							{kenicCard.createPrice != null && (
+								<div className="text-xs text-muted-foreground">Original: {formatPrice(kenicCard.createPrice, currency)}</div>
+							)}
+							{marginLabel != null && marginLabel !== "" && (
+								<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
+							)}
 							<div className="text-base font-bold text-foreground">{formatPrice(createFinal, currency)}</div>
 						</div>
 					)}
@@ -263,7 +284,7 @@ export function ExactMatchSection({
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{kenicCard.available ? (
 							<>
-								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId || !retailPricingReady}>
+								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: displayResult })} className="text-xs h-8 px-3" disabled={!domainsProductId}>
 									Buy Now
 								</Button>
 								<Button
@@ -272,10 +293,9 @@ export function ExactMatchSection({
 									onClick={(e) => {
 										e?.preventDefault();
 										if (isInCart) onRemoveFromCart(kenicCard.domain);
-										else if (retailPricingReady) onAddToCart(displayResult);
+										else onAddToCart(displayResult);
 									}}
 									className="h-8 w-8 p-0"
-									disabled={!retailPricingReady && !isInCart}
 									title={isInCart ? "Remove from cart" : "Add to cart"}
 								>
 									{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}
@@ -294,11 +314,39 @@ export function ExactMatchSection({
 
 	if (!isKenicPath && openProviderResult) {
 		const r = openProviderResult;
-		const { displayPrice, displayCurrency } = getCustomerRetailDisplayPrice(r);
-		const priceReady =
-			displayPrice != null &&
-			displayCurrency != null &&
-			!Number.isNaN(displayPrice);
+		const calculated = r.price?.calculated as {
+			originalPrice?: number;
+			convertedOriginalPrice?: number;
+			marginAmount?: number;
+			finalPrice: number;
+			currency: string;
+			marginType?: string | null;
+			marginValue?: string | null;
+			convertedPrice?: number;
+			displayCurrency?: string;
+		} | undefined;
+		const displayPrice = calculated
+			? (calculated.convertedPrice ?? calculated.finalPrice)
+			: r.price?.reseller?.price;
+		const displayCurrency = calculated?.displayCurrency ?? calculated?.currency ?? r.price?.reseller?.currency ?? "USD";
+		// Original: show in display currency (converted) when available, so the card matches .com / other cards
+		const originalPrice = calculated?.convertedOriginalPrice ?? calculated?.originalPrice ?? r.price?.reseller?.price;
+		const originalCurrency = calculated?.convertedOriginalPrice != null ? displayCurrency : (calculated?.currency ?? r.price?.reseller?.currency ?? "USD");
+		// Margin in display currency for the label
+		const marginAmountOriginal = calculated?.marginAmount ?? 0;
+		const marginInDisplayCurrency =
+			calculated?.convertedPrice != null &&
+			calculated?.finalPrice != null &&
+			calculated.finalPrice > 0 &&
+			marginAmountOriginal > 0
+				? marginAmountOriginal * (calculated.convertedPrice / calculated.finalPrice)
+				: marginAmountOriginal;
+		const marginLabel =
+			calculated?.marginType && (marginAmountOriginal > 0 || (calculated.marginValue != null && calculated.marginValue !== ""))
+				? calculated.marginType === "PERCENTAGE"
+					? `+${calculated.marginValue}% (+${formatPrice(marginInDisplayCurrency, displayCurrency)})`
+					: `+${formatPrice(marginInDisplayCurrency, displayCurrency)}`
+				: null;
 		const isAvailable = r.status === "free";
 		const isInCart = isDomainInCart(r.domain);
 		const tld = r.domain.includes(".") ? r.domain.split(".").slice(-1)[0] ?? "" : "";
@@ -321,8 +369,14 @@ export function ExactMatchSection({
 					<div className="font-bold text-base text-primary mb-1 truncate" title={r.domain}>
 						{r.domain}
 					</div>
-					{isAvailable && priceReady && (
+					{isAvailable && r.price && (
 						<div className="space-y-0.5 mb-2">
+							{originalPrice != null && (
+								<div className="text-xs text-muted-foreground">Original: {formatPrice(originalPrice, originalCurrency)}</div>
+							)}
+							{marginLabel != null && marginLabel !== "" && (
+								<div className="text-xs text-green-600 dark:text-green-400">{marginLabel}</div>
+							)}
 							<div className="text-base font-bold text-foreground">{formatPrice(displayPrice, displayCurrency)}</div>
 						</div>
 					)}
@@ -346,7 +400,7 @@ export function ExactMatchSection({
 					<div className="mt-auto flex items-center justify-center gap-2">
 						{isAvailable ? (
 							<>
-								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: r })} className="text-xs h-8 px-3" disabled={!domainsProductId || !priceReady}>
+								<Button size="sm" variant="default" onClick={() => domainsProductId && openForProduct({ productId: domainsProductId, productName: "Domains", domain: r })} className="text-xs h-8 px-3" disabled={!domainsProductId}>
 									Buy Now
 								</Button>
 								<Button
@@ -355,10 +409,9 @@ export function ExactMatchSection({
 									onClick={(e) => {
 										e?.preventDefault();
 										if (isInCart) onRemoveFromCart(r.domain);
-										else if (priceReady) onAddToCart(r);
+										else onAddToCart(r);
 									}}
 									className="h-8 w-8 p-0"
-									disabled={!priceReady && !isInCart}
 									title={isInCart ? "Remove from cart" : "Add to cart"}
 								>
 									{isInCart ? <XCircle className="h-4 w-4" /> : <ShoppingCart className="h-4 w-4" />}

@@ -185,7 +185,10 @@ export const openProviderDomainsRouter = router({
         
         if (redis && input.name) {
           // Create cache key from input parameters
-          const extensionsKey = input.extensions?.sort().join(',') || 'all';
+          // Sort a copy only for the cache key — never mutate request extension order.
+          const extensionsKey = input.extensions
+            ? [...input.extensions].sort().join(',')
+            : 'all';
           cacheKey = `domain-check:${input.name}:${extensionsKey}:${input.with_price}:${input.with_whois}`;
           
           try {
