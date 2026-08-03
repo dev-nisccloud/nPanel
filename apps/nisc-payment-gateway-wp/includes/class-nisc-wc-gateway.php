@@ -24,8 +24,8 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 
 	public function __construct() {
 		$this->id                 = 'nisc_payment_gateway';
-		$this->method_title       = __( 'Nisc Payment Gateway', 'nisc-payment-gateway' );
-		$this->method_description = __( 'Nisc Cloud Payment Gateway accept M-Pesa STK Push on WooCommerce without storing Safaricom credentials. Get access: call +254748777666 or email support@nisccloud.com.', 'nisc-payment-gateway' );
+		$this->method_title       = __( 'Nisc Payment Gateway', 'nisc-payment-gateway-for-woocommerce' );
+		$this->method_description = __( 'Accept M-Pesa without managing a payment gateway yourself. We handle compliance, security, and infrastructure. You just collect payments. Contact: +254748777666 or support@nisccloud.com', 'nisc-payment-gateway-for-woocommerce' );
 		$this->has_fields         = true;
 		$this->supports           = array( 'products' );
 /**
@@ -37,8 +37,8 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 		$this->init_form_fields();
 		$this->init_settings();
 
-		$this->title       = $this->get_option( 'title', __( 'M-Pesa (Nisc)', 'nisc-payment-gateway' ) );
-		$this->description = $this->get_option( 'description', __( 'You will receive an M-Pesa prompt on your phone. Enter your PIN to complete payment.', 'nisc-payment-gateway' ) );
+		$this->title       = $this->get_option( 'title', __( 'M-Pesa (Nisc)', 'nisc-payment-gateway-for-woocommerce' ) );
+		$this->description = $this->get_option( 'description', __( 'You will receive an M-Pesa prompt on your phone. Enter your PIN to complete payment.', 'nisc-payment-gateway-for-woocommerce' ) );
 		$this->enabled     = $this->get_option( 'enabled', 'no' );
 		$this->api_key     = $this->get_option( 'api_key', '' );
 		$this->connected   = $this->get_option( 'connected', 'no' );
@@ -50,30 +50,30 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 	public function init_form_fields(): void {
 		$this->form_fields = array(
 			'enabled'     => array(
-				'title'   => __( 'Enable / Disable', 'nisc-payment-gateway' ),
+				'title'   => __( 'Enable / Disable', 'nisc-payment-gateway-for-woocommerce' ),
 				'type'    => 'checkbox',
-				'label'   => __( 'Enable Nisc Payment Gateway', 'nisc-payment-gateway' ),
+				'label'   => __( 'Enable Nisc Payment Gateway', 'nisc-payment-gateway-for-woocommerce' ),
 				'default' => 'no',
 			),
 			'title'       => array(
-				'title'       => __( 'Checkout title', 'nisc-payment-gateway' ),
+				'title'       => __( 'Checkout title', 'nisc-payment-gateway-for-woocommerce' ),
 				'type'        => 'text',
-				'description' => __( 'Shown to customers at checkout.', 'nisc-payment-gateway' ),
-				'default'     => __( 'M-Pesa (Nisc)', 'nisc-payment-gateway' ),
+				'description' => __( 'Shown to customers at checkout.', 'nisc-payment-gateway-for-woocommerce' ),
+				'default'     => __( 'M-Pesa (Nisc)', 'nisc-payment-gateway-for-woocommerce' ),
 				'desc_tip'    => true,
 			),
 			'description' => array(
-				'title'       => __( 'Checkout description', 'nisc-payment-gateway' ),
+				'title'       => __( 'Checkout description', 'nisc-payment-gateway-for-woocommerce' ),
 				'type'        => 'textarea',
-				'description' => __( 'Instructions shown under the payment method.', 'nisc-payment-gateway' ),
-				'default'     => __( 'You will receive an M-Pesa prompt on your phone. Enter your PIN to complete payment.', 'nisc-payment-gateway' ),
+				'description' => __( 'Instructions shown under the payment method.', 'nisc-payment-gateway-for-woocommerce' ),
+				'default'     => __( 'You will receive an M-Pesa prompt on your phone. Enter your PIN to complete payment.', 'nisc-payment-gateway-for-woocommerce' ),
 			),
 			'api_key'     => array(
-				'title' => __( 'API key', 'nisc-payment-gateway' ),
+				'title' => __( 'API key', 'nisc-payment-gateway-for-woocommerce' ),
 				'type'  => 'password',
 			),
 			'connected'   => array(
-				'title' => __( 'Connected', 'nisc-payment-gateway' ),
+				'title' => __( 'Connected', 'nisc-payment-gateway-for-woocommerce' ),
 				'type'  => 'text',
 			),
 		);
@@ -99,37 +99,37 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 				<div class="nisc-pg-hero__brand">
 					<img
 						src="<?php echo esc_url( $logo_url ); ?>"
-						alt="<?php esc_attr_e( 'Nisc Cloud Payment Gateway', 'nisc-payment-gateway' ); ?>"
+						alt="<?php esc_attr_e( 'Nisc Cloud Payment Gateway', 'nisc-payment-gateway-for-woocommerce' ); ?>"
 						class="nisc-pg-hero__logo"
 					/>
 				</div>
 				<div class="nisc-pg-hero__copy">
-					<p class="nisc-pg-hero__eyebrow"><?php esc_html_e( 'WooCommerce payment method', 'nisc-payment-gateway' ); ?></p>
-					<h2><?php esc_html_e( 'Accept payments in three steps', 'nisc-payment-gateway' ); ?></h2>
-					<p><?php esc_html_e( 'Paste the API key from your nPanel merchant account. We register webhooks for you. No technical setup.', 'nisc-payment-gateway' ); ?></p>
+					<p class="nisc-pg-hero__eyebrow"><?php esc_html_e( 'WooCommerce payment method', 'nisc-payment-gateway-for-woocommerce' ); ?></p>
+					<h2><?php esc_html_e( 'Accept payments in three steps', 'nisc-payment-gateway-for-woocommerce' ); ?></h2>
+					<p><?php esc_html_e( 'Paste the API key from your nPanel merchant account. We register webhooks for you. No technical setup.', 'nisc-payment-gateway-for-woocommerce' ); ?></p>
 				</div>
 			</header>
 
-			<div class="nisc-pg-steps" role="list" aria-label="<?php esc_attr_e( 'Setup steps', 'nisc-payment-gateway' ); ?>">
+			<div class="nisc-pg-steps" role="list" aria-label="<?php esc_attr_e( 'Setup steps', 'nisc-payment-gateway-for-woocommerce' ); ?>">
 				<div class="nisc-pg-steps__item is-done" role="listitem">
 					<span class="nisc-pg-steps__num" aria-hidden="true">1</span>
 					<div>
-						<strong><?php esc_html_e( 'Install plugin', 'nisc-payment-gateway' ); ?></strong>
-						<span><?php esc_html_e( 'You are here. Plugin is active.', 'nisc-payment-gateway' ); ?></span>
+						<strong><?php esc_html_e( 'Install plugin', 'nisc-payment-gateway-for-woocommerce' ); ?></strong>
+						<span><?php esc_html_e( 'You are here. Plugin is active.', 'nisc-payment-gateway-for-woocommerce' ); ?></span>
 					</div>
 				</div>
 				<div class="nisc-pg-steps__item <?php echo $connected ? 'is-done' : 'is-current'; ?>" role="listitem">
 					<span class="nisc-pg-steps__num" aria-hidden="true">2</span>
 					<div>
-						<strong><?php esc_html_e( 'Connect with API key', 'nisc-payment-gateway' ); ?></strong>
-						<span><?php esc_html_e( 'From nPanel → Payment Gateway → your merchant → API keys.', 'nisc-payment-gateway' ); ?></span>
+						<strong><?php esc_html_e( 'Connect with API key', 'nisc-payment-gateway-for-woocommerce' ); ?></strong>
+						<span><?php esc_html_e( 'From nPanel → Payment Gateway → your merchant → API keys.', 'nisc-payment-gateway-for-woocommerce' ); ?></span>
 					</div>
 				</div>
 				<div class="nisc-pg-steps__item <?php echo $connected ? 'is-done' : ''; ?>" role="listitem">
 					<span class="nisc-pg-steps__num" aria-hidden="true">3</span>
 					<div>
-						<strong><?php esc_html_e( 'Enable at checkout', 'nisc-payment-gateway' ); ?></strong>
-						<span><?php esc_html_e( 'Turn on the method below and take a test order.', 'nisc-payment-gateway' ); ?></span>
+						<strong><?php esc_html_e( 'Enable at checkout', 'nisc-payment-gateway-for-woocommerce' ); ?></strong>
+						<span><?php esc_html_e( 'Turn on the method below and take a test order.', 'nisc-payment-gateway-for-woocommerce' ); ?></span>
 					</div>
 				</div>
 			</div>
@@ -141,8 +141,8 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 						<strong class="nisc-pg-status-label">
 							<?php
 							echo $connected
-								? esc_html__( 'Connected', 'nisc-payment-gateway' )
-								: esc_html__( 'Not connected', 'nisc-payment-gateway' );
+								? esc_html__( 'Connected', 'nisc-payment-gateway-for-woocommerce' )
+								: esc_html__( 'Not connected', 'nisc-payment-gateway-for-woocommerce' );
 							?>
 						</strong>
 						<p class="nisc-pg-status-meta" id="nisc-pg-status-meta">
@@ -150,12 +150,12 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 							if ( $connected ) {
 								printf(
 									/* translators: 1: merchant name, 2: environment label */
-									esc_html__( '%1$s · %2$s', 'nisc-payment-gateway' ),
-									esc_html( $merchant_name ?: __( 'Merchant', 'nisc-payment-gateway' ) ),
-									esc_html( $env_label ?: __( 'Live key from nPanel', 'nisc-payment-gateway' ) )
+									esc_html__( '%1$s · %2$s', 'nisc-payment-gateway-for-woocommerce' ),
+									esc_html( $merchant_name ?: __( 'Merchant', 'nisc-payment-gateway-for-woocommerce' ) ),
+									esc_html( $env_label ?: __( 'Live key from nPanel', 'nisc-payment-gateway-for-woocommerce' ) )
 								);
 							} else {
-								esc_html_e( 'Paste your API key to connect this store.', 'nisc-payment-gateway' );
+								esc_html_e( 'Paste your API key to connect this store.', 'nisc-payment-gateway-for-woocommerce' );
 							}
 							?>
 						</p>
@@ -164,7 +164,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 
 				<div class="nisc-pg-connect" id="nisc-pg-connect-form" <?php echo $connected ? 'hidden' : ''; ?>>
 					<label class="nisc-pg-label" for="nisc-pg-api-key-input">
-						<?php esc_html_e( 'API key', 'nisc-payment-gateway' ); ?>
+						<?php esc_html_e( 'API key', 'nisc-payment-gateway-for-woocommerce' ); ?>
 					</label>
 					<div class="nisc-pg-connect__row">
 						<input
@@ -176,11 +176,11 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 							spellcheck="false"
 						/>
 						<button type="button" class="button button-primary nisc-pg-btn-primary" id="nisc-pg-connect-btn">
-							<?php esc_html_e( 'Connect', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Connect', 'nisc-payment-gateway-for-woocommerce' ); ?>
 						</button>
 					</div>
 					<p class="nisc-pg-help">
-						<?php esc_html_e( 'Sandbox or production is already set on the key in nPanel. You only need the key here.', 'nisc-payment-gateway' ); ?>
+						<?php esc_html_e( 'Sandbox or production is already set on the key in nPanel. You only need the key here.', 'nisc-payment-gateway-for-woocommerce' ); ?>
 					</p>
 					<div class="nisc-pg-alert" id="nisc-pg-alert" hidden role="alert"></div>
 				</div>
@@ -188,29 +188,29 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 				<div class="nisc-pg-connected" id="nisc-pg-connected-view" <?php echo $connected ? '' : 'hidden'; ?>>
 					<dl class="nisc-pg-facts">
 						<div>
-							<dt><?php esc_html_e( 'API key', 'nisc-payment-gateway' ); ?></dt>
+							<dt><?php esc_html_e( 'API key', 'nisc-payment-gateway-for-woocommerce' ); ?></dt>
 							<dd id="nisc-pg-masked-key"><code><?php echo esc_html( $masked_key ); ?></code></dd>
 						</div>
 						<div>
-							<dt><?php esc_html_e( 'Webhook', 'nisc-payment-gateway' ); ?></dt>
+							<dt><?php esc_html_e( 'Webhook', 'nisc-payment-gateway-for-woocommerce' ); ?></dt>
 							<dd>
 								<code class="nisc-pg-mono" id="nisc-pg-webhook-url"><?php echo esc_html( $webhook_url ); ?></code>
-								<span class="nisc-pg-badge"><?php esc_html_e( 'Auto-registered', 'nisc-payment-gateway' ); ?></span>
+								<span class="nisc-pg-badge"><?php esc_html_e( 'Auto-registered', 'nisc-payment-gateway-for-woocommerce' ); ?></span>
 							</dd>
 						</div>
 						<?php if ( $connected_at ) : ?>
 						<div>
-							<dt><?php esc_html_e( 'Connected', 'nisc-payment-gateway' ); ?></dt>
+							<dt><?php esc_html_e( 'Connected', 'nisc-payment-gateway-for-woocommerce' ); ?></dt>
 							<dd id="nisc-pg-connected-at"><?php echo esc_html( $connected_at ); ?></dd>
 						</div>
 						<?php endif; ?>
 					</dl>
 					<div class="nisc-pg-connected__actions">
 						<button type="button" class="button" id="nisc-pg-refresh-btn">
-							<?php esc_html_e( 'Refresh webhook', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Refresh webhook', 'nisc-payment-gateway-for-woocommerce' ); ?>
 						</button>
 						<button type="button" class="button nisc-pg-btn-danger" id="nisc-pg-disconnect-btn">
-							<?php esc_html_e( 'Disconnect', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Disconnect', 'nisc-payment-gateway-for-woocommerce' ); ?>
 						</button>
 					</div>
 					<div class="nisc-pg-alert" id="nisc-pg-alert-connected" hidden role="status"></div>
@@ -220,13 +220,13 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 			<section class="nisc-pg-panel nisc-pg-panel--connection-test" id="nisc-pg-connection-test-panel">
 				<div class="nisc-pg-test__header">
 					<div>
-						<h3><?php esc_html_e( 'Connection test', 'nisc-payment-gateway' ); ?></h3>
+						<h3><?php esc_html_e( 'Connection test', 'nisc-payment-gateway-for-woocommerce' ); ?></h3>
 						<p class="nisc-pg-help">
-							<?php esc_html_e( 'Confirms this store can reach Nisc servers, your API key is valid, and M-Pesa OAuth token generation works. No STK push is sent.', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Confirms this store can reach Nisc servers, your API key is valid, and M-Pesa OAuth token generation works. No STK push is sent.', 'nisc-payment-gateway-for-woocommerce' ); ?>
 						</p>
 					</div>
 					<button type="button" class="button button-primary nisc-pg-btn-primary" id="nisc-pg-connection-test-btn">
-						<?php esc_html_e( 'Connection test', 'nisc-payment-gateway' ); ?>
+						<?php esc_html_e( 'Connection test', 'nisc-payment-gateway-for-woocommerce' ); ?>
 					</button>
 				</div>
 
@@ -238,9 +238,9 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 				>
 					<div class="nisc-pg-conn-card__icon" aria-hidden="true"></div>
 					<div class="nisc-pg-conn-card__body">
-						<strong id="nisc-pg-conn-card-title"><?php esc_html_e( 'Not tested yet', 'nisc-payment-gateway' ); ?></strong>
+						<strong id="nisc-pg-conn-card-title"><?php esc_html_e( 'Not tested yet', 'nisc-payment-gateway-for-woocommerce' ); ?></strong>
 						<p class="nisc-pg-help" id="nisc-pg-conn-card-summary">
-							<?php esc_html_e( 'Run Connection test before sending an STK. A green card means gateway + M-Pesa token are healthy.', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Run Connection test before sending an STK. A green card means gateway + M-Pesa token are healthy.', 'nisc-payment-gateway-for-woocommerce' ); ?>
 						</p>
 						<ul class="nisc-pg-conn-checks" id="nisc-pg-conn-checks" hidden></ul>
 					</div>
@@ -250,18 +250,18 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 			<section class="nisc-pg-panel nisc-pg-panel--test" id="nisc-pg-test-panel" <?php echo $connected ? '' : 'hidden'; ?>>
 				<div class="nisc-pg-test__header">
 					<div>
-						<h3><?php esc_html_e( 'Test STK → webhook', 'nisc-payment-gateway' ); ?></h3>
+						<h3><?php esc_html_e( 'Test STK → webhook', 'nisc-payment-gateway-for-woocommerce' ); ?></h3>
 						<p class="nisc-pg-help">
-							<?php esc_html_e( 'Send yourself a real M-Pesa prompt, complete or cancel it, and preview the webhook this store receives. Test payments never update WooCommerce orders.', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Send yourself a real M-Pesa prompt, complete or cancel it, and preview the webhook this store receives. Test payments never update WooCommerce orders.', 'nisc-payment-gateway-for-woocommerce' ); ?>
 						</p>
 					</div>
-					<span class="nisc-pg-badge nisc-pg-badge--muted"><?php esc_html_e( 'Safe · no orders', 'nisc-payment-gateway' ); ?></span>
+					<span class="nisc-pg-badge nisc-pg-badge--muted"><?php esc_html_e( 'Safe · no orders', 'nisc-payment-gateway-for-woocommerce' ); ?></span>
 				</div>
 
 				<div class="nisc-pg-test__form">
 					<div class="nisc-pg-test__fields">
 						<div class="nisc-pg-test__field">
-							<label class="nisc-pg-label" for="nisc-pg-test-phone"><?php esc_html_e( 'Your M-Pesa number', 'nisc-payment-gateway' ); ?></label>
+							<label class="nisc-pg-label" for="nisc-pg-test-phone"><?php esc_html_e( 'Your M-Pesa number', 'nisc-payment-gateway-for-woocommerce' ); ?></label>
 							<input
 								type="tel"
 								id="nisc-pg-test-phone"
@@ -272,7 +272,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 							/>
 						</div>
 						<div class="nisc-pg-test__field nisc-pg-test__field--amount">
-							<label class="nisc-pg-label" for="nisc-pg-test-amount"><?php esc_html_e( 'Amount (KES)', 'nisc-payment-gateway' ); ?></label>
+							<label class="nisc-pg-label" for="nisc-pg-test-amount"><?php esc_html_e( 'Amount (KES)', 'nisc-payment-gateway-for-woocommerce' ); ?></label>
 							<input
 								type="number"
 								id="nisc-pg-test-amount"
@@ -284,7 +284,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 						</div>
 					</div>
 					<button type="button" class="button button-primary nisc-pg-btn-primary" id="nisc-pg-send-test-stk">
-						<?php esc_html_e( 'Send test STK', 'nisc-payment-gateway' ); ?>
+						<?php esc_html_e( 'Send test STK', 'nisc-payment-gateway-for-woocommerce' ); ?>
 					</button>
 				</div>
 
@@ -294,35 +294,35 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 					<div class="nisc-pg-test__status-row">
 						<span class="nisc-pg-test__pulse" aria-hidden="true"></span>
 						<div>
-							<strong id="nisc-pg-test-status-title"><?php esc_html_e( 'Waiting…', 'nisc-payment-gateway' ); ?></strong>
+							<strong id="nisc-pg-test-status-title"><?php esc_html_e( 'Waiting…', 'nisc-payment-gateway-for-woocommerce' ); ?></strong>
 							<p class="nisc-pg-help" id="nisc-pg-test-status-meta"></p>
 						</div>
 						<span class="nisc-pg-test__pill" id="nisc-pg-test-status-pill">PENDING</span>
 					</div>
-					<ul class="nisc-pg-test__steps" id="nisc-pg-test-flow-steps" aria-label="<?php esc_attr_e( 'Test progress', 'nisc-payment-gateway' ); ?>">
-						<li data-step="stk" class="is-pending"><?php esc_html_e( '1. STK push', 'nisc-payment-gateway' ); ?></li>
-						<li data-step="pin" class="is-pending"><?php esc_html_e( '2. PIN / cancel', 'nisc-payment-gateway' ); ?></li>
-						<li data-step="webhook" class="is-pending"><?php esc_html_e( '3. Webhook here', 'nisc-payment-gateway' ); ?></li>
+					<ul class="nisc-pg-test__steps" id="nisc-pg-test-flow-steps" aria-label="<?php esc_attr_e( 'Test progress', 'nisc-payment-gateway-for-woocommerce' ); ?>">
+						<li data-step="stk" class="is-pending"><?php esc_html_e( '1. STK push', 'nisc-payment-gateway-for-woocommerce' ); ?></li>
+						<li data-step="pin" class="is-pending"><?php esc_html_e( '2. PIN / cancel', 'nisc-payment-gateway-for-woocommerce' ); ?></li>
+						<li data-step="webhook" class="is-pending"><?php esc_html_e( '3. Webhook here', 'nisc-payment-gateway-for-woocommerce' ); ?></li>
 					</ul>
 				</div>
 
 				<div class="nisc-pg-test__preview">
 					<div class="nisc-pg-test__preview-head">
-						<strong><?php esc_html_e( 'Incoming webhook preview', 'nisc-payment-gateway' ); ?></strong>
+						<strong><?php esc_html_e( 'Incoming webhook preview', 'nisc-payment-gateway-for-woocommerce' ); ?></strong>
 						<button type="button" class="button button-link" id="nisc-pg-clear-test-webhooks">
-							<?php esc_html_e( 'Clear previews', 'nisc-payment-gateway' ); ?>
+							<?php esc_html_e( 'Clear previews', 'nisc-payment-gateway-for-woocommerce' ); ?>
 						</button>
 					</div>
 					<p class="nisc-pg-help" id="nisc-pg-test-webhook-empty">
-						<?php esc_html_e( 'No test webhooks yet. Send an STK and complete (or cancel) the prompt.', 'nisc-payment-gateway' ); ?>
+						<?php esc_html_e( 'No test webhooks yet. Send an STK and complete (or cancel) the prompt.', 'nisc-payment-gateway-for-woocommerce' ); ?>
 					</p>
 					<div id="nisc-pg-test-webhook-list" class="nisc-pg-test__webhook-list" hidden></div>
 				</div>
 			</section>
 
 			<section class="nisc-pg-panel nisc-pg-panel--settings">
-				<h3><?php esc_html_e( 'Checkout display', 'nisc-payment-gateway' ); ?></h3>
-				<p class="nisc-pg-help"><?php esc_html_e( 'These labels are what shoppers see. Connection above is required before payments will work.', 'nisc-payment-gateway' ); ?></p>
+				<h3><?php esc_html_e( 'Checkout display', 'nisc-payment-gateway-for-woocommerce' ); ?></h3>
+				<p class="nisc-pg-help"><?php esc_html_e( 'These labels are what shoppers see. Connection above is required before payments will work.', 'nisc-payment-gateway-for-woocommerce' ); ?></p>
 				<table class="form-table">
 					<?php $this->generate_settings_html( array( 'enabled', 'title', 'description' ) ); ?>
 				</table>
@@ -376,7 +376,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 			'nisc_pg_phone',
 			array(
 				'type'        => 'tel',
-				'label'       => __( 'M-Pesa phone number', 'nisc-payment-gateway' ),
+				'label'       => __( 'M-Pesa phone number', 'nisc-payment-gateway-for-woocommerce' ),
 				'required'    => true,
 				'placeholder' => '07XXXXXXXX',
 				'class'       => array( 'form-row-wide' ),
@@ -388,7 +388,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 			$phone
 		);
 
-		echo '<p class="nisc-pg-checkout-hint">' . esc_html__( 'Use the Safaricom number that will receive the STK prompt.', 'nisc-payment-gateway' ) . '</p>';
+		echo '<p class="nisc-pg-checkout-hint">' . esc_html__( 'Use the Safaricom number that will receive the STK prompt.', 'nisc-payment-gateway-for-woocommerce' ) . '</p>';
 	}
 
 	/**
@@ -398,7 +398,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 	public function process_payment( $order_id ): array {
 		$order = wc_get_order( $order_id );
 		if ( ! $order instanceof WC_Order ) {
-			wc_add_notice( __( 'Order not found.', 'nisc-payment-gateway' ), 'error' );
+			wc_add_notice( __( 'Order not found.', 'nisc-payment-gateway-for-woocommerce' ), 'error' );
 			return array( 'result' => 'failure' );
 		}
 
@@ -407,7 +407,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 		$phone     = Nisc_PG_Order_Service::normalize_phone( (string) $raw_phone );
 
 		if ( ! $phone ) {
-			wc_add_notice( __( 'Enter a valid Kenyan M-Pesa number (e.g. 07XXXXXXXX).', 'nisc-payment-gateway' ), 'error' );
+			wc_add_notice( __( 'Enter a valid Kenyan M-Pesa number (e.g. 07XXXXXXXX).', 'nisc-payment-gateway-for-woocommerce' ), 'error' );
 			return array( 'result' => 'failure' );
 		}
 
@@ -416,7 +416,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 
 		$amount = (float) $order->get_total();
 		if ( $amount <= 0 ) {
-			wc_add_notice( __( 'Order total must be greater than zero.', 'nisc-payment-gateway' ), 'error' );
+			wc_add_notice( __( 'Order total must be greater than zero.', 'nisc-payment-gateway-for-woocommerce' ), 'error' );
 			return array( 'result' => 'failure' );
 		}
 
@@ -427,7 +427,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 				'phoneNumber' => $phone,
 				'description' => sprintf(
 					/* translators: %s: order number */
-					__( 'Order %s', 'nisc-payment-gateway' ),
+					__( 'Order %s', 'nisc-payment-gateway-for-woocommerce' ),
 					$order->get_order_number()
 				),
 				'referenceId' => (string) $order->get_id(),
@@ -440,7 +440,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 		);
 
 		if ( ! $response['ok'] ) {
-			$message = $response['error']['message'] ?? __( 'Could not start M-Pesa payment.', 'nisc-payment-gateway' );
+			$message = $response['error']['message'] ?? __( 'Could not start M-Pesa payment.', 'nisc-payment-gateway-for-woocommerce' );
 			wc_add_notice( $message, 'error' );
 			$order->add_order_note( 'Nisc PG error: ' . $message );
 			return array( 'result' => 'failure' );
@@ -455,7 +455,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 		$order->update_meta_data( Nisc_PG_Order_Service::META_PHONE, $phone );
 		$order->update_status(
 			'on-hold',
-			__( 'Nisc Payment Gateway: STK push sent. Waiting for customer to enter M-Pesa PIN.', 'nisc-payment-gateway' )
+			__( 'Nisc Payment Gateway: STK push sent. Waiting for customer to enter M-Pesa PIN.', 'nisc-payment-gateway-for-woocommerce' )
 		);
 		$order->save();
 
@@ -481,7 +481,7 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 		}
 
 		if ( $order->is_paid() ) {
-			echo '<div class="nisc-pg-thankyou is-paid"><p><strong>' . esc_html__( 'Payment received. Thank you!', 'nisc-payment-gateway' ) . '</strong></p></div>';
+			echo '<div class="nisc-pg-thankyou is-paid"><p><strong>' . esc_html__( 'Payment received. Thank you!', 'nisc-payment-gateway-for-woocommerce' ) . '</strong></p></div>';
 			return;
 		}
 
@@ -494,21 +494,21 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 					alt=""
 					class="nisc-pg-thankyou__logo"
 				/>
-				<h3><?php esc_html_e( 'Check your phone', 'nisc-payment-gateway' ); ?></h3>
+				<h3><?php esc_html_e( 'Check your phone', 'nisc-payment-gateway-for-woocommerce' ); ?></h3>
 				<p>
 					<?php
 					if ( $phone ) {
 						printf(
 							/* translators: %s: phone number */
-							esc_html__( 'We sent an M-Pesa prompt to %s. Enter your PIN to finish paying.', 'nisc-payment-gateway' ),
+							esc_html__( 'We sent an M-Pesa prompt to %s. Enter your PIN to finish paying.', 'nisc-payment-gateway-for-woocommerce' ),
 							esc_html( $phone )
 						);
 					} else {
-						esc_html_e( 'We sent an M-Pesa prompt to your phone. Enter your PIN to finish paying.', 'nisc-payment-gateway' );
+						esc_html_e( 'We sent an M-Pesa prompt to your phone. Enter your PIN to finish paying.', 'nisc-payment-gateway-for-woocommerce' );
 					}
 					?>
 				</p>
-				<p class="nisc-pg-thankyou__hint"><?php esc_html_e( 'This page updates when payment is confirmed. You can also close it. We will email you when the order is paid.', 'nisc-payment-gateway' ); ?></p>
+				<p class="nisc-pg-thankyou__hint"><?php esc_html_e( 'This page updates when payment is confirmed. You can also close it. We will email you when the order is paid.', 'nisc-payment-gateway-for-woocommerce' ); ?></p>
 			</div>
 		</div>
 		<?php
@@ -517,10 +517,10 @@ class Nisc_PG_WC_Gateway extends WC_Payment_Gateway {
 	private function friendly_environment( string $environment ): string {
 		$env = strtoupper( $environment );
 		if ( in_array( $env, array( 'SANDBOX', 'TEST' ), true ) ) {
-			return __( 'Sandbox', 'nisc-payment-gateway' );
+			return __( 'Sandbox', 'nisc-payment-gateway-for-woocommerce' );
 		}
 		if ( in_array( $env, array( 'PRODUCTION', 'LIVE', 'PROD' ), true ) ) {
-			return __( 'Production', 'nisc-payment-gateway' );
+			return __( 'Production', 'nisc-payment-gateway-for-woocommerce' );
 		}
 		return $environment;
 	}

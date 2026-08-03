@@ -169,6 +169,7 @@ export function MarketplacePricing({
           onOpenChange={setBuyNowOpen}
           plan={selectedPlan}
           requireDomainStep={!serviceSlug.includes("seo")}
+          teamSlug={teamSlug || undefined}
           teamId={teamData?.id}
           buyDomainHref={teamSlug ? `/${teamSlug}/domains` : undefined}
           seoReportsHref={serviceSlug.includes("seo") && teamSlug ? `/${teamSlug}/seo-reports` : undefined}

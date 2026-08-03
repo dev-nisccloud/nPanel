@@ -64,7 +64,7 @@ final class Nisc_PG_Order_Service {
 				if ( ! $order->is_paid() ) {
 					$note = sprintf(
 						/* translators: %s: M-Pesa receipt */
-						__( 'Nisc Payment Gateway: payment confirmed%s.', 'nisc-payment-gateway' ),
+						__( 'Nisc Payment Gateway: payment confirmed%s.', 'nisc-payment-gateway-for-woocommerce' ),
 						! empty( $payment['receiptNumber'] ) ? ' (Receipt ' . $payment['receiptNumber'] . ')' : ''
 					);
 					$order->payment_complete( ! empty( $payment['receiptNumber'] ) ? (string) $payment['receiptNumber'] : $transaction_id );
@@ -76,7 +76,7 @@ final class Nisc_PG_Order_Service {
 				if ( ! in_array( $order->get_status(), array( 'cancelled', 'refunded', 'completed', 'processing' ), true ) ) {
 					$order->update_status(
 						'cancelled',
-						__( 'Nisc Payment Gateway: customer cancelled the M-Pesa prompt.', 'nisc-payment-gateway' )
+						__( 'Nisc Payment Gateway: customer cancelled the M-Pesa prompt.', 'nisc-payment-gateway-for-woocommerce' )
 					);
 				}
 				break;
@@ -84,12 +84,12 @@ final class Nisc_PG_Order_Service {
 			case 'FAILED':
 			default:
 				if ( ! in_array( $order->get_status(), array( 'failed', 'refunded', 'completed', 'processing' ), true ) ) {
-					$desc = isset( $payment['resultDesc'] ) ? (string) $payment['resultDesc'] : __( 'Payment failed.', 'nisc-payment-gateway' );
+					$desc = isset( $payment['resultDesc'] ) ? (string) $payment['resultDesc'] : __( 'Payment failed.', 'nisc-payment-gateway-for-woocommerce' );
 					$order->update_status(
 						'failed',
 						sprintf(
 							/* translators: %s: failure reason */
-							__( 'Nisc Payment Gateway: %s', 'nisc-payment-gateway' ),
+							__( 'Nisc Payment Gateway: %s', 'nisc-payment-gateway-for-woocommerce' ),
 							$desc
 						)
 					);

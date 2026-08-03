@@ -15,10 +15,13 @@ import { getSectionTooltip } from "@/lib/domain-search/domain-section-titles.ts"
 import type { DomainSearchResult } from "@/lib/domain-search/types.ts";
 import { ExactMatchSection } from "./ExactMatchSection.tsx";
 import { TopLevelSuggestedCards } from "./TopLevelSuggestedCards.tsx";
+import { RecommendedDomainsList } from "./RecommendedDomainsList.tsx";
 import { KenyanTldCards } from "./KenyanTldCards.tsx";
 import { DomainSearchSection } from "./DomainSearchSection.tsx";
 
-const DEFAULT_CATEGORY_ID = "popular";
+/** Popular is shown above via RecommendedDomainsList; categories start at Kenyan. */
+const DEFAULT_CATEGORY_ID = "kenyan";
+const CATEGORY_PILLS_WITHOUT_POPULAR = CATEGORY_PILLS.filter((p) => p.sectionId !== "popular");
 
 export interface DomainSearchResultsProps {
   searchQuery: string;
@@ -154,13 +157,24 @@ export function DomainSearchResults({
         </section>
       )}
 
+      {searchQuery.trim().length > 0 && (
+        <RecommendedDomainsList
+          searchQuery={searchQuery.trim()}
+          rawSearchQuery={rawSearchQuery.trim()}
+          onLoadingChange={(loading) => reportLoading("recommended", loading)}
+          isDomainInCart={isDomainInCart}
+          onAddToCart={onAddToCart}
+          onRemoveFromCart={onRemoveFromCart}
+        />
+      )}
+
       {compact && searchQuery.trim().length > 0 && (
         <div className="flex justify-center pt-2 pb-4">
-          <Button asChild size="lg" className="rounded-xl cursor-pointer">
+          <Button asChild size="lg" variant="outline" className="rounded-xl cursor-pointer">
             <Link
               to={`/hosting/domains?search=${encodeURIComponent(rawSearchQuery.trim() || searchQuery.trim())}#domain-search`}
             >
-              View more domains
+              Browse all categories
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -170,13 +184,13 @@ export function DomainSearchResults({
       {!compact && searchQuery && searchQuery.trim().length > 0 && (
         <section className="mb-8">
           <h3 className="text-base font-semibold tracking-tight text-card-foreground mb-3">
-            More options
+            More categories
           </h3>
           <div className="bg-transparent rounded-lg py-3 px-1">
             <TooltipProvider key={searchQuery} delayDuration={200} skipDelayDuration={0}>
               <ScrollArea className="w-full">
                 <div className="flex gap-2 flex-nowrap w-max pb-4 pr-2">
-                  {CATEGORY_PILLS.map(({ sectionId, label }) => {
+                  {CATEGORY_PILLS_WITHOUT_POPULAR.map(({ sectionId, label }) => {
                     const isActive = selectedCategoryId === sectionId;
                     const tooltip = getSectionTooltip(sectionId);
                     const pill = (
@@ -217,7 +231,7 @@ export function DomainSearchResults({
             </TooltipProvider>
           </div>
           <div className="mt-4">
-            {CATEGORY_PILLS.map(({ sectionId }) => {
+            {CATEGORY_PILLS_WITHOUT_POPULAR.map(({ sectionId }) => {
               const isSelected = selectedCategoryId === sectionId;
               const enableQuery = isSelected || visitedCategoryIdsRef.current.has(sectionId);
               return (

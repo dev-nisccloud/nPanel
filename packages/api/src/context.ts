@@ -11,11 +11,24 @@ import {
   isLandingPageOrigin,
 } from "@npanel/auth/landing-page-origins";
 import type { Context as HonoContext } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 import { createHash } from "node:crypto";
 import { db, eq } from "@npanel/db";
 import { apiKey } from "@npanel/db/schema/auth-extras";
 import { user } from "@npanel/db/schema/auth";
 import { resolveMfaContextState } from "./lib/mfa-context";
+
+export const SUPPORT_GUEST_COOKIE = "nisc_support_guest";
+
+export type CookieOptions = {
+  path?: string;
+  domain?: string;
+  maxAge?: number;
+  expires?: Date;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+};
 
 function resolveIpAddress(headers: Headers): string | null {
   return (
@@ -69,6 +82,10 @@ export type Context = {
   apiKeyError?: string | null;
   /** The raw Hono request, useful for URL and header inspection. */
   req: HonoContext["req"];
+  /** Read a request cookie by name. */
+  getCookie: (name: string) => string | undefined;
+  /** Set a response cookie (used by guest support sessions). */
+  setCookie: (name: string, value: string, options?: CookieOptions) => void;
 };
 
 export type CreateContextOptions = {
@@ -76,11 +93,29 @@ export type CreateContextOptions = {
   createCaller?: (ctx: Context) => unknown;
 };
 
+function buildCookieHelpers(context: HonoContext): Pick<Context, "getCookie" | "setCookie"> {
+  return {
+    getCookie: (name) => getCookie(context, name),
+    setCookie: (name, value, options) => {
+      setCookie(context, name, value, {
+        path: options?.path ?? "/",
+        domain: options?.domain,
+        maxAge: options?.maxAge,
+        expires: options?.expires,
+        httpOnly: options?.httpOnly ?? true,
+        secure: options?.secure ?? true,
+        sameSite: options?.sameSite ?? "Lax",
+      });
+    },
+  };
+}
+
 export async function createContext({
   context,
   createCaller,
 }: CreateContextOptions): Promise<Context> {
   const req = context.req;
+  const cookies = buildCookieHelpers(context);
   const authHeader = req.raw.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.substring(7).trim();
@@ -99,6 +134,7 @@ export async function createContext({
           apiKeyError: "Invalid API Key",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
+          ...cookies,
         };
       }
 
@@ -108,6 +144,7 @@ export async function createContext({
           apiKeyError: "API Key is revoked",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
+          ...cookies,
         };
       }
 
@@ -117,6 +154,7 @@ export async function createContext({
           apiKeyError: "API Key has expired",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
+          ...cookies,
         };
       }
 
@@ -132,6 +170,7 @@ export async function createContext({
           apiKeyError: "Account associated with this API key is inactive",
           ipAddress: resolveIpAddress(context.req.raw.headers),
           req,
+          ...cookies,
         };
       }
 
@@ -169,6 +208,7 @@ export async function createContext({
         apiKey: { id: keyRecord.id, permissions: keyRecord.permissions },
         ipAddress,
         req,
+        ...cookies,
       };
     }
   }
@@ -244,5 +284,6 @@ export async function createContext({
     createCaller,
     ipAddress,
     req,
+    ...cookies,
   };
 }

@@ -57,6 +57,7 @@ function formatStatusLabel(status: string) {
 function toChatBubbles(
   messages: TicketMessage[],
   currentUserId: string | undefined,
+  guestContact?: { name: string; email: string; phone: string | null } | null,
 ): ChatBubble[] {
   return messages
     .filter((msg) => !msg.deletedAt)
@@ -66,11 +67,20 @@ function toChatBubbles(
         msg.senderIsAgency === true ||
         (msg.senderIsAgency === undefined && isFromCurrentUser);
 
+      const guestLabel = guestContact
+        ? guestContact.email
+          ? `${guestContact.name} (${guestContact.email})`
+          : guestContact.name
+        : null;
+
       const senderLabel = isAgencyMessage
         ? msg.sender?.name?.trim() ||
           msg.sender?.email ||
           (isFromCurrentUser ? "You" : "Support agent")
-        : msg.sender?.name?.trim() || msg.sender?.email || "Customer";
+        : guestLabel ||
+          msg.sender?.name?.trim() ||
+          msg.sender?.email ||
+          "Customer";
 
       return {
         id: msg.id,
@@ -171,8 +181,8 @@ export function TicketChatSheet({
   } = useTicketMutations({ currentUserId });
 
   const bubbles = React.useMemo(
-    () => toChatBubbles(messages, currentUserId),
-    [messages, currentUserId],
+    () => toChatBubbles(messages, currentUserId, ticket?.guestContact),
+    [messages, currentUserId, ticket?.guestContact],
   );
 
   const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -232,7 +242,13 @@ export function TicketChatSheet({
     }
   };
 
+  const guestContact = ticket?.guestContact;
   const title =
+    (guestContact
+      ? guestContact.email
+        ? `${guestContact.name} (${guestContact.email})`
+        : guestContact.name
+      : null) ||
     ticket?.createdBy?.name ||
     ticket?.createdBy?.email ||
     ticket?.subject ||
@@ -264,6 +280,16 @@ export function TicketChatSheet({
                       · {ticket.subject}
                     </span>
                   )}
+                  {guestContact ? (
+                    <Badge variant="secondary" className="font-normal">
+                      Guest
+                    </Badge>
+                  ) : null}
+                  {guestContact?.phone ? (
+                    <span className="text-muted-foreground">
+                      · {guestContact.phone}
+                    </span>
+                  ) : null}
                 </SheetDescription>
               </div>
             </div>

@@ -53,6 +53,7 @@ export const ticketListItemSchema = z.object({
   unreadCount: z.number(),
   customerName: z.string().optional(), // For agency side
   assignedToName: z.string().nullable().optional(), // For customer side
+  isGuest: z.boolean().optional(),
   status: ticketStatusSchema,
   priority: ticketPrioritySchema,
 });
@@ -113,6 +114,15 @@ export const ticketSchema = z.object({
   updatedAt: z.coerce.date(),
   resolvedAt: z.coerce.date().nullable(),
   closedAt: z.coerce.date().nullable(),
+  guestContact: z
+    .object({
+      name: z.string(),
+      email: z.string(),
+      phone: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
+  metadata: z.unknown().nullable().optional(),
   createdBy: z.object({
     id: z.string(),
     name: z.string().nullable(),

@@ -87,7 +87,7 @@ final class Nisc_PG_Webhook_Controller {
 			self::log_webhook_attempt( 'error', array( 'reason' => 'no_secret' ) );
 			return new WP_Error(
 				'nisc_pg_not_configured',
-				__( 'Webhook secret is not configured. Reconnect the gateway in settings.', 'nisc-payment-gateway' ),
+				__( 'Webhook secret is not configured. Reconnect the gateway in settings.', 'nisc-payment-gateway-for-woocommerce' ),
 				array( 'status' => 503 )
 			);
 		}
@@ -99,7 +99,7 @@ final class Nisc_PG_Webhook_Controller {
 			) );
 			return new WP_Error(
 				'nisc_pg_invalid_signature',
-				__( 'Invalid webhook signature.', 'nisc-payment-gateway' ),
+				__( 'Invalid webhook signature.', 'nisc-payment-gateway-for-woocommerce' ),
 				array( 'status' => 401 )
 			);
 		}
@@ -109,7 +109,7 @@ final class Nisc_PG_Webhook_Controller {
 			self::log_webhook_attempt( 'error', array( 'reason' => 'invalid_json' ) );
 			return new WP_Error(
 				'nisc_pg_invalid_payload',
-				__( 'Invalid JSON payload.', 'nisc-payment-gateway' ),
+				__( 'Invalid JSON payload.', 'nisc-payment-gateway-for-woocommerce' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -149,7 +149,7 @@ final class Nisc_PG_Webhook_Controller {
 			) );
 			return new WP_Error(
 				'nisc_pg_order_not_found',
-				__( 'Order not found for this payment.', 'nisc-payment-gateway' ),
+				__( 'Order not found for this payment.', 'nisc-payment-gateway-for-woocommerce' ),
 				array( 'status' => 404 )
 			);
 		}

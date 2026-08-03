@@ -4,17 +4,51 @@ Tags: woocommerce, mpesa, payments, kenya, nisc
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.5
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Nisc Cloud Payment Gateway: seamless M-Pesa STK Push for WooCommerce. Get access: +254748777666 or support@nisccloud.com.
+Start accepting M-Pesa payments in minutes. No gateway management. No compliance headaches. Just simple payments.
 
 == Description ==
 
-**Nisc Cloud Payment Gateway** turns your WooCommerce store into an M-Pesa-ready checkout fast STK Push payments, automatic webhooks, and no Safaricom credentials stored in WordPress.
+**Stop managing payment gateways. Start collecting payments.**
 
-Merchants paste one API key, click Connect, and start taking payments. Sandbox vs production is controlled by the key we issue  no environment toggle in WordPress.
+Setting up M-Pesa shouldn't take days. Managing compliance, security, and Safaricom integrations shouldn't be your problem.
+
+Nisc Cloud Payment Gateway gives you M-Pesa payments without the burden of running a payment gateway yourself.
+
+= The Problem We Solve =
+
+You want to accept M-Pesa. But getting there means:
+* Dealing with Safaricom API complexity
+* Managing security and PCI compliance
+* Storing sensitive credentials in your WordPress database
+* Troubleshooting webhook failures
+* Keeping up with API changes
+
+**That's too much work just to collect payments.**
+
+= The Nisc Solution =
+
+We handle the gateway. You collect payments.
+
+1. **Get access** - Contact us (+254748777666 or support@nisccloud.com)
+2. **Paste one API key** - Takes 30 seconds in WooCommerce settings
+3. **Click Connect** - Everything configures automatically
+4. **Start collecting payments** - That's it
+
+No compliance management. No security maintenance. No gateway operations.
+
+We handle all of that so you don't have to.
+
+= What You Get =
+
+* **Setup in minutes, not days** - Paste key, click connect, done
+* **Zero gateway management** - Compliance, security, infrastructure we handle it all
+* **Always works** - Webhooks auto-register, payments auto-reconcile
+* **Built-in testing** - Test M-Pesa without creating real orders
+* **Enterprise reliability** - Same infrastructure powering high-volume merchants
 
 = How to get access =
 
@@ -70,12 +104,33 @@ Alternatively, switch to Classic Checkout: go to Pages → Checkout, select the 
 
 Not in v1. M-Pesa STK Push only.
 
+== Screenshots ==
+
+1. Simple three-step setup: paste API key, connect, and start accepting M-Pesa payments
+2. Connection test confirms gateway status and M-Pesa credentials before going live
+3. Test STK Push feature lets you preview webhooks without affecting real orders
+4. Clean M-Pesa checkout experience - customers receive STK prompt on their phone
+5. WooCommerce payment settings showing Nisc Payment Gateway configuration
+
 == Changelog ==
+
+= 0.1.8 =
+* Fixed WordPress.org plugin checker warnings: created languages folder and sanitized POST input.
+* Added sanitize_text_field() to amount parameter in test STK endpoint.
+
+= 0.1.7 =
+* Fixed WordPress.org automated checks: removed hidden .gitkeep file and updated text domain to match plugin slug.
+* Text domain changed to 'nisc-payment-gateway-for-woocommerce' across all translation strings.
+
+= 0.1.6 =
+* Refined marketing messaging to focus on core value: simplicity without gateway management.
+* Removed Upgrade Notice section (not needed for initial WordPress.org release).
+* Updated all descriptions to emphasize pain-solution over technical features.
 
 = 0.1.5 =
 * Fixed WordPress.org submission: Plugin URI and Author URI must differ (removed duplicate Plugin URI).
-* Updated plugin description and access instructions (contact +254748777666 or support@nisccloud.com).
-* Version bump for clean reinstall / review resubmission.
+* Refocused marketing on value proposition: simplicity of getting payments without managing a gateway yourself.
+* Updated all descriptions to emphasize pain-solution rather than technical features.
 
 = 0.1.4 =
 * Added WooCommerce Checkout Blocks support  payment gateway now works with both Classic Checkout and Checkout Blocks.

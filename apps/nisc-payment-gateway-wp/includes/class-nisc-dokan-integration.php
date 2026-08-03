@@ -59,7 +59,7 @@ final class Nisc_PG_Dokan_Integration {
 		if ( $enabled && $connected ) {
 			$gateways['nisc_payment_gateway'] = array(
 				'id'    => 'nisc_payment_gateway',
-				'title' => __( 'M-Pesa (Nisc)', 'nisc-payment-gateway' ),
+				'title' => __( 'M-Pesa (Nisc)', 'nisc-payment-gateway-for-woocommerce' ),
 			);
 		}
 
@@ -106,13 +106,13 @@ final class Nisc_PG_Dokan_Integration {
 		if ( $enabled && $connected ) {
 			?>
 			<div class="dokan-alert dokan-alert-success" style="margin-bottom: 20px;">
-				<strong><?php esc_html_e( 'Nisc Payment Gateway (M-Pesa)', 'nisc-payment-gateway' ); ?></strong>
+				<strong><?php esc_html_e( 'Nisc Payment Gateway (M-Pesa)', 'nisc-payment-gateway-for-woocommerce' ); ?></strong>
 				<p>
-					<?php esc_html_e( 'M-Pesa payments via Nisc Payment Gateway are enabled for customer checkout on all vendor stores.', 'nisc-payment-gateway' ); ?>
+					<?php esc_html_e( 'M-Pesa payments via Nisc Payment Gateway are enabled for customer checkout on all vendor stores.', 'nisc-payment-gateway-for-woocommerce' ); ?>
 					<?php
 					printf(
 						/* translators: %s: settings page URL */
-						wp_kses_post( __( 'Configure in <a href="%s">WooCommerce Payment Settings</a>.', 'nisc-payment-gateway' ) ),
+						wp_kses_post( __( 'Configure in <a href="%s">WooCommerce Payment Settings</a>.', 'nisc-payment-gateway-for-woocommerce' ) ),
 						esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=nisc_payment_gateway' ) )
 					);
 					?>

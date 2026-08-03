@@ -16,22 +16,25 @@ function getExtensionsForSection(sectionId: string): string[] {
 	if (sectionId === "popular") {
 		return [
 			"com",
-			"app",
-			"ai",
 			"net",
-			"org",
-			"io",
-			"online",
-			"shop",
 			"store",
-			"space",
+			"app",
+			"online",
 			"site",
+			"io",
+			"org",
+			"shop",
+			"ai",
+			"space",
 			"studio",
 			"live",
 			"cloud",
 			"me",
 			"agency",
 			"capital",
+			"dev",
+			"tech",
+			"africa",
 		];
 	}
 
