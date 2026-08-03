@@ -1,4 +1,8 @@
 import { reactRouter } from "@react-router/dev/vite";
+import {
+  sentryReactRouter,
+  type SentryReactRouterBuildOptions,
+} from "@sentry/react-router";
 import tailwindcss from "@tailwindcss/vite";
 import type { Plugin } from "vite";
 import { defineConfig, loadEnv } from "vite";
@@ -42,15 +46,23 @@ function apiCredentialedPreflight(): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
+export default defineConfig(async (config) => {
+  const env = loadEnv(config.mode, process.cwd(), "");
   const apiTarget = env.VITE_SERVER_URL || "http://localhost:3000";
+
+  const sentryConfig: SentryReactRouterBuildOptions = {
+    org: "nisc-cloud-limited",
+    project: "npanel-dashboard",
+    // Required for uploading source maps; set in CI / local secrets
+    authToken: env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN,
+  };
 
   return {
     plugins: [
       apiCredentialedPreflight(),
       tailwindcss(),
       reactRouter(),
+      ...(await sentryReactRouter(sentryConfig, config)),
       tsconfigPaths({
         ignoreConfigErrors: true,
         skip: (dir) => dir.includes("previous_codebase"),
@@ -67,6 +79,8 @@ export default defineConfig(({ mode }) => {
         devOptions: { enabled: true },
       }),
     ],
+    // Required so sentryOnBuildEnd can upload source maps
+    sentryConfig,
     server: {
       // Allow ngrok host (useful when testing auth/cookies over public URLs).
       allowedHosts: [

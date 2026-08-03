@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
+import * as Sentry from "@sentry/react-router";
 
 import "./index.css";
 import {
@@ -124,10 +125,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   if (isRouteErrorResponse(error)) {
     message = "Error";
     details = error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
-    stack = error.stack;
+  } else if (error && error instanceof Error) {
+    Sentry.captureException(error);
+    if (import.meta.env.DEV) {
+      details = error.message;
+      stack = error.stack;
+    }
+  } else {
+    Sentry.captureException(error);
   }
+
   return (
     <main className="container mx-auto p-4 pt-16">
       <h1>{message}</h1>
