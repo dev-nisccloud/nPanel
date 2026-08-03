@@ -64,8 +64,8 @@ export function WebDesignContactDialog({
 
   const createMutation = trpc.webDesignQuotes.create.useMutation({
     onError: (err) => {
-      toast.error("Failed to submit request", {
-        description: err.message ?? "An unexpected error occurred",
+      toast.error("Could not send request", {
+        description: err.message ?? "Please try again.",
       });
     },
   });
@@ -96,9 +96,8 @@ export function WebDesignContactDialog({
     type CreateInput = Parameters<typeof createMutation.mutateAsync>[0];
     try {
       await createMutation.mutateAsync(payload as CreateInput);
-      toast.success("Request submitted successfully", {
-        description:
-          "We will contact you as soon as possible with a quotation for your request.",
+      toast.success("Request sent", {
+        description: "We will reply with a quote soon.",
       });
       form.reset({
         name: "",
@@ -121,22 +120,17 @@ export function WebDesignContactDialog({
   const isSubmitting = createMutation.isPending;
 
   const handleCallUs = () => {
-    window.location.href = `tel:+254748777666`;
-    toast.info("Phone number not configured", {
-      description: "Please use the form to submit your request, or contact your administrator for the support number.",
-    });
+    const phone = supportPhoneNumber?.trim() || "+254748777666";
+    window.location.href = `tel:${phone.replace(/\s+/g, "")}`;
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 overflow-hidden flex flex-col max-h-[90vh] sm:max-w-lg">
         <DialogHeader className="p-6 pb-2 flex-none">
-          <DialogTitle>Get Professional Web Design & Development</DialogTitle>
+          <DialogTitle>Get a website built</DialogTitle>
           <DialogDescription>
-            Transform your domain into a powerful online presence. Our expert team delivers custom
-            websites, modern designs, and seamless user experiences. Fill out the form below with
-            your details and we&apos;ll get back to you with a custom quotation or call us if you
-            prefer to speak with someone directly.
+            Tell us what you need. We will send you a quote.
           </DialogDescription>
         </DialogHeader>
 
@@ -153,9 +147,9 @@ export function WebDesignContactDialog({
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full name</FormLabel>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder="Your name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -166,9 +160,9 @@ export function WebDesignContactDialog({
                     name="companyName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company name</FormLabel>
+                        <FormLabel>Company</FormLabel>
                         <FormControl>
-                          <Input placeholder="Acme Inc." {...field} />
+                          <Input placeholder="Company name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -184,7 +178,7 @@ export function WebDesignContactDialog({
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" placeholder="you@company.com" {...field} />
+                          <Input type="email" placeholder="you@email.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -210,9 +204,9 @@ export function WebDesignContactDialog({
                   name="domain"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Domain (optional)</FormLabel>
+                      <FormLabel>Domain</FormLabel>
                       <FormControl>
-                        <Input placeholder="example.com" {...field} />
+                        <Input placeholder="example.com (optional)" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -225,7 +219,7 @@ export function WebDesignContactDialog({
                     name="projectType"
                     render={({ field }) => (
                       <FormItem className="w-full">
-                        <FormLabel>Project type</FormLabel>
+                        <FormLabel>What do you need?</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
@@ -233,7 +227,7 @@ export function WebDesignContactDialog({
                         >
                           <FormControl>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select project type" />
+                              <SelectValue placeholder="Choose one" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -255,10 +249,10 @@ export function WebDesignContactDialog({
                   name="projectDescription"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Project description & requirements</FormLabel>
+                      <FormLabel>Brief details</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Tell us about your goals, target audience, must-have features, and any reference sites you like..."
+                          placeholder="What should the site do? Any links to sites you like?"
                           className="min-h-[100px]"
                           {...field}
                         />
@@ -274,9 +268,9 @@ export function WebDesignContactDialog({
                     name="budget"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Budget range</FormLabel>
+                        <FormLabel>Budget</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. KES 50,000 – 100,000" {...field} />
+                          <Input placeholder="e.g. KES 50,000" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -287,7 +281,7 @@ export function WebDesignContactDialog({
                     name="timeline"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Target launch / when do you need it?</FormLabel>
+                        <FormLabel>Needed by</FormLabel>
                         <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -304,7 +298,7 @@ export function WebDesignContactDialog({
                                 {selectedDate ? (
                                   format(selectedDate, "PPP")
                                 ) : (
-                                  <span>Pick a date (optional)</span>
+                                  <span>Optional date</span>
                                 )}
                               </Button>
                             </FormControl>
@@ -375,10 +369,10 @@ export function WebDesignContactDialog({
                         className="text-primary-foreground"
                         size="sm"
                       />
-                      <span>Submitting...</span>
+                      <span>Sending...</span>
                     </div>
                   ) : (
-                    "Submit for quote"
+                    "Get quote"
                   )}
                 </Button>
               </div>
@@ -386,6 +380,6 @@ export function WebDesignContactDialog({
           </form>
         </Form>
       </DialogContent>
-    </Dialog >
+    </Dialog>
   );
 }

@@ -23,10 +23,10 @@ export type UiProjectType = (typeof UI_PROJECT_TYPE)[keyof typeof UI_PROJECT_TYP
 
 export const UI_PROJECT_TYPE_OPTIONS: { value: UiProjectType; label: string }[] = [
   { value: UI_PROJECT_TYPE.NEW_WEBSITE, label: "New website" },
-  { value: UI_PROJECT_TYPE.REDESIGN, label: "Website redesign" },
-  { value: UI_PROJECT_TYPE.ECOMMERCE, label: "E ˜commerce / online store" },
+  { value: UI_PROJECT_TYPE.REDESIGN, label: "Redesign" },
+  { value: UI_PROJECT_TYPE.ECOMMERCE, label: "Online store" },
   { value: UI_PROJECT_TYPE.LANDING_PAGE, label: "Landing page" },
-  { value: UI_PROJECT_TYPE.WEB_APP, label: "Web application" },
+  { value: UI_PROJECT_TYPE.WEB_APP, label: "Web app" },
   { value: UI_PROJECT_TYPE.OTHER, label: "Other" },
 ];
 
@@ -54,10 +54,8 @@ export const webDesignQuoteFormSchema = z.object({
   companyName: z.string().min(1, "Company name is required"),
   domain: z.string().optional(),
   projectType: z.string().min(1, "Project type is required"),
-  projectDescription: z
-    .string()
-    .min(1, "Describe your project so we can provide an accurate quote"),
-  budget: z.string().min(1, "Budget range is required"),
+  projectDescription: z.string().min(1, "Please add a short description"),
+  budget: z.string().min(1, "Budget is required"),
   timeline: z.preprocess(
     (val) => {
       if (val === undefined || val === null || val === "") return undefined;
