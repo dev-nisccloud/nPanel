@@ -41,6 +41,7 @@
     "@react-router/fs-routes": "^7.10.1",
     "@react-router/node": "^7.10.1",
     "@react-router/serve": "^7.10.1",
+    "@sentry/react-router": "^10.69.0",
     "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-query": "^5.91.3",
     "@tanstack/react-table": "^8.21.3",

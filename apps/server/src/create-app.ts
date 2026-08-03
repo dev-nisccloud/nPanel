@@ -3,6 +3,8 @@ import { createContext, t } from "@npanel/api";
 import { appRouter } from "@npanel/api/routers/index";
 import { auth } from "@npanel/auth";
 import { env } from "@npanel/env/server";
+import * as Sentry from "@sentry/hono/bun";
+import { TRPCError } from "@trpc/server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -77,12 +79,67 @@ function shouldMountApi(role: NpanelServiceRole): boolean {
 
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 
+/** Expected client/business errors — do not send these to Sentry. */
+const EXPECTED_TRPC_CODES = new Set([
+  "UNAUTHORIZED",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "BAD_REQUEST",
+  "TIMEOUT",
+  "CONFLICT",
+  "PRECONDITION_FAILED",
+  "PAYLOAD_TOO_LARGE",
+  "METHOD_NOT_SUPPORTED",
+  "CLIENT_CLOSED_REQUEST",
+  "TOO_MANY_REQUESTS",
+  "UNPROCESSABLE_CONTENT",
+]);
+
+function isHealthOrProbeTransaction(name: string): boolean {
+  const n = name.toLowerCase();
+  return (
+    n === "get /" ||
+    n === "/" ||
+    n.includes("/api/health") ||
+    n.includes("/healthz") ||
+    n.endsWith("/health") ||
+    n.includes("health-check")
+  );
+}
+
 export function createApp(options: CreateAppOptions = {}) {
   const role = resolveRole(options.role);
   const mountApi = shouldMountApi(role);
   const mountWorkers = shouldMountWorkers(role);
 
   const app = new Hono();
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Sentry must be registered before other middleware so it wraps the full request
+  app.use(
+    "*",
+    Sentry.sentry(app, {
+      dsn: "https://0df60016827daed71bd983b0321e7642@o4511794820415488.ingest.us.sentry.io/4511845991972864",
+      environment: process.env.NODE_ENV ?? "development",
+      enableLogs: !isProd,
+      // Identity only — does NOT send API request/response bodies
+      sendDefaultPii: false,
+      dataCollection: {
+        userInfo: true,
+        httpBodies: [],
+        genAI: { inputs: false, outputs: false },
+        cookies: false,
+        urlQueryParams: false,
+        stackFrameVariables: false,
+      },
+      // Skip probes; sample 1% of other requests in production
+      tracesSampler: (ctx) => {
+        const name = ctx.name ?? ctx.transactionContext?.name ?? "";
+        if (isHealthOrProbeTransaction(String(name))) return 0;
+        return isProd ? 0.01 : 1.0;
+      },
+    }),
+  );
 
   app.use(logger());
   app.use("*", async (c, next) => {
@@ -108,6 +165,16 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/api/health", handleHealth);
   app.get("/", (c) => c.text("OK"));
 
+  // Verify Sentry wiring. Available when not production, or when SENTRY_DEBUG_ROUTE=1.
+  if (!isProd || process.env.SENTRY_DEBUG_ROUTE === "1") {
+    app.get("/api/debug-sentry", () => {
+      Sentry.logger.info("User triggered test error", {
+        action: "test_error_endpoint",
+      });
+      throw new Error("My first Sentry error!");
+    });
+  }
+
   if (mountApi) {
     const appCaller = t.createCallerFactory(appRouter);
     const trpcMiddleware = trpcServer({
@@ -116,6 +183,25 @@ export function createApp(options: CreateAppOptions = {}) {
         return createContext({
           context: honoContext,
           createCaller: (ctx) => appCaller(ctx),
+        });
+      },
+      onError: ({ error, path, type }) => {
+        const code =
+          error instanceof TRPCError
+            ? error.code
+            : typeof (error as { code?: unknown })?.code === "string"
+              ? (error as { code: string }).code
+              : undefined;
+
+        // Skip expected client/business errors to protect performance + quota
+        if (code && EXPECTED_TRPC_CODES.has(code)) return;
+
+        Sentry.captureException(error, {
+          tags: {
+            trpc_path: path ?? "unknown",
+            trpc_type: type,
+            ...(code ? { trpc_code: code } : {}),
+          },
         });
       },
     });
