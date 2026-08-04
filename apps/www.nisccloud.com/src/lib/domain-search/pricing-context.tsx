@@ -10,6 +10,28 @@ import type {
 
 const SELECTED_CURRENCY = "KES";
 
+interface MarginMap {
+  default: MarginConfig | null;
+  overrides: Record<string, MarginConfig>;
+}
+
+function extractExtension(domain: string): string {
+  const normalized = domain.trim().toLowerCase();
+  const idx = normalized.indexOf(".");
+  if (idx < 0) return normalized.replace(/^\.+/, "");
+  return normalized.slice(idx + 1);
+}
+
+function resolveMargin(
+  map: MarginMap | null,
+  domain: string,
+): MarginConfig | null {
+  if (!map) return null;
+  const key = extractExtension(domain);
+  if (key && map.overrides[key]) return map.overrides[key];
+  return map.default;
+}
+
 interface ConvertedPrice {
   originalAmount: number;
   convertedAmount: number;
@@ -85,31 +107,43 @@ function applyMargin(price: number, config: MarginConfig | null, currency: strin
 }
 
 export function PricingProvider({ children }: { children: React.ReactNode }) {
-  const [marginConfig, setMarginConfig] = React.useState<MarginConfig | null>(null);
+  const [marginMap, setMarginMap] = React.useState<MarginMap | null>(null);
   const [isLoadingTldSettings, setIsLoadingTldSettings] = React.useState(true);
   const [exchangeRates, setExchangeRates] = React.useState<ExchangeRates | null>(null);
 
   const ratesRef = React.useRef(exchangeRates);
   ratesRef.current = exchangeRates;
-  const marginRef = React.useRef(marginConfig);
-  marginRef.current = marginConfig;
+  const marginMapRef = React.useRef(marginMap);
+  marginMapRef.current = marginMap;
 
   React.useEffect(() => {
     let cancelled = false;
     async function load() {
       setIsLoadingTldSettings(true);
       const [marginRes, ratesRes] = await Promise.allSettled([
-        trpcQuery<{ success: boolean; data: MarginConfig | null }>(
-          "publicPricing.getDefaultMarginConfig",
-        ),
+        trpcQuery<{
+          success: boolean;
+          data: MarginMap | null;
+        }>("publicPricing.getMarginMap"),
         trpcQuery<{ success: boolean; data: ExchangeRates | null }>(
           "publicPricing.getExchangeRatesPublic",
           { baseCurrency: "USD" },
         ),
       ]);
       if (cancelled) return;
-      if (marginRes.status === "fulfilled" && marginRes.value?.success) {
-        setMarginConfig(marginRes.value.data);
+      if (marginRes.status === "fulfilled" && marginRes.value?.success && marginRes.value.data) {
+        setMarginMap({
+          default: marginRes.value.data.default,
+          overrides: marginRes.value.data.overrides ?? {},
+        });
+      } else {
+        // Fallback to legacy default-only endpoint
+        const legacy = await trpcQuery<{ success: boolean; data: MarginConfig | null }>(
+          "publicPricing.getDefaultMarginConfig",
+        ).catch(() => null);
+        if (!cancelled && legacy?.success) {
+          setMarginMap({ default: legacy.data, overrides: {} });
+        }
       }
       if (ratesRes.status === "fulfilled" && ratesRes.value?.success && ratesRes.value.data) {
         setExchangeRates(ratesRes.value.data);
@@ -164,7 +198,8 @@ export function PricingProvider({ children }: { children: React.ReactNode }) {
 
   const getPricingInfo = React.useCallback(
     (domain: string, originalPrice: number, currency: string): CalculatedPrice => {
-      return applyMargin(originalPrice, marginRef.current, currency);
+      const config = resolveMargin(marginMapRef.current, domain);
+      return applyMargin(originalPrice, config, currency);
     },
     [],
   );
@@ -260,7 +295,7 @@ export function PricingProvider({ children }: { children: React.ReactNode }) {
       selectedCurrency: SELECTED_CURRENCY,
       isConversionAvailable: Boolean(exchangeRates?.rates),
       isLoadingTldSettings,
-      hasDefaultSetting: marginConfig !== null,
+      hasDefaultSetting: marginMap?.default != null || Object.keys(marginMap?.overrides ?? {}).length > 0,
       convertPricesBatch,
       calculatePricesBatch,
       getPricingInfo,
@@ -268,7 +303,7 @@ export function PricingProvider({ children }: { children: React.ReactNode }) {
     [
       exchangeRates,
       isLoadingTldSettings,
-      marginConfig,
+      marginMap,
       convertPricesBatch,
       calculatePricesBatch,
       getPricingInfo,

@@ -132,7 +132,7 @@ async function checkViaOpenProvider(name, extensions, targetCurrency) {
             // Apply platform margin + currency conversion to get the retail price.
             let retailPrice;
             if (resellerAmt != null && resellerCur) {
-                const retail = await toRetailPrice(resellerAmt, resellerCur, targetCurrency);
+                const retail = await toRetailPrice(resellerAmt, resellerCur, targetCurrency, fullDomain);
                 if (retail) {
                     retailPrice = { amount: retail.amount, currency: retail.currency, formatted: retail.formatted };
                 }
@@ -210,7 +210,7 @@ async function checkViaKenic(name, extensions, targetCurrency) {
             // Apply platform margin + currency conversion (same as UI's getPricingInfo path).
             let retailPrice;
             if (wholesaleFee != null) {
-                const retail = await toRetailPrice(wholesaleFee.amount, wholesaleFee.currency, targetCurrency);
+                const retail = await toRetailPrice(wholesaleFee.amount, wholesaleFee.currency, targetCurrency, domain);
                 if (retail) {
                     retailPrice = {
                         amount: retail.amount,

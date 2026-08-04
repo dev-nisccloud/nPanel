@@ -15,6 +15,11 @@ import {
   SheetTitle,
 } from "@/components/npanel-ui/sheet";
 import type { OpenproviderTld } from "@/types/openprovider";
+import {
+  formatPriceWithKes,
+  useTldKesConversion,
+} from "./tld-price-format";
+import { TldMarginSection } from "./tld-margin-section";
 
 interface TldDetailsSheetProps {
   open: boolean;
@@ -22,55 +27,67 @@ interface TldDetailsSheetProps {
   tld: OpenproviderTld | null;
 }
 
-const formatPrice = (price?: number, currency?: string) => {
-  if (!price) return "N/A";
-
-  // Currency symbols mapping
-  const currencySymbols: Record<string, string> = {
-    USD: "$",
-    KES: "KSh",
-    EUR: "€",
-    GBP: " ?",
-    CAD: "C$",
-    AUD: "A$",
-    JPY: " ?",
-    INR: "₹",
-    ZAR: "R",
-    NGN: "₦",
-  };
-
-  const symbol = currencySymbols[currency || "USD"] || currency || "$";
-  // Format with thousand separators (e.g., 1,000.00)
-  const formattedNumber = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(price);
-
-  return `${symbol} ${formattedNumber}`;
-};
-
-const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
+const InfoRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) => (
   <div className="flex items-start justify-between py-2 border-b last:border-0">
     <span className="text-sm font-medium text-muted-foreground">{label}</span>
-    <span className="text-sm text-card-foreground text-right flex-1 ml-4">{value}</span>
+    <span className="text-sm text-card-foreground text-right flex-1 ml-4">
+      {value}
+    </span>
   </div>
 );
 
-const BooleanBadge = ({ value }: { value: boolean }) => (
+const BooleanBadge = ({ value }: { value: boolean }) =>
   value ? (
-    <Badge variant="default" className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
+    <Badge
+      variant="default"
+      className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+    >
       <Check className="h-3 w-3 mr-1" />
       Yes
     </Badge>
   ) : (
-    <Badge variant="secondary" className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+    <Badge
+      variant="secondary"
+      className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+    >
       <XCircle className="h-3 w-3 mr-1" />
       No
     </Badge>
-  )
-);
+  );
 
-export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProps) {
+function PriceValue({
+  price,
+  currency,
+  toKes,
+}: {
+  price: number;
+  currency: string;
+  toKes: ReturnType<typeof useTldKesConversion>["toKes"];
+}) {
+  const display = formatPriceWithKes(price, currency, toKes);
+  return (
+    <span className="inline-flex flex-col items-end gap-0.5">
+      <span>{display.primary}</span>
+      {display.kes && (
+        <span className="text-xs text-muted-foreground">≈ {display.kes}</span>
+      )}
+    </span>
+  );
+}
+
+export function TldDetailsSheet({
+  open,
+  onOpenChange,
+  tld,
+}: TldDetailsSheetProps) {
+  const { toKes } = useTldKesConversion();
+
   if (!tld) return null;
 
   const registrationPrice =
@@ -121,11 +138,7 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
                 </SheetDescription>
               </div>
               <SheetClose asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                >
+                <Button size="icon" variant="ghost" className="h-8 w-8">
                   <X className="h-4 w-4" />
                 </Button>
               </SheetClose>
@@ -138,17 +151,25 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
               <div className="px-6 py-4 space-y-6">
                 {/* Basic Information */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
+                  <h3 className="text-lg font-semibold mb-3">
+                    Basic Information
+                  </h3>
                   <div className="space-y-1">
                     <InfoRow
                       label="TLD Name"
-                      value={<span className="font-semibold">{tld.name.toUpperCase()}</span>}
+                      value={
+                        <span className="font-semibold">
+                          {tld.name.toUpperCase()}
+                        </span>
+                      }
                     />
                     <InfoRow
                       label="Status"
                       value={
                         <Badge
-                          variant={tld.status === "ACT" ? "default" : "secondary"}
+                          variant={
+                            tld.status === "ACT" ? "default" : "secondary"
+                          }
                           className="text-xs"
                         >
                           {tld.status}
@@ -167,37 +188,65 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Pricing</h3>
                     <div className="space-y-1">
-                      {registrationPrice && (
+                      {registrationPrice != null && (
                         <InfoRow
                           label="Registration"
-                          value={formatPrice(registrationPrice, registrationCurrency)}
+                          value={
+                            <PriceValue
+                              price={registrationPrice}
+                              currency={registrationCurrency}
+                              toKes={toKes}
+                            />
+                          }
                         />
                       )}
-                      {renewPrice && (
+                      {renewPrice != null && (
                         <InfoRow
                           label="Renewal"
-                          value={formatPrice(renewPrice, renewCurrency)}
+                          value={
+                            <PriceValue
+                              price={renewPrice}
+                              currency={renewCurrency}
+                              toKes={toKes}
+                            />
+                          }
                         />
                       )}
-                      {transferPrice && (
+                      {transferPrice != null && (
                         <InfoRow
                           label="Transfer"
-                          value={formatPrice(transferPrice, transferCurrency)}
+                          value={
+                            <PriceValue
+                              price={transferPrice}
+                              currency={transferCurrency}
+                              toKes={toKes}
+                            />
+                          }
                         />
                       )}
-                      {restorePrice && (
+                      {restorePrice != null && (
                         <InfoRow
                           label="Restore"
-                          value={formatPrice(restorePrice, restoreCurrency)}
+                          value={
+                            <PriceValue
+                              price={restorePrice}
+                              currency={restoreCurrency}
+                              toKes={toKes}
+                            />
+                          }
                         />
                       )}
                     </div>
                   </div>
                 )}
 
+                <TldMarginSection extension={tld.name} open={open} />
+
                 {/* Features & Capabilities */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Features & Capabilities</h3>
+                  <h3 className="text-lg font-semibold mb-3">
+                    Features & Capabilities
+                  </h3>
                   <div className="space-y-1">
                     <InfoRow
                       label="Transfer Available"
@@ -217,7 +266,9 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
                     />
                     <InfoRow
                       label="Private WHOIS Allowed"
-                      value={<BooleanBadge value={tld.is_private_whois_allowed} />}
+                      value={
+                        <BooleanBadge value={tld.is_private_whois_allowed} />
+                      }
                     />
                     <InfoRow
                       label="Domicile Available"
@@ -228,31 +279,46 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
 
                 {/* Auth Code Information */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Authorization Code</h3>
+                  <h3 className="text-lg font-semibold mb-3">
+                    Authorization Code
+                  </h3>
                   <div className="space-y-1">
                     <InfoRow
                       label="Transfer Auth Code Required"
-                      value={<BooleanBadge value={tld.is_transfer_auth_code_required} />}
+                      value={
+                        <BooleanBadge
+                          value={tld.is_transfer_auth_code_required}
+                        />
+                      }
                     />
                     <InfoRow
                       label="Trade Auth Code Required"
-                      value={<BooleanBadge value={tld.is_trade_auth_code_required} />}
+                      value={
+                        <BooleanBadge value={tld.is_trade_auth_code_required} />
+                      }
                     />
                     <InfoRow
                       label="Auth Code Available"
-                      value={<BooleanBadge value={tld.is_auth_code_available} />}
+                      value={
+                        <BooleanBadge value={tld.is_auth_code_available} />
+                      }
                     />
                     <InfoRow
                       label="Auth Code Changeable"
-                      value={<BooleanBadge value={tld.is_auth_code_changeable} />}
+                      value={
+                        <BooleanBadge value={tld.is_auth_code_changeable} />
+                      }
                     />
                   </div>
                 </div>
 
                 {/* Quarantine Information */}
-                {(tld.soft_quarantine_period > 0 || tld.quarantine_period > 0) && (
+                {(tld.soft_quarantine_period > 0 ||
+                  tld.quarantine_period > 0) && (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">Quarantine Periods</h3>
+                    <h3 className="text-lg font-semibold mb-3">
+                      Quarantine Periods
+                    </h3>
                     <div className="space-y-1">
                       {tld.soft_quarantine_period > 0 && (
                         <InfoRow
@@ -276,11 +342,15 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
                   <div className="space-y-1">
                     <InfoRow
                       label="Owner Handle"
-                      value={<BooleanBadge value={tld.owner_handle_supported} />}
+                      value={
+                        <BooleanBadge value={tld.owner_handle_supported} />
+                      }
                     />
                     <InfoRow
                       label="Admin Handle"
-                      value={<BooleanBadge value={tld.admin_handle_supported} />}
+                      value={
+                        <BooleanBadge value={tld.admin_handle_supported} />
+                      }
                     />
                     <InfoRow
                       label="Tech Handle"
@@ -288,11 +358,15 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
                     />
                     <InfoRow
                       label="Billing Handle"
-                      value={<BooleanBadge value={tld.billing_handle_supported} />}
+                      value={
+                        <BooleanBadge value={tld.billing_handle_supported} />
+                      }
                     />
                     <InfoRow
                       label="Reseller Handle"
-                      value={<BooleanBadge value={tld.reseller_handle_supported} />}
+                      value={
+                        <BooleanBadge value={tld.reseller_handle_supported} />
+                      }
                     />
                   </div>
                 </div>
@@ -300,15 +374,21 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
                 {/* DNSSEC Details */}
                 {tld.dnssec_allowed && (
                   <div>
-                    <h3 className="text-lg font-semibold mb-3">DNSSEC Details</h3>
+                    <h3 className="text-lg font-semibold mb-3">
+                      DNSSEC Details
+                    </h3>
                     <div className="space-y-1">
                       <InfoRow
                         label="DNSSEC Keys Allowed"
-                        value={<BooleanBadge value={tld.dnssec_keys_allowed} />}
+                        value={
+                          <BooleanBadge value={tld.dnssec_keys_allowed} />
+                        }
                       />
                       <InfoRow
                         label="DNSSEC Digests Allowed"
-                        value={<BooleanBadge value={tld.dnssec_digests_allowed} />}
+                        value={
+                          <BooleanBadge value={tld.dnssec_digests_allowed} />
+                        }
                       />
                       {tld.dnssec_max_records_amount > 0 && (
                         <InfoRow
@@ -316,44 +396,56 @@ export function TldDetailsSheet({ open, onOpenChange, tld }: TldDetailsSheetProp
                           value={tld.dnssec_max_records_amount}
                         />
                       )}
-                      {tld.dnssec_algorithms && tld.dnssec_algorithms.length > 0 && (
-                        <InfoRow
-                          label="DNSSEC Algorithms"
-                          value={
-                            <div className="flex flex-wrap gap-1">
-                              {tld.dnssec_algorithms.map((alg) => (
-                                <Badge key={alg} variant="outline" className="text-xs">
-                                  {alg}
-                                </Badge>
-                              ))}
-                            </div>
-                          }
-                        />
-                      )}
+                      {tld.dnssec_algorithms &&
+                        tld.dnssec_algorithms.length > 0 && (
+                          <InfoRow
+                            label="DNSSEC Algorithms"
+                            value={
+                              <div className="flex flex-wrap gap-1">
+                                {tld.dnssec_algorithms.map((alg) => (
+                                  <Badge
+                                    key={alg}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {alg}
+                                  </Badge>
+                                ))}
+                              </div>
+                            }
+                          />
+                        )}
                     </div>
                   </div>
                 )}
 
                 {/* IDN Scripts */}
-                {tld.supported_idn_scripts && tld.supported_idn_scripts.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Supported IDN Scripts</h3>
-                    <div className="space-y-1">
-                      <InfoRow
-                        label="Scripts"
-                        value={
-                          <div className="flex flex-wrap gap-1">
-                            {tld.supported_idn_scripts.map((script, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {script.description || script.value}
-                              </Badge>
-                            ))}
-                          </div>
-                        }
-                      />
+                {tld.supported_idn_scripts &&
+                  tld.supported_idn_scripts.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">
+                        Supported IDN Scripts
+                      </h3>
+                      <div className="space-y-1">
+                        <InfoRow
+                          label="Scripts"
+                          value={
+                            <div className="flex flex-wrap gap-1">
+                              {tld.supported_idn_scripts.map((script, idx) => (
+                                <Badge
+                                  key={idx}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {script.description || script.value}
+                                </Badge>
+                              ))}
+                            </div>
+                          }
+                        />
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
               <ScrollBar orientation="vertical" />
             </ScrollArea>

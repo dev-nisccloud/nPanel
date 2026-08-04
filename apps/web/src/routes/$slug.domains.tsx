@@ -10,12 +10,10 @@ import { AiTabTrigger } from "@/components/ai-tab-trigger";
 export default function DomainsPage() {
   const utils = trpc.useUtils();
 
-  // P0-1: Prefetch TLD settings and exchange rates on page load for better performance
-  // P0-2: Using optimized getDefault endpoint instead of list
+  // Prefetch margin map (default + per-TLD overrides) and exchange rates
   React.useEffect(() => {
-    // Prefetch in parallel to eliminate delays on first search
     Promise.all([
-      utils.tldSettings.getDefault.prefetch(),
+      utils.tldSettings.listMarginMap.prefetch(),
       utils.currency.getExchangeRates.prefetch({ baseCurrency: "USD" }),
     ]).catch((error) => {
       console.error("Failed to prefetch domain data:", error);
