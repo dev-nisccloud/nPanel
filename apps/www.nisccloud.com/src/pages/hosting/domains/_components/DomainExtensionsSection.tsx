@@ -65,9 +65,14 @@ export function DomainExtensionsSection() {
 
     let cancelled = false;
 
-    async function toDisplayKes(basePrice: number, currency: string): Promise<PricedTld | null> {
+    async function toDisplayKes(
+      basePrice: number,
+      currency: string,
+      domain: string,
+    ): Promise<PricedTld | null> {
       if (typeof basePrice !== "number" || Number.isNaN(basePrice)) return null;
-      const calc = getPricingInfo("catalog", basePrice, currency);
+      // Pass the real domain so per-TLD margin overrides resolve correctly
+      const calc = getPricingInfo(domain, basePrice, currency);
       if (currency === "KES") {
         return { amount: calc.finalPrice, currency: "KES" };
       }
@@ -130,6 +135,7 @@ export function DomainExtensionsSection() {
           const priced = await toDisplayKes(
             item.createFee.amount,
             item.createFee.currency ?? item.currency ?? "KES",
+            domain,
           );
           if (priced) next[ext] = priced;
         }
@@ -143,7 +149,7 @@ export function DomainExtensionsSection() {
           const raw = r.price?.reseller?.price;
           const currency = r.price?.reseller?.currency ?? "USD";
           if (!ext || raw == null) continue;
-          const priced = await toDisplayKes(raw, currency);
+          const priced = await toDisplayKes(raw, currency, domain);
           if (priced) next[ext] = priced;
         }
       }

@@ -334,6 +334,7 @@ export async function resolveDomainTransferUpsellPriceKes(domain: string): Promi
 		result.price,
 		result.currency ?? "USD",
 		"KES",
+		domain,
 	);
 	if (!retail?.amount || retail.amount <= 0) {
 		throw new TRPCError({

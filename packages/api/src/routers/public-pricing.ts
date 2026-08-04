@@ -3,6 +3,7 @@ import { eq } from "@npanel/db";
 import { publicProcedure, router } from "../trpc";
 import { db } from "@npanel/db";
 import { tldSettings } from "@npanel/db/schema/nameservers";
+import { loadMarginMap } from "../lib/tld-margin";
 
 // NOTE: This router exposes read-only, public helpers for
 // pricing margin + currency conversion. It does NOT allow
@@ -13,6 +14,9 @@ const publicMarginConfig = z.object({
   percentageMargin: z.string().nullable(),
   fixedMargin: z.string().nullable(),
   roundOff: z.string().nullable(),
+  id: z.string().optional(),
+  name: z.string().optional(),
+  isDefault: z.boolean().optional(),
 });
 
 const publicExchangeRates = z.object({
@@ -85,6 +89,49 @@ export const publicPricingRouter = router({
           success: false,
           data: null,
           error: "Failed to load default margin configuration.",
+        };
+      }
+    }),
+
+  /**
+   * Public: default margin + per-extension overrides for retail pricing.
+   */
+  getMarginMap: publicProcedure
+    .output(
+      z.object({
+        success: z.boolean(),
+        data: z
+          .object({
+            default: publicMarginConfig.nullable(),
+            overrides: z.record(z.string(), publicMarginConfig),
+          })
+          .nullable(),
+        error: z.string().optional(),
+      }),
+    )
+    .query(async () => {
+      try {
+        if (!process.env.DATABASE_URL) {
+          return {
+            success: true,
+            data: { default: null, overrides: {} },
+          };
+        }
+
+        const map = await loadMarginMap();
+        return {
+          success: true,
+          data: {
+            default: map.default,
+            overrides: map.overrides,
+          },
+        };
+      } catch (error) {
+        console.error("publicPricing.getMarginMap failed:", error);
+        return {
+          success: false,
+          data: null,
+          error: "Failed to load margin map.",
         };
       }
     }),

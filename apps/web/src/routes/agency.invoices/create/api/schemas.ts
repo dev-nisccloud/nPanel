@@ -126,11 +126,12 @@ export const invoiceSummarySchema = z.object({
 	dueDate: nullableDate,
 	createdAt: z.union([z.date(), z.string()]),
 	updatedAt: z.union([z.date(), z.string()]),
+	teamId: nullableString,
+	teamName: nullableString,
 });
 export type InvoiceSummary = z.infer<typeof invoiceSummarySchema>;
 
 export const invoiceDetailSchema = invoiceSummarySchema.extend({
-	teamId: nullableString,
 	customerId: nullableString,
 	subtotal: nullableString,
 	tax: nullableString,

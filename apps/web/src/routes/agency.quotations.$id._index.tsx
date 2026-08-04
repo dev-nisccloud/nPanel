@@ -22,6 +22,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { QUOTATION_STATUSES } from "./agency.quotations/_components/quotations-table";
+import { quotationCustomerGroupPath } from "./agency.quotations/_components/quotation-customer-group";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { QuotationPreviewDetails } from "@/routes/agency.quotations/create/_components/form/previewDetails";
@@ -120,8 +121,13 @@ export default function QuotationViewPage() {
 		onSuccess: () => {
 			toast.success("Quotation deleted");
 			utils.quotations.list.invalidate();
+			utils.quotations.listCustomersSummary.invalidate();
 			setDeleteOpen(false);
-			navigate("/agency/quotations");
+			navigate(
+				quotation
+					? quotationCustomerGroupPath(quotation.customerName, quotation.customerEmail)
+					: "/agency/quotations",
+			);
 		},
 		onError: (e) => toast.error("Failed to delete quotation", { description: e.message }),
 	});
@@ -222,13 +228,17 @@ export default function QuotationViewPage() {
 		);
 	}
 
+	const quotationsBackPath = quotationCustomerGroupPath(
+		quotation.customerName,
+		quotation.customerEmail,
+	);
 	const previewData = transformQuotationToPreviewData(quotation);
 
 	return (
 		<div className="@container/main flex flex-col gap-4 md:gap-6 py-6">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-4">
-					<Button onClick={() => navigate("/agency/quotations")} variant="ghost" size="sm">
+					<Button onClick={() => navigate(quotationsBackPath)} variant="ghost" size="sm">
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Quotations
 					</Button>

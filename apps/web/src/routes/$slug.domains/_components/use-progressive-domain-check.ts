@@ -20,6 +20,10 @@ import {
 } from "@/utils";
 import { useCurrency } from "./currency-context";
 import type { DomainSearchResult } from "./domain-search";
+import {
+  applyMarginToPrice,
+  resolveMarginForDomain,
+} from "@/lib/tld-margin";
 
 interface AISuggestion {
   name: string;
@@ -73,93 +77,68 @@ export function useProgressiveDomainCheck() {
   // Get currency context for pricing calculations
   const { selectedCurrency, isConversionAvailable, convertPricesBatch } = useCurrency();
   
-  // Get TLD settings for pricing calculations
-  const { data: tldSettingsData } = trpc.tldSettings.list.useQuery(
+  // Get margin map for pricing calculations (default + per-TLD overrides)
+  const { data: marginMapData } = trpc.tldSettings.listMarginMap.useQuery(
+    undefined,
     {
-      limit: 100,
-      offset: 0,
-    },
-    {
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes
+      staleTime: 10 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     }
   );
-  
-  // Find default TLD setting
-  const defaultTldSetting = React.useMemo(() => {
-    if (tldSettingsData?.success && tldSettingsData.data) {
-      return tldSettingsData.data.find(setting => setting.isDefault) || null;
-    }
-    return null;
-  }, [tldSettingsData]);
+
+  const marginMap = React.useMemo(() => {
+    if (!marginMapData?.success || !marginMapData.data) return null;
+    return {
+      default: marginMapData.data.default,
+      overrides: marginMapData.data.overrides ?? {},
+    };
+  }, [marginMapData]);
+
+  const defaultTldSetting = marginMap?.default ?? null;
+  const hasAnyMargin =
+    Boolean(defaultTldSetting) ||
+    Boolean(marginMap && Object.keys(marginMap.overrides).length > 0);
 
   // Direct pricing calculation function
   const calculatePriceDirect = React.useCallback((domain: string, originalPrice: number, currency: string) => {
-    if (!defaultTldSetting) {
-      return {
-        originalPrice,
-        marginAmount: 0,
-        finalPrice: originalPrice,
-        currency,
-        marginType: null,
-        marginValue: null,
-        convertedPrice: undefined,
-        exchangeRate: undefined,
-        displayCurrency: undefined,
-      };
-    }
-
-    const percentageMargin = defaultTldSetting.percentageMargin;
-    const fixedMargin = defaultTldSetting.fixedMargin;
-    const roundOff = defaultTldSetting.roundOff;
-    const marginType = defaultTldSetting.marginType;
-
-    let marginAmount = 0;
-    let finalPrice = originalPrice;
-
-    if (marginType === "PERCENTAGE" && percentageMargin) {
-      const percentage = parseFloat(percentageMargin);
-      if (!isNaN(percentage)) {
-        marginAmount = (originalPrice * percentage) / 100;
-        finalPrice = originalPrice + marginAmount;
-      }
-    } else if (marginType === "FIXED" && fixedMargin) {
-      const fixed = parseFloat(fixedMargin);
-      if (!isNaN(fixed)) {
-        marginAmount = fixed;
-        finalPrice = originalPrice + marginAmount;
-      }
-    }
-
-    // Apply round off if specified
-    if (roundOff) {
-      const roundOffValue = parseFloat(roundOff);
-      if (!isNaN(roundOffValue) && roundOffValue > 0) {
-        finalPrice = Math.ceil(finalPrice / roundOffValue) * roundOffValue;
-        marginAmount = finalPrice - originalPrice;
-      }
-    }
+    const setting = resolveMarginForDomain(marginMap, domain);
+    const applied = applyMarginToPrice(originalPrice, setting);
 
     return {
       originalPrice,
-      marginAmount,
-      finalPrice,
+      marginAmount: applied.marginAmount,
+      finalPrice: applied.finalPrice,
       currency,
-      marginType,
-      marginValue: marginType === "PERCENTAGE" ? percentageMargin : fixedMargin,
-      convertedPrice: undefined,
-      exchangeRate: undefined,
-      displayCurrency: undefined,
+      marginType: applied.marginType,
+      marginValue: applied.marginValue,
+      convertedPrice: undefined as number | undefined,
+      exchangeRate: undefined as number | undefined,
+      displayCurrency: undefined as string | undefined,
     };
-  }, [defaultTldSetting]);
+  }, [marginMap]);
+
+  // CRITICAL STABILITY FIX: Keep stable references to context values so calculatePricesBatchDirect
+  // never changes its reference (which was triggering infinite loops in the progressive AI queue).
+  const convertBatchRef = React.useRef(convertPricesBatch);
+  convertBatchRef.current = convertPricesBatch;
+
+  const selectedCurrencyRef = React.useRef(selectedCurrency);
+  selectedCurrencyRef.current = selectedCurrency;
+
+  const isConversionAvailableRef = React.useRef(isConversionAvailable);
+  isConversionAvailableRef.current = isConversionAvailable;
 
   // Direct batch pricing calculation
   const calculatePricesBatchDirect = React.useCallback(async (results: DomainSearchResult[]): Promise<DomainSearchResult[]> => {
-    if (!defaultTldSetting || results.length === 0) {
+    if (!hasAnyMargin || results.length === 0) {
       return results;
     }
+
+    const currentSelectedCurrency = selectedCurrencyRef.current;
+    const currentIsConversionAvailable = isConversionAvailableRef.current;
+    const currentConvertBatch = convertBatchRef.current;
 
     return Promise.all(results.map(async (result) => {
       if (result.status !== 'free' || !result.price?.reseller?.price) {
@@ -174,18 +153,18 @@ export function useProgressiveDomainCheck() {
       const calculated = calculatePriceDirect(domain, originalPrice, currency);
       
       // Add currency conversion if available and different from original currency
-      if (isConversionAvailable && selectedCurrency !== currency) {
+      if (currentIsConversionAvailable && currentSelectedCurrency !== currency) {
         try {
-          const convertedPrices = await convertPricesBatch([{
+          const convertedPrices = await currentConvertBatch([{
             amount: calculated.finalPrice,
             currency: currency,
-          }], selectedCurrency);
+          }], currentSelectedCurrency);
           
           if (convertedPrices.length > 0) {
             const converted = convertedPrices[0];
             (calculated as any).convertedPrice = converted.convertedAmount;
             (calculated as any).exchangeRate = converted.rate;
-            (calculated as any).displayCurrency = selectedCurrency;
+            (calculated as any).displayCurrency = currentSelectedCurrency;
           }
         } catch (error) {
           console.error('Failed to convert price for domain:', domain, error);
@@ -205,7 +184,8 @@ export function useProgressiveDomainCheck() {
         },
       };
     }));
-  }, [defaultTldSetting, calculatePriceDirect, selectedCurrency, isConversionAvailable, convertPricesBatch]);
+  // Removed selectedCurrency, isConversionAvailable, convertPricesBatch to prevent infinite loops
+  }, [hasAnyMargin, calculatePriceDirect]);
 
   // Process suggestions sequentially
   const processSuggestionsSequentially = React.useCallback(async (
@@ -295,6 +275,10 @@ export function useProgressiveDomainCheck() {
             domain: `${suggestion.name}${ext}`,
             status: 'unknown',
             reason: `Error: ${errorMessage}`,
+            price: {
+              product: { price: 0, currency: 'USD' },
+              reseller: { price: 0, currency: 'USD' }
+            }
           }));
           
                   setSuggestionResults(prev => ({

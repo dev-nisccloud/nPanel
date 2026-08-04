@@ -34,9 +34,11 @@ import {
 	canSendInvoiceEmail,
 } from "./agency.invoices/$id/_components/invoice-kra-status-panel";
 import { IssueCreditNoteDialog } from "./agency.invoices/$id/_components/issue-credit-note-dialog";
+import { InvoiceTransactionsSection } from "./agency.invoices/$id/_components/invoice-transactions-section";
+import { InvoiceTransactionViewSheet } from "./agency.invoices/$id/_components/invoice-transaction-view-sheet";
 import { isInvoiceKraSynced } from "@npanel/api/lib/invoice-kra-status";
 import { buildInvoicePdfDetails } from "@npanel/api/agency-invoice-pdf/build-invoice-pdf-details";
-import type { InvoiceDetail } from "@/routes/agency.invoices/create/api/schemas";
+import type { InvoiceDetail, InvoiceTransaction } from "@/routes/agency.invoices/create/api/schemas";
 import { FormProvider, useForm } from "react-hook-form";
 import { YourDetailsForm } from "@/routes/agency.invoices/create/_components/form/yourDetails/yourDetailsForm";
 import { CompanyDetailsForm } from "@/routes/agency.invoices/create/_components/form/companyDetails/companyDetailsForm";
@@ -260,6 +262,8 @@ export default function InvoiceViewPage() {
 	const [sendToEmail, setSendToEmail] = React.useState("");
 	const [sendCc, setSendCc] = React.useState("");
 	const [sendBcc, setSendBcc] = React.useState("");
+	const [viewingTransaction, setViewingTransaction] = React.useState<InvoiceTransaction | null>(null);
+	const [transactionSheetOpen, setTransactionSheetOpen] = React.useState(false);
 
 	const utils = trpc.useUtils();
 
@@ -461,6 +465,10 @@ export default function InvoiceViewPage() {
 		);
 	}
 
+	const invoicesBackPath = invoice.teamId
+		? `/agency/invoices/teams/${invoice.teamId}`
+		: "/agency/invoices";
+
 	const previewData = transformInvoiceToPreviewData(invoice);
 	const pdfMeta = buildInvoicePdfDetails(invoice);
 	const emailBlocked = !canSendInvoiceEmail(invoice);
@@ -591,7 +599,7 @@ export default function InvoiceViewPage() {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-4">
 					<Button
-						onClick={() => navigate("/agency/invoices")}
+						onClick={() => navigate(invoicesBackPath)}
 						variant="ghost"
 						size="sm"
 					>
@@ -736,6 +744,16 @@ export default function InvoiceViewPage() {
 				/>
 			</div>
 
+			<div className="px-4">
+				<InvoiceTransactionsSection
+					transactions={invoice.transactions ?? []}
+					onViewTransaction={(tx) => {
+						setViewingTransaction(tx);
+						setTransactionSheetOpen(true);
+					}}
+				/>
+			</div>
+
 			{/* Center the preview */}
 			<div className="flex justify-center items-start">
 				<PreviewDetails
@@ -748,6 +766,16 @@ export default function InvoiceViewPage() {
 					onClick={handleOpenEdit}
 				/>
 			</div>
+
+			<InvoiceTransactionViewSheet
+				transaction={viewingTransaction}
+				invoiceNumber={invoice.invoiceNumber}
+				open={transactionSheetOpen}
+				onOpenChange={(open) => {
+					setTransactionSheetOpen(open);
+					if (!open) setViewingTransaction(null);
+				}}
+			/>
 
 			<Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
 				<DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
