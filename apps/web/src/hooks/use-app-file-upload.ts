@@ -3,7 +3,10 @@
 import * as React from "react";
 
 import type { ObjectStorageUploadResult } from "@/lib/object-storage-client";
-import { normalizeImageFilesForUpload } from "@/lib/app-file-upload";
+import {
+	filterZeepoAgentAttachmentFiles,
+	normalizeImageFilesForUpload,
+} from "@/lib/app-file-upload";
 import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
 import {
 	type BatchUploadProgress,
@@ -67,7 +70,12 @@ export function useAppFileUpload() {
 
 	const uploadAgentAttachments = React.useCallback(
 		async (files: File[]): Promise<ObjectStorageUploadResult[]> => {
-			const normalized = normalizeImageFilesForUpload(files);
+			const { accepted, rejectedMessage } = filterZeepoAgentAttachmentFiles(files);
+			if (rejectedMessage && accepted.length === 0) {
+				throw new Error(rejectedMessage);
+			}
+			if (accepted.length === 0) return [];
+			const normalized = normalizeImageFilesForUpload(accepted);
 			return uploadBatch(normalized, STORAGE_PREFIXES.ZEEPO_AGENT);
 		},
 		[uploadBatch],

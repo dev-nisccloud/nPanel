@@ -13,8 +13,13 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
-import { mapStorageResultToAttachment, uploadErrorMessage } from "@/lib/app-file-upload";
+import {
+  filterZeepoAgentAttachmentFiles,
+  mapStorageResultToAttachment,
+  uploadErrorMessage,
+} from "@/lib/app-file-upload";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
+import { ZeepoDeleteChatDialog } from "@/components/zeepo/zeepo-delete-chat-dialog";
 import {
   ZEEPO_SAMPLE_PROMPTS,
   ZEEPO_PROMPT_CATEGORY_META,
@@ -41,7 +46,7 @@ import {
 import { useZeepoTokenBilling } from "@/components/zeepo/zeepo-token-billing-provider";
 import { ZeepoTokenWallet } from "@/components/zeepo/zeepo-token-wallet";
 
-type Attachment = { url: string; name: string; mimeType: string };
+type Attachment = { url: string; name: string; mimeType: string; storageKey?: string };
 
 const TYPEWRITER_PHRASES = [
   "write strategies, plans, and proposals",
@@ -131,13 +136,15 @@ export default function ZeepoAiAgentIndexPage() {
   );
 
   const createSession = trpc.zeepoAgent.sessions.create.useMutation();
-  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<{ id: string; title?: string | null } | null>(null);
   const deleteSession = trpc.zeepoAgent.sessions.delete.useMutation({
     onSuccess: () => {
       void utils.zeepoAgent.sessions.list.invalidate();
+      setDeleteTarget(null);
+      toast.success("Chat deleted");
     },
-    onSettled: () => {
-      setDeletingId(null);
+    onError: (e) => {
+      toast.error(e.message || "Failed to delete chat");
     },
   });
 
@@ -204,7 +211,12 @@ export default function ZeepoAiAgentIndexPage() {
         const results = await uploadAgentAttachments(staged.map((f) => f.file));
         const uploaded: Attachment[] = results.map((r, i) => {
           const mapped = mapStorageResultToAttachment(r, staged[i]!.file);
-          return { url: mapped.url, name: mapped.name, mimeType: mapped.mimeType };
+          return {
+            url: mapped.url,
+            name: mapped.name,
+            mimeType: mapped.mimeType,
+            ...(mapped.storageKey ? { storageKey: mapped.storageKey } : {}),
+          };
         });
         await finishHandoff([...presetAttachments, ...uploaded]);
       } catch (e) {
@@ -221,8 +233,12 @@ export default function ZeepoAiAgentIndexPage() {
     if (!files?.length) return;
     const room = 4 - pendingFiles.length;
     if (room <= 0) return;
-    const incoming = Array.from(files).slice(0, room);
-    const staged: PendingFile[] = incoming.map((f) => ({
+    const { accepted, rejectedMessage } = filterZeepoAgentAttachmentFiles(
+      Array.from(files).slice(0, room),
+    );
+    if (rejectedMessage) toast.error(rejectedMessage);
+    if (!accepted.length) return;
+    const staged: PendingFile[] = accepted.map((f) => ({
       file: f,
       previewUrl: URL.createObjectURL(f),
       name: f.name,
@@ -328,7 +344,7 @@ export default function ZeepoAiAgentIndexPage() {
                         <button
                           type="button"
                           aria-label="Delete chat"
-                          disabled={deletingId === s.id}
+                          disabled={deleteSession.isPending && deleteTarget?.id === s.id}
                           className={cn(
                             "absolute right-2 flex size-6 items-center justify-center rounded-md text-muted-foreground",
                             "opacity-0 transition-opacity group-hover:opacity-100",
@@ -339,11 +355,10 @@ export default function ZeepoAiAgentIndexPage() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            setDeletingId(s.id);
-                            deleteSession.mutate({ id: s.id });
+                            setDeleteTarget({ id: s.id, title: s.title });
                           }}
                         >
-                          {deletingId === s.id ? (
+                          {deleteSession.isPending && deleteTarget?.id === s.id ? (
                             <Spinner size={12} className="text-current" />
                           ) : (
                             <Trash2 className="size-3.5" />
@@ -505,6 +520,18 @@ export default function ZeepoAiAgentIndexPage() {
           </div>
         </div>
       </div>
+
+      <ZeepoDeleteChatDialog
+        target={deleteTarget}
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !deleteSession.isPending) setDeleteTarget(null);
+        }}
+        isPending={deleteSession.isPending}
+        onConfirm={async (id) => {
+          await deleteSession.mutateAsync({ id });
+        }}
+      />
     </div>
   );
 }

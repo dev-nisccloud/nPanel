@@ -57,6 +57,11 @@ export function resolveProcedureRateLimit(path: string): {
     return { authenticated: 5, apiKey: 5, anonymous: 2, windowSec: 60 };
   }
 
+  // Presigned uploads — keep below the default so spam cannot mint endless URLs.
+  if (path === "objectStorage.createUploadUrl") {
+    return { authenticated: 40, apiKey: 40, anonymous: 5, windowSec: 60 };
+  }
+
   // Landing guest support  tight anonymous caps to limit abuse.
   if (path === "support.guest.startSession") {
     return { authenticated: 10, apiKey: 10, anonymous: 5, windowSec: 3600 };
