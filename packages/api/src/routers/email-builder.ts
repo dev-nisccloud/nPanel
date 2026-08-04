@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, exists, isNull, or } from "@npanel/db";
+import { and, asc, eq, exists, isNull, or, desc } from "@npanel/db";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
@@ -7,6 +7,7 @@ import { db } from "@npanel/db";
 import {
   emailBuilderDesign,
   emailBuilderDesignActivityLog,
+  emailBuilderOperation,
 } from "@npanel/db/schema/email-builder-design";
 import { teamMember } from "@npanel/db/schema/teams";
 import { protectedProcedure, router } from "../trpc";
@@ -71,6 +72,30 @@ const generateWithAiSchema = z.object({
 });
 
 const getAiStatusSchema = z.object({
+    designId: z.string(),
+});
+
+// New schemas for resilient operations
+const saveDesignContentSchema = z.object({
+    designId: z.string(),
+    json: z.string().min(1, "Design data is required"),
+    clientVersion: z.number().optional(),
+});
+
+const getOperationsSchema = z.object({
+    designId: z.string(),
+    status: z.enum(["QUEUED", "PROCESSING", "COMPLETED", "FAILED"]).optional(),
+    limit: z.number().min(1).max(50).default(10),
+});
+
+const createOperationSchema = z.object({
+    designId: z.string(),
+    operationType: z.enum(["AUTO_SAVE", "AI_GENERATION", "IMAGE_UPLOAD"]),
+    payload: z.any().optional(),
+    status: z.enum(["QUEUED", "PROCESSING", "COMPLETED", "FAILED"]).optional(),
+});
+
+const getDesignHtmlSchema = z.object({
     designId: z.string(),
 });
 
@@ -254,7 +279,7 @@ export const emailBuilderRouter = router({
             };
         }),
 
-    // Update a design
+    // Update a design (legacy - use saveContent for better resilience)
     update: protectedProcedure
         .input(updateEmailBuilderDesignSchema)
         .mutation(async ({ ctx, input }) => {
@@ -287,6 +312,8 @@ export const emailBuilderRouter = router({
                 .set({
                     ...updateData,
                     updatedAt: now,
+                    lastSavedAt: now,
+                    saveStatus: "SAVED",
                 })
                 .where(eq(emailBuilderDesign.id, id))
                 .returning();
@@ -309,6 +336,203 @@ export const emailBuilderRouter = router({
             });
 
             return { data: design };
+        }),
+
+    // Save design content immediately (like Zeepo message persistence)
+    // This provides network interruption resilience
+    saveContent: protectedProcedure
+        .input(saveDesignContentSchema)
+        .mutation(async ({ ctx, input }) => {
+            const userId = ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({ code: "UNAUTHORIZED" });
+            }
+
+            const existingDesign = await db.query.emailBuilderDesign.findFirst({
+                where: and(
+                    eq(emailBuilderDesign.id, input.designId),
+                    eq(emailBuilderDesign.userId, userId),
+                ),
+            });
+
+            if (!existingDesign) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
+            }
+
+            const now = new Date();
+            const newVersion = (existingDesign.clientVersion || 0) + 1;
+
+            // Create operation record for tracking
+            const operationId = randomUUID();
+            await db.insert(emailBuilderOperation).values({
+                id: operationId,
+                designId: input.designId,
+                userId,
+                teamId: existingDesign.teamId,
+                operationType: "AUTO_SAVE",
+                status: "PROCESSING",
+                payload: { json: input.json },
+                clientVersion: input.clientVersion,
+                createdAt: now,
+                startedAt: now,
+            });
+
+            try {
+                // Immediate persistence to database
+                const [design] = await db
+                    .update(emailBuilderDesign)
+                    .set({
+                        json: input.json,
+                        updatedAt: now,
+                        lastSavedAt: now,
+                        saveStatus: "SAVED",
+                        clientVersion: newVersion,
+                        lastSaveError: null,
+                    })
+                    .where(eq(emailBuilderDesign.id, input.designId))
+                    .returning();
+
+                // Mark operation as completed
+                await db
+                    .update(emailBuilderOperation)
+                    .set({
+                        status: "COMPLETED",
+                        completedAt: now,
+                        updatedAt: now,
+                    })
+                    .where(eq(emailBuilderOperation.id, operationId));
+
+                return { 
+                    success: true, 
+                    data: design,
+                    operationId,
+                    version: newVersion,
+                };
+            } catch (error) {
+                // Mark operation as failed
+                await db
+                    .update(emailBuilderOperation)
+                    .set({
+                        status: "FAILED",
+                        errorMessage: error instanceof Error ? error.message : "Unknown error",
+                        completedAt: now,
+                        updatedAt: now,
+                    })
+                    .where(eq(emailBuilderOperation.id, operationId));
+
+                // Update design with error state
+                await db
+                    .update(emailBuilderDesign)
+                    .set({
+                        saveStatus: "SAVE_FAILED",
+                        lastSaveError: error instanceof Error ? error.message : "Unknown error",
+                        updatedAt: now,
+                    })
+                    .where(eq(emailBuilderDesign.id, input.designId));
+
+                throw new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to save design",
+                    cause: error,
+                });
+            }
+        }),
+
+    // Get operations for a design (for debugging and status tracking)
+    getOperations: protectedProcedure
+        .input(getOperationsSchema)
+        .query(async ({ ctx, input }) => {
+            const userId = ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({ code: "UNAUTHORIZED" });
+            }
+
+            const conditions = [
+                eq(emailBuilderOperation.designId, input.designId),
+                eq(emailBuilderOperation.userId, userId),
+            ];
+
+            if (input.status) {
+                conditions.push(eq(emailBuilderOperation.status, input.status));
+            }
+
+            const operations = await db.query.emailBuilderOperation.findMany({
+                where: and(...conditions),
+                orderBy: [desc(emailBuilderOperation.createdAt)],
+                limit: input.limit,
+            });
+
+            return { data: operations };
+        }),
+
+    // Create/update an operation (for tracking uploads, exports, etc.)
+    createOperation: protectedProcedure
+        .input(createOperationSchema)
+        .mutation(async ({ ctx, input }) => {
+            const userId = ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({ code: "UNAUTHORIZED" });
+            }
+
+            // Verify user has access to this design
+            const design = await db.query.emailBuilderDesign.findFirst({
+                where: and(
+                    eq(emailBuilderDesign.id, input.designId),
+                    eq(emailBuilderDesign.userId, userId),
+                ),
+            });
+
+            if (!design) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
+            }
+
+            const now = new Date();
+            const operationId = randomUUID();
+
+            const [operation] = await db.insert(emailBuilderOperation).values({
+                id: operationId,
+                designId: input.designId,
+                userId,
+                teamId: design.teamId,
+                operationType: input.operationType,
+                status: input.status || "QUEUED",
+                payload: input.payload,
+                createdAt: now,
+                ...(input.status === "PROCESSING" ? { startedAt: now } : {}),
+                ...(input.status === "COMPLETED" || input.status === "FAILED" ? { completedAt: now } : {}),
+            }).returning();
+
+            return { data: operation };
+        }),
+
+    // Get design HTML for client-side export
+    getDesignHtml: protectedProcedure
+        .input(getDesignHtmlSchema)
+        .query(async ({ ctx, input }) => {
+            const userId = ctx.session?.user?.id;
+            if (!userId) {
+                throw new TRPCError({ code: "UNAUTHORIZED" });
+            }
+
+            // Verify user has access to this design
+            const design = await db.query.emailBuilderDesign.findFirst({
+                where: and(
+                    eq(emailBuilderDesign.id, input.designId),
+                    eq(emailBuilderDesign.userId, userId),
+                ),
+            });
+
+            if (!design) {
+                throw new TRPCError({ code: "NOT_FOUND", message: "Design not found" });
+            }
+
+            return { 
+                success: true,
+                data: {
+                    html: design.json, // Return the JSON/HTML content
+                    name: design.name,
+                },
+            };
         }),
 
     // Delete a design

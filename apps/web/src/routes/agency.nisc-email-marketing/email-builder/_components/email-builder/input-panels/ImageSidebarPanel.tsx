@@ -8,11 +8,9 @@ import TextDimensionInput from '../helpers/inputs/TextDimensionInput';
 import TextInput from '../helpers/inputs/TextInput';
 import MultiStylePropertyPanel from '../helpers/style-inputs/MultiStylePropertyPanel';
 import { Button } from '@/components/ui/button';
-import { uploadFiles } from '@/hooks/use-uploadthing';
-import { UPLOAD_ENDPOINTS } from '@/lib/uploadthing';
-import { useCreateEmailBuilderLibraryItem } from '../../../_api/use-create-email-builder-library-item';
+import { useUploadEmailBuilderImage } from '../../../_api/use-upload-email-builder-image';
 import { trpc } from '@/utils/trpc';
-import { Spinner } from '@/components/ui/shadcn-io/spinner';
+import { EmailBuilderSpinner, EmailBuilderUploadProgress } from '../../../email-builder-loading';
 import { Textarea } from '@/components/ui/textarea';
 
 type ImageSidebarPanelProps = {
@@ -21,10 +19,9 @@ type ImageSidebarPanelProps = {
 };
 
 export default function ImageSidebarPanel({ data, setData }: ImageSidebarPanelProps) {
-  const createLibraryItem = useCreateEmailBuilderLibraryItem();
+  const { uploadImage, isUploading, progressPercent } = useUploadEmailBuilderImage();
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
-  const [isUploading, setIsUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // AI image generation (reuses global image generator pipeline, no reference images)
@@ -86,43 +83,24 @@ export default function ImageSidebarPanel({ data, setData }: ImageSidebarPanelPr
   const handleUpload = async () => {
     if (!selectedFile) return;
 
-    setIsUploading(true);
     try {
-      const response = await uploadFiles(UPLOAD_ENDPOINTS.EMAIL_BUILDER_IMAGE, {
-        files: [selectedFile],
-      });
-
-      if (!response || response.length === 0) {
-        return;
-      }
-
-      const file = response[0];
-      const fileUrl = (file.ufsUrl || file.url) as string | undefined;
-      if (!fileUrl) {
-        return;
-      }
+      // Upload using new object storage system (not UploadThing)
+      // Tracks upload as operation for network interruption resilience
+      const result = await uploadImage(selectedFile);
 
       // Update the image URL in the editor
       updateData({
         ...data,
         props: {
           ...data.props,
-          url: fileUrl,
+          url: result.url,
         },
       });
 
-      // Persist in email builder library for this user (no team context here yet)
-      await createLibraryItem.mutateAsync({
-        fileName: file.name ?? selectedFile.name,
-        fileSize: file.size ?? selectedFile.size,
-        mimeType: file.type ?? selectedFile.type ?? 'image/png',
-        fileUrl,
-        storageKey: file.key ?? undefined,
-      });
-
       clearSelectedFile();
-    } finally {
-      setIsUploading(false);
+    } catch (error) {
+      // Error toast already shown by hook
+      console.error('Image upload failed:', error);
     }
   };
 
@@ -220,7 +198,14 @@ export default function ImageSidebarPanel({ data, setData }: ImageSidebarPanelPr
                   }}
                   disabled={isUploading}
                 >
-                  {isUploading ? 'Uploading…' : 'Upload image'}
+                  {isUploading ? (
+                    <div className="flex items-center gap-1.5">
+                      <EmailBuilderSpinner context="button" size={14} />
+                      <span>{progressPercent > 0 ? `${Math.round(progressPercent)}%` : 'Uploading…'}</span>
+                    </div>
+                  ) : (
+                    'Upload image'
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -261,7 +246,7 @@ export default function ImageSidebarPanel({ data, setData }: ImageSidebarPanelPr
           >
             {startGeneration.isPending || currentGenerationId ? (
               <>
-                <Spinner size={16} className="mr-2" />
+                <EmailBuilderSpinner context="button" size={16} className="mr-2" />
                 Generating image...
               </>
             ) : (

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Nisc Payment Gateway for WooCommerce
  * Description:       Accept M-Pesa without managing a payment gateway yourself. Setup in minutes. We handle compliance, security, everything. Contact: +254748777666 or support@nisccloud.com.
- * Version:           0.1.9
+ * Version:           0.1.10
  * Requires at least: 6.4
  * Tested up to:      7.0
  * Requires PHP:      8.0
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NISC_PG_VERSION', '0.1.9' );
+define( 'NISC_PG_VERSION', '0.1.10' );
 define( 'NISC_PG_FILE', __FILE__ );
 define( 'NISC_PG_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NISC_PG_URL', plugin_dir_url( __FILE__ ) );

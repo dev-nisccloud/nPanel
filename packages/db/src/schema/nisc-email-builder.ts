@@ -50,21 +50,29 @@ export const nebDesign = pgTable(
 		workflowPhase: text("workflow_phase").default("BRIEF").notNull(),
 		// BRIEF | DESIGNING | AWAITING_APPROVAL | BUILDING | READY | FAILED
 
-		aiStatus: text("ai_status").default("IDLE").notNull(),
-		// IDLE | GENERATING | HYDRATING_IMAGES | FAILED
+	aiStatus: text("ai_status").default("IDLE").notNull(),
+	// IDLE | GENERATING | HYDRATING_IMAGES | FAILED
 
-		createdAt: timestamp("created_at").defaultNow().notNull(),
-		updatedAt: timestamp("updated_at")
-			.$onUpdate(() => new Date())
-			.defaultNow()
-			.notNull(),
-	},
-	(table) => [
-		index("neb_design_userId_idx").on(table.userId),
-		index("neb_design_teamId_idx").on(table.teamId),
-		index("neb_design_updatedAt_idx").on(table.updatedAt),
-		index("neb_design_status_idx").on(table.status),
-	],
+	// Save status tracking for network resilience
+	saveStatus: text("save_status").default("SAVED").notNull(),
+	// SAVED | SAVING | SAVE_FAILED
+	lastSaveError: text("last_save_error"),
+	clientVersion: integer("client_version").default(0).notNull(),
+	lastSavedAt: timestamp("last_saved_at"),
+
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.$onUpdate(() => new Date())
+		.defaultNow()
+		.notNull(),
+},
+(table) => [
+	index("neb_design_userId_idx").on(table.userId),
+	index("neb_design_teamId_idx").on(table.teamId),
+	index("neb_design_updatedAt_idx").on(table.updatedAt),
+	index("neb_design_status_idx").on(table.status),
+	index("neb_design_saveStatus_idx").on(table.saveStatus),
+],
 );
 
 export const nebDesignVersion = pgTable(

@@ -14,6 +14,7 @@ import EditorBlock, { StandardReader } from './core';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
 import debounce from 'lodash.debounce';
+import { ExportPanel } from '../export-panel';
 
 import {
     Tabs,
@@ -57,6 +58,7 @@ import {
 } from './store';
 import { renderToHtml } from './utils';
 import { useUpdateEmailBuilderDesign } from '../../_api/use-update-email-builder-design';
+import { useSaveEmailBuilderContent } from '../../_api/use-save-email-builder-content';
 
 // --- Helpers ---
 
@@ -165,12 +167,15 @@ export function TemplatePanel({ initialData }: TemplatePanelProps) {
     const inspectorDrawerOpen = useInspectorDrawerOpen();
     const [importDialogOpen, setImportDialogOpen] = useState(false);
     const { mutate: updateDesign } = useUpdateEmailBuilderDesign();
+    const { mutate: saveContent, isPending: isSaving } = useSaveEmailBuilderContent();
     const isFirstRender = useRef(true);
+    const clientVersionRef = useRef(0);
 
     const isMobile = selectedScreenSize === 'mobile';
 
     // Initialize document from DB only once
     const isInitialized = useRef(false);
+    const lastRemoteVersion = useRef<number>(0);
 
     useEffect(() => {
         if (!isInitialized.current && initialData?.json) {
@@ -178,23 +183,60 @@ export function TemplatePanel({ initialData }: TemplatePanelProps) {
                 const parsed = JSON.parse(initialData.json);
                 resetDocument(parsed);
                 isInitialized.current = true;
+                lastRemoteVersion.current = (initialData as any).clientVersion || 0;
             } catch (e) {
                 console.error("Failed to parse initial JSON", e);
             }
         }
     }, [initialData?.json]);
 
-    // Auto-save logic
+    // Real-time sync: Update document when remote changes (from background ops or other users)
+    useEffect(() => {
+        if (!isInitialized.current || !initialData?.json) return;
+        
+        const remoteVersion = (initialData as any).clientVersion || 0;
+        const localVersion = clientVersionRef.current;
+        
+        // Only update if remote version is newer and different from our last save
+        if (remoteVersion > lastRemoteVersion.current && remoteVersion > localVersion) {
+            try {
+                const parsed = JSON.parse(initialData.json);
+                const currentDoc = JSON.stringify(document);
+                const remoteDoc = initialData.json;
+                
+                // Only update if content actually changed
+                if (currentDoc !== remoteDoc) {
+                    console.log('[Email Builder] Remote update detected, syncing...');
+                    resetDocument(parsed);
+                    lastRemoteVersion.current = remoteVersion;
+                    
+                    // Show a toast to notify user
+                    // toast.info("Design updated", { 
+                    //     description: "Changes from another session or background operation were applied." 
+                    // });
+                }
+            } catch (e) {
+                console.error("Failed to sync remote changes", e);
+            }
+        }
+    }, [initialData, document]);
+
+    // Auto-save logic with immediate persistence (like Zeepo messages)
+    // This provides network interruption resilience
     const debouncedSave = useMemo(
         () =>
             debounce((doc: any, id: string) => {
-                updateDesign({
-                    id,
+                // Increment client version for conflict resolution
+                clientVersionRef.current += 1;
+                
+                // Immediate persistence with optimistic updates
+                saveContent({
+                    designId: id,
                     json: JSON.stringify(doc),
-                    thumbnailUrl: undefined // TODO: Generate thumbnail if needed
+                    clientVersion: clientVersionRef.current,
                 });
-            }, 1000),
-        [updateDesign]
+            }, 1000), // Keep 1s debounce to batch rapid changes
+        [saveContent]
     );
 
     useEffect(() => {
@@ -268,6 +310,9 @@ export function TemplatePanel({ initialData }: TemplatePanelProps) {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Client-side Export */}
+                    {initialData?.id && <ExportPanel designId={initialData.id} designName={initialData.name} />}
+                    
                     <TooltipProvider>
                         <div className="flex items-center gap-1.5 mr-4 px-3 py-1 border-r">
                             <DropdownMenu>
@@ -279,7 +324,7 @@ export function TemplatePanel({ initialData }: TemplatePanelProps) {
                                             </Button>
                                         </DropdownMenuTrigger>
                                     </TooltipTrigger>
-                                    <TooltipContent>Download</TooltipContent>
+                                    <TooltipContent>Download (Instant)</TooltipContent>
                                 </Tooltip>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={downloadJson} className="gap-2">

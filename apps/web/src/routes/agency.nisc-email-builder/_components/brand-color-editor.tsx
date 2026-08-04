@@ -85,8 +85,7 @@ export function BrandColorEditor({ colors, onChange }: BrandColorEditorProps) {
 				})}
 			</div>
 			<p className="text-[11px] text-muted-foreground">
-				Click a row to open the color picker. We detect primary, accent, and secondary from
-				your site when possible.
+				Colors are auto-detected from your website but may sometimes be inaccurate. Click any color to adjust it to match your exact brand.
 			</p>
 		</div>
 	);
