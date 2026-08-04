@@ -3,7 +3,7 @@
  *
  * Mirrors exactly what the domain search UI does client-side in
  * `apps/web/src/hooks/use-domain-pricing.ts`:
- *   1. Apply the platform-default TLD margin (from DB) to the reseller/wholesale price.
+ *   1. Apply the platform TLD margin (per-extension override or default) to the reseller/wholesale price.
  *   2. Convert the result to the user's target currency via cached exchange rates.
  *
  * Both the DB lookup and the exchange-rate HTTP fetch are memoised at the
@@ -11,62 +11,33 @@
  * hammering external services.
  */
 
-import { eq } from "@npanel/db";
-import { db } from "@npanel/db";
 import { ceilConvertedPrice, convertPriceWithCeil } from "../convert-price";
-import { tldSettings } from "@npanel/db/schema/nameservers";
 import { getRedisClient } from "../redis";
+import {
+	applyMargin,
+	loadMarginMap,
+	resolveMarginForExtension,
+	type MarginMap,
+} from "../tld-margin";
 
 // ---------------------------------------------------------------------------
-// Margin config (platform default TLD setting row, same used by UI)
+// Margin config (platform default + per-TLD overrides)
 // ---------------------------------------------------------------------------
-
-interface MarginConfig {
-	marginType: "PERCENTAGE" | "FIXED" | null;
-	percentageMargin: string | null;
-	fixedMargin: string | null;
-	roundOff: string | null;
-}
 
 /** In-process cache so we don't hit the DB on every domain entry. */
-let _marginCache: { data: MarginConfig; expiresAt: number } | null = null;
+let _marginMapCache: { data: MarginMap; expiresAt: number } | null = null;
 const MARGIN_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-async function getDefaultMargin(): Promise<MarginConfig> {
-	if (_marginCache && _marginCache.expiresAt > Date.now()) {
-		return _marginCache.data;
+async function getMarginMapCached(): Promise<MarginMap> {
+	if (_marginMapCache && _marginMapCache.expiresAt > Date.now()) {
+		return _marginMapCache.data;
 	}
 	try {
-		const [row] = await db
-			.select({
-				marginType: tldSettings.marginType,
-				percentageMargin: tldSettings.percentageMargin,
-				fixedMargin: tldSettings.fixedMargin,
-				roundOff: tldSettings.roundOff,
-			})
-			.from(tldSettings)
-			.where(eq(tldSettings.isDefault, true))
-			.limit(1);
-
-		const config: MarginConfig = row
-			? {
-					marginType: row.marginType as "PERCENTAGE" | "FIXED" | null,
-					percentageMargin: row.percentageMargin,
-					fixedMargin: row.fixedMargin,
-					roundOff: row.roundOff,
-				}
-			: {
-					marginType: null,
-					percentageMargin: null,
-					fixedMargin: null,
-					roundOff: null,
-				};
-
-		_marginCache = { data: config, expiresAt: Date.now() + MARGIN_TTL_MS };
-		return config;
+		const map = await loadMarginMap();
+		_marginMapCache = { data: map, expiresAt: Date.now() + MARGIN_TTL_MS };
+		return map;
 	} catch {
-		// Fallback: no margin (pass-through)
-		return { marginType: null, percentageMargin: null, fixedMargin: null, roundOff: null };
+		return { default: null, overrides: {} };
 	}
 }
 
@@ -132,31 +103,6 @@ async function getUsdRates(): Promise<Record<string, number> | null> {
 }
 
 // ---------------------------------------------------------------------------
-// Margin application - mirrors use-domain-pricing.ts exactly
-// ---------------------------------------------------------------------------
-
-function applyMargin(price: number, margin: MarginConfig): number {
-	let finalPrice = price;
-
-	if (margin.marginType === "PERCENTAGE" && margin.percentageMargin) {
-		const pct = parseFloat(margin.percentageMargin);
-		if (!isNaN(pct)) finalPrice = price + (price * pct) / 100;
-	} else if (margin.marginType === "FIXED" && margin.fixedMargin) {
-		const fixed = parseFloat(margin.fixedMargin);
-		if (!isNaN(fixed)) finalPrice = price + fixed;
-	}
-
-	if (margin.roundOff) {
-		const step = parseFloat(margin.roundOff);
-		if (!isNaN(step) && step > 0) {
-			finalPrice = Math.ceil(finalPrice / step) * step;
-		}
-	}
-
-	return finalPrice;
-}
-
-// ---------------------------------------------------------------------------
 // Currency conversion - same cross-rate math as currency-conversion.ts
 // ---------------------------------------------------------------------------
 
@@ -211,20 +157,22 @@ function finalizeRetailAmount(amount: number): number {
 }
 
 /**
- * Apply the platform-default TLD margin to a reseller price, then convert
- * it to `targetCurrency`. Returns null only when conversion is impossible
- * (no rates available and currencies differ).
+ * Apply the TLD margin (per-extension override or platform default) to a reseller
+ * price, then convert it to `targetCurrency`.
+ * Pass `extensionOrDomain` (e.g. `com` or `example.co.ke`) to use overrides.
  */
 export async function toRetailPrice(
 	resellerAmount: number,
 	resellerCurrency: string,
 	targetCurrency: string,
+	extensionOrDomain?: string,
 ): Promise<RetailPrice | null> {
-	const [margin, rates] = await Promise.all([
-		getDefaultMargin(),
+	const [marginMap, rates] = await Promise.all([
+		getMarginMapCached(),
 		getUsdRates(),
 	]);
 
+	const margin = resolveMarginForExtension(marginMap, extensionOrDomain);
 	const afterMargin = applyMargin(resellerAmount, margin);
 
 	const finalCurrency = targetCurrency.toUpperCase();
@@ -232,20 +180,32 @@ export async function toRetailPrice(
 
 	if (fromCurrency === finalCurrency) {
 		const amount = finalizeRetailAmount(afterMargin);
-		return { amount, currency: finalCurrency, formatted: formatRetailPrice(amount, finalCurrency) };
+		return {
+			amount,
+			currency: finalCurrency,
+			formatted: formatRetailPrice(amount, finalCurrency),
+		};
 	}
 
 	if (!rates) {
 		// Can't convert - return in original currency rather than nothing.
 		const amount = finalizeRetailAmount(afterMargin);
-		return { amount, currency: fromCurrency, formatted: formatRetailPrice(amount, fromCurrency) };
+		return {
+			amount,
+			currency: fromCurrency,
+			formatted: formatRetailPrice(amount, fromCurrency),
+		};
 	}
 
 	const rate = computeRate(rates, fromCurrency, finalCurrency);
 	const amount = finalizeRetailAmount(
 		convertPriceWithCeil(afterMargin, fromCurrency, finalCurrency, rate),
 	);
-	return { amount, currency: finalCurrency, formatted: formatRetailPrice(amount, finalCurrency) };
+	return {
+		amount,
+		currency: finalCurrency,
+		formatted: formatRetailPrice(amount, finalCurrency),
+	};
 }
 
 /** Fallback display currency when team has no baseCurrency set. */

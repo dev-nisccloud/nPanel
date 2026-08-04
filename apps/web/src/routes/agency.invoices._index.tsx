@@ -10,9 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { InvoicesTable } from "./agency.invoices/_components/invoices-table";
+import { InvoiceTeamsTable } from "./agency.invoices/_components/invoice-teams-table";
 import { CreditNotesTable } from "./agency.invoices/_components/credit-notes-table";
-import type { InvoiceSummary } from "@/routes/agency.invoices/create/api/schemas";
 import type { CreditNoteSummary } from "@npanel/api/routers/invoicing/schemas";
 import {
 	Table,
@@ -22,6 +21,33 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+
+const TeamsTableSkeleton: React.FC = () => (
+	<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+		<Table>
+			<TableHeader>
+				<TableRow>
+					<TableHead className="pl-6">Team</TableHead>
+					<TableHead>Invoices</TableHead>
+					<TableHead>Unpaid</TableHead>
+					<TableHead>Last invoice</TableHead>
+					<TableHead className="w-12 pr-6" />
+				</TableRow>
+			</TableHeader>
+			<TableBody>
+				{[...Array(5)].map((_, i) => (
+					<TableRow key={i}>
+						<TableCell className="pl-6"><Skeleton className="h-4 w-40" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-10" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-10" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-24" /></TableCell>
+						<TableCell className="pr-6"><Skeleton className="h-4 w-4" /></TableCell>
+					</TableRow>
+				))}
+			</TableBody>
+		</Table>
+	</div>
+);
 
 const InvoicesTableSkeleton: React.FC = () => (
 	<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
@@ -69,15 +95,22 @@ export default function InvoiceIndex() {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const activeTab = searchParams.get("tab") === "credit-notes" ? "credit-notes" : "invoices";
 	const [searchTerm, setSearchTerm] = React.useState("");
+	const [debouncedSearch, setDebouncedSearch] = React.useState("");
+
+	React.useEffect(() => {
+		const handle = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 250);
+		return () => window.clearTimeout(handle);
+	}, [searchTerm]);
 
 	const {
-		data,
-		isLoading,
-		isFetching,
-		error,
-		refetch,
-	} = trpc.invoicing.list.useQuery(
-		{ limit: 100 },
+		data: teamsData,
+		isLoading: isTeamsLoading,
+		isFetching: isTeamsFetching,
+		error: teamsError,
+		refetch: refetchTeams,
+	} = trpc.invoicing.listTeamsSummary.useQuery(
+		{ search: debouncedSearch || undefined },
+		{ enabled: activeTab === "invoices" },
 	);
 
 	const {
@@ -91,27 +124,8 @@ export default function InvoiceIndex() {
 		{ enabled: activeTab === "credit-notes" },
 	);
 
-	const invoices = data?.invoices ?? [];
+	const teams = teamsData?.teams ?? [];
 	const creditNotes = creditNotesData?.creditNotes ?? [];
-
-	const filteredInvoices = React.useMemo(() => {
-		if (!searchTerm.trim()) {
-			return invoices;
-		}
-		const query = searchTerm.toLowerCase();
-		return invoices.filter((invoice: InvoiceSummary) => {
-			const number = invoice.invoiceNumber?.toLowerCase() ?? "";
-			const customerName = invoice.customerName?.toLowerCase() ?? "";
-			const customerEmail = invoice.customerEmail?.toLowerCase() ?? "";
-			const status = invoice.status.toLowerCase();
-			return (
-				number.includes(query) ||
-				customerName.includes(query) ||
-				customerEmail.includes(query) ||
-				status.includes(query)
-			);
-		});
-	}, [invoices, searchTerm]);
 
 	const filteredCreditNotes = React.useMemo(() => {
 		if (!searchTerm.trim()) {
@@ -132,7 +146,7 @@ export default function InvoiceIndex() {
 		});
 	}, [creditNotes, searchTerm]);
 
-	if (isLoading && activeTab === "invoices") {
+	if (isTeamsLoading && activeTab === "invoices") {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
@@ -148,22 +162,22 @@ export default function InvoiceIndex() {
 						</div>
 					</div>
 					<div className="mt-6">
-						<InvoicesTableSkeleton />
+						<TeamsTableSkeleton />
 					</div>
 				</div>
 			</div>
 		);
 	}
 
-	if (error && activeTab === "invoices") {
+	if (teamsError && activeTab === "invoices") {
 		return (
 			<div className="@container/main flex flex-col gap-4 md:gap-6 px-4 md:px-6 lg:px-8 py-4 md:py-6">
 				<div className="w-full max-w-7xl mx-auto">
 					<EmptyState
 						title="Unable to load invoices"
-						description={error.message ?? "Something went wrong while fetching invoices."}
+						description={teamsError.message ?? "Something went wrong while fetching invoices."}
 						action={
-							<Button onClick={() => refetch()} variant="outline">
+							<Button onClick={() => refetchTeams()} variant="outline">
 								Try again
 							</Button>
 						}
@@ -179,7 +193,7 @@ export default function InvoiceIndex() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-base font-semibold tracking-tight">Billing</h1>
 					<p className="text-xs text-muted-foreground">
-						Review invoices and credit notes issued to teams.
+						Browse invoices by team, then open individual invoices.
 					</p>
 				</div>
 
@@ -205,7 +219,7 @@ export default function InvoiceIndex() {
 									placeholder={
 										activeTab === "credit-notes"
 											? "Search credit notes..."
-											: "Search invoices by number, customer, or status..."
+											: "Search teams..."
 									}
 									value={searchTerm}
 									onChange={(event) => setSearchTerm(event.target.value)}
@@ -217,13 +231,13 @@ export default function InvoiceIndex() {
 									variant="outline"
 									size="icon"
 									onClick={() =>
-										activeTab === "credit-notes" ? refetchCreditNotes() : refetch()
+										activeTab === "credit-notes" ? refetchCreditNotes() : refetchTeams()
 									}
-									disabled={activeTab === "credit-notes" ? isCreditNotesFetching : isFetching}
+									disabled={activeTab === "credit-notes" ? isCreditNotesFetching : isTeamsFetching}
 									title="Refresh"
 								>
 									<RefreshCw
-										className={`h-4 w-4 ${(activeTab === "credit-notes" ? isCreditNotesFetching : isFetching) ? "animate-spin" : ""}`}
+										className={`h-4 w-4 ${(activeTab === "credit-notes" ? isCreditNotesFetching : isTeamsFetching) ? "animate-spin" : ""}`}
 									/>
 								</Button>
 								{activeTab === "invoices" ? (
@@ -237,24 +251,25 @@ export default function InvoiceIndex() {
 					</div>
 
 					<TabsContent value="invoices" className="mt-6">
-						{invoices.length === 0 ? (
+						{teams.length === 0 ? (
 							<EmptyState
-								title="No invoices yet"
-								description="Create an invoice to start billing your teams."
+								title={searchTerm.trim() ? "No teams match your search" : "No invoices yet"}
+								description={
+									searchTerm.trim()
+										? `We couldn't find teams for "${searchTerm}". Try updating your search.`
+										: "Create an invoice to start billing your teams."
+								}
 								action={
-									<Button onClick={() => navigate("/agency/invoices/create")}>
-										<Plus className="mr-2 h-4 w-4" />
-										Create Invoice
-									</Button>
+									!searchTerm.trim() ? (
+										<Button onClick={() => navigate("/agency/invoices/create")}>
+											<Plus className="mr-2 h-4 w-4" />
+											Create Invoice
+										</Button>
+									) : undefined
 								}
 							/>
-						) : filteredInvoices.length === 0 ? (
-							<EmptyState
-								title="No invoices match your search"
-								description={`We couldn't find invoices for "${searchTerm}". Try updating your search.`}
-							/>
 						) : (
-							<InvoicesTable invoices={filteredInvoices as InvoiceSummary[]} onRefetch={refetch} />
+							<InvoiceTeamsTable teams={teams} />
 						)}
 					</TabsContent>
 
@@ -294,5 +309,3 @@ export default function InvoiceIndex() {
 		</div>
 	);
 }
-
-

@@ -7,8 +7,7 @@ import { trpc } from "@/utils/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QuotationsTable } from "./agency.quotations/_components/quotations-table";
-import type { QuotationTableRow } from "./agency.quotations/_components/quotations-table";
+import { QuotationCustomersTable } from "./agency.quotations/_components/quotation-customers-table";
 import {
 	Table,
 	TableBody,
@@ -18,26 +17,26 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 
-const QuotationsTableSkeleton: React.FC = () => (
+const CustomersTableSkeleton: React.FC = () => (
 	<div className="overflow-hidden rounded-lg border bg-card shadow-sm">
 		<Table>
 			<TableHeader>
 				<TableRow>
-					<TableHead className="pl-6">Quotation #</TableHead>
-					<TableHead>Customer</TableHead>
-					<TableHead>Amount</TableHead>
-					<TableHead>Status</TableHead>
+					<TableHead className="pl-6">Customer</TableHead>
+					<TableHead>Quotations</TableHead>
+					<TableHead>Open</TableHead>
+					<TableHead>Last quotation</TableHead>
 					<TableHead className="w-12 pr-6" />
 				</TableRow>
 			</TableHeader>
 			<TableBody>
 				{[...Array(5)].map((_, i) => (
 					<TableRow key={i}>
-						<TableCell className="pl-6"><Skeleton className="h-4 w-28" /></TableCell>
-						<TableCell><Skeleton className="h-4 w-36" /></TableCell>
-						<TableCell><Skeleton className="h-4 w-20" /></TableCell>
-						<TableCell><Skeleton className="h-4 w-20" /></TableCell>
-						<TableCell className="pr-6"><Skeleton className="h-8 w-8" /></TableCell>
+						<TableCell className="pl-6"><Skeleton className="h-4 w-40" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-10" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-10" /></TableCell>
+						<TableCell><Skeleton className="h-4 w-24" /></TableCell>
+						<TableCell className="pr-6"><Skeleton className="h-4 w-4" /></TableCell>
 					</TableRow>
 				))}
 			</TableBody>
@@ -60,29 +59,19 @@ const EmptyState: React.FC<{
 export default function QuotationIndex() {
 	const navigate = useNavigate();
 	const [searchTerm, setSearchTerm] = React.useState("");
+	const [debouncedSearch, setDebouncedSearch] = React.useState("");
 
-	const { data, isLoading, isFetching, error, refetch } = trpc.quotations.list.useQuery(
-		{ limit: 100 },
-	);
+	React.useEffect(() => {
+		const handle = window.setTimeout(() => setDebouncedSearch(searchTerm.trim()), 250);
+		return () => window.clearTimeout(handle);
+	}, [searchTerm]);
 
-	const quotations = data?.quotations ?? [];
-
-	const filteredQuotations = React.useMemo(() => {
-		if (!searchTerm.trim()) return quotations;
-		const query = searchTerm.toLowerCase();
-		return quotations.filter((q: QuotationTableRow) => {
-			const number = q.quotationNumber?.toLowerCase() ?? "";
-			const customerName = q.customerName?.toLowerCase() ?? "";
-			const customerEmail = q.customerEmail?.toLowerCase() ?? "";
-			const status = q.status.toLowerCase();
-			return (
-				number.includes(query) ||
-				customerName.includes(query) ||
-				customerEmail.includes(query) ||
-				status.includes(query)
-			);
+	const { data, isLoading, isFetching, error, refetch } =
+		trpc.quotations.listCustomersSummary.useQuery({
+			search: debouncedSearch || undefined,
 		});
-	}, [quotations, searchTerm]);
+
+	const customers = data?.customers ?? [];
 
 	if (isLoading) {
 		return (
@@ -100,7 +89,7 @@ export default function QuotationIndex() {
 						</div>
 					</div>
 					<div className="mt-6">
-						<QuotationsTableSkeleton />
+						<CustomersTableSkeleton />
 					</div>
 				</div>
 			</div>
@@ -131,7 +120,7 @@ export default function QuotationIndex() {
 				<div className="flex flex-col gap-2">
 					<h1 className="text-base font-semibold tracking-tight">Quotations</h1>
 					<p className="text-xs text-muted-foreground">
-						Create and manage quotations with manual company details.
+						Browse quotations by customer, then open individual quotes.
 					</p>
 				</div>
 
@@ -141,7 +130,7 @@ export default function QuotationIndex() {
 							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 							<Input
 								type="search"
-								placeholder="Search by number, customer, or status..."
+								placeholder="Search customers by name or email..."
 								value={searchTerm}
 								onChange={(e) => setSearchTerm(e.target.value)}
 								className="pl-9"
@@ -153,7 +142,7 @@ export default function QuotationIndex() {
 								size="icon"
 								onClick={() => refetch()}
 								disabled={isFetching}
-								title="Refresh quotations"
+								title="Refresh customers"
 							>
 								<RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
 							</Button>
@@ -166,24 +155,25 @@ export default function QuotationIndex() {
 				</div>
 
 				<div className="mt-6">
-					{quotations.length === 0 ? (
+					{customers.length === 0 ? (
 						<EmptyState
-							title="No quotations yet"
-							description="Create a quotation to get started."
+							title={searchTerm.trim() ? "No customers match your search" : "No quotations yet"}
+							description={
+								searchTerm.trim()
+									? `We couldn't find customers for "${searchTerm}". Try updating your search.`
+									: "Create a quotation to get started."
+							}
 							action={
-								<Button onClick={() => navigate("/agency/quotations/create")}>
-									<Plus className="mr-2 h-4 w-4" />
-									Create Quotation
-								</Button>
+								!searchTerm.trim() ? (
+									<Button onClick={() => navigate("/agency/quotations/create")}>
+										<Plus className="mr-2 h-4 w-4" />
+										Create Quotation
+									</Button>
+								) : undefined
 							}
 						/>
-					) : filteredQuotations.length === 0 ? (
-						<EmptyState
-							title="No quotations match your search"
-							description={`We couldn't find quotations for "${searchTerm}". Try updating your search.`}
-						/>
 					) : (
-						<QuotationsTable quotations={filteredQuotations} onRefetch={refetch} />
+						<QuotationCustomersTable customers={customers} />
 					)}
 				</div>
 			</div>

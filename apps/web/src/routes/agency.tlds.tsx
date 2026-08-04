@@ -1,23 +1,26 @@
 "use client";
 
 import * as React from "react";
-import { Search, Globe, RefreshCw } from "lucide-react";
+import { Search, Globe, RefreshCw, AlertCircle } from "lucide-react";
+import { useDebounce } from "use-debounce";
 import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
-import { TldCard } from "./agency.tlds/_components/tld-card";
 import { TldCardSkeleton } from "./agency.tlds/_components/tld-card-skeleton";
 import { TldDetailsSheet } from "./agency.tlds/_components/tld-details-sheet";
+import { TldVirtualGrid } from "./agency.tlds/_components/tld-virtual-grid";
+import { useTldKesConversion } from "./agency.tlds/_components/tld-price-format";
 import type { OpenproviderTld } from "@/types/openprovider";
 
 export default function TldsPage() {
-  // Hooks at top level for performance
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [selectedTld, setSelectedTld] = React.useState<OpenproviderTld | null>(null);
+  const [debouncedSearch] = useDebounce(searchQuery, 200);
+  const [selectedTld, setSelectedTld] = React.useState<OpenproviderTld | null>(
+    null
+  );
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const { toKes } = useTldKesConversion();
 
   // Allow fetching all TLDs - rate limits only occur on rapid successive requests
   const [limit] = React.useState(2500); // Max limit to get all TLDs
@@ -90,7 +93,7 @@ export default function TldsPage() {
     refetch();
   }, [refetch]);
 
-  const handleTldClick = React.useCallback((tld: OpenproviderTld) => {
+  const handleTldSelect = React.useCallback((tld: OpenproviderTld) => {
     setSelectedTld(tld);
     setIsSheetOpen(true);
   }, []);
@@ -98,17 +101,16 @@ export default function TldsPage() {
   const handleSheetOpenChange = React.useCallback((open: boolean) => {
     setIsSheetOpen(open);
     if (!open) {
-      // Clear selected TLD when sheet closes
       setSelectedTld(null);
     }
   }, []);
 
-  // Filter TLDs based on search query
+  // Filter TLDs based on debounced search query
   const filteredTlds = React.useMemo(() => {
     const tlds = tldsData?.data?.results || [];
-    if (!searchQuery.trim()) return tlds;
+    if (!debouncedSearch.trim()) return tlds;
 
-    const query = searchQuery.toLowerCase().trim();
+    const query = debouncedSearch.toLowerCase().trim();
     return tlds.filter((tld) => {
       return (
         tld.name.toLowerCase().includes(query) ||
@@ -116,16 +118,16 @@ export default function TldsPage() {
           tld.prices.create_price.reseller.price.toString().includes(query))
       );
     });
-  }, [tldsData?.data?.results, searchQuery]);
+  }, [tldsData?.data?.results, debouncedSearch]);
 
   // Check if error is rate limit related
-  const isRateLimitError = error && (
-    error.data?.code === "TIMEOUT" ||
-    error.data?.httpStatus === 429 ||
-    error.message?.includes("429") ||
-    error.message?.includes("rate limit") ||
-    error.message?.includes("OpenProvider API Error 299")
-  );
+  const isRateLimitError =
+    error &&
+    (error.data?.code === "TIMEOUT" ||
+      error.data?.httpStatus === 429 ||
+      error.message?.includes("429") ||
+      error.message?.includes("rate limit") ||
+      error.message?.includes("OpenProvider API Error 299"));
 
   // Show error state
   if (error) {
@@ -137,8 +139,8 @@ export default function TldsPage() {
             <AlertDescription>
               {isRateLimitError ? (
                 <>
-                  Rate limit exceeded. You've made too many requests in a short time.
-                  Please wait a moment before refreshing again.
+                  Rate limit exceeded. You've made too many requests in a short
+                  time. Please wait a moment before refreshing again.
                 </>
               ) : (
                 error.message || "Failed to load TLDs"
@@ -191,7 +193,9 @@ export default function TldsPage() {
             disabled={isLoading}
             title="Refresh TLDs"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
           </Button>
         </div>
 
@@ -224,19 +228,18 @@ export default function TldsPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {filteredTlds.map((tld, index) => (
-                  <TldCard
-                    key={`${tld.name}-${index}`}
-                    tld={tld}
-                    onClick={() => handleTldClick(tld)}
-                  />
-                ))}
-              </div>
+              <TldVirtualGrid
+                tlds={filteredTlds}
+                onSelect={handleTldSelect}
+                toKes={toKes}
+              />
               {tldsData?.meta && (
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="text-center text-sm text-muted-foreground mt-4">
                   {tldsData.meta.total > filteredTlds.length ? (
-                    <>Showing {filteredTlds.length} of {tldsData.meta.total} TLDs</>
+                    <>
+                      Showing {filteredTlds.length} of {tldsData.meta.total}{" "}
+                      TLDs
+                    </>
                   ) : (
                     <>Showing all {filteredTlds.length} TLDs</>
                   )}

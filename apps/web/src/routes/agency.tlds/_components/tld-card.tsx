@@ -3,40 +3,22 @@
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import type { OpenproviderTld } from "@/types/openprovider";
+import {
+  formatPriceWithKes,
+  type ToKesFn,
+} from "./tld-price-format";
 
 interface TldCardProps {
   tld: OpenproviderTld;
-  onClick?: () => void;
+  onSelect: (tld: OpenproviderTld) => void;
+  toKes?: ToKesFn;
 }
 
-const formatPrice = (price?: number, currency?: string) => {
-  if (!price) return "N/A";
-
-  // Currency symbols mapping
-  const currencySymbols: Record<string, string> = {
-    USD: "$",
-    KES: "KSh",
-    EUR: "€",
-    GBP: " ?",
-    CAD: "C$",
-    AUD: "A$",
-    JPY: " ?",
-    INR: "₹",
-    ZAR: "R",
-    NGN: "₦",
-  };
-
-  const symbol = currencySymbols[currency || "USD"] || currency || "$";
-  // Format with thousand separators (e.g., 1,000.00)
-  const formattedNumber = new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(price);
-
-  return `${symbol} ${formattedNumber}`;
-};
-
-export function TldCard({ tld, onClick }: TldCardProps) {
+export const TldCard = React.memo(function TldCard({
+  tld,
+  onSelect,
+  toKes,
+}: TldCardProps) {
   const registrationPrice =
     tld.prices?.create_price?.reseller?.price ??
     tld.prices?.create_price?.product?.price;
@@ -53,16 +35,32 @@ export function TldCard({ tld, onClick }: TldCardProps) {
     tld.prices?.renew_price?.product?.currency ??
     "USD";
 
+  const registrationDisplay = formatPriceWithKes(
+    registrationPrice,
+    registrationCurrency,
+    toKes
+  );
+  const renewDisplay = formatPriceWithKes(renewPrice, renewCurrency, toKes);
+
+  const handleClick = React.useCallback(() => {
+    onSelect(tld);
+  }, [onSelect, tld]);
+
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onSelect(tld);
+      }
+    },
+    [onSelect, tld]
+  );
+
   return (
     <div
-      className="flex flex-col p-3 bg-card border border-border rounded-lg hover:border-border/80 hover:shadow-sm transition-all cursor-pointer"
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
+      className="flex flex-col p-3 bg-card border border-border rounded-lg hover:border-border/80 hover:shadow-sm transition-[border-color,box-shadow] cursor-pointer"
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
     >
@@ -85,8 +83,13 @@ export function TldCard({ tld, onClick }: TldCardProps) {
       {registrationPrice && (
         <div className="mb-2">
           <div className="text-lg font-bold text-card-foreground">
-            {formatPrice(registrationPrice, registrationCurrency)}
+            {registrationDisplay.primary}
           </div>
+          {registrationDisplay.kes && (
+            <div className="text-xs text-muted-foreground">
+              ≈ {registrationDisplay.kes}
+            </div>
+          )}
           <div className="text-xs text-muted-foreground mt-1">
             Registration
           </div>
@@ -97,7 +100,8 @@ export function TldCard({ tld, onClick }: TldCardProps) {
       <div className="mt-auto pt-2 space-y-1">
         {renewPrice && (
           <div className="text-xs text-muted-foreground">
-            Renewal: {formatPrice(renewPrice, renewCurrency)}
+            Renewal: {renewDisplay.primary}
+            {renewDisplay.kes ? ` (≈ ${renewDisplay.kes})` : ""}
           </div>
         )}
         <div className="text-xs text-muted-foreground">
@@ -112,4 +116,4 @@ export function TldCard({ tld, onClick }: TldCardProps) {
       </div>
     </div>
   );
-}
+});

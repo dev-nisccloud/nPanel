@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import * as crypto from "crypto";
 import { z } from "zod";
-import { and, count, desc, eq, ilike, inArray, or, sql } from "@npanel/db";
+import { and, count, desc, eq, ilike, inArray, max, or, sql } from "@npanel/db";
 
 import { db } from "@npanel/db";
 import { user } from "@npanel/db/schema/auth";
@@ -15,6 +15,9 @@ import { protectedProcedure, router, type Context } from "../../trpc";
 import {
 	quotationActivityLogSchema,
 	quotationCreateInputSchema,
+	quotationCustomerSummarySchema,
+	quotationCustomersSummaryFiltersSchema,
+	quotationCustomersSummaryResponseSchema,
 	quotationDetailSchema,
 	quotationLineItemOutputSchema,
 	quotationListFiltersSchema,
@@ -33,6 +36,47 @@ type DbLike = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
 const isAgencyUser = (role: string) =>
 	["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role);
 const isAgencySuperAdmin = (role: string) => role === "AGENCY_SUPER_ADMIN";
+
+/** Prefer email, else normalized name, else unassigned — groups similar customers. */
+function customerGroupKeySql() {
+	return sql<string>`CASE
+		WHEN nullif(trim(lower(${quotation.customerEmail})), '') IS NOT NULL
+			THEN 'email:' || trim(lower(${quotation.customerEmail}))
+		WHEN nullif(trim(lower(${quotation.customerName})), '') IS NOT NULL
+			THEN 'name:' || trim(lower(regexp_replace(${quotation.customerName}, '\\s+', ' ', 'g')))
+		ELSE 'unassigned'
+	END`;
+}
+
+function customerGroupKeyCondition(customerGroupKey: string) {
+	if (customerGroupKey === "unassigned") {
+		return and(
+			or(
+				sql`nullif(trim(${quotation.customerEmail}), '') IS NULL`,
+				sql`${quotation.customerEmail} IS NULL`,
+			)!,
+			or(
+				sql`nullif(trim(${quotation.customerName}), '') IS NULL`,
+				sql`${quotation.customerName} IS NULL`,
+			)!,
+		)!;
+	}
+	if (customerGroupKey.startsWith("email:")) {
+		const email = customerGroupKey.slice("email:".length);
+		return sql`trim(lower(${quotation.customerEmail})) = ${email}`;
+	}
+	if (customerGroupKey.startsWith("name:")) {
+		const name = customerGroupKey.slice("name:".length);
+		return and(
+			or(
+				sql`nullif(trim(${quotation.customerEmail}), '') IS NULL`,
+				sql`${quotation.customerEmail} IS NULL`,
+			)!,
+			sql`trim(lower(regexp_replace(coalesce(${quotation.customerName}, ''), '\\s+', ' ', 'g'))) = ${name}`,
+		)!;
+	}
+	return sql`false`;
+}
 
 function parseDate(value: unknown): Date | null {
 	if (!value) return null;
@@ -363,6 +407,9 @@ export const quotationsRouter = router({
 			if (!isAgencyUser(user.role)) {
 				conditions.push(eq(quotation.createdBy, user.id));
 			}
+			if (input.customerGroupKey?.trim()) {
+				conditions.push(customerGroupKeyCondition(input.customerGroupKey.trim()));
+			}
 			if (input.status) {
 				conditions.push(eq(quotation.status, input.status));
 			}
@@ -412,6 +459,59 @@ export const quotationsRouter = router({
 					}),
 				),
 				total,
+			});
+		}),
+
+	listCustomersSummary: protectedProcedure
+		.input(quotationCustomersSummaryFiltersSchema)
+		.output(quotationCustomersSummaryResponseSchema)
+		.query(async ({ ctx, input }) => {
+			const user = await getAuthenticatedUser(ctx);
+			const conditions = [];
+			if (!isAgencyUser(user.role)) {
+				conditions.push(eq(quotation.createdBy, user.id));
+			}
+			if (input.search?.trim()) {
+				const q = `%${input.search.trim()}%`;
+				conditions.push(
+					or(
+						ilike(quotation.customerName, q),
+						ilike(quotation.customerEmail, q),
+					)!,
+				);
+			}
+			const whereClause = conditions.length ? and(...conditions) : undefined;
+			const groupKey = customerGroupKeySql();
+
+			const rows = await db
+				.select({
+					customerGroupKey: groupKey,
+					customerName: max(quotation.customerName),
+					customerEmail: max(quotation.customerEmail),
+					quotationCount: count(),
+					openCount: sql<number>`count(*) filter (where ${quotation.status} in ('DRAFT', 'SENT'))`.mapWith(Number),
+					lastQuotationAt: max(quotation.createdAt),
+				})
+				.from(quotation)
+				.where(whereClause ?? sql`true`)
+				.groupBy(groupKey)
+				.orderBy(sql`max(${quotation.customerName}) asc nulls last`);
+
+			return quotationCustomersSummaryResponseSchema.parse({
+				customers: rows.map((row) =>
+					quotationCustomerSummarySchema.parse({
+						customerGroupKey: row.customerGroupKey,
+						customerName:
+							row.customerGroupKey === "unassigned"
+								? "Unassigned"
+								: row.customerName ?? null,
+						customerEmail:
+							row.customerGroupKey === "unassigned" ? null : row.customerEmail ?? null,
+						quotationCount: Number(row.quotationCount),
+						openCount: Number(row.openCount ?? 0),
+						lastQuotationAt: row.lastQuotationAt ?? null,
+					}),
+				),
 			});
 		}),
 

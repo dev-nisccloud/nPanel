@@ -4,9 +4,9 @@ import { z } from "zod";
 import { env } from "@npanel/env/server";
 import { callBraveLlmContext } from "../lib/brave-search";
 import { agentCheckDomainAvailability } from "../lib/agent-internal-tools/domains";
-import { protectedProcedure, router } from "../trpc";
-
 import { AI_DOMAIN_SUGGESTION_COUNT } from "../lib/ai-domain-search-constants";
+import { isKenicDomain } from "../lib/epp/kenic-tlds";
+import { protectedProcedure, router } from "../trpc";
 
 export const AI_DOMAIN_SEARCH_MODEL = "anthropic/claude-4.5-haiku";
 
@@ -509,7 +509,10 @@ export const aiDomainSearchRouter = router({
               status: entry.status,
               ...(entry.price ? { price: entry.price } : {}),
               ...(entry.isPremium ? { isPremium: true } : {}),
-              via: entry.via,
+              // Derive backend from domain — DomainCheckEntry.via is hidden from agent tools
+              via: (isKenicDomain(entry.domain) ? "kenic" : "openprovider") as
+                | "kenic"
+                | "openprovider",
             }));
             return sortAvailabilityByDisplayOrder(entries);
           } catch (e) {
