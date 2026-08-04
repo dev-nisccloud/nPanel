@@ -233,6 +233,7 @@ export type CreditNoteSummary = z.infer<typeof creditNoteSummarySchema>;
 
 export const creditNoteListFiltersSchema = z.object({
 	teamId: z.string().uuid().optional(),
+	unassignedOnly: z.boolean().optional(),
 	status: creditNoteStatusSchema.optional(),
 	search: z.string().optional(),
 	limit: z.number().int().min(1).max(100).optional().default(50),
@@ -351,12 +352,13 @@ export const invoiceSummarySchema = z.object({
 	dueDate: z.date().nullable(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
+	teamId: nullableStringSchema,
+	teamName: nullableStringSchema,
 	kraStatus: invoiceKraStatusSchema.nullable().optional(),
 });
 export type InvoiceSummary = z.infer<typeof invoiceSummarySchema>;
 
 export const invoiceDetailSchema = invoiceSummarySchema.extend({
-	teamId: nullableStringSchema,
 	customerId: nullableStringSchema,
 	subtotal: nullableStringSchema,
 	tax: nullableStringSchema,
@@ -405,6 +407,7 @@ export type InvoiceDetail = z.infer<typeof invoiceDetailSchema>;
  */
 export const invoiceListFiltersSchema = z.object({
 	teamId: z.string().uuid().optional(),
+	unassignedOnly: z.boolean().optional(),
 	status: invoiceStatusSchema.optional(),
 	search: z.string().optional(),
 	limit: z.number().int().min(1).max(100).optional().default(50),
@@ -417,6 +420,25 @@ export const invoiceListResponseSchema = z.object({
 	total: z.number().int().nonnegative(),
 });
 export type InvoiceListResponse = z.infer<typeof invoiceListResponseSchema>;
+
+export const invoiceTeamSummarySchema = z.object({
+	teamId: z.string().uuid().nullable(),
+	teamName: z.string(),
+	invoiceCount: z.number().int().nonnegative(),
+	unpaidCount: z.number().int().nonnegative(),
+	lastInvoiceAt: z.date().nullable(),
+});
+export type InvoiceTeamSummary = z.infer<typeof invoiceTeamSummarySchema>;
+
+export const invoiceTeamsSummaryFiltersSchema = z.object({
+	search: z.string().optional(),
+});
+export type InvoiceTeamsSummaryFilters = z.infer<typeof invoiceTeamsSummaryFiltersSchema>;
+
+export const invoiceTeamsSummaryResponseSchema = z.object({
+	teams: z.array(invoiceTeamSummarySchema),
+});
+export type InvoiceTeamsSummaryResponse = z.infer<typeof invoiceTeamsSummaryResponseSchema>;
 
 /**
  * Update payment input – complete (use invoice total) or partial (supply amountPaid).

@@ -34,17 +34,16 @@ const ALL_TIME_REPORT_FILTERS = {
 
 const METRIC_CARD_LINKS = [
 	{ label: "Domains", href: "/agency/domains-portfolio" },
-	{ label: "Tickets", href: "/agency/support" },
+	{ label: "Hosting", href: "/agency/hosting" },
 	{ label: "Products", href: "/agency/products" },
 	{ label: "Invoices", href: "/agency/invoices" },
 	{ label: "Quotations", href: "/agency/quotations" },
-	{ label: "Orders", href: "/agency/nisc-service-orders" },
 	{ label: "Transactions", href: "/agency/payment-transactions" },
-	{ label: "Media Buying", href: "/agency/ad-campaigns" },
-	{ label: "Hosting", href: "/agency/hosting" },
+	{ label: "Orders", href: "/agency/nisc-service-orders" },
+	{ label: "Tickets", href: "/agency/support" },
 	{ label: "Clients", href: "/agency/clients" },
 	{ label: "Agency users", href: "/agency/manage-users" },
-	{ label: "Balance", href: "#" },
+	{ label: "Media Buying", href: "/agency/ad-campaigns" },
 ] as const;
 
 interface MetricCardLinkProps {
@@ -81,7 +80,7 @@ function MetricCardExternalLink({ href, label }: { href: string; label: string }
 function MetricCardsSkeleton() {
 	return (
 		<div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @3xl/main:grid-cols-3 @6xl/main:grid-cols-4">
-			{[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+			{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => (
 				<Card key={i} className="@container/card">
 					<CardHeader>
 						<Skeleton className="h-4 w-24" />
@@ -343,9 +342,9 @@ export function MetricCards() {
 				</CardFooter>
 			</Card>
 
-			{/* 2. Tickets */}
+			{/* 2. Hosting Subscriptions */}
 			<Card className="@container/card relative">
-				{isTicketsError && (
+				{isHostingError && (
 					<div className="absolute top-2 right-2">
 						<TooltipProvider>
 							<Tooltip>
@@ -353,30 +352,30 @@ export function MetricCards() {
 									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
 								</TooltipTrigger>
 								<TooltipContent>
-									<p>Failed to load tickets summary.</p>
+									<p>Failed to load hosting subscriptions.</p>
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
 					</div>
 				)}
 				<CardHeader>
-					<CardDescription>Tickets</CardDescription>
+					<CardDescription>Hosting Subscriptions</CardDescription>
 					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{ticketsTotal}
+						{hostingTotal}
 					</CardTitle>
 				</CardHeader>
 				<CardFooter className="flex-col items-start gap-1.5 text-sm">
 					<DashboardMetricStats
 						items={[
 							{
-								label: "Open",
-								value: ticketsOpen,
-								variant: isTicketsError ? "muted" : "negative",
+								label: "Active",
+								value: hostingActive,
+								variant: isHostingError ? "muted" : "positive",
 							},
 							{
-								label: "Closed",
-								value: ticketsClosed,
-								variant: isTicketsError ? "muted" : "positive",
+								label: "Suspended",
+								value: hostingSuspended,
+								variant: isHostingError ? "muted" : "negative",
 							},
 						]}
 					/>
@@ -515,50 +514,7 @@ export function MetricCards() {
 				</CardFooter>
 			</Card>
 
-			{/* 6. Orders */}
-			<Card className="@container/card relative">
-				{isOrdersError && (
-					<div className="absolute top-2 right-2">
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
-								</TooltipTrigger>
-								<TooltipContent>
-									<p>Failed to load Nisc service orders summary.</p>
-								</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-					</div>
-				)}
-				<CardHeader>
-					<CardDescription>Orders</CardDescription>
-					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{ordersTotal}
-					</CardTitle>
-				</CardHeader>
-				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<DashboardMetricStats
-						items={[
-							{
-								label: "Processed",
-								value: ordersCompleted,
-								variant: isOrdersError ? "muted" : "positive",
-							},
-							{
-								label: "Failed",
-								value: ordersFailed,
-								variant: isOrdersError ? "muted" : "negative",
-							},
-						]}
-					/>
-					<div className="text-muted-foreground">
-						<MetricCardLink {...METRIC_CARD_LINKS[5]} />
-					</div>
-				</CardFooter>
-			</Card>
-
-			{/* 7. Transactions */}
+			{/* 6. Transactions */}
 			<Card className="@container/card relative">
 				{isTransactionsError && (
 					<div className="absolute top-2 right-2">
@@ -596,12 +552,98 @@ export function MetricCards() {
 						]}
 					/>
 					<div className="text-muted-foreground">
+						<MetricCardLink {...METRIC_CARD_LINKS[5]} />
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 7. Orders */}
+			<Card className="@container/card relative">
+				{isOrdersError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load Nisc service orders summary.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Orders</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{ordersTotal}
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<DashboardMetricStats
+						items={[
+							{
+								label: "Processed",
+								value: ordersCompleted,
+								variant: isOrdersError ? "muted" : "positive",
+							},
+							{
+								label: "Failed",
+								value: ordersFailed,
+								variant: isOrdersError ? "muted" : "negative",
+							},
+						]}
+					/>
+					<div className="text-muted-foreground">
 						<MetricCardLink {...METRIC_CARD_LINKS[6]} />
 					</div>
 				</CardFooter>
 			</Card>
 
-			{/* 8. OP Balance + KC Balance */}
+			{/* 8. Tickets */}
+			<Card className="@container/card relative">
+				{isTicketsError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load tickets summary.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader>
+					<CardDescription>Tickets</CardDescription>
+					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						{ticketsTotal}
+					</CardTitle>
+				</CardHeader>
+				<CardFooter className="flex-col items-start gap-1.5 text-sm">
+					<DashboardMetricStats
+						items={[
+							{
+								label: "Open",
+								value: ticketsOpen,
+								variant: isTicketsError ? "muted" : "negative",
+							},
+							{
+								label: "Closed",
+								value: ticketsClosed,
+								variant: isTicketsError ? "muted" : "positive",
+							},
+						]}
+					/>
+					<div className="text-muted-foreground">
+						<MetricCardLink {...METRIC_CARD_LINKS[7]} />
+					</div>
+				</CardFooter>
+			</Card>
+
+			{/* 9. OP Balance + KC Balance */}
 			<Card className="@container/card relative">
 				{isBalanceError && (
 					<div className="absolute top-2 right-2">
@@ -651,7 +693,73 @@ export function MetricCards() {
 				</CardHeader>
 			</Card>
 
-			{/* 9. Media Buying */}
+			{/* 10. Customer Accounts + Agency Accounts */}
+			<Card className="@container/card relative">
+				{isAccountsError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load account counts.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader className="gap-4">
+					<div className="space-y-1">
+						<CardDescription>Customer Accounts</CardDescription>
+						<CardTitle className="text-xl font-semibold tabular-nums">
+							{customerAccounts}
+						</CardTitle>
+						<DashboardMetricStats
+							items={[
+								{
+									label: "Active",
+									value: customerActive,
+									variant: isAccountsError ? "muted" : "positive",
+								},
+								{
+									label: "Inactive",
+									value: customerInactive,
+									variant: isAccountsError ? "muted" : "negative",
+								},
+							]}
+						/>
+						<div className="pt-0.5 text-sm">
+							<MetricCardLink {...METRIC_CARD_LINKS[8]} />
+						</div>
+					</div>
+					<div className="space-y-1">
+						<CardDescription>Agency Accounts</CardDescription>
+						<p className="text-xl font-semibold tabular-nums leading-none">
+							{agencyAccounts}
+						</p>
+						<DashboardMetricStats
+							items={[
+								{
+									label: "Active",
+									value: agencyActive,
+									variant: isAccountsError ? "muted" : "positive",
+								},
+								{
+									label: "Inactive",
+									value: agencyInactive,
+									variant: isAccountsError ? "muted" : "negative",
+								},
+							]}
+						/>
+						<div className="pt-0.5 text-sm">
+							<MetricCardLink {...METRIC_CARD_LINKS[9]} />
+						</div>
+					</div>
+				</CardHeader>
+			</Card>
+
+			{/* 11. Media Buying */}
 			<Card className="@container/card relative">
 				{isMediaBuyingError && (
 					<div className="absolute top-2 right-2">
@@ -697,118 +805,9 @@ export function MetricCards() {
 						))}
 					</div>
 					<div className="text-muted-foreground">
-						<MetricCardLink {...METRIC_CARD_LINKS[7]} />
+						<MetricCardLink {...METRIC_CARD_LINKS[10]} />
 					</div>
 				</CardFooter>
-			</Card>
-
-			{/* 10. Hosting Subscriptions */}
-			<Card className="@container/card relative">
-				{isHostingError && (
-					<div className="absolute top-2 right-2">
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
-								</TooltipTrigger>
-								<TooltipContent>
-									<p>Failed to load hosting subscriptions.</p>
-								</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-					</div>
-				)}
-				<CardHeader>
-					<CardDescription>Hosting Subscriptions</CardDescription>
-					<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-						{hostingTotal}
-					</CardTitle>
-				</CardHeader>
-				<CardFooter className="flex-col items-start gap-1.5 text-sm">
-					<DashboardMetricStats
-						items={[
-							{
-								label: "Active",
-								value: hostingActive,
-								variant: isHostingError ? "muted" : "positive",
-							},
-							{
-								label: "Suspended",
-								value: hostingSuspended,
-								variant: isHostingError ? "muted" : "negative",
-							},
-						]}
-					/>
-					<div className="text-muted-foreground">
-						<MetricCardLink {...METRIC_CARD_LINKS[8]} />
-					</div>
-				</CardFooter>
-			</Card>
-
-			{/* 11. Customer Accounts + Agency Accounts */}
-			<Card className="@container/card relative">
-				{isAccountsError && (
-					<div className="absolute top-2 right-2">
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
-								</TooltipTrigger>
-								<TooltipContent>
-									<p>Failed to load account counts.</p>
-								</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-					</div>
-				)}
-				<CardHeader className="gap-4">
-					<div className="space-y-1">
-						<CardDescription>Customer Accounts</CardDescription>
-						<CardTitle className="text-xl font-semibold tabular-nums">
-							{customerAccounts}
-						</CardTitle>
-						<DashboardMetricStats
-							items={[
-								{
-									label: "Active",
-									value: customerActive,
-									variant: isAccountsError ? "muted" : "positive",
-								},
-								{
-									label: "Inactive",
-									value: customerInactive,
-									variant: isAccountsError ? "muted" : "negative",
-								},
-							]}
-						/>
-						<div className="pt-0.5 text-sm">
-							<MetricCardLink {...METRIC_CARD_LINKS[9]} />
-						</div>
-					</div>
-					<div className="space-y-1">
-						<CardDescription>Agency Accounts</CardDescription>
-						<p className="text-xl font-semibold tabular-nums leading-none">
-							{agencyAccounts}
-						</p>
-						<DashboardMetricStats
-							items={[
-								{
-									label: "Active",
-									value: agencyActive,
-									variant: isAccountsError ? "muted" : "positive",
-								},
-								{
-									label: "Inactive",
-									value: agencyInactive,
-									variant: isAccountsError ? "muted" : "negative",
-								},
-							]}
-						/>
-						<div className="pt-0.5 text-sm">
-							<MetricCardLink {...METRIC_CARD_LINKS[10]} />
-						</div>
-					</div>
-				</CardHeader>
 			</Card>
 		</div>
 	);

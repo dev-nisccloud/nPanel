@@ -156,6 +156,8 @@ export type QuotationDetail = z.infer<typeof quotationDetailSchema>;
 export const quotationListFiltersSchema = z.object({
 	status: quotationStatusSchema.optional(),
 	search: z.string().optional(),
+	/** Group key from listCustomersSummary: `email:…`, `name:…`, or `unassigned`. */
+	customerGroupKey: z.string().min(1).optional(),
 	limit: z.number().int().min(1).max(100).optional().default(50),
 	offset: z.number().int().min(0).optional().default(0),
 });
@@ -166,6 +168,30 @@ export const quotationListResponseSchema = z.object({
 	total: z.number().int().nonnegative(),
 });
 export type QuotationListResponse = z.infer<typeof quotationListResponseSchema>;
+
+export const quotationCustomerSummarySchema = z.object({
+	customerGroupKey: z.string(),
+	customerName: nullableStringSchema,
+	customerEmail: nullableStringSchema,
+	quotationCount: z.number().int().nonnegative(),
+	openCount: z.number().int().nonnegative(),
+	lastQuotationAt: z.date().nullable(),
+});
+export type QuotationCustomerSummary = z.infer<typeof quotationCustomerSummarySchema>;
+
+export const quotationCustomersSummaryFiltersSchema = z.object({
+	search: z.string().optional(),
+});
+export type QuotationCustomersSummaryFilters = z.infer<
+	typeof quotationCustomersSummaryFiltersSchema
+>;
+
+export const quotationCustomersSummaryResponseSchema = z.object({
+	customers: z.array(quotationCustomerSummarySchema),
+});
+export type QuotationCustomersSummaryResponse = z.infer<
+	typeof quotationCustomersSummaryResponseSchema
+>;
 
 export const nextQuotationNumberSchema = z.object({
 	quotationNumber: z.string(),
