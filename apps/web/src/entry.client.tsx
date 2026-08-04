@@ -8,7 +8,7 @@ const isProd = import.meta.env.PROD;
 Sentry.init({
   dsn: "https://192682d4ad93a771a14c834658cc3c3c@o4511794820415488.ingest.us.sentry.io/4511845921980416",
   environment: import.meta.env.MODE,
-  // Identity only — does NOT send API request/response bodies
+  // Identity only  does NOT send API request/response bodies
   sendDefaultPii: false,
   dataCollection: {
     userInfo: true,
@@ -22,7 +22,7 @@ Sentry.init({
     // Keep tracing in the critical path (lightweight)
     Sentry.reactRouterTracingIntegration(),
   ],
-  // Logs only in development — avoid production network/CPU overhead
+  // Logs only in development  avoid production network/CPU overhead
   enableLogs: !isProd,
   tracesSampleRate: isProd ? 0.05 : 1.0,
   tracePropagationTargets: [/^\//, /^https:\/\/.*\.nisccloud\.com/],

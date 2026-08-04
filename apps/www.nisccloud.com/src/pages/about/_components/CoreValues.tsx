@@ -63,9 +63,6 @@ export default function CoreValues() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <p className="text-sm font-bold text-primary tracking-widest uppercase mb-3">
-            What Drives Us
-          </p>
           <h2 className="text-4xl md:text-5xl font-bold mb-4">Core Values</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
             These are not words on a wall. They shape every decision, every

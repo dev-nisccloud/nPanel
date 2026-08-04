@@ -7,7 +7,7 @@ export default function ServicesCTA() {
   const navigate = useNavigate();
 
   return (
-    <section className="py-24 border-t border-border/40">
+    <section className="py-24 bg-background">
       <div className="max-w-3xl mx-auto px-4 md:px-8 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -1,7 +1,16 @@
 import { motion } from "motion/react";
+import type { LucideIcon } from "lucide-react";
 import { ShieldCheck, ScanLine, Flame, Activity, Lock, Database } from "lucide-react";
 
-const features = [
+export type SecurityFeatureItem = {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  color: string;
+  bg: string;
+};
+
+const defaultFeatures: SecurityFeatureItem[] = [
   {
     icon: ShieldCheck,
     title: "SSL Certificate Included",
@@ -46,14 +55,23 @@ const features = [
   },
 ];
 
-export default function SecurityFeatures() {
+type SecurityFeaturesProps = {
+  title?: string;
+  description?: string;
+  features?: SecurityFeatureItem[];
+};
+
+export default function SecurityFeatures({
+  title = "Everything You Need to Stay Secure",
+  description = "A complete security setup that helps protect your site before, during, and after an attack.",
+  features = defaultFeatures,
+}: SecurityFeaturesProps = {}) {
   return (
     <section className="py-20">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="text-center mb-12">
-          <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">Included in Every Plan</span>
-          <h2 className="text-3xl font-bold mt-2 mb-3">Everything You Need to Stay Secure</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-sm">A complete security setup that helps protect your site before, during, and after an attack.</p>
+          <h2 className="text-3xl font-bold mb-3">{title}</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto text-sm">{description}</p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

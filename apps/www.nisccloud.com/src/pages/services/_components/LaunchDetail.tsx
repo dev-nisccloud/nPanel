@@ -20,10 +20,9 @@ const included = [
 
 export default function LaunchDetail() {
   return (
-    <section id="launch" className="py-24 border-t border-border/40" style={{ background: "radial-gradient(ellipse 80% 50% at 100% 50%, oklch(0.75 0.18 180 / 0.06), transparent)" }}>
+    <section id="launch" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
-          {/* Image first on desktop */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -43,7 +42,7 @@ export default function LaunchDetail() {
           >
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Reliable Cloud Hosting.<br />
-              <span style={{ color: "oklch(0.75 0.18 180)" }}>Simple to Launch.</span>
+              <span className="text-primary">Simple to Launch.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               We host your site on solid cloud infrastructure and help you get online without the technical stress. From domain to deployment, we handle the setup so you can focus on your customers.
@@ -51,7 +50,7 @@ export default function LaunchDetail() {
             <ul className="grid grid-cols-2 gap-2">
               {included.map((item) => (
                 <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check size={14} style={{ color: "oklch(0.75 0.18 180)" }} className="shrink-0" />
+                  <Check size={14} className="text-primary shrink-0" />
                   {item}
                 </li>
               ))}
@@ -67,9 +66,9 @@ export default function LaunchDetail() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="bg-card border border-border/60 rounded-xl p-5 transition-all hover:border-[oklch(0.75_0.18_180/0.4)]"
+              className="bg-card border border-border/60 rounded-xl p-5 transition-all hover:border-primary/40"
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ backgroundColor: "oklch(0.75 0.18 180 / 0.12)", color: "oklch(0.75 0.18 180)" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-primary/10 text-primary">
                 <f.icon size={16} />
               </div>
               <h4 className="font-semibold text-sm mb-1">{f.title}</h4>

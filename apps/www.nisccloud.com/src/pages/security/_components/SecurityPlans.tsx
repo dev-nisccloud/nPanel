@@ -1,7 +1,7 @@
 import { ServiceMockPricingSection } from "@/components/shadcn-space/blocks/pricing-01/service-mock-pricing.tsx";
 import type { OrderPlan } from "@/pages/hosting/_components/OrderDialog.tsx";
 
-const plans: OrderPlan[] = [
+const defaultPlans: OrderPlan[] = [
   {
     id: "standard",
     name: "Website Security Standard",
@@ -32,14 +32,28 @@ const plans: OrderPlan[] = [
   },
 ];
 
-export default function SecurityPlans() {
+type SecurityPlansProps = {
+  plans?: OrderPlan[];
+  serviceName?: string;
+  title?: string;
+  subtitle?: string;
+  sectionId?: string;
+};
+
+export default function SecurityPlans({
+  plans = defaultPlans,
+  serviceName = "Website Security",
+  title = "Choose Your Protection Level",
+  subtitle = "30-day money-back guarantee. All plans include a free SSL certificate and setup help.",
+  sectionId = "security-plans",
+}: SecurityPlansProps = {}) {
   return (
-    <section id="security-plans">
+    <section id={sectionId}>
       <ServiceMockPricingSection
         plans={plans}
-        serviceName="Website Security"
-        title="Choose Your Protection Level"
-        subtitle="30-day money-back guarantee. All plans include a free SSL certificate and setup help."
+        serviceName={serviceName}
+        title={title}
+        subtitle={subtitle}
       />
     </section>
   );

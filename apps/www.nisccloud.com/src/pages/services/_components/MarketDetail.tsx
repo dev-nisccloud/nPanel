@@ -29,7 +29,7 @@ const metrics = [
 
 export default function MarketDetail() {
   return (
-    <section id="market" className="py-24 border-t border-border/40">
+    <section id="market" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
           <motion.div
@@ -40,7 +40,7 @@ export default function MarketDetail() {
           >
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               Full-Stack Growth.<br />
-              <span style={{ color: "oklch(0.70 0.22 240)" }}>Clear Reporting.</span>
+              <span className="text-primary">Clear Reporting.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               We do not run channels in isolation. SEO, paid ads, social, and email feed one growth plan, with reporting you can understand and a 30-day results promise on active work.
@@ -48,7 +48,7 @@ export default function MarketDetail() {
             <ul className="grid grid-cols-2 gap-2 mb-8">
               {included.map((item) => (
                 <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check size={14} style={{ color: "oklch(0.70 0.22 240)" }} className="shrink-0" />
+                  <Check size={14} className="text-primary shrink-0" />
                   {item}
                 </li>
               ))}
@@ -81,9 +81,9 @@ export default function MarketDetail() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="bg-card border border-border/60 rounded-xl p-5 transition-all hover:border-[oklch(0.70_0.22_240/0.4)]"
+              className="bg-card border border-border/60 rounded-xl p-5 transition-all hover:border-primary/40"
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ backgroundColor: "oklch(0.70 0.22 240 / 0.12)", color: "oklch(0.70 0.22 240)" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-primary/10 text-primary">
                 <f.icon size={16} />
               </div>
               <h4 className="font-semibold text-sm mb-1">{f.title}</h4>

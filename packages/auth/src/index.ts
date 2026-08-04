@@ -44,6 +44,7 @@ import {
   getRequestBrowserOrigin,
   isAllowedStorefrontBrowserRequest,
   isLandingPageOrigin,
+  resolveLandingPageOrigins,
 } from "./landing-page-origins";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -79,12 +80,9 @@ const resolvedTrustedOrigins = (() => {
   };
 
   const addLandingPageOrigins = (list: string[]) => {
-    for (const part of (process.env.LANDING_PAGE_ORIGINS ?? "").split(",")) {
-      addUrlToList(list, part);
-    }
-    // Fallback so Vercel landing can call credentialed auth before env is set.
-    if (!process.env.LANDING_PAGE_ORIGINS?.trim()) {
-      addUrlToList(list, "https://nisccloud-website.vercel.app");
+    // Defaults (www, staging, Vercel) plus LANDING_PAGE_ORIGINS env extras.
+    for (const origin of resolveLandingPageOrigins()) {
+      addUrlToList(list, origin);
     }
   };
 

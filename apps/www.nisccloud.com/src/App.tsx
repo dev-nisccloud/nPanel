@@ -33,6 +33,8 @@ import ZeepoAiPage from "./pages/services/zeepo-ai/page.tsx";
 import EmailMarketingPage from "./pages/services/email-marketing/page.tsx";
 
 import SecurityPage from "./pages/security/page.tsx";
+import EmailSecurityPage from "./pages/security/email/page.tsx";
+import SslCertificatePage from "./pages/security/ssl/page.tsx";
 import CartPage from "./pages/cart/page.tsx";
 
 import HelpCentrePage from "./pages/help/page.tsx";
@@ -94,6 +96,8 @@ function AppRoutes() {
 
         {/* Security */}
         <Route path="/security" element={<SecurityPage />} />
+        <Route path="/security/email" element={<EmailSecurityPage />} />
+        <Route path="/security/ssl" element={<SslCertificatePage />} />
 
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />

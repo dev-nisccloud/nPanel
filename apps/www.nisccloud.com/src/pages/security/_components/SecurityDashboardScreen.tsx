@@ -178,7 +178,13 @@ function ShieldMark() {
 
 /* ── main ─────────────────────────────────────────────── */
 
-export default function SecurityDashboardScreen() {
+type SecurityDashboardScreenProps = {
+  productLabel?: string;
+};
+
+export default function SecurityDashboardScreen({
+  productLabel = "Security",
+}: SecurityDashboardScreenProps = {}) {
   const [threatCount, setThreatCount] = useState(2841);
   const [eventIndex, setEventIndex] = useState(0);
   const [scanning, setScanning] = useState(false);
@@ -261,7 +267,7 @@ export default function SecurityDashboardScreen() {
             className="h-4 w-auto object-contain object-left"
           />
           <span className="h-2.5 w-px bg-slate-200" />
-          <span className="text-[8px] font-medium text-slate-500">Security</span>
+          <span className="text-[8px] font-medium text-slate-500">{productLabel}</span>
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 ring-1 ring-emerald-100">
           <PulseDot color="#10b981" />

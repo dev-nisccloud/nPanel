@@ -1,11 +1,15 @@
 /**
- * Landing / storefront browser origins (www, Vercel, local Vite).
+ * Landing / storefront browser origins (www, staging, Vercel, local Vite).
  * Distinct from CORS_ORIGIN (nPanel web app).
  *
- * Env: LANDING_PAGE_ORIGINS=https://www.nisccloud.com,https://nisccloud-website.vercel.app
+ * Env: LANDING_PAGE_ORIGINS=https://www.nisccloud.com,https://staging.nisccloud.com
+ * Extra origins are merged with the built-in defaults (env never replaces them).
  */
 
 const DEFAULT_LANDING_PAGE_ORIGINS = [
+  "https://www.nisccloud.com",
+  "https://nisccloud.com",
+  "https://staging.nisccloud.com",
   "https://nisccloud-website.vercel.app",
 ];
 
@@ -38,14 +42,14 @@ export function isLocalDevOrigin(origin: string): boolean {
 }
 
 /**
- * Configured landing-page origins from env (plus a Vercel default when unset).
+ * Configured landing-page origins: built-in defaults plus any from env.
  * Does not include local-dev wildcards  use {@link isLandingPageOrigin} for that.
  */
 export function resolveLandingPageOrigins(): string[] {
-  const fromEnv = parseCommaOrigins(process.env.LANDING_PAGE_ORIGINS);
-  const origins = new Set<string>(
-    fromEnv.length > 0 ? fromEnv : DEFAULT_LANDING_PAGE_ORIGINS,
-  );
+  const origins = new Set<string>(DEFAULT_LANDING_PAGE_ORIGINS);
+  for (const o of parseCommaOrigins(process.env.LANDING_PAGE_ORIGINS)) {
+    origins.add(o);
+  }
   return [...origins];
 }
 
@@ -61,18 +65,43 @@ export function isLandingPageOrigin(origin: string | null | undefined): boolean 
 }
 
 /**
- * Extract Origin from request headers (Origin, or Referer origin).
+ * Origin from x-forwarded-* when the marketing site reverse-proxies `/api`
+ * (Vercel rewrite or Bun www-server). Same-origin GETs often omit Origin;
+ * Referer may also be stripped  the proxy still records the browser host.
  */
-export function getRequestBrowserOrigin(headers: Headers): string | null {
-  const origin = headers.get("origin")?.trim();
-  if (origin) return normalizeOrigin(origin);
-  const referer = headers.get("referer")?.trim();
-  if (!referer) return null;
+function originFromForwardedHost(headers: Headers): string | null {
+  const fwdHost =
+    headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    headers.get("x-original-host")?.trim();
+  if (!fwdHost) return null;
+  const proto = (
+    headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https"
+  ).toLowerCase();
+  const scheme = proto === "http" ? "http" : "https";
   try {
-    return normalizeOrigin(new URL(referer).origin);
+    return normalizeOrigin(new URL(`${scheme}://${fwdHost}`).origin);
   } catch {
     return null;
   }
+}
+
+/**
+ * Extract Origin from request headers (Origin, Referer origin, or forwarded host).
+ */
+export function getRequestBrowserOrigin(headers: Headers): string | null {
+  const origin = headers.get("origin")?.trim();
+  if (origin && origin.toLowerCase() !== "null") {
+    return normalizeOrigin(origin);
+  }
+  const referer = headers.get("referer")?.trim();
+  if (referer) {
+    try {
+      return normalizeOrigin(new URL(referer).origin);
+    } catch {
+      // fall through to forwarded host
+    }
+  }
+  return originFromForwardedHost(headers);
 }
 
 /**
@@ -108,15 +137,49 @@ export function parseSafeLandingPageRedirect(
 }
 
 /**
- * Allow storefront session probes when:
- * - Origin/Referer is a configured landing page, or
- * - Origin is absent (some browsers omit it on same-site GETs).
+ * Allow storefront / guest-support browser requests when a browser-facing
+ * origin matches a configured landing page.
+ *
+ * Signals (any positive match allows):
+ * - `Origin`
+ * - `Referer` origin
+ * - `x-forwarded-host` from the marketing-site `/api` reverse proxy
+ *   (Vercel rewrite or Bun www-server)  used when Origin is omitted or
+ *   rewritten to the API host
+ *
+ * When Origin and Referer are both absent, allow (same-site GETs often omit
+ * them). A non-landing forwarded host alone does not cause a reject.
  */
 export function isAllowedStorefrontBrowserRequest(
   headers: Headers | undefined,
 ): boolean {
   if (!headers) return false;
-  const origin = getRequestBrowserOrigin(headers);
-  if (!origin) return true;
-  return isLandingPageOrigin(origin);
+
+  const browserOrigins: string[] = [];
+
+  const origin = headers.get("origin")?.trim();
+  if (origin && origin.toLowerCase() !== "null") {
+    browserOrigins.push(normalizeOrigin(origin));
+  }
+
+  const referer = headers.get("referer")?.trim();
+  if (referer) {
+    try {
+      browserOrigins.push(normalizeOrigin(new URL(referer).origin));
+    } catch {
+      // ignore invalid referer
+    }
+  }
+
+  for (const candidate of browserOrigins) {
+    if (isLandingPageOrigin(candidate)) return true;
+  }
+
+  const forwarded = originFromForwardedHost(headers);
+  if (forwarded && isLandingPageOrigin(forwarded)) return true;
+
+  // No Origin/Referer (common on same-origin GETs) → allow.
+  if (browserOrigins.length === 0) return true;
+
+  return false;
 }
