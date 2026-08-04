@@ -4,7 +4,7 @@ import {
   Menu, X, ChevronDown, Globe, Server, Mail, Cpu, Megaphone,
   ShoppingCart, PenTool, BarChart2, Zap,
   TrendingUp, HardDrive, MonitorSmartphone,
-  Target, AtSign, ArrowLeftRight,
+  Target, AtSign, ArrowLeftRight, ShieldCheck, Lock, Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { FlowButton } from "@/components/ui/flow-button.tsx";
@@ -76,7 +76,15 @@ const navItems: NavItem[] = [
       { label: "E-commerce Design", desc: "Online stores that make checkout easy", href: "/services/ecommerce", icon: <ShoppingCart size={16} /> },
     ],
   },
-  { label: "Security", href: "/security" },
+  {
+    label: "Security",
+    href: "/security",
+    children: [
+      { label: "Web Security", desc: "Malware scanning, firewall, and site cleanup", href: "/security", icon: <ShieldCheck size={16} /> },
+      { label: "Email Security", desc: "Spam, phishing, and malware filtering for inbox", href: "/security/email", icon: <Shield size={16} /> },
+      { label: "SSL Certificate", desc: "HTTPS padlock, encryption, and visitor trust", href: "/security/ssl", icon: <Lock size={16} /> },
+    ],
+  },
   { label: "Pricing", href: "/pricing" },
   { label: "Portfolio", href: "/work" },
   { label: "Help", href: DOCS_URL, external: true },

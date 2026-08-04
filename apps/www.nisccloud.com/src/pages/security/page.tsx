@@ -48,7 +48,6 @@ export default function SecurityPage() {
       <SecurityFeatures />
       <FaqBlock
         faqs={securityFaqs}
-        badge="Security FAQ"
         title="Everything you need to know about website security"
       />
       <SecurityCTA />

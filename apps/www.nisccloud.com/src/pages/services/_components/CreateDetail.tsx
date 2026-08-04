@@ -20,9 +20,8 @@ const included = [
 
 export default function CreateDetail() {
   return (
-    <section id="create" className="py-24 border-t border-border/40">
+    <section id="create" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        {/* Label + heading */}
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -32,7 +31,7 @@ export default function CreateDetail() {
           >
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
               We Build Your<br />
-              <span style={{ color: "oklch(0.72 0.2 210)" }}>Brand from the Ground Up.</span>
+              <span className="text-primary">Brand from the Ground Up.</span>
             </h2>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
               Before you launch, you need an identity that looks professional and feels consistent. We craft the visual and verbal pieces of your brand so you can grow with confidence.
@@ -57,7 +56,6 @@ export default function CreateDetail() {
           </motion.div>
         </div>
 
-        {/* Feature cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {features.map((f, i) => (
             <motion.div
@@ -68,7 +66,7 @@ export default function CreateDetail() {
               transition={{ duration: 0.4, delay: i * 0.08 }}
               className="bg-card border border-border/60 rounded-xl p-5 hover:border-primary/30 transition-all"
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ backgroundColor: "oklch(0.72 0.2 210 / 0.12)", color: "oklch(0.72 0.2 210)" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3 bg-primary/10 text-primary">
                 <f.icon size={16} />
               </div>
               <h4 className="font-semibold text-sm mb-1">{f.title}</h4>
