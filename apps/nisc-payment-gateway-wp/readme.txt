@@ -141,6 +141,7 @@ Not in v1. M-Pesa STK Push only.
 
 = 0.1.9 =
 * Documented Nisc Cloud Payment Gateway external service usage in readme (Guideline 6), including data sent and links to terms and privacy policy.
+* Ensured languages/ exists with index.php for Domain Path checks; CI Plugin Check slug matches wordpress.org permalink.
 
 = 0.1.8 =
 * Fixed WordPress.org plugin checker warnings: created languages folder and sanitized POST input.
