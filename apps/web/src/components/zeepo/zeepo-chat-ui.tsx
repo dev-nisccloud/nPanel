@@ -211,7 +211,7 @@ export function ZeepoGenerationProgressCard({
 }) {
   return (
     <div className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 shadow-sm">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
         <Sparkles className="size-4" aria-hidden />
       </div>
       <div className="min-w-0 flex-1">
@@ -473,7 +473,7 @@ export function ZeepoComposer({
               <button
                 type="button"
                 aria-label="Remove attachment"
-                className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-foreground text-background shadow-sm"
+                className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
                 onClick={p.onRemove}
               >
                 <X className="size-3" />
@@ -566,7 +566,7 @@ export function ZeepoComposer({
           <button
             type="button"
             aria-label="Stop"
-            className="flex size-9 items-center justify-center rounded-full bg-foreground text-background hover:bg-foreground/90"
+            className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={onStop}
           >
             <Square className="size-3.5 fill-current" />
@@ -579,7 +579,7 @@ export function ZeepoComposer({
             className={cn(
               "flex size-9 items-center justify-center rounded-full transition-colors",
               canSend && !disabled
-                ? "bg-foreground text-background hover:bg-foreground/90"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "bg-muted text-muted-foreground cursor-not-allowed",
             )}
             onClick={onSubmit}

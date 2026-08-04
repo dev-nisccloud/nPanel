@@ -109,6 +109,7 @@ import { ZeepoSessionTitle } from "@/components/zeepo/zeepo-session-title";
 import { ZeepoTokenWallet } from "@/components/zeepo/zeepo-token-wallet";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import {
+  filterZeepoAgentAttachmentFiles,
   mapStorageResultToAttachment,
   uploadErrorMessage,
 } from "@/lib/app-file-upload";
@@ -1591,12 +1592,16 @@ export default function ZeepoAiAgentSessionPage() {
   async function handleFileSelect(files: FileList | null, onUploaded?: (a: Attachment) => void) {
     if (!files?.length) return;
 
+    const { accepted, rejectedMessage } = filterZeepoAgentAttachmentFiles(Array.from(files));
+    if (rejectedMessage) toast.error(rejectedMessage);
+    if (!accepted.length) return;
+
     // Immediate-upload path: used by question flow or other callers that need a real URL now.
     if (onUploaded) {
       try {
-        const results = await uploadAgentAttachments(Array.from(files));
+        const results = await uploadAgentAttachments(accepted);
         const uploaded: Attachment[] = results.map((r, i) => {
-          const mapped = mapStorageResultToAttachment(r, files[i]!);
+          const mapped = mapStorageResultToAttachment(r, accepted[i]!);
           return { url: mapped.url, name: mapped.name, mimeType: mapped.mimeType };
         });
         uploaded.forEach(onUploaded);
@@ -1607,7 +1612,7 @@ export default function ZeepoAiAgentSessionPage() {
     }
 
     // Deferred-upload path: stage locally for the main chat input.
-    const incoming = Array.from(files).slice(0, 4);
+    const incoming = accepted.slice(0, 4);
     const staged: PendingFile[] = incoming.map((f) => ({
       file: f,
       previewUrl: URL.createObjectURL(f),

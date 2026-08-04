@@ -13,7 +13,11 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
-import { mapStorageResultToAttachment, uploadErrorMessage } from "@/lib/app-file-upload";
+import {
+  filterZeepoAgentAttachmentFiles,
+  mapStorageResultToAttachment,
+  uploadErrorMessage,
+} from "@/lib/app-file-upload";
 import { ZeepoMascot } from "@/components/zeepo/zeepo-mascot";
 import {
   ZEEPO_SAMPLE_PROMPTS,
@@ -221,8 +225,12 @@ export default function ZeepoAiAgentIndexPage() {
     if (!files?.length) return;
     const room = 4 - pendingFiles.length;
     if (room <= 0) return;
-    const incoming = Array.from(files).slice(0, room);
-    const staged: PendingFile[] = incoming.map((f) => ({
+    const { accepted, rejectedMessage } = filterZeepoAgentAttachmentFiles(
+      Array.from(files).slice(0, room),
+    );
+    if (rejectedMessage) toast.error(rejectedMessage);
+    if (!accepted.length) return;
+    const staged: PendingFile[] = accepted.map((f) => ({
       file: f,
       previewUrl: URL.createObjectURL(f),
       name: f.name,
