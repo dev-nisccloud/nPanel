@@ -1,18 +1,38 @@
 import { motion } from "motion/react";
+import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { useNavigate } from "react-router-dom";
 import { niscWebsiteImage } from "@/lib/nisc-website-images.ts";
 import { NiscWebsiteHeroImage } from "@/components/NiscWebsiteHeroImage.tsx";
 
-export default function SecurityHero() {
+type SecurityHeroProps = {
+  title?: ReactNode;
+  description?: string;
+  imageSrc?: string;
+  imageAlt?: string;
+  plansId?: string;
+};
+
+export default function SecurityHero({
+  title = (
+    <>
+      Keep Your Website
+      <br />
+      <span className="text-primary">Safe and Online</span>
+    </>
+  ),
+  description = "SSL certificates, malware scanning, firewall protection, and daily backups, managed by our security team so you can focus on your business.",
+  imageSrc = niscWebsiteImage("website security.png"),
+  imageAlt = "Website Security illustration",
+  plansId = "security-plans",
+}: SecurityHeroProps = {}) {
   const navigate = useNavigate();
 
   return (
     <section className="relative pt-28 pb-16 px-4 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 min-h-[520px]">
-          {/* Left: copy */}
           <motion.div
             initial={{ opacity: 0, x: -28 }}
             animate={{ opacity: 1, x: 0 }}
@@ -20,17 +40,15 @@ export default function SecurityHero() {
             className="flex-1 flex flex-col items-start text-left max-w-2xl"
           >
             <h1 className="text-[36px] font-extrabold leading-[1.15] mb-6 text-balance">
-              Keep Your Website
-              <br />
-              <span className="text-primary">Safe and Online</span>
+              {title}
             </h1>
             <p className="text-lg text-muted-foreground leading-relaxed mb-8 max-w-xl">
-              SSL certificates, malware scanning, firewall protection, and daily backups, managed by our security team so you can focus on your business.
+              {description}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 className="bg-primary text-primary-foreground font-bold px-8 rounded-2xl h-12 cursor-pointer hover:opacity-90 shadow-lg shadow-primary/30 gap-2"
-                onClick={() => document.getElementById("security-plans")?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() => document.getElementById(plansId)?.scrollIntoView({ behavior: "smooth" })}
               >
                 Get Started <ArrowRight size={15} />
               </Button>
@@ -44,7 +62,6 @@ export default function SecurityHero() {
             </div>
           </motion.div>
 
-          {/* Right: hero image */}
           <motion.div
             initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}
@@ -52,8 +69,8 @@ export default function SecurityHero() {
             className="flex-1 w-full lg:max-w-[720px] xl:max-w-[780px] relative"
           >
             <NiscWebsiteHeroImage
-              src={niscWebsiteImage("website security.png")}
-              alt="Website Security illustration"
+              src={imageSrc}
+              alt={imageAlt}
               standalone
             />
           </motion.div>

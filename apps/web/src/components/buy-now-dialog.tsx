@@ -392,7 +392,7 @@ export function BuyNowDialog({
   const [selectedDomainId, setSelectedDomainId] = React.useState<string | null>(null);
 
   // Same source as customer domains portfolio / Hivelocity hostname picker:
-  // niscClientSubscription domain products — not the legacy `domain` table.
+  // niscClientSubscription domain products  not the legacy `domain` table.
   const teamDomainsBySlugQuery = trpc.clientSubscriptions.listForTeamDomains.useQuery(
     { teamSlug: resolvedTeamSlug ?? "" },
     {

@@ -6,7 +6,7 @@ import WorkCTA from "./_components/WorkCTA.tsx";
 
 export default function WorkPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <WorkHero />
       <PortfolioGrid />

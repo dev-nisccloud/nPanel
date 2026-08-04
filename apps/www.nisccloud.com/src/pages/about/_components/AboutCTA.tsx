@@ -15,9 +15,6 @@ export default function AboutCTA() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <p className="text-sm font-bold text-primary tracking-widest uppercase mb-4">
-            Ready to Work Together?
-          </p>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-balance">
             Let{"'"}s Get Your Business{" "}
             <span className="text-primary">Online and Growing</span>

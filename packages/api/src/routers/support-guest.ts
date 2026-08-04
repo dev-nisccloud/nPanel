@@ -172,7 +172,7 @@ export const supportGuestRouter = router({
       const guestUserId = randomUUID();
       const rawToken = randomBytes(32).toString("base64url");
       const emailNorm = input.email.toLowerCase();
-      // Always synthetic — contact email lives on the guest session / ticket metadata.
+      // Always synthetic  contact email lives on the guest session / ticket metadata.
       const guestEmail = `guest+${sessionId.replace(/-/g, "")}@guests.nisccloud.internal`;
 
       const now = new Date();
@@ -604,7 +604,7 @@ export const supportGuestRouter = router({
         });
       }
 
-      // No refresh here — claim consumes the session; avoid rotating mid-claim.
+      // No refresh here  claim consumes the session; avoid rotating mid-claim.
       const sessionRow = await loadActiveGuestSession(ctx, { refresh: false });
       if (!sessionRow) {
         return { claimed: false, ticketCount: 0 };

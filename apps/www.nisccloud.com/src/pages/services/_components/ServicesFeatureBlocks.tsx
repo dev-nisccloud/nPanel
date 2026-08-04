@@ -65,7 +65,7 @@ const items = [
 
 export default function ServicesFeatureBlocks() {
   return (
-    <section className="border-t border-border/40 py-20">
+    <section className="py-20 bg-background">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <AlternatingFeatureBlocks items={items} />
       </div>

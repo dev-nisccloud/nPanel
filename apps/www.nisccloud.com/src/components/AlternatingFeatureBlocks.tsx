@@ -23,16 +23,13 @@ export type FeatureBlockItem = {
 
 type Props = {
   items: FeatureBlockItem[];
-  /** Accent color for bullets and tag. Default: primary */
-  accentColor?: string;
 };
 
-export default function AlternatingFeatureBlocks({ items, accentColor }: Props) {
+export default function AlternatingFeatureBlocks({ items }: Props) {
   return (
     <div className="space-y-20 md:space-y-28">
       {items.map((item, i) => {
         const imageRight = item.imageRight !== undefined ? item.imageRight : i % 2 === 0;
-        const accent = item.tagColor ?? accentColor ?? "var(--color-primary)";
         const visual: VisualTheme = item.visual ?? "default";
 
         const textBlock = (
@@ -44,10 +41,7 @@ export default function AlternatingFeatureBlocks({ items, accentColor }: Props) 
             className="flex flex-col justify-center"
           >
             {item.tag ? (
-              <span
-                className="mb-4 inline-flex items-center self-start rounded-full border px-3 py-1 text-[11px] font-mono font-bold tracking-widest"
-                style={{ color: accent, borderColor: `${accent}30`, backgroundColor: `${accent}10` }}
-              >
+              <span className="mb-4 inline-flex items-center self-start rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-mono font-bold tracking-widest text-primary">
                 {item.tag}
               </span>
             ) : null}
@@ -60,14 +54,14 @@ export default function AlternatingFeatureBlocks({ items, accentColor }: Props) 
             <ul className="space-y-2.5">
               {item.bullets.map((b) => (
                 <li key={b} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <CheckCircle2 size={15} className="mt-0.5 shrink-0" style={{ color: accent }} />
+                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-primary" />
                   {b}
                 </li>
               ))}
             </ul>
             {item.stat ? (
-              <div className="mt-8 inline-flex items-baseline gap-2 border-l-4 pl-4" style={{ borderColor: accent }}>
-                <span className="text-3xl font-extrabold" style={{ color: accent }}>
+              <div className="mt-8 inline-flex items-baseline gap-2 border-l-4 border-primary pl-4">
+                <span className="text-3xl font-extrabold text-primary">
                   {item.stat.value}
                 </span>
                 <span className="text-sm text-muted-foreground">{item.stat.label}</span>

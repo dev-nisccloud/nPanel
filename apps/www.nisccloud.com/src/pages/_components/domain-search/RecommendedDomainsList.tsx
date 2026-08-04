@@ -286,7 +286,7 @@ export function RecommendedDomainsList({
       const d = r.domain.toLowerCase();
       if (excludeSet.has(d)) return false;
       if (isUnavailableKenicTld(d)) return false;
-      // Exact match is shown in ExactMatchSection above — skip duplicate in list
+      // Exact match is shown in ExactMatchSection above  skip duplicate in list
       if (exactDomain && d === exactDomain) return false;
       return true;
     });

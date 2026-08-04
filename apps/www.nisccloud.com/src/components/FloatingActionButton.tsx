@@ -1,5 +1,5 @@
 /**
- * Marketing-site support FAB — guest cookie sessions or logged-in credentialed tickets.
+ * Marketing-site support FAB  guest cookie sessions or logged-in credentialed tickets.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
