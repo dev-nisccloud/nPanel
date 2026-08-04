@@ -107,6 +107,7 @@ import {
 import { ZeepoGenerationsPanel } from "@/components/zeepo/zeepo-generations-panel";
 import { ZeepoSessionTitle } from "@/components/zeepo/zeepo-session-title";
 import { ZeepoTokenWallet } from "@/components/zeepo/zeepo-token-wallet";
+import { ZeepoDeleteChatDialog } from "@/components/zeepo/zeepo-delete-chat-dialog";
 import { useAppFileUpload } from "@/hooks/use-app-file-upload";
 import {
   filterZeepoAgentAttachmentFiles,
@@ -161,7 +162,7 @@ function extractOutputPreview(outputs: unknown): string | null {
 type GenerationMediaKind = "image" | "video" | "audio";
 
 type ClarifyingQuestion = { question: string; options: string[]; allow_upload?: boolean };
-type Attachment = { url: string; name: string; mimeType: string };
+type Attachment = { url: string; name: string; mimeType: string; storageKey?: string };
 
 type QuestionFlowState = {
   triggerMessageId: string;
@@ -1251,6 +1252,22 @@ export default function ZeepoAiAgentSessionPage() {
   });
 
   const createSession = trpc.zeepoAgent.sessions.create.useMutation();
+  const [deleteTarget, setDeleteTarget] = React.useState<{ id: string; title?: string | null } | null>(null);
+  const deleteSession = trpc.zeepoAgent.sessions.delete.useMutation({
+    onSuccess: (_data, variables) => {
+      void utils.zeepoAgent.sessions.list.invalidate();
+      void utils.zeepoAgent.sessions.get.invalidate();
+      setDeleteTarget(null);
+      setChatHistoryOpen(false);
+      toast.success("Chat deleted");
+      if (variables.id === sessionId) {
+        navigate(basePath);
+      }
+    },
+    onError: (e) => {
+      toast.error(e.message || "Failed to delete chat");
+    },
+  });
 
   const handleNewChat = async () => {
     try {
@@ -1602,7 +1619,12 @@ export default function ZeepoAiAgentSessionPage() {
         const results = await uploadAgentAttachments(accepted);
         const uploaded: Attachment[] = results.map((r, i) => {
           const mapped = mapStorageResultToAttachment(r, accepted[i]!);
-          return { url: mapped.url, name: mapped.name, mimeType: mapped.mimeType };
+          return {
+            url: mapped.url,
+            name: mapped.name,
+            mimeType: mapped.mimeType,
+            ...(mapped.storageKey ? { storageKey: mapped.storageKey } : {}),
+          };
         });
         uploaded.forEach(onUploaded);
       } catch (e) {
@@ -1640,7 +1662,12 @@ export default function ZeepoAiAgentSessionPage() {
         .then((results) => {
           const uploaded: Attachment[] = results.map((r, i) => {
             const mapped = mapStorageResultToAttachment(r, stagedFiles[i]!.file);
-            return { url: mapped.url, name: mapped.name, mimeType: mapped.mimeType };
+            return {
+              url: mapped.url,
+              name: mapped.name,
+              mimeType: mapped.mimeType,
+              ...(mapped.storageKey ? { storageKey: mapped.storageKey } : {}),
+            };
           });
           const allAttachments = [...alreadyUploaded, ...uploaded];
           setDraft("");
@@ -2365,6 +2392,23 @@ export default function ZeepoAiAgentSessionPage() {
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <ZeepoTokenWallet />
 
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Delete chat"
+            disabled={!sessionId || deleteSession.isPending}
+            onClick={() =>
+              setDeleteTarget({
+                id: sessionId!,
+                title: sessionRes.title,
+              })
+            }
+          >
+            <Trash2 className="size-4" />
+          </Button>
+
           <Popover open={chatHistoryOpen} onOpenChange={setChatHistoryOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -2420,6 +2464,21 @@ export default function ZeepoAiAgentSessionPage() {
                           <p className="truncate text-sm font-medium">{sessionRes.title || "New chat"}</p>
                           <p className="text-[11px] text-muted-foreground">Current chat</p>
                         </div>
+                        <button
+                          type="button"
+                          aria-label="Delete current chat"
+                          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDeleteTarget({
+                              id: sessionId!,
+                              title: sessionRes.title,
+                            });
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </CommandItem>
                       {chatHistoryQuery.isPending ? (
                         <div className="space-y-1.5 p-2">
@@ -2439,16 +2498,28 @@ export default function ZeepoAiAgentSessionPage() {
                                 setIsSwitchingChat(true);
                                 navigate(zeepoAgentSessionPath(basePath, s.id));
                               }}
-                              className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+                              className="group/item flex items-center gap-2 px-3 py-2 cursor-pointer"
                             >
                               <div className="min-w-0 flex-1 overflow-hidden">
                                 <p className="truncate text-sm font-medium leading-tight">
                                   {s.title || "New chat"}
                                 </p>
                               </div>
-                              <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                              <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground group-hover/item:hidden">
                                 {formatDistanceToNow(new Date(s.updatedAt), { addSuffix: true })}
                               </span>
+                              <button
+                                type="button"
+                                aria-label={`Delete ${s.title || "chat"}`}
+                                className="hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive group-hover/item:flex"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setDeleteTarget({ id: s.id, title: s.title });
+                                }}
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
                             </CommandItem>
                           ))
                       )}
@@ -2836,6 +2907,7 @@ export default function ZeepoAiAgentSessionPage() {
                                 url: mapped.url,
                                 name: mapped.name,
                                 mimeType: mapped.mimeType,
+                                ...(mapped.storageKey ? { storageKey: mapped.storageKey } : {}),
                               };
                               // Hold the upload for user confirmation - don't advance yet.
                               setQuestionFlow((prev) =>
@@ -3865,6 +3937,18 @@ export default function ZeepoAiAgentSessionPage() {
           </Sheet>
         </div>
       )}
+
+      <ZeepoDeleteChatDialog
+        target={deleteTarget}
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !deleteSession.isPending) setDeleteTarget(null);
+        }}
+        isPending={deleteSession.isPending}
+        onConfirm={async (id) => {
+          await deleteSession.mutateAsync({ id });
+        }}
+      />
     </div>
   );
 }

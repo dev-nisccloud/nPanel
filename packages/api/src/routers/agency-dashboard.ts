@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { and, count, eq, isNotNull, or } from "@npanel/db";
+import { and, count, eq, inArray, isNotNull, or } from "@npanel/db";
 import { db } from "@npanel/db";
+import { user } from "@npanel/db/schema/auth";
 import { metaAdsAccount } from "@npanel/db/schema/meta-ads";
 import { googleAdsAccount } from "@npanel/db/schema/google-ads";
 import { socialMediaIntegration } from "@npanel/db/schema/social-media-marketing";
@@ -10,8 +11,19 @@ import { protectedProcedure, router } from "../trpc";
 import { sendPleskXmlRequest } from "../lib/plesk/xml-client";
 import { XMLParser } from "fast-xml-parser";
 
+const AGENCY_ROLES = ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"] as const;
+
 const isAgencyUserRole = (role: string | null | undefined) =>
-  ["AGENCY_USER", "AGENCY_ADMIN", "AGENCY_SUPER_ADMIN"].includes(role ?? "");
+  (AGENCY_ROLES as readonly string[]).includes(role ?? "");
+
+function assertAgencyDashboardAccess(role: string | null | undefined) {
+  if (!isAgencyUserRole(role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only agency users can view this dashboard data.",
+    });
+  }
+}
 
 /** Unwrap fast-xml-parser text nodes */
 function pleskXmlScalar(value: unknown): string | undefined {
@@ -29,6 +41,65 @@ function pleskXmlScalar(value: unknown): string | undefined {
 
 export const agencyDashboardRouter = router({
   /**
+   * Count customer vs agency user accounts for the agency dashboard card,
+   * including active / inactive status breakdowns.
+   */
+  getAccountCounts: protectedProcedure.query(async ({ ctx }) => {
+    const sessionUser = ctx.session?.user;
+    if (!sessionUser?.id) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
+    }
+
+    assertAgencyDashboardAccess((sessionUser as { role?: string })?.role);
+
+    try {
+      const agencyRoles = [...AGENCY_ROLES];
+      const [
+        customerTotalRow,
+        customerActiveRow,
+        agencyTotalRow,
+        agencyActiveRow,
+      ] = await Promise.all([
+        db.select({ value: count() }).from(user).where(eq(user.role, "CUSTOMER")),
+        db
+          .select({ value: count() })
+          .from(user)
+          .where(and(eq(user.role, "CUSTOMER"), eq(user.status, "ACTIVE"))),
+        db.select({ value: count() }).from(user).where(inArray(user.role, agencyRoles)),
+        db
+          .select({ value: count() })
+          .from(user)
+          .where(and(inArray(user.role, agencyRoles), eq(user.status, "ACTIVE"))),
+      ]);
+
+      const customersTotal = customerTotalRow[0]?.value ?? 0;
+      const customersActive = customerActiveRow[0]?.value ?? 0;
+      const agencyTotal = agencyTotalRow[0]?.value ?? 0;
+      const agencyActive = agencyActiveRow[0]?.value ?? 0;
+
+      return {
+        customers: {
+          total: customersTotal,
+          active: customersActive,
+          inactive: Math.max(0, customersTotal - customersActive),
+        },
+        agency: {
+          total: agencyTotal,
+          active: agencyActive,
+          inactive: Math.max(0, agencyTotal - agencyActive),
+        },
+        total: customersTotal + agencyTotal,
+      };
+    } catch (error) {
+      console.error("Error getting account counts:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get account counts",
+      });
+    }
+  }),
+
+  /**
    * Get media buying platforms connection status
    */
   getMediaBuyingPlatforms: protectedProcedure.query(async ({ ctx }) => {
@@ -37,15 +108,7 @@ export const agencyDashboardRouter = router({
       throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
     }
 
-    const sessionRole = (sessionUser as { role?: string })?.role;
-    const isAgency = isAgencyUserRole(sessionRole);
-
-    if (!isAgency) {
-      throw new TRPCError({ 
-        code: "FORBIDDEN", 
-        message: "Only agency users can view media buying platforms." 
-      });
-    }
+    assertAgencyDashboardAccess((sessionUser as { role?: string })?.role);
 
     try {
       // Get Meta Ads accounts count
@@ -112,15 +175,7 @@ export const agencyDashboardRouter = router({
       throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in." });
     }
 
-    const sessionRole = (sessionUser as { role?: string })?.role;
-    const isAgency = isAgencyUserRole(sessionRole);
-
-    if (!isAgency) {
-      throw new TRPCError({ 
-        code: "FORBIDDEN", 
-        message: "Only agency users can view hosting subscriptions." 
-      });
-    }
+    assertAgencyDashboardAccess((sessionUser as { role?: string })?.role);
 
     try {
       // Fetch all subscriptions from Plesk using the same endpoint as the subscriptions router

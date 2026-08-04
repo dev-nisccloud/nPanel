@@ -4,7 +4,7 @@ Tags: woocommerce, mpesa, payments, kenya, nisc
 Requires at least: 6.4
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 0.1.8
+Stable tag: 0.1.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -64,6 +64,31 @@ Contact Nisc Cloud to get set up and receive your API key:
 3. Use **Connection test** (green/red card) to confirm gateway + M-Pesa token, then optionally **Test STK → webhook**.
 4. Enable the method and take orders.
 
+== External services ==
+
+This plugin connects to the **Nisc Cloud Payment Gateway** API to process M-Pesa STK Push payments, register webhooks, run connection health checks, and receive payment status updates. The service is required for the plugin to accept payments.
+
+Service endpoint (default): `https://npanel-server.nisccloud.com/api/nisc-gateway`
+
+What data is sent and when:
+
+* **Connect / disconnect (admin):** API key authentication; store webhook URL (`https://your-site/wp-json/nisc-gateway/v1/webhook`) when connecting; webhook clear request when disconnecting or deactivating.
+* **Connection / health checks (admin):** Unauthenticated health ping and authenticated connection test to confirm the gateway is reachable and credentials work. No customer order data is sent.
+* **Checkout payment (customer):** Amount, currency, M-Pesa phone number, order reference/id, order number, short order description, and site URL metadata when a customer pays with M-Pesa.
+* **Admin test STK:** Amount, currency, phone number, and test metadata when a store admin runs the built-in Test STK → webhook tool.
+* **Incoming webhooks:** Nisc Cloud posts signed payment status updates back to your WordPress site (payment id, status, M-Pesa receipt/transaction details as applicable).
+
+This service is provided by Nisc Cloud Limited:
+
+* Terms of Service: https://staging.nisccloud.com/terms
+* Privacy Policy: https://staging.nisccloud.com/privacy
+
+Note: These legal pages are currently published on our staging landing site (staging.nisccloud.com). The same pages will be available at nisccloud.com/terms and nisccloud.com/privacy once the production landing site cutover is complete.
+
+M-Pesa payments initiated through this gateway are completed via Safaricom's M-Pesa network. Safaricom receives payment instructions from Nisc Cloud (not directly from this plugin). See Safaricom's terms and privacy policy: https://www.safaricom.co.ke/terms and https://www.safaricom.co.ke/privacy-policy
+
+This plugin does not track users for analytics or advertising. Data is sent only to process payments and keep payment status in sync.
+
 == Installation ==
 
 1. Contact Nisc Cloud for access (+254748777666 or support@nisccloud.com), then install the plugin ZIP we provide.
@@ -113,6 +138,9 @@ Not in v1. M-Pesa STK Push only.
 5. WooCommerce payment settings showing Nisc Payment Gateway configuration
 
 == Changelog ==
+
+= 0.1.9 =
+* Documented Nisc Cloud Payment Gateway external service usage in readme (Guideline 6), including data sent and links to terms and privacy policy.
 
 = 0.1.8 =
 * Fixed WordPress.org plugin checker warnings: created languages folder and sanitized POST input.
