@@ -7,7 +7,7 @@ import { BsCloudCheck, BsCloudSlash } from "react-icons/bs";
 import { useMutationState } from "@tanstack/react-query";
 import debounce from "lodash.debounce";
 
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { EmailBuilderSaveStatus } from "./email-builder-loading";
 
 import { useUpdateEmailBuilderDesign } from "../_api/use-update-email-builder-design";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ interface EditorHeaderProps {
     design: {
         id: string;
         name: string;
+        saveStatus?: string;
+        lastSaveError?: string | null;
         // other props...
     };
 }
@@ -66,16 +68,35 @@ export const EditorHeader = ({ design }: EditorHeaderProps) => {
     };
 
     // Monitor global mutation state for this design to show 'Saving...'
-    const mutationState = useMutationState({
+    // Check both the legacy update mutation and new saveContent mutation
+    const updateMutationState = useMutationState({
         filters: {
             mutationKey: [["emailBuilder", "update"]],
         },
         select: (mutation) => mutation.state.status,
     });
+    
+    const saveContentMutationState = useMutationState({
+        filters: {
+            mutationKey: [["emailBuilder", "saveContent"]],
+        },
+        select: (mutation) => mutation.state.status,
+    });
 
-    const currentStatus = mutationState[mutationState.length - 1];
-    const isGlobalPending = currentStatus === "pending";
-    const isGlobalError = currentStatus === "error";
+    const currentUpdateStatus = updateMutationState[updateMutationState.length - 1];
+    const currentSaveContentStatus = saveContentMutationState[saveContentMutationState.length - 1];
+    
+    // Determine overall save status
+    // Priority: DB saveStatus > mutation state > default
+    const saveStatus = design.saveStatus || "SAVED";
+    const isGlobalPending = 
+        saveStatus === "SAVING" || 
+        currentUpdateStatus === "pending" || 
+        currentSaveContentStatus === "pending";
+    const isGlobalError = 
+        saveStatus === "SAVE_FAILED" || 
+        currentUpdateStatus === "error" || 
+        currentSaveContentStatus === "error";
 
     return (
         <div className="flex shrink-0 items-center justify-between gap-3 border-b bg-white px-4 py-3">
@@ -112,30 +133,12 @@ export const EditorHeader = ({ design }: EditorHeaderProps) => {
                     )}
                 </div>
 
-                {/* Save Status */}
-                <div className="ml-auto flex items-center">
-                    {isGlobalPending ? (
-                        <div className="flex items-center gap-x-2">
-                            <Spinner size={16} />
-                            <div className="text-xs text-muted-foreground">
-                                Saving...
-                            </div>
-                        </div>
-                    ) : isGlobalError ? (
-                        <div className="flex items-center gap-x-2">
-                            <BsCloudSlash className="size-[20px] text-muted-foreground" />
-                            <div className="text-xs text-muted-foreground">
-                                Failed to save
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-x-2">
-                            <BsCloudCheck className="size-[20px] text-muted-foreground" />
-                            <div className="text-xs text-muted-foreground">
-                                Saved
-                            </div>
-                        </div>
-                    )}
+                {/* Save Status - Network Resilient */}
+                <div className="ml-auto">
+                    <EmailBuilderSaveStatus 
+                        status={isGlobalPending ? "saving" : isGlobalError ? "failed" : "saved"}
+                        error={design.lastSaveError}
+                    />
                 </div>
             </div>
         </div>

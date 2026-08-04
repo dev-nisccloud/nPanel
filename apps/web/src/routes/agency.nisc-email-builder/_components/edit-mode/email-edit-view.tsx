@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 
 import { stripEditorArtifactsFromHtml } from "@npanel/api/lib/nisc-email-builder/html-sanitize-for-save";
+import { useSaveNebHtmlContent } from "../../_api/use-save-neb-html-content";
 
 import { EmailEditCanvas } from "./email-edit-canvas";
 import { EmailEditInspector } from "./email-edit-inspector";
@@ -103,7 +104,8 @@ export function EmailEditView({
 		return () => window.removeEventListener("beforeunload", onBeforeUnload);
 	}, [dirty]);
 
-	const saveMutation = trpc.niscEmailBuilder.design.saveHtml.useMutation();
+	const saveManualMutation = trpc.niscEmailBuilder.design.saveHtml.useMutation();
+	const saveAutoMutation = useSaveNebHtmlContent();
 
 	const scheduleAutoSaveRef = React.useRef<(html: string) => void>(() => {});
 
@@ -121,30 +123,43 @@ export function EmailEditView({
 			setSaveStatus("saving");
 			pendingHtmlRef.current = null;
 			try {
-				const data = await saveMutation.mutateAsync({
-					designId,
-					html,
-					inPlace,
-					changeSummary: inPlace ? "Auto-saved edits" : "Manual visual edits",
-				});
-				const persisted = data.htmlContent ?? html;
-				lastPersistedRef.current = htmlForSaveCompare(persisted);
-				const currentCapture = captureFromIframe();
-				if (currentCapture) {
-					lastSerializedRef.current = currentCapture;
-				}
+				if (inPlace) {
+					// Auto-save: Use immediate persistence (network resilient)
+					const data = await saveAutoMutation.mutateAsync({
+						designId,
+						html,
+					});
+					lastPersistedRef.current = htmlForSaveCompare(html);
+					const currentCapture = captureFromIframe();
+					if (currentCapture) {
+						lastSerializedRef.current = currentCapture;
+					}
+					setSaveStatus("saved");
+				} else {
+					// Manual save: Use full validation and versioning
+					const data = await saveManualMutation.mutateAsync({
+						designId,
+						html,
+						inPlace: false,
+						changeSummary: "Manual visual edits",
+					});
+					const persisted = data.htmlContent ?? html;
+					lastPersistedRef.current = htmlForSaveCompare(persisted);
+					const currentCapture = captureFromIframe();
+					if (currentCapture) {
+						lastSerializedRef.current = currentCapture;
+					}
 
-				utils.niscEmailBuilder.design.get.setData({ designId }, (prev) =>
-					prev
-						? {
-								...prev,
-								htmlContent: persisted,
-							}
-						: prev,
-				);
+					utils.niscEmailBuilder.design.get.setData({ designId }, (prev) =>
+						prev
+							? {
+									...prev,
+									htmlContent: persisted,
+								}
+							: prev,
+					);
 
-				setSaveStatus("saved");
-				if (!inPlace) {
+					setSaveStatus("saved");
 					applySnapshotToDraft(persisted);
 					markSaved(persisted);
 					setRemountKey((k) => k + 1);
@@ -170,11 +185,13 @@ export function EmailEditView({
 		},
 		[
 			designId,
-			saveMutation.mutateAsync,
+			saveManualMutation,
+			saveAutoMutation,
 			utils,
 			applySnapshotToDraft,
 			markSaved,
 			onSaved,
+			captureFromIframe,
 			lastSerializedRef,
 		],
 	);
@@ -333,10 +350,10 @@ export function EmailEditView({
 						<Button
 							type="button"
 							className={cn("flex-1 h-10 rounded-lg font-semibold gap-2")}
-							disabled={!dirty || saveMutation.isPending}
+							disabled={!dirty || saveManualMutation.isPending}
 							onClick={handleSave}
 						>
-							{saveMutation.isPending && !saveMutation.variables?.inPlace ? (
+							{saveManualMutation.isPending ? (
 								<NebSpinner context="button" size={14} />
 							) : (
 								<Save className="size-4" />

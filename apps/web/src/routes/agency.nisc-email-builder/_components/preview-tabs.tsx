@@ -22,7 +22,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 import { ChatRevisionOverlay } from "./chat-revision-overlay";
-import { NebRotatingPhrase, NebSpinner } from "./neb-loading";
+import { NebRotatingPhrase, NebSpinner, useBuildTimeEstimate } from "./neb-loading";
 import { buildNoScrollSrcDoc } from "./edit-mode/email-edit-canvas";
 import { EmailEditView } from "./edit-mode/email-edit-view";
 
@@ -155,6 +155,8 @@ function BuildingLoader({
 		? "Generating and uploading your image assets…"
 		: null;
 
+	const { estimate } = useBuildTimeEstimate(true);
+
 	const steps: BuildStep[] = [
 		{
 			label: "Design concept ready",
@@ -226,6 +228,9 @@ function BuildingLoader({
 					{isHydratingImages
 						? "Generating and placing your image assets."
 						: "Building your production-ready email from your brief and brand."}
+				</p>
+				<p className="text-xs font-medium text-primary mt-1">
+					Estimated time: about {estimate} {estimate === 1 ? "minute" : "minutes"}
 				</p>
 			</div>
 		</div>

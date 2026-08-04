@@ -88,6 +88,7 @@ export interface NiscEmDispatchJobResult {
 	scheduledFor?: number;
 }
 
+
 /**
  * QStash job payload for Zeepo Canvas generation (immediate, no schedule)
  */

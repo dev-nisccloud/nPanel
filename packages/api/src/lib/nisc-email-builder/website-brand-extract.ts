@@ -83,6 +83,12 @@ export type WebsiteBrandEnrichment = {
 	/** Full block for creative director / planner prompts. */
 	webContext: string | null;
 	warnings: string[];
+	/** Confidence scores for color detection (0-1) */
+	colorConfidence?: {
+		primary: number;
+		accent: number;
+		secondary: number;
+	};
 };
 
 export function paletteToColorArray(palette: BrandPalette): string[] {
@@ -495,6 +501,84 @@ function resolveBrandPalette(
 	return { palette, sources };
 }
 
+type ColorWithSourceLegacy = {
+	hex: string;
+	rgb: [number, number, number];
+	priority: number;
+	source: string;
+	context: "css" | "meta" | "visual" | "logo";
+};
+
+function hexToRgb(hex: string): [number, number, number] {
+	const h = hex.replace("#", "");
+	return [
+		parseInt(h.slice(0, 2), 16),
+		parseInt(h.slice(2, 4), 16),
+		parseInt(h.slice(4, 6), 16),
+	];
+}
+
+async function enhancedBrandColorExtraction(params: {
+	logoUrl: string | null;
+	cssColors: ColorCandidate[];
+	html: string;
+}): Promise<{ palette: BrandPalette; sources: string[]; confidence: { primary: number; accent: number; secondary: number } }> {
+	try {
+		// Convert CSS colors to new format
+		const cssColorsConverted: ColorWithSourceLegacy[] = params.cssColors.map(c => ({
+			hex: c.hex,
+			rgb: hexToRgb(c.hex),
+			priority: c.priority,
+			source: c.source,
+			context: "css" as const,
+		}));
+
+		// Add meta theme color with high priority
+		const themeColor = extractMetaContent(params.html, "theme-color");
+		if (themeColor) {
+			const normalized = normalizeHexColor(themeColor);
+			if (normalized && !isBoringColor(normalized)) {
+				cssColorsConverted.push({
+					hex: normalized,
+					rgb: hexToRgb(normalized),
+					priority: 95,
+					source: "meta theme-color",
+					context: "meta" as const,
+				});
+			}
+		}
+
+		// Import enhanced extractor
+		const { extractBrandColors } = await import("./brand-color-extractor");
+
+		// Extract with logo analysis
+		const enhanced = await extractBrandColors({
+			logoUrl: params.logoUrl ?? undefined,
+			cssColors: cssColorsConverted,
+		});
+
+		const sources = [
+			enhanced.primary ? `primary: ${enhanced.sources.primary}` : null,
+			enhanced.accent ? `accent: ${enhanced.sources.accent}` : null,
+			enhanced.secondary ? `secondary: ${enhanced.sources.secondary}` : null,
+		].filter((s): s is string => s !== null);
+
+		return {
+			palette: {
+				primary: enhanced.primary,
+				accent: enhanced.accent,
+				secondary: enhanced.secondary,
+			},
+			sources,
+			confidence: enhanced.confidence,
+		};
+	} catch (error) {
+		console.warn("[brand-extract] Enhanced extraction failed, using fallback:", error);
+		// Return null to trigger fallback to original logic
+		throw error;
+	}
+}
+
 export function cleanSiteName(raw: string | null | undefined, hostname: string): string {
 	const fromHost = () => {
 		const base = hostname.replace(/^www\./i, "").split(".")[0] ?? hostname;
@@ -895,8 +979,42 @@ export async function enrichWebsiteBrand(
 	]);
 
 	const { logo } = logoResult;
-	const { palette, colors, sources } = colorResult;
 	const companyContext = formatCompanyContextForUi(research.sections);
+
+	// Try enhanced color extraction with logo analysis
+	let palette: BrandPalette;
+	let colors: string[];
+	let sources: string[];
+	let colorConfidence: { primary: number; accent: number; secondary: number } | undefined;
+
+	try {
+		const enhanced = await enhancedBrandColorExtraction({
+			logoUrl: logo?.url ?? null,
+			cssColors: collectDistinctFallbackColors(
+				buildCssVariableMap(await gatherPageCss(html, pageUrl)),
+				await gatherPageCss(html, pageUrl),
+				html,
+			),
+			html,
+		});
+
+		palette = enhanced.palette;
+		colors = paletteToColorArray(palette);
+		sources = enhanced.sources;
+		colorConfidence = enhanced.confidence;
+
+		console.log("[brand-extract] Enhanced extraction success:", {
+			primary: `${palette.primary} (${Math.round(colorConfidence.primary * 100)}%)`,
+			accent: `${palette.accent} (${Math.round(colorConfidence.accent * 100)}%)`,
+			secondary: `${palette.secondary} (${Math.round(colorConfidence.secondary * 100)}%)`,
+		});
+	} catch (error) {
+		console.warn("[brand-extract] Using fallback color extraction");
+		const fallback = colorResult;
+		palette = fallback.palette;
+		colors = fallback.colors;
+		sources = fallback.sources;
+	}
 
 	if (!logo) warnings.push("No logo found - try uploading one in brand kit later.");
 	const missingRoles = BRAND_ROLES.filter((r) => !palette[r]);
@@ -925,6 +1043,7 @@ export async function enrichWebsiteBrand(
 		webSearchFound: research.found && Boolean(companyContext),
 		webContext: null,
 		warnings,
+		colorConfidence,
 	};
 
 	enrichment.webContext = buildBrandAgentContext(
