@@ -69,7 +69,7 @@ export default function CaseStudyDetailPage() {
               </div>
             </motion.header>
 
-            {/* Results — content first */}
+            {/* Results  content first */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
               {study.results.map((r) => (
                 <div
@@ -151,7 +151,7 @@ export default function CaseStudyDetailPage() {
           </aside>
         </div>
 
-        {/* Related — compact rows with small thumbs */}
+        {/* Related  compact rows with small thumbs */}
         {related.length > 0 && (
           <section className="mt-12">
             <div className="flex items-center justify-between mb-3">

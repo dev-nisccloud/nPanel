@@ -43,7 +43,7 @@ export function isLocalDevOrigin(origin: string): boolean {
 
 /**
  * Configured landing-page origins: built-in defaults plus any from env.
- * Does not include local-dev wildcards — use {@link isLandingPageOrigin} for that.
+ * Does not include local-dev wildcards  use {@link isLandingPageOrigin} for that.
  */
 export function resolveLandingPageOrigins(): string[] {
   const origins = new Set<string>(DEFAULT_LANDING_PAGE_ORIGINS);
@@ -67,7 +67,7 @@ export function isLandingPageOrigin(origin: string | null | undefined): boolean 
 /**
  * Origin from x-forwarded-* when the marketing site reverse-proxies `/api`
  * (Vercel rewrite or Bun www-server). Same-origin GETs often omit Origin;
- * Referer may also be stripped — the proxy still records the browser host.
+ * Referer may also be stripped  the proxy still records the browser host.
  */
 function originFromForwardedHost(headers: Headers): string | null {
   const fwdHost =
@@ -144,7 +144,7 @@ export function parseSafeLandingPageRedirect(
  * - `Origin`
  * - `Referer` origin
  * - `x-forwarded-host` from the marketing-site `/api` reverse proxy
- *   (Vercel rewrite or Bun www-server) — used when Origin is omitted or
+ *   (Vercel rewrite or Bun www-server)  used when Origin is omitted or
  *   rewritten to the API host
  *
  * When Origin and Referer are both absent, allow (same-site GETs often omit

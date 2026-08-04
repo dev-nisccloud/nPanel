@@ -48,7 +48,7 @@ export function storeGuestSupportToken(token: string | undefined | null) {
   try {
     sessionStorage.setItem(GUEST_TOKEN_STORAGE_KEY, token);
   } catch {
-    // private mode / blocked storage — cookie path may still work
+    // private mode / blocked storage  cookie path may still work
   }
 }
 

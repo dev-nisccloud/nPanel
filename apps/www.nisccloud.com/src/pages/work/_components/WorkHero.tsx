@@ -18,7 +18,7 @@ export default function WorkHero() {
           transition={{ duration: 0.45, delay: 0.08 }}
           className="text-base text-muted-foreground max-w-2xl leading-relaxed"
         >
-          How we help businesses get online, stay online, and grow — with hosting and marketing under one team.
+          How we help businesses get online, stay online, and grow  with hosting and marketing under one team.
         </motion.p>
       </div>
     </section>

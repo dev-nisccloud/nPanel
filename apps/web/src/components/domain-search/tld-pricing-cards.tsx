@@ -198,7 +198,7 @@ export function TldPricingCards({ currencyContext, className }: TldPricingCardsP
 		return () => {
 			cancelled = true;
 		};
-		// Intentionally omit kenicMutation / utils — stable enough; re-run when pricing readiness changes.
+		// Intentionally omit kenicMutation / utils  stable enough; re-run when pricing readiness changes.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isLoadingTldSettings, pricingReady, displayCurrency, toDisplay]);
 

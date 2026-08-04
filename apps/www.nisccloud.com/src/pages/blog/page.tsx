@@ -51,7 +51,7 @@ export default function BlogPage() {
             Insights That <span className="text-primary">Move the Needle</span>
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl leading-relaxed">
-            Practical guides on branding, SEO, hosting, AI automation, and digital growth — written for Kenyan businesses.
+            Practical guides on branding, SEO, hosting, AI automation, and digital growth  written for Kenyan businesses.
           </p>
         </motion.div>
 
@@ -84,7 +84,7 @@ export default function BlogPage() {
           </div>
         </div>
 
-        {/* Featured — editorial rows */}
+        {/* Featured  editorial rows */}
         {featured.length > 0 && (
           <div className="mb-6 space-y-3">
             {featured.map((post, i) => (
@@ -122,7 +122,7 @@ export default function BlogPage() {
           </div>
         )}
 
-        {/* Rest — dense 2-col grid */}
+        {/* Rest  dense 2-col grid */}
         {rest.length > 0 && (
           <div className="grid sm:grid-cols-2 gap-3">
             {rest.map((post, i) => (

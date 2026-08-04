@@ -79,7 +79,7 @@ function shouldMountApi(role: NpanelServiceRole): boolean {
 
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 
-/** Expected client/business errors — do not send these to Sentry. */
+/** Expected client/business errors  do not send these to Sentry. */
 const EXPECTED_TRPC_CODES = new Set([
   "UNAUTHORIZED",
   "FORBIDDEN",
@@ -122,7 +122,7 @@ export function createApp(options: CreateAppOptions = {}) {
       dsn: "https://0df60016827daed71bd983b0321e7642@o4511794820415488.ingest.us.sentry.io/4511845991972864",
       environment: process.env.NODE_ENV ?? "development",
       enableLogs: !isProd,
-      // Identity only — does NOT send API request/response bodies
+      // Identity only  does NOT send API request/response bodies
       sendDefaultPii: false,
       dataCollection: {
         userInfo: true,

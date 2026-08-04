@@ -293,7 +293,7 @@ export default function BlogPostPage() {
             </article>
           </div>
 
-          {/* Sticky side rail — sticks while scrolling the article */}
+          {/* Sticky side rail  sticks while scrolling the article */}
           <aside className="hidden lg:block sticky top-28 self-start space-y-8">
             <TableOfContents headings={headings} activeId={activeId} />
 
