@@ -42,6 +42,8 @@ const METRIC_CARD_LINKS = [
 	{ label: "Transactions", href: "/agency/payment-transactions" },
 	{ label: "Media Buying", href: "/agency/ad-campaigns" },
 	{ label: "Hosting", href: "/agency/hosting" },
+	{ label: "Clients", href: "/agency/clients" },
+	{ label: "Agency users", href: "/agency/manage-users" },
 	{ label: "Balance", href: "#" },
 ] as const;
 
@@ -68,7 +70,7 @@ function MetricCardExternalLink({ href, label }: { href: string; label: string }
 			href={href}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+			className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
 		>
 			{label}
 			<ArrowUpRight className="h-3.5 w-3.5" />
@@ -165,6 +167,13 @@ export function MetricCards() {
 	const { data: hostingSubscriptions, isLoading: isHostingLoading, isError: isHostingError } =
 		trpc.agencyDashboard.getHostingSubscriptions.useQuery(undefined, REALTIME_QUERY_OPTIONS);
 
+	// Customer / agency account counts
+	const {
+		data: accountCounts,
+		isLoading: isAccountsLoading,
+		isError: isAccountsError,
+	} = trpc.agencyDashboard.getAccountCounts.useQuery(undefined, REALTIME_QUERY_OPTIONS);
+
 	// Transactions
 	const { data: transactionsSummary, isLoading: isTransactionsLoading, isError: isTransactionsError } =
 		trpc.paymentTransactions.getSummary.useQuery(undefined, REALTIME_QUERY_OPTIONS);
@@ -183,6 +192,7 @@ export function MetricCards() {
 		isBalanceLoading ||
 		isMediaBuyingLoading ||
 		isHostingLoading ||
+		isAccountsLoading ||
 		isTransactionsLoading ||
 		isOrdersLoading;
 
@@ -261,6 +271,14 @@ export function MetricCards() {
 	const hostingTotal = isHostingError ? "N/A" : (hostingSubscriptions?.total ?? 0);
 	const hostingActive = isHostingError ? "N/A" : (hostingSubscriptions?.active ?? 0);
 	const hostingSuspended = isHostingError ? "N/A" : (hostingSubscriptions?.suspended ?? 0);
+
+	// Accounts
+	const customerAccounts = isAccountsError ? "N/A" : (accountCounts?.customers.total ?? 0);
+	const customerActive = isAccountsError ? "N/A" : (accountCounts?.customers.active ?? 0);
+	const customerInactive = isAccountsError ? "N/A" : (accountCounts?.customers.inactive ?? 0);
+	const agencyAccounts = isAccountsError ? "N/A" : (accountCounts?.agency.total ?? 0);
+	const agencyActive = isAccountsError ? "N/A" : (accountCounts?.agency.active ?? 0);
+	const agencyInactive = isAccountsError ? "N/A" : (accountCounts?.agency.inactive ?? 0);
 
 	// Orders
 	const ordersTotal = isOrdersError ? "N/A" : (ordersSummary?.total ?? 0);
@@ -600,9 +618,9 @@ export function MetricCards() {
 					</div>
 				)}
 				<CardHeader className="gap-4">
-					<div className="space-y-1.5">
+					<div className="space-y-1">
 						<CardDescription>OP Balance</CardDescription>
-						<CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+						<CardTitle className="text-xl font-semibold tabular-nums">
 							{balance}
 						</CardTitle>
 						<div className="pt-0.5">
@@ -612,11 +630,11 @@ export function MetricCards() {
 							/>
 						</div>
 					</div>
-					<div className="space-y-1.5">
+					<div className="space-y-1">
 						<CardDescription>KC Balance</CardDescription>
 						<p
 							className={cn(
-								"text-2xl font-semibold tabular-nums @[250px]/card:text-3xl",
+								"text-xl font-semibold tabular-nums leading-none",
 								(isKenicBalanceLoading || kcBalanceUnavailable) &&
 									"text-muted-foreground",
 							)}
@@ -725,6 +743,72 @@ export function MetricCards() {
 						<MetricCardLink {...METRIC_CARD_LINKS[8]} />
 					</div>
 				</CardFooter>
+			</Card>
+
+			{/* 11. Customer Accounts + Agency Accounts */}
+			<Card className="@container/card relative">
+				{isAccountsError && (
+					<div className="absolute top-2 right-2">
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<AlertCircle className="h-4 w-4 text-destructive animate-pulse cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Failed to load account counts.</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				)}
+				<CardHeader className="gap-4">
+					<div className="space-y-1">
+						<CardDescription>Customer Accounts</CardDescription>
+						<CardTitle className="text-xl font-semibold tabular-nums">
+							{customerAccounts}
+						</CardTitle>
+						<DashboardMetricStats
+							items={[
+								{
+									label: "Active",
+									value: customerActive,
+									variant: isAccountsError ? "muted" : "positive",
+								},
+								{
+									label: "Inactive",
+									value: customerInactive,
+									variant: isAccountsError ? "muted" : "negative",
+								},
+							]}
+						/>
+						<div className="pt-0.5 text-sm">
+							<MetricCardLink {...METRIC_CARD_LINKS[9]} />
+						</div>
+					</div>
+					<div className="space-y-1">
+						<CardDescription>Agency Accounts</CardDescription>
+						<p className="text-xl font-semibold tabular-nums leading-none">
+							{agencyAccounts}
+						</p>
+						<DashboardMetricStats
+							items={[
+								{
+									label: "Active",
+									value: agencyActive,
+									variant: isAccountsError ? "muted" : "positive",
+								},
+								{
+									label: "Inactive",
+									value: agencyInactive,
+									variant: isAccountsError ? "muted" : "negative",
+								},
+							]}
+						/>
+						<div className="pt-0.5 text-sm">
+							<MetricCardLink {...METRIC_CARD_LINKS[10]} />
+						</div>
+					</div>
+				</CardHeader>
 			</Card>
 		</div>
 	);

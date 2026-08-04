@@ -13,5 +13,5 @@ return array(
 		'wp-html-entities',
 		'wp-i18n',
 	),
-	'version'      => '0.1.8',
+	'version'      => '0.1.9',
 );

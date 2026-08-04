@@ -1,5 +1,9 @@
 import type { ObjectStorageUploadResult } from "@/lib/object-storage-client";
 
+/** Matches server CUSTOMER_UPLOAD_LIMITS for zeepo-agent (and UploadThing legacy cap). */
+export const ZEEPO_AGENT_MAX_ATTACHMENT_BYTES = 16 * 1024 * 1024;
+export const ZEEPO_AGENT_MAX_ATTACHMENTS = 4;
+
 const IMAGE_MIME_BY_EXT: Record<string, string> = {
 	jpg: "image/jpeg",
 	jpeg: "image/jpeg",
@@ -22,6 +26,31 @@ export function normalizeImageFilesForUpload(files: File[]): File[] {
 		if (!resolved) return file;
 		return new File([file], file.name, { type: resolved, lastModified: file.lastModified });
 	});
+}
+
+/** Drop oversized files and return a user-facing reason when any were rejected. */
+export function filterZeepoAgentAttachmentFiles(files: File[]): {
+	accepted: File[];
+	rejectedMessage?: string;
+} {
+	const accepted: File[] = [];
+	const oversized: string[] = [];
+	for (const file of files) {
+		if (file.size > ZEEPO_AGENT_MAX_ATTACHMENT_BYTES) {
+			oversized.push(file.name);
+			continue;
+		}
+		accepted.push(file);
+	}
+	if (oversized.length === 0) return { accepted };
+	const label = `${Math.round(ZEEPO_AGENT_MAX_ATTACHMENT_BYTES / (1024 * 1024))}MB`;
+	return {
+		accepted,
+		rejectedMessage:
+			oversized.length === 1
+				? `"${oversized[0]}" exceeds the ${label} attachment limit.`
+				: `${oversized.length} file(s) exceed the ${label} attachment limit.`,
+	};
 }
 
 export function uploadErrorMessage(error: unknown): string {
