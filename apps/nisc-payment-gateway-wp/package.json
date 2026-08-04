@@ -1,6 +1,6 @@
 {
   "name": "nisc-payment-gateway-wp",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "description": "Nisc Payment Gateway for WooCommerce"
 }

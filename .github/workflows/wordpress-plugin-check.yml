@@ -20,7 +20,9 @@ jobs:
         run: |
           # Plugin Check expects a clean plugin tree (what merchants install),
           # not monorepo tooling (package.json, scripts, dist).
-          mkdir -p /tmp/nisc-payment-gateway
+          # Directory name + slug must match Text Domain / wordpress.org permalink.
+          PLUGIN_SLUG=nisc-payment-gateway-for-woocommerce
+          mkdir -p "/tmp/${PLUGIN_SLUG}"
           rsync -a \
             --exclude 'dist/' \
             --exclude 'scripts/' \
@@ -28,13 +30,13 @@ jobs:
             --exclude 'package.json' \
             --exclude '.gitignore' \
             apps/nisc-payment-gateway-wp/ \
-            /tmp/nisc-payment-gateway/
+            "/tmp/${PLUGIN_SLUG}/"
 
       - name: Run WordPress Plugin Check
         uses: wordpress/plugin-check-action@v1
         with:
-          build-dir: /tmp/nisc-payment-gateway
-          slug: nisc-payment-gateway
+          build-dir: /tmp/nisc-payment-gateway-for-woocommerce
+          slug: nisc-payment-gateway-for-woocommerce
           # Repo-facing checks matter most for wordpress.org readiness.
           # Drop categories later if you want a narrower gate.
           categories: |

@@ -41,8 +41,6 @@ export const env = createEnv({
     /** Public worker URLs for SEO Suite QStash jobs (optional; inline fallback when unset) */
     QSTASH_SEO_SUITE_RANK_WORKER_ENDPOINT: z.string().url().optional(),
     QSTASH_SEO_SUITE_AUDIT_WORKER_ENDPOINT: z.string().url().optional(),
-    QSTASH_EMAIL_BUILDER_AI_WORKER_ENDPOINT: z.string().url().optional(),
-    REPLICATE_EMAIL_BUILDER_AI_WEBHOOK_URL: z.string().url().optional(),
     /** Nisc Email Builder (neb) - standalone AI HTML builder */
     QSTASH_NISC_EMAIL_BUILDER_WORKER_ENDPOINT: z.string().url().optional(),
     QSTASH_META_ADS_ANALYSIS_WORKER_ENDPOINT: z.string().url(),

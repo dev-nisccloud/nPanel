@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/hooks/use-confirm";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { EmailBuilderPageLoader, EmailBuilderSpinner, EmailBuilderListSkeleton } from "./email-builder-loading";
 
 export const ProjectsSection = () => {
     const [ConfirmDialog, confirm] = useConfirm(
@@ -85,9 +85,7 @@ export const ProjectsSection = () => {
                 <h3 className="font-semibold text-lg">
                     Recent designs
                 </h3>
-                <div className="flex flex-col gap-y-4 items-center justify-center h-32">
-                    <Spinner size={32} />
-                </div>
+                <EmailBuilderListSkeleton count={5} />
             </div>
         )
     }
@@ -183,7 +181,7 @@ export const ProjectsSection = () => {
                                             <TableCell className="flex items-center justify-end py-4">
                                                 {isLoading ? (
                                                     <div className="flex items-center justify-center w-8 h-8">
-                                                        <Spinner size={16} />
+                                                        <EmailBuilderSpinner context="table" size={16} />
                                                     </div>
                                                 ) : (
                                                     <DropdownMenu modal={false}>

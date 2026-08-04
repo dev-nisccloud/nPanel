@@ -92,6 +92,39 @@ export function NebRotatingPhrase({
 	);
 }
 
+/**
+ * Hook for dynamic time estimate that increments after initial period
+ * Starts at 3 minutes, adds 1 minute every time the initial estimate is exceeded
+ */
+export function useBuildTimeEstimate(enabled = true) {
+	const [estimate, setEstimate] = React.useState(3);
+	const [elapsed, setElapsed] = React.useState(0);
+
+	React.useEffect(() => {
+		if (!enabled) {
+			setEstimate(3);
+			setElapsed(0);
+			return;
+		}
+
+		// Track elapsed time in minutes
+		const interval = window.setInterval(() => {
+			setElapsed((prev) => {
+				const newElapsed = prev + 1;
+				// If we've passed the current estimate, add 1 more minute
+				if (newElapsed >= estimate) {
+					setEstimate((e) => e + 1);
+				}
+				return newElapsed;
+			});
+		}, 60_000); // Every minute
+
+		return () => window.clearInterval(interval);
+	}, [enabled, estimate]);
+
+	return { estimate, elapsed };
+}
+
 type ChatBootstrapPanelProps = {
 	isHydratingImages?: boolean;
 };
@@ -109,6 +142,8 @@ export function ChatBootstrapPanel({ isHydratingImages }: ChatBootstrapPanelProp
 		? (["Generating and uploading your image assets…"] as const)
 		: CHAT_BOOTSTRAP_PHRASES;
 
+	const { estimate } = useBuildTimeEstimate(true);
+
 	return (
 		<div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center bg-muted/20">
 			<div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -123,6 +158,9 @@ export function ChatBootstrapPanel({ isHydratingImages }: ChatBootstrapPanelProp
 					{isHydratingImages
 						? "Image slots are being filled - this usually takes a few minutes."
 						: "Your conversation will appear here in a moment. The preview panel shows build progress."}
+				</p>
+				<p className="text-xs font-medium text-primary mt-1">
+					Estimated time: about {estimate} {estimate === 1 ? "minute" : "minutes"}
 				</p>
 			</div>
 		</div>
