@@ -15,21 +15,21 @@ const slides: CarouselSlide[] = [
     subheading: "CREATE",
     description:
       "A brand people remember, trust, and choose built in days, not months. Logo, website, copy, and identity, all done for you.",
-    imageSrc: "/create.png",
+    imageSrc: "/auth/design.png",
   },
   {
     title: "Launch Online",
     subheading: "LAUNCH",
     description:
       "Fast, secure, always-on hosting with a domain and business email that screams credibility. Your customers check you out at midnight  we make sure you're ready.",
-    imageSrc: "/launch.png",
+    imageSrc: "/auth/launch-online.png",
   },
   {
     title: "Grow Your Business",
     subheading: "GROW",
     description:
       "SEO, ads, and AI automation dialled in to bring real paying customers through your door and follow up on every lead, 24/7, while you focus on your work.",
-    imageSrc: "/grow.png",
+    imageSrc: "/auth/get-more-customers.png",
   },
 ];
 
