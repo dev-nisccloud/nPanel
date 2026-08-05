@@ -135,8 +135,8 @@ export const storefrontPaymentRouter = router({
       }
 
       const planLabel = quote.planName || "Storefront checkout";
-      const planId = input.cart.main.planId;
-      const billingCycle = input.cart.main.billingCycle;
+      const planId = resolved.main.planId;
+      const billingCycle = resolved.main.billingCycle;
       const now = new Date();
       const mpesa = createMpesaClientFromEnv();
       const accountRef = `NISC${Date.now().toString().slice(-8)}`;
