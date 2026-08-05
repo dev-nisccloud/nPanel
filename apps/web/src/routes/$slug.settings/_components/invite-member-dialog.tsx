@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import posthog from "posthog-js";
 import { trpc } from "@/utils/trpc";
 
 const inviteFormSchema = z.object({
@@ -64,6 +65,12 @@ export function InviteMemberDialog({
 
   const inviteMemberMutation = trpc.teams.inviteMember.useMutation({
     onSuccess: () => {
+      if (
+        import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN &&
+        import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+      ) {
+        posthog.capture("team_member_invited", { role: form.getValues("role") });
+      }
       toast.success("Invitation sent successfully");
       form.reset({
         email: "",

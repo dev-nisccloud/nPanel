@@ -1,6 +1,7 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import * as Sentry from "@sentry/react-router";
+import posthog from "posthog-js";
 
 import "./index.css";
 import {
@@ -27,9 +28,46 @@ import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 import type { ThemeMode, ThemePreset } from "@/types/preferences/theme";
+import { authClient } from "@/lib/auth-client";
 
 const DEFAULT_THEME_MODE: ThemeMode = "light";
 const DEFAULT_THEME_PRESET: ThemePreset = "twitter";
+
+let identifiedUserId: string | null;
+
+function PostHogIdentitySync() {
+  const { data: session, isPending } = authClient.useSession();
+
+  useEffect(() => {
+    if (
+      isPending ||
+      !import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+      !import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+    ) {
+      return;
+    }
+
+    const user = session?.user;
+    const userId = user?.id;
+
+    if (!userId) {
+      if (identifiedUserId) posthog.reset();
+      identifiedUserId = null;
+      return;
+    }
+
+    if (identifiedUserId === userId) return;
+
+    if (identifiedUserId) posthog.reset();
+    posthog.identify(userId, {
+      ...(user.email ? { email: user.email } : {}),
+      ...(user.name ? { name: user.name } : {}),
+    });
+    identifiedUserId = userId;
+  }, [isPending, session]);
+
+  return null;
+}
 
 export const meta: Route.MetaFunction = () => [
   { title: APP_CONFIG.meta.title },
@@ -91,6 +129,7 @@ export default function App() {
   return (
     <NuqsAdapter>
       <QueryProvider>
+        <PostHogIdentitySync />
         <SessionLifetimeGuard />
         <ThemeProvider
           attribute="class"

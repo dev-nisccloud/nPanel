@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
+import posthog from "posthog-js";
 import { trpc } from "@/utils/trpc";
 
 type CreateTeamInput = {
@@ -38,6 +39,17 @@ export function CreateTeamForm() {
 
   const createTeamMutation = trpc.teams.create.useMutation({
     onSuccess: (data) => {
+      if (
+        import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN &&
+        import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+      ) {
+        posthog.capture("organization_created", {
+          base_currency: formData.currency,
+          invited_member_count: formData.inviteMembers.trim()
+            ? formData.inviteMembers.split(/[,;\n]/).filter((email) => email.trim()).length
+            : 0,
+        });
+      }
       toast.success("Organization created successfully!");
       const teamSlug = data.team.slug;
       const destination = data.isFirstTeam

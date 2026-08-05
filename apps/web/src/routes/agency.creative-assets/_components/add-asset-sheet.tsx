@@ -24,6 +24,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import posthog from "posthog-js";
 import { trpc } from "@/utils/trpc";
 
 const FormSchema = z.object({
@@ -88,6 +89,15 @@ export function AddAssetSheet({ open, onOpenChange, onAddAsset }: AddAssetSheetP
   // Create asset mutation
   const createAssetMutation = trpc.creativeAssets.create.useMutation({
     onSuccess: () => {
+      if (
+        import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN &&
+        import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+      ) {
+        posthog.capture("creative_asset_created", {
+          category: form.getValues("category") || "uncategorized",
+          status: form.getValues("status"),
+        });
+      }
       toast.success("Creative asset created successfully!");
       form.reset();
       onOpenChange(false);
