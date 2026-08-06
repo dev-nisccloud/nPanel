@@ -2,6 +2,7 @@ import { Outlet, isRouteErrorResponse } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import { APP_CONFIG } from "@/config/app-config";
 import { AuthRightPanelCarousel } from "@/routes/auth/_components/auth-right-panel-carousel";
 
 export default function Layout() {
@@ -11,8 +12,19 @@ export default function Layout() {
         <div className="relative order-2 hidden h-full overflow-hidden rounded-3xl lg:flex">
           <AuthRightPanelCarousel />
         </div>
-        <div className="relative order-1 flex h-full">
-          <Outlet />
+        <div className="relative order-1 flex h-full flex-col">
+          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-16 pt-6">
+            <div className="flex w-full flex-col items-center gap-6">
+              <img
+                src="/nisclogooriginal.png"
+                alt={`${APP_CONFIG.name} Logo`}
+                width={180}
+                height={60}
+                className="h-15 w-auto max-w-full shrink-0"
+              />
+              <Outlet />
+            </div>
+          </div>
         </div>
       </div>
     </main>
