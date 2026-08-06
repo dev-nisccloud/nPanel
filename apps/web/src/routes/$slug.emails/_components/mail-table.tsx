@@ -48,6 +48,7 @@ import { MailCardsList } from "./mail-cards";
 import { emailAccountSchema } from "./emails-schema";
 import { useEmailsBySiteId } from "./use-emails-by-site-id";
 import { AddMailAddressSheet } from "./add-mail-address-sheet";
+import { captureEvent } from "@/lib/posthog";
 
 interface MailTableProps {
   siteId: number;
@@ -184,6 +185,8 @@ export function MailTable({ siteId, domainName }: MailTableProps) {
 
   const deleteEmailAccount = trpc.plesk.emailsDelete.delete.useMutation({
     onSuccess: () => {
+      captureEvent("email_address_deleted", { domain: domainName || "unknown" });
+
       toast.success("Email account deleted successfully!");
       setDeleteDialogOpen(false);
       setMailToDelete(null);

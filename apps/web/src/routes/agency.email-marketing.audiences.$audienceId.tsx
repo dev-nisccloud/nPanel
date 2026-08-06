@@ -40,6 +40,7 @@ import {
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { captureEvent } from "@/lib/posthog";
 
 type AudienceContactList = RouterOutputs["emailMarketing"]["audiences"]["listContacts"];
 
@@ -121,6 +122,10 @@ export default function AudienceDetailPage() {
 
 	const addContactsBulkMutation = trpc.emailMarketing.audiences.addContactsBulk.useMutation({
 		onSuccess: async (result) => {
+			captureEvent("email_audience_contact_added");
+			captureEvent("email_audience_updated", {
+				size_delta: result.added ?? 0,
+			});
 			await Promise.all([refetchContacts(), refetchAudience()]);
 			toast.success("Contacts added", {
 				description: `Successfully added ${result.added} contact(s) to this audience.`,
@@ -135,6 +140,10 @@ export default function AudienceDetailPage() {
 
 	const deleteContactMutation = trpc.emailMarketing.audiences.deleteContact.useMutation({
 		onSuccess: async () => {
+			captureEvent("email_audience_contact_removed");
+			captureEvent("email_audience_updated", {
+				size_delta: -1,
+			});
 			await Promise.all([refetchContacts(), refetchAudience()]);
 			toast.success("Contact deleted");
 		},

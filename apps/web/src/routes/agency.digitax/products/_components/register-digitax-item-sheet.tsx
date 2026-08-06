@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -107,6 +109,7 @@ export function RegisterDigitaxItemSheet({
 
   const createItem = trpc.digitax.items.create.useMutation({
     onSuccess: () => {
+      captureEvent("digitax_product_registered");
       toast.success("Product registered in eTIMS system");
       onOpenChange(false);
       onSuccess?.();

@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const maintenanceSchema = z.object({
     fullMode: z.boolean().default(true),
@@ -91,7 +92,9 @@ export function MaintenanceModeDialog({
     }, [settings, form]);
 
     const updateMutation = trpc.plesk.wpFeatures.updateMaintenanceSettings.useMutation({
-        onSuccess: () => {
+        onSuccess: () => {      const enabled = Boolean(form.getValues("fullMode") ?? form.getValues("status"));
+      captureEvent(enabled ? "wordpress_maintenance_enabled" : "wordpress_maintenance_disabled");
+
             toast.success("Maintenance settings updated");
             onOpenChange(false);
             utils.plesk.wpFeatures.getMaintenanceSettings.invalidate({ installationId });

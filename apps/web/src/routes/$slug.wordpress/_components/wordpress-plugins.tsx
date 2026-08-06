@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { useWordPressPlugins, type WordPressPlugin } from "./use-wordpress-plugins";
+import { captureEvent } from "@/lib/posthog";
 
 interface WordPressPluginsProps {
   installationId: string;
@@ -153,6 +154,10 @@ function PluginCard({
   // tRPC mutation for updating plugin status
   const updatePluginStatus = trpc.plesk.wpPluginsStatus.setStatus.useMutation({
     onSuccess: () => {
+      captureEvent(plugin.status ? "wordpress_plugin_deactivated" : "wordpress_plugin_activated", {
+      plugin_name: plugin.title || plugin.slug || "unknown",
+    });
+
       toast.success(`Plugin ${plugin.status ? 'deactivated' : 'activated'} successfully!`);
       // Refetch data to update the UI
       onRefetch?.();
@@ -185,6 +190,10 @@ function PluginCard({
   // tRPC mutation for deleting plugins
   const deletePlugins = trpc.plesk.wpPluginsDelete.delete.useMutation({
     onSuccess: () => {
+      captureEvent("wordpress_plugin_deleted", {
+      plugin_name: plugin.title || plugin.slug || "unknown",
+    });
+
       toast.success("Plugin deleted successfully!");
       setDeleteDialogOpen(false);
       // Refetch data to update the UI
@@ -454,7 +463,13 @@ function WordPressPluginsLegacy({ installationId }: WordPressPluginsProps) {
 
   // tRPC mutation for bulk auto-updating plugins
   const bulkAutoUpdatePlugins = trpc.plesk.wpPluginsAutoupdate.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {    const pluginList = (variables as { plugins?: Array<{ slug?: string; autoUpdates?: boolean }> })?.plugins || [];
+    for (const p of pluginList) {
+      if (p?.autoUpdates) {
+        captureEvent("wordpress_plugin_updated", { plugin_name: p.slug || "unknown" });
+      }
+    }
+
       toast.success("Auto-update settings updated successfully!");
       // Refetch data to update the UI
       refetch();

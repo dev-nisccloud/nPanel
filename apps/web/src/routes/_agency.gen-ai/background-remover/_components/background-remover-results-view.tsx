@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import type { BackgroundRemovalView } from "./background-remover-interface";
+import { captureEvent } from "@/lib/posthog";
 
 interface BackgroundRemoverResultsViewProps {
   generations: BackgroundRemovalView[];
@@ -78,6 +79,12 @@ export function BackgroundRemoverResultsView({
       // 4) Absolute fallback so we never end up without an extension
       if (!ext) {
         ext = "png";
+      }
+
+      if (fileNameBase.includes("background-removed") || fileNameBase === "background-removed") {
+        captureEvent("background_removed_image_downloaded", {
+          file_format: ext,
+        });
       }
 
       const link = document.createElement("a");

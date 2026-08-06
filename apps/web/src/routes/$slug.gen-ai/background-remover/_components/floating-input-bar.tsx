@@ -16,6 +16,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { cn } from "@/lib/utils";
 import { uploadFiles } from "@/hooks/use-uploadthing";
 import { UPLOAD_ENDPOINTS } from "@/lib/uploadthing";
+import { captureEvent } from "@/lib/posthog";
 
 interface FloatingInputBarProps {
   teamId?: string;
@@ -29,7 +30,11 @@ export function FloatingInputBar({ teamId, creditsValue }: FloatingInputBarProps
 
   const utils = trpc.useUtils();
   const startMutation = trpc.backgroundRemover.startBackgroundRemoval.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const sizeBytes = variables.originalImageSize ?? 0;
+      captureEvent("background_removed", {
+        file_size_mb: Math.round((sizeBytes / (1024 * 1024)) * 100) / 100,
+      });
       utils.backgroundRemover.getGenerations.invalidate();
       toast.success(
         "Background removal started. This can take about 30 seconds to 10 minutes depending on complexity. Results will appear when ready."

@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -148,6 +150,7 @@ export function EditRoleSheet({ open, onOpenChange, roleId, onSuccess }: EditRol
       ]);
 
       toast.success("Role updated successfully");
+      captureEvent("agency_role_updated");
       onOpenChange(false);
       onSuccess?.();
     } catch {

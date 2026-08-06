@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   name: z.string()
@@ -56,6 +57,8 @@ export function CreateDatabaseSheet({
 
   const createDatabase = trpc.plesk.databasesCreate.create.useMutation({
     onSuccess: (data) => {
+      captureEvent("database_created", { database_type: form.getValues("type") || "mysql" });
+
       toast.success("Database created successfully!");
       form.reset();
       onOpenChange(false);

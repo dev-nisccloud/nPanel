@@ -1,5 +1,6 @@
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
+import { captureEvent } from "@/lib/posthog";
 
 /**
  * Hook to export email builder design as HTML (client-side).
@@ -38,6 +39,7 @@ export function useExportEmailBuilder() {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
+            captureEvent("email_design_exported", { export_format: "html" });
             toast.success("Export completed", {
                 description: `Downloaded ${link.download}`,
             });

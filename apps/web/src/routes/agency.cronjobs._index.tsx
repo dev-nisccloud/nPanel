@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { useNavigate } from "react-router";
 import { ChevronDown, Plus, Search } from "lucide-react";
@@ -24,6 +26,7 @@ export default function AgencyCronJobsIndexPage() {
 
   const createMutation = trpc.cronWorkflowRun.create.useMutation({
     onSuccess: async (data) => {
+      captureEvent("workflow_run_started", { workflow_type: String(data?.jobKey ?? "") });
       await utils.cronWorkflowRun.list.invalidate();
       navigate(`/agency/cronjobs/runs/${data.id}`);
     },

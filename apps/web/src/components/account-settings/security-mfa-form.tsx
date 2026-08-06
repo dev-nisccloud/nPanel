@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Mail, CheckCircle2 } from "lucide-react";
 import { apiUrl } from "@/lib/auth-client";
+import { captureEvent } from "@/lib/posthog";
 import { OtpExpiryCountdown } from "@/components/otp-expiry-countdown";
 
 type MfaStatusResponse = {
@@ -101,6 +102,7 @@ export function SecurityMfaForm() {
       if (!res.ok) {
         throw new Error(data?.error || "Failed to verify OTP");
       }
+      captureEvent("mfa_enabled");
       toast.success("Two-factor authentication enabled");
       setIsEnabled(true);
       setIsSetupMode(false);
@@ -164,6 +166,7 @@ export function SecurityMfaForm() {
       if (!res.ok) {
         throw new Error(data?.error || "Failed to disable MFA");
       }
+      captureEvent("mfa_disabled");
       toast.success("Two-factor authentication disabled");
       setIsEnabled(false);
       setIsSetupMode(false);

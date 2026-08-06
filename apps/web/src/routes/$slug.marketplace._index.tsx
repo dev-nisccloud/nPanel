@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { useLocation } from "react-router";
 import { Search } from "lucide-react";
@@ -26,6 +28,10 @@ function CardSkeleton() {
 }
 
 export default function MarketplacePage() {
+  React.useEffect(() => {
+    captureEvent("marketplace_viewed", { user_type: "customer" });
+  }, []);
+
   const { pathname } = useLocation();
   const teamSlug = pathname.split("/")[1] ?? "";
   const [search, setSearch] = React.useState("");

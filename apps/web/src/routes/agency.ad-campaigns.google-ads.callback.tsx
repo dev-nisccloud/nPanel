@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { ShoppingCart, CheckCircle2, XCircle } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 export default function GoogleAdsCallbackPage() {
 	const navigate = useNavigate();
@@ -17,9 +18,15 @@ export default function GoogleAdsCallbackPage() {
 	const [hasProcessed, setHasProcessed] = React.useState(false);
 
 	const generateTokenMutation = trpc.googleAds.auth.generateToken.useMutation({
-		onSuccess: () => {
+		onSuccess: (data) => {
 			setStatus("success");
 			setHasProcessed(true);
+			const customerId =
+				(data as { data?: { customerId?: string } })?.data?.customerId ??
+				(data as { customerId?: string })?.customerId;
+			captureEvent("google_ads_connected", {
+				customer_id: customerId,
+			});
 			toast.success("Google Ads account connected successfully!");
 			// Redirect to main Google Ads page after a short delay
 			setTimeout(() => {

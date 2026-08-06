@@ -39,6 +39,7 @@ import {
 	type SubscriptionStatusConfirmAction,
 } from "./subscription-status-confirm-dialog";
 import { SubscriptionDeleteDialog } from "./subscription-delete-dialog";
+import { captureEvent } from "@/lib/posthog";
 
 function getBillingCycleDisplayName(cycle: string | null): string {
 	if (!cycle) return "- ";
@@ -99,8 +100,17 @@ export function SubscriptionViewSheet({
 		{ enabled: open && !!subscriptionId },
 	);
 
+	React.useEffect(() => {
+		if (open && subscriptionId) {
+			captureEvent("subscription_viewed", { subscription_id: subscriptionId });
+		}
+	}, [open, subscriptionId]);
+
 	const syncNiscStatus = trpc.clientSubscriptions.update.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			if (variables.status) {
+				captureEvent("subscription_status_changed", { status: variables.status });
+			}
 			utils.clientSubscriptions.getById.invalidate({ id: subscriptionId! });
 			utils.clientSubscriptions.listForAgency.invalidate();
 		},
@@ -119,6 +129,9 @@ export function SubscriptionViewSheet({
 
 	const cancelSubscription = trpc.clientSubscriptions.cancel.useMutation({
 		onSuccess: () => {
+			captureEvent("hosting_subscription_cancelled");
+			captureEvent("subscription_status_changed", { status: "CANCELLED" });
+
 			utils.clientSubscriptions.getById.invalidate({ id: subscriptionId! });
 			utils.clientSubscriptions.listForAgency.invalidate();
 			onOpenChange(false);
@@ -129,6 +142,7 @@ export function SubscriptionViewSheet({
 
 	const deleteSubscription = trpc.clientSubscriptions.delete.useMutation({
 		onSuccess: () => {
+			captureEvent("subscription_deleted");
 			utils.clientSubscriptions.listForAgency.invalidate();
 			setDeleteDialogOpen(false);
 			onOpenChange(false);
@@ -197,6 +211,7 @@ export function SubscriptionViewSheet({
 			{ id: sub.id, status },
 			{
 				onSuccess: () => {
+					captureEvent(statusConfirmAction === "suspend" ? "hosting_subscription_suspended" : "hosting_subscription_resumed");
 					setStatusConfirmAction(null);
 					toast.success(
 						statusConfirmAction === "suspend"

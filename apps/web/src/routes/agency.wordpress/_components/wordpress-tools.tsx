@@ -29,6 +29,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { MaintenanceModeDialog } from "./maintenance-mode-dialog";
 import { PasswordProtectionDialog } from "./password-protection-dialog";
+import { captureEvent } from "@/lib/posthog";
 
 interface WordPressToolsProps {
     installationId: string;
@@ -100,7 +101,9 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
             updateLocalCache(['maintenance', 'status'], vars.status);
             return { prev };
         },
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
+            captureEvent(variables.status ? "wordpress_maintenance_enabled" : "wordpress_maintenance_disabled");
+
             toast.success("Maintenance mode toggled");
             utils.plesk.wordpress.getById.invalidate({ id });
         },
@@ -165,6 +168,8 @@ export function WordPressTools({ installationId }: WordPressToolsProps) {
 
     const runSmartUpdate = trpc.plesk.wpFeatures.applySmartUpdate.useMutation({
         onSuccess: () => {
+          captureEvent("wordpress_updated");
+
             toast.success("Smart update started");
         },
         onError: (e) => toast.error(e.message)

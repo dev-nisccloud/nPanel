@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { captureEvent } from "@/lib/posthog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -649,8 +650,17 @@ export function ClientDetailPage({ clientId }: { clientId: string }) {
 
   const utils = trpc.useUtils();
 
+  React.useEffect(() => {
+    if (clientId) {
+      captureEvent("client_profile_viewed", { client_id: clientId });
+    }
+  }, [clientId]);
+
   const changeStatusMutation = trpc.clients.changeStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      if (variables.status === "DEACTIVATED" || variables.status === "BANNED") {
+        captureEvent("client_deleted", { status: variables.status });
+      }
       toast.success("Status updated successfully");
       utils.clients.getAll.invalidate();
       utils.userProfile.getUserById.invalidate({ userId: clientId });

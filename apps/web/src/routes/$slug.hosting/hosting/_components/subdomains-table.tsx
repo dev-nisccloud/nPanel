@@ -40,6 +40,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import {
+import { captureEvent } from "@/lib/posthog";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -181,6 +182,8 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
   // tRPC mutation for deleting subdomain
   const deleteSubdomain = trpc.plesk.subdomainsDelete.delete.useMutation({
     onSuccess: () => {
+      captureEvent("subdomain_deleted");
+
       toast.success("Subdomain deleted successfully!");
       setDeleteDialogOpen(false);
       setSubdomainToDelete(null);

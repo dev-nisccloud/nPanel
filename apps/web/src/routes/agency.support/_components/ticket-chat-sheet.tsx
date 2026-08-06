@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { format } from "date-fns";
 import { CheckCircle, CircleDot, Send } from "lucide-react";
@@ -218,6 +220,7 @@ export function TicketChatSheet({
         content,
         isInternal: false,
       });
+      captureEvent("support_ticket_replied", { is_agent: true });
       scrollToBottom();
     } catch {
       setDraft(content);
@@ -230,6 +233,8 @@ export function TicketChatSheet({
     try {
       await updateStatus.mutateAsync({ ticketId, status });
       toast.success(`Ticket marked as ${formatStatusLabel(status)}`);
+      if (status === "CLOSED") captureEvent("support_ticket_closed");
+      if (status === "OPEN" || status === "REOPENED") captureEvent("support_ticket_reopened");
     } catch {
       toast.error("Failed to update status");
     }

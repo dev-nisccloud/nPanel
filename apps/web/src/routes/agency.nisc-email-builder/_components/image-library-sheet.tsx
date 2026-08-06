@@ -23,6 +23,7 @@ import {
 } from "@/lib/app-file-upload";
 import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
 import { useCreateNebMediaLibraryItem } from "../_api/use-create-email-builder-library-item";
@@ -85,6 +86,9 @@ export function ImageLibrarySheet({ open, onOpenChange }: ImageLibrarySheetProps
 			prependItem(created.data);
 			setTab("library");
 			setPage(1);
+			captureEvent("email_image_uploaded", {
+				file_size_kb: Math.round((uploaded.size || file.size) / 1024),
+			});
 			toast.success("Image uploaded");
 		} catch (e) {
 			toast.error(uploadErrorMessage(e));

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 import { Users, Plus, Upload, Download, X, FileText } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -264,6 +265,10 @@ export function CreateAudienceSheet({ open, onOpenChange, onSuccess }: CreateAud
 					contacts.length > 0
 						? `Created audience with ${contacts.length} contact(s).`
 						: "Created empty audience. You can add contacts later.",
+			});
+
+			captureEvent("email_audience_created", {
+				audience_size: contacts.length,
 			});
 
 			handleOpenChange(false);

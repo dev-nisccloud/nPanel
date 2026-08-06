@@ -25,6 +25,7 @@ import { clientSchema } from "./agency.clients/_components/schema";
 import { authClient } from "@/lib/auth-client";
 import { redirectToTarget } from "@/lib/auth-redirect";
 import { useQueryClient } from "@tanstack/react-query";
+import { captureEvent } from "@/lib/posthog";
 
 const EmptyState = ({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) => (
   <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -108,7 +109,10 @@ export default function ClientsPage() {
   };
 
   const changeStatusMutation = trpc.clients.changeStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      if (variables.status === "DEACTIVATED" || variables.status === "BANNED") {
+        captureEvent("client_deleted", { status: variables.status });
+      }
       toast.success("Client status updated successfully");
       utils.clients.getAll.invalidate();
     },

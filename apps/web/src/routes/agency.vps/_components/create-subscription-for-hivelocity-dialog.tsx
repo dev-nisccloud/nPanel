@@ -25,6 +25,7 @@ import { DatePicker } from "@/components/npanel-ui/date-picker";
 import { trpc } from "@/utils/trpc";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 function addBillingPeriod(
   date: Date,
@@ -98,7 +99,11 @@ export function CreateSubscriptionForHivelocityDialog({
     });
 
   const createMutation = trpc.clientSubscriptions.create.useMutation({
-    onSuccess: () => {
+    onSuccess: () => {    const ht = String(hostingType || defaultHostingType || serviceType || "");
+    if (ht.includes("VDS")) captureEvent("vds_subscription_created", { plan: selectedProductId || "unknown" });
+    else if (ht.includes("DEDICATED")) captureEvent("dedicated_server_subscription_created", { plan: selectedProductId || "unknown" });
+    else captureEvent("vps_subscription_created", { plan: selectedProductId || "unknown" });
+
       toast.success("Subscription created and linked");
       onOpenChange(false);
       resetForm();

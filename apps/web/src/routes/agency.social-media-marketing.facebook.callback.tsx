@@ -7,20 +7,41 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 export default function FacebookCallbackPage() {
 	const [status, setStatus] = React.useState<"loading" | "success" | "error">("loading");
 	const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 	const [hasProcessed, setHasProcessed] = React.useState(false);
+	const connectionSourceRef = React.useRef<"facebook" | "meta_ads">("facebook");
 
 	const generateTokenMutation = trpc.socialMediaMarketing.meta.auth.generateToken.useMutation({
-		onSuccess: () => {
+		onSuccess: (data) => {
 			setStatus("success");
 			setHasProcessed(true);
-			toast.success("Facebook account connected successfully!");
+			const pageId =
+				(data as { data?: { pageId?: string } })?.data?.pageId ??
+				(data as { pageId?: string })?.pageId;
+			const accountId =
+				(data as { data?: { accountId?: string } })?.data?.accountId ??
+				(data as { accountId?: string })?.accountId;
+			if (connectionSourceRef.current === "meta_ads") {
+				captureEvent("meta_ads_connected", { account_id: accountId });
+			} else {
+				captureEvent("facebook_account_connected", { page_id: pageId });
+			}
+			toast.success(
+				connectionSourceRef.current === "meta_ads"
+					? "Meta Ads account connected successfully!"
+					: "Facebook account connected successfully!",
+			);
 			// Use a hard redirect so refreshing the callback does not re-run the exchange.
 			setTimeout(() => {
-				window.location.replace("/agency/social-media-marketing/facebook");
+				window.location.replace(
+					connectionSourceRef.current === "meta_ads"
+						? "/agency/ad-campaigns/meta-ads"
+						: "/agency/social-media-marketing/facebook",
+				);
 			}, 2000);
 		},
 		onError: (error) => {
@@ -54,8 +75,17 @@ export default function FacebookCallbackPage() {
 			return;
 		}
 
+		// Detect Meta Ads vs Facebook SMM connection source
+		const metaAdsState = sessionStorage.getItem("meta_ads_oauth_state");
+		const facebookState = sessionStorage.getItem("facebook_oauth_state");
+		if (metaAdsState && (!facebookState || state === metaAdsState)) {
+			connectionSourceRef.current = "meta_ads";
+		} else {
+			connectionSourceRef.current = "facebook";
+		}
+
 		// Validate state
-		const storedState = sessionStorage.getItem("facebook_oauth_state");
+		const storedState = metaAdsState || facebookState;
 		if (state && storedState && state !== storedState) {
 			setStatus("error");
 			setHasProcessed(true);
@@ -63,13 +93,18 @@ export default function FacebookCallbackPage() {
 			return;
 		}
 		sessionStorage.removeItem("facebook_oauth_state");
+		sessionStorage.removeItem("meta_ads_oauth_state");
 
 		const lastProcessedCode = sessionStorage.getItem("facebook_oauth_last_code");
 		if (code && lastProcessedCode === code) {
 			setStatus("success");
 			setHasProcessed(true);
 			setTimeout(() => {
-				window.location.replace("/agency/social-media-marketing/facebook");
+				window.location.replace(
+					connectionSourceRef.current === "meta_ads"
+						? "/agency/ad-campaigns/meta-ads"
+						: "/agency/social-media-marketing/facebook",
+				);
 			}, 1000);
 			return;
 		}

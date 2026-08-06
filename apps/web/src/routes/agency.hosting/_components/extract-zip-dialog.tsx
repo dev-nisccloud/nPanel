@@ -24,6 +24,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { trpc } from "@/utils/trpc";
 import type { FileManagerItem } from "./file-manager-schema";
 import { hostingDetailSchema } from "./hosting-detail-schema";
+import { captureEvent } from "@/lib/posthog";
 
 interface ExtractZipDialogProps {
   open: boolean;
@@ -92,6 +93,9 @@ export function ExtractZipDialog({
       setFailedFiles([]);
     },
     onSuccess: (data) => {
+      captureEvent("zip_extracted", {
+        file_count: Array.isArray(data.files) ? data.files.length : 0,
+      });
       setStatus("completed");
       setProgress(100);
       setStatusMessage(data.message);

@@ -1,5 +1,6 @@
 import { trpc } from "@/utils/trpc";
 import { toast } from "sonner";
+import { captureEvent } from "@/lib/posthog";
 
 /**
  * Hook for immediate, network-resilient email builder content saves.
@@ -71,6 +72,7 @@ export function useSaveEmailBuilderContent() {
             });
         },
         onSuccess: (data, variables) => {
+            captureEvent("email_design_saved", { save_type: "auto" });
             // Update with successful save state
             utils.emailBuilder.get.setData(
                 { id: variables.designId },

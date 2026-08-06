@@ -30,6 +30,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 
 import { mailAddressSchema } from "./mail-schema";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   name: z.string().min(1, { message: "Email name is required." }),
@@ -106,6 +107,11 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
   // tRPC mutation for creating email account
   const createEmailAccount = trpc.plesk.emailsCreate.create.useMutation({
     onSuccess: () => {
+      captureEvent("email_address_created", { domain: domainName || "unknown" });
+    if (form.getValues("forwardingEnabled")) {
+      captureEvent("email_forwarding_setup");
+    }
+
       toast.success("Email address added successfully!");
       form.reset();
       onOpenChange(false);
@@ -115,7 +121,14 @@ export function AddMailAddressSheet({ open, onOpenChange, siteId, onSuccess, ini
 
   // tRPC mutation for updating email account
   const updateEmailAccount = trpc.plesk.emailsUpdate.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {    const pwd = form.getValues("password");
+    if (pwd && String(pwd).trim()) {
+      captureEvent("email_address_password_changed");
+    }
+    if ((variables as { forwarding?: { enabled?: boolean } })?.forwarding?.enabled || form.getValues("forwardingEnabled")) {
+      captureEvent("email_forwarding_setup");
+    }
+
       toast.success("Email address updated successfully!");
       form.reset();
       onOpenChange(false);

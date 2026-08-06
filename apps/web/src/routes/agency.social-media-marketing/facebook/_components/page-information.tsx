@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 interface PageInformationProps {
 	pageId: string;
@@ -131,7 +132,13 @@ export function PageInformation({ pageId, pageName }: PageInformationProps) {
 	);
 
 	const publishPostMutation = trpc.socialMediaMarketing.meta.content.publishPost.useMutation({
-		onSuccess: (data) => {
+		onSuccess: (data, variables) => {
+			const postType = variables.video
+				? "video"
+				: variables.photos?.length
+					? "photo"
+					: "text";
+			captureEvent("facebook_post_published", { post_type: postType });
 			toast.success("Post published successfully!", {
 				description: data.data?.postId ? `Post ID: ${data.data.postId}` : undefined,
 			});

@@ -10,6 +10,7 @@ import { ImageGeneratorInterface } from "./$slug.gen-ai/image-generator/_compone
 import { AiImageGeneratorPricing } from "./$slug.gen-ai/image-generator/_components/ai-image-generator-pricing";
 import { useGetGenerations } from "./$slug.gen-ai/image-generator/_api/use-get-generations";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const AI_IMAGE_GENERATOR_PRODUCT_NAME_PATTERN = /ai\s*image\s*generator/i;
 const CREDITS_LOW_THRESHOLD = 7;
@@ -43,6 +44,10 @@ function parseCreditsNumber(credits: string): number | null {
 export default function CustomerImageGeneratorPage() {
   const params = useParams();
   const teamSlug = typeof params?.slug === "string" ? params.slug : "";
+
+  React.useEffect(() => {
+    captureEvent("simple_image_generator_used", { user_type: "customer" });
+  }, []);
 
   const { data: subscriptions, isLoading: isLoadingSubs } =
     trpc.clientSubscriptions.listForTeam.useQuery(

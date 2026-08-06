@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { useNavigate, useParams } from "react-router";
 import { ArrowLeft, Loader2, MoreHorizontal } from "lucide-react";
@@ -34,10 +36,24 @@ export default function AgencyCronJobRunDetailPage() {
   const params = useParams();
   const runId = (params as { runId?: string }).runId;
 
+  React.useEffect(() => {
+    if (runId) captureEvent("workflow_run_viewed", { run_id: runId });
+  }, [runId]);
+
   const query = trpc.cronWorkflowRun.getById.useQuery(
     { id: runId ?? "" },
     { enabled: !!runId }
   );
+
+  React.useEffect(() => {
+    const status = query.data?.status;
+    if (status === "completed" || status === "failed" || status === "cancelled") {
+      captureEvent("workflow_run_completed", {
+        status: String(status),
+        run_id: runId ?? "",
+      });
+    }
+  }, [query.data?.status, runId]);
 
   const patchMutation = trpc.cronWorkflowRun.patch.useMutation({
     onSuccess: () => query.refetch(),

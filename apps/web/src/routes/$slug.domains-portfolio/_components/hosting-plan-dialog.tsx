@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Check } from "lucide-react";
 import {
@@ -73,6 +75,10 @@ export function HostingPlanDialog({
   teamId,
   buyDomainHref,
 }: HostingPlanDialogProps) {
+  React.useEffect(() => {
+    if (open) captureEvent("domain_hosting_plan_viewed", { domain: domainName });
+  }, [open]);
+
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
   const [selectedBillingCycle, setSelectedBillingCycle] = React.useState<
     Record<string, "MONTHLY" | "YEARLY" | "BIENNIALLY">

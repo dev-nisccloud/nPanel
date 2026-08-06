@@ -12,6 +12,7 @@ import {
 
 import { APP_CONFIG } from "@/config/app-config";
 import { Button } from "@/components/ui/button";
+import { captureEvent } from "@/lib/posthog";
 import {
   Card,
   CardContent,
@@ -80,6 +81,14 @@ export default function ConfirmTransferPage() {
       setResultStatus(data.status);
       setResultMessage(data.message);
       setPageState(data.status === "Error" ? "error" : "done");
+      if (data.status !== "Error") {
+        const tld = domain.includes(".")
+          ? `.${domain.split(".").slice(1).join(".")}`
+          : undefined;
+        captureEvent("domain_transfer_completed", {
+          ...(tld ? { tld } : {}),
+        });
+      }
     },
     onError: (error: unknown) => {
       setPageState("error");

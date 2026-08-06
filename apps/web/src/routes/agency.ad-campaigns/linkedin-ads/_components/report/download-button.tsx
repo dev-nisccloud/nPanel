@@ -6,6 +6,7 @@ import { FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { pdf, Font } from "@react-pdf/renderer";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { LinkedInAdsCampaignGroupReportPDF } from "./report-pdf";
 
 let fontsRegistered = false;
@@ -131,6 +132,9 @@ export function DownloadLinkedInAdsReportButton(props: LinkedInAdsReportPayload)
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
 
+            captureEvent("linkedin_ads_report_downloaded", {
+                report_type: "campaign_group_pdf",
+            });
             toast.success("Report downloaded successfully");
         } catch (e) {
             console.error(e);

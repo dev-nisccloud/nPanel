@@ -19,6 +19,7 @@ import { useGlobalBuyNowStore } from "@/stores/global-buy-now-store";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { AI_DOMAIN_SUGGESTION_COUNT } from "@npanel/api/lib/ai-domain-search-constants";
 import type { DomainSearchResult } from "@/hooks/use-domain-search";
+import { captureEvent } from "@/lib/posthog";
 
 const MIN_DESCRIPTION_LENGTH = 40;
 
@@ -317,6 +318,10 @@ function AiDomainSearchInner() {
       setIsLoadingKenicFees(false);
     },
     onSuccess: (data) => {
+      captureEvent("domain_ai_search_performed", {
+        business_description_length: description.trim().length,
+        suggestions_count: data.suggestions.length,
+      });
       setSuggestions(data.suggestions);
 
       // Batch-fetch KENIC fees for all available KENIC domains at once

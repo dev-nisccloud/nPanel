@@ -42,6 +42,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import {
 	CREDIT_NOTE_REASONS,
 	creditNoteReasonLabel,
@@ -106,6 +107,11 @@ export function IssueCreditNoteDialog({
 
 	const issueMutation = trpc.invoicing.issueCreditNote.useMutation({
 		onSuccess: (creditNote) => {
+			const amount = Number(invoiceAmount ?? 0);
+			captureEvent("credit_note_issued", {
+				amount: Number.isFinite(amount) ? amount : 0,
+				currency: currency || "KES",
+			});
 			toast.success("Credit note issued", {
 				description: `${creditNote.creditNumber} submitted to KRA eTIMS.`,
 			});

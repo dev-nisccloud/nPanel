@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -328,6 +330,7 @@ export function RegisterETimsItemSheet({
         toast.success("Service synced to KRA and saved to Nisc catalog");
       } else {
         toast.success(isEdit ? "Product updated in KRA eTIMS" : "Service registered in KRA eTIMS");
+        if (!isEdit) captureEvent("etims_product_registered", { product_type: itemTyCd });
       }
 
       await utils.etims.items.getItemList.invalidate(KRA_ITEM_LIST_INPUT);

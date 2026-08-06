@@ -7,6 +7,7 @@ import { Globe, CheckCircle, XCircle } from "lucide-react";
 
 import { APP_CONFIG } from "@/config/app-config";
 import { authClient } from "@/lib/auth-client";
+import { captureEvent } from "@/lib/posthog";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
@@ -42,6 +43,7 @@ export default function VerifyEmailPage() {
           return;
         }
 
+        captureEvent("email_verified");
         setVerificationStatus("success");
         toast.success("Email verified successfully!");
 

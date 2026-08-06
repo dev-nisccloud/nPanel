@@ -123,6 +123,7 @@ import {
   HivelocityAddonOptionRow,
 } from "@/components/hivelocity-addon-option-row";
 import { ceilConvertedPrice, computeCeilVatTotals, paymentTotalString } from "@npanel/api/lib/convert-price";
+import { captureEvent } from "@/lib/posthog";
 
 const CHECKOUT_TEAM_BILLING_FORM_ID = "checkout-team-billing-form";
 
@@ -1266,6 +1267,7 @@ export function BuyNowDialog({
       }
     },
     onError: (error) => {
+      captureEvent("mpesa_payment_failed");
       const errorMessage = error.message || "Failed to initiate payment. Please try again.";
       console.error("M-Pesa payment initiation error:", error);
       immediatePaymentErrorRef.current = errorMessage;
@@ -1280,6 +1282,26 @@ export function BuyNowDialog({
   // @ts-expect-error - tRPC useMutation type instantiation is excessively deep with createFromPayment input
   const createOrderFromPayment = trpc.niscServiceOrders.createFromPayment.useMutation({
     onSuccess: () => {
+      const pt = plan?.hivelocity?.productType;
+      if (pt === "VPS") {
+        captureEvent("vps_subscription_created", {
+          plan: plan?.planName || plan?.hivelocity?.hivelocityProductId || "unknown",
+          price: plan?.price ?? 0,
+          currency: plan?.currency || "KES",
+        });
+      } else if (pt === "VDS") {
+        captureEvent("vds_subscription_created", {
+          plan: plan?.planName || plan?.hivelocity?.hivelocityProductId || "unknown",
+          price: plan?.price ?? 0,
+          currency: plan?.currency || "KES",
+        });
+      } else if (pt === "DEDICATED_SERVERS") {
+        captureEvent("dedicated_server_subscription_created", {
+          plan: plan?.planName || plan?.hivelocity?.hivelocityProductId || "unknown",
+          price: plan?.price ?? 0,
+          currency: plan?.currency || "KES",
+        });
+      }
       toast.success("Order submitted for processing.");
       setTimeout(() => {
         window.location.reload();
@@ -1595,9 +1617,11 @@ export function BuyNowDialog({
               immediateStepRef.current = "success";
               setPaymentError(null);
               toast.success("Payment completed successfully!");
+              captureEvent("mpesa_payment_completed", { amount: typeof amount !== "undefined" ? amount : 0 });
               setCurrentStep("success");
             } else {
               const errorMessage = getUserFriendlyError(numericResultCode, response.data.resultDesc);
+              captureEvent("mpesa_payment_failed", { error_code: String(numericResultCode) });
               immediatePaymentErrorRef.current = errorMessage;
               immediateStepRef.current = "error";
               setPaymentError(errorMessage);
@@ -1683,6 +1707,7 @@ export function BuyNowDialog({
     }
 
     const transactionDesc = (`Purchase: ${plan?.planName || 'Service Plan'}`).slice(0, 13);
+    captureEvent("mpesa_payment_initiated", { amount: amount, phone_length: (typeof formattedPhone !== "undefined" ? formattedPhone : mpesaPhoneNumber).replace(/\D/g, "").length });
     initiateMpesaPayment.mutate({
       phoneNumber: formattedPhone,
       amount: amount,

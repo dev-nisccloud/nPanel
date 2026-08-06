@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Download, RotateCcw } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
@@ -40,6 +42,7 @@ export function NiscBackupAccountBackupsTab({
 
   const queueRestore = trpc.niscBackup.queues.queueSnapshot.useMutation({
     onSuccess: () => {
+      captureEvent("backup_restored");
       toast.success("Restore queued");
       setRestoreTarget(null);
       utils.niscBackup.queues.listGroups.invalidate();
@@ -49,6 +52,7 @@ export function NiscBackupAccountBackupsTab({
 
   const queueDownload = trpc.niscBackup.downloads.queueSnapshot.useMutation({
     onSuccess: () => {
+      captureEvent("backup_downloaded");
       toast.success("Download queued  open the Downloads tab when the queue finishes, then click Save file.");
       utils.niscBackup.downloads.list.invalidate();
       utils.niscBackup.queues.listGroups.invalidate();
@@ -58,6 +62,8 @@ export function NiscBackupAccountBackupsTab({
 
   const onDemand = trpc.niscBackup.accounts.createOnDemand.useMutation({
     onSuccess: () => {
+      captureEvent("backup_job_created");
+      captureEvent("backup_job_started");
       toast.success("On-demand backup started");
       refetch();
     },

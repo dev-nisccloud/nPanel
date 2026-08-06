@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 type AdPlatform = "META_ADS" | "GOOGLE_ADS" | "LINKEDIN_ADS" | "INSTAGRAM_ADS";
 
@@ -55,7 +56,12 @@ export function CreateMediaBuyingSubscriptionDialog({
 
   const createMutation =
     trpc.clientSubscriptions.createMediaBuyingSubscription.useMutation({
-      onSuccess: () => {
+      onSuccess: (_data, variables) => {
+        captureEvent("media_buying_subscription_created", {
+          platform: variables.platform,
+          budget: variables.adServingFee,
+          currency: variables.adServingFeeCurrency,
+        });
         toast.success("Media buying subscription created successfully");
         setOpen(false);
         setTeamId("");

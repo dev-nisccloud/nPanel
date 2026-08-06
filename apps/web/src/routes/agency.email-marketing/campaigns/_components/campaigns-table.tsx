@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { trpc, type RouterOutputs } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 type CampaignSummary = RouterOutputs["emailMarketing"]["campaigns"]["list"]["campaigns"][0];
 
@@ -129,6 +130,7 @@ function CampaignRowActions({ campaign, onRefetch }: CampaignRowActionsProps) {
 
 	const deleteMutation = trpc.emailMarketing.campaigns.delete.useMutation({
 		onSuccess: () => {
+			captureEvent("email_campaign_deleted");
 			toast.success("Campaign deleted successfully", {
 				description: `Campaign ${campaign.name} has been deleted.`,
 			});

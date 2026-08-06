@@ -24,6 +24,7 @@ import {
 } from "@/components/npanel-ui/sheet";
 
 import type { HivelocityProductType, MarginType } from "@/hooks/use-hivelocity-pricing";
+import { captureEvent } from "@/lib/posthog";
 
 const marginBlockSchema = z
   .object({
@@ -182,6 +183,10 @@ export function HivelocityPricingMarginCard({
 
   const upsertMutation = trpc.hivelocityPricingSettings.upsert.useMutation({
     onSuccess: () => {
+      captureEvent("hivelocity_pricing_settings_updated", {
+        margin_changed: true,
+        product_type: productType,
+      });
       toast.success("Pricing margin saved");
       utils.hivelocityPricingSettings.get.invalidate({ productType });
       setOpen(false);

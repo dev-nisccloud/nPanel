@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -70,6 +72,7 @@ export function SaveDigitaxCustomerSheet({
   const createCustomer = trpc.digitax.customers.create.useMutation({
     onSuccess: () => {
       toast.success("Customer registered successfully");
+      captureEvent("digitax_customer_registered");
       onOpenChange(false);
       onSuccess?.();
     },

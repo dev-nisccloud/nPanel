@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
 export const useCreateNebDesign = () => {
@@ -8,6 +9,9 @@ export const useCreateNebDesign = () => {
 
 	return trpc.niscEmailBuilder.design.create.useMutation({
 		onSuccess: () => {
+			captureEvent("email_design_created", {
+				template_used: "blank",
+			});
 			utils.niscEmailBuilder.design.list.invalidate();
 		},
 		onError: (error) => {

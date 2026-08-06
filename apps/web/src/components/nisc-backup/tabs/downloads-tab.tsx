@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import { Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
@@ -70,7 +72,7 @@ export function NiscBackupDownloadsTab({ username }: { username?: string }) {
               badgeClassName={niscBackupStatusBadgeClass("success")}
               actions={
                 <Button size="sm" variant="ghost" asChild>
-                  <a href={buildNiscBackupDownloadFileUrl(item._id)} download={item.path}>
+                  <a href={buildNiscBackupDownloadFileUrl(item._id)} onClick={() => captureEvent("backup_downloaded", { backup_id: item._id })} download={item.path}>
                     <Download className="mr-1 h-3 w-3" />
                     Save file
                   </a>

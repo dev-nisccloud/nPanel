@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 import { CountrySelect } from "./country-select";
 import { SettingsSection } from "./settings-section";
 
@@ -77,7 +78,11 @@ export function ProfileForm() {
   });
 
   const onSubmit = async (data: ProfileFormValues) => {
+    const fieldsChanged = Object.keys(form.formState.dirtyFields);
     await updateProfileMutation.mutateAsync(data);
+    captureEvent("profile_updated", {
+      fields_changed: fieldsChanged.length > 0 ? fieldsChanged : Object.keys(data),
+    });
   };
 
   if (isLoading) {

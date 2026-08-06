@@ -28,6 +28,7 @@ import { trpc } from "@/utils/trpc";
 import { hostingDetailSchema } from "./hosting-detail-schema";
 import { useSubdomainsByDomain } from "./use-subdomains-by-domain";
 import { useDatabasesBySiteId } from "./use-databases-by-site-id";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   domainName: z.string().min(1, { message: "Domain is required." }),
@@ -179,6 +180,11 @@ export function InstallWordPressSheet({
   // Install WordPress mutation
   const installWordPress = trpc.plesk.wpInstall.install.useMutation({
     onSuccess: () => {
+      captureEvent("wordpress_installed", {
+      version: form.getValues("wpVersion") || "latest",
+      site_url: form.getValues("domainName") || domainName || "",
+    });
+
       toast.success("WordPress installation started successfully");
       form.reset();
       setIsSubmitting(false);

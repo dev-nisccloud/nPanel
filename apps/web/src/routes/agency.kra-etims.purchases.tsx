@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import {
     ShoppingCart,
@@ -70,6 +72,7 @@ export default function ETimsPurchasesPage() {
                 toast.error(body?.resultMsg ?? "Failed to send purchase transaction");
                 return;
             }
+            captureEvent("etims_purchase_recorded", { has_vat: true });
             toast.success("Purchase transaction sent to KRA eTIMS");
             setIsSendOpen(false);
             refetch();

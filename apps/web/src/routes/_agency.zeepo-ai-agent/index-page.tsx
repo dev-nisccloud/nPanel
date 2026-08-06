@@ -45,6 +45,7 @@ import {
 } from "@/components/zeepo/zeepo-agent-route-context";
 import { useZeepoTokenBilling } from "@/components/zeepo/zeepo-token-billing-provider";
 import { ZeepoTokenWallet } from "@/components/zeepo/zeepo-token-wallet";
+import { captureEvent } from "@/lib/posthog";
 
 type Attachment = { url: string; name: string; mimeType: string; storageKey?: string };
 
@@ -177,6 +178,7 @@ export default function ZeepoAiAgentIndexPage() {
       const content = message || (attachments.length ? "See attached." : "");
       try {
         const res = await createSession.mutateAsync(zeepoAgentCreateSessionInput({ basePath, teamId, teamSlug: null, isCustomer: Boolean(teamId) }));
+        captureEvent("zeepo_agent_session_created");
         void utils.zeepoAgent.sessions.list.invalidate();
         const id = res.data?.id;
         const created = res.data;

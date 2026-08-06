@@ -9,6 +9,7 @@ import { BackgroundRemoverInterface } from "./$slug.gen-ai/background-remover/_c
 import { BackgroundRemoverPricing } from "./$slug.gen-ai/background-remover/_components/background-remover-pricing";
 import { useGetBackgroundRemovals } from "./$slug.gen-ai/background-remover/_api/use-get-background-removals";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const BACKGROUND_REMOVER_PRODUCT_NAME_PATTERN = /background\s*remover/i;
 const CREDITS_LOW_THRESHOLD = 7;
@@ -42,6 +43,10 @@ function parseCreditsNumber(credits: string): number | null {
 export default function CustomerBackgroundRemoverPage() {
   const params = useParams();
   const teamSlug = typeof params?.slug === "string" ? params.slug : "";
+
+  React.useEffect(() => {
+    captureEvent("background_remover_opened", { user_type: "customer" });
+  }, []);
 
   const { data: subscriptions, isLoading: isLoadingSubs } =
     trpc.clientSubscriptions.listForTeam.useQuery(

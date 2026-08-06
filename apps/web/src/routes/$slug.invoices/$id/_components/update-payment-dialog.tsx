@@ -23,6 +23,7 @@ import {
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 
 type PaymentType = "COMPLETE" | "PARTIAL";
 
@@ -48,7 +49,16 @@ export function UpdatePaymentDialog({
 	const utils = trpc.useUtils();
 
 	const updatePaymentMutation = trpc.invoicing.updatePayment.useMutation({
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			const amount =
+				variables.type === "PARTIAL"
+					? Number(variables.amountPaid)
+					: Number(invoiceAmount ?? 0);
+			captureEvent("invoice_payment_recorded", {
+				payment_method: variables.type,
+				amount: Number.isFinite(amount) ? amount : 0,
+				currency: currency || "KES",
+			});
 			toast.success("Payment updated");
 			onOpenChange(false);
 			setType("COMPLETE");

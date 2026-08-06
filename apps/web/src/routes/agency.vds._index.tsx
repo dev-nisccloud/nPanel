@@ -19,6 +19,7 @@ import { buildHivelocityPlanForCheckout } from "@/lib/build-hivelocity-service-p
 import { HIVELOCITY_FACILITIES_QUERY_OPTIONS, HIVELOCITY_PLANS_QUERY_OPTIONS } from "@/lib/hivelocity-query-options";
 import { resolveClientErrorMessage } from "@/lib/public-error-message";
 import { BuyNowDialog, type ServicePlanDetails } from "@/components/buy-now-dialog";
+import { captureEvent } from "@/lib/posthog";
 
 export default function VdsPage() {
 	const limit = 24;
@@ -104,6 +105,10 @@ export default function VdsPage() {
 	}, [facilityOptions]);
 
 	const openBuyNow = React.useCallback((p: any) => {
+		captureEvent("hivelocity_plan_viewed", {
+			plan_type: p?.productType || p?.type || "unknown",
+			specs: [p?.vcpu, p?.memory, p?.disk].filter(Boolean).join("/") || "unknown",
+		});
 		setDialogIntent("buy_now");
 		setSelectedPlan(
 			buildHivelocityPlanForCheckout(p, {

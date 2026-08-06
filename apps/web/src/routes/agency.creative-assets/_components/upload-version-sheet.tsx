@@ -31,6 +31,7 @@ import {
 } from "@/lib/app-file-upload";
 import { STORAGE_PREFIXES } from "@/lib/storage-prefixes";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   versionNotes: z.string().optional(),
@@ -96,7 +97,12 @@ export function UploadVersionSheet({
 
   const utils = trpc.useUtils();
   const uploadVersionMutation = trpc.creativeAssets.uploadVersion.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      captureEvent("creative_asset_version_uploaded", {
+        file_size_mb: Math.round((variables.fileSize / (1024 * 1024)) * 100) / 100,
+        file_type: variables.mimeType,
+        version_number: (currentInternalVersion ?? 0) + 1,
+      });
       // Invalidate queries to refresh the asset data
       utils.creativeAssets.getById.invalidate({ id: assetId });
       toast.success("Version uploaded successfully!");

@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { databaseSchema } from "./databases-schema";
+import { captureEvent } from "@/lib/posthog";
 
 const FormSchema = z.object({
   role: z.enum(['readWrite', 'readOnly', 'writeOnly']),
@@ -60,6 +61,8 @@ export function ChangeDatabasePermissionsSheet({
 
   const changePermissions = trpc.plesk.databasesSetUser.update.useMutation({
     onSuccess: () => {
+      captureEvent("database_permissions_changed");
+
       toast.success("Database permissions updated successfully!");
       onOpenChange(false);
       onSuccess?.();

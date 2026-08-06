@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, CalendarDays, RotateCcw } from "lucide-react";
@@ -33,6 +35,10 @@ export default function MarketplaceServicePage() {
   const params = useParams();
   const teamSlug    = typeof params?.slug        === "string" ? params.slug        : "";
   const serviceSlug = typeof params?.serviceSlug === "string" ? params.serviceSlug : "";
+
+  React.useEffect(() => {
+    captureEvent("marketplace_product_viewed", { product_type: serviceSlug });
+  }, [serviceSlug]);
 
   /* Fetch all active products  same source as agency nisc-services page */
   const { data: allProducts = [], isLoading: productsLoading } = trpc.products.getAll.useQuery(

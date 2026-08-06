@@ -16,6 +16,7 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { type FileManagerItem } from "./file-manager-schema";
 import { hostingDetailSchema } from "./hosting-detail-schema";
+import { captureEvent } from "@/lib/posthog";
 
 const MAX_PREVIEW_BYTES = 100 * 1024 * 1024;
 
@@ -107,7 +108,10 @@ export function MediaViewerDialog({
   };
 
   const downloadFileMutation = trpc.plesk.ftp.downloadFile.useMutation({
-    onSuccess: (result) => {
+    onSuccess: (result) => {    const name = (variables as { path?: string; filePath?: string })?.path || (variables as { filePath?: string })?.filePath || file?.name || "";
+    const ext = String(name).includes(".") ? String(name).split(".").pop()?.toLowerCase() || "unknown" : "unknown";
+    captureEvent("file_viewed", { file_type: ext });
+
       try {
         const blob = bufferToBlob(result.data as unknown as { data?: number[]; type?: string });
         const url = window.URL.createObjectURL(blob);

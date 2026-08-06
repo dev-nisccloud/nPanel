@@ -9,6 +9,7 @@ import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { useData } from "@/routes/agency.quotations/create/hooks/useData";
 import type { Item } from "@/routes/agency.quotations/create/types";
+import { captureEvent } from "@/lib/posthog";
 
 function roundTotalIfExceeds(amount: number): number {
 	const decimalPlaces = (amount.toString().split(".")[1] ?? "").length;
@@ -28,6 +29,10 @@ export const DownloadQuotationButton = () => {
 	const createMutation = trpc.quotations.create.useMutation({
 		onSuccess: () => {
 			setStatus("submitted");
+			captureEvent("quotation_created", {
+				line_items_count: (quotationDetails.items || []).length,
+				currency: quotationDetails.currency || "KES",
+			});
 			utils.quotations.getNextQuotationNumber.invalidate();
 			toast.success("Quotation created successfully", {
 				description: "You can view and download it from the quotations list.",

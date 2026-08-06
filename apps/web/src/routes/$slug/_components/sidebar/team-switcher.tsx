@@ -16,6 +16,7 @@ import {
 import { useSwitchingTeam } from "@/contexts/switching-team-context";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { getInitials } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
 export function TeamSwitcher() {
@@ -45,6 +46,10 @@ export function TeamSwitcher() {
   });
 
   const handleTeamSwitch = (teamId: string, teamSlug: string) => {
+    captureEvent("organization_switched", {
+      from_org_id: activeTeam?.id,
+      to_org_id: teamId,
+    });
     startSwitchTeam();
     updateLastAccessed.mutate({ teamId });
     const target = `/${teamSlug}/dashboard` as never;

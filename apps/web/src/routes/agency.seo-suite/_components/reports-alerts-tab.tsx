@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 import { formatDate, formatNumber, type SeoProject } from "./seo-suite-utils";
 
@@ -65,6 +66,10 @@ export function ReportsAlertsTab({ projectId }: ReportsAlertsTabProps) {
 
   const createReport = trpc.seoSuite.createReportRun.useMutation({
     onSuccess: () => {
+      captureEvent("seo_report_generated", {
+        domain: project.primaryDomain,
+        report_type: reportType,
+      });
       toast.success("Report generated");
       utils.seoSuite.listReportRuns.invalidate({ projectId });
     },

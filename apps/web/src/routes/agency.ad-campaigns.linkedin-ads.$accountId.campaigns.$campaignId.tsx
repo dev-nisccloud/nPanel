@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ArrowLeft, RefreshCw, AlertCircle, Layers, FileText, Crosshair, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { captureEvent } from "@/lib/posthog";
 import { DownloadLinkedInAdsReportButton } from "./agency.ad-campaigns/linkedin-ads/_components/report/download-button";
 import {
   ChartContainer,
@@ -640,6 +641,12 @@ export default function LinkedInCampaignDetailsPage() {
     () => normalizeLinkedInId(campaignGroupId),
     [campaignGroupId, normalizeLinkedInId]
   );
+
+  React.useEffect(() => {
+    if (campaignGroupId) {
+      captureEvent("linkedin_ads_campaign_viewed", { campaign_id: campaignGroupId });
+    }
+  }, [campaignGroupId]);
 
   const timeRange = React.useMemo(
     () => ({

@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { format, subDays } from "date-fns";
 import { type DateRange } from "react-day-picker";
@@ -39,6 +41,9 @@ export default function CreativeReportsPage() {
         from: subDays(new Date(), 30),
         to: new Date(),
     });
+    React.useEffect(() => {
+        captureEvent("creative_report_viewed", { date_range: "default" });
+    }, []);
     const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
 
     const utils = trpc.useUtils();

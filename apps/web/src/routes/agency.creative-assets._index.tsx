@@ -12,6 +12,7 @@ import { AddAssetSheet } from "./agency.creative-assets/_components/add-asset-sh
 import { EditAssetSheet } from "./agency.creative-assets/_components/edit-asset-sheet";
 import { creativeAssetSchema } from "./agency.creative-assets/_components/schema";
 import { CreativeBriefsTabContent } from "./agency.creative-assets/_components/creative-briefs-tab-content";
+import { captureEvent } from "@/lib/posthog";
 
 export default function CreativeAssetsPage() {
   const [isAddAssetOpen, setIsAddAssetOpen] = React.useState(false);
@@ -41,6 +42,9 @@ export default function CreativeAssetsPage() {
     },
     onSuccess: (data, variables) => {
       setArchivingAssetId(null);
+      captureEvent("creative_asset_archived", {
+        category: data.category || "uncategorized",
+      });
       toast.success("Asset archived successfully", {
         id: `archive-${variables.id}`,
         description: `${data.name} has been archived`,

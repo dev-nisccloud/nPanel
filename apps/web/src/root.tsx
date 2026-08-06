@@ -1,6 +1,8 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { captureEvent } from "@/lib/posthog";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import * as Sentry from "@sentry/react-router";
+import posthog from "posthog-js";
 
 import "./index.css";
 import {
@@ -10,6 +12,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -27,10 +30,61 @@ import { QueryProvider } from "@/providers/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 import type { ThemeMode, ThemePreset } from "@/types/preferences/theme";
+import { authClient } from "@/lib/auth-client";
 
 const DEFAULT_THEME_MODE: ThemeMode = "light";
 const DEFAULT_THEME_PRESET: ThemePreset = "twitter";
 
+let identifiedUserId: string | null;
+
+function PostHogIdentitySync() {
+  const { data: session, isPending } = authClient.useSession();
+
+  useEffect(() => {
+    if (
+      isPending ||
+      !import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+      !import.meta.env.VITE_PUBLIC_POSTHOG_HOST
+    ) {
+      return;
+    }
+
+    const user = session?.user;
+    const userId = user?.id;
+
+    if (!userId) {
+      if (identifiedUserId) posthog.reset();
+      identifiedUserId = null;
+      return;
+    }
+
+    if (identifiedUserId === userId) return;
+
+    if (identifiedUserId) posthog.reset();
+    posthog.identify(userId, {
+      ...(user.email ? { email: user.email } : {}),
+      ...(user.name ? { name: user.name } : {}),
+    });
+    identifiedUserId = userId;
+  }, [isPending, session]);
+
+  return null;
+}
+
+
+function PostHogPageViews() {
+  const location = useLocation();
+  useEffect(() => {
+    const path = location.pathname;
+    const userType = path.startsWith("/agency") ? "agency" : path.match(/^\/[^/]+\//) ? "customer" : "unknown";
+    captureEvent("page_viewed", {
+      page_path: path,
+      page_title: typeof document !== "undefined" ? document.title : "",
+      user_type: userType,
+    });
+  }, [location.pathname, location.search]);
+  return null;
+}
 export const meta: Route.MetaFunction = () => [
   { title: APP_CONFIG.meta.title },
   { name: "description", content: APP_CONFIG.meta.description },
@@ -91,6 +145,8 @@ export default function App() {
   return (
     <NuqsAdapter>
       <QueryProvider>
+        <PostHogIdentitySync />
+        <PostHogPageViews />
         <SessionLifetimeGuard />
         <ThemeProvider
           attribute="class"

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/sonner";
+import { captureEvent } from "@/lib/posthog";
 import { trpc } from "@/utils/trpc";
 
 type CreateTeamInput = {
@@ -38,6 +39,12 @@ export function CreateTeamForm() {
 
   const createTeamMutation = trpc.teams.create.useMutation({
     onSuccess: (data) => {
+      captureEvent("organization_created", {
+        base_currency: formData.currency,
+        invited_member_count: formData.inviteMembers.trim()
+          ? formData.inviteMembers.split(/[,;\n]/).filter((email) => email.trim()).length
+          : 0,
+      });
       toast.success("Organization created successfully!");
       const teamSlug = data.team.slug;
       const destination = data.isFirstTeam

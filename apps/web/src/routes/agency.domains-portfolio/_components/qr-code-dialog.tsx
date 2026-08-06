@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import {
   Dialog,
@@ -20,6 +22,10 @@ interface QrCodeDialogProps {
 }
 
 export function QrCodeDialog({ open, onOpenChange, domain }: QrCodeDialogProps) {
+  React.useEffect(() => {
+    if (open) captureEvent("domain_qr_code_generated", { domain: String(domain ?? "") });
+  }, [open]);
+
   const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState<string | null>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [copied, setCopied] = React.useState(false);

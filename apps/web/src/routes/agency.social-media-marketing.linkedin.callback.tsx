@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/utils/trpc";
 import { toast } from "@/components/ui/sonner";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { captureEvent } from "@/lib/posthog";
 
 export default function LinkedInCallbackPage() {
 	const navigate = useNavigate();
@@ -17,9 +18,14 @@ export default function LinkedInCallbackPage() {
 	const [hasProcessed, setHasProcessed] = React.useState(false);
 
 	const generateTokenMutation = trpc.socialMediaMarketing.linkedin.auth.generateToken.useMutation({
-		onSuccess: () => {
+		onSuccess: (data) => {
 			setStatus("success");
 			setHasProcessed(true);
+			const pageId =
+				(data as { data?: { pageId?: string; organizationId?: string } })?.data?.pageId ??
+				(data as { data?: { organizationId?: string } })?.data?.organizationId ??
+				(data as { pageId?: string })?.pageId;
+			captureEvent("linkedin_account_connected", { page_id: pageId });
 			toast.success("LinkedIn account connected successfully!");
 			// Redirect to main LinkedIn page after a short delay
 			setTimeout(() => {

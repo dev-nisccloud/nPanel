@@ -1,4 +1,7 @@
+import * as React from "react";
 "use client";
+
+import { captureEvent } from "@/lib/posthog";
 
 import { NiscReportProvider } from "./report-context";
 import { DashboardShell } from "./dashboard-shell";
@@ -13,6 +16,10 @@ import { ProfitabilitySection } from "./sections/profitability-section";
 import { TaxSection } from "./sections/tax-section";
 
 export function NiscReportDashboard() {
+  React.useEffect(() => {
+    captureEvent("nisc_report_viewed", { report_type: "dashboard" });
+  }, []);
+
   return (
     <NiscReportProvider>
       <DashboardShell>

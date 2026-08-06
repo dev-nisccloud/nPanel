@@ -12,6 +12,7 @@ import { toast } from "@/components/ui/sonner";
 import { trpc } from "@/utils/trpc";
 import { cn } from "@/lib/utils";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
+import { captureEvent } from "@/lib/posthog";
 
 export type DomainTransferSecuritySectionProps = {
   source: "openprovider" | "kenic";
@@ -57,6 +58,7 @@ export function DomainTransferSecuritySection({
 
   const updateOpLockMutation = trpc.openProvider.domains.update.useMutation({
     onSuccess: async (_data, variables) => {
+      captureEvent(variables.is_locked ? "domain_locked" : "domain_unlocked");
       toast.success(
         variables.is_locked
           ? "Domain locked for transfer"
@@ -68,6 +70,7 @@ export function DomainTransferSecuritySection({
 
   const updateKenicLockMutation = trpc.kenic.domainList.setTransferLock.useMutation({
     onSuccess: (_data, variables) => {
+      captureEvent(variables.locked ? "domain_locked" : "domain_unlocked");
       toast.success(
         variables.locked
           ? "Domain locked for transfer"

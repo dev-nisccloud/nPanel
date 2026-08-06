@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { EllipsisVertical, Eye, Loader2, Plus, RefreshCw, ShieldAlert, Trash2 } from "lucide-react";
 import { z } from "zod";
@@ -100,6 +102,7 @@ export default function AgencyRolesPage() {
 
 	const deleteRoleMutation = trpc.agencyRbac.roleDelete.useMutation({
 		onSuccess: () => {
+			captureEvent("agency_role_deleted");
 			utils.agencyRbac.rolesList.invalidate();
 			setPendingDeleteRole(null);
 		},

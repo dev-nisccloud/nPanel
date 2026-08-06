@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -129,6 +131,7 @@ export function AddEditProductSheet({
     const createProduct = trpc.products.create.useMutation({
         onSuccess: () => {
             toast.success("Product created successfully!");
+            captureEvent("product_created");
             form.reset();
             onOpenChange(false);
             onSuccess?.();
@@ -141,6 +144,7 @@ export function AddEditProductSheet({
     const updateProduct = trpc.products.update.useMutation({
         onSuccess: () => {
             toast.success("Product updated successfully!");
+            captureEvent("product_updated");
             onOpenChange(false);
             onSuccess?.();
         },

@@ -42,6 +42,7 @@ import {
 import { useInteraction } from "@/routes/_agency.zeepo-canvas/_providers/interaction";
 import { useGateway } from "@/routes/_agency.zeepo-canvas/_providers/models";
 import { isValidSourceTarget } from "@/routes/_agency.zeepo-canvas/_lib/xyflow";
+import { captureEvent } from "@/lib/posthog";
 
 export const Canvas = ({ children, canvasId, initialData, ...props }: ReactFlowProps & { canvasId: string, initialData: any }) => {
   const { mode, setIsDirty } = useInteraction();
@@ -153,6 +154,10 @@ export const Canvas = ({ children, canvasId, initialData, ...props }: ReactFlowP
       setNodes((nds: Node[]) => nds.concat(newNode));
       save();
       setIsDirty(true);
+
+      if (type !== "drop") {
+        captureEvent("zeepo_canvas_node_added", { node_type: type });
+      }
 
       return newNode.id;
     },

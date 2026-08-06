@@ -1,5 +1,7 @@
 "use client";
 
+import { captureEvent } from "@/lib/posthog";
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -96,6 +98,10 @@ export function WebDesignContactDialog({
     type CreateInput = Parameters<typeof createMutation.mutateAsync>[0];
     try {
       await createMutation.mutateAsync(payload as CreateInput);
+      captureEvent("web_design_quote_requested", {
+        domain: String((payload as { domain?: string }).domain ?? ""),
+        budget_range: String((payload as { budgetRange?: string; budget_range?: string }).budgetRange ?? (payload as { budget_range?: string }).budget_range ?? ""),
+      });
       toast.success("Request sent", {
         description: "We will reply with a quote soon.",
       });

@@ -40,6 +40,7 @@ import { ComboboxDropdown, type ComboboxItem } from "@npanel/ui/components/combo
 import { DatePicker } from "@/components/npanel-ui/date-picker";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
+import { captureEvent } from "@/lib/posthog";
 
 // Edit form schema - all fields optional
 const editFormSchema = z.object({
@@ -97,6 +98,12 @@ export function EditSubscriptionDialog({
   // Update mutation
   const updateSubscriptionMutation = trpc.hosting.updateSubscription.useMutation({
     onSuccess: () => {
+      const pending = (updateSubscriptionMutation as { _pendingAnalytics?: { type: string; props?: Record<string, string | number | boolean> } })._pendingAnalytics;
+      if (pending?.type) {
+        captureEvent(pending.type, pending.props);
+        (updateSubscriptionMutation as { _pendingAnalytics?: unknown })._pendingAnalytics = undefined;
+      }
+
       toast.success("Subscription updated successfully");
       form.reset();
       onOpenChange(false);
@@ -208,6 +215,33 @@ export function EditSubscriptionDialog({
       return;
     }
 
+    const pendingAnalytics: { type: string; props?: Record<string, string | number | boolean> } | undefined =
+      submitData.hostingPlanId && initialData?.hostingPlanId && submitData.hostingPlanId !== initialData.hostingPlanId
+        ? (() => {
+            const oldPlan = hostingPlans.find((p) => p.id === initialData.hostingPlanId);
+            const newPlan = hostingPlans.find((p) => p.id === submitData.hostingPlanId);
+            const oldPrice = Number((oldPlan as { price?: number; basePrice?: number } | undefined)?.price ?? (oldPlan as { basePrice?: number } | undefined)?.basePrice ?? 0);
+            const newPrice = Number((newPlan as { price?: number; basePrice?: number } | undefined)?.price ?? (newPlan as { basePrice?: number } | undefined)?.basePrice ?? 0);
+            const isUpgrade = newPrice >= oldPrice;
+            return {
+              type: isUpgrade ? "hosting_subscription_upgraded" : "hosting_subscription_downgraded",
+              props: {
+                old_plan: oldPlan?.name || initialData.hostingPlanId,
+                new_plan: newPlan?.name || submitData.hostingPlanId,
+                ...(isUpgrade ? { price_difference: newPrice - oldPrice } : {}),
+              },
+            };
+          })()
+        : submitData.nextRenewalDate
+          ? {
+              type: "hosting_subscription_renewed",
+              props: {
+                plan: hostingPlans.find((p) => p.id === (submitData.hostingPlanId || initialData?.hostingPlanId))?.name || "unknown",
+                duration: submitData.billingCycle || initialData?.billingCycle || "unknown",
+              },
+            }
+          : undefined;
+    (updateSubscriptionMutation as { _pendingAnalytics?: typeof pendingAnalytics })._pendingAnalytics = pendingAnalytics;
     updateSubscriptionMutation.mutate(submitData);
   };
 
