@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Search, RefreshCw, Grid3X3, List, EllipsisVertical, Database as DatabaseIcon, ExternalLink, Key, Trash2, Settings, Download, Upload, Wrench, Info, Link2, Globe } from "lucide-react";
+import { Plus, Search, RefreshCw, EllipsisVertical, Database as DatabaseIcon, ExternalLink, Key, Trash2, Settings, Download, Upload, Wrench, Info, Link2, Globe } from "lucide-react";
 import { z } from "zod";
 import { toast } from "@/components/ui/sonner";
 
@@ -35,7 +35,6 @@ import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { trpc } from "@/utils/trpc";
 import { databaseSchema } from "./databases-schema";
 import { useDatabasesBySiteId } from "./use-databases-by-site-id";
-import { DatabaseCardsList } from "./database-cards";
 import { ChangeDatabasePasswordSheet } from "./change-database-password-sheet";
 import { ChangeDatabasePermissionsSheet } from "./change-database-permissions-sheet";
 import { DatabaseConnectionInfoDialog } from "./database-connection-info-dialog";
@@ -117,7 +116,6 @@ function DatabasesTableError({ error, onRetry }: { error: Error; onRetry: () => 
 export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
   const { data: databasesData, isLoading, isError, error, refetch } = useDatabasesBySiteId(siteId);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [databaseToDelete, setDatabaseToDelete] = React.useState<{ id?: number; name?: string } | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -418,25 +416,6 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
-          {/* View Mode Toggle */}
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={viewMode === "card" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
 
           <Button
             variant="outline"
@@ -452,24 +431,7 @@ export function DatabasesTable({ siteId, domainName }: DatabasesTableProps) {
       </div>
 
       {/* Content */}
-      {viewMode === "card" ? (
-        <DatabaseCardsList
-          data={filteredData}
-          currentSiteId={siteId}
-          domainName={domainName}
-          onOpenPhpMyAdmin={handleOpenPhpMyAdmin}
-          onDelete={handleDelete}
-          onChangePassword={handleChangePassword}
-          onChangePermissions={handleChangePermissions}
-          onConnectionInfo={handleConnectionInfo}
-          onRepair={handleRepair}
-          onImport={handleImport}
-          onExport={handleExport}
-          onAssignToWebsite={handleAssignToWebsite}
-        />
-      ) : (
-        <TableView />
-      )}
+      <TableView />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

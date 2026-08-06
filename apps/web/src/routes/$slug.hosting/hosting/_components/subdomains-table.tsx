@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Search, RefreshCw, Grid3X3, List, EllipsisVertical } from "lucide-react";
+import { Plus, Trash2, Search, RefreshCw, EllipsisVertical } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { SubdomainCardsList } from "./subdomains-cards";
 import { subdomainSchema } from "./subdomains-schema";
 import { useSubdomainsByDomain } from "./use-subdomains-by-domain";
 import { AddSubdomainSheet } from "./add-subdomain-sheet";
@@ -167,7 +166,6 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
   const { data: subdomainsData, isLoading, isError, error, refetch } = useSubdomainsByDomain(domainName);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
   const [isAddSubdomainOpen, setIsAddSubdomainOpen] = React.useState(false);
   const [isViewSubdomainOpen, setIsViewSubdomainOpen] = React.useState(false);
   const [subdomainToView, setSubdomainToView] = React.useState<z.infer<typeof subdomainSchema> | null>(null);
@@ -359,17 +357,6 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
     </div>
   );
 
-  const CardView = () => (
-    <div className="p-4">
-      <SubdomainCardsList
-        data={filteredData}
-        onView={handleView}
-        onDelete={handleDelete}
-        cols={3}
-      />
-    </div>
-  );
-
   if (isLoading) {
     return <SubdomainsTableSkeleton />;
   }
@@ -407,25 +394,6 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
         </div>
         
         <div className="flex flex-wrap items-center gap-2 @sm/main:flex-nowrap">
-          {/* View Mode Toggle */}
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={viewMode === "card" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-              className="rounded-r-none"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="rounded-l-none"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
           
           <Button 
             variant="outline" 
@@ -441,7 +409,7 @@ export function SubdomainsTable({ domainName }: SubdomainsTableProps) {
       </div>
 
       {/* Content */}
-      {viewMode === "card" ? <CardView /> : <TableView />}
+      <TableView />
 
       {/* Add Subdomain Sheet */}
       <AddSubdomainSheet 

@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Grid3X3, List } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -31,7 +31,6 @@ import { useLocation } from "react-router";
 // import { hostingColumns } from "./columns";
 import { getStatusDisplayText, getStatusBadgeVariant } from "./hosting-utils";
 
-import { HostingCardsList } from "./hosting-cards";
 import { HostingPricing } from "./hosting-pricing";
 import type { CustomerHostingListItem } from "./schema";
 import { useTeamEmailSubscriptions } from "./use-team-email-subscriptions";
@@ -148,7 +147,6 @@ export function HostingDataTable() {
   const teamSlug = pathname.split("/")[1];
   const { data, isLoading, isError, error, refetch } = useTeamEmailSubscriptions(teamSlug);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
   // Filter data based on search query
   const filteredData = React.useMemo(() => {
@@ -247,27 +245,6 @@ export function HostingDataTable() {
     </div>
   );
 
-  const CardView = () => (
-    <div className="p-4">
-      <HostingCardsList
-        data={filteredData}
-        onViewDetails={(sub) => {
-          const payload =
-            typeof sub === "string"
-              ? { id: sub, pleskSubscriptionId: null }
-              : typeof sub === "number"
-                ? { id: String(sub), pleskSubscriptionId: null }
-                : {
-                    id: String((sub as CustomerHostingListItem).id),
-                    pleskSubscriptionId: (sub as CustomerHostingListItem).pleskSubscriptionId ?? null,
-                  };
-          handleViewDetails(payload);
-        }}
-        cols={3}
-      />
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -287,27 +264,9 @@ export function HostingDataTable() {
             </Badge>
           )}
         </div>
-        <div className="flex items-center border rounded-md">
-          <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="rounded-r-none"
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="rounded-l-none"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
 
-      {viewMode === "card" ? <CardView /> : <TableView />}
+      <TableView />
     </div>
   );
 }

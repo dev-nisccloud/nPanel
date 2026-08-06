@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useLocation } from "react-router";
-import { Search, RefreshCw, Grid3X3, List } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import { z } from "zod";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { WordPressCardsList } from "./wordpress-cards";
 import { wordpressInstallationSchema } from "./schema";
 import { useWordPressInstances } from "./use-wordpress-instances";
 
@@ -93,7 +92,6 @@ export function WordPressDataTable() {
   const teamSlug = pathname.split("/")[1] ?? "";
   const { data: wordpressData, isLoading, isError, error, refetch } = useWordPressInstances();
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [viewMode, setViewMode] = React.useState<"card" | "table">("table");
 
   const filteredData = React.useMemo(() => {
     if (!wordpressData) return [];
@@ -109,26 +107,6 @@ export function WordPressDataTable() {
 
     return wordpressData;
   }, [wordpressData, searchTerm]);
-
-  const handleEdit = (id: number | undefined) => {
-    console.log("Edit WordPress installation:", id);
-    // TODO: Implement edit functionality
-  };
-
-  const handleDelete = (id: number | undefined) => {
-    console.log("Delete WordPress installation:", id);
-    // TODO: Implement delete functionality
-  };
-
-  const handleCopy = (data: z.infer<typeof wordpressInstallationSchema>) => {
-    console.log("Copy WordPress installation settings:", data);
-    // TODO: Implement copy functionality
-  };
-
-  const handleSettings = (id: number | undefined) => {
-    console.log("Open WordPress installation settings:", id);
-    // TODO: Implement settings functionality
-  };
 
   const getStatusBadge = (item: z.infer<typeof wordpressInstallationSchema>) => {
     if (item.status?.infected) {
@@ -235,20 +213,8 @@ export function WordPressDataTable() {
     </div>
   );
 
-  const CardView = () => (
-    <WordPressCardsList
-      data={filteredData}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      onCopy={handleCopy}
-      onSettings={handleSettings}
-      cols={3}
-    />
-  );
-
   return (
     <div className="space-y-4">
-      {/* Header with search and view toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="relative flex-1 max-w-sm">
@@ -266,30 +232,9 @@ export function WordPressDataTable() {
             </Badge>
           )}
         </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex items-center border rounded-md">
-          <Button
-            variant={viewMode === "card" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-            className="rounded-r-none"
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="rounded-l-none"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
 
-      {/* Content */}
-      {viewMode === "card" ? <CardView /> : <TableView />}
+      <TableView />
     </div>
   );
 }
